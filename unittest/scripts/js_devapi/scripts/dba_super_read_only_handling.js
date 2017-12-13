@@ -73,7 +73,7 @@ ensureSuperReadOnly(connection3);
 //@<OUT> Rejoins an instance
 cluster.rejoinInstance(connection3);
 
-delete cluster;
+cluster.disconnect();
 session.close();
 
 // killSandboxInstance does not wait until the process is actually killed
@@ -109,6 +109,7 @@ wait_slave_state(cluster, uri3, "ONLINE");
 
 // Close session
 session.close();
+cluster.disconnect();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

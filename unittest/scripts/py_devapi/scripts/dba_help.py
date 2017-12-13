@@ -19,9 +19,6 @@ dba.help('get_cluster');
 #@<OUT> Kill Sandbox
 dba.help('kill_sandbox_instance');
 
-#@<OUT> Reset Session
-dba.help('reset_session');
-
 #@<OUT> Start Sandbox
 dba.help('start_sandbox_instance');
 

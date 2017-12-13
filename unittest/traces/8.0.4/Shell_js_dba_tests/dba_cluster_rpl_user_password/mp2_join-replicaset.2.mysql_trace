@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3540?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:2000?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "23",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -100,7 +105,7 @@
     ],
     "rows": [
         [
-            "db1a0d9b-d039-11e7-8f8d-f83441274313"
+            "baa39508-df8b-11e7-92b8-67e753e78c0b"
         ]
     ]
 },
@@ -176,7 +181,7 @@
     ],
     "rows": [
         [
-            0
+            1
         ]
     ]
 },
@@ -214,7 +219,7 @@
     ],
     "rows": [
         [
-            "DISABLED"
+            "REQUIRED"
         ]
     ]
 },
@@ -268,8 +273,8 @@
     ],
     "rows": [
         [
-            "dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com",
-            3540
+            "dhcp-10-159-141-218.vpn.oracle.com",
+            2000
         ]
     ]
 },
@@ -444,6 +449,20 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -626,21 +645,7 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -654,7 +659,7 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -668,8 +673,8 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -682,8 +687,8 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -699,6 +704,13 @@
             "mysqlx",
             "ACTIVE",
             "DAEMON",
+            "mysqlx.so",
+            "GPL"
+        ],
+        [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
             "mysqlx.so",
             "GPL"
         ],
@@ -752,7 +764,7 @@
     ],
     "rows": [
         [
-            "localhost:13540"
+            "localhost:12000"
         ]
     ]
 },
@@ -927,6 +939,20 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1109,21 +1135,7 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1137,7 +1149,7 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1151,8 +1163,8 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1165,8 +1177,8 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1182,6 +1194,13 @@
             "mysqlx",
             "ACTIVE",
             "DAEMON",
+            "mysqlx.so",
+            "GPL"
+        ],
+        [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
             "mysqlx.so",
             "GPL"
         ],
@@ -1235,7 +1254,7 @@
     ],
     "rows": [
         [
-            "db1a0d9b-d039-11e7-8f8d-f83441274313"
+            "baa39508-df8b-11e7-92b8-67e753e78c0b"
         ]
     ]
 },

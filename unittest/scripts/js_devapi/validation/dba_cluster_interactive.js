@@ -2,7 +2,7 @@
 ||
 
 //@ Cluster: validating members
-|Cluster Members: 12|
+|Cluster Members: 13|
 |name: OK|
 |getName: OK|
 |addInstance: OK|
@@ -13,6 +13,7 @@
 |status: OK|
 |help: OK|
 |dissolve: OK|
+|disconnect: OK|
 |rescan: OK|
 |forceQuorumUsingPartitionOf: OK|
 
@@ -104,7 +105,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: removeInstance errors
@@ -162,7 +164,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Cluster: dissolve error: not empty
@@ -248,7 +251,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# Dba: kill instance 3
@@ -316,7 +320,8 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: final dissolve
@@ -335,3 +340,6 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 ||Cluster.removeInstance: Can't call function 'removeInstance' on a dissolved cluster
 ||Cluster.rescan: Can't call function 'rescan' on a dissolved cluster
 ||Cluster.status: Can't call function 'status' on a dissolved cluster
+
+//@ Cluster: disconnect() is ok on a dissolved cluster
+||

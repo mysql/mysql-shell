@@ -37,7 +37,8 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mysqlxtest_utils.h"
-#include "gr/group_replication.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
@@ -53,7 +54,6 @@
 #include <netdb.h>
 #include <unistd.h>
 #endif
-#include "gr/group_replication.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -74,9 +74,11 @@ static const std::string kSandboxDatadir = "sandboxdata";
 
 ReplicaSet::ReplicaSet(const std::string &name,
                        const std::string &topology_type,
+                       const std::string &group_name,
                        std::shared_ptr<MetadataStorage> metadata_storage)
     : _name(name),
       _topology_type(topology_type),
+      _group_name(group_name),
       _metadata_storage(metadata_storage) {
   assert(topology_type == kTopologyMultiMaster ||
          topology_type == kTopologyPrimaryMaster);
@@ -325,6 +327,19 @@ void ReplicaSet::validate_instance_address(
   }
 }
 
+void set_group_replication_member_options(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  // We need to install the GR plugin to have GR sysvars available
+  mysqlshdk::mysql::Instance instance(session);
+  mysqlshdk::gr::install_plugin(instance);
+
+  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4)) {
+    // This option required to connect using the new caching_sha256_password
+    // authentication method without SSL
+    session->query("SET PERSIST group_replication_recovery_get_public_key=1");
+  }
+}
+
 shcore::Value ReplicaSet::add_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Argument_list &args,
@@ -401,7 +416,9 @@ shcore::Value ReplicaSet::add_instance(
   bool is_instance_on_md =
       _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
-  auto session = Dba::get_session(instance_def);
+  mysqlshdk::db::Scoped_session<mysqlshdk::db::ISession> session(
+      mysqlshdk::db::mysql::Session::create());
+  session->connect(instance_def);
 
   // Check whether the address being used is not in a known not-good case
   validate_instance_address(session, joiner_host, instance_def.get_port());
@@ -434,7 +451,6 @@ shcore::Value ReplicaSet::add_instance(
     // Retrieves the new instance UUID
     std::string uuid;
     get_server_variable(session, "server_uuid", uuid);
-    session->close();
 
     // Verifies if the instance is part of the cluster replication group
     auto cluster_session = _metadata_storage->get_session();
@@ -463,8 +479,6 @@ shcore::Value ReplicaSet::add_instance(
             "The instance '" + instance_address +
             "' is already part of another Replication Group");
     }
-  } else {
-    session->close();
   }
 
   log_debug("RS %lu: Adding instance '%s' to replicaset%s",
@@ -480,6 +494,8 @@ shcore::Value ReplicaSet::add_instance(
 
     // Creates the replication user ONLY if not already given
     if (replication_user.empty()) {
+      // TODO(.) Replication user is not a metadata thing... all the GR
+      // things should be moved out of metadata class
       _metadata_storage->create_repl_account(replication_user,
                                              replication_user_password);
       log_debug("Created replication user '%s'", replication_user.c_str());
@@ -494,6 +510,9 @@ shcore::Value ReplicaSet::add_instance(
       log_info("Using Group Replication local address: %s",
                local_address.c_str());
       log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
+
+      set_group_replication_member_options(session);
+
       // Call mysqlprovision to bootstrap the group using "start"
       do_join_replicaset(instance_def, nullptr, super_user_password,
                          replication_user, replication_user_password, ssl_mode,
@@ -525,6 +544,8 @@ shcore::Value ReplicaSet::add_instance(
         if (md_ssl.has_key())
           peer_ssl.set_key(md_ssl.get_key());
       }
+
+      set_group_replication_member_options(session);
 
       log_info("Joining '%s' to group using account %s@%s to peer '%s'",
                instance_address.c_str(), user.c_str(), instance_address.c_str(),
@@ -559,13 +580,17 @@ bool ReplicaSet::do_join_replicaset(
 
   shcore::Value::Array_type_ref errors, warnings;
 
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
   if (is_seed_instance) {
-    exit_code = _cluster->get_provisioning_interface()->start_replicaset(
+    exit_code = cluster->get_provisioning_interface()->start_replicaset(
         instance, repl_user, super_user_password, repl_user_password,
         _topology_type == kTopologyMultiMaster, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, &errors);
   } else {
-    exit_code = _cluster->get_provisioning_interface()->join_replicaset(
+    exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, super_user_password, repl_user_password,
         ssl_mode, ip_whitelist, local_address, group_seeds, false, &errors);
   }
@@ -645,6 +670,10 @@ shcore::Value ReplicaSet::rejoin_instance_(const shcore::Argument_list &args) {
 shcore::Value ReplicaSet::rejoin_instance(
     mysqlshdk::db::Connection_options *instance_def,
     const shcore::Value::Map_type_ref &rejoin_options) {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
   shcore::Value ret_val;
   // SSL Mode AUTO by default
   std::string ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
@@ -671,7 +700,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   }
 
   if (!instance_def->has_port())
-    instance_def->set_port(get_default_port());
+    instance_def->set_port(mysqlshdk::db::k_default_mysql_port);
 
   std::string instance_address =
       instance_def->as_uri(only_transport());
@@ -711,7 +740,7 @@ shcore::Value ReplicaSet::rejoin_instance(
       throw;
     }
 
-    if (!validate_replicaset_group_name(_metadata_storage, session, _id)) {
+    if (!validate_replicaset_group_name(session, get_group_name())) {
       std::string nice_error =
           "The instance '" + instance_address +
           "' "
@@ -831,7 +860,7 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     // Get the seed session connection data
     // use mysqlprovision to rejoin the cluster.
-    exit_code = _cluster->get_provisioning_interface()->join_replicaset(
+    exit_code = cluster->get_provisioning_interface()->join_replicaset(
         *instance_def, seed_instance_def, "", instance_password, "", ssl_mode,
         ip_whitelist, "", seed_instance_xcom_address, true, &errors);
     if (exit_code == 0) {
@@ -892,13 +921,17 @@ shcore::Value ReplicaSet::remove_instance_(const shcore::Argument_list &args) {
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
   bool force = false;  // By default force is false.
 
   auto instance_def =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
   if (!instance_def.has_port())
-    instance_def.set_port(get_default_port());
+    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
   // Retrieve and validate options.
   if (args.size() == 2) {
@@ -1000,7 +1033,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
     int exit_code = -1;
     shcore::Value::Array_type_ref errors;
 
-    exit_code = _cluster->get_provisioning_interface()->leave_replicaset(
+    exit_code = cluster->get_provisioning_interface()->leave_replicaset(
         instance_def, &errors);
 
     // Only add the metadata back if the force option was not used.
@@ -1144,6 +1177,10 @@ void ReplicaSet::remove_instances_from_gr(
 void ReplicaSet::remove_instance_from_gr(
     const std::string &instance_str,
     const mysqlshdk::db::Connection_options &data) {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
   auto instance = shcore::get_connection_options(instance_str, false);
   instance.set_user(data.get_user());
   instance.set_password(data.get_password());
@@ -1163,7 +1200,7 @@ void ReplicaSet::remove_instance_from_gr(
   shcore::Value::Array_type_ref errors;
 
   // Leave the replicaset
-  int exit_code = _cluster->get_provisioning_interface()->leave_replicaset(
+  int exit_code = cluster->get_provisioning_interface()->leave_replicaset(
       instance, &errors);
   if (exit_code != 0)
     throw shcore::Exception::runtime_error(
@@ -1307,7 +1344,7 @@ shcore::Value ReplicaSet::retrieve_instance_state(
       mysqlsh::get_connection_options(args, PasswordFormat::STRING);
 
   if (!instance_def.has_port())
-    instance_def.set_port(get_default_port());
+    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
   // Sets a default user if not specified
   mysqlsh::resolve_connection_credentials(&instance_def, nullptr);
@@ -1561,7 +1598,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
       mysqlsh::get_connection_options(args, PasswordFormat::STRING);
 
   if (!instance_def.has_port())
-    instance_def.set_port(get_default_port());
+    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
   std::string instance_address =
       instance_def.as_uri(only_transport());
@@ -1601,7 +1638,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
       throw;
     }
 
-    if (!validate_replicaset_group_name(_metadata_storage, session, _id)) {
+    if (!validate_replicaset_group_name(session, get_group_name())) {
       std::string nice_error =
           "The instance '" + instance_address +
           "' "
@@ -1705,10 +1742,14 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 }
 
 ReplicationGroupState ReplicaSet::check_preconditions(
+    std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
-  return check_function_preconditions(class_name(), function_name,
-                                      get_function_name(function_name),
-                                      _metadata_storage);
+  try {
+    return check_function_preconditions(class_name(), function_name,
+                                        get_function_name(function_name),
+                                        group_session);
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
+  return ReplicationGroupState{};
 }
 
 shcore::Value ReplicaSet::get_description() const {
@@ -1950,4 +1991,15 @@ std::shared_ptr<mysqlshdk::db::ISession> ReplicaSet::get_session(
   ret_val->connect(args);
 
   return ret_val;
+}
+
+
+std::vector<Instance_definition> ReplicaSet::get_instances_from_metadata() {
+  return _metadata_storage->get_replicaset_instances(get_id());
+}
+
+
+void ReplicaSet::set_group_name(const std::string &group_name) {
+  _group_name = group_name;
+  _metadata_storage->set_replicaset_group_name(shared_from_this(), group_name);
 }

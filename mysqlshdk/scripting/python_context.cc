@@ -98,7 +98,7 @@ private:
         if (python_path.size() >= sizeof(path)-1)
           throw std::runtime_error("mysqlsh path too long");
         snprintf(path, sizeof(path), "%s", python_path.c_str());
-        log_info("Setting PythonHome to %s", python_path.c_str());
+        log_info("Setting PythonHome to %s", path);
         Py_SetPythonHome(path);
       }
 #endif

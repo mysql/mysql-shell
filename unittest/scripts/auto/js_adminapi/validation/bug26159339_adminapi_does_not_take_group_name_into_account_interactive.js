@@ -30,7 +30,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Should have 2 members ONLINE and one missing
@@ -65,7 +66,8 @@
                 "status": "(MISSING)"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Rescan
@@ -74,3 +76,12 @@
 
 //@# Try to rejoin it (error)
 ||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' may belong to a different ReplicaSet as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the ReplicaSet's Metadata: possible split-brain scenario. Please remove the instance from the cluster.
+
+//@ getCluster() where the member we're connected to has a mismatched group_name vs metadata
+||
+
+//@# check error
+||Dba.getCluster: Unable to get a InnoDB cluster handle. The instance 'localhost:<<<__mysql_sandbox_port1>>>' may belong to a different ReplicaSet as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the ReplicaSet's Metadata: possible split-brain scenario. Please connect to another member of the ReplicaSet to get the Cluster.
+
+//@ Cleanup
+||

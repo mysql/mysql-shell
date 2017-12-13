@@ -27,8 +27,8 @@
 
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "scripting/types.h"
@@ -36,7 +36,8 @@
 namespace mysqlshdk {
 namespace mysql {
 
-Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {}
+Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {
+}
 
 utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
                                                 const VarScope &scope) const {
@@ -47,7 +48,7 @@ utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
 
   if (variables[name]) {
     std::string str_value = variables[name];
-    const char* value = str_value.c_str();
+    const char *value = str_value.c_str();
 
     if (shcore::str_caseeq(value, "YES") || shcore::str_caseeq(value, "TRUE") ||
         shcore::str_caseeq(value, "1") || shcore::str_caseeq(value, "ON"))
@@ -64,12 +65,12 @@ utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
 }
 
 utils::nullable<std::string> Instance::get_sysvar_string(
-    const std::string& name, const VarScope &scope) const {
+    const std::string &name, const VarScope &scope) const {
   return get_system_variables({name}, scope)[name];
 }
 
-utils::nullable<int64_t> Instance::get_sysvar_int(
-    const std::string& name, const VarScope &scope) const {
+utils::nullable<int64_t> Instance::get_sysvar_int(const std::string &name,
+                                                  const VarScope &scope) const {
   utils::nullable<int64_t> ret_val;
 
   auto variables = get_system_variables({name}, scope);
@@ -99,8 +100,7 @@ utils::nullable<int64_t> Instance::get_sysvar_int(
  * @param value string with the value to set for the variable.
  * @param scope VarScope with the scope of the system variable to set.
  */
-void Instance::set_sysvar(const std::string &name,
-                          const std::string &value,
+void Instance::set_sysvar(const std::string &name, const std::string &value,
                           const VarScope &scope) const {
   std::string set_stmt_fmt;
   if (scope == VarScope::GLOBAL)
@@ -122,8 +122,7 @@ void Instance::set_sysvar(const std::string &name,
  * @param value integer value to set for the variable.
  * @param scope VarScope with the scope of the system variable to set.
  */
-void Instance::set_sysvar(const std::string &name,
-                          const int64_t value,
+void Instance::set_sysvar(const std::string &name, const int64_t value,
                           const VarScope &scope) const {
   std::string set_stmt_fmt;
   if (scope == VarScope::GLOBAL)
@@ -145,8 +144,7 @@ void Instance::set_sysvar(const std::string &name,
  * @param value boolean value to set for the variable.
  * @param scope VarScope with the scope of the system variable to set.
  */
-void Instance::set_sysvar(const std::string &name,
-                          const bool value,
+void Instance::set_sysvar(const std::string &name, const bool value,
                           const VarScope &scope) const {
   std::string str_value = value ? "ON" : "OFF";
   std::string set_stmt_fmt;
@@ -162,15 +160,15 @@ void Instance::set_sysvar(const std::string &name,
   _session->execute(set_stmt);
 }
 
-std::map<std::string, utils::nullable<std::string> >
-Instance::get_system_variables(const std::vector<std::string>& names,
+std::map<std::string, utils::nullable<std::string>>
+Instance::get_system_variables(const std::vector<std::string> &names,
                                const VarScope &scope) const {
-  std::map<std::string, utils::nullable<std::string> > ret_val;
+  std::map<std::string, utils::nullable<std::string>> ret_val;
 
   if (!names.empty()) {
     std::string query_format;
     if (scope == VarScope::GLOBAL)
-        query_format = "show GLOBAL variables where ! in (?";
+      query_format = "show GLOBAL variables where ! in (?";
     else
       query_format = "show SESSION variables where ! in (?";
 
@@ -215,9 +213,10 @@ Instance::get_system_variables(const std::vector<std::string>& names,
 utils::nullable<std::string> Instance::get_plugin_status(
     const std::string &plugin_name) const {
   // Find the state information for the specified plugin.
-  std::string plugin_state_stmt_fmt = "SELECT plugin_status "
-                                      "FROM information_schema.plugins "
-                                      "WHERE plugin_name = ?";
+  std::string plugin_state_stmt_fmt =
+      "SELECT plugin_status "
+      "FROM information_schema.plugins "
+      "WHERE plugin_name = ?";
   shcore::sqlstring plugin_state_stmt =
       shcore::sqlstring(plugin_state_stmt_fmt.c_str(), 0);
   plugin_state_stmt << plugin_name;
@@ -251,7 +250,7 @@ void Instance::install_plugin(const std::string &plugin_name) const {
 
   // Install the GR plugin.
   try {
-    std::string stmt_fmt =  "INSTALL PLUGIN ! SONAME ?";
+    std::string stmt_fmt = "INSTALL PLUGIN ! SONAME ?";
     shcore::sqlstring stmt = shcore::sqlstring(stmt_fmt.c_str(), 0);
     stmt << plugin_name;
     stmt << plugin_lib;
@@ -259,8 +258,8 @@ void Instance::install_plugin(const std::string &plugin_name) const {
     _session->execute(stmt);
   } catch (std::exception &err) {
     // Install plugin failed.
-    throw std::runtime_error("error installing plugin '" + plugin_name + "': " +
-                             err.what());
+    throw std::runtime_error("error installing plugin '" + plugin_name +
+                             "': " + err.what());
   }
 }
 
@@ -319,8 +318,8 @@ void Instance::create_user(
 
     // Grant privileges
     for (size_t i = 0; i < grants.size(); i++) {
-      std::string grant_stmt_fmt = "GRANT " + std::get<0>(grants[i]) +
-          " ON " + std::get<1>(grants[i]) + " TO ?@?";
+      std::string grant_stmt_fmt = "GRANT " + std::get<0>(grants[i]) + " ON " +
+                                   std::get<1>(grants[i]) + " TO ?@?";
       if (std::get<2>(grants[i]))
         grant_stmt_fmt = grant_stmt_fmt + " WITH GRANT OPTION";
       shcore::sqlstring grant_stmt =
@@ -373,8 +372,8 @@ void Instance::drop_user(const std::string &user,
  */
 std::tuple<bool, std::string, bool> Instance::check_user(
     const std::string &user, const std::string &host,
-    const std::vector<std::string> &privileges,
-    const std::string &on_db, const std::string &on_obj) const {
+    const std::vector<std::string> &privileges, const std::string &on_db,
+    const std::string &on_obj) const {
   std::tuple<bool, std::string, bool> result(false, "", false);
   // Validate given privileges.
   std::vector<std::string> priv_needed(privileges);
@@ -403,9 +402,10 @@ std::tuple<bool, std::string, bool> Instance::check_user(
   std::map<std::string,
            std::map<std::string, std::pair<std::vector<std::string>, bool>>>
       user_grants;
-  std::string user_priv_stmt_fmt = "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-                                   "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-                                   "WHERE GRANTEE = \"?@?\"";
+  std::string user_priv_stmt_fmt =
+      "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
+      "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+      "WHERE GRANTEE = \"?@?\"";
   shcore::sqlstring user_priv_stmt =
       shcore::sqlstring(user_priv_stmt_fmt.c_str(), 0);
   user_priv_stmt << user;
@@ -413,7 +413,7 @@ std::tuple<bool, std::string, bool> Instance::check_user(
   user_priv_stmt.done();
   auto resultset = _session->query(user_priv_stmt);
   auto row = resultset->fetch_one();
-  std::vector<std::string> grants {};
+  std::vector<std::string> grants{};
   bool is_grantable = false;
   // Check if the user exists (all have at least one privilege: USAGE)
   if (!row) {
@@ -471,8 +471,8 @@ std::tuple<bool, std::string, bool> Instance::check_user(
   // Get the grants for the user on a specific tables: <schema>.<table>
   std::string tbl_priv_stmt_fmt =
       "SELECT TABLE_SCHEMA, TABLE_NAME, PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = \"?@?\" ORDER BY TABLE_SCHEMA, TABLE_NAME";
+      "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
+      "WHERE GRANTEE = \"?@?\" ORDER BY TABLE_SCHEMA, TABLE_NAME";
   shcore::sqlstring tbl_priv_stmt =
       shcore::sqlstring(tbl_priv_stmt_fmt.c_str(), 0);
   tbl_priv_stmt << user;
@@ -504,7 +504,7 @@ std::tuple<bool, std::string, bool> Instance::check_user(
         std::pair<std::vector<std::string>, bool>(grants, is_grantable);
 
   // Check privileges for the user.
-  std::vector<std::string> priv_missing {};
+  std::vector<std::string> priv_missing{};
   bool has_grant_option = false;
   for (unsigned int i = 0; i < priv_needed.size(); i++) {
     // Verify if privilege is available for *.*
@@ -546,6 +546,25 @@ std::tuple<bool, std::string, bool> Instance::check_user(
   std::get<2>(result) = has_grant_option;
 
   return result;
+}
+
+bool Instance::is_read_only(bool super) const {
+  // Check if the member is not read_only
+  std::shared_ptr<mysqlshdk::db::IResult> result(
+      _session->query(super ? "select @@super_read_only"
+                            : "select @@read_only or @@super_read_only"));
+  const mysqlshdk::db::IRow *row(result->fetch_one());
+  if (row) {
+    return (row->get_int(0) != 0);
+  }
+  throw std::logic_error("unexpected null result from query");
+}
+
+utils::Version Instance::get_version() const {
+  if (_version == utils::Version()) {
+    _version = utils::Version(get_sysvar_string("version"));
+  }
+  return _version;
 }
 
 }  // namespace mysql

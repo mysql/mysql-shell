@@ -24,6 +24,7 @@
 #ifndef UNITTEST_TEST_UTILS_MOCKS_MODULES_ADMINAPI_MOCK_DBA_H_
 #define UNITTEST_TEST_UTILS_MOCKS_MODULES_ADMINAPI_MOCK_DBA_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <utility>
@@ -75,18 +76,23 @@ class Mock_dba : public mysqlsh::dba::Dba {
   MOCK_METHOD2(call, shcore::Value(const std::string &,
                                    const shcore::Argument_list &));
 
-  MOCK_METHOD1(validate_instances_status_reboot_cluster,
-               void(const shcore::Argument_list &args));
+  MOCK_CONST_METHOD0(get_active_shell_session,
+                     std::shared_ptr<mysqlshdk::db::ISession>());
+
+  MOCK_METHOD3(validate_instances_status_reboot_cluster,
+               void(std::shared_ptr<mysqlsh::dba::Cluster> cluster,
+                    std::shared_ptr<mysqlshdk::db::ISession> member_session,
+                    shcore::Value::Map_type_ref options));
 
   MOCK_METHOD3(
       validate_instances_gtid_reboot_cluster,
-      void(std::string *out_cluster_name,
+      void(std::shared_ptr<mysqlsh::dba::Cluster> cluster,
            const shcore::Value::Map_type_ref &options,
            const std::shared_ptr<mysqlshdk::db::ISession> &instance_session));
 
   MOCK_METHOD2(get_replicaset_instances_status,
                std::vector<std::pair<std::string, std::string>>(
-                   std::string *out_cluster_name,
+                   std::shared_ptr<mysqlsh::dba::Cluster> cluster,
                    const shcore::Value::Map_type_ref &options));
 
   MOCK_METHOD3(_check_instance_configuration,
@@ -106,9 +112,14 @@ class Mock_dba : public mysqlsh::dba::Dba {
   }
 
   shcore::Value create_mock_cluster(const std::string &name) {
+    auto group_session = get_active_shell_session();
+    _metadata_storage.reset(new mysqlsh::dba::MetadataStorage(group_session));
     return shcore::Value::wrap<mysqlsh::dba::Cluster>(
-        new Mock_cluster(name, _metadata_storage));
+        new Mock_cluster(name, group_session, _metadata_storage));
   }
+
+  void expect_connect_to_target(
+      std::shared_ptr<mysqlshdk::db::ISession> session);
 
   void expect_check_instance_configuration(const std::string &uri,
                                            const std::string &status);
@@ -142,6 +153,8 @@ class Mock_dba : public mysqlsh::dba::Dba {
  private:
   StrictMock<Mock_metadata_storage> _mock_metadata;
   StrictMock<Mock_provisioning_interface> _mock_mpi;
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> _metadata_storage;
 };
 
 }  // namespace testing

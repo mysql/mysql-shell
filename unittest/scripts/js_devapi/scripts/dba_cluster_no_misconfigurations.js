@@ -13,6 +13,7 @@ else
 
 // Dba.dissolve
 cluster.dissolve({force:true});
+cluster.disconnect();
 
 // Regression for BUG#26248116 : MYSQLPROVISION DOES NOT USE SECURE CONNECTIONS BY DEFAULT
 // Test can only be performed if SSL is supported.
@@ -37,6 +38,7 @@ if (__have_ssl) {
 }
 
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone

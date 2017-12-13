@@ -99,7 +99,13 @@ class Shell_options : protected shcore::Options {
     std::string histignore;
     int history_max_size = 1000;
     bool history_autosave = false;
-
+    enum {
+      None,
+      Primary,
+      Secondary
+    } redirect_session = None;
+    std::string default_cluster;
+    bool default_cluster_set = false;
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
 

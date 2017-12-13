@@ -30,7 +30,7 @@ one server failure.
     "defaultReplicaSet": {
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
+        "ssl": "DISABLED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
@@ -49,7 +49,8 @@ one server failure.
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Finalization

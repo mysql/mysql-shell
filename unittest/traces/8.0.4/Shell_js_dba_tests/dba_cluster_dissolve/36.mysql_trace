@@ -3,19 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3560"
+    "uri": "mysql://root:root@localhost:2001",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "90",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -31,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "column_label": "@@server_uuid",
+            "length": 144,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            "2114c68c-df86-11e7-84e0-0f8fa0766fc8"
         ]
     ]
 },
@@ -53,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = 'mysql_innodb_cluster_metadata') AND (TABLE_NAME = 'instances')"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
@@ -69,21 +74,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "count(*)",
+            "column_label": "@@mysqlx_port",
             "length": 21,
             "fractional": 0,
-            "type": "Integer",
+            "type": "UInteger",
             "collation": "binary",
             "charset": "binary",
             "collation_id": 63,
-            "unsigned": false,
+            "unsigned": true,
             "zerofill": false,
             "binary": true
         }
     ],
     "rows": [
         [
-            1
+            20010
         ]
     ]
 },
@@ -91,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3560'"
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
@@ -107,32 +112,22 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
+            "column_label": "@@group_replication_local_address",
+            "length": 60,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
         [
-            1
+            "localhost:12001"
         ]
     ]
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 9
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 10
 },
 null]

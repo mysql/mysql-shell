@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3550"
+    "uri": "mysql://root:root@localhost:2001",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "8",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -68,7 +73,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "CREATE USER 'root'@'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'dhcp-10-159-141-218.vpn.oracle.com' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -83,7 +88,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'dhcp-ukc1-twvpn-2-vpnpool-10-175-194-38.vpn.oracle.com' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'dhcp-10-159-141-218.vpn.oracle.com' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -98,7 +103,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SET sql_log_bin = 1"
+    "sql": "CREATE USER 'root'@'10.159.141.218' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -111,12 +116,42 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'10.159.141.218' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "SET sql_log_bin = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 17
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 18
 },
 null]

@@ -65,7 +65,7 @@ JScript_object_wrapper::~JScript_object_wrapper() {
 
 struct shcore::JScript_object_wrapper::Collectable {
   std::shared_ptr<Object_bridge> data;
-  v8::Persistent<v8::Object> weak_handle;
+  v8::Persistent<v8::Object> *persistent;
 
   explicit Collectable(std::shared_ptr<Object_bridge> d) {
     data = d;
@@ -78,28 +78,31 @@ struct shcore::JScript_object_wrapper::Collectable {
 
   ~Collectable() {
     DEBUG_OBJ_DEALLOC(JSObjectWrapper);
+    data.reset();
+    persistent->Reset();
+    delete persistent;
   }
 };
 
-v8::Handle<v8::Object> JScript_object_wrapper::wrap(std::shared_ptr<Object_bridge> object) {
-  v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template);
+v8::Handle<v8::Object> JScript_object_wrapper::wrap(
+    std::shared_ptr<Object_bridge> object) {
+  v8::Local<v8::ObjectTemplate> templ =
+      v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template);
   if (!templ.IsEmpty()) {
-    v8::Handle<v8::Object> obj(templ->NewInstance());
-    if (!obj.IsEmpty()) {
-      obj->SetAlignedPointerInInternalField(0, &magic_pointer);
+    v8::Local<v8::Object> self(templ->NewInstance());
+    if (!self.IsEmpty()) {
+      auto holder = new Collectable(object);
 
-      Collectable *tmp = new Collectable(object);
+      holder->persistent =
+          new v8::Persistent<v8::Object>(_context->isolate(), self);
 
-      obj->SetAlignedPointerInInternalField(1, tmp);
-      obj->SetAlignedPointerInInternalField(2, this);
-
-      // marks the persistent instance to be garbage collectable, with a
-      // callback called on deletion
-      tmp->weak_handle.Reset(_context->isolate(), obj);
-      tmp->weak_handle.SetWeak(tmp, wrapper_deleted);
-      tmp->weak_handle.MarkIndependent();
+      self->SetAlignedPointerInInternalField(0, &magic_pointer);
+      self->SetAlignedPointerInInternalField(1, holder);
+      self->SetAlignedPointerInInternalField(2, this);
+      holder->persistent->SetWeak(holder, wrapper_deleted);
+      holder->persistent->MarkIndependent();
     }
-    return obj;
+    return self;
   }
   return {};
 }
@@ -107,8 +110,6 @@ v8::Handle<v8::Object> JScript_object_wrapper::wrap(std::shared_ptr<Object_bridg
 void JScript_object_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data) {
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
-  data.GetParameter()->data.reset();
-  data.GetParameter()->weak_handle.Reset();
   delete data.GetParameter();
 }
 

@@ -25,7 +25,7 @@
 #include "unittest/test_utils/shell_base_test.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/gr/group_replication.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
@@ -213,13 +213,13 @@ TEST_F(Group_replication_Test, start_stop_gr) {
     return;
   }
 
-  // Test: member is not part of any group, state must be NOT_FOUND.
+  // Test: member is not part of any group, state must be MISSING.
   bool res = mysqlshdk::gr::is_member(*instance);
   EXPECT_FALSE(res);
   res = mysqlshdk::gr::is_member(*instance, "not_the_group_name");
   EXPECT_FALSE(res);
   Member_state state_res = mysqlshdk::gr::get_member_state(*instance);
-  EXPECT_EQ(state_res, Member_state::NOT_FOUND);
+  EXPECT_EQ(state_res, Member_state::MISSING);
 
   // Install GR plugin if needed.
   nullable<std::string> init_plugin_state =
@@ -322,8 +322,8 @@ TEST_F(Group_replication_Test, members_state) {
   EXPECT_STREQ("ERROR", str_res.c_str());
   str_res = mysqlshdk::gr::to_string(Member_state::UNREACHABLE);
   EXPECT_STREQ("UNREACHABLE", str_res.c_str());
-  str_res = mysqlshdk::gr::to_string(Member_state::NOT_FOUND);
-  EXPECT_STREQ("NOT_FOUND", str_res.c_str());
+  str_res = mysqlshdk::gr::to_string(Member_state::MISSING);
+  EXPECT_STREQ("(MISSING)", str_res.c_str());
 
   // Test to_member_state() function
   SCOPED_TRACE("to_member_state() function test");
@@ -337,8 +337,10 @@ TEST_F(Group_replication_Test, members_state) {
   EXPECT_EQ(state_res, Member_state::ERROR);
   state_res = mysqlshdk::gr::to_member_state("uNREACHABLE");
   EXPECT_EQ(state_res, Member_state::UNREACHABLE);
-  state_res = mysqlshdk::gr::to_member_state("Not_Found");
-  EXPECT_EQ(state_res, Member_state::NOT_FOUND);
+  state_res = mysqlshdk::gr::to_member_state("MISSING");
+  EXPECT_EQ(state_res, Member_state::MISSING);
+  state_res = mysqlshdk::gr::to_member_state("(MISSING)");
+  EXPECT_EQ(state_res, Member_state::MISSING);
   EXPECT_THROW(mysqlshdk::gr::to_member_state("invalid"), std::runtime_error);
 }
 

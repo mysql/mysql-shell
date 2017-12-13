@@ -24,6 +24,15 @@
 #ifndef MODULES_ADMINAPI_MOD_DBA_METADATA_STORAGE_H_
 #define MODULES_ADMINAPI_MOD_DBA_METADATA_STORAGE_H_
 
+/* TODO(all)
+ * This class is to be phased out in favor of the more general
+ * mysqlshdk::innodbcluster::Metadata_mysql class.
+ *
+ * Functionality in this class that actually belong to the metadata class
+ * should be redesigned and moved thre.
+ */
+
+#include <memory>
 #include <string>
 #include <vector>
 #include "modules/adminapi/mod_dba.h"
@@ -73,12 +82,11 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void drop_replicaset(uint64_t rs_id);
   void disable_replicaset(uint64_t rs_id);
   bool is_replicaset_active(uint64_t rs_id);
-  std::string get_replicaset_group_name(uint64_t rs_id);
   void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset,
                                  const std::string &group_name);
-
-  virtual std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);
-  virtual std::shared_ptr<Cluster> get_default_cluster();
+  virtual void load_cluster(const std::string &cluster_name,
+                           std::shared_ptr<Cluster> cluster);
+  virtual void load_default_cluster(std::shared_ptr<Cluster> cluster);
   bool has_default_cluster();
 
   std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
@@ -102,15 +110,12 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
     return _session;
   }
 
-  void set_session(std::shared_ptr<mysqlshdk::db::ISession> session);
-
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql, bool retry = false,
       const std::string &log_sql = "") const;
 
   void create_account(const std::string &username, const std::string &password,
-                      const std::string &hostname,
-                      bool password_hashed = false);
+                      const std::string &hostname);
 
   class Transaction {
    public:
@@ -146,13 +151,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   virtual void commit();
   virtual void rollback();
 
-  std::shared_ptr<Cluster> get_cluster_from_query(const std::string &query);
-
-  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition,
-                                                const std::string &value);
-  // Overload the function for different types of value
-  std::shared_ptr<Cluster> get_cluster_matching(const std::string &condition,
-                                                bool value);
+  bool get_cluster_from_query(const std::string &query,
+                              std::shared_ptr<Cluster> cluster);
 };
 }  // namespace dba
 }  // namespace mysqlsh

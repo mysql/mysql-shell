@@ -29,27 +29,6 @@
 
 namespace shcore {
 
-/** External database errors
- *
- * Sample uses:
- * - MySQL errors
- */
-class database_error : public std::runtime_error {
- public:
-  database_error(const char *what, int code, const char *error);
-  database_error(const char *what, int code, const char *error,
-                 const char *sqlstate);
-
-  int code() const { return code_; }
-  const std::string &error() const { return error_; }
-  const std::string &sqlstate() const { return sqlstate_; }
-
- private:
-  int code_;
-  std::string error_;
-  std::string sqlstate_;
-};
-
 /** Invalid input from the user
  *
  * Sample uses:

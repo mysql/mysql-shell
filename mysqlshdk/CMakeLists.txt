@@ -34,13 +34,13 @@ SET(OLD_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_FULL_WARNINGS}")
 ADD_SUBDIRECTORY(libs/utils)
 ADD_SUBDIRECTORY(libs/db)
-ADD_SUBDIRECTORY(libs/gr)
+ADD_SUBDIRECTORY(libs/mysql)
 ADD_SUBDIRECTORY(libs/textui)
+ADD_SUBDIRECTORY(libs/innodbcluster)
 SET(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
 
 add_subdirectory(scripting)
 add_subdirectory(shellcore)
-add_subdirectory(libs/mysql)
 
 #TODO: ADD_VERSION_INFO
 #merge_libraries(mysqlshdk SHARED
@@ -50,10 +50,10 @@ add_subdirectory(libs/mysql)
 #    shellcore)
 
 merge_libraries(mysqlshdk-static STATIC
-    gr
     utils
     db
     mysql
+    innodbcluster
     textui
     scripting
     shellcore NOINSTALL)

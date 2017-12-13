@@ -57,7 +57,7 @@ class Dba_replicaset_test: public Admin_api_test {
     std::string topology_type =
         mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster;
     _replicaset.reset(new mysqlsh::dba::ReplicaSet("default",
-                            topology_type, metadata));
+                            topology_type, "", metadata));
     _replicaset->set_id(1);
   }
 

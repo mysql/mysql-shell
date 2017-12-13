@@ -69,6 +69,15 @@ ClassicSession::ClassicSession(const ClassicSession &session)
   init();
 }
 
+ClassicSession::ClassicSession(
+    std::shared_ptr<mysqlshdk::db::mysql::Session> session)
+    : ShellBaseSession(), _session(session) {
+  init();
+
+  // TODO(alfredo) maybe can remove _connection_options ivar
+  _connection_options = session->get_connection_options();
+}
+
 ClassicSession::~ClassicSession() {
   if (is_open())
     close();
@@ -98,15 +107,6 @@ void ClassicSession::connect(
   _connection_options = connection_options;
 
   try {
-    // All connections should use mode = VERIFY_CA if no ssl mode is specified
-    // and either ssl-ca or ssl-capath are specified
-    if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
-        (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
-         _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
-      _connection_options.set(mysqlshdk::db::kSslMode,
-                             {mysqlshdk::db::kSslModeVerifyCA});
-    }
-
     _session = mysqlshdk::db::mysql::Session::create();
 
     _session->connect(_connection_options);
@@ -140,13 +140,6 @@ void ClassicSession::close() {
     _session->close();
 
   _session.reset();
-
-  try {
-    // this shouldn't be getting clled from teh d-tor...
-    ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
-  } catch (std::bad_weak_ptr) {
-    ShellNotifications::get()->notify("SN_SESSION_CLOSED", {});
-  }
 }
 
 Value ClassicSession::_close(const shcore::Argument_list &args) {
@@ -300,9 +293,9 @@ shcore::Value ClassicSession::execute_sql(
                 _session->query(sub_query_placeholders(query, args)))));
         timer.end();
         result->set_execution_time(timer.raw_duration());
-      } catch (const shcore::database_error &error) {
+      } catch (const mysqlshdk::db::Error &error) {
         throw shcore::Exception::mysql_error_with_code_and_state(
-            error.error(), error.code(), error.sqlstate().c_str());
+            error.what(), error.code(), error.sqlstate());
       }
     }
   }
@@ -616,9 +609,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
         version =  " " + row->get_string(1);
       }
       (*status)["SSL_CIPHER"] = shcore::Value(cipher + version);
-      (*status)["SERVER_STATS"] = shcore::Value(_session->get_stats());
     }
-
 
     result = _session->query(
         "select @@character_set_client, @@character_set_connection, "
@@ -655,7 +646,8 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
       sv << ver/10000 << "." << (ver%10000)/100 << "." << ver % 100;
       (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
 
-      (*status)["SERVER_STATS"] = shcore::Value(_session->get_stats());
+      if (_session->get_stats())
+        (*status)["SERVER_STATS"] = shcore::Value(_session->get_stats());
 
       try {
         if (_connection_options.get_transport_type() ==

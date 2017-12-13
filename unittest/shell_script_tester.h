@@ -108,6 +108,8 @@ public:
                        const std::string& val_path = "",
                        const std::string& pre_path = "");
 
+  void execute(const std::string &code);
+
 protected:
   std::string _setup_script; // Name of the active script
   std::string _scripts_home; // Path to the scripts to be tested

@@ -57,8 +57,6 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_replicaset_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_cluster_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_collection_find_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_table_select_t.cc"
@@ -119,6 +117,10 @@ if(WITH_TESTS)
             ${PYTHON_LIBRARIES}
             ${MYSQL_EXTRA_LIBRARIES}
     )
+
+    IF(WIN32)
+      target_link_libraries(run_unit_tests Dbghelp.lib)
+    ENDIF()
 
     # Copies the mysql_server_mock to the binary folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD

@@ -24,6 +24,7 @@
 #include "interactive/interactive_global_dba.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -40,7 +41,7 @@
 #include "utils/utils_string.h"
 #include "utils/utils_path.h"
 
-using namespace std::placeholders;
+using std::placeholders::_1;
 using namespace shcore;
 using mysqlshdk::db::uri::formats::only_transport;
 
@@ -76,26 +77,30 @@ void Global_dba::init() {
 }
 
 mysqlsh::dba::ReplicationGroupState Global_dba::check_preconditions(
+    std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
   ScopedStyle ss(_target.get(), naming_style);
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-  return dba->check_preconditions(function_name);
+  return dba->check_preconditions(group_session, function_name);
 }
 
 std::vector<std::pair<std::string, std::string>>
 Global_dba::get_replicaset_instances_status(
-    std::string *out_cluster_name,
+    std::shared_ptr<mysqlsh::dba::Cluster> cluster,
     const shcore::Value::Map_type_ref &options) const {
   ScopedStyle ss(_target.get(), naming_style);
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-  return dba->get_replicaset_instances_status(out_cluster_name, options);
+  return dba->get_replicaset_instances_status(cluster, options);
 }
 
 void Global_dba::validate_instances_status_reboot_cluster(
-    const shcore::Argument_list &args) const {
+    std::shared_ptr<mysqlsh::dba::Cluster> cluster,
+    std::shared_ptr<mysqlshdk::db::ISession> member_session,
+    shcore::Value::Map_type_ref options) const {
   ScopedStyle ss(_target.get(), naming_style);
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-  return dba->validate_instances_status_reboot_cluster(args);
+  return dba->validate_instances_status_reboot_cluster(cluster, member_session,
+                                                       options);
 }
 
 shcore::Argument_list Global_dba::check_instance_op_params(
@@ -307,44 +312,11 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   mysqlsh::dba::ReplicationGroupState state;
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-
-  try {
-    state = check_preconditions("createCluster");
-  } catch (shcore::Exception &e) {
-    std::string error(e.what());
-    if (error.find("already in an InnoDB cluster") != std::string::npos) {
-      /*
-       * For V1.0 we only support one single Cluster.
-       * That one shall be the default Cluster.
-       * We must check if there's already a Default Cluster assigned,
-       * and if so thrown an exception.
-       * And we must check if there's already one Cluster on the MD and if so
-       * assign it to Default
-       */
-
-      // Get current active session
-      auto session = dba->get_active_session();
-
-      std::string nice_error = get_function_name("createCluster") +
-                               ": Unable "
-                               "to create cluster. The instance '" +
-                               session->uri(only_transport()) +
-                               ""
-                               "' already belongs to an InnoDB cluster. Use "
-                               "<Dba>." +
-                               get_function_name("getCluster", false) +
-                               "() to access it.";
-
-      throw Exception::runtime_error(nice_error);
-    } else {
-      throw;
-    }
-  }
+  std::shared_ptr<mysqlshdk::db::ISession> member_session;
 
   shcore::Value ret_val;
   shcore::Value::Map_type_ref options;
   std::string cluster_name;
-  std::shared_ptr<mysqlshdk::db::ISession> session;
 
   try {
     cluster_name = args.string_at(0);
@@ -389,6 +361,37 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       options.reset(new shcore::Value::Map_type());
     }
 
+    member_session = dba->connect_to_target_member();
+    try {
+      state = check_preconditions(member_session, "createCluster");
+    } catch (shcore::Exception &e) {
+      std::string error(e.what());
+      if (error.find("already in an InnoDB cluster") != std::string::npos) {
+        /*
+         * For V1.0 we only support one single Cluster.
+         * That one shall be the default Cluster.
+         * We must check if there's already a Default Cluster assigned,
+         * and if so thrown an exception.
+         * And we must check if there's already one Cluster on the MD and if so
+         * assign it to Default
+         */
+
+        std::string nice_error = get_function_name("createCluster") +
+                                 ": Unable "
+                                 "to create cluster. The instance '" +
+                                 member_session->uri(only_transport()) +
+                                 ""
+                                 "' already belongs to an InnoDB cluster. Use "
+                                 "<Dba>." +
+                                 get_function_name("getCluster", false) +
+                                 "() to access it.";
+
+        throw Exception::runtime_error(nice_error);
+      } else {
+        throw;
+      }
+    }
+
     if (state.source_type ==
           mysqlsh::dba::GRInstanceType::GroupReplication && !adopt_from_gr) {
       if (prompt(
@@ -403,15 +406,15 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
             "adoptFromGR option to be true");
     }
 
-    session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" +
-            session->uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+            member_session->uri(
+                mysqlshdk::db::uri::formats::no_scheme_no_password()) +
             "'.\n");
 
     // Use check_instance_configuration() in order to verify if we need
     // to prompt the user to allow the configuration changes
     try {
-      auto instance_def = session->get_connection_options();
+      auto instance_def = member_session->get_connection_options();
       // Resolves user and validates password
       mysqlsh::resolve_connection_credentials(&instance_def);
       auto result = dba->_check_instance_configuration(instance_def, {}, false);
@@ -487,11 +490,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
     if (prompt_read_only) {
-      if (!prompt_super_read_only(session, options))
+      if (!prompt_super_read_only(member_session, options))
         return shcore::Value();
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+
+  assert(member_session);
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(cluster_name));
@@ -500,7 +505,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     new_args.push_back(shcore::Value(options));
 
   println("Creating InnoDB cluster '" + cluster_name + "' on '" +
-          session->uri(mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+          member_session->uri(
+              mysqlshdk::db::uri::formats::no_scheme_no_password()) +
           "'...");
 
   // This is an instance of the API cluster
@@ -534,8 +540,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 shcore::Value Global_dba::drop_metadata_schema(
     const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("dropMetadataSchema").c_str());
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
-  check_preconditions("dropMetadataSchema");
+  check_preconditions(dba->get_active_shell_session(), "dropMetadataSchema");
 
   shcore::Value ret_val;
   shcore::Argument_list new_args;
@@ -575,8 +582,7 @@ shcore::Value Global_dba::drop_metadata_schema(
     // Verify the status of super_read_only and ask the user if wants
     // to disable it
     if (prompt_read_only) {
-      auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-      auto session = dba->get_active_session();
+      auto session = dba->get_active_shell_session();
       if (!prompt_super_read_only(session, options))
         return shcore::Value();
 
@@ -596,37 +602,38 @@ shcore::Value Global_dba::drop_metadata_schema(
 }
 
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
-  args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+  args.ensure_count(0, 2, get_function_name("getCluster").c_str());
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
-  auto state = check_preconditions("getCluster");
+  // We get the cluster object 1st, so that low-level validations happen 1st
+  Value raw_cluster = call_target("getCluster", args);
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster_obj(
+      raw_cluster.as_object<mysqlsh::dba::Cluster>());
 
+  // TODO(.) These checks should be moved to mod_dba.cc
+  auto state =
+      dba->check_preconditions(cluster_obj->get_group_session(), "getCluster");
   if (state.source_state == mysqlsh::dba::ManagedInstance::OnlineRO) {
-    println("WARNING: The session is on a " +
+    println("WARNING: You are connected to an instance in state '" +
             mysqlsh::dba::ManagedInstance::describe(
                 static_cast<mysqlsh::dba::ManagedInstance::State>(
-                    state.source_state)) +
-            " instance.\n"
-            "         Write operations on the InnoDB cluster will not be "
-            "allowed\n");
+                    state.source_state)) + "'\n"
+            "Write operations on the InnoDB cluster will not be allowed.\n");
   } else if (state.source_state != mysqlsh::dba::ManagedInstance::OnlineRW) {
     println(
-        "WARNING: The session is on a " +
+        "WARNING: You are connected to an instance in state '" +
         mysqlsh::dba::ManagedInstance::describe(
             static_cast<mysqlsh::dba::ManagedInstance::State>(
                 state.source_state)) +
-        " instance.\n"
-        "         Write operations in the InnoDB cluster will not be allowed.\n"
-        "         The information retrieved with describe() and status() may "
-        "be "
-        "outdated.\n");
+        "'\n"
+        "Write operations on the InnoDB cluster will not be allowed.\n"
+        "Output from describe() and status() may be outdated.\n");
   }
-
-  Value raw_cluster = call_target("getCluster", args);
 
   Interactive_dba_cluster *cluster =
       new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(
-      std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
+      std::dynamic_pointer_cast<Cpp_object_bridge>(cluster_obj));
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 }
 
@@ -646,7 +653,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
   shcore::Argument_list new_args;
   shcore::Argument_map opt_map;
 
-  check_preconditions("rebootClusterFromCompleteOutage");
+  auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
   try {
     bool confirm_rescan_rejoins = true, confirm_rescan_removes = true;
@@ -696,22 +703,30 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       options.reset(new shcore::Value::Map_type());
     }
 
+    std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+    std::shared_ptr<mysqlshdk::db::ISession> group_session;
+    dba->connect_to_target_group({}, &metadata, &group_session, false);
+
+    std::shared_ptr<mysqlsh::dba::Cluster> cluster;
     if (default_cluster) {
       println("Reconfiguring the default cluster from complete outage...");
+      cluster = dba->get_cluster(nullptr, metadata, group_session);
     } else {
-      // Validate the cluster_name
-      mysqlsh::dba::validate_cluster_name(cluster_name);
-
       println("Reconfiguring the cluster '" + cluster_name +
               "' from complete outage...");
+      cluster = dba->get_cluster(cluster_name.c_str(), metadata, group_session);
     }
 
+    check_preconditions(cluster->get_group_session(),
+                        "rebootClusterFromCompleteOutage");
+
     // Verify the status of the instances
-    validate_instances_status_reboot_cluster(args);
+    validate_instances_status_reboot_cluster(
+        cluster, cluster->get_group_session(), options);
 
     // Get the all the instances and their status
     std::vector<std::pair<std::string, std::string>> instances_status =
-        get_replicaset_instances_status(&cluster_name, options);
+        get_replicaset_instances_status(cluster, options);
 
     // Validate the rejoinInstances list if provided
     if (!confirm_rescan_rejoins) {
@@ -863,10 +878,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
     if (prompt_read_only) {
-      auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
-      auto session = dba->get_active_session();
-
-      if (!prompt_super_read_only(session, options))
+      if (!prompt_super_read_only(cluster->get_group_session(), options))
         return shcore::Value();
     }
 
@@ -907,7 +919,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     println("The cluster was successfully rebooted.");
     println();
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
       get_function_name("rebootClusterFromCompleteOutage"));
 
   Interactive_dba_cluster *cluster =
@@ -1537,7 +1549,7 @@ shcore::Value Global_dba::configure_local_instance(
       std::string admin_user_host = "%";
       std::string account;
 
-      std::shared_ptr<mysqlshdk::db::ISession> session;
+      std::shared_ptr<mysqlshdk::db::ISession> target_member_session;
 
       // User passed clusterAdmin option, we ensure that account exists
       if (extra_options->has_key("clusterAdmin")) {
@@ -1555,11 +1567,11 @@ shcore::Value Global_dba::configure_local_instance(
         account = shcore::make_account(admin_user, admin_user_host);
       } else {
         // Validate the account being used
-        session = mysqlsh::dba::Dba::get_session(instance_def);
+        target_member_session = mysqlsh::dba::Dba::get_session(instance_def);
 
-        if (!ensure_admin_account_usable(session, admin_user, admin_user_host,
-                                         &account)) {
-          session->close();
+        if (!ensure_admin_account_usable(target_member_session, admin_user,
+                                         admin_user_host, &account)) {
+          target_member_session->close();
           return shcore::Value();
         }
       }
@@ -1579,17 +1591,17 @@ shcore::Value Global_dba::configure_local_instance(
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
       if (prompt_read_only) {
-        if (!session)
-          session = mysqlsh::dba::Dba::get_session(instance_def);
+        if (!target_member_session)
+          target_member_session = mysqlsh::dba::Dba::get_session(instance_def);
 
-        if (!prompt_super_read_only(session, extra_options)) {
-          session->close();
+        if (!prompt_super_read_only(target_member_session, extra_options)) {
+          target_member_session->close();
           return shcore::Value();
         }
       }
 
-      if (session)
-        session->close();
+      if (target_member_session)
+        target_member_session->close();
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(

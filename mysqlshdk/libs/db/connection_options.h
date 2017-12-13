@@ -43,6 +43,9 @@ using utils::Nullable_options;
 enum Transport_type { Tcp, Socket, Pipe };
 std::string to_string(Transport_type type);
 
+constexpr int k_default_mysql_port = 3306;
+constexpr int k_default_mysql_x_port = 33060;
+
 class SHCORE_PUBLIC Connection_options
     : public mysqlshdk::utils::Nullable_options {
  public:
@@ -50,6 +53,10 @@ class SHCORE_PUBLIC Connection_options
     Comparison_mode::CASE_INSENSITIVE);
   Connection_options(const std::string& uri,
                      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+
+  void set_login_options_from(const Connection_options &options);
+  void set_ssl_connection_options_from(const Ssl_options &options);
+  void set_ssl_options(const Ssl_options &options);
 
   const std::string& get_scheme() const { return get_value(kScheme); }
   const std::string& get_user() const { return get_value(kUser); }
@@ -65,7 +72,7 @@ class SHCORE_PUBLIC Connection_options
 
   const Ssl_options& get_ssl_options() const { return _ssl_options; }
   Ssl_options& get_ssl_options() {
-    return const_cast<Ssl_options&>(_ssl_options);
+    return _ssl_options;
   }
 
   bool has_scheme() const { return has_value(kScheme); }

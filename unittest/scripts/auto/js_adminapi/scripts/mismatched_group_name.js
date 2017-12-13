@@ -14,6 +14,7 @@ session.runSql("create user root@'%' identified by 'root'");
 session.runSql("grant all on *.* to root@'%'");
 session.runSql("set sql_log_bin=1");
 
+cluster.disconnect();
 var cluster = dba.createCluster('clus');
 
 var outsider = mysql.getSession(__sandbox_uri3);
@@ -69,6 +70,7 @@ cluster.rejoinInstance(__sandbox_uri3);
 //@# 2- Add on non-cluster active member from a different group
 cluster.addInstance(__sandbox_uri3);
 
+outsider.close();
 //------
 
 
@@ -91,6 +93,9 @@ testutil.startSandbox(__mysql_sandbox_port2);
 //@<OUT> status() on no-quorum
 cluster.status();
 
+cluster.disconnect();
+session.close();
+
 //@# forceQuorum
 // Member 1 has group_name matching metadata
 // Member 2 belongs to a different cluster
@@ -98,8 +103,12 @@ shell.connect(__sandbox_uri1);
 var cluster = dba.getCluster();
 cluster.forceQuorumUsingPartitionOf(__sandbox_uri2);
 
+cluster.disconnect();
+session.close();
+
 //TODO(adminapi_team) should add more test cases with reboot and forceQuorum involving members with different group_name (with GR stopped or running and with metadata and without)
 
+//@ Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

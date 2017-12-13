@@ -24,14 +24,16 @@
 #ifndef MYSQLSHDK_LIBS_MYSQL_INSTANCE_H_
 #define MYSQLSHDK_LIBS_MYSQL_INSTANCE_H_
 
+#include <cassert>
 #include <map>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/nullable.h"
-
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -66,6 +68,10 @@ class IInstance {
                           const VarScope &scope = VarScope::SESSION) const = 0;
   virtual void set_sysvar(const std::string &name, const bool value,
                           const VarScope &scope = VarScope::SESSION) const = 0;
+
+  virtual bool is_read_only(bool super) const = 0;
+  virtual utils::Version get_version() const = 0;
+
   virtual std::shared_ptr<db::ISession> get_session() const = 0;
   virtual void install_plugin(const std::string &plugin_name) const = 0;
   virtual void uninstall_plugin(const std::string &plugin_name) const = 0;
@@ -127,8 +133,12 @@ class Instance : public IInstance {
       const std::vector<std::string> &privileges,
       const std::string &on_db, const std::string &on_obj) const override;
 
+  bool is_read_only(bool super) const override;
+  utils::Version get_version() const override;
+
  private:
   std::shared_ptr<db::ISession> _session;
+  mutable mysqlshdk::utils::Version _version;
   // List of privileges equivalent to "ALL [PRIVILEGES]".
   const std::vector<std::string> kAllPrivileges = {
       "ALTER", "ALTER ROUTINE", "CREATE", "CREATE ROUTINE",

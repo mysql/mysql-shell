@@ -56,7 +56,7 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
                                 shcore::Value::Map_type_ref &options) const;
   mysqlsh::dba::ReplicationGroupState check_preconditions(
       const std::string &function_name) const;
-  void assert_not_dissolved(const std::string& function_name) const;
+  void assert_valid(const std::string& function_name) const;
 };
 }  // namespace shcore
 

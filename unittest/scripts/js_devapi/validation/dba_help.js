@@ -25,8 +25,6 @@ The following functions are currently supported.
                                    localhost.
  - rebootClusterFromCompleteOutage Brings a cluster back ONLINE when all
                                    members are OFFLINE.
- - resetSession                    Sets the session object to be used on the
-                                   Dba operations.
  - startSandboxInstance            Starts an existing MySQL Server instance on
                                    localhost.
  - stopSandboxInstance             Stops a running MySQL Server instance on
@@ -266,11 +264,12 @@ Retrieves a cluster from the Metadata Store.
 
 SYNTAX
 
-  <Dba>.getCluster([name])
+  <Dba>.getCluster([name][, options])
 
 WHERE
 
   name: Parameter to specify the name of the cluster to be returned.
+  options: Dictionary with additional options.
 
 EXCEPTIONS
 
@@ -286,11 +285,14 @@ RETURNS
 
 DESCRIPTION
 
-If name is not specified, the default cluster will be returned.
+If name is not specified or is null, the default cluster will be returned.
 
 If name is specified, and no cluster with the indicated name is found, an error
 will be raised.
 
+The options dictionary accepts the connectToPrimary option,which defaults to
+true and indicates the shell to automatically connect to the primary member of
+the cluster.
 
 //@<OUT> Kill Sandbox
 Kills a running MySQL Server instance on localhost.
@@ -328,27 +330,6 @@ on Windows systems.
 
 If the instance is not located on the used path an error will occur.
 
-
-//@<OUT> Reset Session
-Sets the session object to be used on the Dba operations.
-
-SYNTAX
-
-  <Dba>.resetSession(session)
-
-WHERE
-
-  session: Session object to be used on the Dba operations.
-
-DESCRIPTION
-
-Many of the Dba operations require an active session to the Metadata Store, use
-this function to define the session to be used.
-
-At the moment only a Classic session type is supported.
-
-If the session type is not defined, the global dba object will use the active
-session.
 
 //@<OUT> Start Sandbox
 Starts an existing MySQL Server instance on localhost.

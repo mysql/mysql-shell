@@ -35,7 +35,6 @@
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/shell_notifications.h"
 #include "src/mysqlsh/mysql_shell.h"
 #include "unittest/test_utils/shell_base_test.h"
 #include "shellcore/base_session.h"
@@ -202,8 +201,7 @@ class Shell_test_output_handler {
   * \ingroup UTFramework
   * Base class for tests that use an instance of the shell library.
   */
-class Shell_core_test_wrapper : public tests::Shell_base_test,
-                                public shcore::NotificationObserver {
+class Shell_core_test_wrapper : public tests::Shell_base_test {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
@@ -215,9 +213,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   }
   virtual std::string context_identifier();
 
-  void observe_session_notifications();
-  void ignore_session_notifications();
-
   std::string _custom_context;
 
   // void process_result(shcore::Value result);
@@ -228,10 +223,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   void exec_and_out_contains(const std::string &code,
                              const std::string &out = "",
                              const std::string &err = "");
-
-  virtual void handle_notification(const std::string &name,
-                                   const shcore::Object_bridge_ref &sender,
-                                   shcore::Value::Map_type_ref data);
 
   // This can be use to reinitialize the interactive shell with different
   // options First set the options on _options
@@ -257,7 +248,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   virtual void reset_shell() {
     _interactive_shell.reset(
         new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
-
     _interactive_shell->finish_init();
     set_defaults();
     enable_testutil();
@@ -289,9 +279,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test,
   }
 
   std::shared_ptr<tests::Testutils> testutil;
-
- private:
-  std::map<shcore::Object_bridge_ref, std::string> _open_sessions;
 };
 
 /**

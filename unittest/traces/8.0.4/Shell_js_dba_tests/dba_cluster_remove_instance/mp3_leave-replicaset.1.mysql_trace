@@ -3,7 +3,8 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@localhost:3550?ssl-mode=PREFERRED"
+    "uri": "foo:bar@localhost:2001?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",

@@ -19,14 +19,15 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# status after stop GR - error
 ||Cluster.status: This function is not available through a session to a standalone instance
 
 //@# getCluster() - error
-||Dba.getCluster: This function is not available through a session to a standalone instance
+||Target member is OFFLINE in group_replication
 
 //@<OUT> No flag, yes on prompt
 Reconfiguring the cluster 'dev' from complete outage...
@@ -65,7 +66,7 @@ Cancelled
 ||Dba.rebootClusterFromCompleteOutage: Argument 'clearReadOnly' is expected to be a bool
 
 //@# Flag false
-||Dba.rebootClusterFromCompleteOutage: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only. If you unset super_read_only you should consider closing the following: 1 open session(s) of 'root@localhost'.  (RuntimeError)
+||Dba.rebootClusterFromCompleteOutage: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
 //@<OUT> Flag true
 Reconfiguring the cluster 'dev' from complete outage...

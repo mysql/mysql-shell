@@ -41,6 +41,7 @@ dba.dropMetadataSchema({force: true})
 cluster.status();
 
 session.close();
+cluster.disconnect();
 
 // Establish a session using the hostname
 // because when adopting from GR, the information in the
@@ -56,6 +57,7 @@ cluster.status();
 
 // Close session
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

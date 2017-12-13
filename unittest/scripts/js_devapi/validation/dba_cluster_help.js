@@ -19,12 +19,13 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Object Help
-The cluster object is the entrance point to manage the MySQL InnoDB Cluster
-system.
+The cluster object is the entry point to manage and monitor a MySQL InnoDB
+cluster.
 
 A cluster is a set of MySQLd Instances which holds the user's data.
 
@@ -41,6 +42,8 @@ The following functions are currently supported.
  - checkInstanceState          Verifies the instance gtid state in relation
                                with the cluster.
  - describe                    Describe the structure of the cluster.
+ - disconnect                  Disconnects all internal sessions used by the
+                               cluster object.
  - dissolve                    Dissolves the cluster.
  - forceQuorumUsingPartitionOf Restores the cluster from quorum loss.
  - getName                     Retrieves the name of the cluster.
@@ -323,6 +326,22 @@ Each instance dictionary contains the following attributes:
  - host: the instance hostname and IP address in the form of host:port
  - role: the instance role
 
+//@<OUT> Disconnect
+
+Disconnects all internal sessions used by the cluster object.
+
+SYNTAX
+
+  <Cluster>.disconnect()
+
+RETURNS
+
+ nothing.
+
+DESCRIPTION
+
+Disconnects the internal MySQL sessions used by the cluster to query for
+metadata and replication information.
 
 //@<OUT> Dissolve
 

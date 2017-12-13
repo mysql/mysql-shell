@@ -17,8 +17,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 cluster.status();
 
 // Take one down, change group_name, start it back
-var s = mysql.getSession(__sandbox_uri3);
-s.runSql("shutdown");
+testutil.stopSandbox(__mysql_sandbox_port3, "root");
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 testutil.removeFromSandboxConf(__mysql_sandbox_port3, "group_replication_start_on_boot");
@@ -35,6 +34,18 @@ cluster.rescan();
 //@# Try to rejoin it (error)
 cluster.rejoinInstance(__sandbox_uri3);
 
+//@ getCluster() where the member we're connected to has a mismatched group_name vs metadata
+session.close();
+shell.connect(__sandbox_uri1);
+// Change the group_name in the metadata
+session.runSql("update mysql_innodb_cluster_metadata.replicasets set attributes = JSON_SET(attributes, '$.group_replication_group_name', 'fd4b70e8-5cb1-11e7-a68b-b86b230042b0') where replicaset_id = 1");
+
+//@# check error
+dba.getCluster("clus");
+
+//@ Cleanup
+session.close();
+cluster.disconnect();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

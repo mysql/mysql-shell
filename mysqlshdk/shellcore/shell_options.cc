@@ -185,6 +185,20 @@ Shell_options::Shell_options(int argc, char** argv)
         "automatic protocol detection.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
+    (cmdline("--redirect-primary"), "Connect to the primary of the group."
+        "For use with InnoDB clusters.",
+        assign_value(&storage.redirect_session,
+          Shell_options::Storage::Primary))
+    (cmdline("--redirect-secondary"), "Connect to a secondary of the group."
+        "For use with InnoDB clusters.",
+        assign_value(&storage.redirect_session,
+          Shell_options::Storage::Secondary))
+    (cmdline("--cluster"), "Enable cluster management, setting the cluster "
+        "global variable.",
+        [this](const std::string&, const char* value) {
+          storage.default_cluster = value ? value : "";
+          storage.default_cluster_set = true;
+        })
     (cmdline("--sql"), "Start in SQL mode.", assign_value(
         &storage.initial_mode, shcore::IShell_core::Mode::SQL))
     (cmdline("--sqlc"), "Start in SQL mode using a classic session.",

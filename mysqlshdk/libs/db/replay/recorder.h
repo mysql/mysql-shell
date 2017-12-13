@@ -36,13 +36,16 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
+extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
+    on_recorder_connect_hook;
+extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
+    on_recorder_close_hook;
+
 class Recorder_mysql : public mysql::Session {
  public:
   using super = mysql::Session;
 
-  static std::shared_ptr<mysql::Session> create() {
-    return std::shared_ptr<mysql::Session>{new Recorder_mysql()};
-  }
+  explicit Recorder_mysql(int print_traces);
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
@@ -54,19 +57,17 @@ class Recorder_mysql : public mysql::Session {
   void close() override;
 
  private:
-  Recorder_mysql();
-
   std::unique_ptr<Trace_writer> _trace;
   int _port;
+  bool _closed = false;
+  int _print_traces = 0;
 };
 
 class Recorder_mysqlx : public mysqlx::Session {
  public:
   using super = mysqlx::Session;
 
-  static std::shared_ptr<mysqlx::Session> create() {
-    return std::shared_ptr<mysqlx::Session>{new Recorder_mysqlx()};
-  }
+  explicit Recorder_mysqlx(int print_traces);
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
@@ -77,36 +78,35 @@ class Recorder_mysqlx : public mysqlx::Session {
 
   void close() override;
 
-  std::shared_ptr<IResult> execute_stmt(const std::string & /*ns*/,
-                                        const std::string & /*stmt*/,
-                                        const ::xcl::Arguments & /*args*/) {
+  std::shared_ptr<IResult> execute_stmt(
+      const std::string &ns, const std::string &stmt,
+      const ::xcl::Arguments &args) override;
+
+  std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Insert & /*msg*/) override {
     throw std::logic_error("not implemented for recording");
   }
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Insert & /*msg*/) {
+      const ::Mysqlx::Crud::Update & /*msg*/) override {
     throw std::logic_error("not implemented for recording");
   }
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Update & /*msg*/) {
+      const ::Mysqlx::Crud::Delete & /*msg*/) override {
     throw std::logic_error("not implemented for recording");
   }
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Delete & /*msg*/) {
-    throw std::logic_error("not implemented for recording");
-  }
-
-  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Find & /*msg*/) {
+      const ::Mysqlx::Crud::Find & /*msg*/) override {
     throw std::logic_error("not implemented for recording");
   }
 
  private:
-  Recorder_mysqlx();
-
   std::unique_ptr<Trace_writer> _trace;
   int _port;
+  bool _closed = false;
+  int _print_traces = 0;
 };
 
 }  // namespace replay

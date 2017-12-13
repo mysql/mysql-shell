@@ -21,6 +21,9 @@
 
 set(mysql_SOURCE
     instance.cc
+    mycnf.cc
+    sandbox.cc
+    group_replication.cc
 )
 
 add_convenience_library(mysql ${mysql_SOURCE})

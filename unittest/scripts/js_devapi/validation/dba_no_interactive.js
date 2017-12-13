@@ -1,5 +1,5 @@
 //@ Session: validating members
-|Session Members: 14|
+|Session Members: 13|
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
@@ -7,7 +7,6 @@
 |getCluster: OK|
 |help: OK|
 |killSandboxInstance: OK|
-|resetSession: OK|
 |startSandboxInstance: OK|
 |checkInstanceConfiguration: OK|
 |stopSandboxInstance: OK|
@@ -52,7 +51,7 @@
 //@# Dba: checkInstanceConfiguration errors
 ||Dba.checkInstanceConfiguration: Missing password for 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Dba.checkInstanceConfiguration: Missing password for 'sample@localhost:<<<__mysql_sandbox_port1>>>'
-||Dba.checkInstanceConfiguration: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+||Dba.checkInstanceConfiguration: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 //@ Dba: checkInstanceConfiguration ok1
 |ok|
@@ -195,10 +194,11 @@
 
 //@# Dba: getCluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.getCluster, expected 0 to 1 but got 2
-||Dba.getCluster: The Cluster name cannot be empty.
-||Dba.getCluster: The Cluster name can only start with an alphabetic or the '_' character.
-||Dba.getCluster: The Cluster name can not be greater than 40 characters.
+||Invalid number of arguments in Dba.getCluster, expected 0 to 2 but got 3
+||Invalid typecast: Map expected, but value is Integer
+||Dba.getCluster: The cluster with the name '' does not exist.
+||Dba.getCluster: The cluster with the name '#' does not exist.
+||Dba.getCluster: The cluster with the name 'over40chars_12345678901234567890123456789' does not exist.
 
 
 //@ Dba: getCluster

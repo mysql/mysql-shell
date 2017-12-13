@@ -48,6 +48,9 @@
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_time.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/innodbcluster/cluster.h"
 
 DEBUG_OBJ_ENABLE(Mysql_shell);
 
@@ -309,9 +312,9 @@ static mysqlsh::SessionType get_session_type(
   }
 }
 
-std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::create_session(
+std::shared_ptr<mysqlshdk::db::ISession> Mysql_shell::create_session(
     const mysqlshdk::db::Connection_options &connection_options) {
-  std::shared_ptr<mysqlsh::ShellBaseSession> ret_val;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string connection_error;
 
   SessionType type = get_session_type(connection_options);
@@ -319,33 +322,27 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::create_session(
   // Automatic protocol detection is ON
   // Attempts X Protocol first, then Classic
   if (type == mysqlsh::SessionType::Auto) {
-    ret_val.reset(new mysqlsh::mysqlx::Session());
+    session = mysqlshdk::db::mysqlx::Session::create();
     try {
-      ret_val->connect(connection_options);
-
-      shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED",
-                                                ret_val);
-
-      return ret_val;
-    } catch (shcore::Exception &e) {
+      session->connect(connection_options);
+      return session;
+    } catch (mysqlshdk::db::Error &e) {
       // Unknown message received from server indicates an attempt to create
       // And X Protocol session through the MySQL protocol
-      int code = 0;
-      if (e.error()->has_key("code"))
-        code = e.error()->get_int("code");
-
-      if (code == 2027 ||  // Unknown message received from server 10
-          code == 2002 ||  // No connection could be made because the target
-                           // machine actively refused it connecting to
-                           // host:port
-          code == 2006) {  // MySQL server has gone away (randomly sent by
-                           // libmysqlx)
+      int code = e.code();
+      if (code == CR_MALFORMED_PACKET ||  // Unknown message received from
+                                          // server 10
+          code == CR_CONNECTION_ERROR ||  // No connection could be made because
+                                          // the target machine actively refused
+                                          // it connecting to host:port
+          code == CR_SERVER_GONE_ERROR) {  // MySQL server has gone away
+                                           // (randomly sent by libmysqlx)
         type = mysqlsh::SessionType::Classic;
 
         // Since this is an unexpected error, we store the message to be logged
         // in case the classic session connection fails too
-        if (code == 2006)
-          connection_error = "X protocol error: " + e.format();
+        if (code == CR_SERVER_GONE_ERROR)
+          connection_error.append("X protocol error: ").append(e.what());
       } else {
         throw;
       }
@@ -354,10 +351,10 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::create_session(
 
   switch (type) {
     case mysqlsh::SessionType::X:
-      ret_val.reset(new mysqlsh::mysqlx::Session());
+      session = mysqlshdk::db::mysqlx::Session::create();
       break;
     case mysqlsh::SessionType::Classic:
-      ret_val.reset(new mysql::ClassicSession());
+      session = mysqlshdk::db::mysql::Session::create();
       break;
     default:
       throw shcore::Exception::argument_error(
@@ -366,7 +363,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::create_session(
   }
 
   try {
-    ret_val->connect(connection_options);
+    session->connect(connection_options);
   } catch (shcore::Exception &e) {
     if (connection_error.empty()) {
       throw;
@@ -378,10 +375,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::create_session(
       throw shcore::Exception::argument_error(connection_error);
     }
   }
-
-  shcore::ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
-
-  return ret_val;
+  return session;
 }
 
 void Mysql_shell::print_connection_message(mysqlsh::SessionType type,
@@ -442,24 +436,28 @@ void Mysql_shell::connect(
 
   std::shared_ptr<mysqlsh::ShellBaseSession> new_session;
   {
+    std::shared_ptr<mysqlshdk::db::ISession> session;
     // allow SIGINT to interrupt the connect()
     bool cancelled = false;
     shcore::Interrupt_handler intr([&cancelled]() {
       cancelled = true;
       return true;
     });
-    new_session = create_session(connection_options);
-
+    session = create_session(connection_options);
     if (cancelled)
       throw shcore::cancelled("Cancelled");
+
+    new_session = set_active_session(session);
   }
 
-  _shell->set_dev_session(new_session);
-  _global_shell->set_session_global(new_session);
-
-  _target_server = connection_options;
-
   new_session->set_option("trace_protocol", options().trace_protocol);
+
+  if (old_session && old_session->is_open()) {
+    if (options().interactive)
+      println("Closing old connection...");
+
+    old_session->close();
+  }
 
   if (recreate_schema) {
     println("Recreating schema " + schema_name + "...");
@@ -477,13 +475,6 @@ void Mysql_shell::connect(
     new_session->set_current_schema(schema_name);
   }
   if (options().interactive) {
-    if (old_session && old_session.unique() && old_session->is_open()) {
-      if (options().interactive)
-        println("Closing old connection...");
-
-      old_session->close();
-    }
-
     std::string session_type = new_session->class_name();
     std::string message;
 
@@ -493,8 +484,10 @@ void Mysql_shell::connect(
       message += " (X protocol)";
     try {
       message += "\nServer version: " +
-                 new_session->query_one_string(
-                     "select concat(@@version, ' ', @@version_comment)", 0);
+                 new_session->get_core_session()
+                     ->query("select concat(@@version, ' ', @@version_comment)")
+                     ->fetch_one()
+                     ->get_string(0);
     } catch (mysqlshdk::db::Error &e) {
       // ignore password expired errors
       if (e.code() == ER_MUST_CHANGE_PASSWORD) {
@@ -531,6 +524,31 @@ void Mysql_shell::connect(
     }
     println(message);
   }
+}
+
+std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  std::shared_ptr<mysqlsh::ShellBaseSession> new_session;
+
+  if (auto classic =
+          std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session)) {
+    new_session = std::make_shared<mysql::ClassicSession>(classic);
+  } else if (auto x = std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Session>(
+                 session)) {
+    new_session = std::make_shared<mysqlsh::mysqlx::Session>(x);
+  } else {
+    throw shcore::Exception::argument_error(
+        "Invalid session type given for shell connection.");
+  }
+  if (session->get_connection_options().has_schema()
+      && options().devapi_schema_object_handles
+      && new_session->update_schema_cache)
+    new_session->update_schema_cache(
+        session->get_connection_options().get_schema(), true);
+
+  _shell->set_dev_session(new_session);
+  _global_shell->set_session_global(new_session);
+
   _update_variables_pending = 2;
 
   // Always refresh schema name completion cache because it can be used in \use
@@ -539,9 +557,120 @@ void Mysql_shell::connect(
   if (_shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
     refresh_completion();
   }
+
+  return new_session;
 }
 
-bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
+bool Mysql_shell::redirect_session_if_needed(bool secondary) {
+  // Check that the connection is to a primary of a InnoDB cluster
+  std::shared_ptr<mysqlshdk::db::ISession> session(
+      shell_context()->get_dev_session()->get_core_session());
+
+  std::string uri = shell_context()->get_dev_session()->uri();
+
+  log_info("Redirecting session from '%s' to a %s of its InnoDB cluster...",
+           uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");
+
+  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> meta(
+      mysqlshdk::innodbcluster::Metadata_mysql::create(session));
+
+  mysqlshdk::mysql::Instance instance(session);
+  mysqlshdk::innodbcluster::Cluster_group_client cluster(meta, session);
+
+  std::vector<mysqlshdk::innodbcluster::Instance_info> candidates;
+  std::string redirect_uri;
+
+  mysqlshdk::db::Connection_options connection =
+      session->get_connection_options();
+  mysqlshdk::innodbcluster::Protocol_type proto;
+  switch (get_session_type(connection)) {
+    case mysqlsh::SessionType::X:
+      proto = mysqlshdk::innodbcluster::Protocol_type::X;
+      break;
+    case mysqlsh::SessionType::Auto:
+      assert(0);  // not supposed to happen, but let it fall through in release
+    case mysqlsh::SessionType::Classic:
+      proto = mysqlshdk::innodbcluster::Protocol_type::Classic;
+      break;
+  }
+
+  if (secondary) {
+    if (!cluster.single_primary()) {
+      log_error(
+          "Redirection to secondary but cluster for %s is not single_primary "
+          "mode",
+          uri.c_str());
+      throw std::runtime_error(
+          "Secondary member requested, but cluster is multi-primary");
+    }
+
+    // check if this session goes to a GR secondary
+    if (!mysqlshdk::gr::is_primary(instance)) {
+      log_info("%s is already a secondary", uri.c_str());
+      return false;
+    }
+    log_info("Connected host %s is not secondary, trying to find one...",
+             uri.c_str());
+    redirect_uri = cluster.find_uri_to_any_secondary(proto);
+  } else {
+    // check if this session goes to a GR primary
+    if (mysqlshdk::gr::is_primary(instance)) {
+      log_info("%s is already a primary", uri.c_str());
+      return false;
+    }
+    log_info("Connected host is not primary, trying to find one...");
+    redirect_uri = cluster.find_uri_to_any_primary(proto);
+  }
+
+  log_info("Reconnecting to %s instance of the InnoDB cluster (%s)...",
+           redirect_uri.c_str(), secondary ? "SECONDARY" : "PRIMARY");
+  println("Reconnecting to " +
+          std::string(secondary ? "SECONDARY" : "PRIMARY") +
+          " instance of the InnoDB cluster (" + redirect_uri + ")...");
+
+  mysqlshdk::db::Connection_options redirected_connection(redirect_uri);
+
+  connection.clear_host();
+  connection.clear_port();
+  connection.clear_socket();
+  connection.set_host(redirected_connection.get_host());
+  if (redirected_connection.has_port())
+    connection.set_port(redirected_connection.get_port());
+  if (redirected_connection.has_socket())
+    connection.set_socket(redirected_connection.get_socket());
+
+  connect(connection);
+  return true;
+}
+
+
+std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
+    const std::string &name) {
+  std::shared_ptr<shcore::Cpp_object_bridge> dba(
+      _shell->get_global("dba").as_object<shcore::Cpp_object_bridge>());
+
+  shcore::Argument_list args;
+  if (!name.empty())
+    args.push_back(shcore::Value(name));
+
+  shcore::Value vcluster(dba->call("getCluster", args));
+  _shell->set_global("cluster", vcluster,
+                     shcore::IShell_core::all_scripting_modes());
+
+  auto cluster = vcluster.as_object<mysqlsh::dba::Cluster>();
+  if (!cluster) {
+    auto icluster = vcluster.as_object<shcore::Interactive_dba_cluster>();
+    assert(icluster);
+    if (icluster) {
+      cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(
+          icluster->get_target());
+      assert(cluster);
+    }
+  }
+  return cluster;
+}
+
+bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
   bool printed = false;
 
   // If help came with parameter attempts to print the
@@ -688,6 +817,14 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
         connect(options.connection_options());
       } catch (shcore::Exception &e) {
         print_error(std::string(e.format()) + "\n");
+      } catch (mysqlshdk::db::Error &e) {
+        std::string msg;
+        if (e.sqlstate() && *e.sqlstate())
+          msg = shcore::str_format("MySQL Error %i (%s): %s", e.code(),
+                                   e.what(), e.sqlstate());
+        else
+          msg = shcore::str_format("MySQL Error %i: %s", e.code(), e.what());
+        print_error(msg + "\n");
       } catch (std::exception &e) {
         print_error(std::string(e.what()) + "\n");
       }
@@ -804,6 +941,16 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
               format.c_str(),
               "Connection: ", (*status)["CONNECTION"].descr(true).c_str()));
 
+        if (status->has_key("TCP_PORT"))
+          println(shcore::str_format(
+              format.c_str(),
+              "TCP port: ", (*status)["TCP_PORT"].descr(true).c_str()));
+
+        if (status->has_key("UNIX_SOCKET"))
+          println(shcore::str_format(
+              format.c_str(),
+              "Unix socket: ", (*status)["UNIX_SOCKET"].descr(true).c_str()));
+
         if (status->has_key("SERVER_CHARSET"))
           println(shcore::str_format(
               format.c_str(), "Server characterset: ",
@@ -824,16 +971,6 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
               format.c_str(), "Conn. characterset: ",
               (*status)["CONNECTION_CHARSET"].descr(true).c_str()));
 
-        if (status->has_key("TCP_PORT"))
-          println(shcore::str_format(
-              format.c_str(),
-              "TCP port: ", (*status)["TCP_PORT"].descr(true).c_str()));
-
-        if (status->has_key("UNIX_SOCKET"))
-          println(shcore::str_format(
-              format.c_str(),
-              "Unix socket: ", (*status)["UNIX_SOCKET"].descr(true).c_str()));
-
         if (status->has_key("UPTIME"))
           println(shcore::str_format(format.c_str(), "Uptime: ",
                                      (*status)["UPTIME"].descr(true).c_str()));
@@ -845,8 +982,8 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
           size_t end = stats.find(" ", start);
 
           std::string time = stats.substr(start, end - start);
-          unsigned long ltime = std::stoul(time);
-          std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
+          std::string str_time =
+              MySQL_timer::format_legacy(std::stoul(time), false, true);
 
           println(
               shcore::str_format(format.c_str(), "Uptime: ", str_time.c_str()));

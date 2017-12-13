@@ -3,19 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3550"
+    "uri": "mysql://root:root@localhost:2001",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "29",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT CURRENT_USER()"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -31,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "CURRENT_USER()",
-            "length": 372,
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 128,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +50,7 @@
     ],
     "rows": [
         [
-            "mydba@localhost"
+            "8.0.4-rc-log Source distribution"
         ]
     ]
 },
@@ -53,12 +58,72 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT COUNT(*) from mysql.user WHERE User = 'dba_test' AND Host = '%'"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "CREATE USER 'mydba'@'localhost' IDENTIFIED BY ''"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "GRANT ALL ON *.* TO 'mydba'@'localhost' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SET SQL_LOG_BIN=1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -89,85 +154,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'dba_test\\'@\\'%\\''"
+    "subtype": "CLOSE",
+    "index": 15
 },
 {
     "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "privilege_type",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "is_grantable",
-            "length": 12,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "SELECT",
-            "YES"
-        ],
-        [
-            "RELOAD",
-            "YES"
-        ],
-        [
-            "SHUTDOWN",
-            "YES"
-        ],
-        [
-            "PROCESS",
-            "YES"
-        ],
-        [
-            "FILE",
-            "YES"
-        ],
-        [
-            "SUPER",
-            "YES"
-        ],
-        [
-            "REPLICATION CLIENT",
-            "YES"
-        ],
-        [
-            "CREATE USER",
-            "YES"
-        ]
-    ]
+    "subtype": "OK",
+    "index": 16
 },
 null]

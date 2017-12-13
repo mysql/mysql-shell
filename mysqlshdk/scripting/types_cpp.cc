@@ -193,10 +193,10 @@ std::vector<std::string> Cpp_object_bridge::get_members_advanced(
 std::vector<std::string> Cpp_object_bridge::get_members() const {
   std::vector<std::string> members;
 
-  for (auto prop : _properties)
+  for (const auto &prop : _properties)
     members.push_back(prop.name(naming_style));
 
-  for (auto func : _funcs) {
+  for (const auto &func : _funcs) {
     members.push_back(func.second->name(naming_style));
   }
   return members;
@@ -474,7 +474,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
   }
 
   std::vector<Value_type> arg_types;
-  for (auto arg : args) {
+  for (const auto &arg : args) {
     arg_types.push_back(arg.type);
   }
   // find best matching function taking param types into account
@@ -500,7 +500,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
     return candidates[0].second;
   } else if (candidates.size() > 1) {
 #ifndef NDEBUG
-    for (auto cand : candidates) {
+    for (const auto &cand : candidates) {
       log_info("Candidates: %s(%i)", cand.second->name().c_str(),
                static_cast<int>(cand.second->signature().size()));
     }

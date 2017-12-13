@@ -43,6 +43,7 @@ cluster.checkInstanceState()
 cluster.checkInstanceState('root@localhost:' + __mysql_sandbox_port2, 'root', '')
 
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

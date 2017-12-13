@@ -48,9 +48,10 @@ class Mysql_shell : public mysqlsh::Base_shell {
       const mysqlshdk::db::Connection_options& args,
       bool recreate_schema = false);
 
-  const mysqlshdk::db::Connection_options& target_server() const {
-    return _target_server;
-  }
+  bool redirect_session_if_needed(bool secondary);
+
+  std::shared_ptr<mysqlsh::dba::Cluster> set_default_cluster(
+      const std::string& name);
 
   bool cmd_print_shell_help(const std::vector<std::string>& args);
   bool cmd_start_multiline(const std::vector<std::string>& args);
@@ -67,17 +68,19 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
   static bool sql_safe_for_logging(const std::string &sql);
 
-  std::shared_ptr<mysqlsh::ShellBaseSession> create_session(
-      const mysqlshdk::db::Connection_options &connection_options);
-
   shcore::Shell_command_handler* command_handler() {
     return &_shell_command_handler;
   }
 
  protected:
-  mysqlshdk::db::Connection_options _target_server;
   shcore::Shell_command_handler _shell_command_handler;
   static void set_sql_safe_for_logging(const std::string &patterns);
+
+  std::shared_ptr<mysqlshdk::db::ISession> create_session(
+      const mysqlshdk::db::Connection_options& connection_options);
+
+  std::shared_ptr<mysqlsh::ShellBaseSession> set_active_session(
+      std::shared_ptr<mysqlshdk::db::ISession> session);
 
   virtual bool do_shell_command(const std::string& command);
 
@@ -92,12 +95,14 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
+
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);
   FRIEND_TEST(Cmdline_shell, check_history_overflow_del);
   FRIEND_TEST(Cmdline_shell, check_history_source);
   FRIEND_TEST(Cmdline_shell, history_autosave_int);
   FRIEND_TEST(Cmdline_shell, check_help_shows_history);
+  FRIEND_TEST(Interactive_dba_create_cluster, read_only_no_prompts);
 #endif
 };
 }  // namespace mysqlsh

@@ -141,6 +141,8 @@ def exec_xshell_commands(init_cmdLine,x_cmds):
     for x in range(0, x_cmds.__len__()-1):
         command=x_cmds[x]
         #for command in x_cmds:
+        if os.getenv("TEST_DEBUG"):
+            print "EXEC", command
         p.stdin.write(bytearray(command[0], 'ascii'))
         p.stdin.flush()
         globalvar.last_search = str(command[1])
@@ -6515,16 +6517,16 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [
             ('\\connect -mc {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-            ("session\n", "<ClassicSession:mysql://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
             ('\\connect -mc {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-js>"),
-            ("session\n", "<ClassicSession:mysql://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
             ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
-            ("session\n", "<Session:mysqlx://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
             ('\\connect -mx {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-js>"),
-            ("session\n", "<Session:mysqlx://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
@@ -6535,16 +6537,16 @@ class XShell_TestCases(unittest.TestCase):
         x_cmds = [
             ('\\connect -mc {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
-            ("session\n", "<ClassicSession:mysql://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
             ('\\connect -mc {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-py>"),
-            ("session\n", "<ClassicSession:mysql://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
+            ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
             ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-py>"),
-            ("session\n", "<Session:mysqlx://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
             ('\\connect -mx {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-py>"),
-            ("session\n", "<Session:mysqlx://{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
+            ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
@@ -6554,7 +6556,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--mysql', '--js']
         x_cmds = [(";\n", 'mysql-js>'),
-                  ("session\n", "<ClassicSession:mysql://" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">")
+                  ("session\n", "<ClassicSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -6566,7 +6568,7 @@ class XShell_TestCases(unittest.TestCase):
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--js']
         x_cmds = [(";\n", 'mysql-js>'),
                   ("session\n",
-                   "<Session:mysqlx://" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
@@ -7396,7 +7398,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--schema=sakila']
-        x_cmds = [("println(session);\n", "Session:mysqlx://" + LOCALHOST.user + "@localhost:33060"),
+        x_cmds = [("println(session);\n", "Session:" + LOCALHOST.user + "@localhost:33060"),
                   ("println(session.uri);\n", LOCALHOST.user + "@localhost:33060/sakila")
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -8302,7 +8304,7 @@ class XShell_TestCases(unittest.TestCase):
                    "Creating an X protocol session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
-                   "<Session:mysqlx://" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
+                   "<Session:" + LOCALHOST.user + "@" + LOCALHOST.host + ">" + os.linesep + ""),
                   ("\\use sakila\n", "mysql-js>"),
                   ("session.getCurrentSchema();\n", "<Schema:sakila>"),
                   ("db;\n", "<Schema:sakila>"),
@@ -8318,7 +8320,7 @@ class XShell_TestCases(unittest.TestCase):
                                                            LOCALHOST.port), "Creating a Classic session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
-                   "<ClassicSession:mysql://" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">" + os.linesep + ""),
+                   "<ClassicSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">" + os.linesep + ""),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')

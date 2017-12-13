@@ -52,9 +52,7 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));
 
-  call_target("connect", new_args);
-
-  return shcore::Value();
+  return call_target("connect", new_args);
 }
 
 }

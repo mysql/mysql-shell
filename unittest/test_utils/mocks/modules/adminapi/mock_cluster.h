@@ -24,6 +24,7 @@
 #ifndef UNITTEST_TEST_UTILS_MOCKS_MODULES_ADMINAPI_MOCK_CLUSTER_H_
 #define UNITTEST_TEST_UTILS_MOCKS_MODULES_ADMINAPI_MOCK_CLUSTER_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -40,19 +41,21 @@ class Mock_cluster : public mysqlsh::dba::Cluster {
  public:
   Mock_cluster() {}
   Mock_cluster(const std::string &name,
+               std::shared_ptr<mysqlshdk::db::ISession> group_session,
                std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata_storage)
-      : Cluster(name, metadata_storage) {
+      : Cluster(name, group_session, metadata_storage) {
     _default_replica_set.reset(new mysqlsh::dba::ReplicaSet(
-        name, mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster,
+        name, mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster, "",
         metadata_storage));
     _default_replica_set->set_id(1);
   }
 
   void initialize(const std::string& name,
+    std::shared_ptr<mysqlshdk::db::ISession> group_session,
     std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata_storage) {
     _name = name;
     _metadata_storage = metadata_storage;
-    _session = _metadata_storage->get_session();
+    _group_session = group_session;
   }
 
   MOCK_METHOD2(call, shcore::Value(const std::string &,

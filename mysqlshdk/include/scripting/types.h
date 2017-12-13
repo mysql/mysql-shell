@@ -271,6 +271,15 @@ struct SHCORE_PUBLIC Value {
     return type == shcore::Null ? nullptr : *value.array;
   }
 
+  std::vector<std::string> to_string_vector() const {
+    std::vector<std::string> vec;
+    check_type(Array);
+    for (const Value &v : *as_array()) {
+      vec.push_back(v.as_string());
+    }
+    return vec;
+  }
+
   std::shared_ptr<Function_base> as_function() const {
     check_type(Function);
     return std::dynamic_pointer_cast<Function_base>(
@@ -572,6 +581,6 @@ public:
 };
 
 bool my_strnicmp(const char *c1, const char *c2, size_t n);
-}
+}  // namespace shcore
 
 #endif // _TYPES_H_

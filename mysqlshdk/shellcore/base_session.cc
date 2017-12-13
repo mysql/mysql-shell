@@ -61,7 +61,7 @@ std::string &ShellBaseSession::append_descr(std::string &s_out, int /*indent*/,
     s_out.append("<" + class_name() + ":disconnected>");
   else
     s_out.append("<" + class_name() + ":" +
-                 uri(mysqlshdk::db::uri::formats::scheme_user_transport()) +
+                 uri(mysqlshdk::db::uri::formats::user_transport()) +
                  ">");
   return s_out;
 }

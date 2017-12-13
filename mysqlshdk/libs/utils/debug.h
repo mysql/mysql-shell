@@ -69,6 +69,15 @@ namespace debug {
     g_debug_obj_##name->on_alloc(this);                        \
   } while (0)
 
+#define DEBUG_OBJ_ALLOC2(name, get_debug)                      \
+  do {                                                         \
+    if (!g_debug_obj_##name) {                                 \
+      g_debug_obj_##name =                                     \
+          shcore::debug::debug_object_enable(STRINGIFY(name)); \
+    }                                                          \
+    g_debug_obj_##name->on_alloc(this, get_debug);             \
+  } while (0)
+
 #define DEBUG_OBJ_DEALLOC(name) g_debug_obj_##name->on_dealloc(this)
 
 #define DEBUG_OBJ_MALLOC(name, ptr)                            \
@@ -100,11 +109,14 @@ class Debug_object_info {
   bool fatal_leaks = false;
   std::set<void *> instances;
   std::map<void *, std::string> instance_tags;
+  std::function<std::string(void*)> get_debug;
   void dump();
 
  public:
   explicit Debug_object_info(const std::string &n);
   void on_alloc(void *p, const std::string &tag = "");
+  void on_alloc(void *p, std::function<std::string(void *)> get_debug,
+                const std::string &tag = "");
   void on_dealloc(void *p);
 };
 
@@ -136,6 +148,9 @@ bool debug_object_dump_report(bool verbose);
 #define DEBUG_OBJ_ALLOC(name) \
   do {                        \
   } while (0)
+
+#define DEBUG_OBJ_ALLOC2(name, get_debug) \
+  do {} while (0)
 
 #define DEBUG_OBJ_ALLOC_N(name, n) \
   do {                        \

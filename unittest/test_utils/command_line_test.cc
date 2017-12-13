@@ -25,6 +25,7 @@
 #endif
 #include <system_error>
 #include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace tests {
 
@@ -57,6 +58,9 @@ int Command_line_test::execute(const std::vector<const char *> &args,
   _output.clear();
 
   bool debug = getenv("TEST_DEBUG") != nullptr;
+  if (debug) {
+    std::cerr << shcore::str_join(&args[0], &args[args.size()-1], " ") << "\n";
+  }
 
   {
     std::lock_guard<std::mutex> lock(_process_mutex);
@@ -80,7 +84,7 @@ int Command_line_test::execute(const std::vector<const char *> &args,
     // Reads all produced output, until stdout is closed
     while (_process->read(&c, 1) > 0) {
       if (debug)
-        std::cout << c << std::flush;
+        std::cerr << c << std::flush;
       if (c == '\r' && _strip_carriage_returns)
         continue;
       _output_mutex.lock();

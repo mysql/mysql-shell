@@ -33,8 +33,6 @@
 namespace tests {
 void Admin_api_test::SetUp() {
   Shell_core_test_wrapper::SetUp();
-  // The Admin_api_test are meant to be run using mock server
-  ignore_session_notifications();
 }
 
 void Admin_api_test::add_instance_type_queries(

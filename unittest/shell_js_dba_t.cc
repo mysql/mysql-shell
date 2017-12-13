@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "shell_script_tester.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"
@@ -53,7 +54,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     // in each test case
     _delay_reset_shell = true;
     Shell_js_script_tester::SetUp();
-
     // All of the test cases share the same config folder
     // and setup script
     set_config_folder("js_devapi");
@@ -136,7 +136,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
 
     std::string mysql_uri = "mysql://";
     std::string have_ssl;
-    _have_ssl = false;
+    _have_ssl = true;
 
     if (_port.empty())
       _port = "33060";
@@ -271,13 +271,24 @@ TEST_F(Shell_js_dba_tests, no_active_session_error) {
 
   execute("var c = dba.getCluster()");
   MY_EXPECT_STDERR_CONTAINS(
-      "The Metadata is inaccessible, an active session is required "
-      "(LogicError)");
+      "The shell must be connected to a member of the InnoDB cluster being "
+      "managed");
 
+  wipe_all();
   execute("dba.verbose = true;");
+  EXPECT_EQ("", output_handler.std_err);
+
+  _options->wizards = true;
+  reset_shell();
+
+  execute("var c = dba.getCluster()");
   MY_EXPECT_STDERR_CONTAINS(
-      "The Metadata is inaccessible, an active session is required "
-      "(LogicError)");
+      "The shell must be connected to a member of the InnoDB cluster being "
+      "managed");
+
+  wipe_all();
+  execute("dba.verbose = true;");
+  EXPECT_EQ("", output_handler.std_err);
 }
 
 // Sandbox specific tests should not do session replay
@@ -634,8 +645,8 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
   validate_interactive("dba_cluster_misconfigurations.js");
 
   std::vector<std::string> log = {
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
-          " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
+    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
       "DBA: root@localhost:" + _mysql_sandbox_port1 +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
@@ -663,8 +674,8 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {
   validate_interactive("dba_cluster_misconfigurations_interactive.js");
 
   std::vector<std::string> log = {
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
-          " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
+    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
       "DBA: root@localhost:" + _mysql_sandbox_port1 +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
@@ -680,8 +691,8 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
   validate_interactive("dba_cluster_no_misconfigurations.js");
 
   std::vector<std::string> log = {
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
-          " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
+    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
       "DBA: root@localhost:" + _mysql_sandbox_port1 +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
@@ -698,8 +709,8 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   validate_interactive("dba_cluster_no_misconfigurations_interactive.js");
 
   std::vector<std::string> log = {
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
-          " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
+    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
       "DBA: root@localhost:" + _mysql_sandbox_port1 +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
@@ -794,13 +805,6 @@ TEST_F(Shell_js_dba_tests, dba_cluster_rpl_user_password) {
 #endif
 
   validate_interactive("dba_cluster_rpl_user_password.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_session) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_cluster_session.js");
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_mts) {

@@ -158,13 +158,35 @@ struct JScript_context::JScript_context_impl {
   }
 
   ~JScript_context_impl() {
+    // Explicitly delete all globals to force a cleanup
+    {
+      v8::Isolate::Scope isolate_scope(isolate);
+      v8::HandleScope handle_scope(isolate);
+      v8::Context::Scope context_scope(
+          v8::Local<v8::Context>::New(isolate, context));
+
+      v8::Local<v8::Context> lcontext =
+          v8::Local<v8::Context>::New(isolate, context);
+      v8::Local<v8::Object> globals =
+          v8::Local<v8::Object>::New(isolate, lcontext->Global());
+
+      v8::Local<v8::Array> names = globals->GetPropertyNames();
+      for (uint32_t i = 0; i < names->Length(); i++) {
+        globals->ForceDelete(names->Get(i));
+      }
+    }
+
     // force GC
     while (!isolate->IdleNotification(1000)) {}
 
-    for (std::map<std::string, v8::Persistent<v8::Object>* >::iterator i = factory_packages.begin(); i != factory_packages.end(); ++i)
+    for (std::map<std::string, v8::Persistent<v8::Object> *>::iterator i =
+             factory_packages.begin();
+         i != factory_packages.end(); ++i)
       delete i->second;
 
     types.dispose();
+
+    while (!isolate->IdleNotification(1000)) {}
 
     // Releases the context
     context.Reset();
@@ -444,6 +466,7 @@ struct JScript_context::JScript_context_impl {
   }
 
   void set_global_item(const std::string &global_name, const std::string &item_name, const v8::Handle<v8::Value> &value) {
+    v8::HandleScope handle_scope(isolate);
     v8::Handle<v8::Value> global = get_global(global_name);
 
     v8::Handle<v8::Object> object = v8::Handle<v8::Object>::Cast(global);
@@ -452,6 +475,7 @@ struct JScript_context::JScript_context_impl {
   }
 
   void set_global(const std::string &name, const v8::Handle<v8::Value> &value) {
+    v8::HandleScope handle_scope(isolate);
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
     if (value.IsEmpty() || !*value)
       ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()), v8::Null(isolate));
@@ -835,6 +859,8 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   // via _global_return_code
   if (executed_ok && ret_val.type == shcore::Undefined)
     ret_val = shcore::Value::Null();
+
+  // while (!_impl->isolate->IdleNotification(1000)) {}
 
   return ret_val;
 }

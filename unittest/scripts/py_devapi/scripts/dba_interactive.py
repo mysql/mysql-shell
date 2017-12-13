@@ -25,7 +25,6 @@ validateMember(members, 'drop_metadata_schema');
 validateMember(members, 'get_cluster');
 validateMember(members, 'help');
 validateMember(members, 'kill_sandbox_instance');
-validateMember(members, 'reset_session');
 validateMember(members, 'start_sandbox_instance');
 validateMember(members, 'check_instance_configuration');
 validateMember(members, 'stop_sandbox_instance');

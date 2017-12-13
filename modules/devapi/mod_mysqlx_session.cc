@@ -88,6 +88,7 @@ REGISTER_HELP(SESSION_INTERACTIVE_BRIEF,
 
 Session::Session() : _case_sensitive_table_names(false), _savepoint_counter(0) {
   init();
+  _session = mysqlshdk::db::mysqlx::Session::create();
 }
 
 // Documentation of isOpen function
@@ -112,7 +113,7 @@ Bool Session::isOpen() {}
 bool Session::is_open() {}
 #endif
 bool Session::is_open() const {
-  return _session->valid();
+  return _session->is_open();
 }
 
 shcore::Value Session::_is_open(const shcore::Argument_list &args) {
@@ -121,12 +122,25 @@ shcore::Value Session::_is_open(const shcore::Argument_list &args) {
   return shcore::Value(is_open());
 }
 
+
+Session::Session(std::shared_ptr<mysqlshdk::db::mysqlx::Session> session)
+    : _case_sensitive_table_names(false) {
+  init();
+
+  // TODO(alfredo) maybe can remove _connection_options ivar
+  _connection_options = session->get_connection_options();
+  _session = session;
+
+  _connection_id = _session->get_connection_id();
+}
+
 Session::Session(const Session &s)
     : ShellBaseSession(s),
       std::enable_shared_from_this<Session>(s),
       _case_sensitive_table_names(false),
       _savepoint_counter(0) {
   init();
+  _session = mysqlshdk::db::mysqlx::Session::create();
 }
 
 Session::~Session() {
@@ -170,7 +184,6 @@ void Session::init() {
             shcore::String, NULL);
 
   _schemas.reset(new shcore::Value::Map_type);
-  _session = mysqlshdk::db::mysqlx::Session::create();
 
   // Prepares the cache handling
   auto generator = [this](const std::string &name) {
@@ -201,14 +214,6 @@ void Session::connect(const mysqlshdk::db::Connection_options& data) {
   try {
     _connection_options = data;
 
-    // All connections should use mode = VERIFY_CA if no ssl mode is specified
-    // and either ssl-ca or ssl-capath are specified
-    if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
-        (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
-         _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
-      _connection_options.set(mysqlshdk::db::kSslMode,
-                             {mysqlshdk::db::kSslModeVerifyCA});
-    }
     _session->connect(_connection_options);
 
     _connection_id = _session->get_connection_id();
@@ -266,7 +271,6 @@ Value Session::_close(const shcore::Argument_list &args) {
 }
 
 void Session::close() {
-  bool did_close = false;
   try {
     // Connection must be explicitly closed, we can't rely on the
     // automatic destruction because if shared across different objects
@@ -276,21 +280,11 @@ void Session::close() {
         "Closing session: %s",
         uri(mysqlshdk::db::uri::formats::scheme_user_transport()).c_str());
 
-    if (_session->valid()) {
-      did_close = true;
+    if (_session->is_open()) {
       _session->close();
     }
   } catch (std::exception &e) {
     log_warning("Error occurred closing session: %s", e.what());
-  }
-
-if (did_close) {
-    try {
-      // this shouldn't be getting clled from teh d-tor...
-      ShellNotifications::get()->notify("SN_SESSION_CLOSED", shared_from_this());
-    } catch (std::bad_weak_ptr) {
-      ShellNotifications::get()->notify("SN_SESSION_CLOSED", {});
-    }
   }
 
   _session = mysqlshdk::db::mysqlx::Session::create();
@@ -754,6 +748,7 @@ shcore::Value Session::get_schemas(const shcore::Argument_list &args) {
         std::string schema_name;
         if (!row->is_null(0))
           schema_name = row->get_string(0);
+        // TODO(alfredo) review whether caching of all schemas shouldn't be off
         if (!schema_name.empty()) {
           update_schema_cache(schema_name, true);
 

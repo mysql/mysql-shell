@@ -2,7 +2,7 @@
 ||
 
 //@ Session: validating members
-|Session Members: 14|
+|Session Members: 13|
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
@@ -10,7 +10,6 @@
 |getCluster: OK|
 |help: OK|
 |killSandboxInstance: OK|
-|resetSession: OK|
 |startSandboxInstance: OK|
 |checkInstanceConfiguration: OK|
 |stopSandboxInstance: OK|
@@ -60,7 +59,7 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@ Dba: checkInstanceConfiguration error
-|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
+|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
 
 //@<OUT> Dba: checkInstanceConfiguration ok 1
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
@@ -208,15 +207,19 @@ You can now use it in an InnoDB Cluster.
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.getCluster, expected 0 to 1 but got 2
-||Dba.getCluster: The Cluster name cannot be empty.
-||Dba.getCluster: The Cluster name can only start with an alphabetic or the '_' character.
-||Dba.getCluster: The Cluster name can not be greater than 40 characters.
+||Invalid number of arguments in Dba.getCluster, expected 0 to 2 but got 3
+||Invalid typecast: Map expected, but value is Integer
+||Dba.getCluster: The cluster with the name '' does not exist.
+||Dba.getCluster: The cluster with the name '#' does not exist.
+||Dba.getCluster: The cluster with the name 'over40chars_12345678901234567890123456789' does not exist.
 
 //@<OUT> Dba: getCluster with interaction
 <Cluster:devCluster>
 
 //@<OUT> Dba: getCluster with interaction (default)
+<Cluster:devCluster>
+
+//@<OUT> Dba: getCluster with interaction (default null)
 <Cluster:devCluster>
 
 //@ Finalization

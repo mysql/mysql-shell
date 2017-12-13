@@ -26,8 +26,6 @@ The following functions are currently supported.
                                        localhost.
  - reboot_cluster_from_complete_outage Brings a cluster back ONLINE when all
                                        members are OFFLINE.
- - reset_session                       Sets the session object to be used on
-                                       the Dba operations.
  - start_sandbox_instance              Starts an existing MySQL Server instance
                                        on localhost.
  - stop_sandbox_instance               Stops a running MySQL Server instance on
@@ -330,27 +328,6 @@ on Windows systems.
 
 If the instance is not located on the used path an error will occur.
 
-
-#@<OUT> Reset Session
-Sets the session object to be used on the Dba operations.
-
-SYNTAX
-
-  <Dba>.reset_session(session)
-
-WHERE
-
-  session: Session object to be used on the Dba operations.
-
-DESCRIPTION
-
-Many of the Dba operations require an active session to the Metadata Store, use
-this function to define the session to be used.
-
-At the moment only a Classic session type is supported.
-
-If the session type is not defined, the global dba object will use the active
-session.
 
 #@<OUT> Start Sandbox
 Starts an existing MySQL Server instance on localhost.

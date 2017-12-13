@@ -892,11 +892,12 @@ def start_sandbox(**kwargs):
         if not mysqld_path:
             mysqld_path = os.path.join(sandbox_dir, "mysqld")
             if not os.path.isfile(mysqld_path):
-                _LOGGER.warning("Could not find a copy of the mysqld "
-                                "executable in '%s'. Start operation might "
-                                "fail if AppArmor or SELinux are blocking "
-                                "the mysqld access to the sandbox directory.",
-                                sandbox_dir)
+                if sys.platform != "darwin":
+                    _LOGGER.warning("Could not find a copy of the mysqld "
+                                    "executable in '%s'. Start operation might "
+                                    "fail if AppArmor or SELinux are blocking "
+                                    "the mysqld access to the sandbox directory.",
+                                    sandbox_dir)
                 try:
                     mysqld_path = tools.get_tool_path(
                         None, "mysqld", search_path=True, required=True,

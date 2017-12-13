@@ -61,6 +61,7 @@ void Shell::init() {
   add_method("getSession", std::bind(&Shell::get_session, this, _1), NULL);
   add_method("reconnect", std::bind(&Shell::reconnect, this, _1), NULL);
   add_method("log", std::bind(&Shell::log, this, _1), NULL);
+  add_method("status", std::bind(&Shell::status, this, _1), NULL);
 }
 
 Shell::~Shell() {}
@@ -475,7 +476,8 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 
-  return shcore::Value();
+  return shcore::Value(
+      std::static_pointer_cast<Object_bridge>(get_dev_session()));
 }
 
 void Shell::set_current_schema(const std::string& name) {
@@ -621,4 +623,29 @@ shcore::Value Shell::log(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP(SHELL_STATUS_BRIEF,
+              "Shows connection status info for the shell.");
+REGISTER_HELP(SHELL_STATUS_DETAIL,
+              "This shows the same information shown by the \\status command.");
+
+/**
+ * $(SHELL_STATUS_BRIEF)
+ *
+ * $(SHELL_STATUS_DETAIL)
+ */
+#if DOXYGEN_JS
+Undefined Shell::status() {}
+#elif DOXYGEN_PY
+None Shell::status() {}
+#endif
+shcore::Value Shell::status(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("status").c_str());
+
+  try {
+    _shell->cmd_status({});
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
+
+  return shcore::Value();
+}
 }  // namespace mysqlsh

@@ -43,7 +43,7 @@ namespace replay {
 class Trace_writer {
  public:
   ~Trace_writer();
-  static Trace_writer* create(const std::string& path);
+  static Trace_writer* create(const std::string& path, int print_traces);
 
   void set_metadata(const std::map<std::string, std::string>& meta);
 
@@ -52,29 +52,29 @@ class Trace_writer {
   void serialize_close();
   void serialize_query(const std::string& sql);
 
-  void serialize_connect_ok(const char* ssl_cipher);
+  void serialize_connect_ok(const std::map<std::string, std::string> &info);
   void serialize_ok();
   void serialize_result(std::shared_ptr<db::IResult> result);
-  void serialize_error(const shcore::database_error& e);
   void serialize_error(const db::Error& e);
 
   const std::string &trace_path() const { return _path; }
   int trace_index() const { return _idx; }
 
  private:
-  explicit Trace_writer(const std::string& path);
+  Trace_writer(const std::string& path, int print_traces);
   std::string _path;
   std::ofstream _stream;
   int _idx = 0;
+  int _print_traces = 0;
 };
 
 void save_info(const std::string& path,
                const std::map<std::string, std::string>& state);
 std::map<std::string, std::string> load_info(const std::string& path);
 
-class sequence_error : public shcore::database_error {
+class sequence_error : public db::Error {
  public:
-  explicit sequence_error(const char* what);
+  explicit sequence_error(const std::string &what);
 };
 
 class Row_hook : public db::IRow {
@@ -139,10 +139,11 @@ using Result_row_hook = std::function<std::unique_ptr<db::IRow>(
     std::unique_ptr<db::IRow>)>;
 
 class Result_mysql;
+class Result_mysqlx;
 
 class Trace {
  public:
-  explicit Trace(const std::string& path);
+  Trace(const std::string& path, int print_traces);
   ~Trace();
 
   std::map<std::string, std::string> get_metadata();
@@ -151,9 +152,11 @@ class Trace {
   void expected_close();
   std::string expected_query();
 
-  void expected_connect_status(std::string* out_ssl_cipher);
+  void expected_connect_status(std::map<std::string, std::string> *out_info);
   void expected_status();
   std::shared_ptr<Result_mysql> expected_result(
+      std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
+  std::shared_ptr<Result_mysqlx> expected_result_x(
       std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
 
   const std::string& trace_path() const {
@@ -169,10 +172,14 @@ class Trace {
   void unserialize_result_rows(
       rapidjson::Value* rlist, std::shared_ptr<Result_mysql> result,
       std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
+  void unserialize_result_rows(
+      rapidjson::Value* rlist, std::shared_ptr<Result_mysqlx> result,
+      std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
   void expect_request(rapidjson::Value* doc, const char* subtype);
   rapidjson::Document _doc;
   rapidjson::SizeType _index;
   std::string _trace_path;
+  int _print_traces = 0;
 };
 
 }  // namespace replay

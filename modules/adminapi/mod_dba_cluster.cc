@@ -34,17 +34,20 @@
 #include "modules/adminapi/mod_dba_sql.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
+#include "utils/debug.h"
 
-using namespace std::placeholders;
+using std::placeholders::_1;
+
+DEBUG_OBJ_ENABLE(Cluster);
 
 namespace mysqlsh {
 namespace dba {
 
 // Documentation of the Cluster Class
-REGISTER_HELP(CLUSTER_BRIEF, "Represents an instance of MySQL InnoDB Cluster.");
+REGISTER_HELP(CLUSTER_BRIEF, "Management handle to an InnoDB cluster.");
 REGISTER_HELP(CLUSTER_DETAIL,
-              "The cluster object is the entrance point to manage the MySQL "
-              "InnoDB Cluster system.");
+              "The cluster object is the entry point to manage and monitor "
+              "a MySQL InnoDB cluster.");
 REGISTER_HELP(
     CLUSTER_DETAIL1,
     "A cluster is a set of MySQLd Instances which holds the user's data.");
@@ -60,13 +63,23 @@ REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 
 Cluster::Cluster(const std::string &name,
+                 std::shared_ptr<mysqlshdk::db::ISession> group_session,
                  std::shared_ptr<MetadataStorage> metadata_storage)
-    : _name(name), _dissolved(false), _metadata_storage(metadata_storage) {
-  _session = _metadata_storage->get_session();
+    : _name(name),
+      _dissolved(false),
+      _group_session(group_session),
+      _metadata_storage(metadata_storage) {
+  DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
+    return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
+                                        ->shared_from_this()
+                                        .use_count());
+  });
   init();
 }
 
-Cluster::~Cluster() {}
+Cluster::~Cluster() {
+  DEBUG_OBJ_DEALLOC(Cluster);
+}
 
 std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
                                    int UNUSED(quote_strings)) const {
@@ -95,6 +108,7 @@ void Cluster::init() {
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
       std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
+  add_method("disconnect", std::bind(&Cluster::disconnect, this, _1), NULL);
 }
 
 // Documentation of the getName function
@@ -116,14 +130,15 @@ str Cluster::get_name() {}
 shcore::Value Cluster::call(const std::string &name,
                             const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved(name);
+  assert_valid(name);
   return Cpp_object_bridge::call(name, args);
 }
 
 shcore::Value Cluster::get_member(const std::string &prop) const {
   shcore::Value ret_val;
+
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved(prop);
+  assert_valid(prop);
 
   if (prop == "name")
     ret_val = shcore::Value(_name);
@@ -132,8 +147,12 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-void Cluster::assert_not_dissolved(const std::string &option_name) const {
+void Cluster::assert_valid(const std::string &option_name) const {
   std::string name;
+
+  if (option_name == "disconnect")
+    return;
+
   if (has_member(option_name) && _dissolved) {
     if (has_method(option_name)) {
       name = get_function_name(option_name, false);
@@ -146,6 +165,11 @@ void Cluster::assert_not_dissolved(const std::string &option_name) const {
                                      "Can't access object member '" + name +
                                      "' on a dissolved cluster");
     }
+  }
+  if (!_group_session) {
+    throw shcore::Exception::runtime_error(
+        "The cluster object is disconnected. Please call " +
+        get_function_name("getCluster") + " to obtain a fresh cluster handle.");
   }
 }
 
@@ -208,7 +232,7 @@ shcore::Value Cluster::add_seed_instance(
     // Create the Default ReplicaSet and assign it to the Cluster's
     // default_replica_set var
     _default_replica_set.reset(
-        new ReplicaSet("default", topology_type, _metadata_storage));
+        new ReplicaSet("default", topology_type, "", _metadata_storage));
     _default_replica_set->set_cluster(shared_from_this());
 
     // If we reached here without errors we can update the Metadata
@@ -223,10 +247,10 @@ shcore::Value Cluster::add_seed_instance(
       connection_options, args, replication_user, replication_pwd, true,
       group_name);
 
+
   std::string group_replication_group_name =
-      get_gr_replicaset_group_name(_metadata_storage->get_session());
-  _metadata_storage->set_replicaset_group_name(_default_replica_set,
-                                               group_replication_group_name);
+      get_gr_replicaset_group_name(_group_session);
+  _default_replica_set->set_group_name(group_replication_group_name);
 
   tx.commit();
 
@@ -441,11 +465,9 @@ None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("addInstance");
+  assert_valid("addInstance");
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
-
-  _metadata_storage->set_session(_session);
 
   check_preconditions("addInstance");
 
@@ -622,12 +644,9 @@ None Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("rejoinInstance");
+  assert_valid("rejoinInstance");
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   check_preconditions("rejoinInstance");
 
@@ -756,12 +775,9 @@ None Cluster::remove_instance(InstanceDef instance, dict options) {}
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("removeInstance");
+  assert_valid("removeInstance");
 
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   check_preconditions("removeInstance");
 
@@ -795,7 +811,7 @@ ReplicaSet Cluster::get_replica_set(str name) {}
 #endif
 shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("getReplicaSet");
+  assert_valid("getReplicaSet");
 
   shcore::Value ret_val;
 
@@ -893,12 +909,9 @@ str Cluster::describe() {}
 
 shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("describe");
+  assert_valid("describe");
 
   args.ensure_count(0, get_function_name("describe").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   auto state = check_preconditions("describe");
 
@@ -1020,12 +1033,9 @@ str Cluster::status() {}
 
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("status");
+  assert_valid("status");
 
   args.ensure_count(0, get_function_name("status").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   auto state = check_preconditions("status");
 
@@ -1044,6 +1054,15 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
       (*status)["defaultReplicaSet"] = shcore::Value::Null();
     else
       (*status)["defaultReplicaSet"] = _default_replica_set->get_status(state);
+
+    (*status)["groupInformationSourceMember"] =
+        shcore::Value(_group_session->get_connection_options().as_uri());
+    // metadata server, if its a different one
+    if (_metadata_storage->get_session() != _group_session) {
+      auto mdsession = _metadata_storage->get_session();
+      (*status)["metadataServer"] =
+          shcore::Value(mdsession->get_connection_options().as_uri());
+    }
 
     if (warning) {
       std::string warning =
@@ -1108,12 +1127,9 @@ None Cluster::dissolve(Dictionary options) {}
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("dissolve");
+  assert_valid("dissolve");
 
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   // We need to check if the group has quorum and if not we must abort the
   // operation otherwise GR blocks the writes to preserve the consistency
@@ -1175,6 +1191,9 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
           "Cannot drop cluster: The cluster is not empty.");
       }
     }
+
+    // Disconnect all internal sessions
+    disconnect({});
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"))
 
@@ -1221,12 +1240,9 @@ None Cluster::rescan() {}
 
 shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("rescan");
+  assert_valid("rescan");
 
   args.ensure_count(0, get_function_name("rescan").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   check_preconditions("rescan");
 
@@ -1252,6 +1268,48 @@ shcore::Value::Map_type_ref Cluster::_rescan(
 
   return ret_val;
 }
+
+
+REGISTER_HELP(CLUSTER_DISCONNECT_BRIEF,
+              "Disconnects all internal sessions used by the cluster object.");
+
+REGISTER_HELP(CLUSTER_DISCONNECT_RETURNS, "@returns nothing.");
+
+REGISTER_HELP(CLUSTER_DISCONNECT_DETAIL,
+              "Disconnects the internal MySQL sessions used by the cluster "\
+              "to query for metadata and replication information.");
+
+/**
+ * $(CLUSTER_DISCONNECT_BRIEF)
+ *
+ * $(CLUSTER_DISCONNECT_RETURNS)
+ *
+ * $(CLUSTER_DISCONNECT_DETAIL)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::disconnect() {}
+#elif DOXYGEN_PY
+None Cluster::disconnect() {}
+#endif
+
+shcore::Value Cluster::disconnect(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("disconnect").c_str());
+
+  try {
+    if (_group_session) {
+      // no preconditions check needed for just disconnecting everything
+      _group_session->close();
+      _group_session.reset();
+    }
+    if (_metadata_storage->get_session()) {
+      _metadata_storage->get_session()->close();
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("disconnect"));
+
+  return shcore::Value();
+}
+
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF,
               "Restores the cluster from quorum loss.");
@@ -1373,13 +1431,10 @@ None Cluster::force_quorum_using_partition_of(InstanceDef instance,
 shcore::Value Cluster::force_quorum_using_partition_of(
     const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("forceQuorumUsingPartitionOf");
+  assert_valid("forceQuorumUsingPartitionOf");
 
   args.ensure_count(1, 2,
                     get_function_name("forceQuorumUsingPartitionOf").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   check_preconditions("forceQuorumUsingPartitionOf");
 
@@ -1518,12 +1573,9 @@ None Cluster::check_instance_state(InstanceDef instance, str password) {}
 #endif
 shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("checkInstanceState");
+  assert_valid("checkInstanceState");
 
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
-
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
 
   check_preconditions("checkInstanceState");
 
@@ -1544,11 +1596,13 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
 
 ReplicationGroupState Cluster::check_preconditions(
     const std::string &function_name) const {
-  // Point the metadata session to the cluster session
-  _metadata_storage->set_session(_session);
-  return check_function_preconditions(class_name(), function_name,
-                                      get_function_name(function_name),
-                                      _metadata_storage);
+  try {
+    return check_function_preconditions(class_name(), function_name,
+                                        get_function_name(function_name),
+                                        _group_session);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
+  return ReplicationGroupState{};
 }
 
 }  // namespace dba

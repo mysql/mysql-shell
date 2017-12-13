@@ -206,6 +206,8 @@ c.addInstance(add_instance_options, {localAddress: __local_address_add_2});
 session.close();
 print_other_gr_local_address(add_instance_options);
 
+c.disconnect();
+
 //@ Remove instance (FR1-TS-2-2)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
@@ -221,6 +223,8 @@ c.addInstance(add_instance_options, {localAddress: __local_address_add_3});
 session.close();
 print_other_gr_local_address(add_instance_options);
 
+c.disconnect();
+
 //@ Remove instance (FR1-TS-2-3)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
@@ -234,6 +238,8 @@ c.addInstance(add_instance_options, {localAddress: __local_address_add_4});
 //@<OUT> Confirm local address is set correctly (FR1-TS-2-4)
 session.close();
 print_other_gr_local_address(add_instance_options);
+
+c.disconnect();
 
 //@ Remove instance (FR1-TS-2-4)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -249,6 +255,8 @@ c.addInstance(add_instance_options, {localAddress: __local_address_add_9});
 session.close();
 print_other_gr_local_address(add_instance_options);
 
+c.disconnect();
+
 //@ Remove instance (FR1-TS-2-9)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
@@ -263,6 +271,8 @@ c.addInstance(add_instance_options, {localAddress: __local_address_add_10});
 session.close();
 print_other_gr_local_address(add_instance_options);
 
+c.disconnect();
+
 //@ Remove instance (FR1-TS-2-10)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
@@ -275,6 +285,8 @@ c.addInstance(add_instance_options, {groupSeeds: __group_seeds_1});
 session.close();
 print_other_gr_group_seeds(add_instance_options);
 
+c.disconnect();
+
 //@ Remove instance (FR2-TS-2-1)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var c = dba.getCluster();
@@ -286,6 +298,8 @@ c.addInstance(add_instance_options, {groupSeeds: __group_seeds_2});
 //@<OUT> Confirm group seeds is set correctly (FR2-TS-2-2)
 session.close();
 print_other_gr_group_seeds(add_instance_options);
+
+c.disconnect();
 
 //@ Remove instance (FR2-TS-2-2)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -318,6 +332,8 @@ add_instance_options['port'] = __mysql_sandbox_port3;
 c.addInstance(add_instance_options, {localAddress: __cfg_local_address3});
 // Wait for metadata changes to be replicated on added instance
 wait_sandbox_in_metadata(__mysql_sandbox_port3);
+
+c.disconnect();
 
 //@ Configure seed instance (FR1-TS-4)
 var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";

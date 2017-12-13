@@ -66,6 +66,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port1);
 
 session.close();
+cluster.disconnect();
 
 // Re-establish the connection to instance 1
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -134,12 +135,14 @@ testutil.startSandbox(__mysql_sandbox_port3);
 // Re-establish the connection to instance 1
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
+cluster.disconnect();
 cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [localhost + ":"+ __mysql_sandbox_port2, localhost + ":"+ __mysql_sandbox_port3]});
 
 session.close();
 
 //@ Finalization
 clusterSession.close();
+cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

@@ -34,12 +34,10 @@
 using namespace shcore;
 
 static bool g_test_sessions = getenv("TEST_SESSIONS") != nullptr;
-static bool g_test_debug = getenv("TEST_DEBUG") != nullptr;
 
 std::vector<std::string> Shell_test_output_handler::log;
 ngcommon::Logger *Shell_test_output_handler::_logger;
 
-extern std::string g_mysql_version;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 
 Shell_test_output_handler::Shell_test_output_handler() {
@@ -56,7 +54,7 @@ Shell_test_output_handler::Shell_test_output_handler() {
   // Assumes logfile already initialized
   ngcommon::Logger::setup_instance(
     ngcommon::Logger::singleton()->logfile_name().c_str(),
-    g_test_debug);
+    getenv("TEST_DEBUG") != nullptr);
   _logger = ngcommon::Logger::singleton();
   _logger->attach_log_hook(log_hook);
 }
@@ -83,7 +81,8 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
   target->full_output << text << std::endl;
 
-  if (target->debug || g_test_debug || shcore::str_beginswith(text, "**"))
+  if (target->debug || g_test_trace_scripts ||
+      shcore::str_beginswith(text, "**"))
     std::cout << text << std::flush;
 
   std::lock_guard<std::mutex> lock(target->stdout_mutex);
@@ -96,7 +95,7 @@ void Shell_test_output_handler::deleg_print_error(void *user_data,
 
   target->full_output << makered(text) << std::endl;
 
-  if (target->debug || g_test_debug)
+  if (target->debug || g_test_trace_scripts)
     std::cerr << makered(text) << std::endl;
 
   target->std_err.append(text);
@@ -284,14 +283,14 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
 }
 
 void Shell_test_output_handler::debug_print(const std::string &line) {
-  if (debug || g_test_debug)
+  if (debug || g_test_trace_scripts)
     std::cout << line << std::endl;
 
   full_output << line.c_str() << std::endl;
 }
 
 void Shell_test_output_handler::debug_print_header(const std::string &line) {
-  if (debug || g_test_debug)
+  if (debug || g_test_trace_scripts)
     std::cerr << makebold(line) << std::endl;
 
   std::string splitter(line.length(), '-');
@@ -349,8 +348,6 @@ void Shell_core_test_wrapper::SetUp() {
 
   // Initializes the interactive shell
   reset_shell();
-
-  observe_session_notifications();
 }
 
 void Shell_core_test_wrapper::TearDown() {
@@ -360,33 +357,7 @@ void Shell_core_test_wrapper::TearDown() {
   }
   _interactive_shell.reset();
 
-  ignore_session_notifications();
-
-  try {
-    if (!_open_sessions.empty()) {
-      for (auto entry : _open_sessions) {
-        // Prints the session warnings ONLY if TEST_SESSIONS is enabled
-        if (g_test_sessions)
-          std::cerr << "WARNING: Closing dangling session opened on "
-                    << entry.second << std::endl;
-
-        auto session =
-            std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(entry.first);
-        if (session) {
-          session->close();
-        }
-      }
-      _open_sessions.clear();
-    }
-  } catch (std::exception &e) {
-    std::cerr << "Unhandled exception in TearDown().1: " << e.what() << "\n";
-  }
-
-  try {
-    tests::Shell_base_test::TearDown();
-  } catch (std::exception &e) {
-    std::cerr << "Unhandled exception in TearDown().2: " << e.what() << "\n";
-  }
+  tests::Shell_base_test::TearDown();
 }
 
 void Shell_core_test_wrapper::enable_testutil() {
@@ -396,69 +367,32 @@ void Shell_core_test_wrapper::enable_testutil() {
   testutil.reset(new tests::Testutils(
       _sandbox_dir, _recording_enabled && dummy_sandboxes,
       {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
-      _interactive_shell));
-  testutil->set_expected_boilerplate_version(g_mysql_version);
-  testutil->set_user_input_feeder(
+      _interactive_shell, get_path_to_mysqlsh()));
+  testutil->set_expected_boilerplate_version(_target_server_version.get_full());
+  testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text) {
         output_handler.prompts.push_back({prompt, text});
       },
       [this](const std::string &prompt, const std::string &pass) {
         output_handler.passwords.push_back({prompt, pass});
+      },
+      [this]() -> std::string {
+        return output_handler.std_out;
+      },
+      [this]() -> std::string {
+        return output_handler.std_err;
       });
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
     testutil->set_sandbox_snapshot_dir(
         mysqlshdk::db::replay::current_recording_dir());
+
   _interactive_shell->set_global_object("testutil", testutil);
 }
 
 void Shell_core_test_wrapper::enable_replay() {
   // Assumes reset_mysql() was already called
   setup_recorder();
-}
-
-void Shell_core_test_wrapper::observe_session_notifications() {
-  observe_notification("SN_SESSION_CONNECTED");
-  observe_notification("SN_SESSION_CONNECTION_LOST");
-  observe_notification("SN_SESSION_CLOSED");
-  observe_notification("SN_DEBUGGER");
-}
-
-void Shell_core_test_wrapper::ignore_session_notifications() {
-  ignore_notification("SN_SESSION_CONNECTED");
-  ignore_notification("SN_SESSION_CONNECTION_LOST");
-  ignore_notification("SN_SESSION_CLOSED");
-  ignore_notification("SN_DEBUGGER");
-}
-
-void Shell_core_test_wrapper::handle_notification(
-    const std::string &name, const shcore::Object_bridge_ref &sender,
-    shcore::Value::Map_type_ref data) {
-  std::string identifier = context_identifier();
-
-  if (name == "SN_SESSION_CONNECTED") {
-    auto position = _open_sessions.find(sender);
-    if (position == _open_sessions.end())
-      _open_sessions[sender] = identifier;
-    // Prints the session warnings ONLY if TEST_SESSIONS is enabled
-    else if (g_test_sessions) {
-      std::cerr << "WARNING: Reopening session from " << _open_sessions[sender]
-                << " at " << identifier << std::endl;
-    }
-  } else if (name == "SN_SESSION_CONNECTION_LOST" ||
-             name == "SN_SESSION_CLOSED") {
-    auto position = _open_sessions.find(sender);
-    if (position != _open_sessions.end())
-      _open_sessions.erase(position);
-    // Prints the session warnings ONLY if TEST_SESSIONS is enabled
-    else if (g_test_sessions) {
-      std::cerr << "WARNING: Closing a session that was never opened at "
-                << identifier << std::endl;
-    }
-  } else if (name == "SN_DEBUGGER") {
-    std::cout << "DEBUG NOTIFICATION: " << data->get_string("value").c_str()
-              << std::endl;
-  }
 }
 
 void Shell_core_test_wrapper::execute(const std::string& code) {

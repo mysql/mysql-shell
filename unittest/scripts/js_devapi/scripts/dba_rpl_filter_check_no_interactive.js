@@ -49,6 +49,7 @@ cluster.addInstance({'user':'root', 'password': 'root', 'host':'localhost', 'por
 cluster.addInstance({'user':'root', 'password': 'root', 'host':'localhost', 'port':__mysql_sandbox_port3});
 
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

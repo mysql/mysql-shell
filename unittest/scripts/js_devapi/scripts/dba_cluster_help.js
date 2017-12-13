@@ -24,6 +24,9 @@ cluster.help("checkInstanceState")
 //@<OUT> Describe
 cluster.help("describe")
 
+//@<OUT> Disconnect
+cluster.help("disconnect")
+
 //@<OUT> Dissolve
 cluster.help("dissolve")
 
@@ -49,6 +52,7 @@ cluster.help("rescan")
 cluster.help("status")
 
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

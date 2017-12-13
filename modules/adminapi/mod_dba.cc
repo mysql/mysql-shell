@@ -37,7 +37,6 @@
 #include <vector>
 
 #include "utils/utils_sqlstring.h"
-//#include "modules/adminapi/mod_dba_instance.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
@@ -51,11 +50,97 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/innodbcluster/cluster.h"
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 
-using namespace std::placeholders;
+/*
+  Sessions used by AdminAPI
+  =========================
+
+  The following is a list of the types of MySQL sessions that exist in the
+  AdminAPI. These are conceptual types of sessions and don't necessarily
+  use different classes (they're all db::mysql::Session) or different session
+  object instances.
+
+  Shell session
+  -------------
+
+  The session opened by the shell to connect to the server the user gives in
+  the command line, \connect or shell.connect().
+
+  Use by DevAPI and the SQL mode, but not supposed to be used by AdminAPI,
+  except for figuring out what is the cluster being managed.
+
+  Target member session
+  ---------------------
+
+  A session to the MySQL server instance that is being operated on for cluster
+  operations, like the member being added or removed from the group.
+
+  Only instance local operations are meant to be performed with this session.
+  Group-wide operations must go through the Group session.
+
+  Metadata session
+  ----------------
+
+  The session to the MySQL server that stores the metadata. The general design
+  is meant to allow the metadata to be stored in a location different from the
+  cluster being managed, although the implementation does not allow that today..
+
+  The MySQL session used for metadata operations is not shared with the
+  shell session.
+
+  When making changes to the cluster, the metadata session must be read-write
+  and thus, it will connect to the primary by default when created. The
+  connection to primary will not be required if the option sets the option for
+  that.
+
+  Only metadata operations may use this session (that is, reads and writes on
+  the mysql_innodb_cluster_metadata schema).
+
+  Group session
+  -------------
+
+  A session to a member of a GR group (usually the primary), that will be used
+  to query the performance_schema to know the live status of the group/cluster.
+
+  Also the member from which group-wide changes are applied, like creating the
+  replication user account for new members. Thus, if changes to the cluster are
+  going to be made, the group session must be connected to the primary.
+
+  If possible, the group session will shared the same session as the metadata,
+  but not always.
+
+  Scenarios
+  ---------
+
+  The shell's target is the primary of the group being managed:
+  Metadata  - connect to target
+  Group     - share from metadata
+  Member    - connect to shell target or param URI
+
+  The shell's target is the secondary of the group being managed and
+  connectToPrimary is true:
+  Metadata  - find primary from metadata in target and connect
+  Group     - share from metadata
+  Member    - connect to shell target or param URI
+
+  The shell's target is the secondary of the group being managed and
+  connectToPrimary is false:
+  Metadata  - connect to target
+  Group     - share from metadata
+  Member    - connect to shell target or param URI
+
+  Note: in the future, if the managed cluster is not where the metadata resides,
+  the metadata schema should contain information about where to find the
+  real metadata.
+ */
+
+using std::placeholders::_1;
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
 using namespace shcore;
@@ -102,11 +187,12 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL3,
 REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
-std::map<std::string, std::shared_ptr<mysqlshdk::db::ISession>>
-    Dba::_session_cache;
 
 Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) {
   init();
+}
+
+Dba::~Dba() {
 }
 
 bool Dba::operator==(const Object_bridge &other) const {
@@ -117,11 +203,9 @@ void Dba::init() {
   add_property("verbose");
 
   // Pure functions
-  add_method("resetSession", std::bind(&Dba::reset_session, this, _1),
-             "session", shcore::Object, NULL);
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1),
              "clusterName", shcore::String, NULL);
-  add_method("getCluster", std::bind(&Dba::get_cluster, this, _1),
+  add_method("getCluster", std::bind(&Dba::get_cluster_, this, _1),
              "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema",
              std::bind(&Dba::drop_metadata_schema, this, _1), "data",
@@ -152,12 +236,6 @@ void Dba::init() {
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
 
-  if (_shell_core && _shell_core->get_dev_session()) {
-    _metadata_storage.reset(new MetadataStorage(
-        _shell_core->get_dev_session()->get_core_session()));
-  } else {
-     _metadata_storage.reset(new MetadataStorage(nullptr));
-  }
   _provisioning_interface.reset(
       new ProvisioningInterface(_shell_core->get_delegate()));
 }
@@ -200,19 +278,125 @@ Value Dba::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_session() const {
-  std::shared_ptr<mysqlshdk::db::ISession> ret_val;
-  if (_custom_session)
-    ret_val = _custom_session;
-  else if (_shell_core && _shell_core->get_dev_session())
-    ret_val = _shell_core->get_dev_session()->get_core_session();
+/*
+  Open a classic session to the instance the shell is connected to.
+  If the shell's session is X protocol, it will query it for the classic
+  port and connect to it.
+ */
+std::shared_ptr<mysqlshdk::db::ISession> Dba::connect_to_target_member() const {
+  auto active_shell_session = get_active_shell_session();
 
-  if (!ret_val)
-    throw shcore::Exception::logic_error(
-        "The Metadata is inaccessible, an active session is required");
-
-  return ret_val;
+  if (active_shell_session) {
+    auto coptions = active_shell_session->get_connection_options();
+    if (coptions.get_scheme() == "mysqlx") {
+      // Find the classic port
+      auto result = active_shell_session->query("select @@port");
+      auto row = result->fetch_one();
+      if (!row)
+        throw std::logic_error(
+            "Unable to determine classic MySQL port from active shell "
+            "connection");
+      coptions.clear_port();
+      coptions.clear_scheme();
+      coptions.set_port(row->get_int(0));
+      coptions.set_scheme("mysql");
+    }
+    auto member_session = mysqlshdk::db::mysql::Session::create();
+    member_session->connect(coptions);
+    return member_session;
+  }
+  return {};
 }
+
+/*
+   Create a metadata object and a MySQL session for managing the InnoDB cluster
+   which the shell's active session target is part of.
+
+   If a target_member_session is given, it will be reused for the metadata
+   and group sessions if possible. Note that the target_member_session must
+   not be the shell's global session.
+ */
+void Dba::connect_to_target_group(
+    std::shared_ptr<mysqlshdk::db::ISession> target_member_session,
+    std::shared_ptr<MetadataStorage> *out_metadata,
+    std::shared_ptr<mysqlshdk::db::ISession> *out_group_session,
+    bool connect_to_primary) const {
+
+  bool owns_target_member_session = false;
+  if (!target_member_session) {
+    target_member_session = connect_to_target_member();
+    owns_target_member_session = true;
+  }
+  if (!target_member_session)
+    throw shcore::Exception::logic_error(
+        "The shell must be connected to a member of the InnoDB cluster being "
+        "managed");
+
+  // Group session can be the same as the target member session
+  std::shared_ptr<mysqlshdk::db::ISession> group_session;
+  group_session = target_member_session;
+
+  if (connect_to_primary) {
+    mysqlshdk::mysql::Instance instance(target_member_session);
+
+    if (!mysqlshdk::gr::is_primary(instance)) {
+      log_info(
+          "%s is not a primary, will try to find one and reconnect",
+          target_member_session->get_connection_options().as_uri().c_str());
+      auto metadata(mysqlshdk::innodbcluster::Metadata_mysql::create(
+          target_member_session));
+
+      // We need a primary, but the shell is not connected to one, so we need
+      // to find out where it is and connect to it
+      mysqlshdk::innodbcluster::Cluster_group_client cluster(
+          metadata, target_member_session);
+
+      try {
+        std::string primary_uri = cluster.find_uri_to_any_primary(
+            mysqlshdk::innodbcluster::Protocol_type::Classic);
+        mysqlshdk::db::Connection_options coptions(primary_uri);
+
+        coptions.set_login_options_from(
+            target_member_session->get_connection_options());
+        coptions.set_ssl_connection_options_from(
+            target_member_session->get_connection_options().get_ssl_options());
+
+        log_info("Opening session to primary of InnoDB cluster at %s...",
+                coptions.as_uri().c_str());
+
+        std::shared_ptr<mysqlshdk::db::mysql::Session> session;
+        session = mysqlshdk::db::mysql::Session::create();
+        session->connect(coptions);
+        log_info(
+            "Metadata and group sessions are now using the primary member");
+        if (owns_target_member_session)
+          target_member_session->close();
+        target_member_session = session;
+        group_session = session;
+      } catch (std::exception &e) {
+        throw shcore::Exception::runtime_error(
+            std::string("Unable to find a primary member in the cluster: ") +
+            e.what());
+      }
+    } else {
+      // already the primary, but check if there's quorum
+      mysqlshdk::innodbcluster::check_quorum(&instance);
+    }
+  }
+
+  *out_group_session = group_session;
+
+  // Metadata is always stored in the group, so for now the session can be
+  // shared
+  out_metadata->reset(new MetadataStorage(group_session));
+}
+
+std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
+  if (_shell_core && _shell_core->get_dev_session())
+    return _shell_core->get_dev_session()->get_core_session();
+  return {};
+}
+
 
 // Documentation of the getCluster function
 REGISTER_HELP(DBA_GETCLUSTER_BRIEF,
@@ -220,6 +404,8 @@ REGISTER_HELP(DBA_GETCLUSTER_BRIEF,
 REGISTER_HELP(DBA_GETCLUSTER_PARAM,
               "@param name Optional parameter to specify "
               "the name of the cluster to be returned.");
+REGISTER_HELP(DBA_GETCLUSTER_PARAM1,
+              "@param options Optional dictionary with additional options.");
 
 REGISTER_HELP(DBA_GETCLUSTER_THROWS,
               "@throws MetadataError if the Metadata is inaccessible.");
@@ -237,17 +423,21 @@ REGISTER_HELP(DBA_GETCLUSTER_RETURNS,
               " by the given name or the default "
               " cluster.");
 REGISTER_HELP(DBA_GETCLUSTER_DETAIL,
-              "If name is not specified, the default "
+              "If name is not specified or is null, the default "
               "cluster will be returned.");
 REGISTER_HELP(DBA_GETCLUSTER_DETAIL1,
               "If name is specified, and no cluster "
               "with the indicated name is found, an "
               "error will be raised.");
-
+REGISTER_HELP(DBA_GETCLUSTER_DETAIL2,
+              "The options dictionary accepts the connectToPrimary option,"
+              "which defaults to true and indicates the shell to automatically "
+              "connect to the primary member of the cluster.");
 /**
  * $(DBA_GETCLUSTER_BRIEF)
  *
  * $(DBA_GETCLUSTER_PARAM)
+ * $(DBA_GETCLUSTER_PARAM1)
  *
  * $(DBA_GETCLUSTER_THROWS)
  * $(DBA_GETCLUSTER_THROWS1)
@@ -260,92 +450,130 @@ REGISTER_HELP(DBA_GETCLUSTER_DETAIL1,
  * $(DBA_GETCLUSTER_DETAIL)
  *
  * $(DBA_GETCLUSTER_DETAIL1)
+ * $(DBA_GETCLUSTER_DETAIL2)
  */
 #if DOXYGEN_JS
-Cluster Dba::getCluster(String name) {}
+Cluster Dba::getCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
-Cluster Dba::get_cluster(str name) {}
+Cluster Dba::get_cluster(str name, dict options) {}
 #endif
-shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
-  args.ensure_count(0, 1, get_function_name("getCluster").c_str());
-  // TODO(alfredo) - this should check if the metadata exists and GR is stopped
-  // if that is the case, suggest running dba.diagnose() in case it's a dead
+shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
+  args.ensure_count(0, 2, get_function_name("getCluster").c_str());
+  // TODO(alfredo) - suggest running dba.diagnose() in case it's a dead
   // cluster that needs reboot
-
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
-
-  check_preconditions("getCluster");
-
-  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
+  bool connect_to_primary = true;
+  bool fallback_to_anything = true;
+  bool default_cluster = true;
   std::string cluster_name;
-  Value ret_val;
 
   try {
-    bool get_default_cluster = false;
+    if (args.size() > 1) {
+      shcore::Argument_map options(*args[1].as_map());
+
+      options.ensure_keys({}, {"connectToPrimary"}, "the options");
+
+      if (options.has_key("connectToPrimary"))
+        fallback_to_anything = false;
+
+      if (options.has_key("connectToPrimary") &&
+          !options.bool_at("connectToPrimary"))
+        connect_to_primary = false;
+    }
     // gets the cluster_name and/or options
-    if (args.size()) {
+    if (args.size() && args[0].type != shcore::Null) {
       try {
         cluster_name = args.string_at(0);
+        default_cluster = false;
       } catch (std::exception &e) {
         throw shcore::Exception::argument_error(
             std::string("Invalid cluster name: ") + e.what());
       }
-    } else {
-      get_default_cluster = true;
     }
 
-    if (get_default_cluster) {
-      // Reloads the cluster (to avoid losing _default_cluster in case of error)
-      cluster = _metadata_storage->get_default_cluster();
-    } else {
-      // Validate the cluster_name
-      mysqlsh::dba::validate_cluster_name(cluster_name);
+    std::shared_ptr<MetadataStorage> metadata;
+    std::shared_ptr<mysqlshdk::db::ISession> group_session;
+    // This will throw if not a cluster member
+    try {
+      // Connect to the target cluster member and
+      // also find the primary and connect to it, unless target is already
+      // primary or connectToPrimary:false was given
+      connect_to_target_group({}, &metadata, &group_session,
+                              connect_to_primary);
+    } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+      log_warning("Cluster error connecting to target: %s", e.format().c_str());
 
-      cluster = _metadata_storage->get_cluster(cluster_name);
-    }
-    if (cluster) {
-      // Verify if the current session instance group_replication_group_name
-      // value differs from the one registered in the Metadata
-      auto classic = get_active_session();
-      if (!validate_replicaset_group_name(
-              _metadata_storage, classic,
-              cluster->get_default_replicaset()->get_id())) {
-        std::string nice_error =
-            get_function_name("getCluster") +
-            ": Unable to get cluster. "
-            "The instance '" +
-            classic->uri(
-                mysqlshdk::db::uri::formats::only_transport()) +
-            ""
-            "' may belong to "
-            "a different ReplicaSet as the one registered in the Metadata "
-            "since the value of 'group_replication_group_name' does "
-            "not match the one registered in the ReplicaSet's "
-            "Metadata: possible split-brain scenario. "
-            "Please connect to another member of the ReplicaSet to get the "
-            "Cluster.";
-
-        throw shcore::Exception::runtime_error(nice_error);
+      if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum &&
+          fallback_to_anything && connect_to_primary) {
+        log_info("Retrying getCluster() without connectToPrimary");
+        connect_to_target_group({}, &metadata, &group_session, false);
+      } else {
+        throw;
       }
-
-      // Set the provision interface pointer
-      cluster->set_provisioning_interface(_provisioning_interface);
-      ret_val =
-          shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
-    } else {
-      std::string message;
-      if (get_default_cluster)
-        message = "No default cluster is configured.";
-      else
-        message = "The cluster '" + cluster_name + "' is not configured.";
-
-      throw shcore::Exception::logic_error(message);
     }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
 
-  return ret_val;
+    // TODO(.) This may be redundant
+    check_function_preconditions(class_name(), "getCluster",
+                                 get_function_name("getCluster"),
+                                 group_session);
+
+    return shcore::Value(
+        get_cluster(default_cluster ? nullptr : cluster_name.c_str(),
+                    metadata, group_session));
+  } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+    if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum)
+      throw shcore::Exception::runtime_error(
+          get_function_name("getCluster") +
+          ": Unable to find a cluster PRIMARY member from the active shell "
+          "session because the cluster has too many UNREACHABLE members and "
+          "no quorum is possible.\n"
+          "Use " +
+          get_function_name("getCluster") +
+          "(null, {connectToPrimary:false}) to get a read-only cluster "
+          "handle.");
+    throw;
+  }
+  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(get_function_name("getCluster"));
+}
+
+
+std::shared_ptr<Cluster> Dba::get_cluster(
+    const char *name, std::shared_ptr<MetadataStorage> metadata,
+    std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
+
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster(
+      new Cluster("", group_session, metadata));
+
+  if (!name) {
+    // Reloads the cluster (to avoid losing _default_cluster in case of error)
+    metadata->load_default_cluster(cluster);
+  } else {
+    metadata->load_cluster(name, cluster);
+  }
+  // Verify if the current session instance group_replication_group_name
+  // value differs from the one registered in the Metadata
+  if (!validate_replicaset_group_name(
+          group_session,
+          cluster->get_default_replicaset()->get_group_name())) {
+    std::string nice_error =
+        "Unable to get a InnoDB cluster handle. "
+        "The instance '" +
+        group_session->uri(mysqlshdk::db::uri::formats::only_transport()) +
+        ""
+        "' may belong to "
+        "a different ReplicaSet as the one registered in the Metadata "
+        "since the value of 'group_replication_group_name' does "
+        "not match the one registered in the ReplicaSet's "
+        "Metadata: possible split-brain scenario. "
+        "Please connect to another member of the ReplicaSet to get the "
+        "Cluster.";
+
+    throw shcore::Exception::runtime_error(nice_error);
+  }
+
+  // Set the provision interface pointer
+  cluster->set_provisioning_interface(_provisioning_interface);
+
+  return cluster;
 }
 
 REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
@@ -567,11 +795,18 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
   ReplicationGroupState state;
 
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
+  std::shared_ptr<MetadataStorage> metadata;
+  std::shared_ptr<mysqlshdk::db::ISession> group_session;
+
+  // We're in createCluster(), so there's no metadata yet, but the metadata
+  // object can already exist now to hold a session
+  // connect_to_primary must be false, because we don't have a cluster yet
+  // and this will be the seed instance anyway. If we start storing metadata
+  // outside the managed cluster, then this will have to be updated.
+  connect_to_target_group({}, &metadata, &group_session, false);
 
   try {
-    state = check_preconditions("createCluster");
+    state = check_preconditions(group_session, "createCluster");
   } catch (shcore::Exception &e) {
     std::string error(e.what());
     if (error.find("already in an InnoDB cluster") != std::string::npos) {
@@ -582,12 +817,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
        * already one Cluster on the MD and if so assign it to Default
        */
 
-      // Get current active session
-      auto session = get_active_session();
       std::string nice_error = get_function_name("createCluster") +
                                ": Unable to create cluster. The instance '" +
-                               session->uri(only_transport()) +
-                               ""
+                               group_session->uri(only_transport()) +
                                "' already belongs to an InnoDB cluster. Use "
                                "<Dba>." +
                                get_function_name("getCluster", false) +
@@ -596,9 +828,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     } else {
       throw;
     }
-  } catch (const shcore::database_error& dberr) {
+  } catch (const mysqlshdk::db::Error& dberr) {
     throw shcore::Exception::mysql_error_with_code_and_state(
-        dberr.error(), dberr.code(), dberr.sqlstate().c_str());
+        dberr.what(), dberr.code(), dberr.sqlstate());
   }
 
   // Available options
@@ -686,29 +918,27 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true");
 
-    auto classic = get_active_session();
-
     // Check if super_read_only is turned off and disable it if required
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(classic, clear_read_only);
+    validate_super_read_only(group_session, clear_read_only);
 
     // Check replication filters before creating the Metadata.
-    validate_replication_filters(classic);
+    validate_replication_filters(group_session);
 
     // First we need to create the Metadata Schema, or update it if already
     // exists
-    _metadata_storage->create_metadata_schema();
+    metadata->create_metadata_schema();
 
     // Creates the replication account to for the primary instance
-    _metadata_storage->create_repl_account(replication_user, replication_pwd);
+    metadata->create_repl_account(replication_user, replication_pwd);
     log_debug("Created replication user '%s'", replication_user.c_str());
 
-    MetadataStorage::Transaction tx(_metadata_storage);
+    MetadataStorage::Transaction tx(metadata);
 
     std::shared_ptr<Cluster> cluster(
-        new Cluster(cluster_name, _metadata_storage));
+        new Cluster(cluster_name, group_session, metadata));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -718,11 +948,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
 
     // Insert Cluster on the Metadata Schema
-    _metadata_storage->insert_cluster(cluster);
+    metadata->insert_cluster(cluster);
 
     if (adopt_from_gr) {  // TODO(paulo): move this to a GR specific class
       // check whether single_primary_mode is on
-      auto result = classic->query(
+      auto result = group_session->query(
           "select @@group_replication_single_primary_mode");
       auto row = result->fetch_one();
       if (row) {
@@ -735,7 +965,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list new_args;
 
-    auto instance_def = classic->get_connection_options();
+    auto instance_def = group_session->get_connection_options();
 
     // Only set SSL option if available from createCluster options (not empty).
     // Do not set default values to avoid validation issues for addInstance.
@@ -784,13 +1014,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     try {
       if (!replication_user.empty()) {
         log_debug("Removing replication user '%s'", replication_user.c_str());
-        _metadata_storage->execute_sql("DROP USER IF EXISTS /*(*/" +
-                                       replication_user + "/*)*/");
+        group_session->query("DROP USER IF EXISTS /*(*/" +
+                             replication_user + "/*)*/");
       }
 
       throw;
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
+    throw;
   }
 
   return ret_val;
@@ -839,10 +1070,14 @@ None Dba::drop_metadata_schema(dict options) {}
 shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("dropMetadataSchema").c_str());
 
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
+  std::shared_ptr<MetadataStorage> metadata;
+  std::shared_ptr<mysqlshdk::db::ISession> group_session(
+      connect_to_target_member());
+  check_preconditions(group_session, "dropMetadataSchema");
 
-  check_preconditions("dropMetadataSchema");
+  connect_to_target_group(group_session, &metadata, &group_session, false);
+
+  check_preconditions(group_session, "dropMetadataSchema");
 
   try {
     bool force = false;
@@ -861,16 +1096,14 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
     if (opt_map.has_key("clearReadOnly"))
         clear_read_only = opt_map.bool_at("clearReadOnly");
 
-    auto classic = get_active_session();
-
     if (force) {
       // Check if super_read_only is turned off and disable it if required
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(classic, clear_read_only);
+      validate_super_read_only(group_session, clear_read_only);
 
-      _metadata_storage->drop_metadata_schema();
+      metadata->drop_metadata_schema();
     } else {
       throw shcore::Exception::runtime_error(
           "No operation executed, use the 'force' option");
@@ -878,59 +1111,6 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("dropMetadataSchema"))
-
-  return Value();
-}
-
-REGISTER_HELP(DBA_RESETSESSION_BRIEF,
-              "Sets the session object to be used on the Dba operations.");
-REGISTER_HELP(
-    DBA_RESETSESSION_PARAM,
-    "@param session Session object to be used on the Dba operations.");
-REGISTER_HELP(DBA_RESETSESSION_DETAIL,
-              "Many of the Dba operations require an active session to the "
-              "Metadata Store, "
-              "use this function to define the session to be used.");
-REGISTER_HELP(DBA_RESETSESSION_DETAIL1,
-              "At the moment only a Classic session type is supported.");
-REGISTER_HELP(
-    DBA_RESETSESSION_DETAIL2,
-    "If the session type is not defined, the global dba object will use the "
-    "active session.");
-
-/**
- * $(DBA_RESETSESSION_BRIEF)
- *
- * $(DBA_RESETSESSION_PARAM)
- *
- * $(DBA_RESETSESSION_DETAIL)
- *
- * $(DBA_RESETSESSION_DETAIL1)
- *
- * $(DBA_RESETSESSION_DETAIL2)
- */
-#if DOXYGEN_JS
-Undefined Dba::resetSession(Session session) {}
-#elif DOXYGEN_PY
-None Dba::reset_session(Session session) {}
-#endif
-shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
-  args.ensure_count(0, 1, get_function_name("resetSession").c_str());
-
-  try {
-    if (args.size()) {
-      // TODO(someone): Review the case when using a Global_session
-      auto session = args[0].as_object<ShellBaseSession>();
-      if (session)
-        _custom_session = session->get_core_session();
-
-      if (!_custom_session)
-        throw shcore::Exception::argument_error("Invalid session object.");
-    } else {
-      _custom_session.reset();
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("resetSession"))
 
   return Value();
 }
@@ -1864,10 +2044,6 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-Dba::~Dba() {
-  Dba::_session_cache.clear();
-}
-
 std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
     const mysqlshdk::db::Connection_options &args) {
   std::shared_ptr<mysqlshdk::db::ISession> ret_val;
@@ -1965,7 +2141,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
       result = session->query(query);
       cluster_admin_user_exists =
           result->fetch_one()->get_int(0) != 0;
-    } catch (shcore::database_error &err) {
+    } catch (mysqlshdk::db::Error &err) {
       if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
         // the current_account doesn't have enough privileges to execute
         // the query
@@ -2016,7 +2192,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
     throw std::runtime_error(error_msg);
   }
   // Now validates the instance GR status itself
-  std::string uri = session->uri();
+  std::string uri = session->uri(mysqlshdk::db::uri::formats::only_transport());
 
   GRInstanceType type = get_gr_instance_type(session);
 
@@ -2051,10 +2227,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
         // If we disabled super_read_only we must enable it back
         // also confirm that the initial status was 1/ON
         if (clear_read_only && super_read_only) {
-          auto session_address =
-            session->uri(mysqlshdk::db::uri::formats::only_transport());
           log_info("Enabling super_read_only on the instance '%s'",
-                  session_address.c_str());
+                  uri.c_str());
           set_global_variable(session, "super_read_only", "ON");
         }
       } else {
@@ -2347,15 +2521,23 @@ Undefined Dba::rebootClusterFromCompleteOutage(String clusterName,
 None Dba::reboot_cluster_from_complete_outage(str clusterName, dict options) {}
 #endif
 
-shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_list &args) {
+shcore::Value Dba::reboot_cluster_from_complete_outage(
+    const shcore::Argument_list &args) {
   args.ensure_count(
       0, 2, get_function_name("rebootClusterFromCompleteOutage").c_str());
 
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
+  std::shared_ptr<MetadataStorage> metadata;
+  std::shared_ptr<mysqlshdk::db::ISession> group_session;
+  // The cluster is completely dead, so we can't find the primary anyway...
+  // thus this instance will be used as the primary
+  try {
+    connect_to_target_group({}, &metadata, &group_session, false);
+  }
+  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
+      get_function_name("rebootClusterFromCompleteOutage"));
 
   shcore::Value ret_val;
-  std::string cluster_name, instance_session_address;
+  std::string instance_session_address;
   shcore::Value::Map_type_ref options;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replicaset;
@@ -2363,8 +2545,9 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
 
-  check_preconditions("rebootClusterFromCompleteOutage");
+  check_preconditions(group_session, "rebootClusterFromCompleteOutage");
 
+  std::string cluster_name;
   try {
     bool default_cluster = false;
     bool clear_read_only = false;
@@ -2378,11 +2561,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
       options = args.map_at(1);
     }
 
-    // get the current session information
-    auto instance_session(_metadata_storage->get_session());
-
     // These session options are taken as base options for further operations
-    auto current_session_options = instance_session->get_connection_options();
+    auto current_session_options = group_session->get_connection_options();
 
     // Get the current session instance address
     instance_session_address =
@@ -2455,17 +2635,16 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
+    cluster.reset(new Cluster(cluster_name, group_session, metadata));
+
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.
     // 3. Ensure that the provided cluster identifier exists on the Metadata
     // Schema
     if (default_cluster) {
-      cluster = _metadata_storage->get_default_cluster();
+      metadata->load_default_cluster(cluster);
     } else {
-      // Validate the cluster_name
-      mysqlsh::dba::validate_cluster_name(cluster_name);
-
-      cluster = _metadata_storage->get_cluster(cluster_name);
+      metadata->load_cluster(cluster_name, cluster);
     }
 
     if (cluster) {
@@ -2481,7 +2660,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
 
       // 2. Ensure that the current session instance exists on the Metadata
       // Schema
-      if (!_metadata_storage->is_instance_on_replicaset(
+      if (!metadata->is_instance_on_replicaset(
               default_replicaset->get_id(), instance_session_address))
         throw Exception::runtime_error(
             "The current session instance does not belong "
@@ -2503,8 +2682,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
               "Invalid value '" + value + "' for 'removeInstances': " + error);
         }
 
-        if (!_metadata_storage->is_instance_on_replicaset(
-                default_replicaset->get_id(), value))
+        if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
+                                                 value))
           throw Exception::runtime_error("The instance '" + value +
                                          "' does not belong "
                                          "to the cluster: '" +
@@ -2526,8 +2705,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
               "Invalid value '" + value + "' for 'rejoinInstances': " + error);
         }
 
-        if (!_metadata_storage->is_instance_on_replicaset(
-                default_replicaset->get_id(), value))
+        if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
+                                                 value))
           throw Exception::runtime_error("The instance '" + value +
                                          "' does not belong "
                                          "to the cluster: '" +
@@ -2535,7 +2714,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
       }
       // Get the all the instances and their status
       std::vector<std::pair<std::string, std::string>> instances_status =
-          get_replicaset_instances_status(&cluster_name, options);
+          get_replicaset_instances_status(cluster, options);
 
       std::vector<std::string> non_reachable_rejoin_instances,
           non_reachable_instances;
@@ -2578,22 +2757,21 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
     }
 
     // Check if the cluster is empty
-    if (_metadata_storage->is_cluster_empty(cluster->get_id()))
-      throw Exception::runtime_error("The cluster is empty.");
+    if (metadata->is_cluster_empty(cluster->get_id()))
+      throw Exception::runtime_error("The cluster has no instances in it.");
 
     // 4. Verify the status of all instances of the cluster:
     // 4.1 None of the instances can belong to a GR Group
     // 4.2 If any of the instances belongs to a GR group or is already managed
     // by the InnoDB Cluster, so include that information on the error message
-    validate_instances_status_reboot_cluster(args);
+    validate_instances_status_reboot_cluster(cluster, group_session, options);
 
     // 5. Verify which of the online instances has the GTID superset.
     // 5.1 Skip the verification on the list of instances to be removed:
     // "removeInstances" 5.2 If the current session instance doesn't have the
     // GTID superset, error out with that information and including on the
     // message the instance with the GTID superset
-    validate_instances_gtid_reboot_cluster(&cluster_name, options,
-                                           instance_session);
+    validate_instances_gtid_reboot_cluster(cluster, options, group_session);
 
     // 6. Set the current session instance as the seed instance of the Cluster
     {
@@ -2601,7 +2779,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(instance_session, clear_read_only);
+      validate_super_read_only(group_session, clear_read_only);
 
       shcore::Argument_list new_args;
       std::string replication_user, replication_user_password;
@@ -2616,10 +2794,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
       // This must be done before rejoining the instances due to the fixes for
       // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
       std::string current_group_replication_group_name =
-          _metadata_storage->get_replicaset_group_name(
-              default_replicaset->get_id());
+          default_replicaset->get_group_name();
 
-      default_replicaset->add_instance(current_session_options, new_args, replication_user,
+      default_replicaset->add_instance(current_session_options, new_args,
+                                       replication_user,
                                        replication_user_password, true,
                                        current_group_replication_group_name);
     }
@@ -2638,44 +2816,41 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(const shcore::Argument_li
 }
 
 ReplicationGroupState Dba::check_preconditions(
+    std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
-  return check_function_preconditions(class_name(), function_name,
-                                      get_function_name(function_name),
-                                      _metadata_storage);
+  try {
+    return check_function_preconditions(class_name(), function_name,
+                                        get_function_name(function_name),
+                                        group_session);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
+  return ReplicationGroupState{};
 }
 
 /*
  * get_replicaset_instances_status:
  *
- * Given a cluster id, this function verifies the connectivity status of all the
+ * Given a cluster, this function verifies the connectivity status of all the
  * instances of the default replicaSet of the cluster. It returns a list of
  * pairs <instance_id, status>, on which 'status' is empty if the instance is
  * reachable, or if not reachable contains the connection failure error message
  */
 std::vector<std::pair<std::string, std::string>>
-Dba::get_replicaset_instances_status(
-    std::string *out_cluster_name, const shcore::Value::Map_type_ref &options) {
+Dba::get_replicaset_instances_status(std::shared_ptr<Cluster> cluster,
+    const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
   std::string active_session_address, instance_address, conn_status;
 
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
+  // TODO(alfredo) This should be in the Cluster object
 
-  if (out_cluster_name->empty())
-    *out_cluster_name = _metadata_storage->get_default_cluster()->get_name();
+  log_info("Checking instance status for cluster '%s'",
+           cluster->get_name().c_str());
 
-  std::shared_ptr<Cluster> cluster =
-      _metadata_storage->get_cluster(*out_cluster_name);
-  uint64_t rs_id = cluster->get_default_replicaset()->get_id();
   std::vector<Instance_definition> instances =
-      _metadata_storage->get_replicaset_instances(rs_id);
+      cluster->get_default_replicaset()->get_instances_from_metadata();
 
-  // get the current session information
-  auto instance_session(_metadata_storage->get_session());
-
-  auto current_session_options = instance_session->get_connection_options();
+  auto current_session_options =
+      cluster->get_group_session()->get_connection_options();
 
   // Get the current session instance address
   active_session_address =
@@ -2722,67 +2897,37 @@ Dba::get_replicaset_instances_status(
   return instances_status;
 }
 
-/*
- * validate_instances_status_reboot_cluster:
- *
- * This function is an auxiliary function to be used for the reboot_cluster
- * operation. It verifies the status of all the instances of the cluster
- * referent to the arguments list. Firstly, it verifies the status of the
- * current session instance to determine if it belongs to a GR group or is
- * already managed by the InnoDB Cluster.cluster_name If not, does the same
- * validation for the remaining reachable instances of the cluster.
- */
-void Dba::validate_instances_status_reboot_cluster(
-    const shcore::Argument_list &args) {
-  std::string cluster_name, active_session_address;
-  shcore::Value::Map_type_ref options;
 
-  if (args.size() == 1)
-    cluster_name = args.string_at(0);
-  if (args.size() > 1) {
-    cluster_name = args.string_at(0);
-    options = args.map_at(1);
-  }
+static void validate_instance_belongs_to_cluster(
+    std::shared_ptr<mysqlshdk::db::ISession> member_session,
+    const std::string &gr_group_name,
+    const std::string &restore_function) {
 
-  // Point the metadata session to the dba session
-  _metadata_storage->set_session(get_active_session());
+  // TODO(alfredo) gr_group_name should receive the group_name as stored
+  // in the metadata to validate if it matches the expected value
+  // if the name does not match, an error should be thrown asking for an option
+  // like update_mismatched_group_name to be set to ignore the validation error
+  // and adopt the new group name
 
-  // get the current session information
-  auto instance_session(_metadata_storage->get_session());
+  GRInstanceType type = get_gr_instance_type(member_session);
 
-  auto current_session_options = instance_session->get_connection_options();
-
-  // Get the current session instance address
-  active_session_address =
-      current_session_options.as_uri(only_transport());
-
-  if (options) {
-    mysqlsh::set_user_from_map(&current_session_options, options);
-    mysqlsh::set_password_from_map(&current_session_options, options);
-
-    shcore::Argument_map opt_map(*options);
-
-    // Case sensitive validation of the rest of the options, at this point the user and password should have been already removed
-    opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts,
-                        "the options");
-  }
-
-  GRInstanceType type = get_gr_instance_type(instance_session);
+  std::string member_session_address =
+      member_session->get_connection_options().as_uri(only_transport());
 
   switch (type) {
     case GRInstanceType::InnoDBCluster:
       throw Exception::runtime_error(
-          "The cluster's instance '" + active_session_address +
+          "The MySQL instance '" + member_session_address +
           "' belongs "
           "to an InnoDB Cluster and is reachable. Please use <Cluster>." +
-          get_member_name("forceQuorumUsingPartitionOf", naming_style) +
-          "() to restore the quorum loss.");
+          restore_function + "() to restore from the quorum loss.");
 
     case GRInstanceType::GroupReplication:
-      throw Exception::runtime_error("The cluster's instance '" +
-                                     active_session_address +
+      throw Exception::runtime_error("The MySQL instance '" +
+                                     member_session_address +
                                      "' belongs "
-                                     "to an unmanaged GR group. ");
+                                     "GR group that is not managed as an "
+                                     "InnoDB cluster. ");
 
     case Standalone:
       // We only want to check whether the status if InnoDBCluster or
@@ -2794,10 +2939,46 @@ void Dba::validate_instances_status_reboot_cluster(
       assert(0);
       break;
   }
+}
+
+/*
+ * validate_instances_status_reboot_cluster:
+ *
+ * This function is an auxiliary function to be used for the reboot_cluster
+ * operation. It verifies the status of all the instances of the cluster
+ * referent to the arguments list. Firstly, it verifies the status of the
+ * current session instance to determine if it belongs to a GR group or is
+ * already managed by the InnoDB Cluster.cluster_name If not, does the same
+ * validation for the remaining reachable instances of the cluster.
+ */
+void Dba::validate_instances_status_reboot_cluster(
+    std::shared_ptr<Cluster> cluster,
+    std::shared_ptr<mysqlshdk::db::ISession> member_session,
+    shcore::Value::Map_type_ref options) {
+  // Validate the member we're connected to
+  validate_instance_belongs_to_cluster(
+      member_session, "",
+      get_member_name("forceQuorumUsingPartitionOf", naming_style));
+
+  mysqlshdk::db::Connection_options member_connection_options =
+      member_session->get_connection_options();
+
+  // Get the current session instance address
+  if (options) {
+    mysqlsh::set_user_from_map(&member_connection_options, options);
+    mysqlsh::set_password_from_map(&member_connection_options, options);
+
+    shcore::Argument_map opt_map(*options);
+
+    // Case sensitive validation of the rest of the options, at this point the
+    // user and password should have been already removed
+    opt_map.ensure_keys({}, mysqlsh::dba::Dba::_reboot_cluster_opts,
+                        "the options");
+  }
 
   // Verify all the remaining online instances for their status
   std::vector<std::pair<std::string, std::string>> instances_status =
-      get_replicaset_instances_status(&cluster_name, options);
+      get_replicaset_instances_status(cluster, options);
 
   for (const auto &value : instances_status) {
     std::string instance_address = value.first;
@@ -2805,18 +2986,16 @@ void Dba::validate_instances_status_reboot_cluster(
 
     // if the status is not empty it means the connection failed
     // so we skip this instance
-    if (!instance_status.empty())
+    if (!instance_status.empty()) {
       continue;
+    }
 
-    Value::Map_type_ref instance_options(new shcore::Value::Map_type);
-
-    auto connection_options =
+    mysqlshdk::db::Connection_options connection_options =
         shcore::get_connection_options(instance_address, false);
-    connection_options.set_user(current_session_options.get_user());
-    connection_options.set_password(current_session_options.get_password());
+    connection_options.set_user(member_connection_options.get_user());
+    connection_options.set_password(member_connection_options.get_password());
 
     std::shared_ptr<mysqlshdk::db::ISession> session;
-
     try {
       log_info("Opening a new session to the instance: %s",
                instance_address.c_str());
@@ -2826,36 +3005,11 @@ void Dba::validate_instances_status_reboot_cluster(
                                      instance_address + "");
     }
 
-    GRInstanceType type = get_gr_instance_type(session);
-
-    // Close the session
+    log_info("Checking state of instance '%s'", instance_address.c_str());
+    validate_instance_belongs_to_cluster(
+        session, "",
+        get_member_name("forceQuorumUsingPartitionOf", naming_style));
     session->close();
-
-    switch (type) {
-      case GRInstanceType::InnoDBCluster:
-        throw Exception::runtime_error(
-            "The cluster's instance '" + instance_address +
-            "' belongs "
-            "to an InnoDB Cluster and is reachable. Please use " +
-            get_member_name("forceQuorumUsingPartitionOf", naming_style) +
-            "() to restore the quorum loss.");
-
-      case GRInstanceType::GroupReplication:
-        throw Exception::runtime_error("The cluster's instance '" +
-                                       instance_address +
-                                       "' belongs "
-                                       "to an unmanaged GR group. ");
-
-      case Standalone:
-        // We only want to check whether the status if InnoDBCluster or
-        // GroupReplication to stop and thrown an exception
-        break;
-
-      case Any:
-        // FIXME(anyone) to silence warning... should not use a enum as bitmask
-        assert(0);
-        break;
-    }
   }
 }
 
@@ -2869,7 +3023,8 @@ void Dba::validate_instances_status_reboot_cluster(
  * message the instance with the GTID superset
  */
 void Dba::validate_instances_gtid_reboot_cluster(
-    std::string *out_cluster_name, const shcore::Value::Map_type_ref &options,
+    std::shared_ptr<Cluster> cluster,
+    const shcore::Value::Map_type_ref &options,
     const std::shared_ptr<mysqlshdk::db::ISession> &instance_session) {
   /* GTID verification is done by verifying which instance has the GTID
    * superset.the In order to do so, a union of the global gtid executed and the
@@ -2908,7 +3063,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
   // Get the cluster instances and their status
   std::vector<std::pair<std::string, std::string>> instances_status =
-      get_replicaset_instances_status(out_cluster_name, options);
+      get_replicaset_instances_status(cluster, options);
 
   // Get @@GLOBAL.GTID_EXECUTED
   std::string gtid_executed_current;

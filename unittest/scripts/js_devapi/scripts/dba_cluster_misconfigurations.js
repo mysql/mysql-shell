@@ -1,12 +1,15 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum=CRC32");
+// TODO(.) - changing the binlog_format will cause the createCluster to fail because of bug #27112727
+// testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format=MIXED");
+
+testutil.restartSandbox(__mysql_sandbox_port1, "root");
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-
-// Change dynamic variables manually
-session.runSql('SET GLOBAL binlog_checksum=CRC32');
-session.runSql('SET GLOBAL binlog_format=MIXED');
 
 //@ Dba.createCluster
 if (__have_ssl)
@@ -17,6 +20,7 @@ else
 //@ Dissolve cluster (to re-create again)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 cluster.dissolve({force: true});
+cluster.disconnect();
 
 // Disable super-read-only (BUG#26422638)
 session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
@@ -67,7 +71,7 @@ var cluster = dba.createCluster('dev');
 //@ Dissolve cluster at the end (clean-up)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 cluster.dissolve({force: true});
-
+cluster.disconnect();
 session.close();
 
 //@ Finalization

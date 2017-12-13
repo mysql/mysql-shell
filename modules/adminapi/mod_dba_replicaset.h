@@ -53,7 +53,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                    public shcore::Cpp_object_bridge {
  public:
   ReplicaSet(const std::string &name, const std::string &topology_type,
-            std::shared_ptr<MetadataStorage> metadata_storage);
+             const std::string &group_name,
+             std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
 
   static std::set<std::string> _add_instance_opts;
@@ -70,11 +71,18 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   uint64_t get_id() { return _id; }
 
   void set_name(std::string name) { _name = name; }
+  const std::string &get_name() const { return _name; }
 
   void set_cluster(std::shared_ptr<Cluster> cluster) { _cluster = cluster; }
-  std::shared_ptr<Cluster> get_cluster() const { return _cluster; }
+  std::shared_ptr<Cluster> get_cluster() const { return _cluster.lock(); }
 
   std::string get_topology_type() const { return _topology_type; }
+
+  const std::string &get_group_name() const {
+    return _group_name;
+  }
+
+  void set_group_name(const std::string &group_name);
 
   void add_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_definition,
@@ -86,6 +94,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void adopt_from_gr();
 
   std::vector<std::string> get_online_instances();
+
+  std::vector<Instance_definition> get_instances_from_metadata();
 
   static char const *kTopologyPrimaryMaster;
   static char const *kTopologyMultiMaster;
@@ -146,6 +156,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void remove_instance_from_gr(const std::string &instance_str,
                                const mysqlshdk::db::Connection_options &data);
   ReplicationGroupState check_preconditions(
+      std::shared_ptr<mysqlshdk::db::ISession> group_session,
       const std::string& function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
@@ -162,6 +173,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   uint64_t _id;
   std::string _name;
   std::string _topology_type;
+  std::string _group_name;
   // TODO(miguel): add missing fields, rs_type, etc
 
  private:
@@ -186,14 +198,11 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
 
-  std::shared_ptr<Cluster> _cluster;
+  std::weak_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
   std::shared_ptr<mysqlshdk::db::ISession> get_session(
     const mysqlshdk::db::Connection_options &args);
-
- protected:
-  virtual int get_default_port() const { return 3306; }
 };
 }  // namespace dba
 }  // namespace mysqlsh

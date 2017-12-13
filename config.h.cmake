@@ -69,12 +69,6 @@
 #cmakedefine HAVE_VIS_H 1
 #cmakedefine HAVE_SASL_SASL_H 1
 
-/* Libevent */
-#cmakedefine HAVE_DEVPOLL 1
-#cmakedefine HAVE_SYS_DEVPOLL_H 1
-#cmakedefine HAVE_SYS_EPOLL_H 1
-#cmakedefine HAVE_TAILQFOREACH 1
-
 /* Functions */
 #cmakedefine HAVE_ALIGNED_MALLOC 1
 #cmakedefine HAVE_BACKTRACE 1
@@ -113,14 +107,6 @@
 #cmakedefine HAVE_GETEGID 1
 #cmakedefine HAVE_MMAP64 1
 #cmakedefine HAVE_SLEEP 1
-#cmakedefine HAVE_STPCPY 1
-#cmakedefine HAVE_STPNCPY 1
-#cmakedefine HAVE_STRLCPY 1
-#cmakedefine HAVE_STRNLEN 1
-#cmakedefine HAVE_STRLCAT 1
-#cmakedefine HAVE_STRSIGNAL 1
-#cmakedefine HAVE_FGETLN 1
-#cmakedefine HAVE_STRSEP 1
 #cmakedefine HAVE_TELL 1
 #cmakedefine HAVE_VASPRINTF 1
 #cmakedefine HAVE_MEMALIGN 1
@@ -249,63 +235,6 @@
 #cmakedefine INSTALL_LIBDIR "@default_prefix@/@INSTALL_LIBDIR@"
 
 /*
- * DTrace
- */
-#cmakedefine HAVE_DTRACE 1
-
-/*
- * Character sets
- */
-#cmakedefine MYSQL_DEFAULT_CHARSET_NAME "@MYSQL_DEFAULT_CHARSET_NAME@"
-#cmakedefine MYSQL_DEFAULT_COLLATION_NAME "@MYSQL_DEFAULT_COLLATION_NAME@"
-#cmakedefine HAVE_CHARSET_armscii8 1
-#cmakedefine HAVE_CHARSET_ascii 1
-#cmakedefine HAVE_CHARSET_big5 1
-#cmakedefine HAVE_CHARSET_cp1250 1
-#cmakedefine HAVE_CHARSET_cp1251 1
-#cmakedefine HAVE_CHARSET_cp1256 1
-#cmakedefine HAVE_CHARSET_cp1257 1
-#cmakedefine HAVE_CHARSET_cp850 1
-#cmakedefine HAVE_CHARSET_cp852 1
-#cmakedefine HAVE_CHARSET_cp866 1
-#cmakedefine HAVE_CHARSET_cp932 1
-#cmakedefine HAVE_CHARSET_dec8 1
-#cmakedefine HAVE_CHARSET_eucjpms 1
-#cmakedefine HAVE_CHARSET_euckr 1
-#cmakedefine HAVE_CHARSET_gb2312 1
-#cmakedefine HAVE_CHARSET_gbk 1
-#cmakedefine HAVE_CHARSET_gb18030 1
-#cmakedefine HAVE_CHARSET_geostd8 1
-#cmakedefine HAVE_CHARSET_greek 1
-#cmakedefine HAVE_CHARSET_hebrew 1
-#cmakedefine HAVE_CHARSET_hp8 1
-#cmakedefine HAVE_CHARSET_keybcs2 1
-#cmakedefine HAVE_CHARSET_koi8r 1
-#cmakedefine HAVE_CHARSET_koi8u 1
-#cmakedefine HAVE_CHARSET_latin1 1
-#cmakedefine HAVE_CHARSET_latin2 1
-#cmakedefine HAVE_CHARSET_latin5 1
-#cmakedefine HAVE_CHARSET_latin7 1
-#cmakedefine HAVE_CHARSET_macce 1
-#cmakedefine HAVE_CHARSET_macroman 1
-#cmakedefine HAVE_CHARSET_sjis 1
-#cmakedefine HAVE_CHARSET_swe7 1
-#cmakedefine HAVE_CHARSET_tis620 1
-#cmakedefine HAVE_CHARSET_ucs2 1
-#cmakedefine HAVE_CHARSET_ujis 1
-#cmakedefine HAVE_CHARSET_utf8mb4 1
-#cmakedefine HAVE_CHARSET_utf8mb3 1
-#cmakedefine HAVE_CHARSET_utf8 1
-#cmakedefine HAVE_CHARSET_utf16 1
-#cmakedefine HAVE_CHARSET_utf32 1
-#cmakedefine HAVE_UCA_COLLATIONS 1
-
-/*
- * Feature set
- */
-#cmakedefine WITH_PARTITION_STORAGE_ENGINE 1
-
-/*
  * Performance schema
  */
 #cmakedefine WITH_PERFSCHEMA_STORAGE_ENGINE 1
@@ -352,29 +281,9 @@
  * Other
  */
 #cmakedefine EXTRA_DEBUG 1
-#cmakedefine HAVE_CHOWN 1
-
-/*
- * Hardcoded values needed by libevent/NDB/memcached
- */
-#define HAVE_FCNTL_H 1
-#define HAVE_GETADDRINFO 1
-#define HAVE_INTTYPES_H 1
-#define HAVE_SELECT 1
-#define HAVE_SIGNAL_H 1
-#define HAVE_STDARG_H 1
-#define HAVE_STDINT_H 1
-#define HAVE_STDLIB_H 1
-#define HAVE_STRDUP 1
-#define HAVE_STRTOK_R 1
-#define HAVE_STRTOLL 1
-#define HAVE_SYS_STAT_H 1
-#define HAVE_SYS_TYPES_H 1
-#define SIZEOF_CHAR 1
 
 /* For --secure-file-priv */
 #cmakedefine DEFAULT_SECURE_FILE_PRIV_DIR @DEFAULT_SECURE_FILE_PRIV_DIR@
 #cmakedefine DEFAULT_SECURE_FILE_PRIV_EMBEDDED_DIR @DEFAULT_SECURE_FILE_PRIV_EMBEDDED_DIR@
-#cmakedefine HAVE_LIBNUMA 1
 
 #endif

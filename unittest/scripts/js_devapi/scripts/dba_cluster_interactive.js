@@ -41,6 +41,7 @@ validateMember(members, 'describe');
 validateMember(members, 'status');
 validateMember(members, 'help');
 validateMember(members, 'dissolve');
+validateMember(members, 'disconnect');
 validateMember(members, 'rescan');
 validateMember(members, 'forceQuorumUsingPartitionOf');
 
@@ -174,6 +175,9 @@ Cluster.rejoinInstance();
 Cluster.removeInstance();
 Cluster.rescan();
 Cluster.status();
+
+//@ Cluster: disconnect() is ok on a dissolved cluster
+Cluster.disconnect();
 
 // Close session
 session.close();

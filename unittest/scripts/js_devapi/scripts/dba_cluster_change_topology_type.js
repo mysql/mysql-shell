@@ -55,6 +55,7 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, use
 session.runSql('START GROUP_REPLICATION');
 session.close();
 
+cluster.disconnect();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
 
@@ -65,6 +66,7 @@ cluster.status();
 session.runSql("UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = 'mm'");
 session.close();
 
+cluster.disconnect();
 // Reconnect to cluster
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
@@ -98,6 +100,7 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, use
 session.runSql('START GROUP_REPLICATION');
 session.close();
 
+cluster.disconnect();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
 
@@ -106,6 +109,7 @@ cluster.status();
 
 // Close session
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

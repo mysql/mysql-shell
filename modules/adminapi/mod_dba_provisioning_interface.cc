@@ -65,7 +65,7 @@ void setup_recorder_environment(const std::string &cmd) {
         snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=replay");
       }
       snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=%s_%s",
-               mysqlshdk::db::replay::mysqlprovision_recording_path().c_str(),
+               mysqlshdk::db::replay::external_recording_path("mp").c_str(),
                cmd.c_str());
     }
   }
@@ -206,12 +206,14 @@ int ProvisioningInterface::execute_mysqlprovision(
                        " ");
   log_info("%s", message.c_str());
 
+#ifndef NDEBUG
   if (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0) {
     std::cerr << message << "\n"
       << value_from_argmap(kwargs).repr() << "\n";
     for (int i = 0; i < args.size(); i++)
       std::cerr << args[i].repr() << "\n";
   }
+#endif
   if (verbose > 1) {
     message += "\n";
     _delegate->print(_delegate->user_data, message.c_str());
@@ -347,12 +349,13 @@ int ProvisioningInterface::execute_mysqlprovision(
     _delegate->print(_delegate->user_data, footer.c_str());
   }
 
+#ifndef NDEBUG
   if ((getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0)) {
     std::cerr << "mysqlprovision exited with code " << exit_code << ":\n"
       << "\t" << shcore::str_join(shcore::str_split(full_output, "\n"), "\n\t")
       << "\n";
   }
-
+#endif
   /*
    * process launcher returns 128 if an ENOENT happened.
    */

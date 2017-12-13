@@ -97,6 +97,13 @@ void Debug_object_info::on_alloc(void *p, const std::string &tag) {
   }
 }
 
+void Debug_object_info::on_alloc(void *p,
+                                 std::function<std::string(void *)> get_debug,
+                                 const std::string &tag) {
+  on_alloc(p, tag);
+  this->get_debug = get_debug;
+}
+
 void Debug_object_info::on_dealloc(void *p) {
   ++deallocs;
   if (track_instances) {
@@ -114,10 +121,14 @@ void Debug_object_info::dump() {
     for (auto &p : instances) {
       auto iter = instance_tags.find(p);
       if (iter == instance_tags.end()) {
-        std::cout << "\t\t" << p << "\n";
+        std::cout << "\t\t" << p << "\t";
       } else {
-        std::cout << "\t\t" << p << "\t(" << iter->second << ")\n";
+        std::cout << "\t\t" << p << "\t(" << iter->second << ")\t";
       }
+      if (get_debug)
+        std::cout << get_debug(p) << "\n";
+      else
+        std::cout << "\n";
     }
   }
 }
