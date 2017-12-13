@@ -75,6 +75,8 @@ cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port1);
 // Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
 cluster.dissolve({force: true});
 
+cluster.disconnect();
+
 // We must use clearReadOnly because the cluster was dissolved
 // (BUG#26422638)
 
@@ -83,6 +85,7 @@ cluster.dissolve({force: true});
 var cluster = dba.createCluster('dev', {clearReadOnly: true});
 
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 // Will delete the sandboxes ONLY if this test was executed standalone

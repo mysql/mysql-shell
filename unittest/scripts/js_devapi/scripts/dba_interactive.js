@@ -33,7 +33,6 @@ validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'getCluster');
 validateMember(members, 'help');
 validateMember(members, 'killSandboxInstance');
-validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
 validateMember(members, 'checkInstanceConfiguration');
 validateMember(members, 'stopSandboxInstance');
@@ -247,7 +246,8 @@ connect_to_sandbox([__mysql_sandbox_port1]);
 
 //@# Dba: getCluster errors
 var c2 = dba.getCluster(5);
-var c2 = dba.getCluster('', 5);
+var c2 = dba.getCluster('x', 5, 6);
+var c2 = dba.getCluster(null, 5);
 var c2 = dba.getCluster('');
 var c2 = dba.getCluster('#');
 var c2 = dba.getCluster("over40chars_12345678901234567890123456789");
@@ -258,6 +258,10 @@ c2;
 
 //@<OUT> Dba: getCluster with interaction (default)
 var c3 = dba.getCluster();
+c3;
+
+//@<OUT> Dba: getCluster with interaction (default null)
+var c3 = dba.getCluster(null);
 c3;
 
 session.close();

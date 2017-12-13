@@ -45,7 +45,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://foo@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Rejoin instance 2
@@ -83,7 +84,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://foo@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329

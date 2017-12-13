@@ -48,7 +48,8 @@ namespace mysqlsh {
 std::shared_ptr<mysqlsh::Shell_options> Base_shell::shell_options;
 
 Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
-                       shcore::Interpreter_delegate *custom_delegate) {
+                       shcore::Interpreter_delegate *custom_delegate)
+    : _deferred_output(new std::string()) {
   Base_shell::shell_options =  cmdline_options;
   shcore::Interrupts::setup();
 
@@ -360,6 +361,16 @@ bool Base_shell::switch_shell_mode(
 
 void Base_shell::println(const std::string &str) {
   _shell->println(str);
+}
+
+/**
+ * Print output after the shell initialization is done (after Copyright info)
+ * @param str text to be printed.
+ */
+void Base_shell::println_deferred(const std::string &str) {
+  // This can't be called once the deferred output is flusehd
+  assert(_deferred_output != nullptr);
+  _deferred_output->append(str + "\n");
 }
 
 void Base_shell::print_error(const std::string &error) {

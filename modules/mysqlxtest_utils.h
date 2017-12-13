@@ -31,17 +31,11 @@
 #include "scripting/common.h"
 #include "mysqlshdk/libs/db/session.h"
 
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
-
 /*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
-static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
+ * Helper function to ensure the exceptions generated on the mysqlx_connector
+ * are properly translated to the corresponding shcore::Exception type
+ */
+inline void translate_crud_exception(const std::string& operation) {
   try {
     throw;
   } catch (shcore::Exception &e) {
@@ -61,19 +55,18 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
 
 #define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)   \
   catch (...)                   \
-{ translate_crud_exception(operation); }
+  { translate_crud_exception(operation); throw; }
 
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
 */
-static void ATTR_UNUSED translate_exception() {
+inline void translate_exception() {
   try {
     throw;
-  } catch (shcore::database_error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.error(),e.code(), e.sqlstate().c_str());
   } catch (mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        e.what(), e.code(), e.sqlstate());
   } catch (std::runtime_error &e) {
     throw shcore::Exception::runtime_error(e.what());
   } catch (std::logic_error &e) {
@@ -83,10 +76,11 @@ static void ATTR_UNUSED translate_exception() {
   }
 }
 
-#define CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(operation) CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)
+#define CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(operation) \
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)
 
 #define CATCH_AND_TRANSLATE()   \
   catch (...)                   \
-{ translate_exception(); }
+{ translate_exception(); throw; }
 
 #endif

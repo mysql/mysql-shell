@@ -20,7 +20,6 @@ validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'getCluster');
 validateMember(members, 'help');
 validateMember(members, 'killSandboxInstance');
-validateMember(members, 'resetSession');
 validateMember(members, 'startSandboxInstance');
 validateMember(members, 'checkInstanceConfiguration');
 validateMember(members, 'stopSandboxInstance');
@@ -42,6 +41,7 @@ var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DIS
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
 var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
 var c1 = dba.createCluster('devCluster', {ipWhitelist: " "});
+var c1 = dba.createCluster('1invalidN4me');
 
 
 //@ Dba: createCluster with ANSI_QUOTES success
@@ -230,11 +230,11 @@ connect_to_sandbox([__mysql_sandbox_port1]);
 //@# Dba: getCluster errors
 var c2 = dba.getCluster();
 var c2 = dba.getCluster(5);
+var c2 = dba.getCluster('', {}, 5);
 var c2 = dba.getCluster('', 5);
 var c2 = dba.getCluster('');
 var c2 = dba.getCluster('#');
 var c2 = dba.getCluster("over40chars_12345678901234567890123456789");
-var c2 = dba.getCluster('devCluster');
 var c2 = dba.getCluster('devCluster');
 
 //@ Dba: getCluster

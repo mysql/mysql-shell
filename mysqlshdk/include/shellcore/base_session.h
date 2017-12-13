@@ -28,6 +28,7 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SESSION_H_
 
 #include <functional>
+#include <memory>
 #include <string>
 
 #include "scripting/types.h"
@@ -41,7 +42,7 @@ namespace mysqlsh {
 //! Abstraction layer with core elements for all the session types
 #endif
 class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
-public:
+ public:
   ShellBaseSession();
   ShellBaseSession(const ShellBaseSession& s);
   virtual ~ShellBaseSession();
@@ -108,8 +109,9 @@ public:
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() = 0;
 
+  std::function<void(const std::string&, bool exists)> update_schema_cache;
 
-protected:
+ protected:
   std::string get_quoted_name(const std::string& name);
   // TODO(rennox): Note that these are now stored on the low level session
   // object too, they should be removed from here

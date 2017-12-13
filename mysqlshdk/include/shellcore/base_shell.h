@@ -66,12 +66,15 @@ class SHCORE_PUBLIC Base_shell {
   void load_default_modules(shcore::Shell_core::Mode mode);
 
   void println(const std::string &str = "");
+  void println_deferred(const std::string &str);
 
   void print_error(const std::string &error);
 
   shcore::IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
 
   virtual void process_line(const std::string &line);
+  shcore::Input_state input_state() const { return _input_mode; }
+
   void notify_executed_statement(const std::string& line);
   virtual std::string prompt();
   std::map<std::string, std::string> *prompt_variables();
@@ -101,6 +104,7 @@ class SHCORE_PUBLIC Base_shell {
   static std::shared_ptr<mysqlsh::Shell_options> shell_options;
   std::shared_ptr<shcore::Shell_core> _shell;
   std::map<std::string, std::string> _prompt_variables;
+  std::unique_ptr<std::string> _deferred_output;
   shcore::Input_state _input_mode;
   std::string _input_buffer;
   shcore::completer::Completer _completer;
@@ -109,7 +113,6 @@ class SHCORE_PUBLIC Base_shell {
   std::shared_ptr<shcore::completer::Provider_sql> _provider_sql;
   int _update_variables_pending = 0;
 
-  shcore::Input_state input_state() const { return _input_mode; }
   void update_prompt_variables(bool reconnected);
 
  private:

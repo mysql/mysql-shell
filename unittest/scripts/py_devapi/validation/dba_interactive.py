@@ -2,14 +2,13 @@
 ||
 
 #@ Session: validating members
-|Session Members: 14|
+|Session Members: 13|
 |create_cluster: OK|
 |delete_sandbox_instance: OK|
 |deploy_sandbox_instance: OK|
 |get_cluster: OK|
 |help: OK|
 |kill_sandbox_instance: OK|
-|reset_session: OK|
 |start_sandbox_instance: OK|
 |check_instance_configuration: OK|
 |stop_sandbox_instance: OK|

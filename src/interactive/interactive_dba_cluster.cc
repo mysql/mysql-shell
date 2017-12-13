@@ -67,11 +67,11 @@ mysqlsh::dba::ReplicationGroupState
   return cluster->check_preconditions(function_name);
 }
 
-void Interactive_dba_cluster::assert_not_dissolved(
+void Interactive_dba_cluster::assert_valid(
       const std::string& function_name) const {
   ScopedStyle ss(_target.get(), naming_style);
   auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-  cluster->assert_not_dissolved(function_name);
+  cluster->assert_valid(function_name);
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(
@@ -84,7 +84,7 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(
 
   if (cluster) {
     // Throw an error if the cluster has already been dissolved
-    assert_not_dissolved("addInstance");
+    assert_valid("addInstance");
     object = cluster->get_default_replicaset();
   }
   if (object) {
@@ -121,7 +121,7 @@ shcore::Value Interactive_dba_cluster::add_instance(
   std::string function;
 
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("addInstance");
+  assert_valid("addInstance");
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
@@ -200,7 +200,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
     const shcore::Argument_list &args) {
   shcore::Value ret_val;
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("rejoinInstance");
+  assert_valid("rejoinInstance");
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
@@ -272,7 +272,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(
   mysqlshdk::db::Connection_options instance_def;
 
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("removeInstance");
+  assert_valid("removeInstance");
 
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
@@ -309,7 +309,7 @@ shcore::Value Interactive_dba_cluster::dissolve(
   shcore::Value::Map_type_ref options;
 
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("dissolve");
+  assert_valid("dissolve");
 
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
@@ -361,7 +361,7 @@ shcore::Value Interactive_dba_cluster::dissolve(
 shcore::Value Interactive_dba_cluster::check_instance_state(
       const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("checkInstanceState");
+  assert_valid("checkInstanceState");
 
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
@@ -422,7 +422,7 @@ shcore::Value Interactive_dba_cluster::rescan(
   shcore::Value ret_val;
 
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("rescan");
+  assert_valid("rescan");
 
   args.ensure_count(0, get_function_name("rescan").c_str());
 
@@ -525,7 +525,7 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
   shcore::Value ret_val;
 
   // Throw an error if the cluster has already been dissolved
-  assert_not_dissolved("forceQuorumUsingPartitionOf");
+  assert_valid("forceQuorumUsingPartitionOf");
 
   args.ensure_count(1, 2,
                     get_function_name("forceQuorumUsingPartitionOf").c_str());

@@ -27,6 +27,8 @@
 #ifndef _MOD_SESSION_H_
 #define _MOD_SESSION_H_
 
+#include <memory>
+
 #include "modules/mod_common.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -68,9 +70,12 @@ class Connection;
 * \sa mysql.getClassicSession(String connectionData, String password)
 * \sa mysql.getClassicSession(Map connectionData, String password)
 */
-class SHCORE_PUBLIC ClassicSession : public ShellBaseSession, public std::enable_shared_from_this<ClassicSession> {
-public:
+class SHCORE_PUBLIC ClassicSession
+    : public ShellBaseSession,
+      public std::enable_shared_from_this<ClassicSession> {
+ public:
   ClassicSession();
+  explicit ClassicSession(std::shared_ptr<mysqlshdk::db::mysql::Session> session);
   ClassicSession(const ClassicSession& session);
   virtual ~ClassicSession();
 
@@ -117,6 +122,8 @@ public:
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() {
     return _session;
   }
+
+  mysqlshdk::db::mysql::Session *session() const;
 
   virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query, int field = 0);

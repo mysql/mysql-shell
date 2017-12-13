@@ -7,10 +7,11 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, use
 
 // Create root@<hostname> account with all privileges, required to create a
 // cluster.
-var account_host = hostname;
 session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'"+account_host+"' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+account_host+"' WITH GRANT OPTION");
+session.runSql("CREATE USER 'root'@'"+hostname+"' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname+"' WITH GRANT OPTION");
+session.runSql("CREATE USER 'root'@'"+hostname_ip+"' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname_ip+"' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -18,8 +19,10 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 // Create root@<hostname> account with all privileges, required to create a
 // cluster.
 session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'"+account_host+"' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+account_host+"' WITH GRANT OPTION");
+session.runSql("CREATE USER 'root'@'"+hostname+"' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname+"' WITH GRANT OPTION");
+session.runSql("CREATE USER 'root'@'"+hostname_ip+"' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname_ip+"' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
 
 //@ Create cluster
@@ -46,6 +49,8 @@ session.close();
 // and not 'localhost'
 shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
+cluster.disconnect();
+
 //@<OUT> Create cluster adopting from GR
 var cluster = dba.createCluster('testCluster');
 //@<OUT> Check cluster status
@@ -53,6 +58,7 @@ cluster.status();
 
 // Close session
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

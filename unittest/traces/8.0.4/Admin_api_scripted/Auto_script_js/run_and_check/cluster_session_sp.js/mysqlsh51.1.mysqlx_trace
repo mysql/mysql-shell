@@ -1,0 +1,580 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "root:root@localhost:20000",
+    "protocol": "x"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "93",
+    "connection_info": "localhost via TCP/IP",
+    "server_version": "8.0.4-rc-log",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "SELECT * FROM mysql_innodb_cluster_metadata.schema_version"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "schema_version",
+            "table_label": "schema_version",
+            "column_name": "major",
+            "column_label": "major",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "schema_version",
+            "table_label": "schema_version",
+            "column_name": "minor",
+            "column_label": "minor",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "schema_version",
+            "table_label": "schema_version",
+            "column_name": "patch",
+            "column_label": "patch",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            1,
+            0,
+            1
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SELECT @@group_replication_group_name,    @@group_replication_single_primary_mode,    @@server_uuid,    member_state  FROM performance_schema.replication_group_members WHERE member_id = @@server_uuid"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_group_name",
+            "length": 108,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_single_primary_mode",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@server_uuid",
+            "length": 108,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "c1c0019e-df83-11e7-b381-58b06b05da34",
+            1,
+            "bef84674-df83-11e7-b381-58b06b05da34",
+            "ONLINE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT   CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNRCH,  COUNT(*) AS TOTAL,  (SELECT member_state      FROM performance_schema.replication_group_members      WHERE member_id = @@server_uuid) AS my_state  FROM performance_schema.replication_group_members"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "UNRCH",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "TOTAL",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "my_state",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            0,
+            2,
+            "ONLINE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SELECT NOT @@group_replication_single_primary_mode OR     (select variable_value       from performance_schema.global_status       where variable_name = 'group_replication_primary_member')    = @@server_uuid"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "NOT @@group_replication_single_primary_mode OR     (select variable_value       from performance_schema.global_status       where variable_name = 'group_replication_primary_member')    = @@server_uuid",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            1
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'c1c0019e-df83-11e7-b381-58b06b05da34'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "instances",
+            "table_label": "i",
+            "column_name": "mysql_server_uuid",
+            "column_label": "mysql_server_uuid",
+            "length": 160,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "instances",
+            "table_label": "i",
+            "column_name": "instance_name",
+            "column_label": "instance_name",
+            "length": 1024,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "instances",
+            "table_label": "i",
+            "column_name": "role",
+            "column_label": "role",
+            "length": 0,
+            "fractional": 0,
+            "type": "Enum",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "endpoint",
+            "length": 16777216,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "xendpoint",
+            "length": 16777216,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "bef84674-df83-11e7-b381-58b06b05da34",
+            "localhost:2000",
+            "HA",
+            "localhost:2000",
+            "localhost:20000"
+        ],
+        [
+            "c02ea808-df83-11e7-8dcf-d439a07876e8",
+            "localhost:2001",
+            "HA",
+            "localhost:2001",
+            "localhost:20010"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "show SESSION variables where `variable_name` in ('version')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "session_variables",
+            "table_label": "session_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "session_variables",
+            "table_label": "session_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 3072,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "version",
+            "8.0.4-rc-log"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "SELECT member_id, member_state, member_host, member_port, member_role FROM performance_schema.replication_group_members"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_ID",
+            "column_label": "member_id",
+            "length": 108,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_HOST",
+            "column_label": "member_host",
+            "length": 180,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_PORT",
+            "column_label": "member_port",
+            "length": 11,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_ROLE",
+            "column_label": "member_role",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "bef84674-df83-11e7-b381-58b06b05da34",
+            "ONLINE",
+            "dhcp-10-159-141-218.vpn.oracle.com",
+            2000,
+            "PRIMARY"
+        ],
+        [
+            "c02ea808-df83-11e7-8dcf-d439a07876e8",
+            "ONLINE",
+            "dhcp-10-159-141-218.vpn.oracle.com",
+            2001,
+            "SECONDARY"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 17
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 18
+},
+null]

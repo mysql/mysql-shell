@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3540?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:2000?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "287",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -269,7 +274,7 @@
         ],
         [
             "group_replication_group_seeds",
-            "localhost:23540,localhost:23550,localhost:23560"
+            "localhost:22000,localhost:22001,localhost:22002"
         ],
         [
             "group_replication_gtid_assignment_block_size",
@@ -281,7 +286,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:23540"
+            "localhost:22000"
         ],
         [
             "group_replication_member_weight",
@@ -294,6 +299,14 @@
         [
             "group_replication_recovery_complete_at",
             "TRANSACTIONS_APPLIED"
+        ],
+        [
+            "group_replication_recovery_get_public_key",
+            "ON"
+        ],
+        [
+            "group_replication_recovery_public_key_path",
+            ""
         ],
         [
             "group_replication_recovery_reconnect_interval",
@@ -416,7 +429,7 @@
         ],
         [
             "auto_increment_offset",
-            "7"
+            "3"
         ]
     ]
 },

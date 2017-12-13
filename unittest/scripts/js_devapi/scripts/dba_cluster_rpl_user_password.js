@@ -41,6 +41,7 @@ if (installed)
 	session.runSql('UNINSTALL PLUGIN validate_password');
 
 session.close();
+cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

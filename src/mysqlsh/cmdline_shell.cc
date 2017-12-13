@@ -388,6 +388,10 @@ void Command_line_shell::command_loop() {
   using_tty = isatty(STDIN_FILENO);
 #endif
 
+  if (_deferred_output && !_deferred_output->empty()) {
+    println(*_deferred_output);
+    _deferred_output.reset();
+  }
   if (options().full_interactive && using_tty) {
     std::string message;
     auto session = _shell->get_dev_session();
@@ -504,7 +508,10 @@ void Command_line_shell::print_cmd_line_helper() {
   println("owners.");
   println("");
   println("Usage: mysqlsh [OPTIONS] [URI]");
-  println("Usage: mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
+  println("       mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
+  println("       mysqlsh [OPTIONS] [URI] --dba [command]");
+  println("       mysqlsh [OPTIONS] [URI] --cluster");
+  println("");
   std::vector<std::string> details =
       Shell_options(0, nullptr).get_details();
   for (std::string line : details)

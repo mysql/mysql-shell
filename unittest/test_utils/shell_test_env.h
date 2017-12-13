@@ -24,6 +24,7 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 
 // Environment variables only
 
+#include <list>
 #include <vector>
 #include <string>
 #include <utility>
@@ -32,6 +33,11 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/version.h"
+
+extern "C" const char* g_argv0;
+extern int g_test_trace_scripts;
+extern int g_test_trace_sql;
+extern bool g_test_color_output;
 
 #define ASSERT_THROW_LIKE(expr, exc, msg)                              \
   try {                                                                \
@@ -122,6 +128,8 @@ class Shell_test_env : public ::testing::Test {
   mysqlshdk::utils::Version _highest_tls_version;  //!< The highest TLS version supported by MySQL Server
   std::string _test_context;  //!< Context for script validation engine
 
+  std::string _current_entry_point;
+  std::vector<std::string> _current_entry_point_stacktrace;
   bool _recording_enabled = false;
 
   std::map<std::string, std::string> _output_tokens; //!< Tokens for string resolution
@@ -153,6 +161,18 @@ class Shell_test_env : public ::testing::Test {
   static std::string _path_splitter;  //!< OS path separator
 
   std::string _sandbox_dir;  //!< Path to the configured sandbox directory
+
+ private:
+  struct Open_session {
+    std::weak_ptr<mysqlshdk::db::ISession> session;
+    std::string location;
+    std::string stacktrace_at_open;
+  };
+
+  std::list<Open_session> _open_sessions;
+  bool check_open_sessions();
+  void on_session_connect(std::shared_ptr<mysqlshdk::db::ISession> session);
+  void on_session_close(std::shared_ptr<mysqlshdk::db::ISession> session);
 };
 }  // namespace tests
 
@@ -167,5 +187,41 @@ void run_script_classic(const std::vector<std::string> &script);
 // unittest/data/sql/
 void run_test_data_sql_file(const std::string &uri,
                             const std::string &filename);
+
+inline std::string makebold(const std::string &s) {
+  if (!g_test_color_output)
+    return s;
+  return "\x1b[1m" + s + "\x1b[0m";
+}
+
+inline std::string makered(const std::string &s) {
+  if (!g_test_color_output)
+    return s;
+  return "\x1b[31m" + s + "\x1b[0m";
+}
+
+inline std::string makeredbg(const std::string &s) {
+  if (!g_test_color_output)
+    return s;
+  return "\x1b[41m" + s + "\x1b[0m";
+}
+
+inline std::string makeblue(const std::string &s) {
+  if (!g_test_color_output)
+    return s;
+  return "\x1b[36m" + s + "\x1b[0m";
+}
+
+inline std::string makegreen(const std::string &s) {
+  if (!g_test_color_output)
+    return s;
+  return "\x1b[32m" + s + "\x1b[0m";
+}
+
+inline std::string makeyellow(const std::string &s) {
+  if (!g_test_color_output)
+    return s;
+  return "\x1b[33m" + s + "\x1b[0m";
+}
 
 #endif  // UNITTEST_TEST_UTILS_SHELL_TEST_ENV_H_

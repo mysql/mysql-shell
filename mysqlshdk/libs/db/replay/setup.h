@@ -40,16 +40,20 @@ namespace replay {
 
 enum class Mode { Direct, Record, Replay };
 
-void setup_from_env();
-void set_mode(Mode mode);
+void setup_global_from_env();
+void finalize_global();
+
+void set_mode(Mode mode, int print_traces);
 
 void set_recording_path_prefix(const std::string& path);
-void set_recording_context(const std::string& context);
+void begin_recording_context(const std::string& context);
+void end_recording_context();
 
-void setup_mysql_session_injector(Mode mode);
+void setup_mysql_session_injector(Mode mode, int print_traces);
 
 void set_replay_query_hook(Query_hook func);
 void set_replay_row_hook(Result_row_hook func);
+
 
 //
 // void setup_mysqlx_session_injector(Mode mode) {
@@ -69,7 +73,7 @@ void set_replay_row_hook(Result_row_hook func);
 
 std::string current_recording_dir();
 
-std::string mysqlprovision_recording_path();
+std::string external_recording_path(const std::string &program_id);
 std::string new_recording_path(const std::string &type);
 std::string next_replay_path(const std::string &type);
 
@@ -87,7 +91,7 @@ class No_replay {
 extern char g_recording_path_prefix[1024];
 extern int g_session_create_index;
 extern int g_session_replay_index;
-extern int g_mysqlprovision_prefix_index;
+extern int g_external_program_index;
 extern Mode g_replay_mode;
 
 }  // namespace replay

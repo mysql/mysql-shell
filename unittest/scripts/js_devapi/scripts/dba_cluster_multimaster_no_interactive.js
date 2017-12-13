@@ -18,9 +18,11 @@ create_root_from_anywhere(session);
 
 //@ Dba: createCluster multiMaster, ok
 if (__have_ssl)
-  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
+  var cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-  dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+  var cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+
+cluster.disconnect();
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -58,11 +60,15 @@ Cluster.removeInstance(uri1);
 //@ Dissolve cluster with success
 Cluster.dissolve({force: true});
 
+Cluster.disconnect();
+
 //@ Dba: createCluster multiMaster 2, ok
 if (__have_ssl)
-    dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
+    Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-    dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+    Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+
+Cluster.disconnect();
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -118,6 +124,9 @@ wait_slave_state(Cluster, uri3, "ONLINE");
 Cluster.status();
 
 Cluster.dissolve({'force': true})
+
+//@ Cluster: disconnect should work, tho
+Cluster.disconnect();
 
 // Close session
 session.close();

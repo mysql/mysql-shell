@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "test_user:@localhost:3540"
+    "uri": "test_user:@localhost:3316",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "11",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "1.56.132",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -215,15 +220,7 @@
             "YES"
         ],
         [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
+            "XA_RECOVER_ADMIN",
             "YES"
         ],
         [
@@ -231,19 +228,15 @@
             "YES"
         ],
         [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
             "ENCRYPTION_KEY_ADMIN",
             "YES"
         ],
         [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
+            "ROLE_ADMIN",
             "YES"
         ],
         [
@@ -251,7 +244,11 @@
             "YES"
         ],
         [
-            "CONNECTION_ADMIN",
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
             "YES"
         ],
         [
@@ -259,11 +256,19 @@
             "YES"
         ],
         [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
             "SYSTEM_VARIABLES_ADMIN",
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
             "YES"
         ]
     ]

@@ -86,41 +86,4 @@ class Shell_base_test : public Shell_test_env {
 };
 }  // namespace tests
 
-inline std::string makebold(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\x1b[1m" + s + "\x1b[0m";
-}
-
-inline std::string makered(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\x1b[31m" + s + "\x1b[0m";
-}
-
-inline std::string makeredbg(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\x1b[41m" + s + "\x1b[0m";
-}
-
-inline std::string makeblue(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\x1b[36m" + s + "\x1b[0m";
-}
-
-inline std::string makegreen(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\x1b[32m" + s + "\x1b[0m";
-}
-
-inline std::string makeyellow(const std::string &s) {
-  if (!getenv("COLOR_DEBUG"))
-    return s;
-  return "\x1b[33m" + s + "\x1b[0m";
-}
-
-
 #endif  // UNITTEST_TEST_UTILS_SHELL_BASE_TEST_H_

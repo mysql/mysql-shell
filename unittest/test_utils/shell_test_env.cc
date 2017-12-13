@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
@@ -220,6 +221,14 @@ void Shell_test_env::SetUp() {
 
 void Shell_test_env::TearDown() {
   if (_recording_enabled) {
+    // TODO(.) this getenv should be removed once all issues are fixed, so
+    // the check is always executed
+    if (!check_open_sessions()) {
+      ADD_FAILURE() << "Leaky sessions detected\n";
+    }
+    mysqlshdk::db::replay::on_recorder_connect_hook = {};
+    mysqlshdk::db::replay::on_recorder_close_hook = {};
+
     if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
       // If the test failed during recording mode, put a fail marker in the
       // trace dir
@@ -230,9 +239,8 @@ void Shell_test_env::TearDown() {
                             "/FAILED");
       }
     }
-    mysqlshdk::db::replay::set_mode(mysqlshdk::db::replay::Mode::Direct);
     mysqlshdk::utils::Random::set(nullptr);
-    mysqlshdk::db::replay::set_replay_row_hook({});
+    mysqlshdk::db::replay::end_recording_context();
   }
 }
 
@@ -241,7 +249,7 @@ void Shell_test_env::SetUpTestCase() {
 }
 
 std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
-  mysqlshdk::db::replay::set_mode(g_test_recording_mode);
+  mysqlshdk::db::replay::set_mode(g_test_recording_mode, g_test_trace_sql);
   _recording_enabled = true;
 
   bool is_recording =
@@ -276,7 +284,7 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     throw std::logic_error("Missing tracedir");
   }
 
-  mysqlshdk::db::replay::set_recording_context(context);
+  mysqlshdk::db::replay::begin_recording_context(context);
 
   if (is_recording) {
     if (shcore::is_folder(mysqlshdk::db::replay::current_recording_dir()) &&
@@ -284,7 +292,8 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
                              "/FAILED")) {
       ADD_FAILURE() << "Test running in record mode, but trace directory "
                        "already exists (and is not FAILED). Delete directory "
-                       "to re-record it.\n";
+                       "to re-record it: "
+                    << mysqlshdk::db::replay::current_recording_dir() << "\n";
       throw std::logic_error("Tracedir already exists");
     }
 
@@ -296,6 +305,12 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     shcore::create_directory(tracedir);
     shcore::create_file(
         mysqlshdk::db::replay::current_recording_dir() + "/FAILED", "");
+
+    // Set up hooks for keeping track of opened sessions
+    mysqlshdk::db::replay::on_recorder_connect_hook = std::bind(
+        &Shell_test_env::on_session_connect, this, std::placeholders::_1);
+    mysqlshdk::db::replay::on_recorder_close_hook = std::bind(
+        &Shell_test_env::on_session_close, this, std::placeholders::_1);
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
@@ -436,6 +451,53 @@ std::string Shell_test_env::resolve_string(const std::string &source) {
 
   return updated;
 }
+
+bool Shell_test_env::check_open_sessions() {
+  // check that there aren't any sessions still open
+  size_t leaks = 0;
+  for (const auto &s : _open_sessions) {
+    if (auto session = s.session.lock()) {
+      std::cerr << makered("Unclosed/leaked session at")
+                << makeblue(s.location) << "\n";
+      std::cerr << s.stacktrace_at_open << "\n\n";
+      session->close();
+      leaks++;
+    }
+  }
+  if (leaks > 0) {
+    std::cerr << makered("SESSION LEAK CHECK ERROR:") << " There are "
+              << leaks
+              << " sessions still open at the end of the test\n";
+  }
+  _open_sessions.clear();
+  return leaks == 0;
+}
+
+void Shell_test_env::on_session_connect(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  // called by session recorder classes when connect is called
+  // adds a weak ptr to the session object along with the stack trace
+  // to a list of open sessions, which will be checked when the test finishes
+  _open_sessions.push_back(
+      {session, _current_entry_point,
+       "\t" + shcore::str_join(mysqlshdk::utils::get_stacktrace(), "\n\t")});
+}
+
+void Shell_test_env::on_session_close(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  assert(session);
+  // called by session recorder classes when close is called
+  for (auto iter = _open_sessions.begin(); iter != _open_sessions.end();
+       ++iter) {
+    auto ptr = iter->session.lock();
+    if (ptr && ptr.get() == session.get()) {
+      _open_sessions.erase(iter);
+      return;
+    }
+  }
+  assert(0);
+}
+
 
 }  // namespace tests
 

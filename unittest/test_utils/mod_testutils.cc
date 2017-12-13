@@ -45,6 +45,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -66,6 +67,9 @@
 // - add a wait_new_member() which does wait_slave_state() but with shorter
 //   check interval/delay in replay mode (for faster execution)
 
+extern int g_test_trace_scripts;
+extern bool g_test_color_output;
+
 namespace tests {
 
 constexpr int k_wait_member_timeout = 60;
@@ -77,11 +81,14 @@ static void print(void *, const char *s) {
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
                      const std::vector<int> &default_sandbox_ports,
-                     std::shared_ptr<mysqlsh::Mysql_shell> shell)
-    : _shell(shell), _default_sandbox_ports(default_sandbox_ports) {
+                     std::shared_ptr<mysqlsh::Mysql_shell> shell,
+                     const std::string &mysqlsh_path)
+    : _shell(shell),
+      _mysqlsh_path(mysqlsh_path),
+      _default_sandbox_ports(default_sandbox_ports) {
   _sandbox_dir = sandbox_dir;
   _dummy_sandboxes = dummy_mode;
-  if (getenv("TEST_DEBUG") && dummy_mode)
+  if (g_test_trace_scripts > 0 && dummy_mode)
     std::cerr << "tetutils using dummy sandboxes\n";
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass");
@@ -108,6 +115,10 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
+  expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout);
+  expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr);
+
+  expose("callMysqlsh", &Testutils::call_mysqlsh, "args");
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
@@ -217,7 +228,21 @@ bool Testutils::is_replaying() {
 #endif
 ///@}
 void Testutils::fail(const std::string &context) {
-  ADD_FAILURE_AT(_test_file.c_str(), _test_line) << context << "\n";
+  // TODO(alfredo) make and replace with a markup text processor
+  std::string text = context;
+
+  if (g_test_color_output) {
+    text = shcore::str_replace(text, "<red>", "\x1b[31m");
+    text = shcore::str_replace(text, "</red>", "\x1b[0m");
+    text = shcore::str_replace(text, "<yellow>", "\x1b[33m");
+    text = shcore::str_replace(text, "</yellow>", "\x1b[0m");
+  } else {
+    text = shcore::str_replace(text, "<red>", "");
+    text = shcore::str_replace(text, "</red>", "");
+    text = shcore::str_replace(text, "<yellow>", "");
+    text = shcore::str_replace(text, "</yellow>", "");
+  }
+  ADD_FAILURE_AT(_test_file.c_str(), _test_line) << text << "\n";
 }
 
 void Testutils::snapshot_sandbox_conf(int port) {
@@ -237,7 +262,7 @@ void Testutils::snapshot_sandbox_conf(int port) {
       // it if needed
       shcore::create_directory(shcore::path::dirname(sandbox_cnf_path));
       shcore::copy_file(sandbox_cnf_bkpath, sandbox_cnf_path);
-      if (getenv("TEST_DEBUG"))
+      if (g_test_trace_scripts)
         std::cerr << "Copied " << sandbox_cnf_bkpath << " to "
                   << sandbox_cnf_path << "\n";
     }
@@ -262,7 +287,7 @@ void Testutils::begin_snapshot_sandbox_error_log(int port) {
     // it if needed
     shcore::create_directory(shcore::path::dirname(sandbox_log_path));
     shcore::copy_file(sandbox_log_bkpath, sandbox_log_path);
-    if (getenv("TEST_DEBUG"))
+    if (g_test_trace_scripts)
       std::cerr << "Copied " << sandbox_log_bkpath << " to " << sandbox_log_path
                 << "\n";
   }
@@ -338,7 +363,7 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass) {
       shcore::Value mycnf_options = shcore::Value::new_array();
       mycnf_options.as_array()->push_back(
           shcore::Value("innodb_log_file_size=4M"));
-      _mp->set_verbose(_debug);
+      _mp->set_verbose(g_test_trace_scripts > 1);
       _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass,
                           mycnf_options, true, true, &errors);
       if (errors && !errors->empty())
@@ -446,7 +471,7 @@ void Testutils::start_sandbox(int port) {
           failed = false;
           break;
         }
-        if (retries == 0 || getenv("TEST_DEBUG")) {
+        if (retries == 0 || g_test_trace_scripts) {
           std::cerr << "During start of " << port << ": "
                     << shcore::Value(errors).descr() << "\n";
           std::cerr << "Retried " << k_max_start_sandbox_retries << " times\n";
@@ -572,8 +597,8 @@ static int os_file_lock(int fd) {
 void Testutils::wait_sandbox_dead(int port) {
 #ifdef _WIN32
   // In Windows, it should be enough to see if the ibdata file is locked
-  std::string ibdata = _sandbox_dir + "/" + std::to_string(port) +
-    "/sandboxdata/ibdata1";
+  std::string ibdata =
+      _sandbox_dir + "/" + std::to_string(port) + "/sandboxdata/ibdata1";
   while (true) {
     FILE *f = fopen(ibdata.c_str(), "a");
     if (f) {
@@ -691,7 +716,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option) {
  * Waits until a cluster member reaches one of the specified states.
  * @param port The port of the instance to be polled listens for MySQL connections.
  * @param states An array containing the states that would cause the poll cycle to finish.
- * @returns 0 if the member reaches one of the specified states, -1 if the timeout happens before any of the states is reached.
+ * @returns The state of the member.
  *
  * This function is to be used with the members of a cluster.
  *
@@ -700,12 +725,13 @@ void Testutils::change_sandbox_conf(int port, const std::string &option) {
  * occurs.
  */
 #if DOXYGEN_JS
-  Integer Testutils::waitMemberState(Integer port, String[] states);
+String Testutils::waitMemberState(Integer port, String[] states);
 #elif DOXYGEN_PY
-  int Testutils::wait_member_state(int port, str[] states);
+str Testutils::wait_member_state(int port, str[] states);
 #endif
 ///@}
-int Testutils::wait_member_state(int member_port, const std::string &states) {
+std::string Testutils::wait_member_state(int member_port,
+                                         const std::string &states) {
   if (states.empty())
     throw std::invalid_argument(
         "states argument for wait_member_state() can't be empty");
@@ -718,18 +744,19 @@ int Testutils::wait_member_state(int member_port, const std::string &states) {
         shell->shell_context()->get_dev_session()->get_core_session();
 
     int curtime = 0;
+    std::string current_state;
     while (curtime < k_wait_member_timeout) {
       auto result = session->query(
           "SELECT member_state FROM "
           "performance_schema.replication_group_members "
           "WHERE member_port = " +
           std::to_string(member_port));
-      std::string current_state = "(MISSING)";
+      current_state = "(MISSING)";
       if (auto row = result->fetch_one()) {
         current_state = row->get_string(0);
       }
       if (states.find(current_state) != std::string::npos)
-        return 0;
+        return current_state;
 
       if (mysqlshdk::db::replay::g_replay_mode ==
           mysqlshdk::db::replay::Mode::Replay) {
@@ -741,11 +768,11 @@ int Testutils::wait_member_state(int member_port, const std::string &states) {
       curtime++;
     }
     throw std::runtime_error(
-        "Timeout while waiting for cluster member to become one of " + states);
+        "Timeout while waiting for cluster member to become one of " + states +
+        ": seems to be stuck as " + current_state);
   } else {
     throw std::logic_error("Lost reference to shell object");
   }
-  return -1;
 }
 
 //!<  @name Misc Utilities
@@ -797,7 +824,7 @@ int Testutils::make_file_readonly(const std::string &path) {
 #endif
 ///@}
 shcore::Array_t Testutils::grep_file(const std::string &path,
-  const std::string &pattern) {
+                                     const std::string &pattern) {
   std::ifstream f(path);
   if (!f.good())
     throw std::runtime_error("grep error: " + path + ": " + strerror(errno));
@@ -877,8 +904,16 @@ void Testutils::expect_password(const std::string &prompt,
   _feed_password(prompt, text);
 }
 
+std::string Testutils::fetch_captured_stdout() {
+  return _fetch_stdout();
+}
+
+std::string Testutils::fetch_captured_stderr() {
+  return _fetch_stderr();
+}
+
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
-  if (_debug)
+  if (g_test_trace_scripts)
     std::cerr << "Preparing sandbox boilerplate...\n";
 
   std::string boilerplate =
@@ -886,7 +921,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
   if (shcore::is_folder(boilerplate) &&
       !_expected_boilerplate_version.empty() &&
       getenv("TEST_REUSE_SANDBOX_BOILERPLATE")) {
-    if (_debug)
+    if (g_test_trace_scripts)
       std::cerr << "Reusing existing sandbox boilerplate as requested\n";
 
     return;
@@ -905,7 +940,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
 
-  _mp->set_verbose(_debug);
+  _mp->set_verbose(g_test_trace_scripts > 1);
   _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
                       true, true, &errors);
   if (errors && !errors->empty()) {
@@ -924,10 +959,9 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
     session->connect(options);
     auto result = session->query("select @@version");
     std::string version = result->fetch_one()->get_string(0);
-    shcore::create_file(
-      shcore::path::join_path(_sandbox_dir, std::to_string(port),
-                             "version.txt"),
-      version);
+    shcore::create_file(shcore::path::join_path(
+                            _sandbox_dir, std::to_string(port), "version.txt"),
+                        mysqlshdk::utils::Version(version).get_full());
   }
 
   stop_sandbox(port, rootpass);
@@ -956,7 +990,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass) {
   shcore::delete_file(
       shcore::path::join_path(boilerplate, "sandboxdata", "mysqlx.sock"));
   shcore::delete_file(
-    shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
+      shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
 }
 
 void copy_boilerplate_sandbox(const std::string &from,
@@ -992,7 +1026,7 @@ void copy_boilerplate_sandbox(const std::string &from,
 
 
 bool Testutils::deploy_sandbox_from_boilerplate(int port) {
-  if (_debug)
+  if (g_test_trace_scripts)
     std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
   std::string boilerplate =
       shcore::path::join_path(_sandbox_dir, "myboilerplate");
@@ -1013,18 +1047,19 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
   change_sandbox_conf(port, "port=" + std::to_string(port));
   change_sandbox_conf(port, "server_id=" + std::to_string(port + 12345));
   change_sandbox_conf(
-      port, "datadir=" +
-      shcore::str_replace(shcore::path::join_path(basedir, "sandboxdata"),
-                          "\\", "/"));
+      port, "datadir=" + shcore::str_replace(
+                             shcore::path::join_path(basedir, "sandboxdata"),
+                             "\\", "/"));
   change_sandbox_conf(
-      port,
-      "log_error=" +
-      shcore::str_replace(shcore::path::join_path(basedir, "sandboxdata",
-                                                  "error.log"), "\\", "/"));
+      port, "log_error=" +
+                shcore::str_replace(shcore::path::join_path(
+                                        basedir, "sandboxdata", "error.log"),
+                                    "\\", "/"));
   change_sandbox_conf(
       port, "pid_file=" +
-      shcore::str_replace(shcore::path::join_path(
-                          basedir, std::to_string(port) + ".pid"), "\\", "/"));
+                shcore::str_replace(shcore::path::join_path(
+                                        basedir, std::to_string(port) + ".pid"),
+                                    "\\", "/"));
   change_sandbox_conf(port, "secure_file_priv=" + shcore::path::join_path(
                                                       basedir, "mysql-files"));
   change_sandbox_conf(port, "loose_mysqlx_port=" + std::to_string(port * 10));
@@ -1039,9 +1074,11 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
       std::string bversion = shcore::get_text_file(
           shcore::path::join_path(boilerplate, "version.txt"));
       if (bversion != _expected_boilerplate_version) {
-        std::cerr << "WARNING: Boilerplate instance was created for a "
-                     "different MySQL "
-                     "version than current and will be recreated\n";
+        std::cerr
+            << "WARNING: Boilerplate instance was created for a "
+               "different MySQL version than current and will be recreated ("
+            << bversion << " expected " << _expected_boilerplate_version
+            << ")\n";
         destroy_sandbox(port);
         return false;
       }
@@ -1130,4 +1167,118 @@ bool Testutils::version_check(const std::string &v1, const std::string &op,
 ///@{
 ///@}
 
+mysqlshdk::db::Connection_options Testutils::sandbox_connection_options(
+    int port, const std::string &password) {
+  mysqlshdk::db::Connection_options copts;
+  copts.set_scheme("mysql");
+  copts.set_host("localhost");
+  copts.set_port(port);
+  copts.set_user("root");
+  copts.set_password(password);
+  return copts;
+}
+
+
+namespace {
+void setup_recorder_environment() {
+  static char mode[512];
+  static char prefix[512];
+
+  snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=");
+  snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=");
+
+  // If session recording is wanted, we need to append a mysqlprovision specific
+  // suffix to the output path, which also has to be different for each call
+  if (mysqlshdk::db::replay::g_replay_mode !=
+      mysqlshdk::db::replay::Mode::Direct) {
+    if (mysqlshdk::db::replay::g_replay_mode ==
+        mysqlshdk::db::replay::Mode::Record) {
+      snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=record");
+    } else {
+      snprintf(mode, sizeof(mode), "MYSQLSH_RECORDER_MODE=replay");
+    }
+    snprintf(prefix, sizeof(prefix), "MYSQLSH_RECORDER_PREFIX=%s",
+             mysqlshdk::db::replay::external_recording_path("mysqlsh").c_str());
+  }
+  putenv(mode);
+  putenv(prefix);
+}
+}  // namespace
+
+int Testutils::call_mysqlsh(const shcore::Array_t &args) {
+  std::vector<std::string> argv = shcore::Value(args).to_string_vector();
+  std::vector<const char *> full_argv;
+  std::string path;
+
+  setup_recorder_environment();
+
+  if (mysqlshdk::db::replay::g_replay_mode !=
+      mysqlshdk::db::replay::Mode::Direct) {
+    // use mysqlshrec unless in direct mode
+    path = shcore::path::join_path(shcore::path::dirname(_mysqlsh_path),
+                                   "mysqlshrec");
+    full_argv.push_back(path.c_str());
+  } else {
+    full_argv.push_back(_mysqlsh_path.c_str());
+  }
+  assert(strlen(full_argv.front()) > 0);
+
+  for (const std::string &arg : argv) {
+    full_argv.push_back(arg.c_str());
+  }
+  if (g_test_trace_scripts) {
+    std::cerr << shcore::str_join(full_argv, " ") << "\n";
+  }
+  full_argv.push_back(nullptr);
+
+  char c;
+  int exit_code = 1;
+  std::string output;
+
+  shcore::Process_launcher process(&full_argv[0]);
+#ifdef _WIN32
+  process.set_create_process_group();
+#endif
+  std::shared_ptr<mysqlsh::Mysql_shell> shell(_shell.lock());
+  try {
+    // Starts the process
+    process.start();
+
+    // // The password should be provided when it is expected that the Shell
+    // // will prompt for it, in such case, we give it on the stdin
+    // if (password) {
+    //   std::string pwd(password);
+    //   pwd.append("\n");
+    //   process->write(pwd.c_str(), pwd.size());
+    // }
+
+    // Reads all produced output, until stdout is closed
+    while (process.read(&c, 1) > 0) {
+      if (g_test_trace_scripts && !shell)
+        std::cout << c << std::flush;
+      if (c == '\r')
+        continue;
+      if (c == '\n') {
+        if (shell)
+          shell->println(output);
+        output.clear();
+      } else {
+        output += c;
+      }
+    }
+    if (!output.empty()) {
+      if (shell)
+        shell->println(output);
+    }
+    // Wait until it finishes
+    exit_code = process.wait();
+  } catch (const std::system_error &e) {
+    output = e.what();
+    if (shell)
+      shell->println(("Exception calling mysqlsh: " + output).c_str());
+    exit_code = 256;  // This error code will indicate an error happened
+                      // launching the process
+  }
+  return exit_code;
+}
 }  // namespace tests

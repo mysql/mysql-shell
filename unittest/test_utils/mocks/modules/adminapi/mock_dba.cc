@@ -135,9 +135,13 @@ void Mock_dba::expect_create_cluster(const std::string &name,
 
   args.push_back(options);
 
+  EXPECT_CALL(*this, get_active_shell_session())
+      .WillRepeatedly(Return(nullptr));
+
   if (succeed)
     EXPECT_CALL(*this, call("createCluster", args))
-        .WillOnce(Return(create_mock_cluster(name)));
+        .WillOnce(
+            Return(create_mock_cluster(name)));
   else
     EXPECT_CALL(*this, call("createCluster", args))
         .WillOnce(Throw(shcore::Exception::logic_error("Some error")));

@@ -110,7 +110,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: removeInstance
@@ -160,7 +161,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: remove_instance 3
@@ -241,7 +243,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# Dba: stop instance 3
@@ -299,5 +302,6 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoi
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }

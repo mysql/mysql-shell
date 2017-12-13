@@ -3,14 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:2000?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "23",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -101,7 +105,7 @@
     ],
     "rows": [
         [
-            "1dfe3712-d568-11e7-8557-96f91eaaf8de"
+            "1f2cbb52-df83-11e7-a707-c971daef1fcc"
         ]
     ]
 },
@@ -269,8 +273,8 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-152-204.vpn.oracle.com",
-            3316
+            "dhcp-10-159-141-218.vpn.oracle.com",
+            2000
         ]
     ]
 },
@@ -704,6 +708,13 @@
             "GPL"
         ],
         [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
+            "mysqlx.so",
+            "GPL"
+        ],
+        [
             "group_replication",
             "ACTIVE",
             "GROUP REPLICATION",
@@ -746,7 +757,7 @@
     ],
     "rows": [
         [
-            "localhost:13316"
+            "localhost:12000"
         ]
     ]
 },
@@ -1180,6 +1191,13 @@
             "GPL"
         ],
         [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
+            "mysqlx.so",
+            "GPL"
+        ],
+        [
             "group_replication",
             "ACTIVE",
             "GROUP REPLICATION",
@@ -1222,7 +1240,7 @@
     ],
     "rows": [
         [
-            "1dfe3712-d568-11e7-8557-96f91eaaf8de"
+            "1f2cbb52-df83-11e7-a707-c971daef1fcc"
         ]
     ]
 },

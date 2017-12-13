@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3540?ssl-mode=PREFERRED"
+    "uri": "root:root@localhost:2000?ssl-mode=PREFERRED",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "78",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -100,7 +105,7 @@
     ],
     "rows": [
         [
-            "0f503bea-d035-11e7-9385-f83441274313"
+            "9d2f2d8e-dfae-11e7-ab93-0b4c5ce87696"
         ]
     ]
 },
@@ -265,7 +270,7 @@
         ],
         [
             "group_replication_group_name",
-            "0f503bea-d035-11e7-9385-f83441274313"
+            "9d2f2d8e-dfae-11e7-ab93-0b4c5ce87696"
         ],
         [
             "group_replication_group_seeds",
@@ -281,7 +286,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:13540"
+            "localhost:12000"
         ],
         [
             "group_replication_member_weight",
@@ -294,6 +299,14 @@
         [
             "group_replication_recovery_complete_at",
             "TRANSACTIONS_APPLIED"
+        ],
+        [
+            "group_replication_recovery_get_public_key",
+            "ON"
+        ],
+        [
+            "group_replication_recovery_public_key_path",
+            ""
         ],
         [
             "group_replication_recovery_reconnect_interval",
@@ -337,7 +350,7 @@
         ],
         [
             "group_replication_recovery_use_ssl",
-            "OFF"
+            "ON"
         ],
         [
             "group_replication_single_primary_mode",
@@ -345,7 +358,7 @@
         ],
         [
             "group_replication_ssl_mode",
-            "DISABLED"
+            "REQUIRED"
         ],
         [
             "group_replication_start_on_boot",
@@ -416,7 +429,7 @@
         ],
         [
             "auto_increment_offset",
-            "1"
+            "3"
         ]
     ]
 },

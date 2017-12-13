@@ -34,12 +34,6 @@ using namespace shcore;
 extern "C" const char* g_test_home;
 extern bool g_generate_validation_file;
 
-static int debug_level() {
-  if (const char* level = getenv("TEST_DEBUG")) {
-    return std::atoi(level);
-  }
-  return 0;
-}
 
 Shell_script_tester::Shell_script_tester() {
   // Default home folder for scripts
@@ -143,6 +137,7 @@ bool Shell_script_tester::validate(const std::string& context,
       }
     }
 
+    std::string full_statement;
     // The validations will be performed ONLY if the context is enabled
     for (size_t valindex = 0; valindex < validations.size(); valindex++) {
       // Validation goes against validation code
@@ -150,15 +145,20 @@ bool Shell_script_tester::validate(const std::string& context,
         // Before cleaning up, prints any error found on the script execution
         if (valindex == 0 && !original_std_err.empty()) {
           ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-              << "\tUnexpected Error: " + original_std_err << "\n";
+              << makered("\tUnexpected Error: " + original_std_err) << "\n";
           return false;
         }
 
         output_handler.wipe_all();
         std::string backup = _custom_context;
-        _custom_context += "[" + validations[valindex]->code + "]";
+        full_statement.append(validations[valindex]->code);
+        _custom_context += "[" + full_statement + "]";
         execute(validations[valindex]->code);
         _custom_context = backup;
+        if (_interactive_shell->input_state() == shcore::Input_state::Ok)
+          full_statement.clear();
+        else
+          full_statement.append("\n");
 
         original_std_err = output_handler.std_err;
         original_std_out = output_handler.std_out;
@@ -172,7 +172,7 @@ bool Shell_script_tester::validate(const std::string& context,
       if (!expect_failures && !original_std_err.empty()) {
         ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
             << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-            << "\tUnexpected Error: " + original_std_err << "\n";
+            << makered("\tUnexpected Error: ") << original_std_err << "\n";
         return false;
       }
 
@@ -190,10 +190,12 @@ bool Shell_script_tester::validate(const std::string& context,
               ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
                   << "while executing chunk: " + _chunks[chunk_id].def->line
                   << "\n"
-                  << "\tSTDOUT missing: " + out << "\n"
-                  << "\tSTDOUT actual: " + original_std_out.substr(out_position)
+                  << makeyellow("\tSTDOUT missing: ") << out << "\n"
+                  << makeyellow("\tSTDOUT actual: ") +
+                         original_std_out.substr(out_position)
                   << "\n"
-                  << "\tSTDOUT original: " + original_std_out << "\n";
+                  << makeyellow("\tSTDOUT original: ") + original_std_out
+                  << "\n";
               return false;
             } else {
               // Consumes the already found output
@@ -216,8 +218,8 @@ bool Shell_script_tester::validate(const std::string& context,
         if (original_std_out.find(out) != std::string::npos) {
           ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
               << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-              << "\tSTDOUT unexpected: " + out << "\n"
-              << "\tSTDOUT actual: " + original_std_out << "\n";
+              << makeyellow("\tSTDOUT unexpected: ") << out << "\n"
+              << makeyellow("\tSTDOUT actual: ") << original_std_out << "\n";
           return false;
         }
       }
@@ -236,10 +238,12 @@ bool Shell_script_tester::validate(const std::string& context,
               ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
                   << "while executing chunk: " + _chunks[chunk_id].def->line
                   << "\n"
-                  << "\tSTDERR missing: " + error << "\n"
-                  << "\tSTDERR actual: " + original_std_err.substr(err_position)
+                  << makeyellow("\tSTDERR missing: ") + error << "\n"
+                  << makeyellow("\tSTDERR actual: ") +
+                         original_std_err.substr(err_position)
                   << "\n"
-                  << "\tSTDERR original: " + original_std_err << "\n";
+                  << makeyellow("\tSTDERR original: ") + original_std_err
+                  << "\n";
               return false;
             } else {
               // Consumes the already found error
@@ -256,10 +260,10 @@ bool Shell_script_tester::validate(const std::string& context,
 
     if (validations.empty()) {
       ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-          << "MISSING VALIDATIONS FOR CHUNK " << _chunks[chunk_id].def->line
-          << "\n"
-          << "\tSTDOUT: " << original_std_out << "\n"
-          << "\tSTDERR: " << original_std_err << "\n";
+          << makered("MISSING VALIDATIONS FOR CHUNK ")
+          << _chunks[chunk_id].def->line << "\n"
+          << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
+          << makeyellow("\tSTDERR: ") << original_std_err << "\n";
       return false;
     }
     output_handler.wipe_all();
@@ -271,14 +275,14 @@ bool Shell_script_tester::validate(const std::string& context,
       if (chunk_id == "__global__") {
         ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
             << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-            << "\tUnexpected Error: " + original_std_err << "\n";
+            << makered("\tUnexpected Error: ") + original_std_err << "\n";
         output_handler.wipe_all();
       } else {
         ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-            << "MISSING VALIDATIONS FOR CHUNK " << _chunks[chunk_id].def->line
-            << "\n"
-            << "\tSTDOUT: " << original_std_out << "\n"
-            << "\tSTDERR: " << original_std_err << "\n";
+            << makered("MISSING VALIDATIONS FOR CHUNK ")
+            << _chunks[chunk_id].def->line << "\n"
+            << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
+            << makeyellow("\tSTDERR: ") << original_std_err << "\n";
       }
       return false;
     } else {
@@ -295,6 +299,8 @@ void Shell_script_tester::validate_interactive(const std::string& script) {
     execute_script(script, true);
   } catch (std::exception& e) {
     std::string error = e.what();
+    FAIL() << makered("Unexpected exception excuting test script: ") << e.what()
+           << "\n";
   }
 }
 
@@ -338,7 +344,7 @@ void Shell_script_tester::add_source_chunk(const std::string& path,
       _chunk_order.push_back(chunk.def->id);
     } else {
       ADD_FAILURE_AT(path.c_str(), chunk.code[0].first - 1)
-          << "REDEFINITION OF CHUNK: \"" + chunk.def->line << "\"\n"
+          << makered("REDEFINITION OF CHUNK: \"") + chunk.def->line << "\"\n"
           << "\tInitially defined at line: "
           << (_chunks[chunk.def->id].code[0].first - 1) << "\n";
     }
@@ -356,7 +362,8 @@ void Shell_script_tester::add_validation(
 
     _chunk_validations[chunk_def->id].push_back(val);
   } else {
-    std::string text("WRONG VALIDATION FORMAT FOR CHUNK " + chunk_def->line);
+    std::string text(makered("WRONG VALIDATION FORMAT FOR CHUNK ") +
+                     chunk_def->line);
     text += "\nLine: " + shcore::str_join(source, "|");
     SCOPED_TRACE(text.c_str());
     ADD_FAILURE();
@@ -475,8 +482,8 @@ void Shell_script_tester::load_validations(const std::string& path) {
           // Ensures the found validation is for a valid chunk
           if (_chunks.find(new_chunk->id) == _chunks.end()) {
             ADD_FAILURE_AT(path.c_str(), line_no)
-                << "FOUND VALIDATION FOR UNEXISTING CHUNK " << new_chunk->line
-                << "\n"
+                << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
+                << new_chunk->line << "\n"
                 << "\tLINE: " << line_no << "\n";
             skip_chunk = true;
             continue;
@@ -491,7 +498,7 @@ void Shell_script_tester::load_validations(const std::string& path) {
                      _chunk_validations.end() ||
                  _chunk_validations[current_chunk->id].empty())) {
               ADD_FAILURE_AT(path.c_str(), line_no)
-                  << "EXPECTED VALIDATIONS FOR CHUNK "
+                  << makered("EXPECTED VALIDATIONS FOR CHUNK ")
                   << _chunks[_chunk_order[chunk_index]].def->line << "\n"
                   << "INSTEAD FOUND FOR CHUNK " << new_chunk->line << "\n"
                   << "\tLINE: " << line_no << "\n";
@@ -502,7 +509,7 @@ void Shell_script_tester::load_validations(const std::string& path) {
                 if (new_chunk->id !=
                     _chunks[_chunk_order[chunk_index + 1]].def->id) {
                   ADD_FAILURE_AT(path.c_str(), line_no)
-                      << "EXPECTED VALIDATIONS FOR CHUNK "
+                      << makered("EXPECTED VALIDATIONS FOR CHUNK ")
                       << _chunks[_chunk_order[chunk_index + 1]].def->line
                       << "\n"
                       << "INSTEAD FOUND FOR CHUNK " << new_chunk->line << "\n"
@@ -515,7 +522,7 @@ void Shell_script_tester::load_validations(const std::string& path) {
               } else {
                 // Error unexpected validation for chunk found
                 ADD_FAILURE_AT(path.c_str(), line_no)
-                    << "UNEXPECTED VALIDATIONS FOR CHUNK " << new_chunk->line
+                    << makered("UNEXPECTED VALIDATIONS FOR CHUNK ") << new_chunk->line
                     << "\n"
                     << "\tLINE: " << line_no << "\n";
                 skip_chunk = true;
@@ -642,7 +649,7 @@ void Shell_script_tester::execute_script(const std::string& path,
           enabled = context_enabled(chunk.def->context);
         } catch (const std::invalid_argument& e) {
           ADD_FAILURE_AT(script.c_str(), chunk.code[0].first)
-              << "ERROR EVALUATING CONTEXT: " << e.what() << "\n"
+              << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
               << "\tCHUNK: " << chunk.def->line << "\n";
           break;
         }
@@ -650,12 +657,15 @@ void Shell_script_tester::execute_script(const std::string& path,
         // Executes the file line by line
         if (enabled) {
           auto& code = chunk.code;
+          std::string full_statement;
           for (size_t chunk_item = 0; chunk_item < code.size(); chunk_item++) {
             std::string line(code[chunk_item].second);
 
-            // Execution context is at line level
-            _custom_context =
-                path + "@[" + _chunk_order[index] + "][" + line + "]";
+            full_statement.append(line);
+            // Execution context is at line (statement actually) level
+            _custom_context = path + "@[" + _chunk_order[index] + "][" +
+                              std::to_string(chunk.code[chunk_item].first) +
+                              ":" + full_statement + "]";
 
             // There's chance to do preprocessing
             pre_process_line(path, line);
@@ -664,6 +674,11 @@ void Shell_script_tester::execute_script(const std::string& path,
               testutil->set_test_execution_context(_filename,
                                                    code[chunk_item].first);
             execute(line);
+
+            if (_interactive_shell->input_state() == shcore::Input_state::Ok)
+              full_statement.clear();
+            else
+              full_statement.append("\n");
           }
 
           execute("");
@@ -688,7 +703,7 @@ void Shell_script_tester::execute_script(const std::string& path,
             _custom_context =
                 path + "@[" + _chunk_order[index] + " validation]";
             if (!validate(path, _chunk_order[index])) {
-              if (debug_level() >= 3) {
+              if (g_test_trace_scripts > 1) {
                 // Failure logs are printed on the fly in debug mode
                 FAIL();
               }
@@ -747,7 +762,7 @@ void Shell_script_tester::execute_script(const std::string& path,
         // If processing a tets script, performs the validations over it
         _options->interactive = true;
         if (!validate(script)) {
-          if (debug_level() >= 3) {
+          if (g_test_trace_scripts > 1) {
             // Failure logs are printed on the fly in debug mode
             FAIL();
           }
@@ -825,7 +840,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
           enabled = context_enabled(chunk.def->context);
         } catch (const std::invalid_argument& e) {
           ADD_FAILURE_AT(script.c_str(), chunk.code[0].first)
-              << "\ERROR EVALUATING CONTEXT: " << e.what() << "\n"
+              << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
               << "\tCHUNK: " << chunk.def->line << "\n";
         }
 
@@ -854,7 +869,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
           // Validation contexts is at chunk level
           _custom_context = path + "@[" + _chunk_order[index] + " validation]";
           if (!validate(path, _chunk_order[index])) {
-            if (debug_level() >= 3) {
+            if (g_test_trace_scripts > 1) {
               // Failure logs are printed on the fly in debug mode
               FAIL();
             }
@@ -1046,4 +1061,17 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
   }
 
   return ret_val;
+}
+
+
+void Shell_script_tester::execute(const std::string &code) {
+  // save location in test script that is being currently executed
+  _current_entry_point = context_identifier();
+  try {
+    Crud_test_wrapper::execute(code);
+    _current_entry_point.clear();
+  } catch (...) {
+    _current_entry_point.clear();
+    throw;
+  }
 }

@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3560"
+    "uri": "mysql://root:root@localhost:2001",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "70",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -91,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3560'"
+    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:2001'"
 },
 {
     "type": "response",

@@ -33,6 +33,7 @@
 
 #include "modules/interactive_object_wrapper.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/mod_dba_cluster.h"
 
 namespace shcore {
 class Global_dba : public Interactive_object_wrapper {
@@ -61,13 +62,16 @@ class Global_dba : public Interactive_object_wrapper {
 
  private:
   mysqlsh::dba::ReplicationGroupState check_preconditions(
+        std::shared_ptr<mysqlshdk::db::ISession> group_session,
         const std::string& function_name) const;
   std::vector<std::pair<std::string, std::string>>
       get_replicaset_instances_status(
-            std::string *out_cluster_name,
+            std::shared_ptr<mysqlsh::dba::Cluster> cluster,
             const shcore::Value::Map_type_ref &options) const;
   void validate_instances_status_reboot_cluster(
-        const shcore::Argument_list &args) const;
+        std::shared_ptr<mysqlsh::dba::Cluster> cluster,
+        std::shared_ptr<mysqlshdk::db::ISession> member_session,
+        shcore::Value::Map_type_ref options) const;
   shcore::Argument_list check_instance_op_params(
         const shcore::Argument_list &args, const std::string& function_name);
   shcore::Value perform_instance_operation(

@@ -35,6 +35,7 @@ set(utils_SOURCE
     utils_sqlstring.cc
     utils_string.cc
     utils_uuid.cc
+    utils_stacktrace.cc
     trandom.cc
     nullable_options.cc
     base_tokenizer.cc

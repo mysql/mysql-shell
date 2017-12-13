@@ -50,7 +50,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -68,7 +68,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -107,7 +107,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -124,7 +124,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -148,7 +148,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -164,7 +164,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -182,7 +182,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_x) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -198,7 +198,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_x) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -250,7 +250,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -266,7 +266,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -282,7 +282,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -298,7 +298,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -314,7 +314,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -332,7 +332,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -383,7 +383,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -401,7 +401,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     output_handler.wipe_all();
 
     execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
     output_handler.wipe_all();
 
     execute("session.close()");
@@ -430,7 +430,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
 
         execute("session");
         MY_EXPECT_STDOUT_CONTAINS(
-            "<ClassicSession:mysql://" +
+            "<ClassicSession:" +
             data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
         output_handler.wipe_all();
 
@@ -498,7 +498,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
 
         execute("session");
         MY_EXPECT_STDOUT_CONTAINS(
-            "<Session:mysqlx://" +
+            "<Session:" +
             data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
         output_handler.wipe_all();
 
@@ -545,7 +545,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -562,7 +562,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_node) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:mysqlx://" + _uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -581,7 +581,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -597,7 +597,7 @@ TEST_F(Interactive_shell_test, shell_function_connect_classic) {
   output_handler.wipe_all();
 
   execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:mysql://" + _mysql_uri_nopasswd);
+  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
   output_handler.wipe_all();
 
   execute("db");
@@ -1652,6 +1652,8 @@ TEST_F(Interactive_shell_test, BUG25974014) {
 }
 
 TEST_F(Interactive_shell_test, ssl_status) {
+  PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
+
   wipe_all();
   execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
   execute("\\status");
@@ -1680,6 +1682,8 @@ TEST_F(Interactive_shell_test, ssl_status) {
 }
 
 TEST_F(Interactive_shell_test, status_x) {
+  PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
+
   execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
   wipe_all();
   execute("\\status");
@@ -1730,6 +1734,9 @@ TEST_F(Interactive_shell_test, status_x) {
   EXPECT_NE(std::string::npos, line.find("via TCP"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(1, sscanf(line.c_str(), "TCP port:                     %d", &dec));
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Server characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
@@ -1740,9 +1747,6 @@ TEST_F(Interactive_shell_test, status_x) {
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Conn. characterset"));
-
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(1, sscanf(line.c_str(), "TCP port:                     %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));
@@ -1798,6 +1802,9 @@ TEST_F(Interactive_shell_test, status_classic) {
   EXPECT_NE(std::string::npos, line.find("via TCP"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_EQ(1, sscanf(line.c_str(), "TCP port:                     %d", &dec));
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Server characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
@@ -1808,9 +1815,6 @@ TEST_F(Interactive_shell_test, status_classic) {
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_NE(line.find("Conn. characterset"), std::string::npos);
-
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
-  EXPECT_EQ(1, sscanf(line.c_str(), "TCP port:                     %d", &dec));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));

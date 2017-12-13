@@ -26,15 +26,15 @@
 
 #ifndef MYSQLSHDK_LIBS_DB_SESSION_H_
 #define MYSQLSHDK_LIBS_DB_SESSION_H_
-#include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <stdexcept>
+#include <string>
 
+#include "mysqlshdk/libs/utils/version.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk_export.h"
@@ -45,12 +45,20 @@ namespace db {
 
 class Error : public std::runtime_error {
  public:
-  Error(const char* what, int code, const std::string& sql_state = "")
-      : std::runtime_error(what), code_(code), sqlstate_(sql_state) {
+  Error(const char* what, int code) : std::runtime_error(what), code_(code) {
   }
 
-  int code() const { return code_; }
-  const std::string &sqlstate() const { return sqlstate_; }
+  Error(const char* what, int code, const char* sqlstate)
+      : std::runtime_error(what), code_(code), sqlstate_(sqlstate) {
+  }
+
+  int code() const {
+    return code_;
+  }
+
+  const char* sqlstate() const {
+    return sqlstate_.c_str();
+  }
 
  private:
   int code_;
@@ -66,6 +74,8 @@ class SHCORE_PUBLIC ISession {
       const = 0;
 
   virtual const char *get_ssl_cipher() const = 0;
+
+  virtual mysqlshdk::utils::Version get_server_version() const = 0;
 
   // Execution
   virtual std::shared_ptr<IResult> query(const std::string& sql,
@@ -87,6 +97,35 @@ class SHCORE_PUBLIC ISession {
                       return get_connection_options().as_uri(format);
                     }
 };
+
+template<class C>
+class Scoped_session {
+ public:
+  explicit Scoped_session(std::shared_ptr<C> session)
+      : _session(session) {
+  }
+
+  ~Scoped_session() {
+    if (_session)
+      _session->close();
+  }
+
+  C& operator*() {
+    return *_session;
+  }
+
+  C* operator->() {
+    return _session.get();
+  }
+
+  operator std::shared_ptr<C> () {
+    return _session;
+  }
+
+ private:
+  std::shared_ptr<C> _session;
+};
+
 }  // namespace db
 }  // namespace mysqlshdk
 #endif  // MYSQLSHDK_LIBS_DB_SESSION_H_

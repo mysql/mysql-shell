@@ -50,6 +50,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
                 public shcore::Cpp_object_bridge {
  public:
   Cluster(const std::string &name,
+          std::shared_ptr<mysqlshdk::db::ISession> group_session,
           std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~Cluster();
 
@@ -59,20 +60,24 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   virtual bool operator == (const Object_bridge &other) const;
 
   virtual shcore::Value call(const std::string &name,
-                             const shcore::Argument_list &args);
+                            const shcore::Argument_list &args);
   virtual shcore::Value get_member(const std::string &prop) const;
 
   uint64_t get_id() const { return _id; }
   void set_id(uint64_t id) { _id = id; }
-  std::shared_ptr<mysqlshdk::db::ISession> get_session() {return _session; }
+
   std::shared_ptr<ReplicaSet> get_default_replicaset() {
       return _default_replica_set;
   }
   void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs);
   std::string get_name() { return _name; }
   std::string get_description() { return _description; }
-  void assert_not_dissolved(const std::string &option_name) const;
+  void assert_valid(const std::string &option_name) const;
   void set_description(std::string description) { _description = description; }
+
+  void set_name(const std::string &name) {
+    _name = name;
+  }
 
   void set_option(const std::string& option, const shcore::Value &value);
   void set_options(const std::string& json) {
@@ -103,6 +108,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
       const std::string &replication_user, const std::string &replication_pwd,
       const std::string &group_name);
 
+  std::shared_ptr<mysqlshdk::db::ISession> get_group_session() {
+    return _group_session;
+  }
+
  public:
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
@@ -115,6 +124,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
+  shcore::Value disconnect(const shcore::Argument_list &args);
 
   ReplicationGroupState check_preconditions(
       const std::string& function_name) const;
@@ -157,7 +167,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value::Map_type_ref _options;
   shcore::Value::Map_type_ref _attributes;
   bool _dissolved;
-  std::shared_ptr<mysqlshdk::db::ISession> _session;
+  // Session to a member of the group so we can query its status and other
+  // stuff from pfs
+  std::shared_ptr<mysqlshdk::db::ISession> _group_session;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   void init();
 

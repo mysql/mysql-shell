@@ -101,6 +101,7 @@ cluster.status();
 //@ Finalization
 //  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
 clusterSession.close();
+cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

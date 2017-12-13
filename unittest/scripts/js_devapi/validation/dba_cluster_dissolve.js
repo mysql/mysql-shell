@@ -17,7 +17,7 @@
 ||
 
 //@ Cluster.dissolve already dissolved
-||Cluster.dissolve: Can't call function 'dissolve' on a dissolved cluster (RuntimeError)
+||Cluster.dissolve: Can't call function 'dissolve' on a dissolved cluster
 
 //@ Create multi-primary cluster
 ||

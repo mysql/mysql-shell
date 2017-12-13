@@ -108,7 +108,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
   {
     Value::Map_type::const_iterator iter = (*map)->find(*prop);
     if (iter == (*map)->end())
-      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(*prop)).c_str()));
+      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid map member '").append(*prop).append("'")).c_str()));
     else
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(iter->second));
   }

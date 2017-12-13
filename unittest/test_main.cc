@@ -23,12 +23,19 @@
 #include "mysqlshdk/include/scripting/python_utils.h"
 #endif
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <signal.h>
+#endif
+
 #include <mysql.h>
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
@@ -43,11 +50,22 @@ using Version = mysqlshdk::utils::Version;
 
 // Begin test configuration block
 
+// TODO(.) remove Interrupt_ from the filter, delete the deprecated Python tests
+const char *k_default_test_filter =
+      "*:-Shell_py_dba_tests.*:Interrupt_mysql.*:Dba_*:Command_line_connection_test.uri_ssl_mode_node:Command_line_connection_test.basic_ssl_check_x:Interactive_shell_test.ssl_status:Interactive_shell_test.status_x:Api_connections.ssl_enabled_require_secure_transport_on:Api_connections.ssl_disabled";
+    // "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
+
+
 // Default execution mode for replayable tests
 mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
 
 bool g_generate_validation_file = false;
+
+int g_test_trace_scripts = 0;
+int g_test_trace_sql = 0;
+bool g_test_color_output = false;
+
 // Default trace set (MySQL version) to be used for replay mode
 mysqlshdk::utils::Version g_target_server_version = Version("8.0.4");
 mysqlshdk::utils::Version g_highest_tls_version = Version();
@@ -55,7 +73,7 @@ mysqlshdk::utils::Version g_highest_tls_version = Version();
 // End test configuration block
 
 
-#ifdef WIN32
+#ifdef _WIN32
 #define putenv _putenv
 #endif
 
@@ -88,7 +106,6 @@ static std::string make_socket_absolute_path(const std::string &datadir,
 static void detect_mysql_environment(int port, const char *pwd) {
   std::string socket, xsocket, datadir;
   std::string hostname;
-  std::string version;
   int xport = 0;
   int server_id = 0;
   bool have_ssl = false;
@@ -103,7 +120,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
     if (mysql_real_query(mysql, query, strlen(query)) == 0) {
       MYSQL_RES *res = mysql_store_result(mysql);
       while (MYSQL_ROW row = mysql_fetch_row(res)) {
-        unsigned long *lengths = mysql_fetch_lengths(res);
+        auto lengths = mysql_fetch_lengths(res);
         if (strcmp(row[0], "socket") == 0 && row[1])
           socket = std::string(row[1], lengths[1]);
         if (strcmp(row[0], "mysqlx_socket") == 0 && row[1])
@@ -117,7 +134,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
-          unsigned long *lengths = mysql_fetch_lengths(res);
+          auto lengths = mysql_fetch_lengths(res);
           datadir = std::string(row[1], lengths[1]);
         }
         mysql_free_result(res);
@@ -143,7 +160,6 @@ static void detect_mysql_environment(int port, const char *pwd) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           g_target_server_version = mysqlshdk::utils::Version(row[0]);
-          version = g_target_server_version.get_full();
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
           if (row[2])
@@ -187,7 +203,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::string hostname_ip = mysqlshdk::utils::resolve_hostname_ipv4(hostname);
 
   std::cout << "Target MySQL server:\n";
-  std::cout << "version=" << version << "\n";
+  std::cout << "version=" << g_target_server_version.get_full() << "\n";
   std::cout << "hostname=" << hostname << ", ip=" << hostname_ip << "\n";
   std::cout << "server_id=" << server_id << ", ssl=" << have_ssl
             << ", highest_tls_version=" << g_highest_tls_version.get_full()
@@ -204,8 +220,6 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::cout << "  xsocket=" << xsocket;
   std::cout << ((xsocket != xsocket_absolute) ? " (" + xsocket_absolute + ")\n"
                                               : "\n");
-
-  g_mysql_version = version;
 
   if (!getenv("MYSQL_SOCKET")) {
     static char path[1024];
@@ -263,8 +277,10 @@ static bool delete_sandbox(int port) {
     if (shcore::is_folder(d)) {
       try {
         shcore::remove_directory(d, true);
+        std::cerr << "Deleted leftover sandbox dir " << d << "\n";
       } catch (std::exception &e) {
-        std::cerr << "Error deleting sandbox dir " << d << ": " << e.what() << "\n";
+        std::cerr << "Error deleting sandbox dir " << d << ": " << e.what()
+                  << "\n";
         return false;
       }
     }
@@ -273,7 +289,7 @@ static bool delete_sandbox(int port) {
 }
 
 
-static void check_zombie_sandboxes(bool killall) {
+static void check_zombie_sandboxes() {
   int port = 3306;
   if (getenv("MYSQL_PORT")) {
     port = atoi(getenv("MYSQL_PORT"));
@@ -300,6 +316,7 @@ static void check_zombie_sandboxes(bool killall) {
   }
 
   bool have_zombies = false;
+
   have_zombies |= !delete_sandbox(sport1);
   have_zombies |= !delete_sandbox(sport2);
   have_zombies |= !delete_sandbox(sport3);
@@ -316,11 +333,28 @@ static void check_zombie_sandboxes(bool killall) {
   }
 }
 
+#ifndef _WIN32
+static void catch_segv(int sig) {
+  mysqlshdk::utils::print_stacktrace();
+  signal(sig, SIG_DFL);
+  kill(getpid(), sig);
+}
+#endif
 
 int main(int argc, char **argv) {
+  mysqlshdk::utils::init_stacktrace();
+
+#if defined(WIN32)
+  g_test_color_output = _isatty(_fileno(stdout));
+#else
+  g_test_color_output = isatty(STDOUT_FILENO) != 0;
+#endif
+
   // Ignore broken pipe signal from broken connections
 #ifndef _WIN32
   signal(SIGPIPE, SIG_IGN);
+  signal(SIGSEGV, catch_segv);
+  signal(SIGABRT, catch_segv);
 #endif
 
 #ifdef _WIN32
@@ -483,7 +517,7 @@ int main(int argc, char **argv) {
   std::string target_version = g_target_server_version.get_base();
   const char *target = target_version.c_str();
 
-  for (int index = 0; index < argc; index++) {
+  for (int index = 1; index < argc; index++) {
     if (shcore::str_beginswith(argv[index], "--gtest_filter")) {
       got_filter = true;
     } else if (shcore::str_caseeq(argv[index], "--direct")) {
@@ -506,11 +540,26 @@ int main(int argc, char **argv) {
       }
     } else if (shcore::str_caseeq(argv[index], "--generate-validation-file")) {
       g_generate_validation_file = true;
+    } else if (strcmp(argv[index], "--trace-no-stop") == 0) {
+      // continue executing script until the end on failure
+      g_test_trace_scripts = 1;
+    } else if (strcmp(argv[index], "--trace") == 0) {
+      // stop executing script on failure
+      g_test_trace_scripts = 2;
+    } else if (strcmp(argv[index], "--trace-sql") == 0) {
+      g_test_trace_sql = 1;
+    } else if (strcmp(argv[index], "--trace-all-sql") == 0) {
+      g_test_trace_sql = 2;
+    } else if (!shcore::str_beginswith(argv[index], "--gtest_") &&
+               strcmp(argv[index], "--help") != 0) {
+      std::cerr << "Invalid option " << argv[index] << "\n";
+      exit(1);
     }
   }
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
-    std::string tracedir = shcore::path::join_path(g_test_home, "traces", target, "");
+    std::string tracedir =
+        shcore::path::join_path(g_test_home, "traces", target, "");
     mysqlshdk::db::replay::set_recording_path_prefix(tracedir);
   }
 
@@ -522,17 +571,14 @@ int main(int argc, char **argv) {
 
   std::string filter = ::testing::GTEST_FLAG(filter);
   std::string new_filter = filter;
-
-  if (!got_filter) {
-    new_filter = "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
-  } else {
-    std::cout << "Executing defined filter "
-      ": " << new_filter.c_str() << "." << std::endl;
-  }
-
-  if (new_filter != filter)
+  std::cout << makered("ATTENTION: currently overriding manually specified filters\n");
+  if (!got_filter || 1)
+    new_filter = k_default_test_filter;
+  if (new_filter != filter) {
+    std::cout << "Executing defined filter: " << new_filter.c_str()
+              << std::endl;
     ::testing::GTEST_FLAG(filter) = new_filter.c_str();
-
+  }
   std::string mppath;
   // If using a custom shell package, initial path is the binary folder
   if (g_mysqlsh_bin_folder) {
@@ -575,7 +621,7 @@ int main(int argc, char **argv) {
 
   // Check for leftover sandbox servers
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
-    check_zombie_sandboxes(true);
+    check_zombie_sandboxes();
   }
 
   if (!g_test_home_value.empty())

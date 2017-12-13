@@ -114,6 +114,8 @@ Network ports, files and other external resources that can vary must be either
 mocked or recorded/replayed like DB sessions, to assure that tests will run the
 same way no matter where they're executed.
 
+Using strace should help finding external resources being used (files, sockets
+etc)
 
 3. How to run tests
 
@@ -155,6 +157,10 @@ If a replay fails and the direct execution also fails, then it can be:
 If a replay passes but the direct execution fails:
     * ???
 
+If a replay passes for you but it fails in other hosts:
+    * The test is not deterministic and/or is affected by differences in the
+      host where it's running.
+
 To check and update trace files, you can run the unittest/traces/rebuild_traces
 script. It will run all AdminAPI tests in replay mode, re-record the ones
 that fail and then verify the newly recorded session.
@@ -173,8 +179,10 @@ in Windows and Linux.
 
 4. Test Debugging Tips
 
-- export TEST_DEBUG=3 to execute tests with real-time tracing and make it stop on the
+- --trace to execute tests with real-time tracing and make it stop on the
 1st error.
+- --trace-sql to trace MySQL connect/disconnect
+- --trace-all-sql to trace all MySQL queries
 - export TEST_REUSE_SANDBOX_BOILERPLATE=1 to make the tests reuse the same sandbox
 datadir for every test run.
 testutil.deploySandbox() implements a lazy sandbox deployment by deploying it once and
@@ -182,4 +190,3 @@ then just copying and customizing the datadir for subsequent deployments, but th
 time run_unit_tests is executed, it will delete the old datadir and deploy it again.
 This environment var makes the same sandbox datadir be reused between test runs, which
 makes multiple calls to run_unit_tests faster (but wrong if the server changes).
-- export COLOR_DEBUG=1 to enable color output highlighting

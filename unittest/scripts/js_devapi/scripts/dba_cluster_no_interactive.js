@@ -13,9 +13,12 @@ if (__have_ssl)
 else
   var devCluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED'});
 
+devCluster.disconnect();
+
 //@ Cluster: validating members
 var Cluster = dba.getCluster('devCluster');
 
+session.close();
 // session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 session.close();
@@ -39,6 +42,7 @@ validateMember(members, 'describe');
 validateMember(members, 'status');
 validateMember(members, 'help');
 validateMember(members, 'dissolve');
+validateMember(members, 'disconnect');
 validateMember(members, 'rescan');
 validateMember(members, 'forceQuorumUsingPartitionOf');
 
@@ -113,10 +117,20 @@ Cluster.removeInstance(uri3);
 //@ Cluster: remove_instance master
 Cluster.removeInstance(uri1);
 
+//@ Cluster: no operations can be done on a disconnected cluster
+Cluster.disconnect();
+Cluster.addInstance();
+Cluster.checkInstanceState();
+Cluster.describe();
+Cluster.dissolve();
+Cluster.forceQuorumUsingPartitionOf();
+Cluster.rejoinInstance();
+Cluster.removeInstance();
+Cluster.rescan();
+Cluster.status();
+
 //@ Connecting to new master
-var mysql = require('mysql');
-var customSession = mysql.getClassicSession({host:localhost, port:__mysql_sandbox_port2, user:'root', password: 'root'});
-dba.resetSession(customSession);
+shell.connect({scheme:'mysql', host:localhost, port:__mysql_sandbox_port2, user:'root', password: 'root'});
 var Cluster = dba.getCluster();
 
 // Add back uri3
@@ -202,7 +216,10 @@ Cluster.removeInstance();
 Cluster.rescan();
 Cluster.status();
 
-customSession.close();
+//@ Cluster: disconnect should work, tho
+Cluster.disconnect();
+
+session.close();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

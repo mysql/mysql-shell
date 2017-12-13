@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3540"
+    "uri": "mysql://test_user:@127.0.0.1:2000",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "38",
+    "connection_info": "127.0.0.1 via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -45,7 +50,7 @@
     ],
     "rows": [
         [
-            "root@localhost"
+            "test_user@%"
         ]
     ]
 },
@@ -53,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'localhost\\''"
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'test_user\\'@\\'%\\''"
 },
 {
     "type": "response",
@@ -223,22 +228,6 @@
             "YES"
         ],
         [
-            "SYSTEM_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
             "RESOURCE_GROUP_ADMIN",
             "YES"
         ],
@@ -247,7 +236,19 @@
             "YES"
         ],
         [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
             "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
             "YES"
         ],
         [
@@ -255,7 +256,7 @@
             "YES"
         ],
         [
-            "ENCRYPTION_KEY_ADMIN",
+            "SET_USER_ID",
             "YES"
         ],
         [
@@ -263,11 +264,15 @@
             "YES"
         ],
         [
-            "BINLOG_ADMIN",
+            "SYSTEM_VARIABLES_ADMIN",
             "YES"
         ],
         [
-            "BACKUP_ADMIN",
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
             "YES"
         ]
     ]
@@ -306,56 +311,8 @@
     ],
     "rows": [
         [
-            1
+            0
         ]
     ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 9,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 10,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            1
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 11
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 12
 },
 null]

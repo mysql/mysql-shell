@@ -9,7 +9,6 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root");
 update_have_ssl(__mysql_sandbox_port1);
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-var clusterSession = session;
 
 //@<OUT> create cluster
 if (__have_ssl)
@@ -17,6 +16,7 @@ if (__have_ssl)
 else
   var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
+session.close();
 // session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'})
 
@@ -69,6 +69,8 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 session.close();
 
+cluster.disconnect();
+
 // Re-establish the connection to instance 1
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
@@ -93,8 +95,7 @@ cluster.status();
 session.close();
 
 //@ Finalization
-// Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
-clusterSession.close();
+cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

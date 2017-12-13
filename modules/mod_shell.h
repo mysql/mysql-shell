@@ -63,6 +63,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   shcore::Value get_session(const shcore::Argument_list &args);
   shcore::Value reconnect(const shcore::Argument_list &args);
   shcore::Value log(const shcore::Argument_list &args);
+  shcore::Value status(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
   Dictionary options;
@@ -70,12 +71,14 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   String prompt(String message, Dictionary options);
   Undefined connect(ConnectionData connectionData, String password);
   Undefined log(String level, String message);
+  Undefined status();
 #elif DOXYGEN_PY
   dict options;
   dict parse_uri(str uri);
   str prompt(str message, dict options);
   None connect(ConnectionData connectionData, str password);
   None log(str level, str message);
+  None status();
 #endif
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(

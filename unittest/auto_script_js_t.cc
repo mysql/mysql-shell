@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -32,6 +33,48 @@
 extern "C" const char *g_test_home;
 
 namespace tests {
+
+static int find_column_in_select_stmt(const std::string &sql,
+  const std::string &column) {
+  std::string s = shcore::str_lower(sql);
+  // sanity checks for things we don't support
+  assert(s.find(" from ") == std::string::npos);
+  assert(s.find(" where ") == std::string::npos);
+  assert(s.find("select ") == 0);
+  assert(column.find(" ") == std::string::npos);
+  // other not supported things...: ``, column names with special chars,
+  // aliases, stuff in comments etc
+  s = s.substr(strlen("select "));
+
+  // trim out stuff inside parenthesis which can confuse the , splitter and
+  // are not supported anyway, like:
+  // select (select a, b from something), c
+  // select concat(a, b), c
+  std::string::size_type p = s.find("(");
+  while (p != std::string::npos) {
+    std::string::size_type pp = s.find(")", p);
+    if (pp != std::string::npos) {
+      s = s.substr(0, p + 1) + s.substr(pp);
+    } else {
+      break;
+    }
+    p = s.find("(", pp);
+  }
+
+  std::vector<std::string> columns(shcore::str_split(s, ","));
+  // the last column name can contain other stuff
+  columns[columns.size() - 1] =
+      shcore::str_split(shcore::str_strip(columns.back()), " \t\n\r").front();
+
+  int i = 0;
+  for (const auto &c : columns) {
+    if (shcore::str_strip(c) == column)
+      return i;
+    ++i;
+  }
+  return -1;
+}
+
 
 class Auto_script_js : public Shell_js_script_tester,
                            public ::testing::WithParamInterface<std::string> {
@@ -66,12 +109,17 @@ class Auto_script_js : public Shell_js_script_tester,
                std::unique_ptr<mysqlshdk::db::IRow> source)
             -> std::unique_ptr<mysqlshdk::db::IRow> {
           int datadir_column = -1;
-          if (sql == "SELECT @@datadir") {
-            datadir_column = 0;
-          } else if (sql == "select @@port, @@datadir;") {
-            datadir_column = 1;
+
+          if (sql.find("@@datadir") != std::string::npos &&
+              shcore::str_ibeginswith(sql, "select ")) {
+            // find the index for @@datadir in the query
+            datadir_column = find_column_in_select_stmt(sql, "@@datadir");
+            assert(datadir_column >= 0);
+          } else {
+            assert(sql.find("@@datadir") == std::string::npos);
           }
 
+          // replace sandbox @@datadir from results with actual datadir
           if (datadir_column >= 0) {
             std::string prefix = shcore::path::dirname(
                 shcore::path::dirname(source->get_string(datadir_column)));
@@ -84,10 +132,6 @@ class Auto_script_js : public Shell_js_script_tester,
             return std::unique_ptr<mysqlshdk::db::IRow>{new Override_row_string(
                 std::move(source), datadir_column, datadir)};
           }
-
-          if (sql.find("@@datadir") != std::string::npos)
-            throw std::logic_error(
-                "query contains datadir but is not intercepted");
           return source;
         });
   }
@@ -191,6 +235,10 @@ TEST_P(Auto_script_js, run_and_check) {
 
   set_config_folder("auto/" + folder);
   validate_interactive(name);
+
+  // ensure nothing left in expected prompts
+  EXPECT_EQ(0, output_handler.prompts.size());
+  EXPECT_EQ(0, output_handler.passwords.size());
 }
 
 std::vector<std::string> find_js_tests(const std::string& subdir) {
@@ -205,6 +253,14 @@ std::vector<std::string> find_js_tests(const std::string& subdir) {
     s = subdir+"/"+s;
   return tests;
 }
+
+#if 0
+// Once we upgrade to gtest 1.8 this should be passed to INSTANTIATE_TEST_CASE_P
+// so we can get filenames in the test name instead of /0
+std::string fmt_param(testing::TestParamInfo<std::string> info) {
+  return info.GetParam();
+}
+#endif
 
 // General test cases
 INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_js,

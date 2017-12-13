@@ -1,0 +1,67 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "mysql://root:root@localhost:2002",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "33",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "select concat(@@version, ' ', @@version_comment)"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 128,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "8.0.4-rc-log Source distribution"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 5
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 6
+},
+null]

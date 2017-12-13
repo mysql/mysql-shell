@@ -20,14 +20,6 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 %{?with_static: %global static 1}
-%{?with_ssl:  %global with_ssl_static %{with_ssl}}
-%{!?with_ssl: %global with_ssl_static bundled}
-
-%if 0%{?with_ssl:1}
-%global with_ssl_static %{with_ssl}
-%else
-%global with_ssl_static bundled
-%endif
 
 # define v8_includedir and v8_libdir for rpmbuild when building static
 
@@ -65,18 +57,12 @@ cmake .. \
     -DLIB_SUFFIX=64 \
 %endif
 %if 0%{?static}
-    -DWITH_SSL=%{with_ssl_static} \
     -DMYSQLCLIENT_STATIC_LINKING=ON \
     -DV8_INCLUDE_DIR=%{v8_includedir} \
     -DV8_LIB_DIR=%{v8_libdir} \
 %else
-    -DWITH_SSL=system \
     -DMYSQLCLIENT_STATIC_LINKING=ON \
     -DHAVE_V8=0FF
-%endif
-%if 0%{?with_boost:1}
-    -DBOOST_ROOT=%{with_boost} \
-    -DBoost_NO_SYSTEM_PATHS:BOOL=TRUE \
 %endif
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \

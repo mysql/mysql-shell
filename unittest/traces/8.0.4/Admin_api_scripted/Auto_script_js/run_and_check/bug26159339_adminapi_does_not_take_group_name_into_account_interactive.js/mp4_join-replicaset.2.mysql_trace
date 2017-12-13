@@ -3,14 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:2000?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "33",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -101,7 +105,7 @@
     ],
     "rows": [
         [
-            "577bc356-d568-11e7-88f4-a37a79ef4486"
+            "9e65a9d2-df84-11e7-a262-3b0155a94e8c"
         ]
     ]
 },
@@ -269,12 +273,12 @@
     ],
     "rows": [
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-152-204.vpn.oracle.com",
-            3316
+            "dhcp-10-159-141-218.vpn.oracle.com",
+            2000
         ],
         [
-            "dhcp-whq-twvpn-1-vpnpool-10-159-152-204.vpn.oracle.com",
-            3326
+            "dhcp-10-159-141-218.vpn.oracle.com",
+            2001
         ]
     ]
 },
@@ -708,6 +712,13 @@
             "GPL"
         ],
         [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
+            "mysqlx.so",
+            "GPL"
+        ],
+        [
             "group_replication",
             "ACTIVE",
             "GROUP REPLICATION",
@@ -750,7 +761,7 @@
     ],
     "rows": [
         [
-            "localhost:13316"
+            "localhost:12000"
         ]
     ]
 },
@@ -1184,6 +1195,13 @@
             "GPL"
         ],
         [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
+            "mysqlx.so",
+            "GPL"
+        ],
+        [
             "group_replication",
             "ACTIVE",
             "GROUP REPLICATION",
@@ -1226,7 +1244,7 @@
     ],
     "rows": [
         [
-            "577bc356-d568-11e7-88f4-a37a79ef4486"
+            "9e65a9d2-df84-11e7-a262-3b0155a94e8c"
         ]
     ]
 },

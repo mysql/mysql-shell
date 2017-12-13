@@ -1,0 +1,752 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "mysql://root:root@localhost:2000",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "10",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "SELECT CURRENT_USER()"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "CURRENT_USER()",
+            "length": 372,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "root@localhost"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SELECT COUNT(*) from mysql.user WHERE User = 'root' AND Host = '%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "COUNT(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'localhost\\''"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "privilege_type",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "is_grantable",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "SELECT",
+            "YES"
+        ],
+        [
+            "INSERT",
+            "YES"
+        ],
+        [
+            "UPDATE",
+            "YES"
+        ],
+        [
+            "DELETE",
+            "YES"
+        ],
+        [
+            "CREATE",
+            "YES"
+        ],
+        [
+            "DROP",
+            "YES"
+        ],
+        [
+            "RELOAD",
+            "YES"
+        ],
+        [
+            "SHUTDOWN",
+            "YES"
+        ],
+        [
+            "PROCESS",
+            "YES"
+        ],
+        [
+            "FILE",
+            "YES"
+        ],
+        [
+            "REFERENCES",
+            "YES"
+        ],
+        [
+            "INDEX",
+            "YES"
+        ],
+        [
+            "ALTER",
+            "YES"
+        ],
+        [
+            "SHOW DATABASES",
+            "YES"
+        ],
+        [
+            "SUPER",
+            "YES"
+        ],
+        [
+            "CREATE TEMPORARY TABLES",
+            "YES"
+        ],
+        [
+            "LOCK TABLES",
+            "YES"
+        ],
+        [
+            "EXECUTE",
+            "YES"
+        ],
+        [
+            "REPLICATION SLAVE",
+            "YES"
+        ],
+        [
+            "REPLICATION CLIENT",
+            "YES"
+        ],
+        [
+            "CREATE VIEW",
+            "YES"
+        ],
+        [
+            "SHOW VIEW",
+            "YES"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES"
+        ],
+        [
+            "CREATE USER",
+            "YES"
+        ],
+        [
+            "EVENT",
+            "YES"
+        ],
+        [
+            "TRIGGER",
+            "YES"
+        ],
+        [
+            "CREATE TABLESPACE",
+            "YES"
+        ],
+        [
+            "CREATE ROLE",
+            "YES"
+        ],
+        [
+            "DROP ROLE",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
+            "YES"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT @@super_read_only"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@super_read_only",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'localhost\\''"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "privilege_type",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "is_grantable",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "SELECT",
+            "YES"
+        ],
+        [
+            "INSERT",
+            "YES"
+        ],
+        [
+            "UPDATE",
+            "YES"
+        ],
+        [
+            "DELETE",
+            "YES"
+        ],
+        [
+            "CREATE",
+            "YES"
+        ],
+        [
+            "DROP",
+            "YES"
+        ],
+        [
+            "RELOAD",
+            "YES"
+        ],
+        [
+            "SHUTDOWN",
+            "YES"
+        ],
+        [
+            "PROCESS",
+            "YES"
+        ],
+        [
+            "FILE",
+            "YES"
+        ],
+        [
+            "REFERENCES",
+            "YES"
+        ],
+        [
+            "INDEX",
+            "YES"
+        ],
+        [
+            "ALTER",
+            "YES"
+        ],
+        [
+            "SHOW DATABASES",
+            "YES"
+        ],
+        [
+            "SUPER",
+            "YES"
+        ],
+        [
+            "CREATE TEMPORARY TABLES",
+            "YES"
+        ],
+        [
+            "LOCK TABLES",
+            "YES"
+        ],
+        [
+            "EXECUTE",
+            "YES"
+        ],
+        [
+            "REPLICATION SLAVE",
+            "YES"
+        ],
+        [
+            "REPLICATION CLIENT",
+            "YES"
+        ],
+        [
+            "CREATE VIEW",
+            "YES"
+        ],
+        [
+            "SHOW VIEW",
+            "YES"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES"
+        ],
+        [
+            "CREATE USER",
+            "YES"
+        ],
+        [
+            "EVENT",
+            "YES"
+        ],
+        [
+            "TRIGGER",
+            "YES"
+        ],
+        [
+            "CREATE TABLESPACE",
+            "YES"
+        ],
+        [
+            "CREATE ROLE",
+            "YES"
+        ],
+        [
+            "DROP ROLE",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
+            "YES"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "SET sql_log_bin = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 17,
+    "sql": "START TRANSACTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 18,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 19,
+    "sql": "CREATE USER 'root'@'%' IDENTIFIED BY 'root'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 20,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 21,
+    "sql": "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'root'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 22,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 1,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 23,
+    "sql": "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.* TO 'root'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 24,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 25,
+    "sql": "GRANT SELECT ON *.* TO 'root'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 26,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 27,
+    "sql": "GRANT INSERT, UPDATE, DELETE ON mysql.* TO 'root'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 28,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 29,
+    "sql": "COMMIT"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 30,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 31,
+    "sql": "SET sql_log_bin = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 32,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+null]

@@ -3,19 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3540"
+    "uri": "root:root@localhost:2001",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "15",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'group_replication'"
+    "sql": "SELECT @@GLOBAL.GTID_EXECUTED"
 },
 {
     "type": "response",
@@ -27,50 +32,12 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "PLUGINS",
-            "table_label": "PLUGINS",
-            "column_name": "PLUGIN_STATUS",
-            "column_label": "PLUGIN_STATUS",
-            "length": 40,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "ACTIVE"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 5,
-    "sql": "SELECT @@global.group_replication_ssl_mode"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
             "schema": "",
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@global.group_replication_ssl_mode",
-            "length": 32,
+            "column_label": "@@GLOBAL.GTID_EXECUTED",
+            "length": 336,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -83,8 +50,18 @@
     ],
     "rows": [
         [
-            "REQUIRED"
+            "94e842a8-dfb0-11e7-81da-d4841af684b1:1-14,\n9898ded0-dfb0-11e7-81da-d4841af684b1:1-19"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 5
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 6
 },
 null]

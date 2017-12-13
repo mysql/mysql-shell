@@ -211,17 +211,10 @@ TEST_F(Command_line_test, bug26970629) {
   } else {
     std::string usr = "--user=" + _user;
     execute({_mysqlsh, usr.c_str(), pwd.c_str(), host.c_str(), socket.c_str(),
-             "-e", "dba.getCluster()", NULL});
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Dba.getCluster: a Classic Session through TCP/IP is required to "
-        "perform this operation");
-    _output.clear();
-
-    execute({_mysqlsh, usr.c_str(), pwd.c_str(), host.c_str(), socket.c_str(),
              "-e", "dba.createCluster('sample')", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Dba.createCluster: a Classic Session through TCP/IP is required to "
-        "perform this operation");
+        "Dba.createCluster: a MySQL session through TCP/IP is required to "
+        "perform this operation ");
   }
 }
 #endif

@@ -2,8 +2,13 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 
 // --- Create Cluster Tests ---
+var mysql = require('mysql');
 shell.connect(__sandbox_uri1);
+session.runSql("create user bla@localhost");
 session.runSql("set global super_read_only=1");
+var s = mysql.getSession("bla:@localhost:" + __mysql_sandbox_port1);
+
+EXPECT_EQ('ON', get_sysvar("super_read_only"));
 
 //@# Dba_create_cluster.clear_read_only_invalid
 dba.createCluster("dev", {clearReadOnly:"NotABool"});
@@ -13,6 +18,9 @@ dba.createCluster("dev");
 
 //@# Dba_create_cluster.clear_read_only_false
 dba.createCluster("dev", {clearReadOnly:false});
+
+//@ Check unchanged
+EXPECT_EQ('ON', get_sysvar("super_read_only"));
 
 // --- Configure Local Instance Tests ---
 
@@ -29,6 +37,7 @@ dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: "/path/to/file.cnf", clus
 session.runSql("set global super_read_only=0");
 
 var cluster = dba.createCluster("dev");
+cluster.disconnect();
 session.runSql("set global super_read_only=1");
 
 //@# Dba_drop_metadata.clear_read_only_invalid
@@ -49,4 +58,6 @@ dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: "NotABool"});
 //@# Dba_reboot_cluster.clear_read_only_unset
 dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: false});
 
+session.close();
+s.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

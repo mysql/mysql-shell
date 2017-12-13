@@ -3,19 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3550"
+    "uri": "mysql://root:root@localhost:2002",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "19",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -31,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "column_label": "@@server_uuid",
+            "length": 144,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            "82ff5a32-dfaa-11e7-bda2-8b8c1dec4aac"
         ]
     ]
 },
@@ -53,40 +58,76 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "STOP GROUP_REPLICATION"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            20020
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SET GLOBAL group_replication_single_primary_mode=OFF"
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 9
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 10
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_local_address",
+            "length": 60,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "localhost:12002"
+        ]
+    ]
 },
 null]

@@ -202,6 +202,9 @@ class Completer_frontend : public Shell_core_test_wrapper {
 
     execute("\\py");
     execute("import sys");
+    // delete some Python global vars that are leftover from other tests
+    execute("del globals()['db1']");
+    execute("del globals()['db2']");
     wipe_all();
     execute("sys.version.split(' ')[0]");
     if (output_handler.std_out.find("2.6") != std::string::npos)
@@ -641,7 +644,7 @@ TEST_F(Completer_frontend, js_shell) {
   EXPECT_AFTER_TAB_TAB(
       "shell.", strv({"connect()", "getSession()", "help()", "log()", "options",
                       "parseUri()", "prompt()", "reconnect()",
-                      "setCurrentSchema()", "setSession()"}));
+                      "setCurrentSchema()", "setSession()", "status()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -672,7 +675,7 @@ TEST_F(Completer_frontend, js_adminapi) {
             "createCluster()", "deleteSandboxInstance()",
             "deploySandboxInstance()", "dropMetadataSchema()", "getCluster()",
             "help()", "killSandboxInstance()",
-            "rebootClusterFromCompleteOutage()", "resetSession()",
+            "rebootClusterFromCompleteOutage()",
             "startSandboxInstance()", "stopSandboxInstance()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploySandboxInstance()");
 }
@@ -1105,7 +1108,7 @@ TEST_F(Completer_frontend, py_shell) {
   EXPECT_AFTER_TAB_TAB(
       "shell.", strv({"connect()", "get_session()", "help()", "log()",
                       "options", "parse_uri()", "prompt()", "reconnect()",
-                      "set_current_schema()", "set_session()"}));
+                      "set_current_schema()", "set_session()", "status()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -1148,7 +1151,7 @@ TEST_F(Completer_frontend, py_adminapi) {
             "create_cluster()", "delete_sandbox_instance()",
             "deploy_sandbox_instance()", "drop_metadata_schema()",
             "get_cluster()", "help()", "kill_sandbox_instance()",
-            "reboot_cluster_from_complete_outage()", "reset_session()",
+            "reboot_cluster_from_complete_outage()",
             "start_sandbox_instance()", "stop_sandbox_instance()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploy_sandbox_instance()");
 }
@@ -1271,7 +1274,7 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB("people.", "people.");
   EXPECT_AFTER_TAB_TAB(
       "people.",
-      strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()", 
+      strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()",
         "exists_in_database()", "find()", "get_name()", "get_one()",
         "get_schema()", "get_session()", "help()", "modify()", "name",
         "remove()", "remove_one()", "replace_one()", "schema", "session"}));

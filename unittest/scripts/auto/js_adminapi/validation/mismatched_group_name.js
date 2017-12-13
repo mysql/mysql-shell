@@ -66,8 +66,12 @@
                 "status": "UNREACHABLE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# forceQuorum
 ||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it may belong to a different ReplicaSet as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the ReplicaSet's Metadata: possible split-brain scenario.
+
+//@ Cleanup
+||

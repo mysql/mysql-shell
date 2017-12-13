@@ -148,7 +148,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
 
     switch (account) {
       case Usr::Root:
-        argv.push_back("-uroot");
+        argv.push_back("-urooty");
         argv.push_back("--password=");
         break;
       case Usr::SRoot:
@@ -420,13 +420,19 @@ void PrintTo(Mysqlsh_ssl::Usr r, ::std::ostream *os) {
     }                                                                         \
   } while (0)
 
-TEST_F(Mysqlsh_ssl, ssl_basic) {
-  // Test basic SSL support:
+TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
+  // Test basic SSL support using mysql_native_password auth (default auth
+  // method up to MySQL 8.0.4):
   // ssl-mode: default, disabled, required, preferred
   // X and classic protocols
   // TCP and socket
   // normal server with SSL
   // normal account
+
+  run_script_classic(
+      {"DROP USER IF EXISTS rooty@localhost",
+       "CREATE USER rooty@localhost IDENTIFIED WITH 'mysql_native_password'",
+       "GRANT ALL ON *.* TO rooty@localhost"});
 
   // Note: tests to the default localhost are via default (compiled-in)
   // socket path, which will not work in CI environments, so they're disabled
@@ -444,6 +450,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic) {
 #endif
       {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
+
       {Expect::Tcp, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Tcp, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
@@ -479,6 +486,88 @@ TEST_F(Mysqlsh_ssl, ssl_basic) {
       {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
   TRY_COMBINATIONS(combos);
+
+  run_script_classic(
+      {"DROP USER rooty@localhost"});
+}
+
+TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
+  // Test basic SSL support with an account that uses caching_sha2_password:
+  // (new default auth method starting from 8.0.4)
+  // ssl-mode: default, disabled, required, preferred
+  // X and classic protocols
+  // TCP and socket
+  // normal server with SSL
+  // normal account
+
+  // Note: tests to the default localhost are via default (compiled-in)
+  // socket path, which will not work in CI environments, so they're disabled
+
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 4)) {
+    SKIP_TEST("Target server version doesn't support auth_plugin being tested");
+  }
+
+  run_script_classic(
+      {"DROP USER IF EXISTS rooty@localhost",
+        "CREATE USER rooty@localhost IDENTIFIED WITH 'caching_sha2_password'",
+        "GRANT ALL ON *.* TO rooty@localhost"});
+
+  std::vector<Combination> combos{
+      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
+#ifndef _WIN32
+      {Expect::Sok, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
+
+// {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+// default connection method when port is not given is socket
+// {Expect::Sok_, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+#endif
+      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
+
+      // As of 8.0.4, X plugin doesn't support caching_sha256_password
+      // without SSL
+      // {Expect::Tcp, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
+      {Expect::Tcp, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
+#ifndef _WIN32
+      {Expect::Sok, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
+
+// {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+// {Expect::Sok_, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+#endif
+      // As of 8.0.4, X plugin doesn't support caching_sha256_password
+      // without SSL
+      // {Expect::Tcp, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {Expect::Tcp, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
+#ifndef _WIN32
+      {Expect::Sok, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
+
+// {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+// {Expect::Sok_, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+#endif
+      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
+#ifndef _WIN32
+      // ssl + socket not support for X protocol
+      {Expect::Fail, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
+
+// {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+// {Expect::Ssl_, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+#endif
+      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
+  TRY_COMBINATIONS(combos);
+
+  run_script_classic(
+      {"DROP USER rooty@localhost"});
 }
 
 TEST_F(Mysqlsh_ssl, DISABLED_ssl_default_params_classic) {

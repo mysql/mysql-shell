@@ -1,5 +1,5 @@
 //@ Cluster: validating members
-|Cluster Members: 12|
+|Cluster Members: 13|
 |name: OK|
 |getName: OK|
 |addInstance: OK|
@@ -10,6 +10,7 @@
 |status: OK|
 |help: OK|
 |dissolve: OK|
+|disconnect: OK|
 |rescan: OK|
 |forceQuorumUsingPartitionOf: OK|
 
@@ -95,7 +96,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: removeInstance errors
@@ -154,7 +156,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: addInstance read only back
@@ -218,11 +221,23 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: remove_instance master
 ||
+
+//@ Cluster: no operations can be done on a disconnected cluster
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
 
 //@ Connecting to new master
 ||
@@ -272,7 +287,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ Cluster: addInstance adding old master as read only
@@ -335,7 +351,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@# Dba: kill instance 3
@@ -390,7 +407,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ Cluster: dissolve errors
@@ -415,3 +433,6 @@
 ||Cluster.removeInstance: Can't call function 'removeInstance' on a dissolved cluster
 ||Cluster.rescan: Can't call function 'rescan' on a dissolved cluster
 ||Cluster.status: Can't call function 'status' on a dissolved cluster
+
+//@ Cluster: disconnect should work, tho
+||

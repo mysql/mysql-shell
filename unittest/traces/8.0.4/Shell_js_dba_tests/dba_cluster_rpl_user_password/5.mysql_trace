@@ -3,19 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3550"
+    "uri": "mysql://root:root@localhost:2001",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "8",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@server_uuid"
+    "sql": "SELECT @@datadir"
 },
 {
     "type": "response",
@@ -31,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
+            "column_label": "@@datadir",
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -45,7 +50,7 @@
     ],
     "rows": [
         [
-            "cf9d2aea-d039-11e7-8bd2-f83441274313"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/2001/sandboxdata/"
         ]
     ]
 },
@@ -53,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@mysqlx_port"
+    "sql": "SHOW MASTER STATUS"
 },
 {
     "type": "response",
@@ -69,8 +74,24 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@mysqlx_port",
-            "length": 21,
+            "column_label": "File",
+            "length": 2048,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Position",
+            "length": 20,
             "fractional": 0,
             "type": "UInteger",
             "collation": "binary",
@@ -79,11 +100,63 @@
             "unsigned": true,
             "zerofill": false,
             "binary": true
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Binlog_Do_DB",
+            "length": 1020,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Binlog_Ignore_DB",
+            "length": 1020,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Executed_Gtid_Set",
+            "length": 0,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
         }
     ],
     "rows": [
         [
-            35500
+            "dhcp-10-159-141-218-bin.000003",
+            151,
+            "",
+            "",
+            ""
         ]
     ]
 },
@@ -91,7 +164,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
+    "sql": "SELECT @@global.have_ssl"
 },
 {
     "type": "response",
@@ -107,8 +180,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 60,
+            "column_label": "@@global.have_ssl",
+            "length": 12,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -121,8 +194,213 @@
     ],
     "rows": [
         [
-            "localhost:13550"
+            "YES"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "plugins",
+            "column_name": "PLUGIN_STATUS",
+            "column_label": "plugin_status",
+            "length": 40,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "show SESSION variables where `variable_name` in ('version_compile_os')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "session_variables",
+            "table_label": "session_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "session_variables",
+            "table_label": "session_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "version_compile_os",
+            "osx10.13"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "INSTALL PLUGIN `group_replication` SONAME 'group_replication.so'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 17,
+    "sql": "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 18,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "plugins",
+            "column_name": "PLUGIN_STATUS",
+            "column_label": "plugin_status",
+            "length": 40,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "ACTIVE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 19,
+    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 20,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 21
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 22
 },
 null]

@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/innodbcluster/cluster.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -164,7 +165,7 @@ std::string get_mysqlprovision_error_string(
 ReplicationGroupState check_function_preconditions(
     const std::string &class_name, const std::string &base_function_name,
     const std::string &function_name,
-    const std::shared_ptr<MetadataStorage> &metadata);
+    std::shared_ptr<mysqlshdk::db::ISession> group_session);
 
 extern const char *kMemberSSLModeAuto;
 extern const char *kMemberSSLModeRequired;
@@ -209,13 +210,44 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
 std::string SHCORE_PUBLIC get_gr_replicaset_group_name(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 bool SHCORE_PUBLIC validate_replicaset_group_name(
-    const std::shared_ptr<MetadataStorage> &metadata,
-    std::shared_ptr<mysqlshdk::db::ISession> session, uint64_t rs_id);
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &group_name);
 bool validate_super_read_only(
     std::shared_ptr<mysqlshdk::db::ISession> session, bool clear_read_only);
 bool validate_instance_rejoinable(
     std::shared_ptr<mysqlshdk::db::ISession> instance_session,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
+
+
+inline void translate_cluster_exception(std::string operation) {
+  if (!operation.empty())
+    operation.append(": ");
+  try {
+    throw;
+  } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+    throw shcore::Exception::runtime_error(
+        operation + e.format());
+  } catch (shcore::Exception &e) {
+    auto error = e.error();
+    (*error)["message"] = shcore::Value(operation + e.what());
+    throw shcore::Exception(error);
+  } catch (mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+  } catch (std::runtime_error &e) {
+    throw shcore::Exception::runtime_error(operation + e.what());
+  } catch (std::logic_error &e) {
+    throw shcore::Exception::logic_error(operation + e.what());
+  } catch (...) {
+    throw;
+  }
+}
+
+#define CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(operation)  \
+  catch (...) {                                           \
+    mysqlsh::dba::translate_cluster_exception(operation); \
+    throw;                                                \
+  }
+
 }  // namespace dba
 }  // namespace mysqlsh
 

@@ -42,7 +42,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Error checking cluster status
@@ -82,7 +83,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Error checking cluster status again

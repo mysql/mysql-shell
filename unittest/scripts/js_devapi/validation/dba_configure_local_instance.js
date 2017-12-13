@@ -53,7 +53,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Kill instance, will not auto join after start
@@ -94,7 +95,8 @@
                 "status": "(MISSING)"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@#: Rejoins the instance
@@ -132,7 +134,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Persist the GR configuration

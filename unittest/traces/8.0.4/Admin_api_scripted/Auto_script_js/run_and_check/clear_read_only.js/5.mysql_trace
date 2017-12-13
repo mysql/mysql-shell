@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:2000",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "12",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@server_uuid"
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
@@ -32,21 +36,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "3f62e790-d568-11e7-999b-a02f09a21273"
+            0
         ]
     ]
 },
@@ -54,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@mysqlx_port"
+    "sql": "SELECT @@super_read_only"
 },
 {
     "type": "response",
@@ -70,21 +74,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@mysqlx_port",
-            "length": 21,
+            "column_label": "@@super_read_only",
+            "length": 1,
             "fractional": 0,
-            "type": "UInteger",
+            "type": "Integer",
             "collation": "binary",
             "charset": "binary",
             "collation_id": 63,
-            "unsigned": true,
+            "unsigned": false,
             "zerofill": false,
             "binary": true
         }
     ],
     "rows": [
         [
-            33160
+            1
         ]
     ]
 },
@@ -92,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
+    "sql": "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, COUNT(*) FROM performance_schema.threads WHERE type = 'foreground'  AND name in ('thread/mysqlx/worker', 'thread/sql/one_connection') AND processlist_id <> connection_id()GROUP BY acct;"
 },
 {
     "type": "response",
@@ -108,9 +112,9 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 60,
-            "fractional": 31,
+            "column_label": "acct",
+            "length": 372,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -118,11 +122,32 @@
             "unsigned": false,
             "zerofill": false,
             "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "COUNT(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
         }
     ],
     "rows": [
         [
-            "localhost:13316"
+            "root@localhost",
+            1
+        ],
+        [
+            "bla@localhost",
+            1
         ]
     ]
 },

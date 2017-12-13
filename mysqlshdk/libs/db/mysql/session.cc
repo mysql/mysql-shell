@@ -32,23 +32,34 @@ namespace db {
 namespace mysql {
 //-------------------------- Session Implementation ----------------------------
 void Session_impl::throw_on_connection_fail() {
-  auto exception =
-      shcore::database_error(mysql_error(_mysql), mysql_errno(_mysql),
-                             mysql_error(_mysql), mysql_sqlstate(_mysql));
+  auto exception = mysqlshdk::db::Error(
+      mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   close();
   throw exception;
 }
 
-Session_impl::Session_impl() : _mysql(NULL) {}
+Session_impl::Session_impl() : _mysql(NULL) {
+}
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   _mysql = mysql_init(NULL);
 
-  setup_ssl(connection_options.get_ssl_options());
-  if (connection_options.has_transport_type() &&
-      connection_options.get_transport_type() == mysqlshdk::db::Tcp) {
+  _connection_options = connection_options;
+
+  // All connections should use mode = VERIFY_CA if no ssl mode is specified
+  // and either ssl-ca or ssl-capath are specified
+  if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
+      (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
+       _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
+    _connection_options.set(mysqlshdk::db::kSslMode,
+                           {mysqlshdk::db::kSslModeVerifyCA});
+  }
+
+  setup_ssl(_connection_options.get_ssl_options());
+  if (_connection_options.has_transport_type() &&
+      _connection_options.get_transport_type() == mysqlshdk::db::Tcp) {
     unsigned int tcp = MYSQL_PROTOCOL_TCP;
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   }
@@ -58,33 +69,34 @@ void Session_impl::connect(
 
 #ifdef _WIN32
   // Enable pipe connection if required
-  if (!connection_options.has_port() &&
-      ((connection_options.has_host() &&
-        connection_options.get_host() == ".") ||
-       connection_options.has_pipe())) {
+  if (!_connection_options.has_port() &&
+      ((_connection_options.has_host() &&
+        _connection_options.get_host() == ".") ||
+       _connection_options.has_pipe())) {
     unsigned int pipe = MYSQL_PROTOCOL_PIPE;
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
   }
 #endif
 
   if (!mysql_real_connect(_mysql,
-                          connection_options.has_host() ?
-                          connection_options.get_host().c_str() : NULL,
-                          connection_options.has_user() ?
-                          connection_options.get_user().c_str() : NULL,
-                          connection_options.has_password() ?
-                          connection_options.get_password().c_str() : NULL,
-                          connection_options.has_schema() ?
-                          connection_options.get_schema().c_str() : NULL,
-                          connection_options.has_port() ?
-                          connection_options.get_port() : 0,
-                          connection_options.has_socket() ?
-                          connection_options.get_socket().c_str() : NULL,
+                          _connection_options.has_host() ?
+                          _connection_options.get_host().c_str() : NULL,
+                          _connection_options.has_user() ?
+                          _connection_options.get_user().c_str() : NULL,
+                          _connection_options.has_password() ?
+                          _connection_options.get_password().c_str() : NULL,
+                          _connection_options.has_schema() ?
+                          _connection_options.get_schema().c_str() : NULL,
+                          _connection_options.has_port() ?
+                          _connection_options.get_port() : 0,
+                          _connection_options.has_socket() ?
+                          _connection_options.get_socket().c_str() : NULL,
                           flags)) {
     throw_on_connection_fail();
   }
 
-  _connection_options = connection_options;
+  if (!_connection_options.has_scheme())
+    _connection_options.set_scheme("mysql");
 
   if (!_connection_options.has_port() && !_connection_options.has_socket()) {
     std::string connection_info(get_connection_info());
@@ -195,8 +207,8 @@ std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
   }
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0) {
-    throw shcore::database_error(mysql_error(_mysql), mysql_errno(_mysql),
-                                 mysql_error(_mysql), mysql_sqlstate(_mysql));
+    throw Error(mysql_error(_mysql), mysql_errno(_mysql),
+                mysql_sqlstate(_mysql));
   }
 
   std::shared_ptr<Result> result(

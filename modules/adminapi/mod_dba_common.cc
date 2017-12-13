@@ -179,7 +179,7 @@ std::string get_mysqlprovision_error_string(
 ReplicationGroupState check_function_preconditions(
     const std::string &class_name, const std::string& base_function_name,
     const std::string &function_name,
-    const std::shared_ptr<MetadataStorage>& metadata) {
+    std::shared_ptr<mysqlshdk::db::ISession> group_session) {
   // Retrieves the availability configuration for the given function
   std::string precondition_key = class_name + "." + base_function_name;
   assert(AdminAPI_function_availability.find(precondition_key) !=
@@ -188,20 +188,26 @@ ReplicationGroupState check_function_preconditions(
       AdminAPI_function_availability.at(precondition_key);
   std::string error;
   ReplicationGroupState state;
-  auto session = metadata->get_session();
 
   // A classic session is required to perform any of the AdminAPI operations
-  if (!session) {
-    error = "a Classic Session is required to perform this operation";
-  } else if (!session->is_open()) {
+  if (!group_session) {
+    error =
+        "The shell must be connected to a member of the InnoDB cluster being "
+        "managed";
+  } else if (!group_session->is_open()) {
       error = "The session was closed. An open session is required to perform "
               "this operation";
-  } else if (session->get_connection_options().get_transport_type() != mysqlshdk::db::Tcp) {
-    error = "a Classic Session through TCP/IP is required to perform this operation";
+  } else if (group_session->get_connection_options().has_transport_type() &&
+             group_session->get_connection_options().get_transport_type() !=
+                 mysqlshdk::db::Tcp) {
+    // TODO(ak) this restriction should be lifted and sockets allowed
+    error =
+        "a MySQL session through TCP/IP is required to perform this "
+        "operation";
   } else {
     // Retrieves the instance configuration type from the perspective of the
     // active session
-    auto instance_type = get_gr_instance_type(session);
+    auto instance_type = get_gr_instance_type(group_session);
     state.source_type = instance_type;
 
     // Validates availability based on the configuration state
@@ -210,7 +216,7 @@ ReplicationGroupState check_function_preconditions(
       if (instance_type != GRInstanceType::Standalone) {
         // Retrieves the instance cluster statues from the perspective of the
         // active session (The Metadata Session)
-        state = get_replication_group_state(session, instance_type);
+        state = get_replication_group_state(group_session, instance_type);
 
         // Validates availability based on the instance status
         if (state.source_state & availability.instance_status) {
@@ -274,7 +280,7 @@ ReplicationGroupState check_function_preconditions(
   }
 
   if (!error.empty())
-    throw shcore::Exception::runtime_error(function_name + ": " + error);
+    throw shcore::Exception::runtime_error(error);
 
   // Returns the function availability in case further validation
   // is required, i.e. for warning processing
@@ -1125,19 +1131,17 @@ std::string get_gr_replicaset_group_name(
  * differs from the one registered in the corresponding ReplicaSet table of the
  * Metadata
  *
- * @param metadata metadata object which represents the session to the metadata
- *                 storage, i.e. the current instance session on this case
- * @param rs_id the ReplicaSet id
+ * @param session session to instance that is supposed to belong to a group
+ * @param md_group_name name of the group the member belongs to according to
+ *        metadata
  * @return a boolean value indicating whether the replicaSet
  * 'group_replication_group_name' is the same as the one registered in the
  * corresponding replicaset in the Metadata
  */
 bool validate_replicaset_group_name(
-    const std::shared_ptr<MetadataStorage> &metadata,
-    std::shared_ptr<mysqlshdk::db::ISession>session,
-    uint64_t rs_id) {
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &md_group_name) {
   std::string gr_group_name = get_gr_replicaset_group_name(session);
-  std::string md_group_name = metadata->get_replicaset_group_name(rs_id);
 
   log_info("Group Replication 'group_name' value: %s", gr_group_name.c_str());
   log_info("Metadata 'group_name' value: %s", md_group_name.c_str());

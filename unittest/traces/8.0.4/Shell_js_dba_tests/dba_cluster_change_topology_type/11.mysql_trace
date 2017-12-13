@@ -3,13 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3550"
+    "uri": "mysql://root:root@localhost:2000",
+    "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "connection_id": "37",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.4-rc-log",
+    "server_version": "8.0.4",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -53,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "START GROUP_REPLICATION"
+    "sql": "SET GLOBAL group_replication_bootstrap_group=ON"
 },
 {
     "type": "response",
@@ -66,12 +71,42 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "START GROUP_REPLICATION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SET GLOBAL group_replication_bootstrap_group=OFF"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 7
+    "index": 11
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 8
+    "index": 12
 },
 null]

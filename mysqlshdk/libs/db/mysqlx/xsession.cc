@@ -139,8 +139,18 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
     _trace_handler = do_enable_trace(_mysql.get());
 
   _connection_options = data;
+  if (!_connection_options.has_scheme())
+    _connection_options.set_scheme("mysqlx");
 
-  auto &ssl_options(data.get_ssl_options());
+  // All connections should use mode = VERIFY_CA if no ssl mode is specified
+  // and either ssl-ca or ssl-capath are specified
+  if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
+      (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
+       _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
+    _connection_options.set(mysqlshdk::db::kSslMode,
+                           {mysqlshdk::db::kSslModeVerifyCA});
+  }
+  auto &ssl_options(_connection_options.get_ssl_options());
   if (ssl_options.has_data()) {
     ssl_options.validate();
 
@@ -277,7 +287,7 @@ void XSession_impl::enable_trace(bool flag) {
 
 void XSession_impl::load_session_info() {
   std::shared_ptr<IResult> result(
-      query("select @@lower_case_table_names, connection_id(), "
+      query("select @@lower_case_table_names, @@version, connection_id(), "
             "variable_value from performance_schema.session_status where "
             "variable_name = 'mysqlx_ssl_cipher'"));
 
@@ -285,12 +295,14 @@ void XSession_impl::load_session_info() {
   if (!row)
     throw std::logic_error("Unexpected empty result");
   _case_sensitive_table_names = row->get_uint(0) == 0;
-
   if (!row->is_null(1)) {
-    _connection_id = row->get_uint(1);
+    _version = mysqlshdk::utils::Version(row->get_string(1));
   }
   if (!row->is_null(2)) {
-    _ssl_cipher = row->get_string(2);
+    _connection_id = row->get_uint(2);
+  }
+  if (!row->is_null(3)) {
+    _ssl_cipher = row->get_string(3);
   }
 }
 

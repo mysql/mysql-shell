@@ -26,6 +26,7 @@
 
 #include <set>
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 #include <string>
@@ -37,6 +38,8 @@
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
+
 
 namespace mysqlsh {
 namespace dba {
@@ -63,12 +66,29 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  std::shared_ptr<mysqlshdk::db::ISession> get_active_session() const;
   ReplicationGroupState check_preconditions(
-      const std::string& function_name) const;
-  virtual int get_default_port() const { return 33060; }
-  int get_default_instance_port() { return 3306; }
+      std::shared_ptr<mysqlshdk::db::ISession> group_session,
+      const std::string &function_name) const;
 
+  shcore::IShell_core* get_owner() { return _shell_core; }
+
+  virtual std::shared_ptr<mysqlshdk::db::ISession> get_active_shell_session()
+      const;
+
+  virtual void connect_to_target_group(
+    std::shared_ptr<mysqlshdk::db::ISession> target_member_session,
+      std::shared_ptr<MetadataStorage> *out_metadata,
+      std::shared_ptr<mysqlshdk::db::ISession> *out_group_session,
+      bool connect_to_primary) const;
+
+  virtual std::shared_ptr<mysqlshdk::db::ISession> connect_to_target_member()
+      const;
+
+  std::shared_ptr<Cluster> get_cluster(
+      const char *name, std::shared_ptr<MetadataStorage> metadata,
+      std::shared_ptr<mysqlshdk::db::ISession> group_session) const;
+
+ public:  // Exported public methods
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
   // create and start
   shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args,
@@ -82,25 +102,24 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::Value clone_instance(const shcore::Argument_list &args);
   shcore::Value reset_instance(const shcore::Argument_list &args);
 
-  shcore::Value reset_session(const shcore::Argument_list &args);
   shcore::Value create_cluster(const shcore::Argument_list &args);
-  shcore::Value get_cluster(const shcore::Argument_list &args) const;
+  shcore::Value get_cluster_(const shcore::Argument_list &args) const;
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
   shcore::Value reboot_cluster_from_complete_outage(
       const shcore::Argument_list &args);
 
-  shcore::IShell_core* get_owner() { return _shell_core; }
-
   virtual std::vector<std::pair<std::string, std::string>>
       get_replicaset_instances_status(
-          std::string *out_cluster_name,
+          std::shared_ptr<Cluster> cluster,
           const shcore::Value::Map_type_ref &options);
 
   virtual void validate_instances_status_reboot_cluster(
-      const shcore::Argument_list &args);
+      std::shared_ptr<Cluster> cluster,
+      std::shared_ptr<mysqlshdk::db::ISession> member_session,
+      shcore::Value::Map_type_ref options);
   virtual void validate_instances_gtid_reboot_cluster(
-      std::string *out_cluster_name,
+      std::shared_ptr<Cluster> cluster,
       const shcore::Value::Map_type_ref &options,
       const std::shared_ptr<mysqlshdk::db::ISession> &instance_session);
 
@@ -110,9 +129,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
   Instance deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
-  Cluster getCluster(String name);
+  Cluster getCluster(String name, Dictionary options);
   Undefined killSandboxInstance(Integer port, Dictionary options);
-  Undefined resetSession(Session session);
   Undefined startSandboxInstance(Integer port, Dictionary options);
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined checkInstanceConfiguration(
@@ -127,9 +145,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Instance deploy_sandbox_instance(int port, dict options);
   None drop_cluster(str name);
   None drop_metadata_schema(dict options);
-  Cluster get_cluster(str name);
+  Cluster get_cluster(str name, dict options);
   None kill_sandbox_instance(int port, dict options);
-  None reset_session(Session session);
   None start_sandbox_instance(int port, dict options);
   None stop_sandbox_instance(int port, dict options);
   None check_instance_configuration(InstanceDef instance, dict options);
@@ -145,7 +162,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const shcore::Value::Map_type_ref &options, bool allow_update);
 
  protected:
-  std::shared_ptr<mysqlshdk::db::ISession> _custom_session;
   shcore::IShell_core *_shell_core;
 
   void init();
@@ -156,16 +172,12 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
     _shell_core = shell_core;
     init();
   }
-  std::shared_ptr<MetadataStorage> _metadata_storage;
 
  private:
-  uint64_t _connection_id;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);
-  static std::map <std::string, std::shared_ptr<
-                  mysqlshdk::db::ISession> > _session_cache;
 };
 }  // namespace dba
 }  // namespace mysqlsh

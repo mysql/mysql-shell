@@ -38,7 +38,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Remove instance failure due to wrong credentials
@@ -69,7 +70,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Removing instance
@@ -93,7 +95,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Adding instance on port2 back
@@ -127,7 +130,8 @@
                 "status": "(MISSING)"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Error removing stopped instance on port2
@@ -154,7 +158,8 @@
                 "status": "ONLINE"
             }
         }
-    }
+    },
+    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Error removing last instance

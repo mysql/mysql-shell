@@ -1123,127 +1123,15 @@ TEST_F(Dba_common_test, get_gr_replicaset_group_name) {
   stop_server_mock(_mysql_sandbox_nport1);
 }
 
-TEST_F(Dba_common_test, validate_replicaset_group_name_001) {
-  // @@group_replication_group_name (instance)
-  //-------------------------------------
-  // fd4b70e8-5cb1-11e7-a68b-b86b230042b9
-  //-------------------------------------
-
-  // group_replication_group_name (metadata)
-  // ---------------------------------------
-  // fd4b70e8-5cb1-11e7-a68b-b86b230042b9
-  // ---------------------------------------
-
-  std::vector<testing::Fake_result_data> queries_server1;
-  add_get_server_variable_query(
-      &queries_server1, "group_replication_group_name",
-      mysqlshdk::db::Type::String, "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries_server1);
-
-  std::vector<testing::Fake_result_data> queries_server2;
-  add_show_databases_query(&queries_server2, "mysql_innodb_cluster_metadata",
-                           "mysql_innodb_cluster_metadata");
-
-  add_md_group_name_query(&queries_server2,
-                          "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries_server2);
-
-  std::shared_ptr<mysqlshdk::db::ISession> session;
-  EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
-
-  std::shared_ptr<mysqlshdk::db::ISession> md_session;
-  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
-
-  if (md_session && session) {
-    std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-    metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-    try {
-      EXPECT_TRUE(validate_replicaset_group_name(metadata, session, 1));
-    } catch (const shcore::Exception &e) {
-      SCOPED_TRACE(e.what());
-      SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
-      ADD_FAILURE();
-    }
-  }
-
-  if (session)
-    session->close();
-  if (md_session)
-    md_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, validate_replicaset_group_name_002) {
-  // @@group_replication_group_name (instance)
-  //-------------------------------------
-  // fd4b70e8-5cb1-11e7-a68b-b86b230042b9
-  //-------------------------------------
-
-  // group_replication_group_name (metadata)
-  // ---------------------------------------
-  // fd4b70e8-5cb1-11e7-a68b-b86b230042b0
-  // ---------------------------------------
-
-  std::vector<testing::Fake_result_data> queries_server1;
-  add_get_server_variable_query(
-      &queries_server1, "group_replication_group_name",
-      mysqlshdk::db::Type::String, "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries_server1);
-
-  std::vector<testing::Fake_result_data> queries_server2;
-  add_show_databases_query(&queries_server2, "mysql_innodb_cluster_metadata",
-                           "mysql_innodb_cluster_metadata");
-
-  add_md_group_name_query(&queries_server2,
-                          "fd4b70e8-5cb1-11e7-a68b-b86b230042b0");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries_server2);
-
-  std::shared_ptr<mysqlshdk::db::ISession> session;
-  EXPECT_NO_THROW(session = create_session(_mysql_sandbox_nport1));
-
-  std::shared_ptr<mysqlshdk::db::ISession> md_session;
-  EXPECT_NO_THROW(md_session = create_base_session(_mysql_sandbox_nport2));
-
-  if (md_session && session) {
-    std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-    metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-    try {
-      EXPECT_FALSE(validate_replicaset_group_name(metadata, session, 1));
-    } catch (const shcore::Exception &e) {
-      SCOPED_TRACE(e.what());
-      SCOPED_TRACE("Unexpected failure at validate_replicaset_group_name_001");
-      ADD_FAILURE();
-    }
-  }
-
-  if (session)
-    session->close();
-  if (md_session)
-    md_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
 TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
-  std::vector<testing::Fake_result_data> queries;
+  enable_replay();
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(
+      testutil->sandbox_connection_options(_mysql_sandbox_nport1, "root"));
 
   // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&queries, true, false, {});
-
-  add_set_global_variable_query(&queries, "super_read_only", "OFF");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
+  session->query("set global super_read_only = 1");
 
   try {
     auto read_only =
@@ -1256,18 +1144,22 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
   }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
-  std::vector<testing::Fake_result_data> queries;
+  enable_replay();
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(
+      testutil->sandbox_connection_options(_mysql_sandbox_nport1, "root"));
+
+  auto extra_session = mysqlshdk::db::mysql::Session::create();
+  extra_session->connect(
+      testutil->sandbox_connection_options(_mysql_sandbox_nport1, "root"));
 
   // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&queries, true, true, {{"root@localhost", "1"}});
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
+  session->query("set global super_read_only = 1");
 
   try {
     mysqlsh::dba::validate_super_read_only(session, false);
@@ -1290,19 +1182,19 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
   }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  extra_session->close();
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
-  std::vector<testing::Fake_result_data> queries;
+  enable_replay();
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(
+      testutil->sandbox_connection_options(_mysql_sandbox_nport1, "root"));
 
   // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&queries, true, true, {});
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
-
+  session->query("set global super_read_only = 1");
   try {
     mysqlsh::dba::validate_super_read_only(session, false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
@@ -1321,18 +1213,18 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
-  std::vector<testing::Fake_result_data> queries;
+  enable_replay();
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(
+      testutil->sandbox_connection_options(_mysql_sandbox_nport1, "root"));
 
-  // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&queries, false, false, {});
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
+  // super_read_only is OFF, no active sessions
+  session->query("set global super_read_only = 0");
 
   try {
     auto read_only =
@@ -1345,18 +1237,18 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
   }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
 TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
-  std::vector<testing::Fake_result_data> queries;
+  enable_replay();
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(
+      testutil->sandbox_connection_options(_mysql_sandbox_nport1, "root"));
 
-  // super_read_only is ON, no active sessions
-  add_super_read_only_queries(&queries, false, false, {});
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
+  // super_read_only is OFF, no active sessions
+  session->query("set global super_read_only = 0");
 
   try {
     auto read_only =
@@ -1369,7 +1261,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
   }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
 TEST_F(Dba_common_test, validate_instance_rejoinable_01) {

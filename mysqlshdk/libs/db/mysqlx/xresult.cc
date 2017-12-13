@@ -175,10 +175,12 @@ uint64_t Result::get_warning_count() const {
 
 Result::~Result() {
   // flush all
-  try {
-    while (next_resultset()) {
+  if (_result) {
+    try {
+      while (next_resultset()) {
+      }
+    } catch (...) {
     }
-  } catch (...) {
   }
   _row.reset(nullptr);
 }
@@ -218,18 +220,20 @@ void Result::rewind() {
 }
 
 bool Result::pre_fetch_rows(bool persistent) {
-  _persistent_pre_fetch = persistent;
-  _stop_pre_fetch = false;
-  if (!_result->has_resultset())
-    return false;
-  Row wrapper(this);
-  while (const ::xcl::XRow *row = _result->get_next_row()) {
-    if (_stop_pre_fetch)
-      return true;
-    wrapper.reset(row);
-    _pre_fetched_rows.push_back(Row_copy(wrapper));
+  if (_result) {
+    _persistent_pre_fetch = persistent;
+    _stop_pre_fetch = false;
+    if (!_result->has_resultset())
+      return false;
+    Row wrapper(this);
+    while (const ::xcl::XRow *row = _result->get_next_row()) {
+      if (_stop_pre_fetch)
+        return true;
+      wrapper.reset(row);
+      _pre_fetched_rows.push_back(Row_copy(wrapper));
+    }
+    _pre_fetched = true;
   }
-  _pre_fetched = true;
   return true;
 }
 

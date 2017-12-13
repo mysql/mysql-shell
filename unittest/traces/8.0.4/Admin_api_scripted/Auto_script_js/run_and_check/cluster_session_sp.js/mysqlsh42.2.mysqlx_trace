@@ -1,0 +1,66 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "mysqlx://root:root@localhost:20000",
+    "protocol": "x"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "80",
+    "connection_info": "localhost via TCP/IP",
+    "server_version": "8.0.4-rc-log",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "select @@port"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            2000
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 5
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 6
+},
+null]

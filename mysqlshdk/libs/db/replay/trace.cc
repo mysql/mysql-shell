@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/db/replay/trace.h"
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/prettywriter.h>
@@ -32,6 +33,7 @@
 #include <utility>
 #include "mysqlshdk/libs/db/replay/replayer.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 // TODO(alfredo) warnings, multi-results, mysqlx
@@ -40,8 +42,8 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
-sequence_error::sequence_error(const char* what)
-    : shcore::database_error(what, 9999, what) {
+sequence_error::sequence_error(const std::string& what)
+    : db::Error(what.c_str(), 9999) {
   std::cerr << "SESSION REPLAY ERROR: " << what << "\n";
   if (getenv("TEST_DEBUG"))
     assert(0);
@@ -139,18 +141,27 @@ std::string make_json(
 
 void Trace_writer::serialize_connect(
     const mysqlshdk::db::Connection_options& data,
-    const std::string &protocol) {
+    const std::string& protocol) {
   _stream << make_json("request", "CONNECT",
                        {{"uri", data.as_uri(uri::formats::full())},
-                        {"protocol", protocol}}, ++_idx)
+                        {"protocol", protocol}},
+                       ++_idx)
           << ",\n";
+
+  if (_print_traces)
+    std::cerr << shcore::path::basename(_path) << ": connect "
+              << data.as_uri(uri::formats::full()) << "\n";
 }
 
 void Trace_writer::serialize_close() {
+  if (_print_traces)
+    std::cerr << shcore::path::basename(_path) << ": close\n";
   _stream << make_json("request", "CLOSE", {}, ++_idx) << ",\n";
 }
 
 void Trace_writer::serialize_query(const std::string& sql) {
+  if (_print_traces > 1)
+    std::cerr << shcore::path::basename(_path) << ": " << sql << "\n";
   _stream << make_json("request", "QUERY", {{"sql", sql}}, ++_idx) << ",\n";
 }
 
@@ -158,13 +169,16 @@ void Trace_writer::serialize_ok() {
   _stream << make_json("response", "OK", {}, ++_idx) << ",\n";
 }
 
-void Trace_writer::serialize_connect_ok(const char* ssl_cipher) {
+void Trace_writer::serialize_connect_ok(
+    const std::map<std::string, std::string>& info) {
   rapidjson::Document doc;
   doc.SetObject();
   set(&doc, "type", "response");
   set(&doc, "subtype", "CONNECT_OK");
   set(&doc, "index", ++_idx);
-  set(&doc, "ssl_cipher", ssl_cipher);
+  for (const auto &it : info) {
+    set(&doc, it.first.c_str(), it.second.c_str());
+  }
 
   rapidjson::StringBuffer buffer;
   rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
@@ -286,16 +300,10 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
   }
 }
 
-void Trace_writer::serialize_error(const shcore::database_error& e) {
-  _stream << make_json("response", "ERROR",
-                       {{"code", std::to_string(e.code())},
-                        {"msg", e.what()},
-                        {"sqlstate", e.sqlstate()}},
-                       ++_idx)
-          << ",\n";
-}
-
 void Trace_writer::serialize_error(const db::Error& e) {
+  if (_print_traces)
+    std::cerr << "MySQL error in " << _path << ": " << e.what() << " ("
+              << e.code() << ")\n";
   _stream << make_json("response", "ERROR",
                        {{"code", std::to_string(e.code())},
                         {"msg", e.what()},
@@ -304,8 +312,8 @@ void Trace_writer::serialize_error(const db::Error& e) {
           << ",\n";
 }
 
-Trace_writer* Trace_writer::create(const std::string& path) {
-  return new Trace_writer(path);
+Trace_writer* Trace_writer::create(const std::string& path, int print_traces) {
+  return new Trace_writer(path, print_traces);
 }
 
 void Trace_writer::set_metadata(
@@ -328,12 +336,13 @@ void Trace_writer::set_metadata(
   _stream << buffer.GetString() << ",\n";
 }
 
-Trace_writer::Trace_writer(const std::string& path) : _path(path) {
-  if (getenv("TEST_DEBUG"))
-    printf("Creating trace file '%s'\n", path.c_str());
+Trace_writer::Trace_writer(const std::string& path, int print_traces)
+    : _path(path), _print_traces(print_traces) {
+  if (_print_traces)
+    std::cerr << "Creating trace file " << path << "\n";
   _stream.open(path);
   if (_stream.bad())
-    throw std::runtime_error(path + ": " + strerror(errno));
+    throw std::logic_error(path + ": " + strerror(errno));
   _stream.rdbuf()->pubsetbuf(0, 0);
   _stream << "[\n";
 }
@@ -341,30 +350,37 @@ Trace_writer::Trace_writer(const std::string& path) : _path(path) {
 Trace_writer::~Trace_writer() {
   _stream << "null]\n";
 
-  if (const char *debug = getenv("TEST_DEBUG")) {
-    if (atoi(debug) >= 2)
-      printf("Closed trace file '%s'\n", _path.c_str());
-  }
+  if (_print_traces)
+    std::cerr << "Closed trace file " << _path << " (" << _idx << " entries)\n";
 }
 
 // ------------------------------------------------
 
-Trace::Trace(const std::string& path) : _trace_path(path) {
+Trace::Trace(const std::string& path, int print_traces)
+    : _trace_path(path), _print_traces(print_traces) {
   std::FILE* file;
   char buffer[1024 * 4];
 
-  if (getenv("TEST_DEBUG"))
-    printf("Opening trace file '%s'\n", path.c_str());
+  if (_print_traces)
+    std::cerr << "Opening trace file " << path << "\n";
 
   file = std::fopen(path.c_str(), "r");
   if (!file)
-    throw std::runtime_error(path + ": " + strerror(errno));
+    throw std::logic_error(path + ": " + strerror(errno));
 
   _index = 0;
   rapidjson::FileReadStream stream(file, buffer, sizeof(buffer));
   _doc.ParseStream(stream);
   std::fclose(file);
-  assert(!_doc.HasParseError());
+  if (_doc.HasParseError()) {
+    std::cerr << "REPLAY ERROR: Error parsing trace file " << path << ":"
+              << _doc.GetErrorOffset() << ":"
+              << rapidjson::GetParseError_En(_doc.GetParseError()) << "\n";
+    throw std::logic_error(
+        shcore::str_format("Error parsing trace file %s:%zu:%s", path.c_str(),
+                           _doc.GetErrorOffset(),
+                           rapidjson::GetParseError_En(_doc.GetParseError())));
+  }
   assert(_doc.IsArray());
 }
 
@@ -378,7 +394,7 @@ void Trace::next(rapidjson::Value* entry) {
   *entry = _doc[_index++];
 
   if (0) {
-    printf("Trace read: %s\n", to_json(entry).c_str());
+    std::cerr << "Trace read: " << to_json(entry) << "\n";
   }
 }
 
@@ -405,7 +421,9 @@ mysqlshdk::db::Connection_options Trace::expected_connect() {
   next(&obj);
 
   expect_request(&obj, "CONNECT");
-
+  if (_print_traces > 1)
+    std::cerr << shcore::path::basename(_trace_path) << ": connect: " <<
+        obj["uri"].GetString() << "\n";
   return mysqlshdk::db::Connection_options(obj["uri"].GetString());
 }
 
@@ -421,19 +439,18 @@ std::string Trace::expected_query() {
   next(&obj);
 
   expect_request(&obj, "QUERY");
-  return obj["sql"].GetString();
+  std::string query = obj["sql"].GetString();
+  if (_print_traces > 1)
+    std::cerr << shcore::path::basename(_trace_path) << ": " << query << "\n";
+  return query;
 }
 
 void throw_error(rapidjson::Value* doc) {
   const char* subtype = (*doc)["subtype"].GetString();
   if (strcmp(subtype, "ERROR") == 0) {
-    throw shcore::database_error(
-        (*doc)["msg"].GetString(), std::atoi((*doc)["code"].GetString()),
-        (*doc)["msg"].GetString(), (*doc)["sqlstate"].GetString());
-    // } else if (strcmp(subtype, "ERROR") == 0) {
-    //   throw db::Error((*doc)["msg"].GetString(),
-    //                   std::atoi((*doc)["code"].GetString()),
-    //                   (*doc)["sqlstate"].GetString());
+    throw db::Error((*doc)["msg"].GetString(),
+                    std::atoi((*doc)["code"].GetString()),
+                    (*doc)["sqlstate"].GetString());
   } else {
     throw std::logic_error(
         shcore::str_format("Unexpected entry in replayed session %s",
@@ -457,7 +474,8 @@ void Trace::expected_status() {
   }
 }
 
-void Trace::expected_connect_status(std::string* out_ssl_cipher) {
+void Trace::expected_connect_status(
+    std::map<std::string, std::string>* out_info) {
   rapidjson::Value obj;
   next(&obj);
 
@@ -467,10 +485,10 @@ void Trace::expected_connect_status(std::string* out_ssl_cipher) {
 
   const char* subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "CONNECT_OK") == 0) {
-    if (obj["ssl_cipher"].IsNull())
-      *out_ssl_cipher = "";
-    else
-      *out_ssl_cipher = obj["ssl_cipher"].GetString();
+    for (auto itr = obj.MemberBegin(); itr != obj.MemberEnd(); ++itr) {
+      if (itr->value.IsString())
+        (*out_info)[itr->name.GetString()] = itr->value.GetString();
+    }
   } else {
     throw_error(&obj);
   }
@@ -564,6 +582,21 @@ void Trace::unserialize_result_rows(
   }
 }
 
+void Trace::unserialize_result_rows(
+    rapidjson::Value* rlist, std::shared_ptr<Result_mysqlx> result,
+    std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept) {
+  for (unsigned i = 0; i < rlist->Size(); i++) {
+    if (intercept) {
+      std::unique_ptr<IRow> row_copier(intercept(std::unique_ptr<IRow>{
+          new Row_unserializer((*rlist)[i], result->_metadata)}));
+      result->_rows.emplace_back(*row_copier);
+    } else {
+      result->_rows.emplace_back(
+          Row_unserializer((*rlist)[i], result->_metadata));
+    }
+  }
+}
+
 std::shared_ptr<Result_mysql> Trace::expected_result(
     std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept) {
   rapidjson::Value obj;
@@ -581,6 +614,41 @@ std::shared_ptr<Result_mysql> Trace::expected_result(
     auto info = get_string(obj["info"]);
 
     std::shared_ptr<Result_mysql> result(new Result_mysql(
+        affected_rows, warning_count, last_insert_id, info.c_str()));
+
+    if (obj.HasMember("columns")) {
+      result->_has_resultset = true;
+      rapidjson::Value& cols(obj["columns"]);
+      unserialize_result_metadata(&cols, &result->_metadata);
+    }
+    if (obj.HasMember("rows")) {
+      rapidjson::Value& rows(obj["rows"]);
+      unserialize_result_rows(&rows, result, intercept);
+    }
+    return result;
+  } else {
+    throw_error(&obj);
+  }
+  return {};
+}
+
+std::shared_ptr<Result_mysqlx> Trace::expected_result_x(
+    std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept) {
+  rapidjson::Value obj;
+  next(&obj);
+
+  if (strcmp(obj["type"].GetString(), "response") != 0)
+    throw sequence_error(
+        "Expected response in session trace, but got something else");
+
+  const char* subtype = obj["subtype"].GetString();
+  if (strcmp(subtype, "RESULT") == 0) {
+    auto last_insert_id = get_int(obj["auto_increment_value"]);
+    auto affected_rows = get_uint(obj["affected_rows"]);
+    auto warning_count = get_int(obj["warning_count"]);
+    auto info = get_string(obj["info"]);
+
+    std::shared_ptr<Result_mysqlx> result(new Result_mysqlx(
         affected_rows, warning_count, last_insert_id, info.c_str()));
 
     if (obj.HasMember("columns")) {

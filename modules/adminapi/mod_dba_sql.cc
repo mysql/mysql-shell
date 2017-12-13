@@ -50,10 +50,10 @@ GRInstanceType get_gr_instance_type(
       if (row->get_int(0) != 0)
         ret_val = GRInstanceType::GroupReplication;
     }
-  } catch (shcore::database_error &error) {
-    if (error.code() != 1146)  // Tables doesn't exist
+  } catch (mysqlshdk::db::Error &error) {
+    if (error.code() != ER_NO_SUCH_TABLE)  // Tables doesn't exist
       throw shcore::Exception::mysql_error_with_code_and_state(
-          error.error(), error.code(), error.sqlstate().c_str());
+          error.what(), error.code(), error.sqlstate());
   }
 
   // The server is part of a Replication Group
@@ -70,12 +70,12 @@ GRInstanceType get_gr_instance_type(
         if (row->get_int(0) != 0)
           ret_val = GRInstanceType::InnoDBCluster;
       }
-    } catch (shcore::database_error &error) {
+    } catch (mysqlshdk::db::Error &error) {
       // Ignore error table does not exist (error 1146) for 5.7 or database
       // does not exist (error 1049) for 8.0, when metadata is not available.
-      if (error.code() != 1146 && error.code() != 1049)
+      if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
         throw shcore::Exception::mysql_error_with_code_and_state(
-            error.error(), error.code(), error.sqlstate().c_str());
+            error.what(), error.code(), error.sqlstate());
     }
   }
 
@@ -360,10 +360,10 @@ bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
       value = row->get_string(0);
     else
       ret_val = false;
-  } catch (shcore::database_error& error) {
+  } catch (mysqlshdk::db::Error& error) {
     if (throw_on_error) {
       throw shcore::Exception::mysql_error_with_code_and_state(
-          error.error(), error.code(), error.sqlstate().c_str());
+          error.what(), error.code(), error.sqlstate());
     } else {
       log_warning("Unable to read server variable '%s': %s", name.c_str(),
                   error.what());
@@ -388,10 +388,10 @@ bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
       value = row->get_int(0);
     else
       ret_val = false;
-  } catch (shcore::database_error& error) {
+  } catch (mysqlshdk::db::Error& error) {
     if (throw_on_error) {
       throw shcore::Exception::mysql_error_with_code_and_state(
-          error.error(), error.code(), error.sqlstate().c_str());
+          error.what(), error.code(), error.sqlstate());
     } else {
       log_warning("Unable to read server variable '%s': %s", name.c_str(),
                   error.what());
@@ -425,10 +425,10 @@ bool get_status_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
       value = row->get_string(1);
       ret_val = true;
     }
-  } catch (shcore::database_error &error) {
+  } catch (mysqlshdk::db::Error &error) {
     if (throw_on_error)
       throw shcore::Exception::mysql_error_with_code_and_state(
-          error.error(), error.code(), error.sqlstate().c_str());
+          error.what(), error.code(), error.sqlstate());
   }
 
   if (!ret_val && throw_on_error)
@@ -450,9 +450,9 @@ bool is_gtid_subset(std::shared_ptr<mysqlshdk::db::ISession> connection,
 
     if (row)
       ret_val = row->get_int(0);
-  } catch (shcore::database_error& error) {
+  } catch (mysqlshdk::db::Error& error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
-        error.error(), error.code(), error.sqlstate().c_str());
+        error.what(), error.code(), error.sqlstate());
   }
 
   return (ret_val == 1);
@@ -530,7 +530,7 @@ std::vector<std::string> get_peer_seeds(
       }
       row = result->fetch_one();
     }
-  } catch (shcore::database_error &error) {
+  } catch (mysqlshdk::db::Error &error) {
     log_warning("Unable to retrieve group seeds for instance '%s': %s",
                 instance_host.c_str(), error.what());
   }
@@ -623,6 +623,8 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
   std::string query(
     "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, "
     "COUNT(*) FROM performance_schema.threads WHERE type = 'foreground' "
+    " AND name in ('thread/mysqlx/worker', 'thread/sql/one_connection')"
+    " AND processlist_id <> connection_id()"
     "GROUP BY acct;");
 
   // Any error will bubble up right away

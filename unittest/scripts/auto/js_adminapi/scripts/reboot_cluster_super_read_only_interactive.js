@@ -14,7 +14,7 @@ session.runSql("stop group_replication");
 //@# status after stop GR - error
 c.status();
 
-//c.disconnect();
+c.disconnect();
 
 // metadata should be there now, but GR is not running and since this is a
 // single node, we have full outage
@@ -46,6 +46,7 @@ var c = dba.rebootClusterFromCompleteOutage('dev');
 // Kill cluster back
 session.runSql("stop group_replication");
 
+c.disconnect();
 //@<OUT> No flag, no on prompt
 testutil.expectPrompt("Do you want to disable super_read_only and continue? [y|N]: ", "n");
 

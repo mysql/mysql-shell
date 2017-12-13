@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include <list>
 #include "mysqlshdk/libs/db/replay/trace.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -35,7 +36,7 @@ char g_recording_path_prefix[1024] = {0};
 char g_recording_context[1024] = {0};
 int g_session_create_index = 0;
 int g_session_replay_index = 0;
-int g_mysqlprovision_prefix_index = 0;
+int g_external_program_index = 0;
 Mode g_replay_mode = Mode::Direct;
 Result_row_hook g_replay_row_hook;
 Query_hook g_replay_query_hook;
@@ -50,21 +51,26 @@ void set_recording_path_prefix(const std::string& path) {
   }
   g_session_create_index = 0;
   g_session_replay_index = 0;
-  g_mysqlprovision_prefix_index = 0;
+  g_external_program_index = 0;
 }
 
-void set_recording_context(const std::string& context) {
+void begin_recording_context(const std::string& context) {
   assert(context.size() < sizeof(g_recording_context));
   snprintf(g_recording_context, sizeof(g_recording_context), "%s",
            context.c_str());
   g_session_create_index = 0;
   g_session_replay_index = 0;
-  g_mysqlprovision_prefix_index = 0;
+  g_external_program_index = 0;
 }
 
-void set_mode(Mode mode) {
+void end_recording_context() {
+  mysqlshdk::db::replay::set_mode(mysqlshdk::db::replay::Mode::Direct, 0);
+  mysqlshdk::db::replay::set_replay_row_hook({});
+}
+
+void set_mode(Mode mode, int print_traces) {
   g_replay_mode = mode;
-  setup_mysql_session_injector(mode);
+  setup_mysql_session_injector(mode, print_traces);
 }
 
 std::string current_recording_dir() {
@@ -73,19 +79,19 @@ std::string current_recording_dir() {
   return path;
 }
 
-std::string mysqlprovision_recording_path() {
-  ++g_mysqlprovision_prefix_index;
+std::string external_recording_path(const std::string& program_id) {
+  ++g_external_program_index;
   std::string path = g_recording_path_prefix;
 
   path.append(g_recording_context);
   if (!shcore::str_endswith(g_recording_context, "/"))
     path.append("_");
-  path.append("mp");
-  path.append(std::to_string(g_mysqlprovision_prefix_index));
+  path.append(program_id);
+  path.append(std::to_string(g_external_program_index));
   return path;
 }
 
-std::string new_recording_path(const std::string &type) {
+std::string new_recording_path(const std::string& type) {
   g_session_create_index++;
   std::string path = g_recording_path_prefix;
   char* p = strrchr(g_recording_context, '/');
@@ -100,7 +106,7 @@ std::string new_recording_path(const std::string &type) {
   return path;
 }
 
-std::string next_replay_path(const std::string &type) {
+std::string next_replay_path(const std::string& type) {
   g_session_replay_index++;
   std::string path = g_recording_path_prefix;
   path.append(g_recording_context);
@@ -119,13 +125,39 @@ std::map<std::string, std::string> load_test_case_info() {
   return load_info(current_recording_dir() + "/info");
 }
 
-void setup_from_env() {
+static std::list<std::weak_ptr<mysqlshdk::db::ISession>> g_open_sessions;
+
+static void on_session_connect(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  // called by session recorder classes when connect is called
+  // adds a weak ptr to the session object along with the stack trace
+  // to a list of open sessions, which will be checked when the test finishes
+  g_open_sessions.push_back(session);
+}
+
+static void on_session_close(std::shared_ptr<mysqlshdk::db::ISession> session) {
+  // called by session recorder classes when close is called
+  for (auto iter = g_open_sessions.begin(); iter != g_open_sessions.end();
+       ++iter) {
+    auto ptr = iter->lock();
+    if (ptr && ptr.get() == session.get()) {
+      g_open_sessions.erase(iter);
+      break;
+    }
+  }
+}
+
+void setup_global_from_env() {
+  int print_traces = 0;
+  if (const char* debug = getenv("TEST_DEBUG")) {
+    print_traces = atoi(debug);
+  }
   if (const char* mode = getenv("MYSQLSH_RECORDER_MODE")) {
     if (strcasecmp(mode, "direct") == 0 || !*mode) {
-      set_mode(Mode::Direct);
+      set_mode(Mode::Direct, 0);
       puts("Disabled classic session recording");
     } else if (strcasecmp(mode, "record") == 0) {
-      set_mode(Mode::Record);
+      set_mode(Mode::Record, print_traces);
 
       if (!getenv("MYSQLSH_RECORDER_PREFIX")) {
         printf(
@@ -134,9 +166,15 @@ void setup_from_env() {
       }
       set_recording_path_prefix(getenv("MYSQLSH_RECORDER_PREFIX"));
 
+      // Set up hooks for keeping track of opened sessions
+      on_recorder_connect_hook =
+          std::bind(&on_session_connect, std::placeholders::_1);
+      on_recorder_close_hook =
+          std::bind(&on_session_close, std::placeholders::_1);
+
       printf("Recording classic sessions to %s\n", g_recording_path_prefix);
     } else if (strcasecmp(mode, "replay") == 0) {
-      set_mode(Mode::Replay);
+      set_mode(Mode::Replay, print_traces);
 
       if (!getenv("MYSQLSH_RECORDER_PREFIX")) {
         printf(
@@ -148,28 +186,52 @@ void setup_from_env() {
     } else {
       printf("Invalid value for MYSQLSH_RECORDER_MODE '%s'\n", mode);
     }
-    if (getenv("PAUSE_ON_START"))
-      shcore::sleep_ms(10000);
   }
 }
 
+void finalize_global() {
+  // Automatically close recording sessions that may be still open
+  on_recorder_connect_hook = {};
+  on_recorder_close_hook = {};
+
+  for (const auto& s : g_open_sessions) {
+    if (auto session = s.lock()) {
+      session->close();
+    }
+  }
+  g_open_sessions.clear();
+}
 
 static Mode g_active_session_injector_mode = Mode::Direct;
+static int g_active_session_print_trace_mode = 0;
 
-void setup_mysql_session_injector(Mode mode) {
+void setup_mysql_session_injector(Mode mode, int print_traces) {
   g_active_session_injector_mode = mode;
+  g_active_session_print_trace_mode = print_traces;
   switch (mode) {
     case Mode::Direct:
       mysql::Session::set_factory_function({});
       mysqlx::Session::set_factory_function({});
       break;
     case Mode::Record:
-      mysql::Session::set_factory_function(replay::Recorder_mysql::create);
-      mysqlx::Session::set_factory_function(replay::Recorder_mysqlx::create);
+      mysql::Session::set_factory_function([print_traces]() {
+        return std::shared_ptr<mysql::Session>(
+            new replay::Recorder_mysql(print_traces));
+      });
+      mysqlx::Session::set_factory_function([print_traces]() {
+        return std::shared_ptr<mysqlx::Session>(
+            new replay::Recorder_mysqlx(print_traces));
+      });
       break;
     case Mode::Replay:
-      mysql::Session::set_factory_function(replay::Replayer_mysql::create);
-      mysqlx::Session::set_factory_function(replay::Replayer_mysqlx::create);
+      mysql::Session::set_factory_function([print_traces]() {
+        return std::shared_ptr<mysql::Session>(
+            new replay::Replayer_mysql(print_traces));
+      });
+      mysqlx::Session::set_factory_function([print_traces]() {
+        return std::shared_ptr<mysqlx::Session>(
+            new replay::Replayer_mysqlx(print_traces));
+      });
       break;
   }
 }
@@ -185,12 +247,13 @@ void set_replay_query_hook(Query_hook func) {
 No_replay::No_replay() {
   _old_mode = g_active_session_injector_mode;
   if (_old_mode != Mode::Direct)
-    setup_mysql_session_injector(Mode::Direct);
+    setup_mysql_session_injector(Mode::Direct,
+                                 g_active_session_print_trace_mode);
 }
 
 No_replay::~No_replay() {
   if (g_active_session_injector_mode != _old_mode)
-    setup_mysql_session_injector(_old_mode);
+    setup_mysql_session_injector(_old_mode, g_active_session_print_trace_mode);
 }
 
 }  // namespace replay

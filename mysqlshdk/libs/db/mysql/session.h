@@ -52,7 +52,6 @@ namespace mysql {
 class Session_impl : public std::enable_shared_from_this<Session_impl> {
   friend class Session;  // The Session class instantiates this class
   friend class Result;   // The Reslt class uses some functions of this class
-
  public:
   ~Session_impl();
 
@@ -112,6 +111,15 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return nullptr;
   }
 
+  virtual mysqlshdk::utils::Version get_server_version() const {
+    if (_mysql) {
+      auto ulversion = mysql_get_server_version(_mysql);
+      return mysqlshdk::utils::Version(
+          (ulversion / 10000) % 100, (ulversion / 100) % 100, ulversion % 100);
+    }
+    return mysqlshdk::utils::Version();
+  }
+
   bool is_open() const { return _mysql ? true: false; }
 
   const char* get_last_error(int* out_code, const char** out_sqlstate) {
@@ -167,20 +175,33 @@ class SHCORE_PUBLIC Session : public ISession,
   virtual const char *get_ssl_cipher() const { return _impl->get_ssl_cipher(); }
   virtual bool is_open() const { return _impl->is_open(); }
 
-  uint64_t get_connection_id() const {
+  virtual uint64_t get_connection_id() const {
     return _impl->get_thread_id();
   }
-  uint64_t get_protocol_info() {
+
+  virtual uint64_t get_protocol_info() {
     return _impl->get_protocol_info();
   }
-  const char *get_connection_info() {
+
+  virtual const char *get_connection_info() {
     return _impl->get_connection_info();
   }
-  const char *get_server_info() {
+
+  virtual const char *get_server_info() {
     return _impl->get_server_info();
   }
-  const char *get_stats() {
+
+  virtual const char *get_stats() {
     return _impl->get_stats();
+  }
+
+  virtual mysqlshdk::utils::Version get_server_version() const {
+    return _impl->get_server_version();
+  }
+
+  ~Session() {
+    if (_impl)
+      _impl->close();
   }
 
  protected:

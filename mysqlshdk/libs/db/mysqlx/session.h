@@ -89,6 +89,10 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
     return _ssl_cipher.empty() ? nullptr : _ssl_cipher.c_str();
   }
 
+  mysqlshdk::utils::Version get_server_version() const {
+    return _version;
+  }
+
   std::shared_ptr<IResult> execute_stmt(const std::string &ns,
                                         const std::string &stmt,
                                         const ::xcl::Arguments &args);
@@ -105,6 +109,7 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   std::string _connection_info;
   std::pair<xcl::XProtocol::Handler_id, xcl::XProtocol::Handler_id>
       _trace_handler;
+  mysqlshdk::utils::Version _version;
   uint64_t _connection_id = 0;
   bool _enable_trace = false;
   bool _expired_account = false;
@@ -133,14 +138,11 @@ class SHCORE_PUBLIC Session : public ISession,
 
   void close() override {
     _impl->close();
+    // TODO(.) see if we can get rid of these pre-allocations
     _impl.reset(new XSession_impl());
   }
 
-  bool valid() const {
-    return _impl->valid();
-  }
-
-  uint64_t get_connection_id() const {
+  virtual uint64_t get_connection_id() const {
     return _impl->get_thread_id();
   }
 
@@ -148,8 +150,12 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_ssl_cipher();
   }
 
-  const std::string &get_connection_info() const {
+  virtual const std::string &get_connection_info() const {
     return _impl->get_connection_info();
+  }
+
+  mysqlshdk::utils::Version get_server_version() const override {
+    return _impl->get_server_version();
   }
 
   void enable_protocol_trace(bool flag) {
@@ -165,31 +171,39 @@ class SHCORE_PUBLIC Session : public ISession,
     _impl->execute(sql);
   }
 
-  std::shared_ptr<IResult> execute_stmt(const std::string &ns,
-                                        const std::string &stmt,
-                                        const ::xcl::Arguments &args) {
+  virtual std::shared_ptr<IResult> execute_stmt(const std::string &ns,
+                                                const std::string &stmt,
+                                                const ::xcl::Arguments &args) {
     return _impl->execute_stmt(ns, stmt, args);
   }
 
-  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Insert &msg) {
+  virtual std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Insert &msg) {
     return _impl->execute_crud(msg);
   }
 
-  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Update &msg) {
+  virtual std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Update &msg) {
     return _impl->execute_crud(msg);
   }
 
-  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Delete &msg) {
+  virtual std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Delete &msg) {
     return _impl->execute_crud(msg);
   }
 
-  std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Find &msg) {
+  virtual std::shared_ptr<IResult> execute_crud(
+      const ::Mysqlx::Crud::Find &msg) {
     return _impl->execute_crud(msg);
   }
 
   bool is_open() const override {
-    return valid();
+    return _impl->valid();
   };
+
+  ~Session() {
+    close();
+  }
 
  protected:
   Session() {

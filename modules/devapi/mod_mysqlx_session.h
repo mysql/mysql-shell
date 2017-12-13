@@ -124,6 +124,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 #endif
 
   Session();
+  explicit Session(std::shared_ptr<mysqlshdk::db::mysqlx::Session> session);
   Session(const Session &s);
   virtual ~Session();
 

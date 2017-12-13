@@ -44,10 +44,6 @@ extern Result_row_hook g_replay_row_hook;
 
 class Replayer_impl {
  public:
-  explicit Replayer_impl(Trace *trace)
-      : _trace(trace) {
-  }
-
   void connect(const mysqlshdk::db::Connection_options& data) {
     _connection_options = data;
     mysqlshdk::db::Connection_options expected = _trace->expected_connect();
@@ -62,7 +58,7 @@ class Replayer_impl {
               .c_str());
     }
 
-    _trace->expected_connect_status(&_ssl_cipher);
+    _trace->expected_connect_status(&_info);
     _open = true;
   }
 
@@ -89,7 +85,7 @@ class Replayer_impl {
     return s;
   }
 
-  std::shared_ptr<IResult> query(const std::string& sql_, bool) {
+  std::string do_query(const std::string& sql_) {
     std::string sql = sql_;
     if (g_replay_query_hook)
       sql = g_replay_query_hook(sql_);
@@ -115,16 +111,14 @@ class Replayer_impl {
               .c_str());
     }
 
-    if (g_replay_row_hook)
-      return _trace->expected_result(std::bind(
-          g_replay_row_hook, _connection_options, sql, std::placeholders::_1));
-    else
-      return _trace->expected_result({});
+    return sql;
   }
 
   void close() {
-    _trace->expected_close();
-    _trace->expected_status();
+    if (_open) {
+      _trace->expected_close();
+      _trace->expected_status();
+    }
     _open = false;
   }
 
@@ -132,42 +126,68 @@ class Replayer_impl {
     return _open;
   }
 
-  const char* get_ssl_cipher() const {
-    return _ssl_cipher.empty() ? nullptr : _ssl_cipher.c_str();
-  }
-
   const mysqlshdk::db::Connection_options& get_connection_options() const {
     return _connection_options;
   }
 
+  const char* get_info_p(const std::string& key) const {
+    if (_info.find(key) == _info.end())
+      return nullptr;
+    return _info.at(key).c_str();
+  }
+
+  const std::string& get_info(const std::string& key) const {
+    return _info[key];
+  }
+
+  void set_trace(Trace *trace) {
+    _trace.reset(trace);
+  }
+
+  Trace& trace() {
+    return *_trace;
+  }
+
  private:
   mysqlshdk::db::Connection_options _connection_options;
-  std::string _ssl_cipher;
   std::unique_ptr<Trace> _trace;
+  mutable std::map<std::string, std::string> _info;
   bool _open = false;
 };
 
 //-----
 
-Replayer_mysql::Replayer_mysql() {
-  _impl = new Replayer_impl(new Trace(next_replay_path("mysql_trace")));
+Replayer_mysql::Replayer_mysql(int print_traces) : _print_traces(print_traces) {
+  _impl.reset(new Replayer_impl());
 }
 
 Replayer_mysql::~Replayer_mysql() {
-  delete _impl;
 }
 
-void Replayer_mysql::connect(const mysqlshdk::db::Connection_options& data) {
+void Replayer_mysql::connect(const mysqlshdk::db::Connection_options& data_) {
+  _impl->set_trace(new Trace(next_replay_path("mysql_trace"), _print_traces));
+
+  mysqlshdk::db::Connection_options data(data_);
+
+  if (!data.has_scheme())
+    data.set_scheme("mysql");
+
   _impl->connect(data);
 }
 
 std::shared_ptr<IResult> Replayer_mysql::query(const std::string& sql_,
-                                               bool buffer) {
-  return _impl->query(sql_, buffer);
+                                               bool) {
+  std::string sql = _impl->do_query(sql_);
+  if (g_replay_row_hook)
+    return _impl->trace().expected_result(
+        std::bind(g_replay_row_hook, _impl->get_connection_options(), sql,
+                  std::placeholders::_1));
+  else
+    return _impl->trace().expected_result({});
 }
 
 void Replayer_mysql::execute(const std::string& sql) {
-  _impl->query(sql, true);
+  query(sql, true);
 }
 
 void Replayer_mysql::close() {
@@ -178,8 +198,27 @@ bool Replayer_mysql::is_open() const {
   return _impl->is_open();
 }
 
+uint64_t Replayer_mysql::get_connection_id() const {
+  std::string cid = _impl->get_info("connection_id");
+  if (cid.empty())
+    return 0;
+  return std::stoull(cid);
+}
+
 const char* Replayer_mysql::get_ssl_cipher() const {
-  return _impl->get_ssl_cipher();
+  return _impl->get_info_p("ssl_cipher");
+}
+
+const char* Replayer_mysql::get_connection_info() {
+  return _impl->get_info_p("connection_info");
+}
+
+const char* Replayer_mysql::get_server_info() {
+  return _impl->get_info_p("server_info");
+}
+
+mysqlshdk::utils::Version Replayer_mysql::get_server_version() const {
+  return mysqlshdk::utils::Version(_impl->get_info("server_version"));
 }
 
 const mysqlshdk::db::Connection_options&
@@ -194,25 +233,54 @@ Result_mysql::Result_mysql(uint64_t affected_rows, unsigned int warning_count,
 
 // ---
 
-Replayer_mysqlx::Replayer_mysqlx() {
-  _impl = new Replayer_impl(new Trace(next_replay_path("mysqlx_trace")));
+Replayer_mysqlx::Replayer_mysqlx(int print_traces)
+    : _print_traces(print_traces) {
+  _impl.reset(new Replayer_impl());
 }
 
 Replayer_mysqlx::~Replayer_mysqlx() {
-  delete _impl;
 }
 
-void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options& data) {
+void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options& data_) {
+  _impl->set_trace(new Trace(next_replay_path("mysqlx_trace"), _print_traces));
+
+  mysqlshdk::db::Connection_options data(data_);
+  // Normalization done in the real Session object must be done here too
+  if (!data.has_scheme())
+    data.set_scheme("mysqlx");
+
+  // All connections should use mode = VERIFY_CA if no ssl mode is specified
+  // and either ssl-ca or ssl-capath are specified
+  if (!data.has_value(mysqlshdk::db::kSslMode) &&
+      (data.has_value(mysqlshdk::db::kSslCa) ||
+       data.has_value(mysqlshdk::db::kSslCaPath))) {
+    data.set(mysqlshdk::db::kSslMode, {mysqlshdk::db::kSslModeVerifyCA});
+  }
+
   _impl->connect(data);
 }
 
 std::shared_ptr<IResult> Replayer_mysqlx::query(const std::string& sql_,
-                                                bool buffer) {
-  return _impl->query(sql_, buffer);
+                                                bool) {
+  std::string sql = _impl->do_query(sql_);
+  if (g_replay_row_hook)
+    return _impl->trace().expected_result_x(
+        std::bind(g_replay_row_hook, _impl->get_connection_options(), sql,
+                  std::placeholders::_1));
+  else
+    return _impl->trace().expected_result_x({});
+}
+
+std::shared_ptr<IResult> Replayer_mysqlx::execute_stmt(
+    const std::string& ns, const std::string& stmt,
+    const ::xcl::Arguments& args) {
+  if (ns != "sql" || !args.empty())
+    throw std::logic_error("not implemented");
+  return query(stmt, true);
 }
 
 void Replayer_mysqlx::execute(const std::string& sql) {
-  _impl->query(sql, true);
+  query(sql, true);
 }
 
 void Replayer_mysqlx::close() {
@@ -223,8 +291,23 @@ bool Replayer_mysqlx::is_open() const {
   return _impl->is_open();
 }
 
+uint64_t Replayer_mysqlx::get_connection_id() const {
+  std::string cid = _impl->get_info("connection_id");
+  if (cid.empty())
+    return 0;
+  return std::stoull(cid);
+}
+
 const char* Replayer_mysqlx::get_ssl_cipher() const {
-  return _impl->get_ssl_cipher();
+  return _impl->get_info_p("ssl_cipher");
+}
+
+const std::string& Replayer_mysqlx::get_connection_info() const {
+  return _impl->get_info("connection_info");
+}
+
+mysqlshdk::utils::Version Replayer_mysqlx::get_server_version() const {
+  return mysqlshdk::utils::Version(_impl->get_info("server_version"));
 }
 
 const mysqlshdk::db::Connection_options&

@@ -35,8 +35,10 @@ var singleSession2 = session;
 //testutil.expectEq(1, row[0]);
 //testutil.expectEq(2, row[1]);
 
+single.disconnect();
 //@ Get the cluster back
-var single = dba.getCluster();
+// don't redirect to primary, since we're killing it
+var single = dba.getCluster(null, {connectToPrimary:false});
 
 // Kill the seed instance
 testutil.killSandbox(__mysql_sandbox_port1);
@@ -83,6 +85,9 @@ single.addInstance(add_instance_options);
 singleSession.close();
 singleSession2.close();
 multiSession.close();
+
+single.disconnect();
+multi.disconnect();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

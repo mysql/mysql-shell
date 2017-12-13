@@ -21,10 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/mod_utils.h"
 #include "mysh_config.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #ifdef ENABLE_SESSION_RECORDING
@@ -158,7 +160,7 @@ class Interrupt_helper : public shcore::Interrupt_helper {
 
 #endif  //! WIN32
 
-static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
+static int enable_x_protocol(mysqlsh::Command_line_shell *shell) {
   static const char *script =
       "function enableXProtocol()\n"
       "{\n"
@@ -201,7 +203,7 @@ static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
       "enableXProtocol(); print('');\n"
       "\n";
   std::stringstream stream(script);
-  return shell.process_stream(stream, "(command line)", {});
+  return shell->process_stream(stream, "(command line)", {});
 }
 
 // Execute a Administrative DB command passed from the command line via the
@@ -209,7 +211,7 @@ static int enable_x_protocol(mysqlsh::Command_line_shell &shell) {
 int execute_dba_command(mysqlsh::Command_line_shell *shell,
                         const std::string &command) {
   if (command != "enableXProtocol") {
-    shell->print_error("Unsupported dba command " + command);
+    shell->print_error("Unsupported dba command " + command + "\n");
     return 1;
   }
 
@@ -218,7 +220,7 @@ int execute_dba_command(mysqlsh::Command_line_shell *shell,
   // dba.command() with param handling and others, from both interactive shell
   // and cmdline
 
-  return enable_x_protocol(*shell);
+  return enable_x_protocol(shell);
 }
 
 // Detects whether the shell will be running in interactive mode or not
@@ -377,6 +379,16 @@ std::string pick_prompt_theme(const char *argv0) {
   return path;
 }
 
+static void show_cluster_info(mysqlsh::Command_line_shell *shell,
+                              std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
+  // cluster->diagnose();
+  shell->println("You are connected to a member of cluster '" +
+                 cluster->get_name() + "'.");
+  shell->println(
+      "Variable 'cluster' is set.\nUse cluster.status() in scripting mode to "
+      "get status of this cluster or cluster.help() for more commands.");
+}
+
 int main(int argc, char **argv) {
 #ifdef WIN32
   UINT origcp = GetConsoleCP();
@@ -404,7 +416,7 @@ int main(int argc, char **argv) {
   JScript_context_init();
 #endif
 #ifdef ENABLE_SESSION_RECORDING
-  mysqlshdk::db::replay::setup_from_env();
+  mysqlshdk::db::replay::setup_global_from_env();
 #endif
 
   try {
@@ -462,7 +474,7 @@ int main(int argc, char **argv) {
       shell.print_cmd_line_helper();
       ret_val = options.exit_code;
     } else {
-      // Performs the connection
+      // Open the default shell session
       if (options.has_connection_data()) {
         try {
           mysqlshdk::db::Connection_options target =
@@ -478,15 +490,106 @@ int main(int argc, char **argv) {
                          "line interface can be insecure.\n";
           }
 
+          // Connect to the requested instance
           shell.connect(target, options.recreate_database);
+
+          // If redirect is requested, then reconnect to the right instance
+          switch (options.redirect_session) {
+            case mysqlsh::Shell_options::Storage::None:
+              break;
+            case mysqlsh::Shell_options::Storage::Primary: {
+              try {
+                if (!shell.redirect_session_if_needed(false)) {
+                  std::cerr
+                      << "NOTE: --redirect-primary ignored because target is "
+                         "already a PRIMARY\n";
+                }
+              } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+                std::cerr << "While handling --redirect-primary:\n";
+                if (e.code() ==
+                    mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+                  std::cerr
+                      << "ERROR: The cluster appears to be under a partial "
+                         "or total outage and the PRIMARY cannot be "
+                         "selected.\n"
+                      << e.what() << "\n";
+                  return 1;
+                }
+                throw;
+              } catch (...) {
+                std::cerr << "While handling --redirect-primary:\n";
+                throw;
+              }
+              break;
+            }
+            case mysqlsh::Shell_options::Storage::Secondary: {
+              try {
+                if (!shell.redirect_session_if_needed(true)) {
+                  std::cerr
+                      << "NOTE: --redirect-secondary ignored because target is "
+                         "already a SECONDARY\n";
+                }
+              } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+                std::cerr << "While handling --redirect-secondary:\n";
+                if (e.code() ==
+                    mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+                  std::cerr
+                      << "ERROR: The cluster appears to be under a partial "
+                         "or total outage and an ONLINE SECONDARY cannot "
+                         "be selected.\n"
+                      << e.what() << "\n";
+                  return 1;
+                }
+                throw;
+              } catch (...) {
+                std::cerr << "While handling --redirect-secondary:\n";
+                throw;
+              }
+              break;
+            }
+          }
+        } catch (mysqlshdk::db::Error &e) {
+          if (e.sqlstate() && *e.sqlstate())
+            std::cerr << "MySQL Error " << e.code() << " (" << e.sqlstate()
+                      << "): " << e.what() << "\n";
+          else
+            std::cerr << "MySQL Error " << e.code() << ": " << e.what() << "\n";
+          return 1;
         } catch (shcore::Exception &e) {
           std::cerr << e.format() << "\n";
-          ret_val = 1;
-          goto end;
+          return 1;
+        } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+          try {
+            mysqlsh::dba::translate_cluster_exception("");
+          } catch (std::exception &e) {
+            std::cerr << e.what() << "\n";
+            return 1;
+          }
         } catch (std::exception &e) {
           std::cerr << e.what() << "\n";
           ret_val = 1;
           goto end;
+        }
+      } else {
+        if (options.redirect_session) {
+          std::cerr << "--redirect option requires a session to a member of "
+                       "an InnoDB cluster\n";
+          return 1;
+        }
+      }
+
+      std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
+
+      // If default cluster specified on the cmdline, set cluster global var
+      if (options.default_cluster_set) {
+        try {
+          default_cluster =
+              shell.set_default_cluster(options.default_cluster);
+        } catch (shcore::Exception &e) {
+          std::cerr << "Option --cluster requires a session to a member of a "
+                       "InnoDB cluster.\n"
+                    << "ERROR: " << e.format() << "\n";
+          return 1;
         }
       }
 
@@ -512,6 +615,10 @@ int main(int argc, char **argv) {
         if (stdin_is_tty)
           shell.print_banner();
 
+        if (default_cluster) {
+          show_cluster_info(&shell, default_cluster);
+        }
+
         shell.command_loop();
 
         shell.save_state(shcore::get_user_config_path());
@@ -535,6 +642,10 @@ int main(int argc, char **argv) {
   }
 
   end:
+#ifdef ENABLE_SESSION_RECORDING
+  mysqlshdk::db::replay::finalize_global();
+#endif
+
 #ifdef _WIN32
   // Restore original codepage
   SetConsoleCP(origcp);
