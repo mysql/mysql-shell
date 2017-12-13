@@ -56,6 +56,13 @@ struct Instance_info {
 // Metadata query methods go here
 class Metadata : public std::enable_shared_from_this<Metadata> {
  public:
+  Metadata() = default;
+  Metadata(const Metadata &other) = default;
+  Metadata(Metadata &&other) = default;
+  Metadata &operator=(const Metadata &other) = default;
+  Metadata &operator=(Metadata &&other) = default;
+  virtual ~Metadata() = default;
+
   virtual bool exists() = 0;
  public:
   virtual bool get_cluster_named(const std::string &name,
