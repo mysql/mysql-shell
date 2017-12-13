@@ -557,6 +557,12 @@ def create_sandbox(**kwargs):
         "user": "root",
         "protocol": "TCP",
     }}
+    # Enable mysql_cache_cleaner plugin on server versions >= 8.0.4.
+    # This plugin is required for the hash based authentication to work
+    # (caching_sha2_password) to allow the shell to connect using the X
+    # protocol if SSL is disabled.
+    if mysqld_ver >= (8, 0, 4):
+        opt_dict["mysqld"]["mysqlx_cache_cleaner"] = "ON"
     if opt_override_dict:
         # If port is one of the options to override raise exception
         _LOGGER.debug("Adding/Overriding option file values.")
