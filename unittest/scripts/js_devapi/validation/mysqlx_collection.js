@@ -110,7 +110,7 @@ SYNTAX
 |Query OK, 1 item affected|
 
 //@ addOrReplaceOne: error adding with key (BUG#27013165)
-|Query OK, 0 items affected|
+||Unable upsert data in document collection 'add_or_replace_one' (MySQL Error 5018)
 
 //@ addOrReplaceOne: error replacing with key
 ||Document contains a field value that is not unique but required to be
