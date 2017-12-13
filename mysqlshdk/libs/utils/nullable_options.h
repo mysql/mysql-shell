@@ -59,6 +59,8 @@ class SHCORE_PUBLIC Nullable_options {
  public:
   Nullable_options(Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE,
                    const std::string& context = "");
+  virtual ~Nullable_options() {
+  }
 
   bool has(const std::string& name) const;
   bool has_value(const std::string& name) const;
