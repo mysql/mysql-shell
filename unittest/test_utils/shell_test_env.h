@@ -107,6 +107,7 @@ class Shell_test_env : public ::testing::Test {
   static void SetUpTestCase();
 
   std::string setup_recorder(const char *sub_test_name = nullptr);
+  void teardown_recorder();
 
  protected:
   std::string _host;  //!< The host name configured in MYSQL_URI

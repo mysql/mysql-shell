@@ -47,51 +47,6 @@ class Auto_script_py : public Shell_py_script_tester,
     set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_py", "setup.py"));
   }
 
-  void reset_replayable_shell(const char *sub_test_name) {
-    setup_recorder(sub_test_name);  // must be called before set_defaults()
-    reset_shell();
-    execute_setup();
-
-#ifdef _WIN32
-    mysqlshdk::db::replay::set_replay_query_hook([](const std::string& sql) {
-      return shcore::str_replace(sql, ".dll", ".so");
-    });
-#endif
-
-    // Intercept queries and hack their results so that we can have
-    // recorded local sessions that match the actual local environment
-    mysqlshdk::db::replay::set_replay_row_hook(
-        [this](const mysqlshdk::db::Connection_options& target,
-               const std::string& sql,
-               std::unique_ptr<mysqlshdk::db::IRow> source)
-            -> std::unique_ptr<mysqlshdk::db::IRow> {
-          int datadir_column = -1;
-          if (sql == "SELECT @@datadir") {
-            datadir_column = 0;
-          } else if (sql == "select @@port, @@datadir;") {
-            datadir_column = 1;
-          }
-
-          if (datadir_column >= 0) {
-            std::string prefix = shcore::path::dirname(
-                shcore::path::dirname(source->get_string(datadir_column)));
-            std::string suffix =
-                source->get_string(datadir_column).substr(prefix.length() + 1);
-            std::string datadir = shcore::path::join_path(_sandbox_dir, suffix);
-#ifdef _WIN32
-            datadir = shcore::str_replace(datadir, "/", "\\");
-#endif
-            return std::unique_ptr<mysqlshdk::db::IRow>{new Override_row_string(
-                std::move(source), datadir_column, datadir)};
-          }
-
-          if (sql.find("@@datadir") != std::string::npos)
-            throw std::logic_error(
-                "query contains datadir but is not intercepted");
-          return source;
-        });
-  }
-
   virtual void set_defaults() {
     Shell_py_script_tester::set_defaults();
 

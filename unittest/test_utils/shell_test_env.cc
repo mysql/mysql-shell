@@ -233,21 +233,10 @@ void Shell_test_env::TearDown() {
     if (!check_open_sessions()) {
       ADD_FAILURE() << "Leaky sessions detected\n";
     }
-    mysqlshdk::db::replay::on_recorder_connect_hook = {};
-    mysqlshdk::db::replay::on_recorder_close_hook = {};
 
-    if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
-      // If the test failed during recording mode, put a fail marker in the
-      // trace dir
-      const ::testing::TestInfo *const test_info =
-          ::testing::UnitTest::GetInstance()->current_test_info();
-      if (!test_info->result()->Failed()) {
-        shcore::delete_file(mysqlshdk::db::replay::current_recording_dir() +
-                            "/FAILED");
-      }
-    }
+    teardown_recorder();
+
     mysqlshdk::utils::Random::set(nullptr);
-    mysqlshdk::db::replay::end_recording_context();
   }
 }
 
@@ -366,6 +355,23 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
   }
 
   return tracedir;
+}
+
+void Shell_test_env::teardown_recorder() {
+  mysqlshdk::db::replay::on_recorder_connect_hook = {};
+  mysqlshdk::db::replay::on_recorder_close_hook = {};
+
+  if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
+    // If the test failed during recording mode, put a fail marker in the
+    // trace dir
+    const ::testing::TestInfo *const test_info =
+        ::testing::UnitTest::GetInstance()->current_test_info();
+    if (!test_info->result()->Failed()) {
+      shcore::delete_file(mysqlshdk::db::replay::current_recording_dir() +
+                          "/FAILED");
+    }
+  }
+  mysqlshdk::db::replay::end_recording_context();
 }
 
 /**

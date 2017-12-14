@@ -33,7 +33,6 @@ Shell_base_test::Shell_base_test() {
 }
 
 void Shell_base_test::TearDown() {
-  _servers.clear();
   Shell_test_env::TearDown();
 }
 
@@ -276,39 +275,10 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
 }
 
 /**
- * Starts a server mock.
- * @param port The port where the server mock will be listening for connections.
- * @param data An array containing sql and results to be used by the mock.
- *
- * Mock servers are available only for MySQL sessions.
- */
-std::string Shell_base_test::start_server_mock(
-    int port, const std::vector<testing::Fake_result_data>& data) {
-  std::string ret_val;
-  assert(_servers.find(port) == _servers.end());
-  _servers[port] = std::shared_ptr<Server_mock>(new Server_mock());
-
-  try {
-    _servers[port]->start(port, data);
-  } catch (const std::runtime_error &e) {
-    stop_server_mock(port);
-    ret_val = "Failure Starting Mock Server at port " + std::to_string(port) +
-              ": " + e.what();
-  }
-
-  return ret_val;
-}
-
-/**
  * Joins all the lines on the vector using the new line character
  */
 std::string Shell_base_test::multiline(const std::vector<std::string> input) {
   return shcore::str_join(input, "\n");
-}
-
-void Shell_base_test::stop_server_mock(int port) {
-  _servers[port]->stop();
-  _servers.erase(port);
 }
 
 }  // namespace tests

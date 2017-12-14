@@ -43,12 +43,9 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <thread>
 #include <vector>
-#include "unittest/test_utils/server_mock.h"
 #include "unittest/test_utils/shell_test_env.h"
 
 namespace tests {
-
-#define START_SERVER_MOCK(P, D) ASSERT_EQ("", start_server_mock(P, D))
 
 /**
  * \ingroup UTFramework
@@ -77,12 +74,6 @@ class Shell_base_test : public Shell_test_env {
   std::string multiline(const std::vector<std::string> input);
 
   void create_file(const std::string& name, const std::string& content);
-  std::string start_server_mock(
-      int port, const std::vector<testing::Fake_result_data>& data);
-  void stop_server_mock(int port);
-
- private:
-  std::map<int, std::shared_ptr<tests::Server_mock> > _servers;
 };
 }  // namespace tests
 

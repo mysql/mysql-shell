@@ -193,11 +193,12 @@ class Completer_frontend : public Shell_core_test_wrapper {
   }
 
   void reset_shell() override {
+    get_options();
     _options->interactive = true;
     _options->db_name_cache = true;
 
     _interactive_shell.reset(new mysqlsh::Command_line_shell(
-        _opts, std::unique_ptr<shcore::Interpreter_delegate>(
+        get_options(), std::unique_ptr<shcore::Interpreter_delegate>(
                    new shcore::Interpreter_delegate(output_handler.deleg))));
 
     execute("\\py");

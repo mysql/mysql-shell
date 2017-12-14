@@ -34,48 +34,6 @@ extern "C" const char *g_test_home;
 
 namespace tests {
 
-static int find_column_in_select_stmt(const std::string &sql,
-  const std::string &column) {
-  std::string s = shcore::str_lower(sql);
-  // sanity checks for things we don't support
-  assert(s.find(" from ") == std::string::npos);
-  assert(s.find(" where ") == std::string::npos);
-  assert(s.find("select ") == 0);
-  assert(column.find(" ") == std::string::npos);
-  // other not supported things...: ``, column names with special chars,
-  // aliases, stuff in comments etc
-  s = s.substr(strlen("select "));
-
-  // trim out stuff inside parenthesis which can confuse the , splitter and
-  // are not supported anyway, like:
-  // select (select a, b from something), c
-  // select concat(a, b), c
-  std::string::size_type p = s.find("(");
-  while (p != std::string::npos) {
-    std::string::size_type pp = s.find(")", p);
-    if (pp != std::string::npos) {
-      s = s.substr(0, p + 1) + s.substr(pp);
-    } else {
-      break;
-    }
-    p = s.find("(", pp);
-  }
-
-  std::vector<std::string> columns(shcore::str_split(s, ","));
-  // the last column name can contain other stuff
-  columns[columns.size() - 1] =
-      shcore::str_split(shcore::str_strip(columns.back()), " \t\n\r").front();
-
-  int i = 0;
-  for (const auto &c : columns) {
-    if (shcore::str_strip(c) == column)
-      return i;
-    ++i;
-  }
-  return -1;
-}
-
-
 class Auto_script_js : public Shell_js_script_tester,
                            public ::testing::WithParamInterface<std::string> {
  protected:
@@ -88,52 +46,6 @@ class Auto_script_js : public Shell_js_script_tester,
 
     // Common setup script
     set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js", "setup.js"));
-  }
-
-  void reset_replayable_shell(const char *sub_test_name) {
-    setup_recorder(sub_test_name);  // must be called before set_defaults()
-    reset_shell();
-    execute_setup();
-
-#ifdef _WIN32
-    mysqlshdk::db::replay::set_replay_query_hook([](const std::string& sql) {
-      return shcore::str_replace(sql, ".dll", ".so");
-    });
-#endif
-
-    // Intercept queries and hack their results so that we can have
-    // recorded local sessions that match the actual local environment
-    mysqlshdk::db::replay::set_replay_row_hook(
-        [this](const mysqlshdk::db::Connection_options& target,
-               const std::string& sql,
-               std::unique_ptr<mysqlshdk::db::IRow> source)
-            -> std::unique_ptr<mysqlshdk::db::IRow> {
-          int datadir_column = -1;
-
-          if (sql.find("@@datadir") != std::string::npos &&
-              shcore::str_ibeginswith(sql, "select ")) {
-            // find the index for @@datadir in the query
-            datadir_column = find_column_in_select_stmt(sql, "@@datadir");
-            assert(datadir_column >= 0);
-          } else {
-            assert(sql.find("@@datadir") == std::string::npos);
-          }
-
-          // replace sandbox @@datadir from results with actual datadir
-          if (datadir_column >= 0) {
-            std::string prefix = shcore::path::dirname(
-                shcore::path::dirname(source->get_string(datadir_column)));
-            std::string suffix =
-                source->get_string(datadir_column).substr(prefix.length() + 1);
-            std::string datadir = shcore::path::join_path(_sandbox_dir, suffix);
-#ifdef _WIN32
-            datadir = shcore::str_replace(datadir, "/", "\\");
-#endif
-            return std::unique_ptr<mysqlshdk::db::IRow>{new Override_row_string(
-                std::move(source), datadir_column, datadir)};
-          }
-          return source;
-        });
   }
 
   virtual void set_defaults() {

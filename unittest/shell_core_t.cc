@@ -218,8 +218,9 @@ TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
   _options->wizards = false;
   _interactive_shell->shell_context()->set_global(
-      "session", Value(std::static_pointer_cast<Object_bridge>(
-                     std::make_shared<shcore::Mod_shell_options>(_opts))));
+      "session",
+      Value(std::static_pointer_cast<Object_bridge>(
+          std::make_shared<shcore::Mod_shell_options>(get_options()))));
   _options->wizards = true;
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
 

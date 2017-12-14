@@ -28,18 +28,30 @@
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "unittest/test_utils/admin_api_test.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "scripting/types.h"
+#include "unittest/test_utils/mod_testutils.h"
+#include "src/interactive/interactive_global_dba.h"
+#include "unittest/test_utils/shell_test_wrapper.h"
 
+using mysqlshdk::mysql::Instance;
+using mysqlshdk::mysql::Var_qualifier;
 namespace tests {
 class Dba_common_test : public Admin_api_test {
+ public:
+  virtual void SetUp() {
+    Admin_api_test::SetUp();
+    reset_replayable_shell();
+  }
+
  protected:
-  std::shared_ptr<mysqlshdk::db::ISession> create_session(int port) {
+  static std::shared_ptr<mysqlshdk::db::ISession>
+    create_session(int port, std::string user = "root") {
     auto session = mysqlshdk::db::mysql::Session::create();
 
     auto connection_options = shcore::get_connection_options(
-        "user:@localhost:" + std::to_string(port), false);
+        user + ":root@localhost:" + std::to_string(port), false);
     session->connect(connection_options);
 
     return session;
@@ -57,78 +69,74 @@ class Dba_common_test : public Admin_api_test {
 
     return session;
   }
+
+  void disable_ssl_on_instance(int port, const std::string& unsecure_user) {
+    auto session = create_session(port);
+    session->query("create user " + unsecure_user + "@'%' identified with "
+                   "mysql_native_password by 'root'");
+    session->close();
+
+    testutil->stop_sandbox(port, "root");
+    testutil->change_sandbox_conf(port, "ssl=0");
+    testutil->change_sandbox_conf(port, "default_authentication_plugin="
+                                         "mysql_native_password");
+    testutil->start_sandbox(port);
+  }
 };
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_001) {
+TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  auto session = create_session(_mysql_sandbox_nport1);
+  Instance instance(session);
+
   // InstanceSSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // enabled     ""            ON
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  add_get_server_variable_query(&queries, "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "1");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
-
+  instance.set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
   try {
     auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_cluster_ssl_mode_001");
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=ON, "
+                 "memberSslMode=''");
     ADD_FAILURE();
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
-
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_002) {
   // InstanceSSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
-  // enabled     ""            OFF
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  add_get_server_variable_query(&queries, "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "0");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto session = create_session(_mysql_sandbox_nport1);
-
+  // enabled     "AUTO"        ON
   try {
-    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
     EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_cluster_ssl_mode_002");
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=ON, "
+                 "memberSslMode=AUTO");
     ADD_FAILURE();
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
+  // InstanceSSL memberSslMode require_secure_transport
+  //----------- ------------- ------------------------
+  // enabled     "REQUIRED"   ON
+  try {
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "REQUIRED");
+    EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=ON, "
+                 "memberSslMode=REQUIRED");
+    ADD_FAILURE();
+  }
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_003) {
+
   // InstanceSSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // enabled     "DISABLED"    ON
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  add_get_server_variable_query(&queries, "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "1");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
-
   try {
     mysqlsh::dba::resolve_cluster_ssl_mode(session, "DISABLED");
-    SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_003");
+    SCOPED_TRACE("Unexpected success at require_secure_transport=ON, "
+                 "memberSslMode=DISABLED");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
@@ -141,101 +149,82 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_003) {
         error);
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_004) {
+  // InstanceSSL memberSslMode require_secure_transport
+  //----------- ------------- ------------------------
+  // enabled     ""            OFF
+  instance.set_sysvar("require_secure_transport", false, Var_qualifier::GLOBAL);
+  try {
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
+    EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=OFF, "
+                 "memberSslMode=''");
+    ADD_FAILURE();
+  }
+
+  // InstanceSSL memberSslMode require_secure_transport
+  //----------- ------------- ------------------------
+  // enabled     "AUTO"       OFF
+  try {
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
+    EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=OFF, "
+                 "memberSslMode=AUTO");
+    ADD_FAILURE();
+  }
+
+  // InstanceSSL memberSslMode require_secure_transport
+  //----------- ------------- ------------------------
+  // enabled     "REQUIRED"   OFF
+  try {
+    auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "REQUIRED");
+    EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=OFF, "
+                 "memberSslMode=REQUIRED");
+    ADD_FAILURE();
+  }
+
   // InstanceSSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // enabled     "DISABLED"    OFF
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  add_get_server_variable_query(&queries, "GLOBAL.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "0");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
-
   try {
     auto ssl_mode =
         mysqlsh::dba::resolve_cluster_ssl_mode(session, "DISABLED");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_004");
+    SCOPED_TRACE("Unexpected failure at require_secure_transport=OFF, "
+                 "memberSslMode=DISABLED");
     ADD_FAILURE();
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
-
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_005) {
-  // InstanceSSL memberSslMode
-  //----------- -------------
-  // enabled     "REQUIRED"
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
-
-  try {
-    auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session, "REQUIRED");
-    EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_005");
-    ADD_FAILURE();
-  }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_006) {
-  // InstanceSSL memberSslMode
-  //----------- -------------
-  // enabled     "AUTO"
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
+TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  disable_ssl_on_instance(_mysql_sandbox_nport1, "unsecure");
 
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
+  auto session = create_session(_mysql_sandbox_nport1, "unsecure");
 
-  try {
-    auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
-    EXPECT_STREQ("REQUIRED", ssl_mode.c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_006");
-    ADD_FAILURE();
-  }
+  Instance instance(session);
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
-
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_007) {
   // InstanceSSL memberSslMode
   //----------- -------------
   // disabled    "REQUIRED"
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "NO");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
-
   try {
     mysqlsh::dba::resolve_cluster_ssl_mode(session, "REQUIRED");
     SCOPED_TRACE("Unexpected success at resolve_cluster_ssl_mode_007");
     ADD_FAILURE();
+
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS("The instance '" + session->uri() +
@@ -248,20 +237,10 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_007) {
                               error);
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_008) {
   // InstanceSSL memberSslMode
   //----------- -------------
   // disabled    ""
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "NO");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
-
   try {
     auto ssl_mode = mysqlsh::dba::resolve_cluster_ssl_mode(session, "");
     EXPECT_STREQ("DISABLED", ssl_mode.c_str());
@@ -271,19 +250,22 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_008) {
     ADD_FAILURE();
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
+  // InstanceSSL memberSslMode
+  //----------- -------------
+  // disabled    "AUTO"
+  try {
+    auto ssl_mode =
+        mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
+    EXPECT_STREQ("DISABLED", ssl_mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at resolve_cluster_ssl_mode_010");
+    ADD_FAILURE();
+  }
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_009) {
   // InstanceSSL memberSslMode
   //----------- -------------
   // disabled    "DISABLED"
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "NO");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
 
   try {
     auto ssl_mode =
@@ -295,89 +277,75 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_009) {
     ADD_FAILURE();
   }
 
-  session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_010) {
-  // InstanceSSL memberSslMode
-  //----------- -------------
-  // disabled    "AUTO"
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "NO");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-  auto session = create_session(_mysql_sandbox_nport1);
-
-  try {
-    auto ssl_mode =
-        mysqlsh::dba::resolve_cluster_ssl_mode(session, "AUTO");
-    EXPECT_STREQ("DISABLED", ssl_mode.c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_cluster_ssl_mode_010");
-    ADD_FAILURE();
-  }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
 }
 
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_001) {
+
+TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_nport2, "root");
+  execute("shell.connect('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+
+  testutil->expect_prompt(
+      "Should the configuration be changed accordingly? [y|N]: ", "y");
+  execute("var c = dba.createCluster('sample', {memberSslMode:'REQUIRED'})");
+  execute("c.disconnect()");
+
+  auto peer_session = create_session(_mysql_sandbox_nport1);
+  auto instance_session = create_session(_mysql_sandbox_nport2);
+
   // Cluster SSL memberSslMode
   //----------- -------------
   // REQUIRED    ""
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "REQUIRED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
   try {
     auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                                         peer_session, "");
     EXPECT_STREQ("REQUIRED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_instance_ssl_mode_001");
+    SCOPED_TRACE("Unexpected failure with memberSslMode='', instance with SSL");
     ADD_FAILURE();
   }
 
-  peer_session->close();
-  instance_session->close();
+  // Cluster SSL memberSslMode Instance SSL
+  //----------- ------------- ------------
+  // REQUIRED    AUTO          enabled
+  try {
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
+        instance_session, peer_session, "AUTO");
+    EXPECT_STREQ("REQUIRED", mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure with memberSslMode='AUTO', instance with "
+                 "SSL");
+    ADD_FAILURE();
+  }
 
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
+  // Cluster SSL memberSslMode Instance SSL
+  //----------- ------------- ------------
+  // REQUIRED    REQUIRED      enabled
+  try {
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
+        instance_session, peer_session, "REQUIRED");
+    EXPECT_STREQ("REQUIRED", mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at memberSslMode='REQUIRED', instance "
+                 "with SSL");
+    ADD_FAILURE();
+  }
 
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_002) {
+
   // Cluster SSL memberSslMode
   //----------- -------------
   // REQUIRED    DISABLED
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "REQUIRED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
   try {
     mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                             peer_session, "DISABLED");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_002");
+    SCOPED_TRACE("Unexpected success at memberSslMode='REQUIRED'");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
@@ -392,70 +360,17 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_002) {
         error);
   }
 
-  peer_session->close();
   instance_session->close();
+  disable_ssl_on_instance(_mysql_sandbox_nport2, "unsecure");
+  instance_session = create_session(_mysql_sandbox_nport2, "unsecure");
 
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_003) {
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    AUTO          enabled
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "REQUIRED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
-  try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
-        instance_session, peer_session, "AUTO");
-    EXPECT_STREQ("REQUIRED", mode.c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_instance_ssl_mode_003");
-    ADD_FAILURE();
-  }
-
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_004) {
   // Cluster SSL memberSslMode Instance SSL
   //----------- ------------- ------------
   // REQUIRED    AUTO          disabled
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "REQUIRED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "NO");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
   try {
     mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                             peer_session, "AUTO");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_004");
+    SCOPED_TRACE("Unexpected success at instance with no SSL");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
@@ -469,70 +384,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_004) {
         error);
   }
 
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_005) {
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    REQUIRED      enabled
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "REQUIRED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "YES");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
-  try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
-        instance_session, peer_session, "REQUIRED");
-    EXPECT_STREQ("REQUIRED", mode.c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_instance_ssl_mode_005");
-    ADD_FAILURE();
-  }
-
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_006) {
   // Cluster SSL memberSslMode Instance SSL
   //----------- ------------- ------------
   // REQUIRED    REQUIRED      disabled
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "REQUIRED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.have_ssl",
-                                mysqlshdk::db::Type::String, "NO");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
   try {
     mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                             peer_session, "REQUIRED");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_006");
+    SCOPED_TRACE("Unexpected success at instance with no SSL");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
@@ -548,31 +406,31 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_006) {
 
   peer_session->close();
   instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport2);
 }
 
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_007) {
+
+TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
+  testutil->deploy_sandbox(_mysql_sandbox_nport1, "root");
+  testutil->deploy_sandbox(_mysql_sandbox_nport2, "root");
+  execute("shell.connect('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+
+  testutil->expect_prompt("Should the configuration be changed accordingly? [y|N]: ", "y");
+  execute("var c = dba.createCluster('sample', {memberSslMode:'DISABLED'})");
+  execute("c.disconnect()");
+
+  auto peer_session = create_session(_mysql_sandbox_nport1);
+  auto instance_session = create_session(_mysql_sandbox_nport2);
+
+
   // Cluster SSL memberSslMode
   //----------- -------------
   // DISABLED    REQUIRED
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "DISABLED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
   try {
     mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                             peer_session, "REQUIRED");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_007");
+    SCOPED_TRACE("Unexpected success using memberSslMode=REQUIRED");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
@@ -587,113 +445,46 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_007) {
         error);
   }
 
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_008) {
-  // Cluster SSL memberSslMode require_secure_transport
-  //----------- ------------- ------------------------
-  // DISABLED    ""            ON
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "DISABLED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "1");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
-  try {
-    mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
-                                            peer_session, "");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_008");
-    ADD_FAILURE();
-  } catch (const shcore::Exception &e) {
-    std::string error = e.what();
-    MY_EXPECT_OUTPUT_CONTAINS(
-        "The instance '" + instance_session->uri() +
-            "' "
-            "is configured to require a secure transport but the cluster has "
-            "SSL "
-            "disabled. To add the instance to the cluster, either turn OFF the "
-            "require_secure_transport option on the instance or enable SSL on "
-            "the cluster.",
-        error);
-  }
-
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_009) {
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // DISABLED    ""            OFF
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "DISABLED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "0");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
   try {
     auto mode = mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                                         peer_session, "");
     EXPECT_STREQ("DISABLED", mode.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_instance_ssl_mode_009");
+    SCOPED_TRACE("Unexpected failure using memberSslMode=''");
     ADD_FAILURE();
   }
 
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_010) {
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
-  // DISABLED    AUTO          ON
+  // DISABLED    AUTO          OFF
+  try {
+    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
+        instance_session, peer_session, "AUTO");
+    EXPECT_STREQ("DISABLED", mode.c_str());
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure using memberSslMode=AUTO");
+    ADD_FAILURE();
+  }
 
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "DISABLED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
 
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "1");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
 
+  Instance instance(instance_session);
+  instance.set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
+
+
+  // Cluster SSL memberSslMode require_secure_transport
+  //----------- ------------- ------------------------
+  // DISABLED    ""            ON
   try {
     mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
-                                            peer_session, "AUTO");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_010");
+                                            peer_session, "");
+    SCOPED_TRACE("Unexpected success at instance with require_secure_transport"
+                 "=ON and memberSslMode=''");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
@@ -708,107 +499,53 @@ TEST_F(Dba_common_test, resolve_instance_ssl_mode_010) {
         error);
   }
 
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_011) {
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
-  // DISABLED    AUTO          OFF
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "DISABLED");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "global.require_secure_transport",
-                                mysqlshdk::db::Type::Integer, "0");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
-  try {
-    auto mode = mysqlsh::dba::resolve_instance_ssl_mode(
-        instance_session, peer_session, "AUTO");
-    EXPECT_STREQ("DISABLED", mode.c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at resolve_instance_ssl_mode_011");
-    ADD_FAILURE();
-  }
-
-  peer_session->close();
-  instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, resolve_instance_ssl_mode_012) {
-  // Cluster SSL
-  //-----------
-  // ANY_OTHER
-
-  std::vector<testing::Fake_result_data> peer_queries;
-  add_get_server_variable_query(&peer_queries,
-                                "global.group_replication_ssl_mode",
-                                mysqlshdk::db::Type::String, "ANY_OTHER");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, peer_queries);
-  auto peer_session = create_session(_mysql_sandbox_nport1);
-
-  std::vector<testing::Fake_result_data> queries;
-  START_SERVER_MOCK(_mysql_sandbox_nport2, queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-
+  // DISABLED    AUTO          ON
   try {
     mysqlsh::dba::resolve_instance_ssl_mode(instance_session,
                                             peer_session, "AUTO");
-    SCOPED_TRACE("Unexpected success at resolve_instance_ssl_mode_012");
+    SCOPED_TRACE("Unexpected success at instance with require_secure_transport"
+                 "=ON and memberSslMode=AUTO");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     std::string error = e.what();
     MY_EXPECT_OUTPUT_CONTAINS(
-        "Unsupported Group Replication SSL Mode for the "
-        "cluster: 'ANY_OTHER'. If the cluster was created using "
-        "adoptFromGR:true "
-        "make sure the group_replication_ssl_mode variable is set with a "
-        "supported value (DISABLED or REQUIRED) for all cluster members.",
+        "The instance '" + instance_session->uri() +
+            "' "
+            "is configured to require a secure transport but the cluster has "
+            "SSL "
+            "disabled. To add the instance to the cluster, either turn OFF the "
+            "require_secure_transport option on the instance or enable SSL on "
+            "the cluster.",
         error);
   }
 
+  instance_session->close();
+  disable_ssl_on_instance(_mysql_sandbox_nport2, "unsecure");
+  instance_session = create_session(_mysql_sandbox_nport2, "unsecure");
+
   peer_session->close();
   instance_session->close();
-
-  stop_server_mock(_mysql_sandbox_nport1);
-  stop_server_mock(_mysql_sandbox_nport2);
+  testutil->destroy_sandbox(_mysql_sandbox_nport1);
+  testutil->destroy_sandbox(_mysql_sandbox_nport2);
 }
 
-TEST_F(Dba_common_test, get_instances_gr) {
-  // get_instances_gr():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
 
-  std::vector<testing::Fake_result_data> queries;
-  std::vector<std::vector<std::string>> values;
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
 
-  add_ps_gr_group_members_query(&queries, values);
+class Dba_common_cluster_functions: public Dba_common_test {
+public:
+  static void SetUpTestCase() {
+    SetUpSampleCluster("Dba_common_cluster_functions/SetUpTestCase");
+  }
 
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
+  static void TearDownTestCase() {
+    TearDownSampleCluster("Dba_common_cluster_functions/TearDownTestCase");
+  }
+};
 
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
+TEST_F(Dba_common_cluster_functions, get_instances_gr) {
+  auto md_session = create_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -816,8 +553,11 @@ TEST_F(Dba_common_test, get_instances_gr) {
   try {
     auto result = mysqlsh::dba::get_instances_gr(metadata);
 
-    for (uint64_t i = 0; i < result.size(); i++)
-      EXPECT_STREQ(values[i][0].c_str(), result[i].c_str());
+    auto pos1 = std::find(result.begin(), result.end(), uuid_1);
+    EXPECT_TRUE(pos1 != result.end());
+
+    auto pos2 = std::find(result.begin(), result.end(), uuid_2);
+    EXPECT_TRUE(pos2 != result.end());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at get_instances_gr");
@@ -825,29 +565,10 @@ TEST_F(Dba_common_test, get_instances_gr) {
   }
 
   md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
 }
 
-TEST_F(Dba_common_test, get_instances_md) {
-  // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-  std::vector<std::vector<std::string>> values;
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_md_group_members_query(&queries, values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
+TEST_F(Dba_common_cluster_functions, get_instances_md) {
+  auto md_session = create_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -855,8 +576,11 @@ TEST_F(Dba_common_test, get_instances_md) {
   try {
     auto result = mysqlsh::dba::get_instances_md(metadata, 1);
 
-    for (uint64_t i = 0; i < result.size(); i++)
-      EXPECT_STREQ(values[i][0].c_str(), result[i].c_str());
+    auto pos1 = std::find(result.begin(), result.end(), uuid_1);
+    EXPECT_TRUE(pos1 != result.end());
+
+    auto pos2 = std::find(result.begin(), result.end(), uuid_2);
+    EXPECT_TRUE(pos2 != result.end());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at get_instances_md");
@@ -864,34 +588,13 @@ TEST_F(Dba_common_test, get_instances_md) {
   }
 
   md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
 }
 
 // If the information on the Metadata and the GR group
 // P_S info is the same get_newly_discovered_instances()
 // result return an empty list
-TEST_F(Dba_common_test, get_newly_discovered_instances_001) {
-  // get_instances_gr() // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-  add_md_group_members_query(&queries, values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
+TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
+  auto md_session = create_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -908,103 +611,13 @@ TEST_F(Dba_common_test, get_newly_discovered_instances_001) {
   }
 
   md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
-
-// If the information on the Metadata and the GR group
-// P_S info is the same but in different order,
-// get_newly_discovered_instances() should return an empty list
-//
-// Regression test for BUG #25534693
-TEST_F(Dba_common_test, get_newly_discovered_instances_002) {
-  // get_instances_gr():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-
-  // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-
-  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
-            {"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"}};
-
-  add_md_group_members_query(&queries, values);
-
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9", "localhost", "3310"}};
-
-  add_ps_gr_group_members_full_query(
-      &queries, "851f0e89-5730-11e7-9e4f-b86b230042b9", values);
-
-  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost", "3320"}};
-
-  add_ps_gr_group_members_full_query(
-      &queries, "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  try {
-    auto newly_discovered_instances_list(
-        get_newly_discovered_instances(metadata, 1));
-
-    EXPECT_TRUE(newly_discovered_instances_list.empty());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at get_instances_md");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
 }
 
 // If the information on the Metadata and the GR group
 // P_S info is the same get_unavailable_instances()
 // should return an empty list
-TEST_F(Dba_common_test, get_unavailable_instances_001) {
-  // get_instances_gr() // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-  add_md_group_members_query(&queries, values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
+TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
+  auto md_session = create_session(_mysql_sandbox_nport1);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
@@ -1020,99 +633,16 @@ TEST_F(Dba_common_test, get_unavailable_instances_001) {
   }
 
   md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
 }
 
-// If the information on the Metadata and the GR group
-// P_S info is the same but in different order,
-// get_unavailable_instances() should return an empty list
-//
-// Regression test for BUG #25534693
-TEST_F(Dba_common_test, get_unavailable_instances_002) {
-  // get_instances_gr():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
-            {"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-
-  // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_md_group_members_query(&queries, values);
-
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9", "localhost:3330",
-             "localhost:3330"}};
-
-  add_md_group_members_full_query(
-      &queries, "851f0e89-5730-11e7-9e4f-b86b230042b9", values);
-
-  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost:3320",
-             "localhost:3320"}};
-
-  add_md_group_members_full_query(
-      &queries, "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  try {
-    auto unavailable_instances_list(get_unavailable_instances(metadata, 1));
-
-    EXPECT_TRUE(unavailable_instances_list.empty());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at get_unavailable_instances_002");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-}
-
-TEST_F(Dba_common_test, get_gr_replicaset_group_name) {
-  // @@group_replication_group_name
-  //-------------------------------------
-  // fd4b70e8-5cb1-11e7-a68b-b86b230042b9
-  //-------------------------------------
-
-  std::vector<testing::Fake_result_data> queries;
-  add_get_server_variable_query(&queries, "group_replication_group_name",
-                                mysqlshdk::db::Type::String,
-                                "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
+TEST_F(Dba_common_cluster_functions, get_gr_replicaset_group_name) {
   auto session = create_session(_mysql_sandbox_nport1);
 
   try {
     std::string result =
         mysqlsh::dba::get_gr_replicaset_group_name(session);
 
-    EXPECT_STREQ("fd4b70e8-5cb1-11e7-a68b-b86b230042b9", result.c_str());
+    EXPECT_STREQ(group_name.c_str(), result.c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at get_gr_replicaset_group_name");
@@ -1120,7 +650,115 @@ TEST_F(Dba_common_test, get_gr_replicaset_group_name) {
   }
 
   session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
+}
+
+TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
+  // There are missing instances and the instance we are checking belongs to
+  // the metadata list but does not belong to the GR list.
+
+  auto md_session = create_session(_mysql_sandbox_nport1);
+  auto instance_session = create_session(_mysql_sandbox_nport3);
+
+  // Insert a fake record for the third instance on the metadata
+  std::string query = "insert into mysql_innodb_cluster_metadata.instances "
+                      "values (0, 1, " + std::to_string(_replicaset->get_id()) +
+                      ", '" + uuid_3 + "', 'localhost:<port>', "
+                      "'HA', NULL, '{\"mysqlX\": \"localhost:<port>0\", "
+                      "\"grLocal\": \"localhost:1<port>\", "
+                      "\"mysqlClassic\": \"localhost:<port>\"}', "
+                      "NULL, NULL, NULL)";
+
+  query = shcore::str_replace(query, "<port>", _mysql_sandbox_port3.c_str());
+
+  md_session->query(query);
+
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    bool is_rejoinable(
+        validate_instance_rejoinable(instance_session, metadata, 1));
+
+    EXPECT_TRUE(is_rejoinable);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_01");
+    ADD_FAILURE();
+  }
+
+  md_session->query("delete from mysql_innodb_cluster_metadata.instances "
+                    " where mysql_server_uuid = '" + uuid_3 + "'");
+
+  md_session->close();
+  instance_session->close();
+}
+
+TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
+  // There are missing instances and the instance we are checking belongs
+  // to neither the metadata nor GR lists.
+
+  auto md_session = create_session(_mysql_sandbox_nport1);
+  auto instance_session = create_session(_mysql_sandbox_nport3);
+
+  // Insert a fake record for the third instance on the metadata
+  std::string query = "insert into mysql_innodb_cluster_metadata.instances "
+                      "values (0, 1, " + std::to_string(_replicaset->get_id()) +
+                      ", '11111111-2222-3333-4444-555555555555', "
+                      "'localhost:<port>', 'HA', NULL, "
+                      "'{\"mysqlX\": \"localhost:<port>0\", "
+                      "\"grLocal\": \"localhost:1<port>\", "
+                      "\"mysqlClassic\": \"localhost:<port>\"}', "
+                      "NULL, NULL, NULL)";
+
+  query = shcore::str_replace(query, "<port>", _mysql_sandbox_port3.c_str());
+
+  md_session->query(query);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    bool is_rejoinable(
+        validate_instance_rejoinable(instance_session, metadata, 1));
+
+    EXPECT_FALSE(is_rejoinable);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_02");
+    ADD_FAILURE();
+  }
+
+  md_session->query("delete from mysql_innodb_cluster_metadata.instances "
+                    " where mysql_server_uuid = '11111111-2222-3333-4444-"
+                    "555555555555'");
+
+  md_session->close();
+  instance_session->close();
+}
+
+TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
+  // There are no missing instances and the instance we are checking belongs
+  // to both the metadata and GR lists.
+  auto md_session = create_session(_mysql_sandbox_nport1);
+  auto instance_session = create_session(_mysql_sandbox_nport2);
+
+  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
+  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
+
+  try {
+    bool is_rejoinable(
+        validate_instance_rejoinable(instance_session, metadata, 1));
+
+    EXPECT_FALSE(is_rejoinable);
+  } catch (const shcore::Exception &e) {
+    SCOPED_TRACE(e.what());
+    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_03");
+    ADD_FAILURE();
+  }
+
+  md_session->close();
+  instance_session->close();
 }
 
 TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
@@ -1262,207 +900,6 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 
   session->close();
   testutil->destroy_sandbox(_mysql_sandbox_nport1);
-}
-
-TEST_F(Dba_common_test, validate_instance_rejoinable_01) {
-  // There are missing instances and the instance we are checking belongs to
-  // the metadata list but does not belong to the GR list.
-
-  // get_instances_gr():
-  //
-  // member_id
-  // ------------------------------------
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
-            {"851f0e89-5730-11e7-9e4f-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-
-  // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_md_group_members_query(&queries, values);
-
-  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost:3320",
-             "localhost:3320"}};
-
-  add_md_group_members_full_query(
-      &queries, "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  std::vector<testing::Fake_result_data> instance_queries;
-  add_get_server_variable_query(&instance_queries, "server_uuid",
-                                mysqlshdk::db::Type::String,
-                                "8a8ae9ce-5730-11e7-a437-b86b230042b9");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-  try {
-    bool is_rejoinable(
-        validate_instance_rejoinable(instance_session, metadata, 1));
-
-    EXPECT_TRUE(is_rejoinable);
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_01");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-  instance_session->close();
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, validate_instance_rejoinable_02) {
-  // There are missing instances and the instance we are checking belongs
-  // to neither the metadata nor GR lists.
-
-  // get_instances_gr():
-  //
-  // member_id
-  // ------------------------------------
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"8fcb92c9-5730-11e7-aa60-b86b230042b9"},
-            {"851f0e89-5730-11e7-9e4f-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-
-  // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_md_group_members_query(&queries, values);
-
-  values = {{"8a8ae9ce-5730-11e7-a437-b86b230042b9", "localhost:3320",
-             "localhost:3320"}};
-
-  add_md_group_members_full_query(
-      &queries, "8a8ae9ce-5730-11e7-a437-b86b230042b9", values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  std::vector<testing::Fake_result_data> instance_queries;
-  // Checking an instance that doesn't belong  to the metadata nor the GR
-  // list.
-  add_get_server_variable_query(&instance_queries, "server_uuid",
-                                mysqlshdk::db::Type::String,
-                                "aaaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-  try {
-    bool is_rejoinable(
-        validate_instance_rejoinable(instance_session, metadata, 1));
-
-    EXPECT_FALSE(is_rejoinable);
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_02");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-  instance_session->close();
-  stop_server_mock(_mysql_sandbox_nport2);
-}
-
-TEST_F(Dba_common_test, validate_instance_rejoinable_03) {
-  // There are no missing instances and the instance we are checking belongs
-  // to both the metadata and GR lists.
-
-  // get_instances_gr():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  std::vector<testing::Fake_result_data> queries;
-
-  std::vector<std::vector<std::string>> values;
-  values = {{"851f0e89-5730-11e7-9e4f-b86b230042b9"},
-            {"8a8ae9ce-5730-11e7-a437-b86b230042b9"},
-            {"8fcb92c9-5730-11e7-aa60-b86b230042b9"}};
-
-  add_ps_gr_group_members_query(&queries, values);
-
-  // get_instances_md():
-  //
-  // member_id
-  // ------------------------------------
-  // 851f0e89-5730-11e7-9e4f-b86b230042b9
-  // 8a8ae9ce-5730-11e7-a437-b86b230042b9
-  // 8fcb92c9-5730-11e7-aa60-b86b230042b9
-
-  add_md_group_members_query(&queries, values);
-
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);
-
-  auto md_session = create_local_session(_mysql_sandbox_nport1);
-
-  std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
-  metadata.reset(new mysqlsh::dba::MetadataStorage(md_session));
-
-  std::vector<testing::Fake_result_data> instance_queries;
-  add_get_server_variable_query(&instance_queries, "server_uuid",
-                                mysqlshdk::db::Type::String,
-                                "8a8ae9ce-5730-11e7-a437-b86b230042b9");
-  START_SERVER_MOCK(_mysql_sandbox_nport2, instance_queries);
-  auto instance_session = create_session(_mysql_sandbox_nport2);
-  try {
-    bool is_rejoinable(
-        validate_instance_rejoinable(instance_session, metadata, 1));
-
-    EXPECT_FALSE(is_rejoinable);
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_03");
-    ADD_FAILURE();
-  }
-
-  md_session->close();
-  stop_server_mock(_mysql_sandbox_nport1);
-  instance_session->close();
-  stop_server_mock(_mysql_sandbox_nport2);
 }
 
 }  // namespace tests

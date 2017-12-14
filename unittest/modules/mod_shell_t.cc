@@ -23,7 +23,7 @@
 
 #include "modules/mod_shell.h"
 #include "scripting/types.h"
-#include "unittest/gtest_clean.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils.h"
 
 namespace testing {
@@ -42,7 +42,7 @@ class mod_shell_test : public Shell_core_test_wrapper {
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
 
-    _backend.reset(new Mock_mysql_shell(_opts, &output_handler.deleg));
+    _backend.reset(new Mock_mysql_shell(get_options(), &output_handler.deleg));
     _shell.reset(new mysqlsh::Shell(_backend.get()));
   }
 

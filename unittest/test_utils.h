@@ -232,7 +232,12 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     _options = const_cast<mysqlsh::Shell_options::Storage*>(&_opts->get());
     _options->gadgets_path = g_mppath;
     _options->db_name_cache = false;
+
+    // Allows derived classes configuring specific options
+    set_options();
   }
+
+
 
   bool debug;
   void enable_debug() {
@@ -244,21 +249,27 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
   void enable_testutil();
   void enable_replay();
+  virtual void execute_setup() {};
 
   virtual void reset_shell() {
+    // If the options have not been set, they must be set now, otherwise
+    // they should be explicitly reset
+    if (!_opts)
+      reset_options();
+
     _interactive_shell.reset(
         new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
     _interactive_shell->finish_init();
     set_defaults();
     enable_testutil();
   }
+  void reset_replayable_shell(const char *sub_test_name = nullptr);
 
   void connect_classic();
   void connect_x();
 
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
-  std::shared_ptr<mysqlsh::Shell_options> _opts;
   mysqlsh::Shell_options::Storage* _options;
 
   // set to true in a subclass if reset_shell() should not be called
@@ -279,6 +290,16 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   }
 
   std::shared_ptr<tests::Testutils> testutil;
+
+  std::shared_ptr<mysqlsh::Shell_options> get_options() {
+    if (!_opts)
+      reset_options();
+
+    return _opts;
+  }
+
+ private:
+  std::shared_ptr<mysqlsh::Shell_options> _opts;
 };
 
 /**
