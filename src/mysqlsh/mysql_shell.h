@@ -37,6 +37,7 @@
 
 namespace mysqlsh {
 class Shell;  // from modules
+class Util;
 
 class Mysql_shell : public mysqlsh::Base_shell {
  public:
@@ -95,6 +96,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
+  std::shared_ptr<mysqlsh::Util> _global_util;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);

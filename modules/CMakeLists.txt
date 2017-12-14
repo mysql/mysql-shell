@@ -35,6 +35,7 @@ INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
+      "util/*.cc"
       "mod_mysql.cc"
       "mod_mysql_*.cc"
       "mod_shell.cc"
