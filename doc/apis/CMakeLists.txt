@@ -33,6 +33,7 @@ project (mysqlsh)
 file(GLOB docs_SRC
     "${CMAKE_SOURCE_DIR}/../../modules/devapi/*"
     "${CMAKE_SOURCE_DIR}/../../modules/adminapi/*"
+    "${CMAKE_SOURCE_DIR}/../../modules/util/*"
     "${CMAKE_SOURCE_DIR}/../../modules/*"
 )
 
@@ -115,7 +116,7 @@ foreach(file ${docs_SRC})
   endforeach()
 endforeach()
 
-SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}/../../modules/devapi ${CMAKE_SOURCE_DIR}")
+SET(DOX_INPUT "${CMAKE_SOURCE_DIR}/../../modules/adminapi ${CMAKE_SOURCE_DIR}/../../modules/ ${CMAKE_SOURCE_DIR}/../../modules/devapi ${CMAKE_SOURCE_DIR}/../../modules/util ${CMAKE_SOURCE_DIR}")
 
 SET(DOX_EXAMPLE_PATH "${CMAKE_SOURCE_DIR}/../../unittest/scripts/py_devapi/scripts/")
 SET(DOX_EXAMPLE_PATH "${DOX_EXAMPLE_PATH} ${CMAKE_SOURCE_DIR}/../../unittest/scripts/js_devapi/scripts/")

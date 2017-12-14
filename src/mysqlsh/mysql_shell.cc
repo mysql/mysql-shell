@@ -32,6 +32,7 @@
 #include "modules/devapi/mod_mysqlx.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/util/mod_util.h"
 #include "modules/mod_mysql.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
@@ -122,6 +123,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
   _global_dba =
       std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
+  _global_util =
+      std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
 
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
@@ -155,6 +158,10 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       "sys",
       std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_js_sys),
       shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::JavaScript));
+  set_global_object(
+      "util",
+      std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_util),
+      shcore::IShell_core::all_scripting_modes());
 
   // dummy initialization
   _global_shell->set_session_global({});

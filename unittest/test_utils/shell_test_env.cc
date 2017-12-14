@@ -116,7 +116,8 @@ Shell_test_env::Shell_test_env() {
     data.set_password("");
   }
 
-  _uri = data.as_uri(mysqlshdk::db::uri::formats::full());
+  std::string uri_string = data.as_uri(mysqlshdk::db::uri::formats::full());
+  _uri = uri_string;
   _mysql_uri = _uri;
 
   const char *xport = getenv("MYSQLX_PORT");
@@ -132,6 +133,12 @@ Shell_test_env::Shell_test_env() {
     _mysql_port_number = atoi(port);
     _mysql_port.assign(port);
     _mysql_uri += ":" + _mysql_port;
+  }
+
+  const char *port57 = getenv("MYSQL57_PORT");
+  if (port57) {
+    _mysql57_port.assign(port57);
+    _mysql57_uri = uri_string +":" + _mysql57_port;
   }
 
   const char *xsock = getenv("MYSQLX_SOCKET");
