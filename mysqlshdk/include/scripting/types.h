@@ -163,6 +163,11 @@ struct SHCORE_PUBLIC Value {
     bool empty() const { return _map.empty(); }
     size_t size() const { return _map.size(); }
     size_t count(const std::string &k) const { return _map.count(k); }
+
+    template<class T> std::pair<iterator, bool> emplace(const std::string& key,
+                                                       const T& value) {
+      return _map.emplace(key, Value(value));
+    }
   private:
     container_type _map;
   };
@@ -346,6 +351,11 @@ class SHCORE_PUBLIC Argument_list {
   std::vector<Value>::const_iterator end() const { return _args.end(); }
 
   bool operator == (const Argument_list &other) const;
+
+  template<class T> void emplace_back(const T& value) {
+    return _args.emplace_back(Value(value));
+}
+
 
  private:
   std::vector<Value> _args;

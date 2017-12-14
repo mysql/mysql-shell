@@ -1,0 +1,7 @@
+{
+    "hostname": "juanram-T440p",
+    "hostname_ip": "127.0.1.1",
+    "sandbox_port1": "3317",
+    "sandbox_port2": "3327",
+    "sandbox_port3": "3337"
+}

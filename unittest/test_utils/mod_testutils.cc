@@ -91,7 +91,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   if (g_test_trace_scripts > 0 && dummy_mode)
     std::cerr << "tetutils using dummy sandboxes\n";
 
-  expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass");
+expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
+       "?options");
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
@@ -320,6 +321,8 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
  * @param port The port where the sandbox wlil be listening for mysql protocol
  * connections.
  * @param pwd The password to be assigned to the root user.
+ * @param options Additional options to be set on the sandbox configuration
+ * file.
  *
  * This functions works when using either --record or --direct mode of the test
  * suite. It is an improved version of the deploySandboxInstance function of the
@@ -333,20 +336,22 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::deploySandbox(Integer port, String pwd);
+  Undefined Testutils::deploySandbox(Integer port, String pwd,
+                                     Dictionary options);
 #elif DOXYGEN_PY
-  None Testutils::deploy_sandbox(int port, str pwd);
+  None Testutils::deploy_sandbox(int port, str pwd, Dictionary options);
 #endif
 ///@}
-void Testutils::deploy_sandbox(int port, const std::string &rootpass) {
+void Testutils::deploy_sandbox(int port, const std::string &rootpass,
+                               const shcore::Dictionary_t &opts) {
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     // Sandbox from a boilerplate
     if (!_boilerplate_rootpass.empty() && _boilerplate_rootpass == rootpass &&
         !_expected_boilerplate_version.empty()) {
-      if (!deploy_sandbox_from_boilerplate(port)) {
+      if (!deploy_sandbox_from_boilerplate(port, opts)) {
         prepare_sandbox_boilerplate(rootpass, port);
-        if (!deploy_sandbox_from_boilerplate(port)) {
+        if (!deploy_sandbox_from_boilerplate(port, opts)) {
           std::cerr << "Unable to deploy boilerplate sandbox\n";
           abort();
         }
@@ -674,6 +679,9 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option) {
 #endif
 ///@}
 void Testutils::change_sandbox_conf(int port, const std::string &option) {
+  if (_dummy_sandboxes)
+    return;
+
   std::string cfgfile_path = get_sandbox_conf_path(port);
   std::string new_cfgfile_path = cfgfile_path + ".new";
   std::ofstream new_cfgfile(new_cfgfile_path);
@@ -1019,7 +1027,8 @@ void copy_boilerplate_sandbox(const std::string &from,
 }
 
 
-bool Testutils::deploy_sandbox_from_boilerplate(int port) {
+bool Testutils::deploy_sandbox_from_boilerplate
+  (int port, const shcore::Dictionary_t &opts) {
   if (g_test_trace_scripts)
     std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
   std::string boilerplate =
@@ -1059,6 +1068,12 @@ bool Testutils::deploy_sandbox_from_boilerplate(int port) {
   change_sandbox_conf(port, "loose_mysqlx_port=" + std::to_string(port * 10));
   change_sandbox_conf(port, "report_port=" + std::to_string(port));
   change_sandbox_conf(port, "general_log=1");
+
+  if (opts && !opts->empty()) {
+    for (const auto& option : (*opts)) {
+      change_sandbox_conf(port, option.first + "=" + option.second.descr());
+    }
+  }
 
   start_sandbox(port);
 

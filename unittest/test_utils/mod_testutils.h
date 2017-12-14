@@ -46,7 +46,7 @@ class Testutils : public shcore::Cpp_object_bridge {
 
  public:
 #if DOXYGEN_JS
-  Undefined deploySandbox(Integer port, String pwd);
+  Undefined deploySandbox(Integer port, String pwd, Dictionary options);
   Undefined destroySandbox(Integer port);
   Undefined startSandbox(Integer port);
   Undefined stopSandbox(Integer port);
@@ -66,7 +66,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   Undefined fail();
   Boolean versionCheck(String v1, String op, String v2);
 #elif DOXYGEN_PY
-  None deploy_sandbox(int port, str pwd);
+  None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
   None start_sandbox(int port);
   None stop_sandbox(int port);
@@ -118,7 +118,8 @@ class Testutils : public shcore::Cpp_object_bridge {
 
  public:
   // Sandbox routines
-  void deploy_sandbox(int port, const std::string &rootpass);
+void deploy_sandbox(int port, const std::string &rootpass,
+                      const shcore::Dictionary_t &opts = {});
   void destroy_sandbox(int port, bool quiet_kill=false);
 
   void start_sandbox(int port);
@@ -159,17 +160,16 @@ class Testutils : public shcore::Cpp_object_bridge {
   // set_current_test_case(::testing::Test);
   int call_mysqlsh(const shcore::Array_t &args);
 
- private:
-  // Testing stuff
-  bool is_replaying();
-
-  void fail(const std::string &context);
-
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail
   // the test if it is different
   void expect_prompt(const std::string &prompt, const std::string &text);
   void expect_password(const std::string &prompt, const std::string &text);
+ private:
+  // Testing stuff
+  bool is_replaying();
+
+  void fail(const std::string &context);
 
   std::string fetch_captured_stdout();
   std::string fetch_captured_stderr();
@@ -197,7 +197,8 @@ class Testutils : public shcore::Cpp_object_bridge {
   void wait_sandbox_dead(int port);
 
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
-  bool deploy_sandbox_from_boilerplate(int port);
+  bool deploy_sandbox_from_boilerplate(int port,
+                                       const shcore::Dictionary_t &opts);
 };
 
 }  // namespace tests

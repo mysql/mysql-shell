@@ -22,15 +22,98 @@
  */
 #include "unittest/test_utils/shell_test_wrapper.h"
 #include <memory>
+#include <vector>
+#include <map>
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 #include "shellcore/interrupt_handler.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "unittest/test_utils/shell_test_env.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/trandom.h"
 
 extern char* g_mppath;
+extern mysqlshdk::db::replay::Mode g_test_recording_mode;
+extern mysqlshdk::utils::Version g_target_server_version;
+
+using TestingMode = mysqlshdk::db::replay::Mode;
 
 namespace tests {
+
+class My_random : public mysqlshdk::utils::Random {
+ public:
+  virtual std::string get_time_string() {
+    return "000000000" + std::to_string(++ts);
+  }
+
+ private:
+  int ts = 0;
+};
+
 Shell_test_wrapper::Shell_test_wrapper() {
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir) {
+    _sandbox_dir.assign(tmpdir);
+  } else {
+    // If not specified, the tests will create the sandboxes on the
+    // binary folder
+    _sandbox_dir = shcore::get_binary_folder();
+  }
+
+  _dummy_sandboxes =
+    g_test_recording_mode == TestingMode::Replay;
+
+  _recording_enabled =
+    g_test_recording_mode == TestingMode::Record;
+
+  const char *port = getenv("MYSQL_PORT");
+  if (port) {
+    _mysql_port_number = atoi(port);
+    _mysql_port.assign(port);
+  }
+
+
+  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+  if (sandbox_port1)
+    _mysql_sandbox_port1.assign(sandbox_port1);
+  else
+    _mysql_sandbox_port1 = std::to_string(_mysql_port_number + 10);
+
+  _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
+
+  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+  if (sandbox_port2)
+    _mysql_sandbox_port2.assign(sandbox_port2);
+  else
+    _mysql_sandbox_port2 = std::to_string(_mysql_port_number + 20);
+
+  _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
+
+  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+  if (sandbox_port3)
+    _mysql_sandbox_port3.assign(sandbox_port3);
+  else
+    _mysql_sandbox_port3 = std::to_string(_mysql_port_number + 30);
+
+  _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+
+  _hostname = getenv("MYSQL_HOSTNAME");
+  _hostname_ip = mysqlshdk::utils::resolve_hostname_ipv4(_hostname);
+
   reset();
+}
+
+// This can be use to reinitialize the interactive shell with different
+// options First set the options on _options
+void Shell_test_wrapper::reset_options() {
+  _opts.reset(new mysqlsh::Shell_options());
+  _options = const_cast<mysqlsh::Shell_options::Storage*>(&_opts->get());
+  _options->gadgets_path = g_mppath;
+  _options->db_name_cache = false;
+
+  // Allows derived classes configuring specific options
+  // set_options();
 }
 
 /**
@@ -38,13 +121,12 @@ Shell_test_wrapper::Shell_test_wrapper() {
  * options defined at _opts.
  */
 void Shell_test_wrapper::reset() {
-  _opts = std::make_shared<mysqlsh::Shell_options>();
-  const_cast<mysqlsh::Shell_options::Storage&>(_opts->get()).gadgets_path =
-      g_mppath;
   _interactive_shell.reset(
-      new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
+      new mysqlsh::Mysql_shell(get_options(), &output_handler.deleg));
 
   _interactive_shell->finish_init();
+
+  enable_testutil();
 }
 
 /**
@@ -76,8 +158,11 @@ void Shell_test_wrapper::execute(const std::string& line) {
 /**
  * Returns a reference to the options that configure the inner Mysql_shell
  */
-mysqlsh::Shell_options::Storage& Shell_test_wrapper::get_options() {
-  return const_cast<mysqlsh::Shell_options::Storage&>(_opts->get());
+std::shared_ptr<mysqlsh::Shell_options> Shell_test_wrapper::get_options() {
+  if (!_opts)
+    reset_options();
+
+  return _opts;
 }
 
 /**
@@ -86,6 +171,253 @@ mysqlsh::Shell_options::Storage& Shell_test_wrapper::get_options() {
 void Shell_test_wrapper::trace_protocol() {
   _interactive_shell->shell_context()->get_dev_session()->set_option(
       "trace_protocol", 1);
+}
+
+void Shell_test_wrapper::enable_testutil() {
+  bool dummy_sandboxes = g_test_recording_mode == TestingMode::Replay;
+  _testutil.reset(new tests::Testutils(
+      _sandbox_dir, dummy_sandboxes,
+      {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
+      _interactive_shell, Shell_test_env::get_path_to_mysqlsh()));
+  _testutil->set_expected_boilerplate_version(
+      g_target_server_version.get_full());
+  _testutil->set_test_callbacks(
+      [this](const std::string &prompt, const std::string &text) {
+        output_handler.prompts.push_back({prompt, text});
+      },
+      [this](const std::string &prompt, const std::string &pass) {
+        output_handler.passwords.push_back({prompt, pass});
+      },
+      [this]() -> std::string { return output_handler.std_out; },
+      [this]() -> std::string { return output_handler.std_err; });
+
+  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
+    _testutil->set_sandbox_snapshot_dir(
+        mysqlshdk::db::replay::current_recording_dir());
+
+  _interactive_shell->set_global_object("testutil", _testutil);
+}
+
+std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
+  mysqlshdk::db::replay::set_mode(g_test_recording_mode, g_test_trace_sql);
+  _recording_enabled = true;
+
+  bool is_recording =
+      (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record);
+
+  std::string tracedir;
+
+  std::string context;
+  const ::testing::TestInfo *const test_info =
+      ::testing::UnitTest::GetInstance()->current_test_info();
+
+  if (test_info) {
+    context.append(test_info->test_case_name());
+    context.append("/");
+    if (sub_test_name) {
+      // test_info->name() can be in the form test/<index> if this is a
+      // parameterized test. For such cases, we replace the index with the
+      // given sub_test_name, so that we can have a stable test name that
+      // doesn't change if the execution order changes
+      context.append(shcore::path::dirname(test_info->name()) + "/" +
+                     sub_test_name);
+    } else {
+      context.append(test_info->name());
+    }
+  } else {
+    if (sub_test_name)
+      context.append(sub_test_name);
+  }
+
+  tracedir = shcore::path::join_path(
+      {mysqlshdk::db::replay::g_recording_path_prefix, context});
+  context.append("/");
+
+  if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay &&
+      !shcore::is_folder(tracedir)) {
+    ADD_FAILURE()
+        << "Test running in replay mode but trace directory is missing: "
+        << tracedir << "\n";
+    throw std::logic_error("Missing tracedir");
+  }
+
+  mysqlshdk::db::replay::begin_recording_context(context);
+
+  if (is_recording) {
+    if (shcore::is_folder(mysqlshdk::db::replay::current_recording_dir()) &&
+        !shcore::file_exists(mysqlshdk::db::replay::current_recording_dir() +
+                             "/FAILED")) {
+      ADD_FAILURE() << "Test running in record mode, but trace directory "
+                       "already exists (and is not FAILED). Delete directory "
+                       "to re-record it: "
+                    << mysqlshdk::db::replay::current_recording_dir() << "\n";
+      throw std::logic_error("Tracedir already exists");
+    }
+
+    try {
+      // Delete old data
+      shcore::remove_directory(tracedir, true);
+    } catch (...) {
+    }
+    shcore::create_directory(tracedir);
+    shcore::create_file(
+        mysqlshdk::db::replay::current_recording_dir() + "/FAILED", "");
+
+    // TODO(rennox): This session monitoring is not available here
+    // Set up hooks for keeping track of opened sessions
+    /*mysqlshdk::db::replay::on_recorder_connect_hook = std::bind(
+        &Shell_test_env::on_session_connect, this, std::placeholders::_1);
+    mysqlshdk::db::replay::on_recorder_close_hook = std::bind(
+        &Shell_test_env::on_session_close, this, std::placeholders::_1);*/
+  }
+
+  if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
+    // Some environmental or random data can change between recording and
+    // replay time. Such data must be ensured to match between both.
+    try {
+      std::map<std::string, std::string> info =
+          mysqlshdk::db::replay::load_test_case_info();
+
+      // Override environment dependant data with the same values that were
+      // used and saved during recording
+      _mysql_sandbox_port1 = info["sandbox_port1"];
+      _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
+      _mysql_sandbox_port2 = info["sandbox_port2"];
+      _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
+      _mysql_sandbox_port3 = info["sandbox_port3"];
+      _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+
+      _hostname = info["hostname"];
+      _hostname_ip = info["hostname_ip"];
+    } catch (std::exception &e) {
+      // std::cout << e.what() << "\n";
+      _mysql_sandbox_port1 = "3316";
+      _mysql_sandbox_nport1 = 3316;
+      _mysql_sandbox_port2 = "3326";
+      _mysql_sandbox_nport2 = 3326;
+      _mysql_sandbox_port3 = "3336";
+      _mysql_sandbox_nport3 = 3336;
+    }
+  } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
+    std::map<std::string, std::string> info;
+
+    info["sandbox_port1"] = _mysql_sandbox_port1;
+    info["sandbox_port2"] = _mysql_sandbox_port2;
+    info["sandbox_port3"] = _mysql_sandbox_port3;
+    info["hostname"] = _hostname;
+    info["hostname_ip"] = _hostname_ip;
+
+    mysqlshdk::db::replay::save_test_case_info(info);
+  }
+
+  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
+    // Ensure randomly generated strings are not so random when
+    // recording/replaying
+    mysqlshdk::utils::Random::set(new My_random());
+  }
+
+  return tracedir;
+}
+
+void Shell_test_wrapper::teardown_recorder() {
+  mysqlshdk::db::replay::on_recorder_connect_hook = {};
+  mysqlshdk::db::replay::on_recorder_close_hook = {};
+
+  if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
+    // If the test failed during recording mode, put a fail marker in the
+    // trace dir, no conditions set right now
+    shcore::delete_file(mysqlshdk::db::replay::current_recording_dir() +
+                          "/FAILED");
+  }
+  mysqlshdk::db::replay::end_recording_context();
+}
+
+
+static int find_column_in_select_stmt(const std::string &sql,
+  const std::string &column) {
+  std::string s = shcore::str_lower(sql);
+  // sanity checks for things we don't support
+  assert(s.find(" from ") == std::string::npos);
+  assert(s.find(" where ") == std::string::npos);
+  assert(s.find("select ") == 0);
+  assert(column.find(" ") == std::string::npos);
+  // other not supported things...: ``, column names with special chars,
+  // aliases, stuff in comments etc
+  s = s.substr(strlen("select "));
+
+  // trim out stuff inside parenthesis which can confuse the , splitter and
+  // are not supported anyway, like:
+  // select (select a, b from something), c
+  // select concat(a, b), c
+  std::string::size_type p = s.find("(");
+  while (p != std::string::npos) {
+    std::string::size_type pp = s.find(")", p);
+    if (pp != std::string::npos) {
+      s = s.substr(0, p + 1) + s.substr(pp);
+    } else {
+      break;
+    }
+    p = s.find("(", pp);
+  }
+
+  std::vector<std::string> columns(shcore::str_split(s, ","));
+  // the last column name can contain other stuff
+  columns[columns.size() - 1] =
+      shcore::str_split(shcore::str_strip(columns.back()), " \t\n\r").front();
+
+  int i = 0;
+  for (const auto &c : columns) {
+    if (shcore::str_strip(c) == column)
+      return i;
+    ++i;
+  }
+  return -1;
+}
+
+void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
+  setup_recorder(sub_test_name);  // must be called before set_defaults()
+  reset();
+
+#ifdef _WIN32
+  mysqlshdk::db::replay::set_replay_query_hook([](const std::string& sql) {
+    return shcore::str_replace(sql, ".dll", ".so");
+  });
+#endif
+
+  // Intercept queries and hack their results so that we can have
+  // recorded local sessions that match the actual local environment
+  mysqlshdk::db::replay::set_replay_row_hook(
+      [this](const mysqlshdk::db::Connection_options& target,
+              const std::string& sql,
+              std::unique_ptr<mysqlshdk::db::IRow> source)
+          -> std::unique_ptr<mysqlshdk::db::IRow> {
+        int datadir_column = -1;
+
+        if (sql.find("@@datadir") != std::string::npos &&
+            shcore::str_ibeginswith(sql, "select ")) {
+          // find the index for @@datadir in the query
+          datadir_column = find_column_in_select_stmt(sql, "@@datadir");
+          assert(datadir_column >= 0);
+        } else {
+          assert(sql.find("@@datadir") == std::string::npos);
+        }
+
+        // replace sandbox @@datadir from results with actual datadir
+        if (datadir_column >= 0) {
+          std::string prefix = shcore::path::dirname(
+              shcore::path::dirname(source->get_string(datadir_column)));
+          std::string suffix =
+              source->get_string(datadir_column).substr(prefix.length() + 1);
+          std::string datadir = shcore::path::join_path(_sandbox_dir, suffix);
+#ifdef _WIN32
+          datadir = shcore::str_replace(datadir, "/", "\\");
+#endif
+          return std::unique_ptr<mysqlshdk::db::IRow>{
+              new tests::Override_row_string(std::move(source), datadir_column,
+                                             datadir)};
+        }
+        return source;
+      });
 }
 
 #if 0

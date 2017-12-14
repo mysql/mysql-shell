@@ -92,7 +92,6 @@ if(WITH_TESTS)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
     endif()
 
-    add_subdirectory(mysqld_mock)
     LIST(APPEND mysqlsh_tests_SRC
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
@@ -122,10 +121,6 @@ if(WITH_TESTS)
       target_link_libraries(run_unit_tests Dbghelp.lib)
     ENDIF()
 
-    # Copies the mysql_server_mock to the binary folder
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        $<TARGET_FILE:mysql_server_mock> $<TARGET_FILE_DIR:run_unit_tests>/)
     # Copy sample prompt files to the test folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy

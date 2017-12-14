@@ -52,9 +52,12 @@ using Version = mysqlshdk::utils::Version;
 
 // TODO(.) remove Interrupt_ from the filter, delete the deprecated Python tests
 const char *k_default_test_filter =
-      "*:-Shell_py_dba_tests.*:Interrupt_mysql.*:Dba_*:Command_line_connection_test.uri_ssl_mode_node:Command_line_connection_test.basic_ssl_check_x:Interactive_shell_test.ssl_status:Interactive_shell_test.status_x:Api_connections.ssl_enabled_require_secure_transport_on:Api_connections.ssl_disabled";
-    // "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
-
+    "*:-Shell_py_dba_tests.*:Interrupt_mysql.*:Command_line_connection_test."
+    "uri_ssl_mode_node:Command_line_connection_test.basic_ssl_check_x:"
+    "Interactive_shell_test.ssl_status:Interactive_shell_test.status_x:Api_"
+    "connections.ssl_enabled_require_secure_transport_on:Api_connections.ssl_"
+    "disabled";
+// "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
 
 // Default execution mode for replayable tests
 mysqlshdk::db::replay::Mode g_test_recording_mode =

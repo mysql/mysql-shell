@@ -29,6 +29,7 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <condition_variable>
 
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
@@ -44,16 +45,63 @@ class Shell_test_wrapper {
  public:
   Shell_test_wrapper();
   void reset();
+    // This can be use to reinitialize the interactive shell with different
+  // options First set the options on _options
+  void reset_options();
   Shell_test_output_handler& get_output_handler();
   void execute(const std::string& line);
-  mysqlsh::Shell_options::Storage& get_options();
+  std::shared_ptr<mysqlsh::Shell_options> get_options();
   void trace_protocol();
   void enable_debug();
+  void enable_testutil();
+  const std::shared_ptr<tests::Testutils> &utils() { return _testutil; }
 
+  int port() { return _mysql_port_number; }
+  int sb_port1() { return _mysql_sandbox_nport1; }
+  int sb_port2() { return _mysql_sandbox_nport2; }
+  int sb_port3() { return _mysql_sandbox_nport3; }
+  std::string sb_str_port1() { return _mysql_sandbox_port1; }
+  std::string sb_str_port2() { return _mysql_sandbox_port2; }
+  std::string sb_str_port3() { return _mysql_sandbox_port3; }
+
+  std::string setup_recorder(const char *sub_test_name);
+  void teardown_recorder();
+  void reset_replayable_shell(const char *sub_test_name);
+  void teardown_replayable_shell() {
+    teardown_recorder();
+  }
+
+  template <class T>
+  std::shared_ptr<T>get_global(const std::string& name) {
+    shcore::Value ret_val;
+    ret_val = _interactive_shell->shell_context()->get_global(name);
+    return ret_val.as_object<T>();
+  }
  private:
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
+  mysqlsh::Shell_options::Storage* _options;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
+  std::shared_ptr<tests::Testutils> _testutil;
+  std::string _sandbox_dir;
+  bool _recording_enabled;
+  bool _dummy_sandboxes;
+
+  std::string
+      _mysql_port;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT
+
+  std::string _mysql_sandbox_port1;  //!< Port of the first sandbox
+  std::string _mysql_sandbox_port2;  //!< Port of the second sandbox
+  std::string _mysql_sandbox_port3;  //!< Port of the third sandbox
+
+  int _mysql_port_number;  //!< The port for MySQL protocol sessions,
+                           //!< env:MYSQL_PORT
+  int _mysql_sandbox_nport1;
+  int _mysql_sandbox_nport2;
+  int _mysql_sandbox_nport3;
+
+  std::string _hostname;  //!< TBD
+  std::string _hostname_ip;  //!< TBD
 };
 
 template <typename T>
