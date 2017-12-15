@@ -1029,8 +1029,10 @@ Value Python_context::execute_module(const std::string &file_name,
       // Now executes the __main__ module
       PyObject *runpy, *runmodule, *runargs, *py_result;
       runpy = PyImport_ImportModule("runpy");
-      if (runpy == NULL)
+      if (runpy == NULL) {
+        PyErr_Print();
         throw shcore::Exception::runtime_error("Could not import runpy module");
+      }
 
       runmodule = PyObject_GetAttrString(runpy, "_run_module_as_main");
       if (runmodule == NULL) {
