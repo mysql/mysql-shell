@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,9 +78,9 @@ class SHCORE_PUBLIC Nullable_options {
   virtual bool operator!=(const Nullable_options& other) const;
   int compare(const std::string& lhs, const std::string& rhs) const;
 
-  const_iterator begin() const { return _options.begin(); }
+  const_iterator begin() const { return _options.cbegin(); }
   iterator begin() { return _options.begin(); }
-  const_iterator end() const { return _options.end(); }
+  const_iterator end() const { return _options.cend(); }
   iterator end() { return _options.end(); }
   Comparison_mode get_mode() { return _mode; }
 

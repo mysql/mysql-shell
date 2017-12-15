@@ -89,6 +89,13 @@ The following options are valid for use either in a URI or in a dictionary:
  - ssl-cipher: SSL Cipher to use.
  - tls-version: List of protocols permitted for secure connections
  - auth-method: Authentication method
+ - get-server-public-key: Request public key from the server required for RSA
+   key pair-based password exchange. Use when connecting to MySQL 8.0 servers
+   with classic MySQL sessions with SSL mode DISABLED.
+ - server-public-key-path: The path name to a file containing a client-side
+   copy of the public key required by the server for RSA key pair-based
+   password exchange. Use when connecting to MySQL 8.0 servers with classic
+   MySQL sessions with SSL mode DISABLED.
 
 When these options are defined in a URI, their values must be URL encoded.
 

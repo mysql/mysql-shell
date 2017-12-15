@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -308,6 +308,15 @@ void Trace_writer::serialize_error(const db::Error& e) {
                        {{"code", std::to_string(e.code())},
                         {"msg", e.what()},
                         {"sqlstate", e.sqlstate()}},
+                       ++_idx)
+          << ",\n";
+}
+
+void Trace_writer::serialize_error(const std::runtime_error& e) {
+  if (_print_traces)
+    std::cerr << "Runtime error in " << _path << ": " << e.what() << "\n";
+  _stream << make_json("response", "ERROR",
+                       {{"code", ""}, {"msg", e.what()}, {"sqlstate", ""}},
                        ++_idx)
           << ",\n";
 }

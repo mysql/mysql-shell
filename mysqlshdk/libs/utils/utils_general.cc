@@ -21,12 +21,9 @@
 * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysh_config.h"
 
-#include <stdio.h>
-#include <time.h>
-#include <cctype>
-#include <locale>
 #ifdef WIN32
 #include <WinSock2.h>
 #include <windows.h>
@@ -41,9 +38,14 @@
 #include <pwd.h>
 #endif
 #endif
+
+#include <cstdio>
+#include <ctime>
+#include <cctype>
+#include <locale>
+
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -167,7 +169,8 @@ void update_connection_data
    const std::string& sock,
    const std::string &database,
    const mysqlshdk::db::Ssl_options& ssl_options,
-   const std::string &auth_method) {
+   const std::string &auth_method, bool get_server_public_key,
+   const std::string &server_public_key_path) {
   if (!user.empty()) {
     connection_options->clear_user();
     connection_options->set_user(user);
@@ -251,6 +254,21 @@ void update_connection_data
       connection_options->remove(mysqlshdk::db::kAuthMethod);
 
     connection_options->set(mysqlshdk::db::kAuthMethod, {auth_method});
+  }
+
+  if (get_server_public_key) {
+    if (connection_options->has(mysqlshdk::db::kGetServerPublicKey)) {
+      connection_options->remove(mysqlshdk::db::kGetServerPublicKey);
+    }
+    connection_options->set(mysqlshdk::db::kGetServerPublicKey, {"true"});
+  }
+
+  if (!server_public_key_path.empty()) {
+    if (connection_options->has(mysqlshdk::db::kServerPublicKeyPath)) {
+      connection_options->remove(mysqlshdk::db::kServerPublicKeyPath);
+    }
+    connection_options->set(mysqlshdk::db::kServerPublicKeyPath,
+                            {server_public_key_path});
   }
 }
 

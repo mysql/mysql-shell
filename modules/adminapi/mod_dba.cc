@@ -425,8 +425,8 @@ REGISTER_HELP(DBA_GETCLUSTER_THROWS4,
 
 REGISTER_HELP(DBA_GETCLUSTER_RETURNS,
               "@returns The cluster object identified "
-              " by the given name or the default "
-              " cluster.");
+              "by the given name or the default "
+              "cluster.");
 REGISTER_HELP(DBA_GETCLUSTER_DETAIL,
               "If name is not specified or is null, the default "
               "cluster will be returned.");

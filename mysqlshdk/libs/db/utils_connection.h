@@ -77,6 +77,8 @@ constexpr const char kSslCipher[] = "ssl-cipher";
 constexpr const char kSslTlsVersion[] = "tls-version";
 constexpr const char kSslMode[] = "ssl-mode";
 constexpr const char kAuthMethod[] = "auth-method";
+constexpr const char kGetServerPublicKey[] = "get-server-public-key";
+constexpr const char kServerPublicKeyPath[] = "server-public-key-path";
 
 constexpr const char kSslModeDisabled[] = "disabled";
 constexpr const char kSslModePreferred[] = "preferred";
@@ -85,14 +87,19 @@ constexpr const char kSslModeVerifyCA[] = "verify_ca";
 constexpr const char kSslModeVerifyIdentity[] = "verify_identity";
 
 const std::set<std::string> connection_attributes = {
-    kHost,       kPort,          kSocket,   kScheme,     kSchema,
-    kUser,       kDbUser,        kPassword, kDbPassword, kSslCa,
-    kSslCaPath,  kSslCert,       kSslKey,   kSslCrl,     kSslCrlPath,
-    kSslCipher, kSslTlsVersion, kSslMode,  kAuthMethod};
+    kHost,      kPort,          kSocket,   kScheme,     kSchema,
+    kUser,      kDbUser,        kPassword, kDbPassword, kSslCa,
+    kSslCaPath, kSslCert,       kSslKey,   kSslCrl,     kSslCrlPath,
+    kSslCipher, kSslTlsVersion, kSslMode,  kAuthMethod, kGetServerPublicKey,
+    kServerPublicKeyPath};
 
 const std::set<std::string> uri_connection_attributes = {
-    kSslCa,      kSslCaPath,  kSslCert,       kSslKey,  kSslCrl,
-    kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode, kAuthMethod};
+    kSslCa,   kSslCaPath,  kSslCert,            kSslKey,
+    kSslCrl,  kSslCrlPath, kSslCipher,          kSslTlsVersion,
+    kSslMode, kAuthMethod, kGetServerPublicKey, kServerPublicKeyPath};
+
+const std::set<std::string> uri_extra_options = {
+    kAuthMethod, kGetServerPublicKey, kServerPublicKeyPath};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

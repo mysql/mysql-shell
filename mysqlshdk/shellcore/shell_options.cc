@@ -68,7 +68,8 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   }
 
   shcore::update_connection_data(&target_server, user, password, host, port,
-                                 sock, schema, ssl_options, auth_method);
+                                 sock, schema, ssl_options, auth_method,
+                                 get_server_public_key, server_public_key_path);
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
@@ -247,7 +248,18 @@ Shell_options::Shell_options(int argc, char** argv)
         assign_value(&storage.output_format, "table"))
     (cmdline("-E", "--vertical"),
         "Print the output of a query (rows) vertically.",
-        assign_value(&storage.output_format, "vertical"));
+        assign_value(&storage.output_format, "vertical"))
+    (cmdline("--get-server-public-key"), "Request public key from the server "
+        "required for RSA key pair-based password exchange. Use when "
+        "connecting to MySQL 8.0 servers with classic MySQL sessions with SSL "
+        "mode DISABLED.",
+        assign_value(&storage.get_server_public_key, true))
+    (&storage.server_public_key_path, "",
+        cmdline("--server-public-key-path=path"), "The path name to a file "
+        "containing a client-side copy of the public key required by the "
+        "server for RSA key pair-based password exchange. Use when connecting "
+        "to MySQL 8.0 servers with classic MySQL sessions with SSL mode "
+        "DISABLED.");
 
   add_named_options()
     (&storage.output_format, "", SHCORE_OUTPUT_FORMAT,

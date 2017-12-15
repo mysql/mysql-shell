@@ -546,6 +546,8 @@ int main(int argc, char **argv) {
       g_test_trace_sql = 1;
     } else if (strcmp(argv[index], "--trace-all-sql") == 0) {
       g_test_trace_sql = 2;
+    } else if (strcmp(argv[index], "--gtest_color=yes") == 0) {
+      g_test_color_output = true;
     } else if (!shcore::str_beginswith(argv[index], "--gtest_") &&
                strcmp(argv[index], "--help") != 0) {
       std::cerr << "Invalid option " << argv[index] << "\n";

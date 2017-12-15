@@ -449,7 +449,7 @@ void Shell_core_test_wrapper::reset_replayable_shell(
   // Intercept queries and hack their results so that we can have
   // recorded local sessions that match the actual local environment
   mysqlshdk::db::replay::set_replay_row_hook(
-      [this](const mysqlshdk::db::Connection_options& target,
+      [](const mysqlshdk::db::Connection_options& target,
               const std::string& sql,
               std::unique_ptr<mysqlshdk::db::IRow> source)
           -> std::unique_ptr<mysqlshdk::db::IRow> {

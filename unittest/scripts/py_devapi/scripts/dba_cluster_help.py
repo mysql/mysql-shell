@@ -1,6 +1,6 @@
 # Assumptions: smart deployment rountines available
 #@ Initialization
-deployed_here = reset_or_deploy_sandboxes()
+testutil.deploy_sandbox(__mysql_sandbox_port1, "root");
 
 shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_port1, 'user': 'root', 'password': 'root'})
 
@@ -49,8 +49,7 @@ cluster.help("rescan")
 cluster.help("status")
 
 session.close();
+cluster.disconnect()
 
 #@ Finalization
-# Will delete the sandboxes ONLY if this test was executed standalone
-if (deployed_here):
-  cleanup_sandboxes(True)
+testutil.destroy_sandbox(__mysql_sandbox_port1);

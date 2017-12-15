@@ -20,6 +20,7 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 #include "unittest/test_utils.h"

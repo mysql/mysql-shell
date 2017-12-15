@@ -85,7 +85,7 @@ class Shell_test_output_handler {
  public:
   // You can define per-test set-up and tear-down logic as usual.
   Shell_test_output_handler();
-  ~Shell_test_output_handler();
+  virtual ~Shell_test_output_handler();
 
   virtual void TearDown() {
   }
