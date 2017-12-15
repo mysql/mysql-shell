@@ -3,9 +3,9 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
-testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum=CRC32");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 // TODO(.) - changing the binlog_format will cause the createCluster to fail because of bug #27112727
-// testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format=MIXED");
+// testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "MIXED");
 
 testutil.restartSandbox(__mysql_sandbox_port1, "root");
 

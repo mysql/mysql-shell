@@ -86,7 +86,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 
-testutil.changeSandboxConf(__mysql_sandbox_port2, "group_replication_group_name=ffd94a44-cce1-11e7-987e-4cfc0b4022e7");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "group_replication_group_name", "ffd94a44-cce1-11e7-987e-4cfc0b4022e7");
 testutil.startSandbox(__mysql_sandbox_port2);
 
 //@<OUT> status() on no-quorum

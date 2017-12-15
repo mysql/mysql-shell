@@ -52,8 +52,9 @@ class Testutils : public shcore::Cpp_object_bridge {
   Undefined stopSandbox(Integer port);
   Undefined killSandbox(Integer port);
   Undefined restartSandbox(Integer port);
-  Undefined changeSandboxConf(Integer port, String option);
-  Undefined removeFromSandboxConf(Integer port, String option);
+  Undefined changeSandboxConf(Integer port, String option, String value,
+                              String section);
+  Undefined removeFromSandboxConf(Integer port, String option, String section);
   String getSandboxConfPath(Integer port);
   String getSandboxLogPath(Integer port);
   String getShellLogPath();
@@ -72,8 +73,8 @@ class Testutils : public shcore::Cpp_object_bridge {
   None stop_sandbox(int port);
   None kill_sandbox(int port);
   None restart_sandbox(int port);
-  None change_sandbox_conf(int port, str option);
-  None remove_from_sandbox_conf(int port, str option);
+  None change_sandbox_conf(int port, str option, str value, str section);
+  None remove_from_sandbox_conf(int port, str option, str section);
   str get_sandbox_conf_path(int port);
   str get_sandbox_log_path(int port);
   str get_shell_log_path();
@@ -117,7 +118,7 @@ class Testutils : public shcore::Cpp_object_bridge {
 
  public:
   // Sandbox routines
-void deploy_sandbox(int port, const std::string &rootpass,
+  void deploy_sandbox(int port, const std::string &rootpass,
                       const shcore::Dictionary_t &opts = {});
   void destroy_sandbox(int port, bool quiet_kill=false);
 
@@ -131,10 +132,14 @@ void deploy_sandbox(int port, const std::string &rootpass,
   void begin_snapshot_sandbox_error_log(int port);
   void end_snapshot_sandbox_error_log(int port);
 
-  void change_sandbox_conf(int port, const std::string &option);
-  void remove_from_sandbox_conf(int port, const std::string &option);
+  void change_sandbox_conf(int port, const std::string &option,
+                           const std::string& value,
+                           const std::string& section = "");
+  void remove_from_sandbox_conf(int port, const std::string &option,
+                                const std::string &section = "");
   std::string get_sandbox_conf_path(int port);
   std::string get_sandbox_log_path(int port);
+  std::string get_sandbox_path(int port = 0, const std::string& file = "");
 
   bool version_check(const std::string &v1,
                      const std::string &op,

@@ -43,7 +43,7 @@ namespace tests {
  */
 class Shell_test_wrapper {
  public:
-  Shell_test_wrapper();
+  Shell_test_wrapper(bool disable_dummy_sandboxes = false);
   void reset();
     // This can be use to reinitialize the interactive shell with different
   // options First set the options on _options

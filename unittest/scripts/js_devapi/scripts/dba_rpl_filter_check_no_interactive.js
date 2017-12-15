@@ -10,15 +10,15 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 // Restart sandbox instances with specific binlog filtering option.
 testutil.stopSandbox(__mysql_sandbox_port1, 'root');
-testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog-do-db=db1,mysql_innodb_cluster_metadata,db2");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog-do-db", "db1,mysql_innodb_cluster_metadata,db2");
 testutil.startSandbox(__mysql_sandbox_port1);
 
 testutil.stopSandbox(__mysql_sandbox_port2, 'root');
-testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog-do-db=db1,db2");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog-do-db", "db1,db2");
 testutil.startSandbox(__mysql_sandbox_port2);
 
 testutil.stopSandbox(__mysql_sandbox_port3, 'root');
-testutil.changeSandboxConf(__mysql_sandbox_port3, "binlog-ignore-db=db1,mysql_innodb_cluster_metadata,db2");
+testutil.changeSandboxConf(__mysql_sandbox_port3, "binlog-ignore-db", "db1,mysql_innodb_cluster_metadata,db2");
 testutil.startSandbox(__mysql_sandbox_port3);
 
 

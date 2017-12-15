@@ -51,7 +51,7 @@ class My_random : public mysqlshdk::utils::Random {
   int ts = 0;
 };
 
-Shell_test_wrapper::Shell_test_wrapper() {
+Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir) {
     _sandbox_dir.assign(tmpdir);
@@ -61,8 +61,8 @@ Shell_test_wrapper::Shell_test_wrapper() {
     _sandbox_dir = shcore::get_binary_folder();
   }
 
-  _dummy_sandboxes =
-    g_test_recording_mode == TestingMode::Replay;
+  _dummy_sandboxes = disable_dummy_sandboxes ? false :
+                     g_test_recording_mode == TestingMode::Replay;
 
   _recording_enabled =
     g_test_recording_mode == TestingMode::Record;
@@ -174,9 +174,10 @@ void Shell_test_wrapper::trace_protocol() {
 }
 
 void Shell_test_wrapper::enable_testutil() {
-  bool dummy_sandboxes = g_test_recording_mode == TestingMode::Replay;
+  // Dummy sandboxes may be used i.e. while replying tests, unless it is
+  // specified that they should never be used
   _testutil.reset(new tests::Testutils(
-      _sandbox_dir, dummy_sandboxes,
+      _sandbox_dir, _dummy_sandboxes,
       {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
       _interactive_shell, Shell_test_env::get_path_to_mysqlsh()));
   _testutil->set_test_callbacks(
