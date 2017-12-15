@@ -105,10 +105,13 @@ expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
   expose("endSnapshotSandboxErrorLog",
          &Testutils::end_snapshot_sandbox_error_log, "port");
   expose("changeSandboxConf", &Testutils::change_sandbox_conf, "port",
-         "option");
+         "option", "value", "?section");
   expose("removeFromSandboxConf", &Testutils::remove_from_sandbox_conf, "port",
-         "option");
+         "option", "?section");
   expose("getSandboxConfPath", &Testutils::get_sandbox_conf_path, "port");
+  expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
+  expose("getSandboxPath", &Testutils::get_sandbox_path, "?port",
+         "?filename");
 
   expose("getShellLogPath", &Testutils::get_shell_log_path);
 
@@ -180,6 +183,59 @@ std::string Testutils::get_sandbox_conf_path(int port) {
 std::string Testutils::get_sandbox_log_path(int port) {
   return shcore::path::join_path(
       {_sandbox_dir, std::to_string(port), "sandboxdata", "error.log"});
+}
+
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Gets the path to any file contained on the sandbox datadir.
+ * @param port Optional port of the sandbox for which a path will be retrieved.
+ * @param port Optional name of the file path to be retrieved.
+ *
+ * This function will return path related to the sandboxes.
+ *
+ * If port is NOT specified, it will retrieve the path to the sandbox home
+ * folder.
+ *
+ * If port is specified it will retrieve a path for that specific sandbox.
+ *
+ * If file is not specified, it will retrieve the path to the sandbox folder.
+ *
+ * If file is specified it will retrieve the path to that file only if it is a
+ * a valid file:
+ * - my.cnf is a valid file.
+ * - Any other file, will be valid if it exists on the sandboxdata dir.
+ */
+#if DOXYGEN_JS
+  String Testutils::getSandboxPath(Integer port, String name);
+#elif DOXYGEN_PY
+  str Testutils::get_sandbox_path(int port, str name);
+#endif
+///@}
+std::string Testutils::get_sandbox_path(int port,
+                                             const std::string& file) {
+  std::string path;
+
+  if (port == 0)
+    path = _sandbox_dir;
+  else {
+    if (file.empty()) {
+      path = shcore::path::join_path({_sandbox_dir, std::to_string(port)});
+    } else {
+      if (file == "my.cnf") {
+        path = shcore::path::join_path(
+          {_sandbox_dir, std::to_string(port), "my.cnf"});
+      } else {
+        path = shcore::path::join_path(
+          {_sandbox_dir, std::to_string(port), "sandboxdata", file});
+      }
+    }
+  }
+
+  if (!shcore::path::exists(path))
+    path.clear();
+
+  return path;
 }
 
 //!<  @name Misc Utilities
@@ -355,17 +411,10 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
         }
       }
     } else {
-      // Sandbox from scratch
-      shcore::Value::Array_type_ref errors;
-      shcore::Value mycnf_options = shcore::Value::new_array();
-      mycnf_options.as_array()->push_back(
-          shcore::Value("innodb_log_file_size=4M"));
-      _mp->set_verbose(g_test_trace_scripts > 1);
-      _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass,
-                          mycnf_options, true, true, &errors);
-      if (errors && !errors->empty())
-        std::cerr << "During deploy of " << port << ": "
-                  << shcore::Value(errors).descr() << "\n";
+      prepare_sandbox_boilerplate(rootpass, port);
+      _boilerplate_rootpass = rootpass;
+
+      deploy_sandbox_from_boilerplate(port, opts);
     }
   }
 }
@@ -627,31 +676,75 @@ void Testutils::wait_sandbox_dead(int port) {
 #endif
 }
 
+bool is_configuration_option(const std::string &option,
+                             const std::string& line) {
+  std::string normalized = shcore::str_replace(line, " ", "");
+  return (normalized == option || normalized.find(option + "=") == 0);
+}
+
+bool is_section_line(const std::string& line, const std::string &section = "") {
+  bool ret_val = false;
+
+  if (!line.empty()) {
+    std::string normalized = shcore::str_strip(line);
+    if (normalized[0] == '[' && normalized[normalized.length()-1] == ']') {
+      ret_val = true;
+
+      if (!section.empty())
+        ret_val = normalized == "[" + section + "]";
+    }
+  }
+
+  return ret_val;
+}
+
 //!<  @name Sandbox Operations
 ///@{
 /**
  * Delete lines with the option from the given config file.
  * @param port The port of the sandbox where the configuration will be updated.
  * @param option The option name that will be removed from the configuration file.
+ * @param section The section from which the option will be removed.
  *
- * This function will remove any configuration option containing the provided
- * string from the configuration file.
+ * This function will remove any occurrence of the configuration option on the
+ * indicated section.
+ *
+ * If the section is not specified the operation will be done on every section
+ * of the file.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::removeFromSandboxConf(Integer port, String option);
+  Undefined Testutils::removeFromSandboxConf(Integer port, String option, String section);
 #elif DOXYGEN_PY
-  None Testutils::remove_from_sandbox_conf(int port, str option);
+  None Testutils::remove_from_sandbox_conf(int port, str option, str section);
 #endif
 ///@}
-void Testutils::remove_from_sandbox_conf(int port, const std::string &option) {
+void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
+                                         const std::string &section) {
+  if (_dummy_sandboxes)
+    return;
+
   std::string cfgfile_path = get_sandbox_conf_path(port);
   std::string new_cfgfile_path = cfgfile_path + ".new";
   std::ofstream new_cfgfile(new_cfgfile_path);
   std::ifstream cfgfile(cfgfile_path);
   std::string line;
+
+  bool in_section = false;
   while (std::getline(cfgfile, line)) {
-    if (line.find(option) == std::string::npos)
-      new_cfgfile << line << std::endl;
+
+    if (is_section_line(line, section))
+      in_section = true;
+    else if (is_section_line(line))
+      in_section = false;
+
+    // If we are in the right section and the option is found, the line is
+    // removed from the cfg file
+    if (in_section) {
+      if (is_configuration_option(option, line))
+        continue;
+    }
+
+    new_cfgfile << line << std::endl;
   }
   cfgfile.close();
   new_cfgfile.close();
@@ -664,19 +757,29 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option) {
 /**
  * Change sandbox config option and add it if it's not in the my.cnf yet
  * @param port The port of the sandbox where the configuration will be updated.
- * @param option The new option value in the format of "option=value".
+ * @param option The option to be updated or added.
+ * @param value The new value for the option.
+ * @param section The section on which the option will be added or updated.
  *
  * This function will replace the value of the configuration option from the
- * [mysqld] section of the configuration file. If the option does not exist it
- * will be added.
+ * indicated section of the configuration file.
+ *
+ * If the option does not exist it will be added.
+ *
+ * If the section is not indicated, the operation will be done on every section
+ * of the configuration file.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::changeSandboxConf(Integer port, String option);
+  Undefined Testutils::changeSandboxConf(Integer port, String option,
+                                         String value, String section);
 #elif DOXYGEN_PY
-  None Testutils::change_sandbox_conf(int port, str option);
+  None Testutils::change_sandbox_conf(int port, str option, str value,
+                                      str section);
 #endif
 ///@}
-void Testutils::change_sandbox_conf(int port, const std::string &option) {
+void Testutils::change_sandbox_conf(int port, const std::string &option,
+                                    const std::string& value,
+                                    const std::string &section) {
   if (_dummy_sandboxes)
     return;
 
@@ -685,26 +788,31 @@ void Testutils::change_sandbox_conf(int port, const std::string &option) {
   std::ofstream new_cfgfile(new_cfgfile_path);
   std::ifstream cfgfile(cfgfile_path);
   std::string line;
-  bool found_mysqld = false;
-  bool found_option = false;
 
-  auto sep = option.find('=');
-  if (sep != std::string::npos)
-    ++sep;
+
+  bool in_section = false;
   while (std::getline(cfgfile, line)) {
-    if (found_mysqld) {
-      if (line.compare(0, sep, option, 0, sep) == 0) {
-        found_option = true;
-        new_cfgfile << option << std::endl;
-        continue;
-      }
+
+    if (is_section_line(line, section)) {
+      // As soon as the section is found adds the option with the new value
+      in_section = true;
+      new_cfgfile << line << std::endl;
+      new_cfgfile << option << " = " << value << std::endl;
+      continue;
+    } else if (is_section_line(line)) {
+      in_section = false;
     }
-    if (line == "[mysqld]")
-      found_mysqld = true;
+
+    // If we are in the right section and the option is found, it is
+    // removed since it will be the old value
+    if (in_section) {
+      if (is_configuration_option(option, line))
+        continue;
+    }
+
     new_cfgfile << line << std::endl;
   }
-  if (!found_option)
-    new_cfgfile << option << std::endl;
+
   cfgfile.close();
   new_cfgfile.close();
   shcore::delete_file(cfgfile_path);
@@ -964,14 +1072,14 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
 
   stop_sandbox(port, rootpass);
 
-  remove_from_sandbox_conf(port, "port");
-  remove_from_sandbox_conf(port, "server_id");
-  remove_from_sandbox_conf(port, "datadir");
-  remove_from_sandbox_conf(port, "log_error");
-  remove_from_sandbox_conf(port, "pid_file");
-  remove_from_sandbox_conf(port, "secure_file_priv");
-  remove_from_sandbox_conf(port, "loose_mysqlx_port");
-  remove_from_sandbox_conf(port, "report_port");
+  change_sandbox_conf(port, "port", "<PLACEHOLDER>");
+  remove_from_sandbox_conf(port, "server_id", "mysqld");
+  remove_from_sandbox_conf(port, "datadir", "mysqld");
+  remove_from_sandbox_conf(port, "log_error", "mysqld");
+  remove_from_sandbox_conf(port, "pid_file", "mysqld");
+  remove_from_sandbox_conf(port, "secure_file_priv", "mysqld");
+  remove_from_sandbox_conf(port, "loose_mysqlx_port", "mysqld");
+  remove_from_sandbox_conf(port, "report_port", "mysqld");
 
   if (shcore::is_folder(boilerplate)) {
     shcore::remove_directory(boilerplate);
@@ -1072,31 +1180,34 @@ bool Testutils::deploy_sandbox_from_boilerplate
                            std::to_string(port) + ": " + e.what());
   }
   // Customize
-  change_sandbox_conf(port, "port=" + std::to_string(port));
-  change_sandbox_conf(port, "server_id=" + std::to_string(port + 12345));
+  change_sandbox_conf(port, "port", std::to_string(port));
+  change_sandbox_conf(port, "server_id", std::to_string(port + 12345),
+                      "mysqld");
   change_sandbox_conf(
-      port, "datadir=" + shcore::str_replace(
+      port, "datadir", shcore::str_replace(
                              shcore::path::join_path(basedir, "sandboxdata"),
-                             "\\", "/"));
+                             "\\", "/"), "mysqld");
   change_sandbox_conf(
-      port, "log_error=" +
+      port, "log_error",
                 shcore::str_replace(shcore::path::join_path(
                                         basedir, "sandboxdata", "error.log"),
-                                    "\\", "/"));
+                                    "\\", "/"), "mysqld");
   change_sandbox_conf(
-      port, "pid_file=" +
+      port, "pid_file",
                 shcore::str_replace(shcore::path::join_path(
                                         basedir, std::to_string(port) + ".pid"),
-                                    "\\", "/"));
-  change_sandbox_conf(port, "secure_file_priv=" + shcore::path::join_path(
-                                                      basedir, "mysql-files"));
-  change_sandbox_conf(port, "loose_mysqlx_port=" + std::to_string(port * 10));
-  change_sandbox_conf(port, "report_port=" + std::to_string(port));
-  change_sandbox_conf(port, "general_log=1");
+                                    "\\", "/"), "mysqld");
+  change_sandbox_conf(port, "secure_file_priv", shcore::path::join_path(
+                                                      basedir, "mysql-files"),
+                                                      "mysqld");
+  change_sandbox_conf(port, "loose_mysqlx_port", std::to_string(port * 10),
+                      "mysqld");
+  change_sandbox_conf(port, "report_port", std::to_string(port), "mysqld");
+  change_sandbox_conf(port, "general_log", "1", "mysqld");
 
   if (opts && !opts->empty()) {
     for (const auto& option : (*opts)) {
-      change_sandbox_conf(port, option.first + "=" + option.second.descr());
+      change_sandbox_conf(port, option.first, option.second.descr(), "mysqld");
     }
   }
 

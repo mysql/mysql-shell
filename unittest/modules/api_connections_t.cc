@@ -26,41 +26,34 @@
 #include "unittest/test_utils/shell_test_wrapper.h"
 #include "utils/utils_string.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "unittest/test_utils/shell_test_wrapper.h"
 
 namespace tests {
 
 class Api_connections : public Shell_js_script_tester {
  public:
   virtual void SetUp() {
+    enable_debug();
     Shell_js_script_tester::SetUp();
 
     set_config_folder("js_devapi");
     set_setup_script("setup.js");
     execute_setup();
 
-    _my_port = get_sandbox_classic_port();
+    _my_port = _mysql_sandbox_port1;
     _my_x_port = get_sandbox_x_port();
 
-    _my_cnf_path = get_cnf_path();
-    _my_sandbox_path = get_sandbox_path();
-
-    std::string sandbox_path = get_sandbox_path();
-    auto path_components =
-      shcore::split_string(sandbox_path, _path_splitter);
-
-    path_components.push_back(_my_port);
-    path_components.push_back("sandboxdata");
-    path_components.push_back("ca.pem");
-
-    _my_ca_file = shcore::str_join(path_components, _path_splitter);
+    _my_cnf_path = testutil->get_sandbox_conf_path(_mysql_sandbox_nport1);
+    _my_ca_file = testutil->get_sandbox_path(_mysql_sandbox_nport1, "ca.pem");
     mysqlshdk::db::uri::Uri_encoder encoder;
     _my_ca_file_uri = encoder.encode_value(_my_ca_file);
 
     execute("var __my_port = " + _my_port + ";");
     execute("var __my_x_port = " + _my_x_port + ";");
-    execute("var __my_ca_file = '" + get_scripting_path(_my_ca_file) + "';");
+    execute("var __my_ca_file = testutil.getSandboxPath(__my_port, 'ca.pem');");
     execute("var __my_ca_file_uri = '" + _my_ca_file_uri + "';");
-    execute("var __sandbox_dir = '" + get_scripting_path(sandbox_path) + "';");
+    execute("var __sandbox_dir = testutil.getSandboxPath();");
+    execute("var __my_user = 'root';");
 
     if (_highest_tls_version >= mysqlshdk::utils::Version("1.2"))
       execute("var __default_cipher = 'DHE-RSA-AES128-GCM-SHA256';");
@@ -69,44 +62,13 @@ class Api_connections : public Shell_js_script_tester {
   }
 
   static void SetUpTestCase() {
-    std::string sandbox_path = get_sandbox_path();
-
-    // Deploys the sandbox instance to be used on this tests
-    Shell_test_wrapper shell;
-    std::string script =
-      "dba.deploySandboxInstance(" + get_sandbox_classic_port() +
-                ", {password: 'root', "
-                  "sandboxDir: '" + get_scripting_path(sandbox_path) + "', "
-                  "ignoreSslError: false});";
-    shell.execute(script);
-
-    ASSERT_STREQ("", shell.get_output_handler().std_err.c_str());
+    Shell_test_wrapper shell_env(true);
+    shell_env.utils()->deploy_sandbox(shell_env.sb_port1(), "root");
   }
 
   static void TearDownTestCase() {
-    Shell_test_wrapper shell;
-    std::string sandbox_path = get_sandbox_path();
-
-    shell.execute("dba.stopSandboxInstance(" + get_sandbox_classic_port() +
-                  ", "
-                  "{sandboxDir: '" +
-                  get_scripting_path(sandbox_path) +
-                  "', "
-                  "password: 'root'});");
-
-    shell.execute("dba.killSandboxInstance(" + get_sandbox_classic_port() +
-                  ", "
-                  "{sandboxDir: '" +
-                  get_scripting_path(sandbox_path) +
-                  "'});");
-
-    shell.execute("dba.deleteSandboxInstance(" + get_sandbox_classic_port() +
-                  ", "
-                  "{sandboxDir: '" +
-                  get_scripting_path(sandbox_path) + "'});");
-
-    // After sandboxes are down, they take a while until ports are released
-    shcore::sleep_ms(5000);
+    Shell_test_wrapper shell_env(true);
+    shell_env.utils()->destroy_sandbox(shell_env.sb_port1());
   }
 
   static std::string get_scripting_path(const std::string& path) {
@@ -117,61 +79,29 @@ class Api_connections : public Shell_js_script_tester {
     return ret_val;
   }
 
-  static std::string get_sandbox_path() {
-    std::string ret_val;
+  void disable_ssl_on_instance(int port, const std::string& unsecure_user) {
 
-    const char *tmpdir = getenv("TMPDIR");
-    if (tmpdir) {
-      ret_val.assign(tmpdir);
-    } else {
-      // If not specified, the tests will create the sandboxes on the
-      // binary folder
-      ret_val = shcore::get_binary_folder();
-    }
-#ifdef _WIN32
-    ret_val = shcore::str_replace(ret_val, "\\", "/");
-#endif
-    return ret_val;
+    auto session = mysqlshdk::db::mysql::Session::create();
+
+    auto connection_options = shcore::get_connection_options(
+        "root:root@localhost:" + std::to_string(port), false);
+    session->connect(connection_options);
+
+    session->query("create user " + unsecure_user + "@'%' identified with "
+                   "mysql_native_password by 'root'");
+    session->close();
+
+    testutil->stop_sandbox(port, "root");
+    testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
+    testutil->change_sandbox_conf(port, "default_authentication_plugin",
+                                        "mysql_native_password", "mysqld");
+    testutil->start_sandbox(port);
   }
 
-  static int get_sandbox_port_number() {
-    std::string ret_val;
 
-    int offset = 0;
-    const char *base_port = nullptr;
-    base_port = getenv("MYSQL_SANDBOX_PORT1");
-    if (!base_port) {
-      base_port = getenv("MYSQL_PORT");
-      offset = 10;
-    }
-
-    return atoi(base_port) + offset;
+  std::string get_sandbox_x_port() {
+    return std::to_string(_mysql_sandbox_nport1 * 10);
   }
-
-  static std::string get_sandbox_classic_port() {
-    return std::to_string(get_sandbox_port_number());
-  }
-
-  static std::string get_sandbox_x_port() {
-    return std::to_string(get_sandbox_port_number() * 10);
-  }
-
-  static std::string get_cnf_path() {
-    std::string ret_val;
-
-    auto path_components =
-        shcore::split_string(get_sandbox_path(), _path_splitter);
-    if (path_components.back().empty())
-      path_components.pop_back();
-    path_components.push_back(get_sandbox_classic_port());
-
-    std::vector<std::string> cnf_path_components(path_components);
-    cnf_path_components.push_back("my.cnf");
-    ret_val = shcore::str_join(cnf_path_components, _path_splitter);
-
-    return ret_val;
-  }
-
 
  protected:
   std::string _my_port;
@@ -202,17 +132,11 @@ TEST_F(Api_connections, ssl_enabled_require_secure_transport_on) {
 }
 
 TEST_F(Api_connections, ssl_disabled) {
-  execute("localhost='localhost';");
-  execute("dba.stopSandboxInstance(" + _my_port +
-          ", "
-          "{sandboxDir: '" +
-          get_scripting_path(_my_sandbox_path) +
-          "',"
-          "password: 'root'});");
+  disable_ssl_on_instance(_mysql_sandbox_nport1, "unsecure");
 
-  add_to_cfg_file(_my_cnf_path, "ssl=OFF");
+  execute("var __my_user = 'unsecure';");
 
-  execute("try_restart_sandbox(" + _my_port + ");");
+  shcore::sleep_ms(5000);
 
   validate_chunks("api_connections.js",
                   "api_connections_ssl_off.val");

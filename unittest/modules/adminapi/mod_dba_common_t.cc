@@ -77,9 +77,9 @@ class Dba_common_test : public Admin_api_test {
     session->close();
 
     testutil->stop_sandbox(port, "root");
-    testutil->change_sandbox_conf(port, "ssl=0");
-    testutil->change_sandbox_conf(port, "default_authentication_plugin="
-                                         "mysql_native_password");
+    testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
+    testutil->change_sandbox_conf(port, "default_authentication_plugin",
+                                        "mysql_native_password", "mysqld");
     testutil->start_sandbox(port);
   }
 };

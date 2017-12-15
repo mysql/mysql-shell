@@ -1,12 +1,12 @@
 // Assumptions: smart deployment routines available
 //@ Initialization
-var uri_base = "root:root@localhost:";
-var connection_data = {user:'root',
+var uri_base = __my_user + ":root@localhost:";
+var connection_data = {user:__my_user,
                        password: 'root',
                        host:'localhost'};
 
-var uri_base_no_pwd = "root@localhost:";
-var connection_data_no_pwd = {user:'root',
+var uri_base_no_pwd = __my_user + "@localhost:";
+var connection_data_no_pwd = {user:__my_user,
                               host:'localhost'};
 
 // ---------------- CLASSIC TESTS URI -------------------------

@@ -101,11 +101,17 @@
 //@ shell.connect, with X URI, no ssl-mode with ssl-ca (Use Verify_Ca)
 |<<<__default_cipher>>>|
 
+//@ getSession with URI, ssl-mode=DISABLED {VER(<8.0.4)}
+||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
+
 //@ getSession with URI, ssl-mode=DISABLED
+||Invalid authentication method: PLAIN over unsecure channel (MySQL Error 2504)
+
+//@ shell.connect, with X URI, ssl-mode=DISABLED {VER(<8.0.4)}
 ||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
 
 //@ shell.connect, with X URI, ssl-mode=DISABLED
-||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
+||Invalid authentication method: PLAIN over unsecure channel (MySQL Error 2504)
 
 //@ getSession with URI, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
@@ -139,11 +145,17 @@
 //@ shell.connect, with X Dict, no ssl-mode with ssl-ca (Use Verify_Ca)
 |<<<__default_cipher>>>|
 
+//@ getSession with Dict, ssl-mode=DISABLED {VER(<8.0.4)}
+||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
+
 //@ getSession with Dict, ssl-mode=DISABLED
+||Invalid authentication method: PLAIN over unsecure channel (MySQL Error 2504)
+
+//@ shell.connect, with X Dict, ssl-mode=DISABLED {VER(<8.0.4)}
 ||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
 
 //@ shell.connect, with X Dict, ssl-mode=DISABLED
-||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
+||Invalid authentication method: PLAIN over unsecure channel (MySQL Error 2504)
 
 //@ getSession with Dict, ssl-mode=DISABLED and other ssl option
 ||SSL options are not allowed when ssl-mode is set to 'disabled'.
