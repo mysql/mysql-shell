@@ -64,8 +64,6 @@
 // - make a deployCluster() with reusable cluster
 // - make a destroyCluster() that expects the cluster is in the same state
 //   as original
-// - add a wait_new_member() which does wait_slave_state() but with shorter
-//   check interval/delay in replay mode (for faster execution)
 
 extern int g_test_trace_scripts;
 extern bool g_test_color_output;
@@ -86,6 +84,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
     : _shell(shell),
       _mysqlsh_path(mysqlsh_path),
       _default_sandbox_ports(default_sandbox_ports) {
+  _use_boilerplate = true;
   _sandbox_dir = sandbox_dir;
   _dummy_sandboxes = dummy_mode;
   if (g_test_trace_scripts > 0 && dummy_mode)
@@ -347,8 +346,7 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     // Sandbox from a boilerplate
-    if (!_boilerplate_rootpass.empty() && _boilerplate_rootpass == rootpass &&
-        !_expected_boilerplate_version.empty()) {
+    if (!_boilerplate_rootpass.empty() && _boilerplate_rootpass == rootpass) {
       if (!deploy_sandbox_from_boilerplate(port, opts)) {
         prepare_sandbox_boilerplate(rootpass, port);
         if (!deploy_sandbox_from_boilerplate(port, opts)) {
@@ -922,12 +920,10 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
 
   std::string boilerplate =
       shcore::path::join_path(_sandbox_dir, "myboilerplate");
-  if (shcore::is_folder(boilerplate) &&
-      !_expected_boilerplate_version.empty() &&
-      getenv("TEST_REUSE_SANDBOX_BOILERPLATE")) {
+  if (shcore::is_folder(boilerplate) && _use_boilerplate) {
     if (g_test_trace_scripts)
-      std::cerr << "Reusing existing sandbox boilerplate as requested\n";
-
+      std::cerr << "Reusing existing sandbox boilerplate at " << boilerplate
+                << "\n";
     return;
   }
 
@@ -993,6 +989,9 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
       shcore::path::join_path(boilerplate, "sandboxdata", "mysqlx.sock"));
   shcore::delete_file(
       shcore::path::join_path(boilerplate, "sandboxdata", "error.log"));
+
+  if (g_test_trace_scripts)
+    std::cerr << "Created sandbox boilerplate at " << boilerplate << "\n";
 }
 
 void copy_boilerplate_sandbox(const std::string &from,
@@ -1026,6 +1025,32 @@ void copy_boilerplate_sandbox(const std::string &from,
   });
 }
 
+void Testutils::validate_boilerplate(const std::string &sandbox_dir,
+                                     const std::string &version) {
+  std::string basedir =
+      shcore::path::join_path(sandbox_dir, "myboilerplate");
+  bool expired = false;
+  if (shcore::is_folder(basedir)) {
+    try {
+      std::string bversion = shcore::get_text_file(
+          shcore::path::join_path(basedir, "version.txt"));
+      if (bversion != version) {
+        std::cerr << "Sandbox boilerplate was created for " << bversion
+                  << " but available mysqld is " << version << "\n";
+        expired = true;
+      }
+    } catch (std::exception &e) {
+      expired = true;
+    }
+    if (expired) {
+      std::cout << "Deleting expired boilerplate at " << basedir << "...\n";
+      shcore::remove_directory(basedir);
+    } else {
+      std::cerr << "Found apparently valid sandbox boilerplate at " << basedir
+                << "\n";
+    }
+  }
+}
 
 bool Testutils::deploy_sandbox_from_boilerplate
   (int port, const shcore::Dictionary_t &opts) {
@@ -1077,25 +1102,6 @@ bool Testutils::deploy_sandbox_from_boilerplate
 
   start_sandbox(port);
 
-  if (!_boilerplate_checked) {
-    _boilerplate_checked = true;
-    try {
-      std::string bversion = shcore::get_text_file(
-          shcore::path::join_path(boilerplate, "version.txt"));
-      if (bversion != _expected_boilerplate_version) {
-        std::cerr
-            << "WARNING: Boilerplate instance was created for a "
-               "different MySQL version than current and will be recreated ("
-            << bversion << " expected " << _expected_boilerplate_version
-            << ")\n";
-        destroy_sandbox(port);
-        return false;
-      }
-    } catch (std::exception &e) {
-      std::cerr << "Error checking boilerplate version: " << e.what() << "\n";
-      return false;
-    }
-  }
   return true;
 }
 

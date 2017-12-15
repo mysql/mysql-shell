@@ -94,9 +94,8 @@ class Testutils : public shcore::Cpp_object_bridge {
 
   void set_sandbox_snapshot_dir(const std::string &dir);
 
-  void set_expected_boilerplate_version(const std::string &ver) {
-    _expected_boilerplate_version = ver;
-  }
+  static void validate_boilerplate(const std::string &sandbox_dir,
+                                   const std::string &version);
 
   using Input_fn =
       std::function<void(const std::string &, const std::string &)>;
@@ -183,9 +182,8 @@ void deploy_sandbox(int port, const std::string &rootpass,
   std::string _sandbox_dir;
   std::string _sandbox_snapshot_dir;
   bool _dummy_sandboxes = false;
-  bool _boilerplate_checked = false;
+  bool _use_boilerplate = false;
   std::string _boilerplate_rootpass;
-  std::string _expected_boilerplate_version;
   int _snapshot_log_index = 0;
   Input_fn _feed_prompt;
   Input_fn _feed_password;

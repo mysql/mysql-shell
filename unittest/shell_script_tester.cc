@@ -108,7 +108,8 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context,
 }
 
 bool Shell_script_tester::validate(const std::string& context,
-                                   const std::string& chunk_id) {
+                                   const std::string& chunk_id,
+                                   bool optional) {
   std::string original_std_out = output_handler.std_out;
   std::string original_std_err = output_handler.std_err;
   size_t out_position = 0;
@@ -260,7 +261,7 @@ bool Shell_script_tester::validate(const std::string& context,
 
     if (validations.empty()) {
       ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-          << makered("MISSING VALIDATIONS FOR CHUNK ")
+          << makered("MISSING VALIDATIONS FOR CHUNK ") << chunk_id
           << _chunks[chunk_id].def->line << "\n"
           << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
           << makeyellow("\tSTDERR: ") << original_std_err << "\n";
@@ -268,26 +269,20 @@ bool Shell_script_tester::validate(const std::string& context,
     }
     output_handler.wipe_all();
   } else {
-    // Every defined validation chunk MUST have validations
-    // or should not be defined as a validation chunk
-    // OTOH we always check for errors in global context
-    if (chunk_id != "__global__" || !original_std_err.empty()) {
-      if (chunk_id == "__global__") {
-        ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-            << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-            << makered("\tUnexpected Error: ") + original_std_err << "\n";
-        output_handler.wipe_all();
-      } else {
-        ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-            << makered("MISSING VALIDATIONS FOR CHUNK ")
-            << _chunks[chunk_id].def->line << "\n"
-            << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
-            << makeyellow("\tSTDERR: ") << original_std_err << "\n";
-      }
-      return false;
-    } else {
-      output_handler.wipe_all();
+    // There were errors
+    if (!original_std_err.empty()) {
+      ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+          << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
+          << makered("\tUnexpected Error: ") + original_std_err << "\n";
+    } else if (!optional && _chunks.find(chunk_id) != _chunks.end()) {
+    // The error is that there are no validations
+      ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
+          << makered("MISSING VALIDATIONS FOR CHUNK ") << chunk_id
+          << _chunks[chunk_id].def->line << "\n"
+          << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
+          << makeyellow("\tSTDERR: ") << original_std_err << "\n";
     }
+    output_handler.wipe_all();
   }
 
   return true;
@@ -308,6 +303,7 @@ void Shell_script_tester::load_source_chunks(const std::string& path,
                                              std::istream& stream) {
   Chunk_t chunk;
   chunk.def->id = "__global__";
+  chunk.def->validation = ValidationType::Optional;
   int linenum = 0;
 
   while (!stream.eof()) {
@@ -413,6 +409,11 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
       chunk_id = chunk_id.substr(5);
       chunk_id = str_strip(chunk_id);
       val_type = ValidationType::Multiline;
+    } else if (chunk_id.find("<>") == 0) {
+      stream = "";
+      chunk_id = chunk_id.substr(2);
+      chunk_id = str_strip(chunk_id);
+      val_type = ValidationType::Optional;
     }
 
     ret_val.reset(new Chunk_definition());
@@ -430,23 +431,19 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
 void Shell_script_tester::load_validations(const std::string& path) {
   std::ifstream file(path.c_str());
   std::vector<std::string> lines;
-  std::shared_ptr<Chunk_definition> current_chunk(new Chunk_definition());
   bool skip_chunk = false;
-
-  // Sets the data for the global chunk
-  current_chunk->id = "__global__";
-  current_chunk->validation = ValidationType::Simple;
 
   _chunk_validations.clear();
 
   bool chunk_verification = !_chunk_order.empty();
-  int chunk_index = -1;  // -1 indicates the __global__ chunk
-  if (_chunk_order[0] == "__global__")
-    chunk_index++;
+  size_t chunk_index = 0;
+  Chunk_t *current_chunk = &_chunks[_chunk_order[chunk_index]];
 
   int line_no = 0;
 
   if (!file.fail()) {
+    std::shared_ptr<Chunk_definition> current_val_def;
+    std::shared_ptr<Chunk_definition> new_val_def;
     while (!file.eof()) {
       std::string line;
       std::getline(file, line);
@@ -456,88 +453,87 @@ void Shell_script_tester::load_validations(const std::string& path) {
 
       // If a new chunk definition is found
       // Adds the accumulated validations to the previous chunk
-      std::shared_ptr<Chunk_definition> new_chunk = load_chunk_definition(line);
+      new_val_def = load_chunk_definition(line);
 
-      if (new_chunk) {
-        new_chunk->linenum = line_no;
+      if (new_val_def) {
+        new_val_def->linenum = line_no;
         skip_chunk = false;
 
         // Adds the previous validations
-        if (lines.size()) {
+        if (current_val_def && lines.size()) {
           std::string value = multiline(lines);
 
           value = str_strip(value);
 
-          if (current_chunk->stream == "OUT")
-            add_validation(current_chunk, {"", value, ""});
-          else if (current_chunk->stream == "ERR")
-            add_validation(current_chunk, {"", "", value});
+          if (current_val_def->stream == "OUT")
+            add_validation(current_val_def, {"", value, ""});
+          else if (current_val_def->stream == "ERR")
+            add_validation(current_val_def, {"", "", value});
+
+          current_val_def = new_val_def;
 
           lines.clear();
+        } else {
+          current_val_def = new_val_def;
         }
 
         // When the script is loaded in chunks, the validations should come in
         // the same order the chunks were loaded
         if (chunk_verification) {
           // Ensures the found validation is for a valid chunk
-          if (_chunks.find(new_chunk->id) == _chunks.end()) {
+          if (_chunks.find(current_val_def->id) == _chunks.end()) {
             ADD_FAILURE_AT(path.c_str(), line_no)
                 << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
-                << new_chunk->line << "\n"
+                << current_val_def->line << "\n"
                 << "\tLINE: " << line_no << "\n";
             skip_chunk = true;
             continue;
           }
 
-          // The new validation is for a chunk different than the current one
-          if (new_chunk->id != current_chunk->id) {
-            // No validations were loaded foe the current chunk and it is not
-            // the global one
-            if (current_chunk->id != "__global__" &&
-                (_chunk_validations.find(current_chunk->id) ==
-                     _chunk_validations.end() ||
-                 _chunk_validations[current_chunk->id].empty())) {
-              ADD_FAILURE_AT(path.c_str(), line_no)
-                  << makered("EXPECTED VALIDATIONS FOR CHUNK ")
-                  << _chunks[_chunk_order[chunk_index]].def->line << "\n"
-                  << "INSTEAD FOUND FOR CHUNK " << new_chunk->line << "\n"
-                  << "\tLINE: " << line_no << "\n";
-              continue;
-            } else {
-              if (static_cast<size_t>(chunk_index + 1) < _chunk_order.size()) {
-                // Next found chunk is not the one expected
-                if (new_chunk->id !=
-                    _chunks[_chunk_order[chunk_index + 1]].def->id) {
-                  ADD_FAILURE_AT(path.c_str(), line_no)
-                      << makered("EXPECTED VALIDATIONS FOR CHUNK ")
-                      << _chunks[_chunk_order[chunk_index + 1]].def->line
-                      << "\n"
-                      << "INSTEAD FOUND FOR CHUNK " << new_chunk->line << "\n"
-                      << "\tLINE: " << line_no << "\n";
-                  skip_chunk = true;
-                  continue;
-                } else {
-                  chunk_index++;
-                }
-              } else {
-                // Error unexpected validation for chunk found
-                ADD_FAILURE_AT(path.c_str(), line_no)
-                    << makered("UNEXPECTED VALIDATIONS FOR CHUNK ") << new_chunk->line
-                    << "\n"
-                    << "\tLINE: " << line_no << "\n";
-                skip_chunk = true;
-                continue;
-              }
-            }
+          bool match = current_val_def->id == current_chunk->def->id;
+
+          // If the new validation no longer match the current chunk, steps
+          // to the next chunk
+          if (!match) {
+            chunk_index++;
+            current_chunk = &_chunks[_chunk_order[chunk_index]];
+            match = current_val_def->id == current_chunk->def->id;
+          }
+
+          bool optional = current_chunk->is_validation_optional();
+
+          while (optional && !match && chunk_index < _chunk_order.size()) {
+            chunk_index++;
+            current_chunk = &_chunks[_chunk_order[chunk_index]];
+            optional = current_chunk->is_validation_optional();
+            match = current_val_def->id == current_chunk->def->id;
+          }
+
+          if (!optional && !match) {
+            ADD_FAILURE_AT(path.c_str(), line_no)
+                << makered("EXPECTED VALIDATIONS FOR CHUNK ")
+                << current_chunk->def->line << "\n"
+                << "INSTEAD FOUND FOR CHUNK " << current_val_def->line << "\n"
+                << "\tLINE: " << line_no << "\n";
+            skip_chunk = true;
+            continue;
+          }
+
+          if (chunk_index >=  _chunk_order.size()) {
+            ADD_FAILURE_AT(path.c_str(), line_no)
+                << makered("UNEXPECTED VALIDATIONS FOR CHUNK ") << current_val_def->line
+                << "\n"
+                << "\tLINE: " << line_no << "\n";
+            skip_chunk = true;
           }
         }
 
         // If the new chunk is wrong, ignores it
-        if (!skip_chunk)
-          current_chunk = new_chunk;
+        //if (!skip_chunk)
+        //  current_chunk = new_val_def;
       } else {
-        if (!skip_chunk) {
-          if (current_chunk->validation == ValidationType::Simple) {
+        if (!skip_chunk && current_val_def) {
+          if (current_val_def->validation != ValidationType::Multiline) {
             // When processing single line validations, lines as comments are
             // ignored
             if (!shcore::str_beginswith(line.c_str(),
@@ -546,7 +542,7 @@ void Shell_script_tester::load_validations(const std::string& path) {
               if (!line.empty()) {
                 std::vector<std::string> tokens;
                 tokens = split_string(line, "|", false);
-                add_validation(current_chunk, tokens);
+                add_validation(current_val_def, tokens);
               }
             }
           } else {
@@ -557,15 +553,16 @@ void Shell_script_tester::load_validations(const std::string& path) {
     }
 
     // Adds final formatted value if any
-    if (current_chunk->validation == ValidationType::Multiline) {
+    if (current_val_def &&
+        current_val_def->validation == ValidationType::Multiline) {
       std::string value = multiline(lines);
 
       value = str_strip(value);
 
-      if (current_chunk->stream == "OUT")
-        add_validation(current_chunk, {"", value, ""});
-      else if (current_chunk->stream == "ERR")
-        add_validation(current_chunk, {"", "", value});
+      if (current_val_def->stream == "OUT")
+        add_validation(current_val_def, {"", value, ""});
+      else if (current_val_def->stream == "ERR")
+        add_validation(current_val_def, {"", "", value});
     }
 
     file.close();
@@ -702,7 +699,8 @@ void Shell_script_tester::execute_script(const std::string& path,
             // Validation contexts is at chunk level
             _custom_context =
                 path + "@[" + _chunk_order[index] + " validation]";
-            if (!validate(path, _chunk_order[index])) {
+            if (!validate(path, _chunk_order[index],
+                chunk.is_validation_optional())) {
               if (g_test_trace_scripts > 1) {
                 // Failure logs are printed on the fly in debug mode
                 FAIL();
@@ -868,7 +866,8 @@ void Shell_script_tester::validate_chunks(const std::string& path,
 
           // Validation contexts is at chunk level
           _custom_context = path + "@[" + _chunk_order[index] + " validation]";
-          if (!validate(path, _chunk_order[index])) {
+          if (!validate(path, _chunk_order[index],
+            chunk.is_validation_optional())) {
             if (g_test_trace_scripts > 1) {
               // Failure logs are printed on the fly in debug mode
               FAIL();

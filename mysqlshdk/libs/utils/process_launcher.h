@@ -59,7 +59,8 @@ class Process_launcher {
    * quoting would be required, which is currently not supported.
    * For that reason, a logic_error will be thrown if cmd.exe is argv[0]
    */
-  explicit Process_launcher(const char * const *argv, bool redirect_stderr = true);
+  explicit Process_launcher(const char *const *argv,
+                            bool redirect_stderr = true);
 
   ~Process_launcher() {
     if (is_alive)
@@ -163,7 +164,7 @@ class Process_launcher {
   /** Perform Windows specific quoting of args and build a command line */
   static std::string make_windows_cmdline(const char * const*argv);
 
-private:
+ private:
   /**
    * Throws an exception with the specified message, if msg == NULL, the
    * exception's message is specific of the platform error. (errno in Linux /

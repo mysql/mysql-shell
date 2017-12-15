@@ -40,7 +40,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_p
 set_sysvar("super_read_only", 1);
 dba.configureLocalInstance(__sandbox_uri1, {mycnfPath:mycnf, clusterAdmin:'root', clusterAdminPassword:'root', clearReadOnly: false});
 
-EXPECT_OUTPUT_CONTAINS("Validating instance...")
+EXPECT_OUTPUT_CONTAINS("Validating instance...", false);
 EXPECT_OUTPUT_NOT_CONTAINS("The instance 'localhost:"+__mysql_sandbox_port1+"' is valid for Cluster usage");
 
 //@ Cleanup

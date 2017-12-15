@@ -329,7 +329,10 @@ std::shared_ptr<mysqlshdk::db::ISession> Mysql_shell::create_session(
   // Automatic protocol detection is ON
   // Attempts X Protocol first, then Classic
   if (type == mysqlsh::SessionType::Auto) {
-    session = mysqlshdk::db::mysqlx::Session::create();
+    auto xsession = mysqlshdk::db::mysqlx::Session::create();
+    session = xsession;
+    if (options().trace_protocol)
+      xsession->enable_protocol_trace(true);
     try {
       session->connect(connection_options);
       return session;
@@ -357,9 +360,13 @@ std::shared_ptr<mysqlshdk::db::ISession> Mysql_shell::create_session(
   }
 
   switch (type) {
-    case mysqlsh::SessionType::X:
-      session = mysqlshdk::db::mysqlx::Session::create();
+    case mysqlsh::SessionType::X: {
+      auto xsession = mysqlshdk::db::mysqlx::Session::create();
+      session = xsession;
+      if (options().trace_protocol)
+        xsession->enable_protocol_trace(true);
       break;
+    }
     case mysqlsh::SessionType::Classic:
       session = mysqlshdk::db::mysql::Session::create();
       break;
@@ -456,8 +463,6 @@ void Mysql_shell::connect(
 
     new_session = set_active_session(session);
   }
-
-  new_session->set_option("trace_protocol", options().trace_protocol);
 
   if (old_session && old_session->is_open()) {
     if (options().interactive)

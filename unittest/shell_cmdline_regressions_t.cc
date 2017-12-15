@@ -67,22 +67,38 @@ TEST_F(Command_line_test, bug24912358) {
 
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
+  // In 8.0.4+, the mysqlx_cache_cleaner is also supposed to be installed
   std::string uri = "--uri=" + _mysql_uri;
 
-  execute({ _mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;", NULL });
+  execute({_mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;",
+           NULL});
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
+    execute({_mysqlsh, uri.c_str(), "--sqlc", "-e",
+             "uninstall plugin mysqlx_cache_cleaner;", NULL});
+  }
 
-  execute({_mysqlsh, uri.c_str(), "--mysql", "--dba","enableXProtocol", NULL});
+  execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: Installing plugin mysqlx...");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: done");
 
-  execute({ _mysqlsh, uri.c_str(), "--interactive=full", "-e", "session.runSql('SELECT COUNT(*) FROM information_schema.plugins WHERE PLUGIN_NAME=\"mysqlx\"').fetchOne()", NULL});
+  execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e",
+           "session.runSql('SELECT COUNT(*) FROM information_schema.plugins "
+           "WHERE PLUGIN_NAME in (\"mysqlx\", \"mysqlx_cache_cleaner\")')."
+           "fetchOne()",
+           NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("[");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("    1");
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("    2");
+  } else {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("    1");
+  }
   MY_EXPECT_CMD_OUTPUT_CONTAINS("]");
 
-  execute({_mysqlsh, uri.c_str(), "--mysql", "--dba","enableXProtocol", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: X Protocol plugin is already enabled and listening for connections on port " + _port);
-
+  execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "enableXProtocol: X Protocol plugin is already enabled and listening for "
+      "connections on port " +
+      _port);
 }
 
 

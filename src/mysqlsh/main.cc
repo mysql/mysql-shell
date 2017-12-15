@@ -161,47 +161,47 @@ class Interrupt_helper : public shcore::Interrupt_helper {
 #endif  //! WIN32
 
 static int enable_x_protocol(mysqlsh::Command_line_shell *shell) {
+// clang-format off
   static const char *script =
-      "function enableXProtocol()\n"
-      "{\n"
-      "  try\n"
-      "  {\n"
-      "    var mysqlx_port = session.runSql('select "
-      "@@mysqlx_port').fetchOne();\n"
-      "    print('enableXProtocol: X Protocol plugin is already enabled and "
-      "listening for connections on port '+mysqlx_port[0]+'\\n');\n"
-      "    return 0;\n"
-      "  }\n"
-      "  catch (error)\n"
-      "  {\n"
-      "    if (error[\"code\"] != 1193) // unknown system variable\n"
-      "    {\n"
-      "      print('enableXProtocol: Error checking for X Protocol plugin: "
-      "'+error[\"message\"]+'\\n');\n"
-      "      return 1;\n"
-      "    }\n"
-      "  }\n"
-      "  print('enableXProtocol: Installing plugin mysqlx...\\n');\n"
-      "  var os = session.runSql('select @@version_compile_os').fetchOne();\n"
-      "  try {\n"
-      "    if (os[0] == \"Win32\" || os[0] == \"Win64\")\n"
-      "    {\n"
-      "      var r = session.runSql(\"install plugin mysqlx soname "
-      "'mysqlx.dll';\");\n"
-      "    }\n"
-      "    else\n"
-      "    {\n"
-      "      var r = session.runSql(\"install plugin mysqlx soname "
-      "'mysqlx.so';\")\n"
-      "    }\n"
-      "    print(\"enableXProtocol: done\\n\");\n"
-      "  } catch (error) {\n"
-      "    print('enableXProtocol: Error installing the X Plugin: "
-      "'+error['message']+'\\n');\n"
-      "  }\n"
-      "}\n"
-      "enableXProtocol(); print('');\n"
-      "\n";
+      R"*(function enableXProtocol() {
+  try {
+    if (session.uri.indexOf("mysqlx://") == 0) {
+      var mysqlx_port = session.sql('select @@mysqlx_port').execute().fetchOne();
+      println('enableXProtocol: X Protocol plugin is already enabled and listening for connections on port '+mysqlx_port[0]);
+      return 0;
+    }
+    var mysqlx_port = session.runSql('select @@mysqlx_port').fetchOne();
+    println('enableXProtocol: X Protocol plugin is already enabled and listening for connections on port '+mysqlx_port[0]);
+    return 0;
+  } catch (error) {
+    if (error["code"] != 1193) { // unknown system variable
+      println('enableXProtocol: Error checking for X Protocol plugin: '+error["message"]);
+      return 1;
+    }
+  }
+  println('enableXProtocol: Installing plugin mysqlx...');
+  var row = session.runSql("select @@version_compile_os, substr(@@version, 1, instr(@@version, '-')-1)").fetchOne();
+  var version = row[1].split(".");
+  var vernum = parseInt(version[0]) * 10000 + parseInt(version[1]) * 100 + parseInt(version[2]);
+  try {
+    if (row[0] == "Win32" || row[0] == "Win64") {
+      var r = session.runSql("install plugin mysqlx soname 'mysqlx.dll';");
+      if (vernum >= 80004)
+        var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.dll';");
+    } else {
+      var r = session.runSql("install plugin mysqlx soname 'mysqlx.so';")
+      if (vernum >= 80004)
+        var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.so';");
+    }
+    println("enableXProtocol: done");
+  } catch (error) {
+    println('enableXProtocol: Error installing the X Plugin: '+error['message']);
+  }
+}
+enableXProtocol();
+println();
+)*";
+// clang-format on
   std::stringstream stream(script);
   return shell->process_stream(stream, "(command line)", {});
 }

@@ -29,7 +29,8 @@
  */
 enum class ValidationType {
   Simple = 0,
-  Multiline = 1
+  Multiline = 1,
+  Optional = 2
 };
 
 // Note(rennox) the chunk lines in a test script and the ones on the validation
@@ -90,6 +91,9 @@ struct Chunk_t {
   }
   std::vector<Chunk_line_t> code;
   std::shared_ptr<Chunk_definition> def;
+  bool is_validation_optional() const {
+    return def->validation == ValidationType::Optional;
+  }
 };
 
 /**
@@ -147,7 +151,9 @@ private:
 
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);
-  bool validate(const std::string& context, const std::string &chunk_id = "__global__");
+  bool validate(const std::string& context,
+                const std::string &chunk_id = "__global__",
+                bool optional = false);
   bool validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual);
   std::string resolve_string(const std::string& source);
   virtual void pre_process_line(const std::string &path, std::string & line) {};

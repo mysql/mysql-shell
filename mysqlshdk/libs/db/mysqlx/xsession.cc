@@ -125,10 +125,7 @@ do_enable_trace(xcl::XSession *session) {
 DEBUG_OBJ_ENABLE(db_mysqlx_Session);
 
 XSession_impl::XSession_impl() {
-  if (getenv("MYSQLX_TRACE_CONNECTION"))
-    _enable_trace = true;
-  else
-    _enable_trace = false;
+  _enable_trace = false;
 
   DEBUG_OBJ_ALLOC(db_mysqlx_Session);
 }
@@ -194,6 +191,22 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
                              "PREFERRED");
   _mysql->set_capability(xcl::XSession::Capability_can_handle_expired_password,
                          true);
+
+  // In 8.0.4, trying to connect without SSL to a caching_sha2_password account
+  // will not work. The error message that's given is also confusing, because
+  // there's no hint the error is because of no SSL instead of wrong password
+  // So as a workaround, we force the PLAIN auth type to be always attempted
+  // at last, at least until libmysqlxclient is fixed to produce a specific
+  // error msg.
+  _mysql->set_mysql_option(
+      xcl::XSession::Mysqlx_option::Authentication_method,
+      std::vector<std::string>{"SHA256_MEMORY", "MYSQL41", "PLAIN"});
+#if LIBMYSQL_VERSION_ID > 80004
+  #error Check whether libmysqlx already fixed error for caching_sha2_password
+  // if libmysqlx already fixed the error, the code above to set auth
+  // methods can be removed. If not, update the version check above to error out
+  // again on 8.0.6
+#endif
 
   auto handler_id = _mysql->get_protocol().add_notice_handler(
       [this](xcl::XProtocol *, const bool,

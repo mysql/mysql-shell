@@ -50,7 +50,8 @@
 
 namespace shcore {
 
-Process_launcher::Process_launcher(const char * const *argv, bool redirect_stderr)
+Process_launcher::Process_launcher(const char *const *argv,
+                                   bool redirect_stderr)
     : is_alive(false) {
 #ifdef WIN32
   if (strstr(argv[0], "cmd.exe"))
@@ -338,8 +339,7 @@ HANDLE Process_launcher::get_fd_read() {
 
 #else  // !WIN32
 
-void Process_launcher::start()
-{
+void Process_launcher::start() {
   assert(!is_alive);
 
   if (pipe(fd_in) < 0) {
