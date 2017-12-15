@@ -139,6 +139,18 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysqlx");
 
+  if (_connection_options.has(mysqlshdk::db::kGetServerPublicKey)) {
+    _mysql.reset();
+    throw std::runtime_error(
+        "X Protocol: Option get-server-public-key is not supported.");
+  }
+
+  if (_connection_options.has(mysqlshdk::db::kServerPublicKeyPath)) {
+    _mysql.reset();
+    throw std::runtime_error(
+        "X Protocol: Option server-public-key-path is not supported.");
+  }
+
   // All connections should use mode = VERIFY_CA if no ssl mode is specified
   // and either ssl-ca or ssl-capath are specified
   if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,7 +81,7 @@ std::vector<std::string> Generic_option::get_cmdline_help(
 
   std::string line = command_line_names[0];
   for (std::size_t i = 1; i < command_line_names.size(); i++)
-    if (line.length() + 2 + command_line_names[i].length() <= options_width) {
+    if (line.length() + 2 + command_line_names[i].length() < options_width) {
       line += ", " + command_line_names[i];
     } else {
       line.insert(line.end(), options_width - line.length(), ' ');

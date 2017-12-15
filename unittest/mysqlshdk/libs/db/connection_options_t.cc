@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -19,6 +19,7 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
+#include <algorithm>
 #include <functional>
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -287,53 +288,72 @@ void combine(
   combine(input, my_string, index + 1, callback);
 }
 
+namespace case_insensitive {
+auto callback = [](const std::string& property, const std::string& twisted,
+                   const std::string& arg_value) {
+  std::string uri = "mysql://root@host?" + twisted + "=" + arg_value;
+  mysqlshdk::db::Connection_options data(uri);
+  if (!data.has(property)) {
+    std::string failed = "Failed Property: " + twisted;
+    SCOPED_TRACE(failed);
+    ADD_FAILURE();
+  } else {
+    std::string value = data.get(property);
+    std::string failed = "Unexpected Value: " + value;
+    SCOPED_TRACE(failed);
+    EXPECT_STREQ(arg_value.c_str(), value.c_str());
+  }
+};
+}  // namespace case_insensitive
+
 TEST(Connection_options, case_insensitive_ssl_mode) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters on ssl-mode
-  auto callback = [](const std::string& property, const std::string& twisted) {
-    std::string uri = "mysql://root@host?" + twisted + "=REQUIRED";
-    mysqlshdk::db::Connection_options data(uri);
-    if (!data.has(property)) {
-      std::string failed = "Failed Property: " + twisted;
-      SCOPED_TRACE(failed);
-      ADD_FAILURE();
-    } else {
-      std::string value = data.get(property);
-      std::string failed = "Unexpected Value: " + value;
-      SCOPED_TRACE(failed);
-      EXPECT_STREQ("REQUIRED", value.c_str());
-    }
-  };
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "REQUIRED");
 
   combine(mysqlshdk::db::kSslMode, "", 0, callback);
+}
+
+TEST(Connection_options, case_insensitive_get_server_public_key) {
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters on get-server-public-key
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "true");
+
+  // We start from 10th index because this function has O(2^n) complexity
+  // and tested string length is 21 ("get-server-public-key").
+  combine(mysqlshdk::db::kGetServerPublicKey, "", 10, callback);
+}
+
+TEST(Connection_options, case_insensitive_server_public_key_path) {
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters on server-public-key-path
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "pubkey.pem");
+
+  // We start from 11th index because this function has O(2^n) complexity
+  // and tested string length is 22 ("server-public-key-path").
+  combine(mysqlshdk::db::kServerPublicKeyPath, "", 11, callback);
 }
 
 TEST(Connection_options, case_insensitive_options) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters for each property
-  auto callback = [](const std::string& property, const std::string& twisted) {
-    std::string uri = "mysql://root@host?" + twisted + "=whatever";
-    mysqlshdk::db::Connection_options data(uri);
-    if (!data.has(property)) {
-      std::string failed = "Failed Property: " + twisted;
-      SCOPED_TRACE(failed);
-      ADD_FAILURE();
-    } else {
-      std::string value = data.get(property);
-      std::string failed = "Unexpected Value: " + value;
-      SCOPED_TRACE(failed);
-      EXPECT_STREQ("whatever", value.c_str());
-    }
-  };
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "whatever");
 
-  std::vector<std::string> attributes(uri_connection_attributes.begin(),
-                                      uri_connection_attributes.end());
+  std::set<std::string> attributes(uri_connection_attributes.begin(),
+                                   uri_connection_attributes.end());
 
-  attributes.erase(
-      std::find(attributes.begin(), attributes.end(), mysqlshdk::db::kSslMode));
+  // handled by other, more specific tests
+  attributes.erase(mysqlshdk::db::kSslMode);
+  attributes.erase(mysqlshdk::db::kGetServerPublicKey);
+  attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
 
-  for (auto property : attributes)
+  for (auto property : attributes) {
     combine(property, "", 0, callback);
+  }
 }
 
 TEST(Connection_options, set_host) {

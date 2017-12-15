@@ -156,8 +156,19 @@ TEST_P(Auto_script_js, run_and_check) {
   // Does not enable recording engine for the devapi tests
   // Recording for CRUD is not available
   if (folder != "js_devapi" &&
-      GetParam().find("_norecord") == std::string::npos)
+      GetParam().find("_norecord") == std::string::npos) {
     reset_replayable_shell(name.c_str());
+  }
+
+  // todo(kg): _norecord files haven't defined functions from script.js, e.g.
+  // `EXPECT_NE`. reset_replayable_shell call reset_shell therefore we lost
+  // those previously defined and called in constructor functions.
+  // I run setup.js script here once again, but this should be done somewhere
+  // else, but I don't know where.
+  set_setup_script(
+      shcore::path::join_path(g_test_home, "scripts", "setup_js", "setup.js"));
+  const std::vector<std::string> argv;
+  _interactive_shell->process_file(_setup_script, argv);
 
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());
   exec_and_out_equals("const __script_file = '" + GetParam() + "'");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -352,17 +352,45 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTIONS2, "The following options are also valid w
 REGISTER_HELP(TOPIC_CONNECTION_OPTIONS3, "TOPIC_DICT_CONNECTION_OPTIONS");
 
 // These lines group the connection options available for URI
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS, "@li ssl-mode: the SSL mode to be used in the connection.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS1, "@li ssl-ca: the path to the X509 certificate authority in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS2, "@li ssl-capath: the path to the directory that contains the X509 certificates authorities in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS3, "@li ssl-cert: The path to the X509 certificate in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS4, "@li ssl-key: The path to the X509 key in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS5, "@li ssl-crl: The path to file that contains certificate revocation lists.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS6, "@li ssl-crlpath: The path of directory that contains certificate revocation list files.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7, "@li ssl-cipher: SSL Cipher to use.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS8, "@li tls-version: List of protocols permitted for secure connections");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9, "@li auth-method: Authentication method");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10, "When these options are defined in a URI, their values must be URL encoded.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS,
+              "@li ssl-mode: the SSL mode to be used in the connection.");
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS1,
+    "@li ssl-ca: the path to the X509 certificate authority in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS2,
+              "@li ssl-capath: the path to the directory that contains the "
+              "X509 certificates authorities in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS3,
+              "@li ssl-cert: The path to the X509 certificate in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS4,
+              "@li ssl-key: The path to the X509 key in PEM format.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS5,
+              "@li ssl-crl: The path to file that contains certificate "
+              "revocation lists.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS6,
+              "@li ssl-crlpath: The path of directory that contains "
+              "certificate revocation list files.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7,
+              "@li ssl-cipher: SSL Cipher to use.");
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS8,
+    "@li tls-version: List of protocols permitted for secure connections");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9,
+              "@li auth-method: Authentication method");
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS10,
+    "@li get-server-public-key: Request public key from the server required "
+    "for RSA key pair-based password exchange. Use when connecting to MySQL "
+    "8.0 servers with classic MySQL sessions with SSL mode DISABLED.");
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS11,
+    "@li server-public-key-path: The path name to a file containing a "
+    "client-side copy of the public key required by the server for RSA key "
+    "pair-based password exchange. Use when connecting to MySQL 8.0 servers "
+    "with classic MySQL sessions with SSL mode DISABLED.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS12,
+              "When these options are defined in a URI, their values must be "
+              "URL encoded.");
 
 // These lines group the connection options available for dictionary
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS, "@li scheme: the protocol to be used on the connection.");

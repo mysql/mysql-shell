@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,6 +56,7 @@ class Trace_writer {
   void serialize_ok();
   void serialize_result(std::shared_ptr<db::IResult> result);
   void serialize_error(const db::Error& e);
+  void serialize_error(const std::runtime_error& e);
 
   const std::string &trace_path() const { return _path; }
   int trace_index() const { return _idx; }

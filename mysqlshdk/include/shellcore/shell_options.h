@@ -107,6 +107,8 @@ class Shell_options : protected shcore::Options {
     } redirect_session = None;
     std::string default_cluster;
     bool default_cluster_set = false;
+    bool get_server_public_key = false;
+    std::string server_public_key_path;
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
 
@@ -144,7 +146,7 @@ class Shell_options : protected shcore::Options {
   }
 
   std::vector<std::string> get_details() {
-    return get_cmdline_help(28, 50);
+    return get_cmdline_help(30, 48);
   }
 
   bool action_print_help() const {

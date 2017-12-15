@@ -70,7 +70,10 @@ void Recorder_mysql::connect(const mysqlshdk::db::Connection_options& data) {
 
     if (on_recorder_connect_hook)
       on_recorder_connect_hook(shared_from_this());
-  } catch (db::Error& e) {
+  } catch (const db::Error& e) {
+    _trace->serialize_error(e);
+    throw;
+  } catch (const std::runtime_error& e) {
     _trace->serialize_error(e);
     throw;
   }
@@ -147,7 +150,10 @@ void Recorder_mysqlx::connect(const mysqlshdk::db::Connection_options& data) {
 
     if (on_recorder_connect_hook)
       on_recorder_connect_hook(shared_from_this());
-  } catch (db::Error& e) {
+  } catch (const db::Error& e) {
+    _trace->serialize_error(e);
+    throw;
+  } catch (const std::runtime_error& e) {
     _trace->serialize_error(e);
     throw;
   }

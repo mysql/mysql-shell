@@ -281,7 +281,7 @@ EXCEPTIONS
 
 RETURNS
 
- The cluster object identified  by the given name or the default  cluster.
+ The cluster object identified by the given name or the default cluster.
 
 DESCRIPTION
 

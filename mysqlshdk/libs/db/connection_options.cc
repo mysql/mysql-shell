@@ -22,6 +22,7 @@
  */
 #include "mysqlshdk/libs/db/connection_options.h"
 #include <cassert>
+#include <algorithm>
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -230,8 +231,16 @@ void Connection_options::set(const std::string& name,
                              const std::vector<std::string>& values) {
   std::string iname = get_iname(name);
 
+  auto is_extra_option = [this, &name]() -> bool {
+    return std::find_if(uri_extra_options.begin(), uri_extra_options.end(),
+                        [this, &name](const decltype(
+                            uri_extra_options)::value_type& item) {
+                          return compare(name, item) == 0;
+                        }) != uri_extra_options.end();
+  };
+
   if (Nullable_options::has(iname) || _ssl_options.has(iname) ||
-      compare(name, kAuthMethod) == 0) {
+      is_extra_option()) {
     // All the connection parameters accept only 1 value
     if (values.size() != 1) {
       throw std::invalid_argument("The connection option '" + name +
@@ -239,18 +248,28 @@ void Connection_options::set(const std::string& name,
                                   " requires exactly one value.");
     }
 
-    if (Nullable_options::has(iname))
+    if (Nullable_options::has(iname)) {
       Nullable_options::set(iname, values[0], Set_mode::UPDATE_NULL);
-    else if (_ssl_options.has(iname))
+    } else if (_ssl_options.has(iname)) {
       _ssl_options.set(iname, values[0]);
-    else
-      // TODO(rennox) at the moment, the only extra option supported is
-      // auth-method, in one hand we have issues claiming errors should be
-      // raised if not valid options are given, and on the other side the URI
-      // specification does not explicitly forbid other values.
-      // This conflict needs to be resolved at the DevAPI Court
-
+    } else {
+      // TODO(rennox) at the moment, the only extra option supported are those
+      // listed in uri_extra_options set, in one hand we have issues claiming
+      // errors should be raised if not valid options are given, and on the
+      // other side the URI specification does not explicitly forbid other
+      // values. This conflict needs to be resolved at the DevAPI Court
+      if (name == kGetServerPublicKey) {
+        auto lower_case_value = shcore::str_lower(values[0]);
+        if (!(lower_case_value == "true" || lower_case_value == "false" ||
+              lower_case_value == "1" || lower_case_value == "0")) {
+          throw std::invalid_argument(
+              shcore::str_format("Invalid value '%s' for '%s'. Allowed "
+                                 "values: true, false, 1, 0.",
+                                 values[0].c_str(), name.c_str()));
+        }
+      }
       _extra_options.set(iname, values[0], Set_mode::CREATE);
+    }
 
   } else {
     throw_invalid_option(name);
