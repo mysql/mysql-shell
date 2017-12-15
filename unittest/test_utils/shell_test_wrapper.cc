@@ -179,8 +179,6 @@ void Shell_test_wrapper::enable_testutil() {
       _sandbox_dir, dummy_sandboxes,
       {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
       _interactive_shell, Shell_test_env::get_path_to_mysqlsh()));
-  _testutil->set_expected_boilerplate_version(
-      g_target_server_version.get_full());
   _testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text) {
         output_handler.prompts.push_back({prompt, text});

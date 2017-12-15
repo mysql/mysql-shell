@@ -72,7 +72,7 @@ set_sysvar("super_read_only", 1);
 // It must call the Non Interactive checkInstanceConfiguration, we choose to
 dba.dropMetadataSchema({force: true, clearReadOnly: true});
 
-EXPECT_OUTPUT_CONTAINS("Metadata Schema successfully removed.");
+EXPECT_OUTPUT_CONTAINS("Metadata Schema successfully removed.", false);
 
 EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:<<<sb_port_1>>>' currently has the super_read_only");
 

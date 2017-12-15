@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3360?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -295,7 +295,7 @@
     ],
     "rows": [
         [
-            3360
+            3336
         ]
     ]
 },
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            1158923080
+            4137290609
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$'Uo\"\u0012r\u0004I4<n\u0002\f\u0018p\u001C=3Q*PYLHdmwmiiYo2YBqGGXVCwHZN7JLiXQ/tqHg2FH.m89",
+            "$A$005$\u0006qR:8WGspqw4/\u0013`.\u00031?EvHarO6bpBY2HhowCUOgLepu3tgEjDV7qcHbsbYpmdOB",
             "N",
-            "2017-12-15 09:44:37",
+            "2017-12-15 12:16:24",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0003`\u0013;F\u000Bb<\tDn~\f\"<9j\u0010h7JsIJWY3C7EnI5gTEurPTWjVbNV.L0aXQwzy1Rc9cMd6",
+            "$A$005$xl\r:\u001EE2\n2'(f\u001ENB%lO\rVzawbN5entNSQjxi6HTKASO/kR.G8yAhdB5w671IfcaA",
             "N",
-            "2017-12-15 09:44:36",
+            "2017-12-15 12:16:23",
             null,
             "N",
             "Y",
@@ -2836,36 +2836,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
             "schema": "",
@@ -2902,10 +2902,10 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
-            "table_name": "schemata",
+            "schema": "",
+            "table_name": "",
             "table_label": "t",
-            "column_name": "TABLE_SCHEMA",
+            "column_name": "",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
             "fractional": 0,
@@ -2915,13 +2915,13 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
-            "schema": "mysql",
-            "table_name": "tables",
+            "schema": "",
+            "table_name": "",
             "table_label": "t",
-            "column_name": "TABLE_NAME",
+            "column_name": "",
             "column_label": "TABLE_NAME",
             "length": 256,
             "fractional": 0,
@@ -2931,7 +2931,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": []
@@ -3069,21 +3069,7 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3279,13 +3265,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3293,8 +3272,29 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3307,8 +3307,8 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3466,7 +3466,7 @@
     ],
     "rows": [
         [
-            1158923080
+            4137290609
         ]
     ]
 },
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            "90c113c3-e17c-11e7-9282-5ce0c50b9d66"
+            "d2f06bb8-e1d4-11e7-a435-68f9a961e96d"
         ]
     ]
 },
@@ -3632,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '90c113c3-e17c-11e7-9282-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = 'd2f06bb8-e1d4-11e7-a435-68f9a961e96d'"
 },
 {
     "type": "response",
@@ -3812,7 +3812,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET GLOBAL auto_increment_offset = 1"
+    "sql": "SET GLOBAL auto_increment_offset = 5"
 },
 {
     "type": "response",
@@ -3992,7 +3992,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13360'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13336'"
 },
 {
     "type": "response",
@@ -4172,7 +4172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '<y%9(&~I&$r2|o&/)N~_)r5{:V:@=L#>' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '|i4z(#=_A;_%Y&.Q0&#),^k[+,N<;8%a' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4360,7 +4360,7 @@
     ],
     "rows": [
         [
-            0
+            1
         ]
     ]
 },
@@ -4368,22 +4368,45 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 189,
-    "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
+    "sql": "SELECT @@global.super_read_only"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 190,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@global.super_read_only",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 191,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
 },
 {
     "type": "response",
@@ -4396,12 +4419,27 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 193,
+    "sql": "commit"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 194,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 193
+    "index": 195
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 194
+    "index": 196
 },
 null]

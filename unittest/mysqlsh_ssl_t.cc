@@ -446,7 +446,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
 
 // {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
 // default connection method when port is not given is socket
-// {Expect::Sok_, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
@@ -458,7 +458,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// {Expect::Sok_, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+     {Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Tcp, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Tcp, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
@@ -469,7 +469,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// {Expect::Sok_, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
@@ -481,7 +481,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// {Expect::Ssl_, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+     {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
@@ -521,7 +521,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
 
 // {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
 // default connection method when port is not given is socket
-// {Expect::Sok_, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+     {Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
@@ -535,7 +535,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// {Expect::Sok_, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       // As of 8.0.4, X plugin doesn't support caching_sha256_password
       // without SSL
@@ -548,7 +548,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// {Expect::Sok_, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+     {Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
@@ -560,7 +560,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// {Expect::Ssl_, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};

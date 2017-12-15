@@ -26,6 +26,8 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 
+extern mysqlshdk::utils::Version g_target_server_version;
+
 namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
  public:
@@ -1652,14 +1654,15 @@ TEST_F(Interactive_shell_test, BUG25974014) {
 }
 
 TEST_F(Interactive_shell_test, ssl_status) {
-  PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
-
-  wipe_all();
-  execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
-  execute("\\status");
-  MY_EXPECT_STDOUT_CONTAINS("Not in use.");
-  EXPECT_EQ("", _interactive_shell->prompt_variables()->at("ssl"));
-
+  if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
+    PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
+  } else {
+    wipe_all();
+    execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
+    execute("\\status");
+    MY_EXPECT_STDOUT_CONTAINS("Not in use.");
+    EXPECT_EQ("", _interactive_shell->prompt_variables()->at("ssl"));
+  }
   wipe_all();
   execute("\\connect " + _uri + "?ssl-Mode=REQUIRED");
   execute("\\status");
@@ -1682,7 +1685,10 @@ TEST_F(Interactive_shell_test, ssl_status) {
 }
 
 TEST_F(Interactive_shell_test, status_x) {
-  PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
+  if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
+    PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
+    return;
+  }
 
   execute("\\connect " + _uri + "?ssl-Mode=DISABLED");
   wipe_all();

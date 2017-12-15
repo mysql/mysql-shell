@@ -1,0 +1,17 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "mysql://remo_blank:pass@localhost:3316?ssl-mode=DISABLED",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "ERROR",
+    "index": 2,
+    "code": "2061",
+    "msg": "Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.",
+    "sqlstate": "HY000"
+},
+null]

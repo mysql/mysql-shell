@@ -23,6 +23,8 @@
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_string.h"
 
+extern mysqlshdk::utils::Version g_target_server_version;
+
 namespace tests {
 
 class Command_line_connection_test : public Command_line_test {
@@ -375,9 +377,14 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
 
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "MySQL Error 1045: Secure transport required. To log in you must use "
-        "TCP+SSL or UNIX socket connection.");
+    if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Invalid authentication method: PLAIN over unsecure channel");
+    } else {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "MySQL Error 1045: Secure transport required. To log in you must use "
+          "TCP+SSL or UNIX socket connection.");
+    }
     _output.clear();
 
     if (!require_secure_transport)
@@ -420,8 +427,15 @@ TEST_F(Command_line_connection_test, basic_ssl_check_x) {
   _output.clear();
   rc = execute({_mysqlsh, _uri.c_str(), "--sql", "--ssl-mode=DISABLED", "-e",
                 ssl_check, nullptr});
-  EXPECT_EQ(0, rc);
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("SSL_OFF");
+  if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
+    // caching_sha2_password connection with no SSL unsupported in xproto atm
+    EXPECT_EQ(1, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Invalid authentication method: PLAIN over unsecure channel");
+  } else {
+    EXPECT_EQ(0, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("SSL_OFF");
+  }
 
   // preferred
   _output.clear();

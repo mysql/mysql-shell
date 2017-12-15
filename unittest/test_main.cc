@@ -52,12 +52,9 @@ using Version = mysqlshdk::utils::Version;
 
 // TODO(.) remove Interrupt_ from the filter, delete the deprecated Python tests
 const char *k_default_test_filter =
-    "*:-Shell_py_dba_tests.*:Interrupt_mysql.*:Command_line_connection_test."
-    "uri_ssl_mode_node:Command_line_connection_test.basic_ssl_check_x:"
-    "Interactive_shell_test.ssl_status:Interactive_shell_test.status_x:Api_"
-    "connections.ssl_enabled_require_secure_transport_on:Api_connections.ssl_"
-    "disabled";
-// "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
+      "*:-Shell_py_dba_tests.*:Dba_*:Api_connections.ssl_enabled_require_secure_transport_on:Api_connections.ssl_disabled";
+    // "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
+
 
 // Default execution mode for replayable tests
 mysqlshdk::db::replay::Mode g_test_recording_mode =
@@ -87,7 +84,6 @@ const char *g_mysqlsh_bin_folder = nullptr;
 const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
 
-std::string g_mysql_version;  // NOLINT
 std::string g_test_home_value;  // NOLINT
 
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
@@ -232,6 +228,15 @@ static void detect_mysql_environment(int port, const char *pwd) {
       exit(1);
     }
   }
+
+  {
+    // This environment variable makes libmysqlclient override the default
+    // compiled-in socket path with the actual path in use
+    static char path[1024];
+    snprintf(path, sizeof(path), "MYSQL_UNIX_PORT=%s", socket_absolute.c_str());
+    putenv(path);
+  }
+
   if (!getenv("MYSQLX_SOCKET")) {
     static char path[1024];
     snprintf(path, sizeof(path), "MYSQLX_SOCKET=%s", xsocket_absolute.c_str());
@@ -381,7 +386,8 @@ int main(int argc, char **argv) {
   // If not customized it will point to the unit test folder in the source code
   g_test_home = getenv("MYSQLSH_TEST_HOME");
   if (!g_test_home) {
-    g_test_home_value = shcore::path::join_path(MYSQLX_SOURCE_HOME, "unittest").c_str();
+    g_test_home_value =
+        shcore::path::join_path(MYSQLX_SOURCE_HOME, "unittest").c_str();
     g_test_home = g_test_home_value.c_str();
   }
 
@@ -638,6 +644,9 @@ int main(int argc, char **argv) {
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
     check_zombie_sandboxes();
   }
+
+  tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
+                                         g_target_server_version.get_full());
 
   if (!g_test_home_value.empty())
     std::cout << "Testing: Shell Build." << std::endl;

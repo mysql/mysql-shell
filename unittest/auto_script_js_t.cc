@@ -45,7 +45,8 @@ class Auto_script_js : public Shell_js_script_tester,
     Shell_js_script_tester::SetUp();
 
     // Common setup script
-    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js", "setup.js"));
+    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js",
+                                             "setup.js"));
   }
 
   virtual void set_defaults() {

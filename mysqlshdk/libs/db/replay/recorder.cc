@@ -53,7 +53,8 @@ void Recorder_mysql::connect(const mysqlshdk::db::Connection_options& data) {
       Trace_writer::create(new_recording_path("mysql_trace"), _print_traces));
 
   try {
-    _port = data.get_port();
+    if (data.has_port())
+      _port = data.get_port();
     _trace->serialize_connect(data, "classic");
     super::connect(data);
     std::map<std::string, std::string> info;
