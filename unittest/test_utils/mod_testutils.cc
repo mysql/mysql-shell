@@ -72,6 +72,7 @@ namespace tests {
 
 constexpr int k_wait_member_timeout = 60;
 constexpr int k_max_start_sandbox_retries = 5;
+const char* k_boilerplate_root_password = "root";
 
 static void print(void *, const char *s) {
   std::cout << s << "\n";
@@ -90,7 +91,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   if (g_test_trace_scripts > 0 && dummy_mode)
     std::cerr << "tetutils using dummy sandboxes\n";
 
-expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
+  expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
        "?options");
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
@@ -402,13 +403,11 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     // Sandbox from a boilerplate
-    if (!_boilerplate_rootpass.empty() && _boilerplate_rootpass == rootpass) {
+    if (k_boilerplate_root_password == rootpass) {
+      prepare_sandbox_boilerplate(rootpass, port);
       if (!deploy_sandbox_from_boilerplate(port, opts)) {
-        prepare_sandbox_boilerplate(rootpass, port);
-        if (!deploy_sandbox_from_boilerplate(port, opts)) {
-          std::cerr << "Unable to deploy boilerplate sandbox\n";
-          abort();
-        }
+        std::cerr << "Unable to deploy boilerplate sandbox\n";
+        abort();
       }
     } else {
       prepare_sandbox_boilerplate(rootpass, port);
@@ -1186,8 +1185,8 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
   }
 }
 
-bool Testutils::deploy_sandbox_from_boilerplate
-  (int port, const shcore::Dictionary_t &opts) {
+bool Testutils::deploy_sandbox_from_boilerplate(
+    int port, const shcore::Dictionary_t &opts) {
   if (g_test_trace_scripts)
     std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
   std::string boilerplate =

@@ -18,7 +18,7 @@ else
 fi
 
 # Filter to find all tests that are replayable and processed by default
-replayable_tests_filter="Shell_js_dba*:*Auto_script_js*:Dba_common_test.super*"
+replayable_tests_filter="Shell_js_dba*:*Auto_script_js*"
 
 rut=unittest/run_unit_tests
 

@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            4263469269
+            15671
         ]
     ]
 },
@@ -1418,7 +1418,7 @@
     ],
     "rows": [
         [
-            4263469269
+            15671
         ]
     ]
 },
@@ -1636,7 +1636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = '17306fde-e1d6-11e7-ad1e-64b24f76628a'"
+    "sql": "SET GLOBAL group_replication_group_name = '694e937c-e46a-11e7-b7c2-098272b431d6'"
 },
 {
     "type": "response",

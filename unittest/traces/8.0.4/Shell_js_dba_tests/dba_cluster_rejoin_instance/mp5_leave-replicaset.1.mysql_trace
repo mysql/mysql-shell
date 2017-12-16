@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@localhost:3350?ssl-mode=PREFERRED",
+    "uri": "foo:bar@localhost:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "a179f6f8-e18a-11e7-83ab-5ce0c50b9d66"
+            "1c8ee092-e469-11e7-99cb-b15bb167ef78"
         ]
     ]
 },

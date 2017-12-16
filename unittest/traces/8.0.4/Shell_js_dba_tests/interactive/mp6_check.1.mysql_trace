@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "test_user@127.0.0.1:3340?ssl-mode=PREFERRED",
+    "uri": "test_user@127.0.0.1:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "42",
+    "connection_id": "40",
     "connection_info": "127.0.0.1 via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "5081f6ff-e191-11e7-964e-5ce0c50b9d66"
+            "cd5f89ba-e46b-11e7-8b04-e33f9323f669"
         ]
     ]
 },
@@ -333,7 +333,7 @@
     ],
     "rows": [
         [
-            3340
+            3316
         ]
     ]
 },
@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            4291388125
+            15661
         ]
     ]
 },
@@ -712,36 +712,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
             "schema": "",
@@ -778,10 +778,10 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
-            "table_name": "schemata",
+            "schema": "",
+            "table_name": "",
             "table_label": "t",
-            "column_name": "TABLE_SCHEMA",
+            "column_name": "",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
             "fractional": 0,
@@ -791,13 +791,13 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
-            "schema": "mysql",
-            "table_name": "tables",
+            "schema": "",
+            "table_name": "",
             "table_label": "t",
-            "column_name": "TABLE_NAME",
+            "column_name": "",
             "column_label": "TABLE_NAME",
             "length": 256,
             "fractional": 0,
@@ -807,7 +807,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": []
@@ -945,21 +945,7 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1155,13 +1141,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1169,8 +1148,29 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1183,8 +1183,8 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"

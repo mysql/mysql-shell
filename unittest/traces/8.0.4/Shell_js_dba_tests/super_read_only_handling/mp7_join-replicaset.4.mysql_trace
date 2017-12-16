@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@pjesus-TECRA-Z40-B:3350?ssl-mode=PREFERRED",
+    "uri": "root:root@dhcp-10-159-228-108.vpn.oracle.com:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "32",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
+    "connection_id": "30",
+    "connection_info": "dhcp-10-159-228-108.vpn.oracle.com via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            3143160308
+            15671
         ]
     ]
 },

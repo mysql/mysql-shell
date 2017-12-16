@@ -3,30 +3,30 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "34",
+    "connection_id": "33",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '73a8071e-e1c4-11e7-9460-5ce0c50b9d66', 'localhost:3360', 'HA', NULL, '{\"mysqlX\": \"localhost:33600\", \"grLocal\": \"localhost:13360\", \"mysqlClassic\": \"localhost:3360\"}', NULL, NULL, NULL)"
+    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, 'fd4e729e-e4de-11e7-8c37-13c18f86f539', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 4,
-    "auto_increment_value": 8,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -41,7 +41,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
-    "auto_increment_value": 8,
+    "auto_increment_value": 3,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -73,13 +73,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3340' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3340')"
+    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3316' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3316')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
-    "auto_increment_value": 8,
+    "auto_increment_value": 3,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -103,10 +103,10 @@
     ],
     "rows": [
         [
-            "localhost:13350"
+            "localhost:13326"
         ],
         [
-            "localhost:13360"
+            "localhost:13336"
         ]
     ]
 },
@@ -114,7 +114,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '73a8071e-e1c4-11e7-9460-5ce0c50b9d66'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'fd4e729e-e4de-11e7-8c37-13c18f86f539'"
 },
 {
     "type": "response",

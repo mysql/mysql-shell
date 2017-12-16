@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "41",
+    "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "1063d90e-e18f-11e7-b08f-5ce0c50b9d66"
+            "ca2f2c38-e46a-11e7-8495-1e989f56d117"
         ]
     ]
 },
@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "b11622c5-e18e-11e7-81d5-5ce0c50b9d66",
-            "b11622c5-e18e-11e7-81d5-5ce0c50b9d66"
+            "c7b06e68-e46a-11e7-8495-1e989f56d117",
+            "c7b06e68-e46a-11e7-8495-1e989f56d117"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b11622c5-e18e-11e7-81d5-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c7b06e68-e46a-11e7-8495-1e989f56d117'"
 },
 {
     "type": "response",

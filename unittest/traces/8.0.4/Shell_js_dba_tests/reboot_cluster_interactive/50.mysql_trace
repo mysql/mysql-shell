@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3360",
+    "uri": "mysql://root:root@localhost:3336",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "8",
+    "connection_id": "7",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3360/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3336/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000003",
+            "dhcp-10-159-228-108-bin.000004",
             231,
             "",
             "",
-            "2cebcb26-e18d-11e7-bee1-5ce0c50b9d66:1-18,\ncc21f0d7-e18c-11e7-bf17-5ce0c50b9d66:1-14"
+            "15e53c2c-e46a-11e7-bcdb-4fa656bdaf35:1-14,\n18ac5a30-e46a-11e7-bcdb-4fa656bdaf35:1-18"
         ]
     ]
 },
@@ -276,27 +276,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 15
+    "index": 13
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 16
+    "index": 14
 },
 null]

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "33",
+    "connection_id": "31",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "17306fde-e1d6-11e7-ad1e-64b24f76628a"
+            "694e937c-e46a-11e7-b7c2-098272b431d6"
         ]
     ]
 },
@@ -273,11 +273,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-157-192.vpn.oracle.com",
+            "dhcp-10-159-228-108.vpn.oracle.com",
             3316
         ],
         [
-            "dhcp-10-159-157-192.vpn.oracle.com",
+            "dhcp-10-159-228-108.vpn.oracle.com",
             3326
         ]
     ]
@@ -1244,7 +1244,7 @@
     ],
     "rows": [
         [
-            "17306fde-e1d6-11e7-ad1e-64b24f76628a"
+            "694e937c-e46a-11e7-b7c2-098272b431d6"
         ]
     ]
 },

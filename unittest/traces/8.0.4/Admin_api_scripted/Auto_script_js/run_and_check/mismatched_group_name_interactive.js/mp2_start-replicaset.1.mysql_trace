@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "16",
+    "connection_id": "14",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            4137290609
+            15681
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0006qR:8WGspqw4/\u0013`.\u00031?EvHarO6bpBY2HhowCUOgLepu3tgEjDV7qcHbsbYpmdOB",
+            "$A$005$B`I#`H\fy\u0015^\u0005%\u0001u\u001C\u001B;KZS6sbb5tNvsfdNjaPZ/RStXNVDR5rdJf6UsE4yUZhbww5",
             "N",
-            "2017-12-15 12:16:24",
+            "2017-12-19 17:12:43",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$xl\r:\u001EE2\n2'(f\u001ENB%lO\rVzawbN5entNSQjxi6HTKASO/kR.G8yAhdB5w671IfcaA",
+            "$A$005$J\u0014d7\u0014?\u0010K?)+|Kk\u000EGo-\u001Azg8ynG9sJK2VD.2HilFJ15vtHMXkatkQajYVaKDdVg8",
             "N",
-            "2017-12-15 12:16:23",
+            "2017-12-19 17:11:12",
             null,
             "N",
             "Y",
@@ -3466,7 +3466,7 @@
     ],
     "rows": [
         [
-            4137290609
+            15681
         ]
     ]
 },
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            "d2f06bb8-e1d4-11e7-a435-68f9a961e96d"
+            "e1c358f2-e522-11e7-a6c1-3986f53d4ed1"
         ]
     ]
 },
@@ -3632,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = 'd2f06bb8-e1d4-11e7-a435-68f9a961e96d'"
+    "sql": "SET GLOBAL group_replication_group_name = 'e1c358f2-e522-11e7-a6c1-3986f53d4ed1'"
 },
 {
     "type": "response",
@@ -3812,7 +3812,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET GLOBAL auto_increment_offset = 5"
+    "sql": "SET GLOBAL auto_increment_offset = 2"
 },
 {
     "type": "response",
@@ -4172,7 +4172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '|i4z(#=_A;_%Y&.Q0&#),^k[+,N<;8%a' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '~d.=>7?=,P_+0*T[>#?)-x9@.C^$?$(r' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4360,44 +4360,6 @@
     ],
     "rows": [
         [
-            1
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 189,
-    "sql": "SELECT @@global.super_read_only"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 190,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@global.super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             0
         ]
     ]
@@ -4405,8 +4367,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 191,
+    "index": 189,
     "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 190,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 191,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4419,27 +4396,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 193,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 194,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 195
+    "index": 193
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 196
+    "index": 194
 },
 null]

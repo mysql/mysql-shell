@@ -328,12 +328,14 @@ void ReplicaSet::validate_instance_address(
 }
 
 void set_group_replication_member_options(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &ssl_mode) {
   // We need to install the GR plugin to have GR sysvars available
   mysqlshdk::mysql::Instance instance(session);
   mysqlshdk::gr::install_plugin(instance);
 
-  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4)) {
+  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4)
+      && ssl_mode == dba::kMemberSSLModeDisabled) {
     // This option required to connect using the new caching_sha256_password
     // authentication method without SSL
     session->query("SET PERSIST group_replication_recovery_get_public_key=1");
@@ -511,7 +513,7 @@ shcore::Value ReplicaSet::add_instance(
                local_address.c_str());
       log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
 
-      set_group_replication_member_options(session);
+      set_group_replication_member_options(session, ssl_mode);
 
       // Call mysqlprovision to bootstrap the group using "start"
       do_join_replicaset(instance_def, nullptr, super_user_password,
@@ -545,7 +547,7 @@ shcore::Value ReplicaSet::add_instance(
           peer_ssl.set_key(md_ssl.get_key());
       }
 
-      set_group_replication_member_options(session);
+      set_group_replication_member_options(session, ssl_mode);
 
       log_info("Joining '%s' to group using account %s@%s to peer '%s'",
                instance_address.c_str(), user.c_str(), instance_address.c_str(),

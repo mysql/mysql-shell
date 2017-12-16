@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@pjesus-TECRA-Z40-B:3360?ssl-mode=PREFERRED",
+    "uri": "root:root@dhcp-10-159-130-228.vpn.oracle.com:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "ERROR",
     "index": 2,
     "code": "1045",
-    "msg": "Access denied for user 'root'@'pjesus-TECRA-Z40-B' (using password: YES)",
+    "msg": "Access denied for user 'root'@'dhcp-10-159-130-228.vpn.oracle.com' (using password: YES)",
     "sqlstate": "28000"
 },
 null]

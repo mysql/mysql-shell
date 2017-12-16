@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "16",
+    "connection_id": "14",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -262,47 +262,7 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
-            "YES"
-        ],
-        [
-            "SYSTEM_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
+            "BACKUP_ADMIN",
             "YES"
         ],
         [
@@ -310,7 +270,47 @@
             "YES"
         ],
         [
-            "BACKUP_ADMIN",
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
             "YES"
         ]
     ]

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://remo_blank:@localhost:20000?ssl-mode=REQUIRED",
+    "uri": "mysqlx://remo_blank:@localhost:33160?ssl-mode=REQUIRED",
     "protocol": "x"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "96",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.4-rc-debug-log",
+    "server_version": "8.0.4-rc-log",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
@@ -36,7 +36,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 114,
+            "length": 96,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -49,7 +49,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-debug-log Source distribution"
+            "8.0.4-rc-log Source distribution"
         ]
     ]
 },

@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "34",
+    "connection_id": "33",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '46577955-e1c3-11e7-8941-5ce0c50b9d66'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'f190c6a0-e4de-11e7-ab49-a2fe1467c9ba'"
 },
 {
     "type": "response",

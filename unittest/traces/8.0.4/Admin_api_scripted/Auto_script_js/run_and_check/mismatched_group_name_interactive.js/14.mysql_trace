@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "29",
+    "connection_id": "27",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-157-192-bin.000002",
-            12727,
+            "dhcp-10-159-130-228-bin.000003",
+            12650,
             "",
             "",
-            "cf37dc40-e1d4-11e7-98bc-0fef7fb0f3b4:1-14,\nd2f06bb8-e1d4-11e7-a435-68f9a961e96d:1-2"
+            "e0f31d86-e522-11e7-a6c1-3986f53d4ed1:1-14,\ne1c358f2-e522-11e7-a6c1-3986f53d4ed1:1-2"
         ]
     ]
 },
@@ -308,7 +308,7 @@
     ],
     "rows": [
         [
-            "cf37dc40-e1d4-11e7-98bc-0fef7fb0f3b4"
+            "e0f31d86-e522-11e7-a6c1-3986f53d4ed1"
         ]
     ]
 },

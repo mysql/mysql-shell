@@ -154,7 +154,8 @@ TEST_P(Auto_script_js, run_and_check) {
   EXPECT_EQ(0, output_handler.passwords.size());
 }
 
-std::vector<std::string> find_js_tests(const std::string& subdir) {
+std::vector<std::string> find_js_tests(const std::string &subdir,
+                                       const std::string &ext) {
   std::string path = shcore::path::join_path(
       g_test_home, "scripts", "auto", subdir, "scripts");
   if (!shcore::is_folder(path))
@@ -162,9 +163,12 @@ std::vector<std::string> find_js_tests(const std::string& subdir) {
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
-  for (auto &s : tests)
-    s = subdir+"/"+s;
-  return tests;
+  std::vector<std::string> filtered;
+  for (const auto &s : tests) {
+    if (shcore::str_endswith(s, ext))
+        filtered.push_back(subdir+"/"+s);
+  }
+  return filtered;
 }
 
 #if 0
@@ -177,12 +181,12 @@ std::string fmt_param(testing::TestParamInfo<std::string> info) {
 
 // General test cases
 INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_adminapi")));
+                        testing::ValuesIn(find_js_tests("js_adminapi", ".js")));
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_shell")));
+                        testing::ValuesIn(find_js_tests("js_shell", ".js")));
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_devapi")));
+                        testing::ValuesIn(find_js_tests("js_devapi", ".js")));
 
 }  // namespace tests

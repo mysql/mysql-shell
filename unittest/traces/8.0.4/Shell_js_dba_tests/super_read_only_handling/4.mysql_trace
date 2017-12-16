@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "11",
+    "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -66,8 +66,8 @@
     ],
     "rows": [
         [
-            3340,
-            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3340/sandboxdata/"
+            3316,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },

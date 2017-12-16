@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2000",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -395,7 +395,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:2000' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:2000')"
+    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3316' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3316')"
 },
 {
     "type": "response",

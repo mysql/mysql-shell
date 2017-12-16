@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "31",
+    "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -155,8 +155,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
-            "table_name": "schemata",
+            "schema": "",
+            "table_name": "",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -168,7 +168,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
@@ -245,7 +245,7 @@
         [
             "default",
             "pm",
-            "2cebcb26-e18d-11e7-bee1-5ce0c50b9d66"
+            "18ac5a30-e46a-11e7-bcdb-4fa656bdaf35"
         ]
     ]
 },
@@ -283,7 +283,7 @@
     ],
     "rows": [
         [
-            "2cebcb26-e18d-11e7-bee1-5ce0c50b9d66"
+            "18ac5a30-e46a-11e7-bcdb-4fa656bdaf35"
         ]
     ]
 },
@@ -413,8 +413,8 @@
     ],
     "rows": [
         [
-            "ebce9940-e18c-11e7-8605-5ce0c50b9d66",
-            "cc21f0d7-e18c-11e7-bf17-5ce0c50b9d66"
+            "16e6ba6a-e46a-11e7-8f3a-c0d9027a5f70",
+            "15e53c2c-e46a-11e7-bcdb-4fa656bdaf35"
         ]
     ]
 },
@@ -422,7 +422,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'ebce9940-e18c-11e7-8605-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '16e6ba6a-e46a-11e7-8f3a-c0d9027a5f70'"
 },
 {
     "type": "response",

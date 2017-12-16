@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "29",
+    "connection_id": "27",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3340/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000002",
-            12732,
+            "dhcp-10-159-228-108-bin.000003",
+            12731,
             "",
             "",
-            "4193c42e-e190-11e7-b0a6-5ce0c50b9d66:1-14,\na13daf2f-e190-11e7-a353-5ce0c50b9d66:1-2"
+            "677857d0-e46b-11e7-9c74-148046dc7cdb:1-14,\n6a38c982-e46b-11e7-9c74-148046dc7cdb:1-2"
         ]
     ]
 },
@@ -308,7 +308,7 @@
     ],
     "rows": [
         [
-            "4193c42e-e190-11e7-b0a6-5ce0c50b9d66"
+            "677857d0-e46b-11e7-9c74-148046dc7cdb"
         ]
     ]
 },

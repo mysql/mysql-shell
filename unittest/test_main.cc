@@ -53,7 +53,6 @@ using Version = mysqlshdk::utils::Version;
 // TODO(.) remove Interrupt_ from the filter, delete the deprecated Python tests
 const char *k_default_test_filter = "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
 
-
 // Default execution mode for replayable tests
 mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
@@ -106,12 +105,13 @@ static void detect_mysql_environment(int port, const char *pwd) {
   int xport = 0;
   int server_id = 0;
   bool have_ssl = false;
+  bool have_openssl = false;
   MYSQL *mysql;
   mysql = mysql_init(nullptr);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(mysql, MYSQL_OPT_PROTOCOL, &tcp);
   // if connect succeeds or error is a server error, then there's a server
-  if (mysql_real_connect(mysql, "localhost", "root", pwd, NULL, port, NULL,
+  if (mysql_real_connect(mysql, "127.0.0.1", "root", pwd, NULL, port, NULL,
                          0)) {
     const char *query = "show variables like '%socket'";
     if (mysql_real_query(mysql, query, strlen(query)) == 0) {
@@ -151,7 +151,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
 
     {
       const char *query =
-          "select @@version, (@@have_ssl = 'YES' or @@have_openssl = 'YES'), "
+          "select @@version, @@have_ssl = 'YES', @@have_openssl = 'YES', "
           "@@mysqlx_port, @@server_id";
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
@@ -159,9 +159,11 @@ static void detect_mysql_environment(int port, const char *pwd) {
           g_target_server_version = mysqlshdk::utils::Version(row[0]);
           if (row[1] && strcmp(row[1], "1") == 0)
             have_ssl = true;
-          if (row[2])
-            xport = atoi(row[2]);
-          server_id = atoi(row[3]);
+          if (row[2] && strcmp(row[2], "1") == 0)
+            have_openssl = true;
+          if (row[3])
+            xport = atoi(row[3]);
+          server_id = atoi(row[4]);
         }
         mysql_free_result(res);
       }
@@ -203,6 +205,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::cout << "version=" << g_target_server_version.get_full() << "\n";
   std::cout << "hostname=" << hostname << ", ip=" << hostname_ip << "\n";
   std::cout << "server_id=" << server_id << ", ssl=" << have_ssl
+            << ", openssl=" << have_openssl
             << ", highest_tls_version=" << g_highest_tls_version.get_full()
             << "\n";
 
@@ -262,7 +265,7 @@ static bool delete_sandbox(int port) {
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(mysql, MYSQL_OPT_PROTOCOL, &tcp);
   // if connect succeeds or error is a server error, then there's a server
-  if (mysql_real_connect(mysql, "localhost", "root", "root", NULL, port, NULL,
+  if (mysql_real_connect(mysql, "127.0.0.1", "root", "root", NULL, port, NULL,
                          0)) {
     std::cout << "Sandbox server running at " << port
               << ", shutting down and deleting\n";
@@ -393,7 +396,7 @@ int main(int argc, char **argv) {
   // are being executed vs a shell package rather than the build directory
   g_mysqlsh_bin_folder = getenv("MYSQLSH_BIN_FOLDER");
 
-  #ifdef __APPLE__
+#ifdef __APPLE__
   struct rlimit rlp;
   getrlimit(RLIMIT_NOFILE, &rlp);
   if (rlp.rlim_cur < 10000) {

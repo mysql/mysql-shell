@@ -3,17 +3,17 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:33500",
+    "uri": "root:root@localhost:33260",
     "protocol": "x"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "49",
+    "connection_id": "47",
     "connection_info": "localhost via TCP/IP",
     "server_version": "8.0.4-rc-log",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -121,7 +121,7 @@
     "rows": [
         [
             "Mysqlx_ssl_version",
-            "TLSv1.1"
+            "TLSv1.2"
         ]
     ]
 },
@@ -210,7 +210,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 123,
+            "length": 96,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -258,7 +258,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 237,
+            "length": 198,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -275,10 +275,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.4-rc-log MySQL Community Server (GPL)",
+            "8.0.4-rc-log Source distribution",
             "mysqlx.sock",
-            33500,
-            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3350/sandboxdata/"
+            33260,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/"
         ]
     ]
 },
@@ -333,7 +333,7 @@
     "rows": [
         [
             "Uptime",
-            "85"
+            "17"
         ]
     ]
 },
