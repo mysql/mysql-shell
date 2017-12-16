@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "local_pass:@localhost:20000?ssl-mode=DISABLED",
+    "uri": "local_pass:@localhost:33160?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {

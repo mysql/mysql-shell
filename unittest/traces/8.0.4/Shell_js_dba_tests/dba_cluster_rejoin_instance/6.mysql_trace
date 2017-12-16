@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://foo:bar@localhost:3340",
+    "uri": "mysql://foo:bar@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "13",
+    "connection_id": "11",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3340/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000002",
-            10715,
+            "dhcp-10-159-228-108-bin.000003",
+            10713,
             "",
             "",
-            "40e0276c-e18a-11e7-8d67-5ce0c50b9d66:1-14"
+            "19eb9448-e469-11e7-99cb-b15bb167ef78:1-14"
         ]
     ]
 },
@@ -321,7 +321,7 @@
     "rows": [
         [
             "version_compile_os",
-            "linux-glibc2.12"
+            "osx10.13"
         ]
     ]
 },
@@ -380,27 +380,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 19,
-    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 20,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 21
+    "index": 19
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 22
+    "index": 20
 },
 null]

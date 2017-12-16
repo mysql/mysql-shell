@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "33",
+    "connection_id": "32",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,10 +50,10 @@
     ],
     "rows": [
         [
-            "5c3edf98-e1b7-11e7-acce-5ce0c50b9d66"
+            "e52801ee-e4de-11e7-ab86-e68b067b594c"
         ],
         [
-            "7f1d51f6-e1b7-11e7-9cf1-5ce0c50b9d66"
+            "e62241ea-e4de-11e7-b8f4-72fb93f0f708"
         ]
     ]
 },

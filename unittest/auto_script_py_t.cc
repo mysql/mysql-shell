@@ -148,7 +148,8 @@ TEST_P(Auto_script_py, run_and_check) {
   validate_interactive(name);
 }
 
-std::vector<std::string> find_py_tests(const std::string& subdir) {
+std::vector<std::string> find_py_tests(const std::string &subdir,
+                                       const std::string &ext) {
   std::string path = shcore::path::join_path(
       g_test_home, "scripts", "auto", subdir, "scripts");
   if (!shcore::is_folder(path))
@@ -156,19 +157,21 @@ std::vector<std::string> find_py_tests(const std::string& subdir) {
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
-  for (auto &s : tests)
-    s = subdir+"/"+s;
+  for (auto &s : tests) {
+    if (shcore::str_endswith(s, ext))
+      s = subdir+"/"+s;
+  }
   return tests;
 }
 
 // General test cases
 INSTANTIATE_TEST_CASE_P(Admin_api_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_adminapi")));
+                        testing::ValuesIn(find_py_tests("py_adminapi", ".py")));
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_shell")));
+                        testing::ValuesIn(find_py_tests("py_shell", ".py")));
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_devapi")));
+                        testing::ValuesIn(find_py_tests("py_devapi", ".py")));
 
 }  // namespace tests

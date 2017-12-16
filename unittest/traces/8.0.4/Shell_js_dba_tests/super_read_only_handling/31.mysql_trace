@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -155,8 +155,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
-            "table_name": "schemata",
+            "schema": "",
+            "table_name": "",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -168,7 +168,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
@@ -245,7 +245,7 @@
         [
             "default",
             "pm",
-            "ec9d1109-e186-11e7-8fc0-5ce0c50b9d66"
+            "f163a714-e467-11e7-9093-824f0733ea00"
         ]
     ]
 },
@@ -445,22 +445,22 @@
     ],
     "rows": [
         [
-            "892da6cc-e186-11e7-bb6c-5ce0c50b9d66",
-            "localhost:3340",
+            "edf30b2e-e467-11e7-9093-824f0733ea00",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ],
         [
-            "aae89c89-e186-11e7-9902-5ce0c50b9d66",
-            "localhost:3350",
+            "eee778bc-e467-11e7-99dc-87ce74dbee15",
+            "localhost:3326",
             "HA",
-            "localhost:3350"
+            "localhost:3326"
         ],
         [
-            "cbbd094d-e186-11e7-b076-5ce0c50b9d66",
-            "localhost:3360",
+            "efe40d66-e467-11e7-bb24-abcd03a53108",
+            "localhost:3336",
             "HA",
-            "localhost:3360"
+            "localhost:3336"
         ]
     ]
 },
@@ -546,22 +546,22 @@
     ],
     "rows": [
         [
-            "892da6cc-e186-11e7-bb6c-5ce0c50b9d66",
-            "localhost:3340",
+            "edf30b2e-e467-11e7-9093-824f0733ea00",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ],
         [
-            "aae89c89-e186-11e7-9902-5ce0c50b9d66",
-            "localhost:3350",
+            "eee778bc-e467-11e7-99dc-87ce74dbee15",
+            "localhost:3326",
             "HA",
-            "localhost:3350"
+            "localhost:3326"
         ],
         [
-            "cbbd094d-e186-11e7-b076-5ce0c50b9d66",
-            "localhost:3360",
+            "efe40d66-e467-11e7-bb24-abcd03a53108",
+            "localhost:3336",
             "HA",
-            "localhost:3360"
+            "localhost:3336"
         ]
     ]
 },

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:2000",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/2000/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-141-218-bin.000003",
-            10753,
+            "dhcp-10-159-228-108-bin.000003",
+            10751,
             "",
             "",
-            "8dfd2a38-dfad-11e7-82d0-488eedfc25c5:1-14"
+            "f79630f4-e46a-11e7-b466-dc9a6f5e8994:1-14"
         ]
     ]
 },
@@ -380,27 +380,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 19,
-    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 20,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 21
+    "index": 19
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 22
+    "index": 20
 },
 null]

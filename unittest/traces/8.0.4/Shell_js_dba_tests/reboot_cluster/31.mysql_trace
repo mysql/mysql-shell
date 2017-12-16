@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-157-192-bin.000003",
+            "dhcp-10-159-228-108-bin.000004",
             231,
             "",
             "",
-            "0b77f9d2-e1d6-11e7-bbb4-8773a7eeb1ae:1-14,\n17306fde-e1d6-11e7-ad1e-64b24f76628a:1-18"
+            "66c80200-e46a-11e7-b7c2-098272b431d6:1-14,\n694e937c-e46a-11e7-b7c2-098272b431d6:1-18"
         ]
     ]
 },
@@ -276,27 +276,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 15
+    "index": 13
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 16
+    "index": 14
 },
 null]

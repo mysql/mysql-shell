@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:2000?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -295,7 +295,7 @@
     ],
     "rows": [
         [
-            2000
+            3316
         ]
     ]
 },
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            14345
+            15661
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$Y<;Tpp\u0002ON\u00113I\u0001!U\u0007%}\u0015\u001CTNxGKWNeT1eP21Ucvu2y5syW7qIP6RwCp3nEzoCvNY9",
+            "$A$005$J\u0014d7\u0014?\u0010K?)+|Kk\u000EGo-\u001Azg8ynG9sJK2VD.2HilFJ15vtHMXkatkQajYVaKDdVg8",
             "N",
-            "2017-12-12 16:34:16",
+            "2017-12-19 17:11:12",
             null,
             "N",
             "Y",
@@ -2694,9 +2694,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$CrVz\n1-6\u0001\u000Eu%*zMr_r'*kxY.ZkErlbgcae3T5iu2XpihAY4JB99zY5qtjovw7AA",
+            "$A$005$\nr)tt^\u000B+`r!P\u000B0l\u0016{1A\fLsWUb53rYZM0loGK4XtxI1PLIRge8jJnpMbzUHPd0Z7",
             "N",
-            "2017-12-12 16:34:28",
+            "2017-12-19 17:15:51",
             null,
             "N",
             "N",
@@ -3466,7 +3466,7 @@
     ],
     "rows": [
         [
-            14345
+            15661
         ]
     ]
 },
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            "61096786-df9d-11e7-81bc-51681a481bae"
+            "51c249e2-e523-11e7-80cb-04ba97c61e42"
         ]
     ]
 },
@@ -3632,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '61096786-df9d-11e7-81bc-51681a481bae'"
+    "sql": "SET GLOBAL group_replication_group_name = '51c249e2-e523-11e7-80cb-04ba97c61e42'"
 },
 {
     "type": "response",
@@ -3992,7 +3992,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:12000'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13316'"
 },
 {
     "type": "response",
@@ -4172,7 +4172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '#X5k)&~/^0)z>u&^)^p9,Z%K[;B@)?:-' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '_3L/_/<o|z7:y&@}k;[](I/4E,{#+W,<' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

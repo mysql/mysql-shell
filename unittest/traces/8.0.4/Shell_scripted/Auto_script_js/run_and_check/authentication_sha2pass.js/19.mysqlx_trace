@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "32",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.4-rc-debug-log"
+    "server_version": "8.0.4-rc-log"
 },
 {
     "type": "request",

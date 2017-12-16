@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@dhcp-10-159-130-228.vpn.oracle.com:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "38",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
+    "connection_id": "36",
+    "connection_info": "dhcp-10-159-130-228.vpn.oracle.com via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "root@pjesus-tecra-z40-b"
+            "root@dhcp-10-159-130-228.vpn.oracle.com"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'pjesus-tecra-z40-b\\''"
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'dhcp-10-159-130-228.vpn.oracle.com\\''"
 },
 {
     "type": "response",
@@ -224,15 +224,7 @@
             "YES"
         ],
         [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
+            "XA_RECOVER_ADMIN",
             "YES"
         ],
         [
@@ -240,19 +232,15 @@
             "YES"
         ],
         [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
             "ENCRYPTION_KEY_ADMIN",
             "YES"
         ],
         [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
+            "ROLE_ADMIN",
             "YES"
         ],
         [
@@ -260,7 +248,11 @@
             "YES"
         ],
         [
-            "CONNECTION_ADMIN",
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
             "YES"
         ],
         [
@@ -268,11 +260,19 @@
             "YES"
         ],
         [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
             "SYSTEM_VARIABLES_ADMIN",
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
             "YES"
         ]
     ]

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "16",
+    "connection_id": "14",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            2914471850
+            15661
         ]
     ]
 },
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$r:&g\u0015PLiQm\\\u001EM\u001De\u0010\\VEH7b7u/A9rYBEIw0gUquUWlz1OeoUWSRZ/mtqYGkE3NM7",
+            "$A$005$J\u0014d7\u0014?\u0010K?)+|Kk\u000EGo-\u001Azg8ynG9sJK2VD.2HilFJ15vtHMXkatkQajYVaKDdVg8",
             "N",
-            "2017-12-15 12:16:17",
+            "2017-12-19 17:11:12",
             null,
             "N",
             "Y",
@@ -2775,9 +2775,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$G|\u001C}\u0018\u000F71:iC8\b<\u001DI\u0001\u001D\u0014XSjHWmfR1N6HdJduEOMtbN36yFst.PE.7gzjZP.OQa3",
+            "$A$005$p\u0001\u0018\\p\u001A0w#`%FFfhH\u0004\u0011\b NN6r7R/pqtKQ/D/UeLCk7OOMWH/moYTI.vyeUQunSb3",
             "N",
-            "2017-12-15 12:16:30",
+            "2017-12-19 17:12:49",
             null,
             "N",
             "N",
@@ -3547,7 +3547,7 @@
     ],
     "rows": [
         [
-            2914471850
+            15661
         ]
     ]
 },
@@ -3585,7 +3585,7 @@
     ],
     "rows": [
         [
-            "d68e7ada-e1d4-11e7-82de-e99d58df591d"
+            "e55e9fda-e522-11e7-b0b2-1ba1d95b3c1d"
         ]
     ]
 },
@@ -3713,7 +3713,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = 'd68e7ada-e1d4-11e7-82de-e99d58df591d'"
+    "sql": "SET GLOBAL group_replication_group_name = 'e55e9fda-e522-11e7-b0b2-1ba1d95b3c1d'"
 },
 {
     "type": "response",
@@ -3893,7 +3893,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET GLOBAL auto_increment_offset = 4"
+    "sql": "SET GLOBAL auto_increment_offset = 3"
 },
 {
     "type": "response",
@@ -4253,7 +4253,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '%-R*(w~^~0r/@h2*4?-t=)D]$(I/[%,B' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ ']N)>7k}j_.3^,%}b[$y-(?C,/]E$7K.?' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

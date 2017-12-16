@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "110",
+    "connection_id": "106",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26861636/ngshell/BUILD/unittest/3340/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000002",
-            41560,
+            "dhcp-10-159-130-228-bin.000003",
+            41412,
             "",
             "",
-            "27c16947-e185-11e7-ac20-5ce0c50b9d66:1-19,\n58d80ee4-e185-11e7-ac20-5ce0c50b9d66:1-19,\n844a8bbb-e185-11e7-ac20-5ce0c50b9d66:1-19,\nc3589437-e184-11e7-aba5-5ce0c50b9d66:1-32"
+            "92895446-e525-11e7-9911-c0c39293280e:1-32,\n9505ce20-e525-11e7-9911-c0c39293280e:1-19,\nbcdd7a74-e525-11e7-9911-c0c39293280e:1-19,\neadef24a-e525-11e7-9911-c0c39293280e:1-19"
         ]
     ]
 },
@@ -276,27 +276,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SET PERSIST group_replication_recovery_get_public_key=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 15
+    "index": 13
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 16
+    "index": 14
 },
 null]

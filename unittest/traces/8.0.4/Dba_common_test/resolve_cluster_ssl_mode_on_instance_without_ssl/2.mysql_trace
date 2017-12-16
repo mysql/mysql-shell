@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "unsecure:root@localhost:3317",
+    "uri": "unsecure:root@localhost:3316",
     "protocol": "classic"
 },
 {

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "remo_pass:pass@localhost:20000?ssl-mode=DISABLED",
+    "uri": "remo_pass:pass@localhost:33160?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "28",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.4-rc-debug-log"
+    "server_version": "8.0.4-rc-log"
 },
 {
     "type": "request",

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://remo_pass:pass@localhost:20000?ssl-mode=DISABLED",
+    "uri": "mysqlx://remo_pass:pass@localhost:33160?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "32",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.4-rc-debug-log"
+    "server_version": "8.0.4-rc-log"
 },
 {
     "type": "request",
@@ -154,7 +154,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 114,
+            "length": 96,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -219,10 +219,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.4-rc-debug-log Source distribution",
+            "8.0.4-rc-log Source distribution",
             "mysqlx.sock",
-            20000,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/2000/sandboxdata/"
+            33160,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -277,7 +277,7 @@
     "rows": [
         [
             "Uptime",
-            "2"
+            "1"
         ]
     ]
 },
