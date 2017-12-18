@@ -1,5 +1,5 @@
 # Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
 # as published by the Free Software Foundation.
@@ -41,4 +41,11 @@ MACRO(CHANGE_MD_2_MT)
         string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
      endif(${flag_var} MATCHES "/MD")
   endforeach(flag_var)
+ENDMACRO()
+
+MACRO(fix_target_output_directory target path)
+  FOREACH(conftype ${CMAKE_CONFIGURATION_TYPES})
+    STRING(TOUPPER "${conftype}" conftype_)
+    SET_TARGET_PROPERTIES(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_${conftype_} "${CMAKE_BINARY_DIR}/${conftype}/${path}")
+  ENDFOREACH()
 ENDMACRO()

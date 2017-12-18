@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -50,14 +50,15 @@ INCLUDE(libutils)
 INCLUDE(compiler)
 INCLUDE(static_analysis)
 include(cmake/compile_flags.cmake)
+INCLUDE(msvc)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
 
 if(HAVE_PYTHON)
-  FIND_PACKAGE(PythonLibs 2.6)
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
+    FIND_PACKAGE(PythonLibs 2.6)
     # PYTHON_PATH and PYTHON_FOLDER are used to properly copy the python libraries where needed
     # By default they take the value of PB2WORKDIR and PYTHON_SOURCENAME env vars
     IF(NOT PYTHON_PATH AND NOT PYTHON_FOLDER)
@@ -76,6 +77,13 @@ if(HAVE_PYTHON)
       STRING(REPLACE "\\" "\\\\" PYTHON_LIBRARY_PATH ${PYTHON_LIBRARY_PATH})
       STRING(REPLACE "Lib" "DLLs" PYTHON_DLLS_PATH ${PYTHON_LIBRARY_PATH})
     ENDIF()
+  ELSEIF(BUNDLED_PYTHON_DIR)
+    # If we're using a Python build for bundling, ensure we build against it too
+    SET(PYTHON_INCLUDE_DIR "${BUNDLED_PYTHON_DIR}/include/python2.7")
+    SET(PYTHON_LIBRARIES "${BUNDLED_PYTHON_DIR}/lib/libpython2.7.a")
+    SET(PYTHONLIBS_VERSION_STRING "2.7")
+  ELSE()
+    FIND_PACKAGE(PythonLibs 2.6)
   ENDIF()
 endif()
 
@@ -101,10 +109,16 @@ IF(V8_INCLUDE_DIR AND V8_LIB_DIR)
 ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
 ENDIF()
-IF(PYTHONLIBS_FOUND)
+
+IF(PYTHONLIBS_FOUND OR BUNDLED_PYTHON_DIR)
   set(HAVE_PYTHON "YES")         # Variable for CMake processing
-  add_definitions(-DHAVE_PYTHON) # Preprocessor variable for generated projects
+  IF(BUNDLED_PYTHON_DIR)
+    add_definitions(-DHAVE_PYTHON=2) # 2 means bundled
+  ELSE()
+    add_definitions(-DHAVE_PYTHON=1) # 1 means normal (or windows)
+  ENDIF()
   message(STATUS "Python ${PYTHONLIBS_VERSION_STRING}")
+  message(STATUS "PYTHON_INCLUDE_DIR: ${PYTHON_INCLUDE_DIR}")
   message(STATUS "PYTHON_LIRARIES: ${PYTHON_LIBRARIES}")
 
   IF(NOT(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.0"))
@@ -125,6 +139,35 @@ ENDIF()
 if(NOT DEFINED MYSQLCLIENT_STATIC_LINKING)
   set(MYSQLCLIENT_STATIC_LINKING TRUE)
 endif()
+
+### Bundling of OpenSSL libraries (if needed)
+IF(WIN32 OR APPLE)
+
+  # In MySQL Server 8.0.4 and up, OpenSSL is linked dynamically and
+  # preferably linked against the system installed OpenSSL. But there
+  # is no standard system installed OpenSSL on macOS or Windows so we
+  # bundle the library copying it from the server install we link
+  # against.
+
+  SET(OPENSSL_TO_BUNDLE_DIR)
+  IF(WIN32)
+    IF(EXISTS "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo/ssleay32.dll")
+      FILE(TO_CMAKE_PATH ${MYSQL_BUILD_DIR} MYSQL_BUILD_DIR)
+      SET(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo")
+    ELSEIF(WITH_SSL AND EXISTS "${WITH_SSL}/lib/ssleay32.dll")
+      SET(OPENSSL_TO_BUNDLE_DIR "${WITH_SSL}/lib")
+    ENDIF()
+  ELSEIF(APPLE)
+    IF(EXISTS "${MYSQL_BUILD_DIR}/library_output_directory/libssl.dylib")
+      SET(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/library_output_directory")
+    ELSEIF(WITH_SSL AND EXISTS "${WITH_SSL}/lib/libssl.dylib")
+      SET(OPENSSL_TO_BUNDLE_DIR "${WITH_SSL}/lib")
+    ENDIF()
+    # Find the "version" from the file name, it is the same
+    FILE(GLOB CRYPTO_VERSION  RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.*.*.*.dylib")
+    FILE(GLOB OPENSSL_VERSION RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libssl.*.*.*.dylib")
+  ENDIF()
+ENDIF()
 
 # Needed for protobuf header paths, which are needed to use libmysqlxclient
 INCLUDE(protobuf)
@@ -255,55 +298,3 @@ CHECK_STAN_OPTIONS()
 ###
 
 INCLUDE(packaging)
-
-if(WIN32)
-  remove_definitions(-DUNICODE)
-  IF(PYTHON_LIBRARY_PATH)
-    INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
-    INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
-
-    IF (WITH_DEV)
-      INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT dev)
-      INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT dev)
-    ENDIF()
-  ENDIF()
-
-  # Copies the mysqlshcore dll to the binary location to enable running the UTs
-  if(NOT WITH_STATIC_MSVCRT)
-    add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:mysqlsh>)
-  endif()
-endif()
-
-# Installation instructions
-if(WITH_DEV)
-    if(HAVE_V8 AND WIN32)
-       install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
-    endif()
-
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlshdk/include/shellcore" DESTINATION "${INSTALL_INCLUDEDIR}" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-endif()
-
-# This should be there for both MD and non MD windows builds
-if(HAVE_PYTHON)
-  if(WIN32)
-    set(PY_DLL ${PYTHON_LIBRARIES})
-    string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
-    get_filename_component(PY_FILE ${PY_DLL} NAME)
-    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
-
-    IF(WITH_DEV)
-      install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
-    ENDIF()
-
-    if(CMAKE_BUILD_TYPE MATCHES Debug)
-      # Copies the dll to the binary location to enable debugging
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy
-                          "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlsh>/${PY_FILE})
-    endif()
-  endif()
-endif()

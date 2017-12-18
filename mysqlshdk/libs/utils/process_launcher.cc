@@ -242,17 +242,25 @@ int Process::wait() {
   if (!_wait_pending)
     return _pstatus;
   DWORD dwExit = 0;
-  if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
-    if (dwExit == STILL_ACTIVE) {
-      WaitForSingleObject(pi.hProcess, INFINITE);
+
+  // wait_loop will be set to true only if the process is
+  // found to continue active (STILL_ACTIVE)
+  bool wait_loop = false;
+
+  do {
+    if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
+      wait_loop = (dwExit == STILL_ACTIVE);
+      if (wait_loop)
+        WaitForSingleObject(pi.hProcess, INFINITE);
+    } else {
+      DWORD dwError = GetLastError();
+      if (dwError != ERROR_INVALID_HANDLE)  // not closed already?
+        report_error(NULL);
+      else
+        dwExit = 128;  // Invalid handle
     }
-  } else {
-    DWORD dwError = GetLastError();
-    if (dwError != ERROR_INVALID_HANDLE)  // not closed already?
-      report_error(NULL);
-    else
-      dwExit = 128;  // Invalid handle
-  }
+  } while (wait_loop);
+
   return dwExit;
 }
 
