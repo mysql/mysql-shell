@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+#include "utils/utils_path.h"
 
 #include "scripting/object_factory.h"
 #include "scripting/python_type_conversion.h"
@@ -48,11 +49,10 @@ namespace shcore {
 bool Python_context::exit_error = false;
 bool Python_context::module_processing = false;
 
-
-
-// The static member _instance needs to be in a class not exported (no TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
+// The static member _instance needs to be in a class not exported (no
+// TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
 class Python_init_singleton {
-public:
+ public:
 
   ~Python_init_singleton() {
     if (_local_initialization)
@@ -63,7 +63,7 @@ public:
 
   static void init_python();
 
-private:
+ private:
   static int cnt;
   bool _local_initialization;
   static std::unique_ptr<Python_init_singleton> _instance;
@@ -101,7 +101,35 @@ private:
         log_info("Setting PythonHome to %s", path);
         Py_SetPythonHome(path);
       }
+#else  // !_WIN32
+      char *env_value;
+      // If PYTHONHOME is available, honors it
+      env_value = getenv("PYTHONHOME");
+      if (env_value) {
+        log_info("Setting PythonHome to %s from PYTHONHOME", env_value);
+        Py_SetPythonHome(env_value);
+      } else {
+#if defined(HAVE_PYTHON) && HAVE_PYTHON == 2
+        // This flag prevents site.py from being imported, which depends
+        // on pyconfig.h
+        Py_NoSiteFlag = 1;
+        // If not will associate what should be the right path in
+        // a standard distribution
+        std::string python_path;
+        python_path = shcore::path::join_path(shcore::get_mysqlx_home_path(),
+                                              "lib/mysqlsh");
+        if (shcore::is_folder(python_path)) {
+          // Override the system Python install with the bundled one
+          static char path[1000];
+          if (python_path.size() >= sizeof(path)-1)
+            throw std::runtime_error("mysqlsh path too long");
+          snprintf(path, sizeof(path), "%s", python_path.c_str());
+          log_info("Setting PythonHome to %s", path);
+          Py_SetPythonHome(path);
+        }
 #endif
+      }
+#endif  // !_WIN32
       Py_SetProgramName(const_cast<char*>(g_mysqlsh_argv0));
       Py_InitializeEx(0);
 

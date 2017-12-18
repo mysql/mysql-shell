@@ -358,8 +358,9 @@ TEST(utils_path, dirname) {
 
 TEST(utils_path, search_stdpath) {
 #ifdef _WIN32
-  EXPECT_EQ("C:\\Windows\\System32\\cmd.exe", search_stdpath("cmd.exe"));
-  EXPECT_EQ("C:\\Windows\\System32\\cmd.exe", search_stdpath("cmd"));
+  // Case insensitive comparison required on windows paths
+  EXPECT_STRCASEEQ("C:\\windows\\system32\\cmd.exe", search_stdpath("cmd.exe").c_str());
+  EXPECT_STRCASEEQ("C:\\windows\\system32\\cmd.exe", search_stdpath("cmd").c_str());
   EXPECT_EQ("", search_stdpath("bogus path"));
 #else
   EXPECT_EQ("/bin/bash", search_stdpath("bash"));

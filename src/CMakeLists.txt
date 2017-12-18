@@ -56,12 +56,14 @@ if(WIN32)
 endif()
 
 add_executable(mysqlsh ${mysh_SRC})
-set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
+fix_target_output_directory(mysqlsh "${INSTALL_BINDIR}")
 
 add_executable(mysqlshrec ${mysh_SRC}
   ${CMAKE_SOURCE_DIR}/unittest/test_utils/mod_testutils.cc
   mysqlsh/debug_shell.cc)
-set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
+fix_target_output_directory(mysqlshrec "${INSTALL_BINDIR}")
 target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
 
 ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
@@ -87,24 +89,9 @@ target_link_libraries(mysqlshrec
 
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 
+### Bundling of OpenSSL libraries (if needed)
 if(WIN32 OR APPLE)
-
-  # In MySQL Server 8.0.4 and up, OpenSSL is linked dynamically and
-  # preferably linked against the system installed OpenSSL. But there
-  # is no standard system installed OpenSSL on macOS or Windows so we
-  # bundle the library copying it from the server install we link
-  # against.
-
-  set(OPENSSL_TO_BUNDLE_DIR)
-
   if(WIN32)
-
-    if(EXISTS "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo/ssleay32.dll")
-      set(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo")
-    elseif(WITH_SSL AND EXISTS "${WITH_SSL}/lib/ssleay32.dll")
-      set(OPENSSL_TO_BUNDLE_DIR "${WITH_SSL}/lib")
-    endif()
-
     if(OPENSSL_TO_BUNDLE_DIR)
       message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
       install(FILES
@@ -116,7 +103,6 @@ if(WIN32 OR APPLE)
     endif()
 
   elseif(APPLE)
-
     if(EXISTS "${MYSQL_BUILD_DIR}/library_output_directory/libssl.dylib")
       set(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/library_output_directory")
     elseif(WITH_SSL AND EXISTS "${WITH_SSL}/lib/libssl.dylib")
@@ -125,20 +111,34 @@ if(WIN32 OR APPLE)
 
     if(OPENSSL_TO_BUNDLE_DIR)
       message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
-
-      # Find the "version" from the file name, it is the same
-      file(GLOB CRYPTO_VERSION  RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.*.*.*.dylib")
-      file(GLOB OPENSSL_VERSION RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libssl.*.*.*.dylib")
-
-      # Install/bundle the OpenSSL libraries including the soft links
-      install(FILES
-        "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.dylib"
-        "${OPENSSL_TO_BUNDLE_DIR}/libssl.dylib"
-        "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-        "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT main
+      # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
+      add_custom_command(TARGET mysqlsh POST_BUILD
+        COMMAND install_name_tool -change
+                "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+                $<TARGET_FILE:mysqlsh>
+        COMMAND install_name_tool -change
+                "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+                $<TARGET_FILE:mysqlsh>
       )
+
+      IF(WITH_TESTS)
+        add_custom_command(TARGET mysqlshrec POST_BUILD
+          COMMAND install_name_tool -change
+                  "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+                  $<TARGET_FILE:mysqlshrec>
+          COMMAND install_name_tool -change
+                  "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+                  $<TARGET_FILE:mysqlshrec>
+        )
+      ENDIF()
+
+      # Copy the OpenSSL libraries to the build dir
+      add_custom_command(TARGET mysqlsh POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
 
       # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
       add_custom_command(TARGET mysqlsh POST_BUILD
@@ -150,28 +150,74 @@ if(WIN32 OR APPLE)
                 $<TARGET_FILE:mysqlsh>
       )
 
+      # Copy the OpenSSL libraries to the build dir
+      add_custom_command(TARGET mysqlsh POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
+
+      # Install/bundle the OpenSSL libraries including the soft links
+      install(FILES
+        "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.dylib"
+        "${OPENSSL_TO_BUNDLE_DIR}/libssl.dylib"
+        "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+        "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT main
+      )
     endif()
-
   endif()
-
 endif()
 
 
-if(WIN32)
-  remove_definitions(-DUNICODE)
+### Bundling of V8 if needed
+if(WITH_DEV)
+    if(HAVE_V8 AND WIN32)
+       install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+    endif()
+endif()
 
-  if(HAVE_PYTHON)
-    install(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
-    install(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+### Bundling of Python runtime if needed
+IF(HAVE_PYTHON)
+  if(WIN32)
+    remove_definitions(-DUNICODE)
+    IF(PYTHON_LIBRARY_PATH)
+      INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+      INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+    ENDIF()
 
+    # This should be there for both MD and non MD windows builds
     set(PY_DLL ${PYTHON_LIBRARIES})
     string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
     get_filename_component(PY_FILE ${PY_DLL} NAME)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
-    if (WITH_DEV)
-      install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT dev)
-    endif()
+
+    IF(WITH_DEV)
+      install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
+    ENDIF()
+
+    # Copies the dll to the binary location to enable debugging
+    add_custom_command(TARGET mysqlsh PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlsh>/${PY_FILE})
+    # Copy the Python runtime
+    add_custom_command(TARGET mysqlsh PRE_BUILD
+                      COMMAND ${CMAKE_COMMAND} -E copy_directory
+                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python2.7/lib)
+    add_custom_command(TARGET mysqlsh PRE_BUILD
+                      COMMAND ${CMAKE_COMMAND} -E copy_directory
+                      "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python2.7/DLLs)
+  elseif(BUNDLED_PYTHON_DIR)
+    INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python2.7" DESTINATION "${INSTALL_LIBDIR}/lib" COMPONENT main
+              PATTERN "lib/python2.7/test" EXCLUDE)
+
+    # Copy to build dir to allow testing
+    add_custom_command(TARGET mysqlsh POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                      "${BUNDLED_PYTHON_DIR}/lib/python2.7" "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python2.7")
   endif()
-endif()
+ENDIF(HAVE_PYTHON)

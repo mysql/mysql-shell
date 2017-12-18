@@ -76,12 +76,9 @@ mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 extern "C" {
 const char *g_test_home = nullptr;
-const char *g_mysqlsh_bin_folder = nullptr;
 }
 const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
-
-std::string g_test_home_value;  // NOLINT
 
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
 std::vector<std::pair<std::string, std::string> > g_pending_fixes;
@@ -366,14 +363,10 @@ int main(int argc, char **argv) {
   // If not customized it will point to the unit test folder in the source code
   g_test_home = getenv("MYSQLSH_TEST_HOME");
   if (!g_test_home) {
-    g_test_home_value =
-        shcore::path::join_path(MYSQLX_SOURCE_HOME, "unittest").c_str();
-    g_test_home = g_test_home_value.c_str();
+    static std::string test_home =
+        shcore::path::join_path(MYSQLX_SOURCE_HOME, "unittest");
+    g_test_home = test_home.c_str();
   }
-
-  // This variable holds the path to the mysqlsh container, in case the tests
-  // are being executed vs a shell package rather than the build directory
-  g_mysqlsh_bin_folder = getenv("MYSQLSH_BIN_FOLDER");
 
 #ifdef __APPLE__
   struct rlimit rlp;
@@ -578,38 +571,17 @@ int main(int argc, char **argv) {
               << std::endl;
     ::testing::GTEST_FLAG(filter) = new_filter.c_str();
   }
-  std::string mppath;
-  // If using a custom shell package, initial path is the binary folder
-  if (g_mysqlsh_bin_folder) {
-    mppath.assign(g_mysqlsh_bin_folder);
-  } else {
-  // If running on the build dir then initial path is the tests binary folder
-    mppath = shcore::get_binary_folder();
-  }
 
-#ifndef _WIN32
-  // On linux, we need to tell the UTs where the mysqlprovision executable is
-  mppath = shcore::path::dirname(mppath);
-  mppath = shcore::path::join_path(mppath, "share", "mysqlsh");
-#endif
-  mppath = shcore::path::join_path(mppath, "mysqlprovision.zip");
+  // This will consider the MYSQLSH_HOME environment variable if set,
+  // otherwise it assumes parent dir of the current executable
+  std::string mppath = shcore::get_mysqlx_home_path();
+  mppath = shcore::path::join_path(mppath, "share", "mysqlsh", "mysqlprovision.zip");
+  g_mppath = strdup(mppath.c_str());
 
   std::string mysqlsh_path;
-
-  // If using the test package g_test_home_value is empty but g_test_home
-  // points to the test package folder and it contains mysqlshrec
-  if (g_test_home_value.empty()) {
-    mysqlsh_path = shcore::path::join_path(g_test_home, "mysqlshrec");
-  } else {
-    // On this case we are on the build folders, the path is calculated
-    // from the the binary folder
-    mysqlsh_path = shcore::get_binary_folder();
-#ifndef _WIN32
-    mysqlsh_path = shcore::path::dirname(mysqlsh_path);
-#endif
-    mysqlsh_path = shcore::path::join_path(mysqlsh_path, "mysqlshrec");
-  }
-
+  // mysqlshrec is supposed to be in the same dir as run_unit_tests
+  mysqlsh_path =
+      shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
 #ifdef _WIN32
   mysqlsh_path.append(".exe");
 #endif
@@ -645,11 +617,12 @@ int main(int argc, char **argv) {
   tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
                                          g_target_server_version.get_full());
 
-  if (!g_test_home_value.empty())
+  if (!getenv("MYSQLSH_HOME"))
     std::cout << "Testing: Shell Build." << std::endl;
   else
     std::cout << "Testing: Shell Package." << std::endl;
   std::cout << "Shell Binary: " << g_mysqlsh_argv0 << std::endl;
+  std::cout << "Shell Home: " << shcore::get_mysqlx_home_path() << std::endl;
   std::cout << "MySQL Provision: " << g_mppath << std::endl;
   std::cout << "Test Data Home: " << g_test_home << std::endl;
 

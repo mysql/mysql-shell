@@ -65,8 +65,8 @@ TEST_F(Shell_python, stdin_read) {
 }
 
 // help() doesn't work in Windows because Python 2.7 doens't like
-// cp65001
-#ifndef _WIN32
+// cp65001, it also does not work in linux when embedded (generic packages)
+#if !defined(_WIN32) && HAVE_PYTHON == 1
 TEST_F(Shell_python, help) {
   // Regression test for Bug #24554329
   // CALLING HELP() IN MYSQLSH --PY RESULTS IN ATTRIBUTEERROR

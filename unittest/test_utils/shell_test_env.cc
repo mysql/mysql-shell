@@ -38,7 +38,6 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
 extern mysqlshdk::utils::Version g_highest_tls_version;
 extern "C" const char *g_test_home;
-extern "C" const char *g_mysqlsh_bin_folder;
 
 namespace tests {
 
@@ -374,30 +373,14 @@ void Shell_test_env::teardown_recorder() {
  * Returns the path to the mysqlsh binary being used on the tests.
  */
 std::string Shell_test_env::get_path_to_mysqlsh() {
-  std::string command;
-
-  // If MYSQLSH_BIN_FOLDER is set, it indicates the tests are being run outside
-  // of the development environment vs a shell package
-  if (g_mysqlsh_bin_folder) {
+  // MYSQLSH_HOME will be honored during execution of the tests
 #ifdef _WIN32
-    command = shcore::path::join_path(g_mysqlsh_bin_folder, "mysqlsh.exe");
+  return shcore::path::join_path(shcore::get_mysqlx_home_path(), "bin",
+                                 "mysqlsh.exe");
 #else
-    command = shcore::path::join_path(g_mysqlsh_bin_folder, "mysqlsh");
+  return shcore::path::join_path(shcore::get_mysqlx_home_path(), "bin",
+                                 "mysqlsh");
 #endif
-  } else {
-    command = shcore::get_binary_folder();
-#ifdef _WIN32
-    // For now, on windows the executable is expected to be on the same path as
-    // the unit tests
-    command = shcore::path::join_path(command, "mysqlsh.exe");
-#else
-    // strip unittest
-    command = shcore::path::dirname(command);
-    command = shcore::path::join_path(command, "mysqlsh");
-#endif
-  }
-
-  return command;
 }
 
 std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {

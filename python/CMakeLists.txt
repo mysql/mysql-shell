@@ -1,4 +1,4 @@
-# Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,17 @@ file(GLOB MYSQLPROVISION_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets/*/*py
     ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py)
 
+IF(MSVC)
+add_custom_command(OUTPUT mysqlprovision_zip
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets mysql_gadgets
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py __main__.py
+    COMMAND zip -qr ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip *py mysql_gadgets
+    DEPENDS ${MYSQLPROVISION_SOURCES}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/python
+    COMMENT "Creating mysqlprovision.zip"
+)
+ELSE()
 add_custom_command(OUTPUT mysqlprovision_zip
   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/mysqlsh
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets mysql_gadgets
@@ -33,10 +44,19 @@ add_custom_command(OUTPUT mysqlprovision_zip
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/python
     COMMENT "Creating mysqlprovision.zip"
 )
+ENDIF()
 
 add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_zip)
 
-install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
-IF (WITH_DEV)
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
+IF(MSVC)
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
+  IF (WITH_DEV)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
+  ENDIF()
+ELSE()
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
+  IF (WITH_DEV)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
+  ENDIF()
 ENDIF()
+

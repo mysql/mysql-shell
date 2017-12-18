@@ -99,6 +99,8 @@ if(WITH_TESTS)
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp)
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
+    set_target_properties(run_unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
+    fix_target_output_directory(run_unit_tests "${INSTALL_BINDIR}")
     add_dependencies(run_unit_tests
             api_modules
             mysqlshdk-static)
@@ -120,6 +122,8 @@ if(WITH_TESTS)
 
     IF(WIN32)
       target_link_libraries(run_unit_tests Dbghelp.lib)
+    ELSE()
+      target_link_libraries(run_unit_tests pthread ${GCOV_LDFLAGS})
     ENDIF()
 
     # Copy sample prompt files to the test folder
@@ -140,68 +144,26 @@ if(WITH_TESTS)
                         ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_256pl.json
                         $<TARGET_FILE_DIR:run_unit_tests>/)
 
-    # Sets the test environment so it is ready for execution out of the box
-    # On windows mysqlprovision.zip, cmd and mysqlsh.exe need to be together
-    IF(WIN32)
-      # Copies the mysqlprovision.zip to the binary folder
-      add_custom_command(TARGET run_unit_tests PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy
-                          "${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip" $<TARGET_FILE_DIR:run_unit_tests>/mysqlprovision.zip)
-
-      # Copies the mysqlsh.exe to the binary folder
-      add_custom_command(TARGET run_unit_tests PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy
-                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>/)
-
-	  # Copies the mysqlshrec.exe to the binary folder
-      add_custom_command(TARGET run_unit_tests PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy
-                          $<TARGET_FILE:mysqlshrec> $<TARGET_FILE_DIR:run_unit_tests>/)
+    # Fix lookup path for OpenSSL dylibs
+    IF(APPLE)
+      # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
+      add_custom_command(TARGET run_unit_tests POST_BUILD
+        COMMAND install_name_tool -change
+                "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+                $<TARGET_FILE:run_unit_tests>
+        COMMAND install_name_tool -change
+                "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+                $<TARGET_FILE:run_unit_tests>
+      )
     ENDIF()
 
-
-    if ( HAVE_V8 )
+    if(HAVE_V8)
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
     endif()
 
-    if ( HAVE_PYTHON )
+    if(HAVE_PYTHON)
       target_link_libraries(run_unit_tests "${PYTHON_LIBRARIES}")
-
-      if (WIN32)
-        IF(NOT WITH_STATIC_MSVCRT)
-          set(PY_DLL ${PYTHON_LIBRARIES})
-          string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
-          get_filename_component(PY_FILE ${PY_DLL} NAME)
-          get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-          get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-
-          # Copies the dll to the binary location to enable debugging
-          add_custom_command(TARGET run_unit_tests PRE_BUILD
-                              COMMAND ${CMAKE_COMMAND} -E copy
-                              "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
-        ENDIF()
-
-        IF(PYTHON_PATH AND PYTHON_FOLDER)
-          # This is to copy the modules into the build directory to make them
-          # available for debugging purposes
-          add_custom_command(TARGET run_unit_tests PRE_BUILD
-                            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                          "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:run_unit_tests>/Python2.7/Lib)
-
-          # This is to copy the pyd modules into the build directory to make them
-          # available for debugging purposes
-          add_custom_command(TARGET run_unit_tests PRE_BUILD
-                            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                          "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:run_unit_tests>/Python2.7/DLLs)
-        ENDIF()
-      endif()
     endif()
-
-    if(NOT WIN32)
-      target_link_libraries(run_unit_tests pthread ${GCOV_LDFLAGS})
-    endif()
-
-    include(TestGroups.txt)
 else()
   message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1 -DWITH_GTEST=path")
 endif()
