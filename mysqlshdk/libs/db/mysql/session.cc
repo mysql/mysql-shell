@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "utils/utils_general.h"
+#include <mysql_version.h>
 
 namespace mysqlshdk {
 namespace db {
@@ -98,27 +99,26 @@ void Session_impl::connect(
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysql");
 
+  // When neither port or socket were specified on the connection data
+  // it means it was able to use default connection data
   if (!_connection_options.has_port() && !_connection_options.has_socket()) {
     std::string connection_info(get_connection_info());
+
+    // If connection is through TCP/IP it means te default port was used
     if (connection_info.find("via TCP/IP") != std::string::npos) {
-      _connection_options.set_port(3306);
+      _connection_options.set_port(MYSQL_PORT);
     } else {
-      std::string variable;
+      // If connection was not through TCP/IP it means either the default socket
+      // path or windows named pipe was used
 #ifdef _WIN32
-      variable = "named_pipe";
+      _connection_options.set_pipe("MySQL");
 #else
-      variable = "socket";
+      char *socket = getenv("MYSQL_UNIX_PORT");
+      if (socket)
+        _connection_options.set_socket(socket);
+      else
+        _connection_options.set_socket(MYSQL_UNIX_ADDR);
 #endif
-      auto result = query("show variables like '" + variable + "'", true);
-      auto row = result->fetch_one();
-      std::string value = row->get_as_string(1);
-      if (!value.empty()) {
-#ifdef _WIN32
-        _connection_options.set_pipe(value);
-#else
-        _connection_options.set_socket(value);
-#endif
-      }
     }
   }
 }

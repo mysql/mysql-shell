@@ -101,12 +101,11 @@ TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
     //    "Can't connect to MySQL server on 'localhost'");
   }
 #else
-  if (ret_val) {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Can't connect to local MySQL server through socket");
-  } else {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Localhost via UNIX socket");
-  }
+  // test_main sets the variable that overrides the default socket
+  // for classic protocol connections: MYSQL_UNIX_PORT so this connection
+  // is expected to suceed
+  EXPECT_EQ(0, ret_val);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Localhost via UNIX socket");
 #endif
 }
 

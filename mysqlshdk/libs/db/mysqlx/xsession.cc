@@ -198,9 +198,12 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   // So as a workaround, we force the PLAIN auth type to be always attempted
   // at last, at least until libmysqlxclient is fixed to produce a specific
   // error msg.
+  // In addition, in servers < 8.0.4 the plugin kicks the user after the frst
+  // authentication attempt, so it is required that MYSQL41 is used as the first
+  // authentication attempt in order the connection to suceed on those servers.
   _mysql->set_mysql_option(
       xcl::XSession::Mysqlx_option::Authentication_method,
-      std::vector<std::string>{"SHA256_MEMORY", "MYSQL41", "PLAIN"});
+      std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"});
 #if LIBMYSQL_VERSION_ID > 80004
   #error Check whether libmysqlx already fixed error for caching_sha2_password
   // if libmysqlx already fixed the error, the code above to set auth
