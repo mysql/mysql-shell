@@ -607,6 +607,10 @@ def create_sandbox(**kwargs):
         _LOGGER.warning("Creating a sandbox as root is not recommended.")
         create_cmd = "{0} --user=root".format(create_cmd)
 
+    # Fake PID to avoid the server starting the monitoring process
+    if os.name == "nt":
+        os.environ['MYSQLD_PARENT_PID'] = '0';
+
     init_proc = tools.run_subprocess(create_cmd, shell=False, close_fds=True)
     init_proc.wait()
     if init_proc.returncode != 0:
@@ -682,6 +686,10 @@ def create_sandbox(**kwargs):
         if os.name == "posix" and getpass.getuser() == "root":
             start_cmd = "{0} --user=root".format(start_cmd)
 
+        # Fake PID to avoid the server starting the monitoring process
+        if os.name == "nt":
+            os.environ['MYSQLD_PARENT_PID'] = '0';
+
         _LOGGER.debug("Launching mysqld")
         server_proc = tools.run_subprocess(start_cmd, close_fds=True)
         # wait until server is listening on the given port
@@ -739,6 +747,10 @@ def create_sandbox(**kwargs):
         # needed
         if os.name == "posix" and getpass.getuser() == "root":
             start_cmd = "{0} --user=root".format(start_cmd)
+
+        # Fake PID to avoid the server starting the monitoring process
+        if os.name == "nt":
+            os.environ['MYSQLD_PARENT_PID'] = '0';
 
         _LOGGER.debug("Launching mysqld to change the root password")
         server_proc = tools.run_subprocess(start_cmd, close_fds=True)
@@ -1014,6 +1026,10 @@ def start_sandbox(**kwargs):
             # file
             error_log_end_pos = 0
             error_log_mtime = 0
+
+        # Fake PID to avoid the server starting the monitoring process
+        if os.name == "nt":
+            os.environ['MYSQLD_PARENT_PID'] = '0';
 
         server_proc = tools.run_subprocess(start_cmd, shell=False,
                                            close_fds=True)
