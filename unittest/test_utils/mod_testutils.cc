@@ -1066,11 +1066,13 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
     auto result = session->query("select @@version");
     std::string version = result->fetch_one()->get_string(0);
     shcore::create_file(shcore::path::join_path(
-                            _sandbox_dir, std::to_string(port), "version.txt"),
-                        mysqlshdk::utils::Version(version).get_full());
+      _sandbox_dir, std::to_string(port), "version.txt"),
+      mysqlshdk::utils::Version(version).get_full());
   }
 
   stop_sandbox(port, rootpass);
+
+  wait_sandbox_dead(port);
 
   change_sandbox_conf(port, "port", "<PLACEHOLDER>");
   remove_from_sandbox_conf(port, "server_id", "mysqld");
@@ -1084,8 +1086,32 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   if (shcore::is_folder(boilerplate)) {
     shcore::remove_directory(boilerplate);
   }
+
+#ifdef _WIN32
+  // We'll wait up to ~1 minute trying to do the folder rename
+  // in case the server has not stopped.
+  int attempts = 30;
+  bool retry = true;
+  while (retry && attempts) {
+    try {
+      shcore::rename_file(
+        shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
+      retry = false;
+    } catch (const std::exception& err) {
+      std::cout << "Failed attempt creating boilerplate sandbox: " << err.what() << std::endl;
+      std::string message = err.what();
+      if (message.find("Permission denied") != std::string::npos) {
+        attempts--;
+        shcore::sleep_ms(2000);
+      } else {
+        retry = false;
+      }
+    }
+  }
+#else
   shcore::rename_file(
-      shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
+    shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
+#endif
 
   shcore::delete_file(
       shcore::path::join_path(boilerplate, "sandboxdata", "auto.cnf"));

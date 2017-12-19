@@ -51,7 +51,7 @@ using Version = mysqlshdk::utils::Version;
 // Begin test configuration block
 
 // TODO(.) remove Interrupt_ from the filter, delete the deprecated Python tests
-const char *k_default_test_filter = "*:-Shell_py_dba_tests.*";
+const char *k_default_test_filter = "*:-Shell_py_dba_tests.*:Interrupt_mysql.*";
 
 
 // Default execution mode for replayable tests
