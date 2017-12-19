@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,6 +69,10 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
 
   shcore::update_connection_data(&target_server, user, password, host, port,
                                  sock, schema, ssl_options, auth_method);
+
+  if (no_password && !target_server.has_password()) {
+    target_server.set_password("");
+  }
 
   // If a scheme is given on the URI the session type must match the URI
   // scheme
@@ -345,6 +349,8 @@ Shell_options::Shell_options(int argc, char** argv)
       })
     (cmdline("--nw", "--no-wizard"), "Disables wizard mode.",
         assign_value(&storage.wizards, false))
+    (&storage.no_password, false, cmdline("--no-password"),
+        "Sets empty password and disables prompt for password.")
     (&print_cmd_line_version, false, cmdline("-V", "--version"),
         "Prints the version of MySQL Shell.")
     (cmdline("--ssl-key=name"), "X509 key in PEM format.",
@@ -550,7 +556,7 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
       // --password
       else
         storage.prompt_password = true;
-    } else if (arg_format != 1) {  // --password=value || --pvalue
+    } else if (arg_format != 1) {  // --password=value || -pvalue
       storage.pwd.assign(value);
       storage.password = storage.pwd.c_str();
 
@@ -649,11 +655,33 @@ void Shell_options::check_user_conflicts() {
 void Shell_options::check_password_conflicts() {
   if (storage.password != NULL && uri_data.has_password()) {
     if (storage.password != uri_data.get_password()) {
-      auto error =
+      const auto error =
           "Conflicting options: provided password differs from the "
           "password in the URI.";
       throw std::runtime_error(error);
     }
+  }
+
+  if (storage.no_password && storage.prompt_password) {
+    const auto error =
+        "Conflicting options: --password and --no-password option cannot be "
+        "used together.";
+    throw std::runtime_error(error);
+  }
+
+  if (storage.no_password && uri_data.has_password() &&
+      !uri_data.get_password().empty()) {
+    const auto error =
+        "Conflicting options: --no-password cannot be used if password is "
+        "provided in URI.";
+    throw std::runtime_error(error);
+  }
+
+  if (storage.no_password && storage.password && strlen(storage.password) > 0) {
+    const auto error =
+        "Conflicting options: --no-password cannot be used if password is "
+        "provided.";
+    throw std::runtime_error(error);
   }
 }
 
@@ -673,7 +701,7 @@ void Shell_options::check_host_socket_conflicts() {
     if ((!storage.host.empty() && storage.host != "localhost") ||
         (uri_data.has_host() && uri_data.get_host() != "localhost")) {
       auto error =
-          "Conflicting options: socket can not be used if host is "
+          "Conflicting options: socket cannot be used if host is "
           "not 'localhost'.";
       throw std::runtime_error(error);
     }
@@ -705,19 +733,19 @@ void Shell_options::check_socket_conflicts() {
 void Shell_options::check_port_socket_conflicts() {
   if (storage.port != 0 && !storage.sock.empty()) {
     auto error =
-        "Conflicting options: port and socket can not be used "
+        "Conflicting options: port and socket cannot be used "
         "together.";
     throw std::runtime_error(error);
   } else if (storage.port != 0 && uri_data.has_transport_type() &&
              uri_data.get_transport_type() ==
                  mysqlshdk::db::Transport_type::Socket) {
     auto error =
-        "Conflicting options: port can not be used if the URI "
+        "Conflicting options: port cannot be used if the URI "
         "contains a socket.";
     throw std::runtime_error(error);
   } else if (!storage.sock.empty() && uri_data.has_port()) {
     auto error =
-        "Conflicting options: socket can not be used if the URI "
+        "Conflicting options: socket cannot be used if the URI "
         "contains a port.";
     throw std::runtime_error(error);
   }

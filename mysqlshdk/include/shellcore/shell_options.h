@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,6 +82,7 @@ class Shell_options : protected shcore::Options {
     bool full_interactive = false;
     bool passwords_from_stdin = false;
     bool prompt_password = false;
+    bool no_password = false;  //< Do not ask for password
     bool recreate_database = false;
     bool show_warnings = true;
     bool trace_protocol = false;

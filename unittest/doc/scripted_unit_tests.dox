@@ -45,6 +45,8 @@ similar set of variables is available when the test scripts are executed.
 The list of variables available out of the box on test scripts are:
 
 @li \a __user: The user as defined in \a MYSQL_URI.folders
+@li \a __system_user: Login name of the user who start process. Currently
+logged in user on system.
 @li \a __mysql_uri: A password-less URI for MySQL protocol sessions.
 @li \a __mysql_uripwd: A full URI for MySQL protocol sessions (password included).
 @li \a __xhost_port: \a __host + ":" + \a _port
