@@ -35,19 +35,22 @@ set(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../..")
 include(../../version.cmake)
 
 set(YEAR      2017)  # FIXME automate somehow
-set(PRODUCT   "MySQL Shell ${MYSH_BASE_VERSION}")
+set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")
 
 if(NOT DEBIAN_REVISION)
   set(DEBIAN_REVISION 1)
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/../../LICENSE.mysql")
+file(STRINGS "${ROOT_PROJECT_DIR}/LICENSE" COM_LIC
+     LIMIT_COUNT 1 LIMIT_INPUT 500 NEWLINE_CONSUME
+     REGEX "commercial release of MySQL"
+)
+
+if(COM_LIC)
   set(PRODUCT_SUFFIX "-commercial")
-  set(LIC_FILE "LICENSE.mysql")
   set(VERSION "${MYSH_VERSION}+commercial-${DEBIAN_REVISION}")
 else()
   set(PRODUCT_SUFFIX "")
-  set(LIC_FILE "COPYING.txt")
   set(VERSION "${MYSH_VERSION}-${DEBIAN_REVISION}")
 endif()
 

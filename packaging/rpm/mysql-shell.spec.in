@@ -43,7 +43,8 @@ BuildRequires:  openssl-devel
 #BuildRequires:  v8-python
 %endif
 %description
-MySQL query and administration shell client and framework.
+@PRODUCT@
+a query and administration shell client and framework.
 
 %prep
 %setup -q -n %{name}-@MYSH_VERSION@-src
@@ -96,17 +97,20 @@ make DESTDIR=%{buildroot} install
 rm -rf %{buildroot}%{_includedir} 2>/dev/null
 rm -f %{buildroot}%{_prefix}/lib*/*.{so*,a} 2>/dev/null
 # License and readme are included using %%doc below
-rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
+rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 
 %files
 # FIXME EL6 doesn't like 'license' macro here, so we use 'doc'
-%doc @LICENSE_FILE@
+%doc LICENSE
 %doc README
 %{_bindir}/mysqlsh
 %{_datadir}/mysqlsh/mysqlprovision.zip
 %{_datadir}/mysqlsh/prompt/*
 
 %changelog
+* Sun Dec 17 2017 Kent Boortz <kent.boortz@oracle.com> - 8.0.4-1
+- License file is now always named "LICENSE"
+
 * Wed Nov 01 2017 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 8.0.4-1
 - Remove Connector/Python dependency
 
