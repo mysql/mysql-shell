@@ -128,6 +128,9 @@ class Auto_script_py : public Shell_py_script_tester,
     code = "__mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            _mysql_port + "';";
     exec_and_out_equals(code);
+
+    code = "__system_user = '" + shcore::get_system_user() + "';";
+    exec_and_out_equals(code);
   }
 };
 

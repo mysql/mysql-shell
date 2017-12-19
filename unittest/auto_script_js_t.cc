@@ -138,6 +138,9 @@ class Auto_script_js : public Shell_js_script_tester,
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            _mysql_port + "';";
     exec_and_out_equals(code);
+
+    code = "var __system_user = '" + shcore::get_system_user() + "';";
+    exec_and_out_equals(code);
   }
 };
 
