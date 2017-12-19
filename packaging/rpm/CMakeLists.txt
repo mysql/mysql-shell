@@ -35,7 +35,7 @@ SET(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../../")
 include(../../version.cmake)
 
 #set(YEAR      2016)  # FIXME automate somehow
-set(PRODUCT   "MySQL Shell ${MYSH_BASE_VERSION}")
+set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")
 
 # User can specify the RPM_RELEASE string but if not given, create one
 if(NOT RPM_RELEASE)
@@ -50,15 +50,18 @@ if(NOT RPM_RELEASE)
   endif()
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/../../LICENSE.mysql")
+file(STRINGS "${ROOT_PROJECT_DIR}/LICENSE" COM_LIC
+     LIMIT_COUNT 1 LIMIT_INPUT 500 NEWLINE_CONSUME
+     REGEX "commercial release of MySQL"
+)
+
+if(COM_LIC)
   set(PRODUCT_SUFFIX "-commercial")
-  set(LICENSE_FILE   "LICENSE.mysql")
   set(LICENSE_TYPE   "Commercial")
   # We add ".1" to RPM release if commercial
   set(RPM_RELEASE "${RPM_RELEASE}.1")
 else()
   set(PRODUCT_SUFFIX "")
-  set(LICENSE_FILE   "COPYING.txt")
   set(LICENSE_TYPE   "GPLv2")
 endif()
 

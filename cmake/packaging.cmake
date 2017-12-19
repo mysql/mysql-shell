@@ -37,15 +37,13 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQL Shell ${MYSH_VERSION}, a command li
 set(CPACK_PACKAGE_NAME                "mysql-shell${EXTRA_NAME_SUFFIX}")
 set(CPACK_PACKAGE_VENDOR              "Oracle and/or its affiliates")
 set(CPACK_PACKAGE_DESCRIPTION_FILE    "${CMAKE_SOURCE_DIR}/README")
-if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
-  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/COPYING.txt")
-elseif(WIN32)
+if(WIN32)
   # WiX wants the license file to end in ".txt"
-  configure_file(${CMAKE_SOURCE_DIR}/LICENSE.mysql
-                 ${CMAKE_BINARY_DIR}/LICENSE.mysql.txt COPYONLY)
-  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_BINARY_DIR}/LICENSE.mysql.txt")
+  configure_file(${CMAKE_SOURCE_DIR}/LICENSE
+                 ${CMAKE_BINARY_DIR}/LICENSE.txt COPYONLY)
+  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_BINARY_DIR}/LICENSE.txt")
 else()
-  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/LICENSE.mysql")
+  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/LICENSE")
 endif()
 set(CPACK_SOURCE_PACKAGE_FILE_NAME    "${CPACK_PACKAGE_NAME}-${MYSH_VERSION}-src")
 
@@ -109,13 +107,8 @@ if(WIN32)
   install(FILES README        DESTINATION . RENAME README.txt COMPONENT main)
   install(FILES README        DESTINATION . RENAME README.txt COMPONENT dev)
 # install(FILES INSTALL       DESTINATION . RENAME INSTALL.txt)
-  if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
-    install(FILES COPYING.txt       DESTINATION COPYING.txt COMPONENT main)
-    install(FILES COPYING.txt       DESTINATION COPYING.txt COMPONENT dev)
-  else()
-    install(FILES LICENSE.mysql DESTINATION . RENAME LICENSE.mysql.txt COMPONENT main)
-    install(FILES LICENSE.mysql DESTINATION . RENAME LICENSE.mysql.txt COMPONENT dev)
-  endif()
+  install(FILES LICENSE       DESTINATION . RENAME LICENSE.txt COMPONENT main)
+  install(FILES LICENSE       DESTINATION . RENAME LICENSE.txt COMPONENT dev)
 
   # Install all .pdb files to enable debugging. Note that what build
   # type and what sub directory the binaries ends up in, like
@@ -148,17 +141,10 @@ else()
   install(FILES README       DESTINATION share/mysqlsh/ COMPONENT main)
   install(FILES README       DESTINATION share/mysqlsh/ COMPONENT dev)
 # install(FILES INSTALL      DESTINATION .)
-  if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
-    install(FILES COPYING.txt       DESTINATION share/mysqlsh/ COMPONENT main)
-    install(FILES COPYING.txt       DESTINATION share/mysqlsh/ COMPONENT dev)
-  else()
-    install(FILES LICENSE.mysql DESTINATION share/mysqlsh/ COMPONENT main)
-    install(FILES LICENSE.mysql DESTINATION share/mysqlsh/ COMPONENT dev)
-  endif()
+  install(FILES LICENSE      DESTINATION share/mysqlsh/ COMPONENT main)
+  install(FILES LICENSE      DESTINATION share/mysqlsh/ COMPONENT dev)
 
 endif()
-
-#install(FILES Licenses_for_Third-Party_Components.txt DESTINATION .)
 
 # Variable defined when the packages are generated (i.e. not in source builds)
 IF(MYSH_PLATFORM)

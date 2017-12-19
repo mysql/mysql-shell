@@ -14,5 +14,5 @@ Section: database
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: MySQL Shell
+Description: MySQL Shell (part of MySQL Server) 8.0
  MySQL query and administration shell client and framework.
