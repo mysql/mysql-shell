@@ -89,7 +89,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
   try {
     Value result;
     {
-      auto pfunc(std::static_pointer_cast<shcore::Python_function>(func));
+      auto pfunc(std::dynamic_pointer_cast<shcore::Python_function>(func));
 
       if (pfunc) {
         result = func->invoke(r);
