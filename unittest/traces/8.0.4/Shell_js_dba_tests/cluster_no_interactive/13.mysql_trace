@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-228-108-bin.000003",
-            18381,
+            "Kenjis-iMac-bin.000003",
+            18385,
             "",
             "",
-            "5b5f1d70-e46c-11e7-8510-c65249787c06:1-14,\n5de8d05e-e46c-11e7-8510-c65249787c06:1-19"
+            "bd41bb12-f12b-11e7-b75e-7f73c170eb4b:1-14,\nbf79730c-f12b-11e7-b75e-7f73c170eb4b:1-19"
         ]
     ]
 },
@@ -238,50 +238,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 11,
-    "sql": "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 12,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "PLUGINS",
-            "table_label": "plugins",
-            "column_name": "PLUGIN_STATUS",
-            "column_label": "plugin_status",
-            "length": 40,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "ACTIVE"
-        ]
-    ]
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 11
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 12
 },
 null]

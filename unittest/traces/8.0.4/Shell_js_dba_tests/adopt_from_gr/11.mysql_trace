@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-10-159-130-228.vpn.oracle.com:3316",
+    "uri": "mysql://root:root@Kenjis-iMac.local:3316",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "33",
-    "connection_info": "dhcp-10-159-130-228.vpn.oracle.com via TCP/IP",
+    "connection_info": "Kenjis-iMac.local via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -118,8 +118,8 @@
     ],
     "rows": [
         [
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46",
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46"
+            "835fe2ec-f127-11e7-b743-0118770cd611",
+            "835fe2ec-f127-11e7-b743-0118770cd611"
         ]
     ]
 },
@@ -127,7 +127,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '52d7b1d4-e526-11e7-b76a-c799a9828f46'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '835fe2ec-f127-11e7-b743-0118770cd611'"
 },
 {
     "type": "response",
@@ -352,11 +352,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-130-228-bin.000003",
-            15600,
+            "Kenjis-iMac-bin.000003",
+            15714,
             "",
             "",
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46:1-14,\n54744e3a-e526-11e7-b76a-c799a9828f46:1-11"
+            "835fe2ec-f127-11e7-b743-0118770cd611:1-14,\n84db406c-f127-11e7-b743-0118770cd611:1-11"
         ]
     ]
 },
@@ -578,7 +578,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '%$:v9*:Y%~A^B>8?@s>-=e_@%p{&^5+R' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '%1^p&<Y[}A{7,R}[(=x(_{n%~=*3:G}]' /*)*/ "
 },
 {
     "type": "response",
@@ -593,7 +593,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '%$:v9*:Y%~A^B>8?@s>-=e_@%p{&^5+R' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '%1^p&<Y[}A{7,R}[(=x(_{n%~=*3:G}]' /*)*/ "
 },
 {
     "type": "response",
@@ -827,7 +827,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 67,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'dhcp-10-159-130-228.vpn.oracle.com:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'Kenjis-iMac.local:3316'"
 },
 {
     "type": "response",
@@ -865,7 +865,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '52d7b1d4-e526-11e7-b76a-c799a9828f46'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '835fe2ec-f127-11e7-b743-0118770cd611'"
 },
 {
     "type": "response",
@@ -903,7 +903,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-10-159-130-228.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'Kenjis-iMac.local' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -969,7 +969,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('dhcp-10-159-130-228.vpn.oracle.com', '', '')"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('Kenjis-iMac.local', '', '')"
 },
 {
     "type": "response",
@@ -984,7 +984,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '52d7b1d4-e526-11e7-b76a-c799a9828f46', 'dhcp-10-159-130-228.vpn.oracle.com:3316', 'HA', json_object('mysqlClassic', 'dhcp-10-159-130-228.vpn.oracle.com:3316', 'mysqlX', 'dhcp-10-159-130-228.vpn.oracle.com:33160', 'grLocal', 'localhost:13316'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '835fe2ec-f127-11e7-b743-0118770cd611', 'Kenjis-iMac.local:3316', 'HA', json_object('mysqlClassic', 'Kenjis-iMac.local:3316', 'mysqlX', 'Kenjis-iMac.local:33160', 'grLocal', 'localhost:13316'))"
 },
 {
     "type": "response",
@@ -1029,7 +1029,7 @@
     ],
     "rows": [
         [
-            "54744e3a-e526-11e7-b76a-c799a9828f46"
+            "84db406c-f127-11e7-b743-0118770cd611"
         ]
     ]
 },
@@ -1037,7 +1037,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 79,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '54744e3a-e526-11e7-b76a-c799a9828f46') WHERE replicaset_id = 3"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '84db406c-f127-11e7-b743-0118770cd611') WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -1082,10 +1082,10 @@
     ],
     "rows": [
         [
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46"
+            "835fe2ec-f127-11e7-b743-0118770cd611"
         ],
         [
-            "53df41aa-e526-11e7-bee6-b6c2a702135a"
+            "8452fd9c-f127-11e7-b389-7c307cdfe7e9"
         ]
     ]
 },
@@ -1123,7 +1123,7 @@
     ],
     "rows": [
         [
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46"
+            "835fe2ec-f127-11e7-b743-0118770cd611"
         ]
     ]
 },
@@ -1131,7 +1131,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '53df41aa-e526-11e7-bee6-b6c2a702135a'"
+    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8452fd9c-f127-11e7-b389-7c307cdfe7e9'"
 },
 {
     "type": "response",
@@ -1193,8 +1193,8 @@
     ],
     "rows": [
         [
-            "53df41aa-e526-11e7-bee6-b6c2a702135a",
-            "dhcp-10-159-130-228.vpn.oracle.com",
+            "8452fd9c-f127-11e7-b389-7c307cdfe7e9",
+            "Kenjis-iMac.local",
             3326
         ]
     ]
@@ -1203,7 +1203,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-10-159-130-228.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'Kenjis-iMac.local' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -1266,7 +1266,7 @@
     "rows": [
         [
             3,
-            "dhcp-10-159-130-228.vpn.oracle.com",
+            "Kenjis-iMac.local",
             ""
         ]
     ]
@@ -1275,7 +1275,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '53df41aa-e526-11e7-bee6-b6c2a702135a', 'dhcp-10-159-130-228.vpn.oracle.com:3326', 'HA', json_object('mysqlClassic', 'dhcp-10-159-130-228.vpn.oracle.com:3326', 'mysqlX', 'dhcp-10-159-130-228.vpn.oracle.com:33260', 'grLocal', 'localhost:13326'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '8452fd9c-f127-11e7-b389-7c307cdfe7e9', 'Kenjis-iMac.local:3326', 'HA', json_object('mysqlClassic', 'Kenjis-iMac.local:3326', 'mysqlX', 'Kenjis-iMac.local:33260', 'grLocal', 'localhost:13326'))"
 },
 {
     "type": "response",
@@ -1427,8 +1427,8 @@
     ],
     "rows": [
         [
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46",
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46"
+            "835fe2ec-f127-11e7-b743-0118770cd611",
+            "835fe2ec-f127-11e7-b743-0118770cd611"
         ]
     ]
 },
@@ -1436,7 +1436,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 99,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '52d7b1d4-e526-11e7-b76a-c799a9828f46'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '835fe2ec-f127-11e7-b743-0118770cd611'"
 },
 {
     "type": "response",
@@ -1614,7 +1614,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46"
+            "835fe2ec-f127-11e7-b743-0118770cd611"
         ]
     ]
 },
@@ -1754,17 +1754,17 @@
     ],
     "rows": [
         [
-            "52d7b1d4-e526-11e7-b76a-c799a9828f46",
-            "dhcp-10-159-130-228.vpn.oracle.com:3316",
+            "835fe2ec-f127-11e7-b743-0118770cd611",
+            "Kenjis-iMac.local:3316",
             "HA",
-            "dhcp-10-159-130-228.vpn.oracle.com:3316",
+            "Kenjis-iMac.local:3316",
             "ONLINE"
         ],
         [
-            "53df41aa-e526-11e7-bee6-b6c2a702135a",
-            "dhcp-10-159-130-228.vpn.oracle.com:3326",
+            "8452fd9c-f127-11e7-b389-7c307cdfe7e9",
+            "Kenjis-iMac.local:3326",
             "HA",
-            "dhcp-10-159-130-228.vpn.oracle.com:3326",
+            "Kenjis-iMac.local:3326",
             "ONLINE"
         ]
     ]

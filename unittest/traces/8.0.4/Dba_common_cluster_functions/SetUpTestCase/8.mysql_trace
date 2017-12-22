@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "e52801ee-e4de-11e7-ab86-e68b067b594c"
+            "c1145930-f1bb-11e7-b50c-4cc5f47b8839"
         ]
     ]
 },
@@ -122,7 +122,7 @@
     "rows": [
         [
             "group_replication_group_name",
-            "e7a1edcc-e4de-11e7-ab86-e68b067b594c"
+            "c334abac-f1bb-11e7-b50c-4cc5f47b8839"
         ]
     ]
 },

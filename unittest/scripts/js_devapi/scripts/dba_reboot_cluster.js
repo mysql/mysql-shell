@@ -1,4 +1,8 @@
 // Assumptions: smart deployment rountines available
+
+//@<> Skip tests in 8.0.4 to not trigger GR plugin deadlock {VER(==8.0.4)}
+testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
+
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");

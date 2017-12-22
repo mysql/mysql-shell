@@ -118,8 +118,8 @@
     ],
     "rows": [
         [
-            "4580076e-e523-11e7-a950-22f050bcbf8a",
-            "4580076e-e523-11e7-a950-22f050bcbf8a"
+            "f27d3c36-f124-11e7-9cb2-068ba9ae6c12",
+            "f27d3c36-f124-11e7-9cb2-068ba9ae6c12"
         ]
     ]
 },
@@ -127,7 +127,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4580076e-e523-11e7-a950-22f050bcbf8a'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f27d3c36-f124-11e7-9cb2-068ba9ae6c12'"
 },
 {
     "type": "response",
@@ -352,11 +352,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-130-228-bin.000003",
-            12894,
+            "Kenjis-iMac-bin.000003",
+            12963,
             "",
             "",
-            "4580076e-e523-11e7-a950-22f050bcbf8a:1-14,\n46246f20-e523-11e7-a950-22f050bcbf8a:1-3"
+            "f27d3c36-f124-11e7-9cb2-068ba9ae6c12:1-14,\nf31ab2f4-f124-11e7-9cb2-068ba9ae6c12:1-3"
         ]
     ]
 },
@@ -578,7 +578,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '=D*>m;/+*3(s0-<w~1u%Z-#^$~A=S|/?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ 'V,<)?3,#$|d:^@n6^;&g};*5</N(_Q*@' /*)*/ "
 },
 {
     "type": "response",
@@ -593,7 +593,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '=D*>m;/+*3(s0-<w~1u%Z-#^$~A=S|/?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ 'V,<)?3,#$|d:^@n6^;&g};*5</N(_Q*@' /*)*/ "
 },
 {
     "type": "response",
@@ -865,7 +865,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '4580076e-e523-11e7-a950-22f050bcbf8a'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = 'f27d3c36-f124-11e7-9cb2-068ba9ae6c12'"
 },
 {
     "type": "response",
@@ -984,7 +984,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '4580076e-e523-11e7-a950-22f050bcbf8a', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:13316'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, 'f27d3c36-f124-11e7-9cb2-068ba9ae6c12', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:13316'))"
 },
 {
     "type": "response",
@@ -1029,7 +1029,7 @@
     ],
     "rows": [
         [
-            "46246f20-e523-11e7-a950-22f050bcbf8a"
+            "f31ab2f4-f124-11e7-9cb2-068ba9ae6c12"
         ]
     ]
 },
@@ -1037,7 +1037,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 79,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '46246f20-e523-11e7-a950-22f050bcbf8a') WHERE replicaset_id = 3"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'f31ab2f4-f124-11e7-9cb2-068ba9ae6c12') WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -1082,7 +1082,7 @@
     ],
     "rows": [
         [
-            "4580076e-e523-11e7-a950-22f050bcbf8a"
+            "f27d3c36-f124-11e7-9cb2-068ba9ae6c12"
         ]
     ]
 },
@@ -1120,7 +1120,7 @@
     ],
     "rows": [
         [
-            "4580076e-e523-11e7-a950-22f050bcbf8a"
+            "f27d3c36-f124-11e7-9cb2-068ba9ae6c12"
         ]
     ]
 },

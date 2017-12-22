@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,9 +23,9 @@
 
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/shell_script_tester.h"
 
@@ -34,7 +34,7 @@ extern "C" const char *g_test_home;
 namespace tests {
 
 class Auto_script_py : public Shell_py_script_tester,
-                           public ::testing::WithParamInterface<std::string> {
+                       public ::testing::WithParamInterface<std::string> {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
@@ -44,7 +44,8 @@ class Auto_script_py : public Shell_py_script_tester,
     Shell_py_script_tester::SetUp();
 
     // Common setup script
-    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_py", "setup.py"));
+    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_py",
+                                             "setup.py"));
   }
 
   virtual void set_defaults() {
@@ -118,8 +119,8 @@ class Auto_script_py : public Shell_py_script_tester,
     code = "localhost = 'localhost'";
     exec_and_out_equals(code);
 
-    code = "__uripwd = '" + user + ":" + password + "@" + host + ":" +
-           _port + "';";
+    code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port +
+           "';";
     exec_and_out_equals(code);
     code = "__mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            _mysql_port + "';";
@@ -150,8 +151,8 @@ TEST_P(Auto_script_py, run_and_check) {
 
 std::vector<std::string> find_py_tests(const std::string &subdir,
                                        const std::string &ext) {
-  std::string path = shcore::path::join_path(
-      g_test_home, "scripts", "auto", subdir, "scripts");
+  std::string path = shcore::path::join_path(g_test_home, "scripts", "auto",
+                                             subdir, "scripts");
   if (!shcore::is_folder(path))
     return {};
   auto tests = shcore::listdir(path);
@@ -159,7 +160,7 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
 
   for (auto &s : tests) {
     if (shcore::str_endswith(s, ext))
-      s = subdir+"/"+s;
+      s = subdir + "/" + s;
   }
   return tests;
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -216,6 +216,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   std::string _custom_context;
 
   // void process_result(shcore::Value result);
+  void execute(int location, const std::string &code);
   void execute(const std::string &code);
   void execute_noerr(const std::string &code);
   void exec_and_out_equals(const std::string &code, const std::string &out = "",

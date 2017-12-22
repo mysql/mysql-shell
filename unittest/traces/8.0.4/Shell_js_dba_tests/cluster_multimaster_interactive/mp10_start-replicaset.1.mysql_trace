@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0012\u0003_)\u001D;8zF\u0001\u0018rD\u000F\u001Fuk\u0016O0EhmUZt07MzBuLwH0LClmnhj/1EVpejiPCB3kSZhdDB",
+            "$A$005$E\u00158\u0001.AbMzT%{\u0013t7\u0007\u001Fs\u0004\u0019hKfGy5ZcKrJM5pJ1k10GBZ1tfaTUcFHqEazP0dRN8YD",
             "N",
-            "2017-12-18 19:17:35",
+            "2018-01-04 00:37:58",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$g\u0019X,\u0016hK\u0001'^wV4\u001F!.Ljc}eV2wbfU1ZDc/c3GCC7JTTfBON3OBGzMZmTdjafyFl62",
+            "$A$005$\u0003\u0018[ :\u0005g\u0003(6Usg\bM\u000F\u0013j[4/98Hjit28uTel0XEDrVjYja8Kws6TAilzxFG0H3Q90",
             "N",
-            "2017-12-18 18:21:54",
+            "2018-01-03 23:53:53",
             null,
             "N",
             "Y",
@@ -3508,7 +3508,7 @@
     ],
     "rows": [
         [
-            "28c168d8-e46b-11e7-ad3b-14c2939a49a0"
+            "918d8f56-f12a-11e7-bac4-bf3df5158a73"
         ]
     ]
 },
@@ -3636,7 +3636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = '28c168d8-e46b-11e7-ad3b-14c2939a49a0'"
+    "sql": "SET GLOBAL group_replication_group_name = '918d8f56-f12a-11e7-bac4-bf3df5158a73'"
 },
 {
     "type": "response",
@@ -4176,7 +4176,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '$]2T#-*V5k){L;=&),*o3L%&>#=r#)x.' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '_[.L}%L)7r#~#O1(2]m(W)&{<-;m$u([' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

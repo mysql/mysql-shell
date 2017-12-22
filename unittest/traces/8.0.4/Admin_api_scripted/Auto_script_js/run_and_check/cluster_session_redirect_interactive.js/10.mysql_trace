@@ -208,9 +208,9 @@
     ],
     "rows": [
         [
-            "a4887a48-e523-11e7-bacd-c162a825be4c",
+            "23342362-f125-11e7-994a-239ead8bb1d3",
             1,
-            "a2daf52c-e523-11e7-9924-c2d3ddd69a7f",
+            "21aa40da-f125-11e7-a46b-517f8a3879b4",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'a4887a48-e523-11e7-bacd-c162a825be4c'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '23342362-f125-11e7-994a-239ead8bb1d3'"
 },
 {
     "type": "response",
@@ -385,14 +385,14 @@
     ],
     "rows": [
         [
-            "a1e1d3fc-e523-11e7-bacd-c162a825be4c",
+            "20d12296-f125-11e7-994a-239ead8bb1d3",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "localhost:33160"
         ],
         [
-            "a2daf52c-e523-11e7-9924-c2d3ddd69a7f",
+            "21aa40da-f125-11e7-a46b-517f8a3879b4",
             "localhost:3326",
             "HA",
             "localhost:3326",
@@ -553,16 +553,16 @@
     ],
     "rows": [
         [
-            "a1e1d3fc-e523-11e7-bacd-c162a825be4c",
+            "20d12296-f125-11e7-994a-239ead8bb1d3",
             "ONLINE",
-            "dhcp-10-159-130-228.vpn.oracle.com",
+            "Kenjis-iMac.local",
             3316,
             "PRIMARY"
         ],
         [
-            "a2daf52c-e523-11e7-9924-c2d3ddd69a7f",
+            "21aa40da-f125-11e7-a46b-517f8a3879b4",
             "ONLINE",
-            "dhcp-10-159-130-228.vpn.oracle.com",
+            "Kenjis-iMac.local",
             3326,
             "SECONDARY"
         ]

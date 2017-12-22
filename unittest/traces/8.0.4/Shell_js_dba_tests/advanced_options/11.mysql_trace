@@ -190,11 +190,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-130-228-bin.000003",
-            14552,
+            "Kenjis-iMac-bin.000003",
+            14628,
             "",
             "",
-            "7e02ee7a-e524-11e7-95de-5f9ffe1d9697:1-29"
+            "bd235d1c-f125-11e7-87da-fdd01b13111c:1-29"
         ]
     ]
 },
@@ -285,7 +285,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '$L.9V$n)?%:X8%.*|+k.:@S2s-_}>?m(' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'B[D5[&#y&([:}H;,-@l9+,0Q[i_~w~_+' /*)*/ "
 },
 {
     "type": "response",
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '$L.9V$n)?%:X8%.*|+k.:@S2s-_}>?m(' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'B[D5[&#y&([:}H;,-@l9+,0Q[i_~w~_+' /*)*/ "
 },
 {
     "type": "response",

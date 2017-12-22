@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -330,12 +330,12 @@ void ReplicaSet::validate_instance_address(
 void set_group_replication_member_options(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &ssl_mode) {
-  // We need to install the GR plugin to have GR sysvars available
-  mysqlshdk::mysql::Instance instance(session);
-  mysqlshdk::gr::install_plugin(instance);
-
   if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4)
       && ssl_mode == dba::kMemberSSLModeDisabled) {
+    // We need to install the GR plugin to have GR sysvars available
+    mysqlshdk::mysql::Instance instance(session);
+    mysqlshdk::gr::install_plugin(instance);
+
     // This option required to connect using the new caching_sha256_password
     // authentication method without SSL
     session->query("SET PERSIST group_replication_recovery_get_public_key=1");

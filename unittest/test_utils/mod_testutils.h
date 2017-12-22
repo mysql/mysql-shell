@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -116,15 +116,23 @@ class Testutils : public shcore::Cpp_object_bridge {
   static mysqlshdk::db::Connection_options sandbox_connection_options(
       int port, const std::string &password);
 
+  bool test_skipped() const {
+    return !_test_skipped.empty();
+  }
+
+  const std::string &test_skip_reason() const {
+    return _test_skipped;
+  }
+
  public:
   // Sandbox routines
   void deploy_sandbox(int port, const std::string &rootpass,
                       const shcore::Dictionary_t &opts = {});
-  void destroy_sandbox(int port, bool quiet_kill=false);
+  void destroy_sandbox(int port, bool quiet_kill = false);
 
   void start_sandbox(int port);
   void stop_sandbox(int port, const std::string &rootpass);
-  void kill_sandbox(int port, bool quiet=false);
+  void kill_sandbox(int port, bool quiet = false);
 
   void restart_sandbox(int port, const std::string &rootpass);
 
@@ -169,10 +177,12 @@ class Testutils : public shcore::Cpp_object_bridge {
   // the test if it is different
   void expect_prompt(const std::string &prompt, const std::string &text);
   void expect_password(const std::string &prompt, const std::string &text);
+
  private:
   // Testing stuff
   bool is_replaying();
 
+  void skip(const std::string &reason);
   void fail(const std::string &context);
 
   std::string fetch_captured_stdout();
@@ -188,6 +198,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   std::string _sandbox_snapshot_dir;
   bool _dummy_sandboxes = false;
   bool _use_boilerplate = false;
+  std::string _test_skipped;
   std::string _boilerplate_rootpass;
   int _snapshot_log_index = 0;
   Input_fn _feed_prompt;

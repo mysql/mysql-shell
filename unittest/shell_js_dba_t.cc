@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -216,6 +216,10 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     code =
         "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
     exec_and_out_equals(code);
+  }
+
+  virtual void validate_interactive(const std::string &f) {
+    Shell_js_script_tester::validate_interactive(f);
   }
 };
 

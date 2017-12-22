@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,24 +30,25 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 #include <gtest/gtest.h>
-#include <vector>
-#include <utility>
 #include <string>
+#include <utility>
+#include <vector>
 #include "utils/utils_string.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
-
 extern std::vector<std::pair<std::string, std::string>> g_skipped_tests;
 extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
 
-#define SKIP_TEST(note)                                                        \
-  {                                                                            \
-    g_skipped_tests.push_back(                                                 \
-        {std::string(test_info_->test_case_name()) + "." + test_info_->name(), \
-         note});                                                               \
-    return;                                                                    \
+#define SKIP_TEST(note)                                                      \
+  {                                                                          \
+    const ::testing::TestInfo *const test_info =                             \
+        ::testing::UnitTest::GetInstance()->current_test_info();             \
+    g_skipped_tests.push_back(                                               \
+        {std::string(test_info->test_case_name()) + "." + test_info->name(), \
+         note});                                                             \
+    return;                                                                  \
   }
 
 #define PENDING_BUG_TEST(note)                                           \

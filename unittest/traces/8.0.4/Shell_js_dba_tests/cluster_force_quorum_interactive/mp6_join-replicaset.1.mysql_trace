@@ -1636,7 +1636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = '990b0d5c-e46a-11e7-aa67-dfe7e9d87eef'"
+    "sql": "SET GLOBAL group_replication_group_name = '06554abe-f12a-11e7-9040-616f08da2d51'"
 },
 {
     "type": "response",

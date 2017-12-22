@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$H\u0019/\u0007.e{\u0005o\u0015\u0005\u001E^NC9t\u0001\u0017CnnlktsKNAE9K7Fd.ElXMprAZ6d6zJ21U4HikNwDcla/",
+            "$A$005$\u0015X40=pt-tz\u0001\u0016qaO^^\u0012F78NUcS3P.K01iclKOigSrXUuDLuLHj.NrBG6JJiCRvK.",
             "N",
-            "2017-12-19 17:30:23",
+            "2018-01-04 00:09:31",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$J\u0014d7\u0014?\u0010K?)+|Kk\u000EGo-\u001Azg8ynG9sJK2VD.2HilFJ15vtHMXkatkQajYVaKDdVg8",
+            "$A$005$\u0003\u0018[ :\u0005g\u0003(6Usg\bM\u000F\u0013j[4/98Hjit28uTel0XEDrVjYja8Kws6TAilzxFG0H3Q90",
             "N",
-            "2017-12-19 17:11:12",
+            "2018-01-03 23:53:53",
             null,
             "N",
             "Y",
@@ -4228,7 +4228,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000026' /*)*/, MASTER_PASSWORD = /*(*/ '2k|):}L.<%S=Y%8.#j.V}%y^;5=;k[$}' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000026' /*)*/, MASTER_PASSWORD = /*(*/ '4#a(<?E_=<E+&~H@0.C&=7m~{&.~*:{c' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4416,44 +4416,6 @@
     ],
     "rows": [
         [
-            1
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 199,
-    "sql": "SELECT @@global.super_read_only"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 200,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@global.super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             0
         ]
     ]
@@ -4461,8 +4423,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 201,
+    "index": 199,
     "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 200,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 201,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4475,27 +4452,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 203,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 204,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 205
+    "index": 203
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 206
+    "index": 204
 },
 null]

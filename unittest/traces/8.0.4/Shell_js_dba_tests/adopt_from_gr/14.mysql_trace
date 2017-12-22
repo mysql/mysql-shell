@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-10-159-130-228.vpn.oracle.com:3326",
+    "uri": "root:root@Kenjis-iMac.local:3326",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "25",
-    "connection_info": "dhcp-10-159-130-228.vpn.oracle.com via TCP/IP",
+    "connection_info": "Kenjis-iMac.local via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "53df41aa-e526-11e7-bee6-b6c2a702135a"
+            "8452fd9c-f127-11e7-b389-7c307cdfe7e9"
         ]
     ]
 },
