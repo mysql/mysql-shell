@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "40",
+    "connection_id": "43",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 316,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/"
+            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3360/sandboxdata/"
         ]
     ]
 },
@@ -139,7 +139,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "Executed_Gtid_Set",
-            "length": 400,
+            "length": 736,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000003",
-            18531,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            22332,
             "",
             "",
-            "41d1107e-f129-11e7-b6c7-15d4e81096be:1-14,\n440b007a-f129-11e7-b6c7-15d4e81096be:1-13:1000009-1000014"
+            "6aeb2fd1-f544-11e7-b89d-5ce0c50b9d66:1-14,\n6dedf24c-f544-11e7-928f-5ce0c50b9d66:1-6,\n6eef06ff-f544-11e7-b89d-5ce0c50b9d66:1-13:1000009-1000014,\n8e49af1e-f544-11e7-928f-5ce0c50b9d66:1-3"
         ]
     ]
 },
@@ -244,35 +244,11 @@
 },
 {
     "type": "response",
-    "subtype": "RESULT",
+    "subtype": "ERROR",
     "index": 12,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            1
-        ]
-    ]
+    "code": "1049",
+    "msg": "Unknown database 'mysql_innodb_cluster_metadata'",
+    "sqlstate": "42000"
 },
 {
     "type": "request",
@@ -308,7 +284,7 @@
     ],
     "rows": [
         [
-            "42ae036c-f129-11e7-8202-86dcbe2478eb"
+            "6dedf24c-f544-11e7-928f-5ce0c50b9d66"
         ]
     ]
 },

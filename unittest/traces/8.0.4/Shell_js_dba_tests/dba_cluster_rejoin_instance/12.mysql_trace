@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@localhost:3326",
+    "uri": "foo:bar@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "cfd23c8c-f128-11e7-a7c3-d02443e4afc1"
+            "c3f75e55-f543-11e7-85af-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000004",
             231,
             "",
             "",
-            "cefcf144-f128-11e7-a1be-f2416f66b453:1-14,\nd14f2b4c-f128-11e7-a1be-f2416f66b453:1-18"
+            "c244e514-f543-11e7-baf9-5ce0c50b9d66:1-14,\nc776a36d-f543-11e7-baf9-5ce0c50b9d66:1-18"
         ]
     ]
 },

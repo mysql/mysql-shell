@@ -2682,7 +2682,6 @@ TEST_F(Instance_test, drop_user) {
   EXPECT_CALL(session, execute("DROP DATABASE test_db2"));
   _session->execute("DROP DATABASE test_db2");
 
-
   // Drop users previously created in test create_user.
   EXPECT_CALL(session, execute("DROP USER 'test_user'@'test_host'"));
   instance.drop_user("test_user", "test_host");
@@ -2697,6 +2696,63 @@ TEST_F(Instance_test, drop_user) {
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.drop_user("dba_user", "dba_host"), std::exception);
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
+TEST_F(Instance_test, drop_users_with_regexp) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // Create test users with a matching pattern name.
+  EXPECT_CALL(session, execute(
+      "CREATE USER 'test_user_r1729041275'@'localhost' "
+      "IDENTIFIED BY '1729041275'"));
+  _session->execute(
+      "CREATE USER 'test_user_r1729041275'@'localhost' "
+      "IDENTIFIED BY '1729041275'");
+  EXPECT_CALL(session, execute(
+      "CREATE USER 'test_user_r1729041275'@'%' "
+          "IDENTIFIED BY '1729041275'"));
+  _session->execute(
+      "CREATE USER 'test_user_r1729041275'@'%' "
+          "IDENTIFIED BY '1729041275'");
+  EXPECT_CALL(session, execute(
+      "CREATE USER 'test_user_r1729237509'@'localhost' "
+          "IDENTIFIED BY '1729237509'"));
+  _session->execute(
+      "CREATE USER 'test_user_r1729237509'@'localhost' "
+          "IDENTIFIED BY '1729237509'");
+  EXPECT_CALL(session, execute(
+      "CREATE USER 'test_user_r1729237509'@'%' "
+          "IDENTIFIED BY '1729237509'"));
+  _session->execute(
+      "CREATE USER 'test_user_r1729237509'@'%' "
+          "IDENTIFIED BY '1729237509'");
+
+  // Drop all previous test user matching a regular expression.
+  session.expect_query(
+          "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+          "WHERE GRANTEE REGEXP '\\'test_user_r[0-9]{10}.*'")
+      .then_return({{"",
+                     {"GRANTEE"},
+                     {Type::String,},
+                     {{"'test_user_r1729041275'@'localhost'"},
+                      {"'test_user_r1729237509'@'localhost'"},
+                      {"'test_user_r1729041275'@'%'"},
+                      {"'test_user_r1729237509'@'%'"}}
+                    }});
+  EXPECT_CALL(session, execute(
+      "DROP USER IF EXISTS 'test_user_r1729041275'@'localhost'"));
+  EXPECT_CALL(session, execute(
+      "DROP USER IF EXISTS 'test_user_r1729237509'@'localhost'"));
+  EXPECT_CALL(session, execute(
+      "DROP USER IF EXISTS 'test_user_r1729041275'@'%'"));
+  EXPECT_CALL(session, execute(
+      "DROP USER IF EXISTS 'test_user_r1729237509'@'%'"));
+  instance.drop_users_with_regexp("'test_user_r[0-9]{10}.*");
 
   EXPECT_CALL(session, close());
   _session->close();

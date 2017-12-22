@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "23342362-f125-11e7-994a-239ead8bb1d3"
+            "6c951944-f540-11e7-8559-5ce0c50b9d66"
         ]
     ]
 },
@@ -273,12 +273,12 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac.local",
-            3316
+            "pjesus-TECRA-Z40-B",
+            3340
         ],
         [
-            "Kenjis-iMac.local",
-            3326
+            "pjesus-TECRA-Z40-B",
+            3350
         ]
     ]
 },
@@ -453,7 +453,21 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -649,6 +663,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -656,29 +677,8 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -691,8 +691,8 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -761,7 +761,7 @@
     ],
     "rows": [
         [
-            "localhost:13316"
+            "localhost:13340"
         ]
     ]
 },
@@ -936,7 +936,21 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1132,6 +1146,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1139,29 +1160,8 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1174,8 +1174,8 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1244,7 +1244,7 @@
     ],
     "rows": [
         [
-            "23342362-f125-11e7-994a-239ead8bb1d3"
+            "6c951944-f540-11e7-8559-5ce0c50b9d66"
         ]
     ]
 },

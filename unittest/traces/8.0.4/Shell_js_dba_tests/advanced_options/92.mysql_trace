@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "150",
+    "connection_id": "128",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@server_uuid"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -36,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 164,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "be01c728-f125-11e7-b0cc-9149bac9c270"
+            "8.0.4-rc-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@mysqlx_port"
+    "sql": "SELECT @@GLOBAL.group_replication_group_seeds"
 },
 {
     "type": "response",
@@ -74,45 +74,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@mysqlx_port",
-            "length": 21,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            33260
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
+            "column_label": "@@GLOBAL.group_replication_group_seeds",
             "length": 60,
             "fractional": 31,
             "type": "String",
@@ -126,8 +88,18 @@
     ],
     "rows": [
         [
-            "localhost:13326"
+            "127.0.0.1:13340"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 7
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 8
 },
 null]

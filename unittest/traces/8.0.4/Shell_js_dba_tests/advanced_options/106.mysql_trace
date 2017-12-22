@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "22",
+    "connection_id": "275",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT @@datadir"
 },
 {
     "type": "response",
@@ -36,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "column_label": "@@datadir",
+            "length": 316,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3340/sandboxdata/"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = 'mysql_innodb_cluster_metadata') AND (TABLE_NAME = 'instances')"
+    "sql": "SHOW MASTER STATUS"
 },
 {
     "type": "response",
@@ -74,21 +74,89 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
+            "column_label": "File",
+            "length": 2048,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Position",
+            "length": 20,
             "fractional": 0,
-            "type": "Integer",
+            "type": "UInteger",
             "collation": "binary",
             "charset": "binary",
             "collation_id": 63,
-            "unsigned": false,
+            "unsigned": true,
             "zerofill": false,
             "binary": true
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Binlog_Do_DB",
+            "length": 1020,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Binlog_Ignore_DB",
+            "length": 1020,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Executed_Gtid_Set",
+            "length": 1688,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
         }
     ],
     "rows": [
         [
-            1
+            "pjesus-TECRA-Z40-B-bin.000003",
+            95351,
+            "",
+            "",
+            "2f17beba-f541-11e7-ab9d-5ce0c50b9d66:1-103,\n37db47e6-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n451d24c6-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n524d1828-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n5f78d1cb-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n6ca31e50-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n79c4ee6f-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n86e59db8-f541-11e7-ab9d-5ce0c50b9d66:1-3,\na1385a63-f541-11e7-ab9d-5ce0c50b9d66:1-104,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3"
         ]
     ]
 },
@@ -96,7 +164,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3336'"
+    "sql": "SELECT @@global.have_ssl"
 },
 {
     "type": "response",
@@ -112,21 +180,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
+            "column_label": "@@global.have_ssl",
+            "length": 12,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
         [
-            0
+            "YES"
         ]
     ]
 },
@@ -134,7 +202,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3336'"
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
@@ -164,7 +232,7 @@
     ],
     "rows": [
         [
-            1
+            0
         ]
     ]
 },

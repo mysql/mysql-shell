@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,8 +39,8 @@ namespace mysql {
 Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {
 }
 
-utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
-                                                const Var_qualifier &scope) const {
+utils::nullable<bool> Instance::get_sysvar_bool(
+    const std::string &name, const Var_qualifier scope) const {
   utils::nullable<bool> ret_val;
 
   std::map<std::string, utils::nullable<std::string>> variables =
@@ -65,12 +65,12 @@ utils::nullable<bool> Instance::get_sysvar_bool(const std::string &name,
 }
 
 utils::nullable<std::string> Instance::get_sysvar_string(
-    const std::string& name, const Var_qualifier &scope) const {
+    const std::string& name, const Var_qualifier scope) const {
   return get_system_variables({name}, scope)[name];
 }
 
 utils::nullable<int64_t> Instance::get_sysvar_int(
-    const std::string& name, const Var_qualifier &scope) const {
+    const std::string& name, const Var_qualifier scope) const {
   utils::nullable<int64_t> ret_val;
 
   auto variables = get_system_variables({name}, scope);
@@ -102,7 +102,7 @@ utils::nullable<int64_t> Instance::get_sysvar_int(
  */
 void Instance::set_sysvar(const std::string &name,
                           const std::string &value,
-                          const Var_qualifier &qualifier) const {
+                          const Var_qualifier qualifier) const {
   std::string set_stmt_fmt;
   if (qualifier == Var_qualifier::GLOBAL)
     set_stmt_fmt = "SET GLOBAL ! = ?";
@@ -129,7 +129,7 @@ void Instance::set_sysvar(const std::string &name,
  */
 void Instance::set_sysvar(const std::string &name,
                           const int64_t value,
-                          const Var_qualifier &qualifier) const {
+                          const Var_qualifier qualifier) const {
   std::string set_stmt_fmt;
   if (qualifier == Var_qualifier::GLOBAL)
     set_stmt_fmt = "SET GLOBAL ! = ?";
@@ -156,7 +156,7 @@ void Instance::set_sysvar(const std::string &name,
  */
 void Instance::set_sysvar(const std::string &name,
                           const bool value,
-                          const Var_qualifier &qualifier) const {
+                          const Var_qualifier qualifier) const {
   std::string str_value = value ? "ON" : "OFF";
   std::string set_stmt_fmt;
   if (qualifier == Var_qualifier::GLOBAL)
@@ -177,7 +177,7 @@ void Instance::set_sysvar(const std::string &name,
 
 std::map<std::string, utils::nullable<std::string> >
 Instance::get_system_variables(const std::vector<std::string>& names,
-                               const Var_qualifier &scope) const {
+                               const Var_qualifier scope) const {
   std::map<std::string, utils::nullable<std::string> > ret_val;
 
   if (!names.empty()) {
@@ -369,6 +369,41 @@ void Instance::drop_user(const std::string &user,
   drop_stmt << host;
   drop_stmt.done();
   _session->execute(drop_stmt);
+}
+
+/**
+ * Drop all the users with the matching regular expression.
+ *
+ * A supported MySQL regular expression must be specified and it will be used
+ * to match the user name (not the host part) of the user accounts to remove.
+ * For more information about supported MySQL regular expressions, see:
+ * https://dev.mysql.com/doc/en/regexp.html
+ *
+ * @param regexp String with the regular expression to match the user name of
+ *               the account to remove. It must be a supported MySQL regular
+ *               expression.
+ *
+ */
+void Instance::drop_users_with_regexp(const std::string &regexp) const {
+  // Get all users matching the provided regular expression.
+  std::string users_to_drop_stmt_fmt =
+      "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+      "WHERE GRANTEE REGEXP ?";
+  shcore::sqlstring users_to_drop_stmt =
+      shcore::sqlstring(users_to_drop_stmt_fmt.c_str(), 0);
+  users_to_drop_stmt << regexp;
+  users_to_drop_stmt.done();
+  auto resultset = _session->query(users_to_drop_stmt);
+  auto row = resultset->fetch_one();
+  std::vector<std::string> user_accounts;
+  while (row) {
+    user_accounts.push_back(row->get_string(0));
+    row = resultset->fetch_one();
+  }
+  // Remove all matching users.
+  std::string drop_stmt = "DROP USER IF EXISTS ";
+  for (std::string user_account : user_accounts)
+    _session->execute(drop_stmt + user_account);
 }
 
 /**

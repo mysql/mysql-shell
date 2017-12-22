@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -199,6 +199,10 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
   std::string get_cluster_group_seeds(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session);
+
+  void finalize_instance_removal(
+      const mysqlshdk::db::Connection_options &instance_cnx_opts,
+      bool remove_rpl_user_on_group);
 
   std::weak_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;

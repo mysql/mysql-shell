@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -657,6 +657,33 @@ void create_replication_user(const mysqlshdk::mysql::IInstance &instance,
   std::vector<std::tuple<std::string, std::string, bool>> gr_grants = {
       std::make_tuple("REPLICATION SLAVE", "*.*", false)};
   instance.create_user(user, host, pwd, gr_grants);
+}
+
+/**
+ * Get the replication user used for recovery.
+ *
+ * This function returns the replication user used in the (last)
+ * CHANGE MASTER TO statement FOR CHANNEL 'group_replication_recovery'.
+ *
+ * NOTE: The correct execution of this function requires the variable
+ *       master_info_repository=TABLE to be set which is a requirement for
+ *       Group Replication.
+ *
+ * @param instance instance object of target member to obtain the
+ *                 replication user.
+ * @return a string with the replication (recovery) user set fot the specified
+ *         instance. Note: If no replication user was specified an empty string
+ *         is returned.
+ */
+std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance) {
+  std::string rpl_user;
+  std::shared_ptr<db::IResult> result(instance.get_session()->query(
+      "SELECT User_name FROM mysql.slave_master_info "
+      "WHERE Channel_name = 'group_replication_recovery'"));
+  auto row = result->fetch_one();
+  if (row)
+    rpl_user = row->get_string(0);
+  return rpl_user;
 }
 
 /**

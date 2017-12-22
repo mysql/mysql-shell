@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "33",
+    "connection_id": "27",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT sys.version_major(), sys.version_minor(), sys.version_patch()"
 },
 {
     "type": "response",
@@ -35,22 +35,56 @@
             "schema": "",
             "table_name": "",
             "table_label": "",
-            "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
+            "column_name": "sys.version_major()",
+            "column_label": "sys.version_major()",
+            "length": 3,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "sys.version_minor()",
+            "column_label": "sys.version_minor()",
+            "length": 3,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "sys.version_patch()",
+            "column_label": "sys.version_patch()",
+            "length": 3,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
             "zerofill": false,
             "binary": false
         }
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            8,
+            0,
+            4
         ]
     ]
 },

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "foo:bar@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -295,7 +295,7 @@
     ],
     "rows": [
         [
-            3316
+            3340
         ]
     ]
 },
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -2302,9 +2302,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$_P'q-x\u0005X\bxI\\q\u0011T\u0019\u000BeLPp8Shsw0/yUmi0OlbZVeu/o3MKcw33bw63mesmOiy9j4",
+            "$A$005$Y\u0015\r\t U|\"*u\"U4'4B@p\u0001BNLUrgyTwnRg6B0LXTyBGza170T3odKaRCJ70Pfkq3gC",
             "N",
-            "2018-01-04 00:25:26",
+            "2018-01-09 13:48:31",
             null,
             "N",
             "N",
@@ -2458,36 +2458,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
             "schema": "",
@@ -2524,10 +2524,10 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "t",
-            "column_name": "",
+            "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
             "fractional": 0,
@@ -2537,13 +2537,13 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "tables",
             "table_label": "t",
-            "column_name": "",
+            "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
             "fractional": 0,
@@ -2553,7 +2553,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": []
@@ -2691,7 +2691,21 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -2887,6 +2901,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -2894,29 +2915,8 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -2929,8 +2929,8 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3129,7 +3129,21 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3325,6 +3339,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3332,29 +3353,8 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3367,8 +3367,8 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "ARCHIVE",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3417,7 +3417,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@version_compile_os",
-            "length": 32,
+            "length": 60,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -3430,7 +3430,7 @@
     ],
     "rows": [
         [
-            "osx10.13"
+            "linux-glibc2.12"
         ]
     ]
 },
@@ -3587,7 +3587,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -3625,7 +3625,7 @@
     ],
     "rows": [
         [
-            "d14f2b4c-f128-11e7-a1be-f2416f66b453"
+            "c776a36d-f543-11e7-baf9-5ce0c50b9d66"
         ]
     ]
 },
@@ -3753,7 +3753,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "SET GLOBAL group_replication_group_name = 'd14f2b4c-f128-11e7-a1be-f2416f66b453'"
+    "sql": "SET GLOBAL group_replication_group_name = 'c776a36d-f543-11e7-baf9-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3933,7 +3933,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SET GLOBAL auto_increment_offset = 3"
+    "sql": "SET GLOBAL auto_increment_offset = 6"
 },
 {
     "type": "response",
@@ -4113,7 +4113,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 135,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13316'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13340'"
 },
 {
     "type": "response",
@@ -4293,7 +4293,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 159,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '5k?%r%.-O6N](U/*_j]0:{^[B#,<$:y/' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '~w@*@E5p^>}(.]7^%V,|#:/q.&[U~1<.' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

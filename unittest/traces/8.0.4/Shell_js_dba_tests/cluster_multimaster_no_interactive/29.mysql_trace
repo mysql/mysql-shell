@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "26",
+    "connection_id": "41",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT sys.version_major(), sys.version_minor(), sys.version_patch()"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -35,56 +35,22 @@
             "schema": "",
             "table_name": "",
             "table_label": "",
-            "column_name": "sys.version_major()",
-            "column_label": "sys.version_major()",
-            "length": 3,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "sys.version_minor()",
-            "column_label": "sys.version_minor()",
-            "length": 3,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "sys.version_patch()",
-            "column_label": "sys.version_patch()",
-            "length": 3,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
+            "column_name": "",
+            "column_label": "@@server_uuid",
+            "length": 144,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
             "zerofill": false,
             "binary": false
         }
     ],
     "rows": [
         [
-            8,
-            0,
-            4
+            "95684616-f546-11e7-b183-5ce0c50b9d66"
         ]
     ]
 },
@@ -92,25 +58,76 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET PERSIST `group_replication_start_on_boot` = 'OFF'"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            33500
+        ]
+    ]
 },
 {
     "type": "request",
-    "subtype": "CLOSE",
-    "index": 7
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
-    "subtype": "OK",
-    "index": 8
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_local_address",
+            "length": 60,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "localhost:13350"
+        ]
+    ]
 },
 null]

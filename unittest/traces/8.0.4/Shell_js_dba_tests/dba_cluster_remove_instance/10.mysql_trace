@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "8",
+    "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP 'mysql_innodb_cluster_r0000000002.*'"
 },
 {
     "type": "response",
@@ -32,13 +32,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
-            "fractional": 31,
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "USER_PRIVILEGES",
+            "column_name": "GRANTEE",
+            "column_label": "GRANTEE",
+            "length": 324,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -50,7 +50,10 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log Source distribution"
+            "'mysql_innodb_cluster_r0000000002'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000002'@'%'"
         ]
     ]
 },
@@ -58,65 +61,40 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SHOW VARIABLES LIKE 'group_replication_start_on_boot';"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
     "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
+    "affected_rows": 0,
     "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "session_variables",
-            "table_label": "session_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "session_variables",
-            "table_label": "session_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "group_replication_start_on_boot",
-            "OFF"
-        ]
-    ]
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 7
+    "index": 9
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 8
+    "index": 10
 },
 null]

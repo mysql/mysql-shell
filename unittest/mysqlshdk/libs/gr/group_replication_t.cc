@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -342,6 +342,103 @@ TEST_F(Group_replication_Test, members_state) {
   state_res = mysqlshdk::gr::to_member_state("(MISSING)");
   EXPECT_EQ(state_res, Member_state::MISSING);
   EXPECT_THROW(mysqlshdk::gr::to_member_state("invalid"), std::runtime_error);
+}
+
+TEST_F(Group_replication_Test, get_replication_user) {
+  using mysqlshdk::utils::nullable;
+
+  // Check if used server meets the requirements.
+  nullable<int64_t> server_id = instance->get_sysvar_int("server_id");
+  if (*server_id == 0) {
+    std::cout << "[  SKIPPED ] - server_id is 0." << std::endl;
+    return;
+  }
+  nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
+  if (*log_bin != true) {
+    std::cout << "[  SKIPPED ] - log_bin must be ON." << std::endl;
+    return;
+  }
+  nullable<bool> gtid_mode = instance->get_sysvar_bool("gtid_mode");
+  if (*gtid_mode != true) {
+    std::cout << "[  SKIPPED ] - gtid_mode must be ON." << std::endl;
+    return;
+  }
+  nullable<bool> enforce_gtid_consistency =
+      instance->get_sysvar_bool("enforce_gtid_consistency");
+  if (*enforce_gtid_consistency != true) {
+    std::cout << "[  SKIPPED ] - enforce_gtid_consistency must be ON."
+              << std::endl;
+    return;
+  }
+  nullable<std::string> master_info_repository =
+      instance->get_sysvar_string("master_info_repository");
+  if ((*master_info_repository).compare("TABLE") != 0) {
+    std::cout << "[  SKIPPED ] - master_info_repository must be 'TABLE'."
+              << std::endl;
+    return;
+  }
+  nullable<std::string> relay_log_info_repository =
+      instance->get_sysvar_string("relay_log_info_repository");
+  if ((*relay_log_info_repository).compare("TABLE") != 0) {
+    std::cout << "[  SKIPPED ] - relay_log_info_repository must be 'TABLE'."
+              << std::endl;
+    return;
+  }
+  nullable<std::string> binlog_checksum =
+      instance->get_sysvar_string("binlog_checksum");
+  if ((*binlog_checksum).compare("NONE") != 0) {
+    std::cout << "[  SKIPPED ] - binlog_checksum must be 'NONE'."
+              << std::endl;
+    return;
+  }
+  nullable<bool> log_slave_updates =
+      instance->get_sysvar_bool("log_slave_updates");
+  if (*log_slave_updates != true) {
+    std::cout << "[  SKIPPED ] - log_slave_updates must be ON." << std::endl;
+    return;
+  }
+  nullable<std::string> binlog_format =
+      instance->get_sysvar_string("binlog_format");
+  if ((*binlog_format).compare("ROW") != 0) {
+    std::cout << "[  SKIPPED ] - binlog_format must be 'ROW'."
+              << std::endl;
+    return;
+  }
+
+  // Install GR plugin if needed.
+  nullable<std::string> init_plugin_state =
+      instance->get_plugin_status(mysqlshdk::gr::kPluginName);
+  if (init_plugin_state.is_null()) {
+    mysqlshdk::gr::install_plugin(*instance);
+  }
+
+  // Test: empty string returned if no replication user was defined (or empty).
+  std::string res = mysqlshdk::gr::get_recovery_user(*instance);
+  EXPECT_TRUE(res.empty());
+
+  // Set replication user
+  auto session = instance->get_session();
+  std::string change_master_stmt =
+      "CHANGE MASTER TO MASTER_USER = 'test_user' "
+      "FOR CHANNEL 'group_replication_recovery'";
+  session->execute(change_master_stmt);
+
+  // Test: correct replication user is returned.
+  res = mysqlshdk::gr::get_recovery_user(*instance);
+  EXPECT_STREQ("test_user", res.c_str());
+
+  // Test: Start Group Replication fails for group already running.
+  EXPECT_THROW(mysqlshdk::gr::start_group_replication(*instance, true),
+               std::exception);
+
+  // Clean up (restore initial server state).
+  if (session)
+    // Set user to empty value.
+    session->execute("CHANGE MASTER TO MASTER_USER = '' "
+                     "FOR CHANNEL 'group_replication_recovery'");
+  if (init_plugin_state.is_null()) {
+    mysqlshdk::gr::uninstall_plugin(*instance);
+  }
 }
 
 }  // namespace testing

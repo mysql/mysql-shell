@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,22 +57,22 @@ class IInstance {
   virtual ~IInstance() {}
   virtual utils::nullable<bool> get_sysvar_bool(
       const std::string& name,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual utils::nullable<std::string> get_sysvar_string(
       const std::string& name,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual utils::nullable<int64_t> get_sysvar_int(
       const std::string& name,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual void set_sysvar(
       const std::string &name, const std::string &value,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual void set_sysvar(
       const std::string &name, const int64_t value,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual void set_sysvar(
       const std::string &name, const bool value,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const = 0;
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
@@ -88,6 +88,7 @@ class IInstance {
       const = 0;
   virtual void drop_user(const std::string &user,
                          const std::string &host) const = 0;
+  virtual void drop_users_with_regexp(const std::string &regexp) const = 0;
   virtual std::tuple<bool, std::string, bool> check_user(
       const std::string &user, const std::string &host,
       const std::vector<std::string> &privileges,
@@ -105,28 +106,28 @@ class Instance : public IInstance {
 
   utils::nullable<bool> get_sysvar_bool(
       const std::string& name,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::SESSION) const override;
   utils::nullable<std::string> get_sysvar_string(
       const std::string& name,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::SESSION) const override;
   utils::nullable<int64_t> get_sysvar_int(
       const std::string& name,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const override;
+      const Var_qualifier scope = Var_qualifier::SESSION) const override;
   void set_sysvar(
       const std::string &name, const std::string &value,
-      const Var_qualifier &qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
   void set_sysvar(
       const std::string &name, const int64_t value,
-      const Var_qualifier &qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
   void set_sysvar(
       const std::string &name, const bool value,
-      const Var_qualifier &qualifier = Var_qualifier::SESSION) const override;
+      const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;
   }
   std::map<std::string, utils::nullable<std::string> > get_system_variables(
       const std::vector<std::string>& names,
-      const Var_qualifier &scope = Var_qualifier::SESSION) const;
+      const Var_qualifier scope = Var_qualifier::SESSION) const;
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
   utils::nullable<std::string> get_plugin_status(
@@ -137,6 +138,7 @@ class Instance : public IInstance {
       const override;
   void drop_user(const std::string &user,
                  const std::string &host) const override;
+  void drop_users_with_regexp(const std::string &regexp) const override;
   std::tuple<bool, std::string, bool> check_user(
       const std::string &user, const std::string &host,
       const std::vector<std::string> &privileges,
