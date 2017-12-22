@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "test_user@127.0.0.1:3316?ssl-mode=PREFERRED",
+    "uri": "test_user@127.0.0.1:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "127.0.0.1 via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "3f7230d6-f12b-11e7-a7e4-65cac57c2029"
+            "567b98ba-f546-11e7-b024-5ce0c50b9d66"
         ]
     ]
 },

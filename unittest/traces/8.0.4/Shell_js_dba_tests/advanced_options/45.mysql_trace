@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 316,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3340/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000003",
-            52739,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            52750,
             "",
             "",
-            "02235b56-f126-11e7-87da-fdd01b13111c:1-3,\n0f05e29e-f126-11e7-87da-fdd01b13111c:1-3,\nbd235d1c-f125-11e7-87da-fdd01b13111c:1-91,\nc1bbdc6e-f125-11e7-87da-fdd01b13111c:1-3,\ncea063b4-f125-11e7-87da-fdd01b13111c:1-3,\ndb810a0c-f125-11e7-87da-fdd01b13111c:1-3,\ne860e882-f125-11e7-87da-fdd01b13111c:1-3,\nf5438d02-f125-11e7-87da-fdd01b13111c:1-3"
+            "2f17beba-f541-11e7-ab9d-5ce0c50b9d66:1-91,\n37db47e6-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n451d24c6-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n524d1828-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n5f78d1cb-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n6ca31e50-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n79c4ee6f-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n86e59db8-f541-11e7-ab9d-5ce0c50b9d66:1-3"
         ]
     ]
 },

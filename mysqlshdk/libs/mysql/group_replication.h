@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,6 +131,7 @@ std::tuple<bool, std::string, bool> check_replication_user(
 void create_replication_user(const mysqlshdk::mysql::IInstance &instance,
                              const std::string &user, const std::string &host,
                              const std::string &pwd);
+std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
 
 // Function to check compliance to use GR.
 std::map<std::string, std::string> check_data_compliance(

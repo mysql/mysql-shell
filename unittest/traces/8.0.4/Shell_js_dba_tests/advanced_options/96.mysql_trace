@@ -3,24 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "157",
+    "connection_id": "258",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT sys.version_major(), sys.version_minor(), sys.version_patch()"
+    "sql": "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP 'mysql_innodb_cluster_00000000024.*'"
 },
 {
     "type": "response",
@@ -32,59 +32,28 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "sys.version_major()",
-            "column_label": "sys.version_major()",
-            "length": 3,
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "USER_PRIVILEGES",
+            "column_name": "GRANTEE",
+            "column_label": "GRANTEE",
+            "length": 324,
             "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "sys.version_minor()",
-            "column_label": "sys.version_minor()",
-            "length": 3,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "sys.version_patch()",
-            "column_label": "sys.version_patch()",
-            "length": 3,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
             "zerofill": false,
             "binary": false
         }
     ],
     "rows": [
         [
-            8,
-            0,
-            4
+            "'mysql_innodb_cluster_00000000024'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_00000000024'@'%'"
         ]
     ]
 },
@@ -92,7 +61,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET PERSIST `group_replication_start_on_boot` = 'OFF'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_00000000024'@'localhost'"
 },
 {
     "type": "response",
@@ -105,12 +74,27 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_00000000024'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 7
+    "index": 9
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 8
+    "index": 10
 },
 null]

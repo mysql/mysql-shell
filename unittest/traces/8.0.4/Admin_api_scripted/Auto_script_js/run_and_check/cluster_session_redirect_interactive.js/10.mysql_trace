@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -208,9 +208,9 @@
     ],
     "rows": [
         [
-            "23342362-f125-11e7-994a-239ead8bb1d3",
+            "6c951944-f540-11e7-8559-5ce0c50b9d66",
             1,
-            "21aa40da-f125-11e7-a46b-517f8a3879b4",
+            "69be03c6-f540-11e7-b053-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '23342362-f125-11e7-994a-239ead8bb1d3'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '6c951944-f540-11e7-8559-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -385,18 +385,18 @@
     ],
     "rows": [
         [
-            "20d12296-f125-11e7-994a-239ead8bb1d3",
-            "localhost:3316",
+            "682a8cf4-f540-11e7-8559-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
-            "localhost:33160"
+            "localhost:3340",
+            "localhost:33400"
         ],
         [
-            "21aa40da-f125-11e7-a46b-517f8a3879b4",
-            "localhost:3326",
+            "69be03c6-f540-11e7-b053-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326",
-            "localhost:33260"
+            "localhost:3350",
+            "localhost:33500"
         ]
     ]
 },
@@ -553,17 +553,17 @@
     ],
     "rows": [
         [
-            "20d12296-f125-11e7-994a-239ead8bb1d3",
+            "682a8cf4-f540-11e7-8559-5ce0c50b9d66",
             "ONLINE",
-            "Kenjis-iMac.local",
-            3316,
+            "pjesus-TECRA-Z40-B",
+            3340,
             "PRIMARY"
         ],
         [
-            "21aa40da-f125-11e7-a46b-517f8a3879b4",
+            "69be03c6-f540-11e7-b053-5ce0c50b9d66",
             "ONLINE",
-            "Kenjis-iMac.local",
-            3326,
+            "pjesus-TECRA-Z40-B",
+            3350,
             "SECONDARY"
         ]
     ]

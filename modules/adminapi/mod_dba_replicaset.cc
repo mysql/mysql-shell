@@ -1011,6 +1011,137 @@ shcore::Value ReplicaSet::remove_instance_(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+/**
+ * Auxiliary function to re-enable super_read_only.
+ *
+ * @param super_read_only boolean with the initial super_read_only value.
+ * @param instance target instance object.
+ * @param instance_address string with the target instance address.
+ */
+static void reenable_super_read_only(
+    const mysqlshdk::utils::nullable<bool> &super_read_only,
+    const mysqlshdk::mysql::Instance &instance,
+    const std::string &instance_address) {
+  // Re-enable super_read_only if previously enabled.
+  if(*super_read_only) {
+    log_debug("Re-enabling super_read_only on instance '%s'.",
+              instance_address.c_str());
+    instance.set_sysvar("super_read_only", true,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  }
+}
+
+/**
+ * Finalize removal of an instance after leaving the replicaset.
+ *
+ * This function perform operations to finalize the removal of an instance
+ * after leaving the replicaset (GR is stopped), more specifically:
+ *   - Disable GR start on boot (to avoid instance from rejoining the group);
+ *   - Remove replication (recovery) users;
+ *
+ * @param instance_cnx_opts Connection options for the instance to remove.
+ * @param remove_rpl_user_on_group boolean indicating if the replication
+ *        (recovery) user used by the instance should be removed on the
+ *        remaining members of the GR group (replicaset). If true then remove
+ *        the recovery user used by the instance on the other members through
+ *        a primary instance, otherwise skip it (just remove replication users
+ *        on the target instance).
+ */
+void ReplicaSet::finalize_instance_removal(
+    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    bool remove_rpl_user_on_group) {
+
+  // Create and open an instance session.
+  std::string instance_address = instance_cnx_opts.as_uri(only_transport());
+  log_debug("Opening a new session to instance: '%s' to disable and "
+            "persist 'group_replication_start_on_boot', if supported by "
+            "the server.", instance_address.c_str());
+  std::shared_ptr<mysqlshdk::db::ISession> _session =
+      mysqlshdk::db::mysql::Session::create();
+  _session->connect(instance_cnx_opts);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // Disable and persist GR start on boot if leave-replicaset succeed.
+  // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
+  //       due to BUG#26495619.
+  if (instance.check_server_version(8, 0, 4))
+    instance.set_sysvar("group_replication_start_on_boot", false,
+                        mysqlshdk::mysql::Var_qualifier::PERSIST);
+  else
+    // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
+    log_warning(
+        "The 'group_replication_start_on_boot' variable must be set "
+        "to 'OFF' in the server configuration file, otherwise it might "
+        "rejoin the cluster upon restart.");
+
+  // Check if super_read_only is enabled and disable it to remove
+  // replication users.
+  mysqlshdk::utils::nullable<bool> super_read_only =
+      instance.get_sysvar_bool(
+          "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  if (*super_read_only) {
+    log_debug("Disabling super_read_only to remove replication users on "
+              "instance '%s'.", instance_address.c_str());
+    instance.set_sysvar("super_read_only", false,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  }
+
+  // Remove all replication (recovery users) on the removed instance,
+  // disabling binary logging (avoid being replicated).
+  try {
+    // Re-enable super_read_only if previously enabled when leaving "try catch".
+    auto finally =
+        shcore::on_leave_scope([super_read_only, instance, instance_address]() {
+          reenable_super_read_only(super_read_only, instance, instance_address);
+        });
+    log_debug("Removing InnoDB Cluster replication users on instance '%s'.",
+              instance_address.c_str());
+    instance.set_sysvar("sql_log_bin", static_cast<const int64_t>(0),
+                        mysqlshdk::mysql::Var_qualifier::SESSION);
+    instance.drop_users_with_regexp(
+        "'mysql_innodb_cluster_r[0-9]{10}.*");
+    instance.set_sysvar("sql_log_bin", static_cast<const int64_t>(1),
+                        mysqlshdk::mysql::Var_qualifier::SESSION);
+  } catch (shcore::Exception &err) {
+    throw;
+  }
+
+  std::string rpl_user;
+  if (remove_rpl_user_on_group) {
+    // Get replication user (recovery) used by the instance to remove
+    // on remaining members.
+    rpl_user = mysqlshdk::gr::get_recovery_user(instance);
+  }
+
+  _session->close();
+
+  if (remove_rpl_user_on_group) {
+    // Get a primary (master) instance.
+    std::string primary_instance_address = get_peer_instance();
+    mysqlshdk::db::Connection_options primary_cnx_opts =
+        shcore::get_connection_options(primary_instance_address, false);
+    // If user credentials are missing get them from the removed instance.
+    // It is assumed that the same user and password is used by all members.
+    if (!primary_cnx_opts.has_user() || !primary_cnx_opts.has_password()) {
+      primary_cnx_opts.set_user(instance_cnx_opts.get_user());
+      primary_cnx_opts.set_password(instance_cnx_opts.get_password());
+    }
+    log_debug("Opening a new session to instance '%s' to remove the "
+              "replication user for instance '%s'.",
+              primary_instance_address.c_str(), instance_address.c_str());
+    std::shared_ptr<mysqlshdk::db::ISession> _peer_session =
+        mysqlshdk::db::mysql::Session::create();
+    _peer_session->connect(primary_cnx_opts);
+    mysqlshdk::mysql::Instance primary_instance(_peer_session);
+
+    // Remove the replication user used by the removed instance on all
+    // cluster members through the primary (using replication).
+    primary_instance.drop_users_with_regexp(rpl_user + ".*");
+
+    _peer_session->close();
+  }
+}
+
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
@@ -1171,29 +1302,10 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
       // If force is used do not add the instance back to the metadata,
       // and ignore any leave-replicaset error.
     } else {
-      // Create and open an instance session.
-      log_debug("Opening a new session to instance: '%s' to disable and "
-                "persist 'group_replication_start_on_boot', if supported by "
-                "the server.", instance_address.c_str());
-      std::shared_ptr<mysqlshdk::db::ISession> _session =
-          mysqlshdk::db::mysql::Session::create();
-      _session->connect(instance_def);
-      mysqlshdk::mysql::Instance instance_session(_session);
-
-      // Disable and persist GR start on boot if leave-replicaset succeed.
-      // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
-      //       due to BUG#26495619.
-      if (instance_session.check_server_version(8, 0, 4))
-        instance_session.set_sysvar("group_replication_start_on_boot", false,
-                                    mysqlshdk::mysql::Var_qualifier::PERSIST);
-      else
-        // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
-        log_warning(
-            "The 'group_replication_start_on_boot' variable must be set "
-            "to 'OFF' in the server configuration file, otherwise it might "
-            "rejoin the cluster upon restart.");
-
-      _session->close();
+      // Finalize instance removal after successfully leaving replicaset.
+      // - Disable and persist GR start on boot;
+      // - Remove replication (recovery) users;
+      finalize_instance_removal(instance_def, true);
     }
   } else {
     // Remove instance from the MD anyway in case it is standalone.
@@ -1323,30 +1435,21 @@ void ReplicaSet::remove_instance_from_gr(
     throw shcore::Exception::runtime_error(
         get_mysqlprovision_error_string(errors));
   } else {
-    // Create and open an instance session.
-    std::string instance_address = instance_cnx_opts.as_uri(only_transport());
-    log_debug("Opening a new session to instance: '%s' to disable and "
-              "persist 'group_replication_start_on_boot', if supported by the "
-              "server.", instance_address.c_str());
-    std::shared_ptr<mysqlshdk::db::ISession> _session =
-        mysqlshdk::db::mysql::Session::create();
-    _session->connect(instance_cnx_opts);
-    mysqlshdk::mysql::Instance instance(_session);
-
-    // Disable and persist GR start on boot if leave-replicaset succeed.
-    // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
-    //       due to BUG#26495619.
-    if (instance.check_server_version(8, 0, 4))
-      instance.set_sysvar("group_replication_start_on_boot", false,
-                          mysqlshdk::mysql::Var_qualifier::PERSIST);
-    else
-      // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
-      log_warning(
-          "The 'group_replication_start_on_boot' variable must be set "
-          "to 'OFF' in the server configuration file, otherwise it might "
-          "rejoin the cluster upon restart.");
-
-    _session->close();
+    // Finalize instance removal after successfully leaving replicaset.
+    // - Disable and persist GR start on boot;
+    // - Remove replication (recovery) users;
+    // NOTE: This function is used only to dissolve a cluster, removing
+    // all the replication users on all members, therefore there is no need to
+    // specifically get the replication user used by the removed instance to
+    // drop it on the remaining cluster members.
+    // In addition, the current implementation drops the cluster metadata before
+    // executing this function on all members, not making it possible afterwards
+    // to obtain the primary member information (connection) from the metadata.
+    // The primary member connection information would had to be obtained
+    // before removing the metadata and passed as parameter, but it is not
+    // needed currently. However, this is something to keep in mind for future
+    // improvements.
+    finalize_instance_removal(instance_cnx_opts, false);
   }
 }
 
@@ -1442,19 +1545,72 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(
 
 std::string ReplicaSet::get_peer_instance() {
   std::string master_uuid, master_instance;
+  std::vector<Instance_definition> instances;
 
   // We need to retrieve a peer instance, so let's use the Seed one
   // If using single-primary mode the Seed instance is the primary
-  auto instance_session = _metadata_storage->get_session();
-  get_status_variable(instance_session, "group_replication_primary_member",
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
+      cluster->get_group_session();
+  Connection_options cluster_cnx_opt =
+      cluster_session->get_connection_options();
+
+  get_status_variable(cluster_session, "group_replication_primary_member",
                       master_uuid, false);
 
-  auto instances = _metadata_storage->get_replicaset_online_instances(get_id());
+  // If the primary UUID is empty, instance might have left the cluster and
+  // the primary UUID needs to be obtained from another "online" instance.
+  if (master_uuid.empty()) {
+    // Get all known instances from metadata.
+    instances = _metadata_storage->get_replicaset_instances(get_id(),
+                                                            false, {});
+    for (auto& instance : instances) {
+      // Connect to instance.
+      mysqlshdk::db::Connection_options instance_cnx_opts =
+          shcore::get_connection_options(instance.endpoint, false);
+      // If user credentials are missing get them from the cluster instance.
+      // It is assumed that the same user and password is used by all members.
+      if (!instance_cnx_opts.has_user() || !instance_cnx_opts.has_password()) {
+        instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
+        instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
+      }
+      try {
+        log_debug("Opening a new session to instance '%s' to find the primary "
+                  "member.",
+                  instance_cnx_opts.as_uri(only_transport()).c_str());
+        std::shared_ptr<mysqlshdk::db::ISession> _instance_session =
+            mysqlshdk::db::mysql::Session::create();
+        _instance_session->connect(instance_cnx_opts);
+        // Get GR primary member UUID.
+        get_status_variable(_instance_session,
+                            "group_replication_primary_member",
+                            master_uuid,
+                            false);
+        if (!master_uuid.empty()) {
+          // Primary UUID found. Update list of online members using this
+          // alternative instance.
+          instances = _metadata_storage->get_replicaset_online_instances(
+              get_id(), _instance_session);
+          break;  // Primary UUID found (no need to look on other instances).
+        }
+        _instance_session->close();
+      } catch (const std::exception&) {
+        // Ignore error connecting to instance, since it might not be available.
+        continue;
+      }
+    }
+  } else {
+    // Get ther list of online members.
+    instances = _metadata_storage->get_replicaset_online_instances(get_id());
+  }
 
   if (!master_uuid.empty()) {
     for (auto& instance : instances) {
       if (instance.uuid == master_uuid) {
         master_instance = instance.endpoint;
+        break;  // Found matching "online" instance.
       }
     }
   } else if (!instances.empty()) {
