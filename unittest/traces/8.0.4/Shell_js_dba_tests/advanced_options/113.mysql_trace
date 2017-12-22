@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "28",
+    "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -252,8 +252,8 @@
     ],
     "rows": [
         [
-            "7ffa7860-e524-11e7-befa-cb01a3310898",
-            "7ffa7860-e524-11e7-befa-cb01a3310898"
+            "beece67c-f125-11e7-a557-9ce2974ec0da",
+            "beece67c-f125-11e7-a557-9ce2974ec0da"
         ]
     ]
 },
@@ -261,7 +261,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7ffa7860-e524-11e7-befa-cb01a3310898'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'beece67c-f125-11e7-a557-9ce2974ec0da'"
 },
 {
     "type": "response",
@@ -747,8 +747,8 @@
     ],
     "rows": [
         [
-            "7ffa7860-e524-11e7-befa-cb01a3310898",
-            "7ffa7860-e524-11e7-befa-cb01a3310898"
+            "beece67c-f125-11e7-a557-9ce2974ec0da",
+            "beece67c-f125-11e7-a557-9ce2974ec0da"
         ]
     ]
 },
@@ -756,7 +756,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7ffa7860-e524-11e7-befa-cb01a3310898'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'beece67c-f125-11e7-a557-9ce2974ec0da'"
 },
 {
     "type": "response",
@@ -980,7 +980,7 @@
     ],
     "rows": [
         [
-            "7ffa7860-e524-11e7-befa-cb01a3310898",
+            "beece67c-f125-11e7-a557-9ce2974ec0da",
             "localhost:3336",
             "HA",
             "localhost:3336"
@@ -1616,7 +1616,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "7ffa7860-e524-11e7-befa-cb01a3310898"
+            "beece67c-f125-11e7-a557-9ce2974ec0da"
         ]
     ]
 },

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -483,10 +483,20 @@ void Shell_core_test_wrapper::reset_replayable_shell(
       });
 }
 
+void Shell_core_test_wrapper::execute(int location,
+                                      const std::string &code) {
+  std::string _code(code);
+  std::string executed_input =
+      makeblue(shcore::str_format("%4d> %s", location, _code.c_str()));
+  output_handler.debug_print(executed_input);
+
+  _interactive_shell->process_line(_code);
+}
+
 void Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
 
-  std::string executed_input = makeblue("mysql---> " + _code);
+  std::string executed_input = makeblue("----> " + _code);
   output_handler.debug_print(executed_input);
 
   _interactive_shell->process_line(_code);

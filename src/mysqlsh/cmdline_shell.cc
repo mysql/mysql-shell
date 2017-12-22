@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -485,7 +485,7 @@ void Command_line_shell::print_banner() {
   welcome_msg += MYSH_VERSION;
   welcome_msg += "\n\n";
   welcome_msg +=
-      "Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights "
+      "Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights "
       "reserved.\n\n"
       "Oracle is a registered trademark of Oracle Corporation and/or its\n"
       "affiliates. Other names may be trademarks of their respective\n"
@@ -497,11 +497,12 @@ void Command_line_shell::print_banner() {
 }
 
 void Command_line_shell::print_cmd_line_helper() {
+  // clang-format off
   std::string help_msg("MySQL Shell ");
   help_msg += MYSH_VERSION;
   println(help_msg);
   println("");
-  println("Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.");
+  println("Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
@@ -512,6 +513,7 @@ void Command_line_shell::print_cmd_line_helper() {
   println("       mysqlsh [OPTIONS] [URI] --dba [command]");
   println("       mysqlsh [OPTIONS] [URI] --cluster");
   println("");
+  // clang-format on
   std::vector<std::string> details =
       Shell_options(0, nullptr).get_details();
   for (std::string line : details)

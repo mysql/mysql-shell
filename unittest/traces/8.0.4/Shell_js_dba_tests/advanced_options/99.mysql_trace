@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-130-228-bin.000003",
-            92199,
+            "Kenjis-iMac-bin.000003",
+            92275,
             "",
             "",
-            "7e02ee7a-e524-11e7-95de-5f9ffe1d9697:1-103,\n82f6c1b8-e524-11e7-95de-5f9ffe1d9697:1-3,\n8fe87740-e524-11e7-95de-5f9ffe1d9697:1-3,\n9cd8f40c-e524-11e7-95de-5f9ffe1d9697:1-3,\na9ce3456-e524-11e7-95de-5f9ffe1d9697:1-3,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3,\nb6c1909a-e524-11e7-95de-5f9ffe1d9697:1-3,\nc3af0cba-e524-11e7-95de-5f9ffe1d9697:1-3,\nd0a02e68-e524-11e7-95de-5f9ffe1d9697:1-3,\nea82a0c2-e524-11e7-95de-5f9ffe1d9697:1-90"
+            "02235b56-f126-11e7-87da-fdd01b13111c:1-3,\n0f05e29e-f126-11e7-87da-fdd01b13111c:1-3,\n28c94ed2-f126-11e7-87da-fdd01b13111c:1-90,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3,\nbd235d1c-f125-11e7-87da-fdd01b13111c:1-103,\nc1bbdc6e-f125-11e7-87da-fdd01b13111c:1-3,\ncea063b4-f125-11e7-87da-fdd01b13111c:1-3,\ndb810a0c-f125-11e7-87da-fdd01b13111c:1-3,\ne860e882-f125-11e7-87da-fdd01b13111c:1-3,\nf5438d02-f125-11e7-87da-fdd01b13111c:1-3"
         ]
     ]
 },
@@ -238,50 +238,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 11,
-    "sql": "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 12,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "PLUGINS",
-            "table_label": "plugins",
-            "column_name": "PLUGIN_STATUS",
-            "column_label": "plugin_status",
-            "length": 40,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "ACTIVE"
-        ]
-    ]
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 11
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 12
 },
 null]

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -426,15 +426,8 @@ TEST_F(Command_line_connection_test, basic_ssl_check_x) {
   _output.clear();
   rc = execute({_mysqlsh, _uri.c_str(), "--sql", "--ssl-mode=DISABLED", "-e",
                 ssl_check, nullptr});
-  if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
-    // caching_sha2_password connection with no SSL unsupported in xproto atm
-    EXPECT_EQ(1, rc);
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Invalid authentication method: PLAIN over unsecure channel");
-  } else {
-    EXPECT_EQ(0, rc);
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("SSL_OFF");
-  }
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("SSL_OFF");
 
   // preferred
   _output.clear();

@@ -283,7 +283,7 @@
         [
             "default",
             "pm",
-            "102c1958-e524-11e7-bd29-86a194024f85"
+            "4e765824-f125-11e7-9a05-3ffa26d1a5c5"
         ]
     ]
 },
@@ -407,7 +407,7 @@
     ],
     "rows": [
         [
-            "0f73ad3c-e524-11e7-bd29-86a194024f85",
+            "4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -572,7 +572,7 @@
     ],
     "rows": [
         [
-            "0f73ad3c-e524-11e7-bd29-86a194024f85",
+            "4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -661,7 +661,7 @@
     ],
     "rows": [
         [
-            "0f73ad3c-e524-11e7-bd29-86a194024f85",
+            "4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -702,7 +702,7 @@
     ],
     "rows": [
         [
-            "0f73ad3c-e524-11e7-bd29-86a194024f85:1-15,\n102c1958-e524-11e7-bd29-86a194024f85:1-2"
+            "4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5:1-15,\n4e765824-f125-11e7-9a05-3ffa26d1a5c5:1-2"
         ]
     ]
 },
@@ -710,7 +710,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SELECT GTID_SUBSET('0f73ad3c-e524-11e7-bd29-86a194024f85:1-15,\\n102c1958-e524-11e7-bd29-86a194024f85:1-2', '0f73ad3c-e524-11e7-bd29-86a194024f85:1-15,\\n102c1958-e524-11e7-bd29-86a194024f85:1-2')"
+    "sql": "SELECT GTID_SUBSET('4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5:1-15,\\n4e765824-f125-11e7-9a05-3ffa26d1a5c5:1-2', '4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5:1-15,\\n4e765824-f125-11e7-9a05-3ffa26d1a5c5:1-2')"
 },
 {
     "type": "response",
@@ -726,7 +726,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('0f73ad3c-e524-11e7-bd29-86a194024f85:1-15,\\n102c1958-e524-11e7-bd29-86a194024f85:1-2', '0f73ad3c-e524-11e7-bd29-86a194024f85:1-15,\\n102c1958-e524-11e7-bd29-86a194024f85:1-2')",
+            "column_label": "GTID_SUBSET('4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5:1-15,\\n4e765824-f125-11e7-9a05-3ffa26d1a5c5:1-2', '4dc8d92e-f125-11e7-9a05-3ffa26d1a5c5:1-15,\\n4e765824-f125-11e7-9a05-3ffa26d1a5c5:1-2')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",

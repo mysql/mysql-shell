@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -112,9 +112,10 @@ public:
                        const std::string& val_path = "",
                        const std::string& pre_path = "");
 
-  void execute(const std::string &code);
+  void execute(int location, const std::string& code);
+  void execute(const std::string& code);
 
-protected:
+ protected:
   std::string _setup_script; // Name of the active script
   std::string _scripts_home; // Path to the scripts to be tested
   std::string _shell_scripts_home; // Id of the folder containing the setup and validation scripts

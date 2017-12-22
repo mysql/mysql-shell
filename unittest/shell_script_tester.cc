@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -292,6 +292,9 @@ void Shell_script_tester::validate_interactive(const std::string& script) {
   _filename = script;
   try {
     execute_script(script, true);
+    if (testutil->test_skipped()) {
+      SKIP_TEST(testutil->test_skip_reason());
+    }
   } catch (std::exception& e) {
     std::string error = e.what();
     FAIL() << makered("Unexpected exception excuting test script: ") << e.what()
@@ -616,7 +619,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
       // Abort the script processing if something went wrong on the validation
       // loading
-      if (::testing::Test::HasFailure())
+      if (::testing::Test::HasFailure() || testutil->test_skipped())
         return;
 
       std::ofstream ofile;
@@ -670,7 +673,10 @@ void Shell_script_tester::execute_script(const std::string& path,
             if (testutil)
               testutil->set_test_execution_context(_filename,
                                                    code[chunk_item].first);
-            execute(line);
+            execute(chunk.code[chunk_item].first, line);
+
+            if (testutil->test_skipped())
+              return;
 
             if (_interactive_shell->input_state() == shcore::Input_state::Ok)
               full_statement.clear();
@@ -739,7 +745,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
       // Abort the script processing if something went wrong on the validation
       // loading
-      if (::testing::Test::HasFailure())
+      if (::testing::Test::HasFailure() || testutil->test_skipped())
         return;
 
       // Processes the script
@@ -858,7 +864,10 @@ void Shell_script_tester::validate_chunks(const std::string& path,
             if (testutil)
               testutil->set_test_execution_context(_filename,
                                                    (code[chunk_item].first));
-            execute(line);
+            execute(chunk.code[chunk_item].first, line);
+
+            if (testutil->test_skipped())
+              return;
           }
 
           execute("");
@@ -1062,8 +1071,20 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
   return ret_val;
 }
 
+void Shell_script_tester::execute(int location, const std::string& code) {
+  // save location in test script that is being currently executed
+  _current_entry_point = context_identifier();
+  try {
+    Crud_test_wrapper::execute(location, code);
+    _current_entry_point.clear();
+  } catch (...) {
+    _current_entry_point.clear();
+    throw;
+  }
+}
 
-void Shell_script_tester::execute(const std::string &code) {
+
+void Shell_script_tester::execute(const std::string& code) {
   // save location in test script that is being currently executed
   _current_entry_point = context_identifier();
   try {

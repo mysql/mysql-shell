@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, 'f287f20e-e4de-11e7-a274-e02208c3ba59', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
+    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '5db28f92-f1c0-11e7-8ac2-ba4d55c2cec3', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
 },
 {
     "type": "response",
@@ -35,7 +35,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'f287f20e-e4de-11e7-a274-e02208c3ba59'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '5db28f92-f1c0-11e7-8ac2-ba4d55c2cec3'"
 },
 {
     "type": "response",

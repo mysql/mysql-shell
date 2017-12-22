@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,6 +130,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("isReplaying", &Testutils::is_replaying);
   expose("fail", &Testutils::fail, "context");
+  expose("skip", &Testutils::skip, "reason");
   expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
 
   _delegate.print = print;
@@ -302,6 +303,23 @@ void Testutils::fail(const std::string &context) {
   }
   ADD_FAILURE_AT(_test_file.c_str(), _test_line) << text << "\n";
 }
+
+///@{
+/**
+ * Causes the test to skip.
+ *
+ * Call from test script when the rest of the test should be skipped.
+ */
+#if DOXYGEN_JS
+  Undefined Testutils::skip();
+#elif DOXYGEN_PY
+  None Testutils::skip();
+#endif
+///@}
+void Testutils::skip(const std::string &reason) {
+  _test_skipped = reason;
+}
+
 
 void Testutils::snapshot_sandbox_conf(int port) {
   if (mysqlshdk::db::replay::g_replay_mode !=
