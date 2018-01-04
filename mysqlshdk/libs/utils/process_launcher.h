@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,7 @@
 #ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS 1
 #ifdef UNICODE
-# #undef UNICODE
+#undef UNICODE
 #endif
 #include <windows.h>
 #else
@@ -33,7 +33,12 @@
 //#  include <poll.h>
 #endif
 #include <stdint.h>
+#include <memory>
 #include <string>
+#include <deque>
+#include <mutex>
+#include <thread>
+
 
 namespace shcore {
 // Launches a process as child of current process and exposes the stdin & stdout
@@ -47,7 +52,7 @@ namespace shcore {
 //     stdin.write
 //     stdout.read
 //   wait
-class Process_launcher {
+class Process {
  public:
   /**
    * Creates a new process and launch it.
@@ -59,12 +64,13 @@ class Process_launcher {
    * quoting would be required, which is currently not supported.
    * For that reason, a logic_error will be thrown if cmd.exe is argv[0]
    */
-  explicit Process_launcher(const char *const *argv,
-                            bool redirect_stderr = true);
+  explicit Process(const char *const *argv, bool redirect_stderr = true);
 
-  ~Process_launcher() {
-    if (is_alive)
+  ~Process() {
+    if (is_alive) {
       close();
+    }
+    stop_output_reader();
   }
 
 #ifdef _WIN32
@@ -77,15 +83,32 @@ class Process_launcher {
   void start();
 
   /**
-   * Reads a single byte (and returns it).
-   * Throws an shcore::Exception in case of error when reading.
+   * Starts threads for reading from stdout/stderr into a buffer.
+   * For use cases where stdin writing and stdout/err reading needs to happen
+   * concurrently (as opposed to writing to stdin and forgetting until the end).
+   *
+   * read* methods become non-blocking once this is called.
+   *
+   * Use has_output() to determine whether the read* can be called without
+   * blocking.
+   *
+   * Note: currently does not support separate reading from stderr.
    */
-  int read_one_char();  // read from stdout of child process
+  void start_output_reader();
+
+  /*
+   * Returns true if there's stdout or stderr output from the process waiting
+   * to be read. Must be used in conjunction with start_output_reader().
+   *
+   * @param full_line if true, it will true only if a linebreak is in the read
+   *  buffer
+   */
+  bool has_output(bool full_line = false);
 
   /**
    * Reads a single line from stdout
    */
-  std::string read_line();
+  std::string read_line(bool *eof = nullptr);
 
   /**
    * Read up to a 'count' bytes from the stdout of the child process.
@@ -98,16 +121,15 @@ class Process_launcher {
   int read(char *buf, size_t count);
 
   /**
-   * Write into stdin of child process.
-   * Returns an shcore::Exception in case of error when writing.
-   */
-  int write_one_char(int c);
-
-  /**
    * Writes several butes into stdin of child process.
    * Returns an shcore::Exception in case of error when writing.
    */
   int write(const char *buf, size_t count);
+
+  /**
+   * Close the stdin pipe to the child process.
+   */
+  void close_write_fd();
 
   /**
    * Kills the child process.
@@ -189,10 +211,20 @@ class Process_launcher {
   int fd_in[2];
   int fd_out[2];
 #endif
+  std::unique_ptr<std::thread> _reader_thread;
+  std::mutex _read_buffer_mutex;
+  std::deque<char> _read_buffer;
   int _pstatus = 0;
   bool _wait_pending = false;
   bool redirect_stderr;
+
+  void stop_output_reader();
+
+  int do_read(char *buf, size_t count);
 };
+
+using Process_launcher = Process;
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_PROCESS_LAUNCHER_H_

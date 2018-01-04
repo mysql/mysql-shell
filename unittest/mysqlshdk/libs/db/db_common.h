@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,6 @@
 #include <string>
 
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils/shell_test_env.h"
 

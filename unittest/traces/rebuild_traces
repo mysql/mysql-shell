@@ -79,7 +79,7 @@ sleep 3
 group=""
 ok=0
 skip_group=0
-for t in $($rut --gtest_list_tests --gtest_filter=$filter|tail -n +5|grep -v DISABLED|sed -e 's|  # GetParam() = "\([^"]*\)"|#\1|'); do
+for t in $($rut --gtest_list_tests --gtest_filter=$filter|tail -n +5|grep -v DISABLED|grep -v _norecord|sed -e 's|  # GetParam() = "\([^"]*\)"|#\1|'); do
     if test "$t" = "-=-"; then
       ok=1
       continue

@@ -139,7 +139,8 @@ TEST_P(Auto_script_py, run_and_check) {
 
   // Does not enable recording engine for the devapi tests
   // Recording for CRUD is not available
-  if (folder != "py_devapi")
+  if (folder != "py_devapi" &&
+      GetParam().find("_norecord") == std::string::npos)
     reset_replayable_shell(name.c_str());
 
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -21,8 +21,10 @@
 
 #include "mysqlshdk/libs/utils/process_launcher.h"
 
+#include <algorithm>
 #include <cassert>
 #include <string>
+#include <mutex>
 #include <system_error>
 
 #ifdef WIN32
@@ -50,8 +52,7 @@
 
 namespace shcore {
 
-Process_launcher::Process_launcher(const char *const *argv,
-                                   bool redirect_stderr)
+Process::Process(const char *const *argv, bool redirect_stderr)
     : is_alive(false) {
 #ifdef WIN32
   if (strstr(argv[0], "cmd.exe"))
@@ -67,7 +68,7 @@ Process_launcher::Process_launcher(const char *const *argv,
 
   https://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
  */
-std::string Process_launcher::make_windows_cmdline(const char * const*argv) {
+std::string Process::make_windows_cmdline(const char * const*argv) {
   assert(argv[0]);
   std::string cmd = argv[0];
 
@@ -111,10 +112,47 @@ std::string Process_launcher::make_windows_cmdline(const char * const*argv) {
   return cmd;
 }
 
+void Process::start_output_reader() {
+  if (_reader_thread)
+    throw std::logic_error("start_output_reader() was already called");
+
+  _reader_thread.reset(new std::thread([this]() {
+    char c;
+    try {
+      while (do_read(&c, 1) > 0) {
+        std::lock_guard<std::mutex> lock(_read_buffer_mutex);
+        _read_buffer.push_back(c);
+      }
+    } catch (std::system_error) {
+    }
+  }));
+}
+
+void Process::stop_output_reader() {
+  if (_reader_thread) {
+    // This function is supposed to be called after close() kills the process
+    _reader_thread->join();
+    _reader_thread.reset();
+  }
+}
+
+bool Process::has_output(bool full_line) {
+  if (!_reader_thread)
+    throw std::logic_error("start_output_reader() must be called first");
+
+  std::lock_guard<std::mutex> lock(_read_buffer_mutex);
+  if (full_line) {
+    return (std::find(_read_buffer.begin(), _read_buffer.end(), '\n') !=
+            _read_buffer.end());
+  } else {
+    return !_read_buffer.empty();
+  }
+}
+
 
 #ifdef WIN32
 
-void Process_launcher::start() {
+void Process::start() {
   SECURITY_ATTRIBUTES saAttr;
 
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -180,11 +218,11 @@ void Process_launcher::start() {
   //res1 = WaitForSingleObject(pi.hThread, 100);
 }
 
-HANDLE Process_launcher::get_pid() {
+HANDLE Process::get_pid() {
   return pi.hProcess;
 }
 
-bool Process_launcher::check() {
+bool Process::check() {
   DWORD dwExit = 0;
   if (!_wait_pending)
     return true;
@@ -200,7 +238,7 @@ bool Process_launcher::check() {
   return true;
 }
 
-int Process_launcher::wait() {
+int Process::wait() {
   if (!_wait_pending)
     return _pstatus;
   DWORD dwExit = 0;
@@ -218,7 +256,7 @@ int Process_launcher::wait() {
   return dwExit;
 }
 
-void Process_launcher::close() {
+void Process::close() {
   DWORD dwExit;
   if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
     if (dwExit == STILL_ACTIVE) {
@@ -239,31 +277,13 @@ void Process_launcher::close() {
 
   if (!CloseHandle(child_out_rd))
     report_error(NULL);
-  if (!CloseHandle(child_in_wr))
+  if (child_in_wr && !CloseHandle(child_in_wr))
     report_error(NULL);
 
   is_alive = false;
 }
 
-int Process_launcher::read_one_char() {
-  char buf[1];
-  BOOL bSuccess = FALSE;
-  DWORD dwBytesRead, dwCode;
-
-  while (!(bSuccess = ReadFile(child_out_rd, buf, 1, &dwBytesRead, NULL))) {
-    dwCode = GetLastError();
-    if (dwCode == ERROR_NO_DATA)
-      continue;
-    if (dwCode == ERROR_BROKEN_PIPE)
-      return EOF;
-    else
-      report_error(NULL);
-  }
-
-  return buf[0];
-}
-
-int Process_launcher::read(char *buf, size_t count) {
+int Process::do_read(char *buf, size_t count) {
   BOOL bSuccess = FALSE;
   DWORD dwBytesRead, dwCode;
   int i = 0;
@@ -281,22 +301,7 @@ int Process_launcher::read(char *buf, size_t count) {
   return dwBytesRead;
 }
 
-int Process_launcher::write_one_char(int c) {
-  CHAR buf[1];
-  BOOL bSuccess = FALSE;
-  DWORD dwBytesWritten;
-
-  bSuccess = WriteFile(child_in_wr, buf, 1, &dwBytesWritten, NULL);
-  if (!bSuccess) {
-    if (GetLastError() != ERROR_NO_DATA)  // otherwise child process just died.
-      report_error(NULL);
-  } else {
-    return 1;
-  }
-  return 0;  // so the compiler does not cry
-}
-
-int Process_launcher::write(const char *buf, size_t count) {
+int Process::write(const char *buf, size_t count) {
   DWORD dwBytesWritten;
   BOOL bSuccess = FALSE;
   bSuccess = WriteFile(child_in_wr, buf, count, &dwBytesWritten, NULL);
@@ -310,7 +315,13 @@ int Process_launcher::write(const char *buf, size_t count) {
   return 0;  // so the compiler does not cry
 }
 
-void Process_launcher::report_error(const char *msg) {
+void Process::close_write_fd() {
+  if (child_in_wr)
+    CloseHandle(child_in_wr);
+  child_in_wr = 0;
+}
+
+void Process::report_error(const char *msg) {
   DWORD dwCode = GetLastError();
   LPTSTR lpMsgBuf;
 
@@ -323,23 +334,23 @@ void Process_launcher::report_error(const char *msg) {
                   (LPTSTR)&lpMsgBuf, 0, NULL);
     std::string msgerr = "SystemError: ";
     msgerr += lpMsgBuf;
-    msgerr += "with error code %d.";
+    msgerr += " with error code %d.";
     std::string fmt = str_format(msgerr.c_str(), dwCode);
     throw std::system_error(dwCode, std::generic_category(), fmt);
   }
 }
 
-HANDLE Process_launcher::get_fd_write() {
+HANDLE Process::get_fd_write() {
   return child_in_wr;
 }
 
-HANDLE Process_launcher::get_fd_read() {
+HANDLE Process::get_fd_read() {
   return child_out_rd;
 }
 
 #else  // !WIN32
 
-void Process_launcher::start() {
+void Process::start() {
   assert(!is_alive);
 
   if (pipe(fd_in) < 0) {
@@ -406,9 +417,7 @@ void Process_launcher::start() {
       my_errno = 128;
 
     exit(my_errno);
-  }
-  else
-  {
+  } else {
     ::close(fd_out[1]);
     ::close(fd_in[0]);
     is_alive = true;
@@ -416,10 +425,11 @@ void Process_launcher::start() {
   }
 }
 
-void Process_launcher::close() {
+void Process::close() {
   is_alive = false;
   ::close(fd_out[0]);
-  ::close(fd_in[1]);
+  if (fd_in[1] >= 0)
+    ::close(fd_in[1]);
 
   if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH)
     report_error(NULL);
@@ -430,22 +440,7 @@ void Process_launcher::close() {
   }
 }
 
-int Process_launcher::read_one_char() {
-  int c;
-  do {
-    if ((c = ::read(fd_out[0], &c, 1)) >= 0)
-      return c;
-    if (errno == EAGAIN || errno == EINTR)
-      continue;
-    if (errno == EPIPE)
-      return 0;
-    break;
-  } while (true);
-  report_error(NULL);
-  return -1;
-}
-
-int Process_launcher::read(char *buf, size_t count) {
+int Process::do_read(char *buf, size_t count) {
   int n;
   do {
     if ((n = ::read(fd_out[0], buf, count)) >= 0)
@@ -460,17 +455,7 @@ int Process_launcher::read(char *buf, size_t count) {
   return -1;
 }
 
-int Process_launcher::write_one_char(int c) {
-  int n;
-  if ((n = ::write(fd_in[1], &c, 1)) >= 0)
-    return n;
-  if (errno == EPIPE)
-    return 0;
-  report_error(NULL);
-  return -1;
-}
-
-int Process_launcher::write(const char *buf, size_t count) {
+int Process::write(const char *buf, size_t count) {
   int n;
   if ((n = ::write(fd_in[1], buf, count)) >= 0)
     return n;
@@ -480,13 +465,19 @@ int Process_launcher::write(const char *buf, size_t count) {
   return -1;
 }
 
-void Process_launcher::report_error(const char *msg) {
+void Process::close_write_fd() {
+  if (fd_in[1] >= 0)
+    ::close(fd_in[1]);
+  fd_in[1] = -1;
+}
+
+void Process::report_error(const char *msg) {
   char sys_err[128];
   int errnum = errno;
   if (msg == NULL) {
     strerror_r(errno, sys_err, sizeof(sys_err));
     std::string s = sys_err;
-    s += "with errno %d.";
+    s += " with errno %d.";
     std::string fmt = str_format(s.c_str(), errnum);
     throw std::system_error(errnum, std::generic_category(), fmt);
   } else {
@@ -494,11 +485,11 @@ void Process_launcher::report_error(const char *msg) {
   }
 }
 
-pid_t Process_launcher::get_pid() {
+pid_t Process::get_pid() {
   return childpid;
 }
 
-bool Process_launcher::check() {
+bool Process::check() {
   if (!_wait_pending)
     return true;
   if (waitpid(childpid, &_pstatus, WNOHANG) <= 0)
@@ -512,7 +503,7 @@ bool Process_launcher::check() {
  * throws an error if the wait fails, or the child return code if wait syscall
  * does not fail.
  */
-int Process_launcher::wait() {
+int Process::wait() {
   int ret;
 
   if (_wait_pending) {
@@ -535,26 +526,41 @@ int Process_launcher::wait() {
     return WTERMSIG(_pstatus) + 128;
 }
 
-int Process_launcher::get_fd_write() {
+int Process::get_fd_write() {
   return fd_in[1];
 }
 
-int Process_launcher::get_fd_read() {
+int Process::get_fd_read() {
   return fd_out[0];
 }
 
-#endif
+#endif  // !_WIN32
 
-void Process_launcher::kill() {
+void Process::kill() {
   close();
 }
 
-std::string Process_launcher::read_line() {
-  std::string s;
-  char c;
-  while (read(&c, 1) > 0) {
-    s.push_back(c);
+int Process::read(char *buf, size_t count) {
+  if (_reader_thread) {
+    std::lock_guard<std::mutex> lock(_read_buffer_mutex);
+    count = std::min(_read_buffer.size(), count);
+    std::copy(_read_buffer.begin(), _read_buffer.begin() + count, buf);
+    _read_buffer.erase(_read_buffer.begin(), _read_buffer.begin() + count);
+    return static_cast<int>(count);
+  } else {
+    return do_read(buf, count);
   }
+}
+
+std::string Process::read_line(bool *eof) {
+  std::string s;
+  int c = 0;
+  char buf[1];
+  while ((s.empty() || s.back() != '\n') && (c = read(buf, 1)) > 0) {
+    s.push_back(buf[0]);
+  }
+  if (c <= 0 && eof)
+    *eof = true;
   return s;
 }
 

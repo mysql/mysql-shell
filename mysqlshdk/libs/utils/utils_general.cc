@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License, version 2.0,
@@ -319,23 +319,26 @@ std::string get_system_user() {
 }
 
 std::string errno_to_string(int err) {
+#ifdef _WIN32
   std::string ret;
   ret.resize(256);
-#ifdef _WIN32
   auto i = strerror_s(&ret[0], ret.size(), err);
   assert(i == 0);
   (void)i;
-#elif _GNU_SOURCE
-  auto i = strerror_r(err, &ret[0], ret.size());
-  assert(i != nullptr);
-  (void)i;
-#else
+  ret.resize(strlen(&ret[0]));
+  return ret;
+#elif __APPLE__ || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE) // NOLINT
+  std::string ret;
+  ret.resize(256);
   auto i = strerror_r(err, &ret[0], ret.size());
   assert(i == 0);
   (void)i;
-#endif
   ret.resize(strlen(&ret[0]));
   return ret;
+#else
+  char buf[256];
+  return strerror_r(err, buf, sizeof(buf));
+#endif
 }
 
 std::vector<std::string> split_string(const std::string &input,

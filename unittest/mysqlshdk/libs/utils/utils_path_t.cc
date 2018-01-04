@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -353,6 +353,17 @@ TEST(utils_path, dirname) {
   EXPECT_EQ("..\\bla/..", dirname("..\\bla/..\\ble"));
   EXPECT_EQ(".\\bla", dirname(".\\bla/ble"));
   EXPECT_EQ(".", dirname(".\\bla/"));
+#endif
+}
+
+TEST(utils_path, search_stdpath) {
+#ifdef _WIN32
+  EXPECT_EQ("C:\\Windows\\System32\\cmd.exe", search_stdpath("cmd.exe"));
+  EXPECT_EQ("C:\\Windows\\System32\\cmd.exe", search_stdpath("cmd"));
+  EXPECT_EQ("", search_stdpath("bogus path"));
+#else
+  EXPECT_EQ("/bin/bash", search_stdpath("bash"));
+  EXPECT_EQ("", search_stdpath("bogus path"));
 #endif
 }
 

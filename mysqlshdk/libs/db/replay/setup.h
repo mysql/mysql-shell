@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,9 +39,6 @@ namespace db {
 namespace replay {
 
 enum class Mode { Direct, Record, Replay };
-
-void setup_global_from_env();
-void finalize_global();
 
 void set_mode(Mode mode, int print_traces);
 

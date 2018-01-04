@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,8 +57,10 @@ std::string SHCORE_PUBLIC basename(const std::string &path);
 
 #ifdef WIN32
 const char path_separator = '\\';
+const char pathlist_separator = ';';
 #else
 const char path_separator = '/';
+const char pathlist_separator = ':';
 #endif
 
 extern const char *k_valid_path_separators;
@@ -130,6 +132,24 @@ std::string SHCORE_PUBLIC normalize(const std::string &path);
  * Returns true if the path exists.
  */
 bool SHCORE_PUBLIC exists(const std::string &path);
+
+/*
+ * Returns path to the given executable name searched in PATH.
+ */
+std::string SHCORE_PUBLIC search_stdpath(const std::string &name);
+
+/*
+ * Returns path to the given executable name searched in the given path list
+ * string, separated by the given separator.
+ *
+ * @param name name of the executable. .exe is automatically appended in Win32
+ * @param pathlist string with list of paths to search
+ * @param separator separator character used in pathlist. If 0, the default
+ *        PATH separator for the platform is used.
+ */
+std::string SHCORE_PUBLIC search_path_list(const std::string &name,
+                                           const std::string &pathlist,
+                                           const char separator = 0);
 
 }  // namespace path
 }  // namespace shcore

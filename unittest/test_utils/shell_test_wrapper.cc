@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -178,7 +178,6 @@ void Shell_test_wrapper::enable_testutil() {
   // specified that they should never be used
   _testutil.reset(new tests::Testutils(
       _sandbox_dir, _dummy_sandboxes,
-      {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
       _interactive_shell, Shell_test_env::get_path_to_mysqlsh()));
   _testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text) {

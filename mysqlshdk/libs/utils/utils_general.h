@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,22 @@
 #include "scripting/types_cpp.h"
 
 namespace shcore {
+
+class Scoped_callback {
+ public:
+  explicit Scoped_callback(std::function<void()> c) : callback(c) {
+  }
+
+  ~Scoped_callback() {
+    callback();
+  }
+
+ private:
+  std::function<void()> callback;
+};
+
+using on_leave_scope = Scoped_callback;
+
 
 bool SHCORE_PUBLIC is_valid_identifier(const std::string &name);
 mysqlshdk::db::Connection_options SHCORE_PUBLIC

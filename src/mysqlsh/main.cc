@@ -28,10 +28,8 @@
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#ifdef ENABLE_SESSION_RECORDING
-#include "mysqlshdk/libs/db/replay/setup.h"
-#endif
 
 #include <mysql_version.h>
 #include <sys/stat.h>
@@ -43,8 +41,14 @@
 #include <unistd.h>
 #endif
 
+#ifdef ENABLE_SESSION_RECORDING
+void handle_debug_options(int *argc, char ***argv);
+void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell);
+void finalize_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell);
+#endif
+
 const char *g_mysqlsh_argv0;
-static mysqlsh::Command_line_shell *g_shell_ptr = NULL;
+static mysqlsh::Command_line_shell *g_shell_ptr;
 
 #ifdef WIN32
 #include <io.h>
@@ -160,8 +164,9 @@ class Interrupt_helper : public shcore::Interrupt_helper {
 
 #endif  //! WIN32
 
-static int enable_x_protocol(mysqlsh::Command_line_shell *shell) {
-// clang-format off
+static int enable_x_protocol(
+    std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+  // clang-format off
   static const char *script =
       R"*(function enableXProtocol() {
   try {
@@ -208,7 +213,7 @@ println();
 
 // Execute a Administrative DB command passed from the command line via the
 // --dba option Currently, only the enableXProtocol command is supported.
-int execute_dba_command(mysqlsh::Command_line_shell *shell,
+int execute_dba_command(std::shared_ptr<mysqlsh::Command_line_shell> shell,
                         const std::string &command) {
   if (command != "enableXProtocol") {
     shell->print_error("Unsupported dba command " + command + "\n");
@@ -234,12 +239,11 @@ int execute_dba_command(mysqlsh::Command_line_shell *shell,
 // - --interactive option is passed
 //
 // An error occurs when both --file and STDIN redirection are used
-std::string detect_interactive(mysqlsh::Shell_options *options,
-                               bool *stdin_is_tty, bool *stdout_is_tty) {
+void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
+                        bool *stdout_is_tty) {
   assert(options);
 
   bool is_interactive = true;
-  std::string error;
 
   *stdin_is_tty = false;
   *stdout_is_tty = false;
@@ -272,7 +276,6 @@ std::string detect_interactive(mysqlsh::Shell_options *options,
     is_interactive = true;
 
   options->set_interactive(is_interactive);
-  return error;
 }
 
 static mysqlshdk::textui::Color_capability detect_color_capability() {
@@ -379,14 +382,118 @@ std::string pick_prompt_theme(const char *argv0) {
   return path;
 }
 
-static void show_cluster_info(mysqlsh::Command_line_shell *shell,
-                              std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
+static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
+                           const mysqlsh::Shell_options::Storage &options) {
+  switch (options.redirect_session) {
+    case mysqlsh::Shell_options::Storage::None:
+      break;
+    case mysqlsh::Shell_options::Storage::Primary: {
+      try {
+        if (!shell->redirect_session_if_needed(false)) {
+          std::cerr << "NOTE: --redirect-primary ignored because target is "
+                       "already a PRIMARY\n";
+        }
+      } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+        std::cerr << "While handling --redirect-primary:\n";
+        if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+          std::cerr << "ERROR: The cluster appears to be under a partial "
+                       "or total outage and the PRIMARY cannot be "
+                       "selected.\n"
+                    << e.what() << "\n";
+          return 1;
+        }
+        throw;
+      } catch (...) {
+        std::cerr << "While handling --redirect-primary:\n";
+        throw;
+      }
+      break;
+    }
+    case mysqlsh::Shell_options::Storage::Secondary: {
+      try {
+        if (!shell->redirect_session_if_needed(true)) {
+          std::cerr << "NOTE: --redirect-secondary ignored because target is "
+                       "already a SECONDARY\n";
+        }
+      } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+        std::cerr << "While handling --redirect-secondary:\n";
+        if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+          std::cerr << "ERROR: The cluster appears to be under a partial "
+                       "or total outage and an ONLINE SECONDARY cannot "
+                       "be selected.\n"
+                    << e.what() << "\n";
+          return 1;
+        }
+        throw;
+      } catch (...) {
+        std::cerr << "While handling --redirect-secondary:\n";
+        throw;
+      }
+      break;
+    }
+  }
+  return 0;
+}
+
+
+static void show_cluster_info(
+    std::shared_ptr<mysqlsh::Command_line_shell> shell,
+    std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
   // cluster->diagnose();
   shell->println("You are connected to a member of cluster '" +
                  cluster->get_name() + "'.");
   shell->println(
       "Variable 'cluster' is set.\nUse cluster.status() in scripting mode to "
       "get status of this cluster or cluster.help() for more commands.");
+}
+
+
+bool stdin_is_tty = false;
+bool stdout_is_tty = false;
+
+static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
+                                                            char ***argv) {
+  g_mysqlsh_argv0 = (*argv)[0];
+
+#ifdef ENABLE_SESSION_RECORDING
+  handle_debug_options(argc, argv);
+#endif
+  auto shell_options = std::make_shared<mysqlsh::Shell_options>(*argc, *argv);
+  const mysqlsh::Shell_options::Storage &options = shell_options->get();
+
+  detect_interactive(shell_options.get(), &stdin_is_tty, &stdout_is_tty);
+
+  // If not a tty, then autocompletion can't be used, so we disable
+  // name cache for autocompletion... but keep it for db object from DevAPI
+  if (!options.db_name_cache_set &&
+      (!options.interactive || !stdin_is_tty || !stdout_is_tty))
+    shell_options->set_db_name_cache(false);
+
+  // Usage of wizards will be disabled if running in non interactive mode
+  if (!options.interactive)
+    shell_options->set_wizards(false);
+  // Switch default output format to tab separated instead of table
+  if (!options.interactive && options.output_format.empty() && !stdout_is_tty)
+    shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));
+
+  return shell_options;
+}
+
+static void init_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+#ifdef HAVE_V8
+  extern void JScript_context_init();
+
+  JScript_context_init();
+#endif
+#ifdef ENABLE_SESSION_RECORDING
+  init_debug_shell(shell);
+#endif
+}
+
+static void finalize_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+#ifdef ENABLE_SESSION_RECORDING
+  finalize_debug_shell(shell);
+#endif
 }
 
 int main(int argc, char **argv) {
@@ -397,47 +504,26 @@ int main(int argc, char **argv) {
   // Enable UTF-8 input and output
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
+
+  auto restore_cp = shcore::on_leave_scope([origcp, origocp]() {
+    // Restore original codepage
+    SetConsoleCP(origcp);
+    SetConsoleOutputCP(origocp);
+  });
 #endif
   int ret_val = 0;
   Interrupt_helper sighelper;
-  g_mysqlsh_argv0 = argv[0];
   shcore::Interrupts::init(&sighelper);
 
   std::shared_ptr<mysqlsh::Shell_options> shell_options =
-      std::make_shared<mysqlsh::Shell_options>(argc, argv);
-  const mysqlsh::Shell_options::Storage& options = shell_options->get();
+      process_args(&argc, &argv);
+  const mysqlsh::Shell_options::Storage &options = shell_options->get();
 
   if (options.exit_code != 0)
     return options.exit_code;
 
-#ifdef HAVE_V8
-  extern void JScript_context_init();
-
-  JScript_context_init();
-#endif
-#ifdef ENABLE_SESSION_RECORDING
-  mysqlshdk::db::replay::setup_global_from_env();
-#endif
-
+  std::shared_ptr<mysqlsh::Command_line_shell> shell;
   try {
-    bool stdin_is_tty = false;
-    bool stdout_is_tty = false;
-    std::string error =
-        detect_interactive(shell_options.get(), &stdin_is_tty, &stdout_is_tty);
-
-    // If not a tty, then autocompletion can't be used, so we disable
-    // name cache for autocompletion... but keep it for db object from DevAPI
-    if (!options.db_name_cache_set &&
-        (!options.interactive || !stdin_is_tty || !stdout_is_tty))
-      shell_options->set_db_name_cache(false);
-
-    // Usage of wizards will be disabled if running in non interactive mode
-    if (!options.interactive)
-      shell_options->set_wizards(false);
-    // Switch default output format to tab separated instead of table
-    if (!options.interactive && options.output_format.empty() && !stdout_is_tty)
-      shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));
-
     bool interrupted = false;
     if (!options.interactive) {
       shcore::Interrupts::push_handler([&interrupted]() {
@@ -446,12 +532,12 @@ int main(int argc, char **argv) {
       });
     }
 
-    mysqlsh::Command_line_shell shell(shell_options);
+    shell.reset(new mysqlsh::Command_line_shell(shell_options));
+    init_shell(shell);
 
-    if (!error.empty()) {
-      shell.print_error(error);
-      ret_val = 1;
-    } else if (shell_options->action_print_version()) {
+    auto cleanup = shcore::on_leave_scope([shell]() { finalize_shell(shell); });
+
+    if (shell_options->action_print_version()) {
       char version_msg[1024];
       if (*MYSH_BUILD_ID && shell_options->action_print_version_extra()) {
         snprintf(version_msg, sizeof(version_msg),
@@ -465,13 +551,13 @@ int main(int argc, char **argv) {
                  MYSQL_COMPILATION_COMMENT);
       }
 #ifdef ENABLE_SESSION_RECORDING
-      shell.println(std::string(version_msg) + " + session_recorder");
+      shell->println(std::string(version_msg) + " + session_recorder");
 #else
-      shell.println(version_msg);
+      shell->println(version_msg);
 #endif
       ret_val = options.exit_code;
     } else if (shell_options->action_print_help()) {
-      shell.print_cmd_line_helper();
+      shell->print_cmd_line_helper();
       ret_val = options.exit_code;
     } else {
       // Open the default shell session
@@ -480,74 +566,18 @@ int main(int argc, char **argv) {
           mysqlshdk::db::Connection_options target =
               options.connection_options();
 
-          if (target.has(mysqlshdk::db::kAuthMethod) &&
-              target.get(mysqlshdk::db::kAuthMethod) == "PLAIN") {
-            std::cerr << "mysqlx: [Warning] PLAIN authentication method is NOT "
-                         "secure!\n";
-          }
           if (target.has_password()) {
             std::cerr << "mysqlx: [Warning] Using a password on the command "
                          "line interface can be insecure.\n";
           }
 
           // Connect to the requested instance
-          shell.connect(target, options.recreate_database);
+          shell->connect(target, options.recreate_database);
 
           // If redirect is requested, then reconnect to the right instance
-          switch (options.redirect_session) {
-            case mysqlsh::Shell_options::Storage::None:
-              break;
-            case mysqlsh::Shell_options::Storage::Primary: {
-              try {
-                if (!shell.redirect_session_if_needed(false)) {
-                  std::cerr
-                      << "NOTE: --redirect-primary ignored because target is "
-                         "already a PRIMARY\n";
-                }
-              } catch (mysqlshdk::innodbcluster::cluster_error &e) {
-                std::cerr << "While handling --redirect-primary:\n";
-                if (e.code() ==
-                    mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
-                  std::cerr
-                      << "ERROR: The cluster appears to be under a partial "
-                         "or total outage and the PRIMARY cannot be "
-                         "selected.\n"
-                      << e.what() << "\n";
-                  return 1;
-                }
-                throw;
-              } catch (...) {
-                std::cerr << "While handling --redirect-primary:\n";
-                throw;
-              }
-              break;
-            }
-            case mysqlsh::Shell_options::Storage::Secondary: {
-              try {
-                if (!shell.redirect_session_if_needed(true)) {
-                  std::cerr
-                      << "NOTE: --redirect-secondary ignored because target is "
-                         "already a SECONDARY\n";
-                }
-              } catch (mysqlshdk::innodbcluster::cluster_error &e) {
-                std::cerr << "While handling --redirect-secondary:\n";
-                if (e.code() ==
-                    mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
-                  std::cerr
-                      << "ERROR: The cluster appears to be under a partial "
-                         "or total outage and an ONLINE SECONDARY cannot "
-                         "be selected.\n"
-                      << e.what() << "\n";
-                  return 1;
-                }
-                throw;
-              } catch (...) {
-                std::cerr << "While handling --redirect-secondary:\n";
-                throw;
-              }
-              break;
-            }
-          }
+          ret_val = handle_redirect(shell, options);
+          if (ret_val != 0)
+            return ret_val;
         } catch (mysqlshdk::db::Error &e) {
           if (e.sqlstate() && *e.sqlstate())
             std::cerr << "MySQL Error " << e.code() << " (" << e.sqlstate()
@@ -584,7 +614,7 @@ int main(int argc, char **argv) {
       if (options.default_cluster_set) {
         try {
           default_cluster =
-              shell.set_default_cluster(options.default_cluster);
+              shell->set_default_cluster(options.default_cluster);
         } catch (shcore::Exception &e) {
           std::cerr << "Option --cluster requires a session to a member of a "
                        "InnoDB cluster.\n"
@@ -593,39 +623,39 @@ int main(int argc, char **argv) {
         }
       }
 
-      g_shell_ptr = &shell;
-      shell.load_prompt_theme(pick_prompt_theme(argv[0]));
+      g_shell_ptr = shell.get();
+      shell->load_prompt_theme(pick_prompt_theme(argv[0]));
 
       if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
-        ret_val = shell.process_stream(stream, "(command line)", {});
+        ret_val = shell->process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {
         if (options.initial_mode != shcore::IShell_core::Mode::JavaScript
             && options.initial_mode != shcore::IShell_core::Mode::None) {
-          shell.print_error(
+          shell->print_error(
               "The --dba option can only be used in JavaScript mode\n");
           ret_val = 1;
         } else {
-          ret_val = execute_dba_command(&shell, options.execute_dba_statement);
+          ret_val = execute_dba_command(shell, options.execute_dba_statement);
         }
       } else if (!options.run_file.empty()) {
-        ret_val = shell.process_file(options.run_file, options.script_argv);
+        ret_val = shell->process_file(options.run_file, options.script_argv);
       } else if (options.interactive) {
-        shell.load_state(shcore::get_user_config_path());
+        shell->load_state(shcore::get_user_config_path());
         if (stdin_is_tty)
-          shell.print_banner();
+          shell->print_banner();
 
         if (default_cluster) {
-          show_cluster_info(&shell, default_cluster);
+          show_cluster_info(shell, default_cluster);
         }
 
-        shell.command_loop();
+        shell->command_loop();
 
-        shell.save_state(shcore::get_user_config_path());
+        shell->save_state(shcore::get_user_config_path());
 
         ret_val = 0;
       } else {
-        ret_val = shell.process_stream(std::cin, "STDIN", {});
+        ret_val = shell->process_stream(std::cin, "STDIN", {});
       }
     }
     if (interrupted) {
@@ -640,16 +670,7 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     ret_val = 1;
   }
-
   end:
-#ifdef ENABLE_SESSION_RECORDING
-  mysqlshdk::db::replay::finalize_global();
-#endif
-
-#ifdef _WIN32
-  // Restore original codepage
-  SetConsoleCP(origcp);
-  SetConsoleOutputCP(origocp);
-#endif
+  finalize_shell(shell);
   return ret_val;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,6 +131,21 @@ struct Type_info<const std::string &> {
   static Value_type vtype() { return shcore::String; }
   static const char *code() { return "s"; }
   static std::string default_value() { return std::string(); }
+};
+
+template <>
+struct Type_info<const std::vector<std::string> &> {
+  static std::vector<std::string> to_native(const shcore::Value &in) {
+    std::vector<std::string> strs;
+    shcore::Array_t array(in.as_array());
+    for (size_t i = 0; i < array->size(); ++i) {
+      strs.push_back(array->at(i).as_string());
+    }
+    return strs;
+  }
+  static Value_type vtype() { return shcore::Array; }
+  static const char *code() { return "A"; }
+  static std::vector<std::string> default_value() { return {}; }
 };
 
 template <>
