@@ -173,4 +173,9 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_bool_expression) {
 TEST_F(Shell_js_mysqlx_tests, bug25789575_escape_quotes) {
   validate_interactive("bug25789575_escape_quotes.js");
 }
+
+TEST_F(Shell_js_mysqlx_tests, bug26906527_error_during_fetch) {
+  if (_target_server_version <= Version("8.0.3"))
+    validate_interactive("bug26906527_error_during_fetch.js");
+}
 }  // namespace shcore

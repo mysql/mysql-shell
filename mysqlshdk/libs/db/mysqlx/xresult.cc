@@ -21,9 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/db/mysqlx/result.h"
 #include <string>
 #include <utility>
+#include "mysqlshdk/libs/db/mysqlx/result.h"
 
 #include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/db/mysqlx/row.h"
@@ -204,7 +204,10 @@ const IRow *Result::fetch_one() {
   } else {
     // Loads the first row
     if (_result) {
-      const ::xcl::XRow *row = _result->get_next_row();
+      xcl::XError error;
+      const ::xcl::XRow *row = _result->get_next_row(&error);
+      if (error)
+        throw mysqlshdk::db::Error(error.what(), error.error());
       if (row) {
         _row.reset(row);
         _fetched_row_count++;
@@ -226,11 +229,18 @@ bool Result::pre_fetch_rows(bool persistent) {
     if (!_result->has_resultset())
       return false;
     Row wrapper(this);
-    while (const ::xcl::XRow *row = _result->get_next_row()) {
+    xcl::XError error;
+    while (const ::xcl::XRow *row = _result->get_next_row(&error)) {
       if (_stop_pre_fetch)
         return true;
       wrapper.reset(row);
       _pre_fetched_rows.push_back(Row_copy(wrapper));
+    }
+    if (error) {
+      std::stringstream msg;
+      msg << "Error " << error.error() << " (" << error.what() << ")";
+      msg << " while fetching row " << _pre_fetched_rows.size()+1 << ".";
+      throw mysqlshdk::db::Error(msg.str().c_str(), error.error());
     }
     _pre_fetched = true;
   }
