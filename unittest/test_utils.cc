@@ -407,7 +407,6 @@ void Shell_core_test_wrapper::enable_testutil() {
 
   testutil.reset(new tests::Testutils(
       _sandbox_dir, _recording_enabled && dummy_sandboxes,
-      {_mysql_sandbox_nport1, _mysql_sandbox_nport2, _mysql_sandbox_nport3},
       _interactive_shell, get_path_to_mysqlsh()));
   testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text) {

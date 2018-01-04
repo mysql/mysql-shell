@@ -51,9 +51,10 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_process.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/utils/version.h"
-
+#ifndef ENABLE_SESSION_RECORDING
+#include "unittest/gtest_clean.h"
+#endif
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 
@@ -72,19 +73,17 @@ namespace tests {
 
 constexpr int k_wait_member_timeout = 60;
 constexpr int k_max_start_sandbox_retries = 5;
-const char* k_boilerplate_root_password = "root";
+const char *k_boilerplate_root_password = "root";
 
 static void print(void *, const char *s) {
   std::cout << s << "\n";
 }
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
-                     const std::vector<int> &default_sandbox_ports,
                      std::shared_ptr<mysqlsh::Mysql_shell> shell,
                      const std::string &mysqlsh_path)
     : _shell(shell),
-      _mysqlsh_path(mysqlsh_path),
-      _default_sandbox_ports(default_sandbox_ports) {
+      _mysqlsh_path(mysqlsh_path) {
   _use_boilerplate = true;
   _sandbox_dir = sandbox_dir;
   _dummy_sandboxes = dummy_mode;
@@ -92,7 +91,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
     std::cerr << "tetutils using dummy sandboxes\n";
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
-       "?options");
+         "?options");
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
@@ -105,14 +104,17 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          &Testutils::begin_snapshot_sandbox_error_log, "port");
   expose("endSnapshotSandboxErrorLog",
          &Testutils::end_snapshot_sandbox_error_log, "port");
-  expose("changeSandboxConf", &Testutils::change_sandbox_conf, "port",
-         "option", "value", "?section");
+  expose("changeSandboxConf", &Testutils::change_sandbox_conf, "port", "option",
+         "value", "?section");
   expose("removeFromSandboxConf", &Testutils::remove_from_sandbox_conf, "port",
          "option", "?section");
   expose("getSandboxConfPath", &Testutils::get_sandbox_conf_path, "port");
   expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
-  expose("getSandboxPath", &Testutils::get_sandbox_path, "?port",
-         "?filename");
+  expose("getSandboxPath", &Testutils::get_sandbox_path, "?port", "?filename");
+
+  expose("dumpData", &Testutils::dump_data, "uri", "filename", "schemas");
+  expose("importData", &Testutils::import_data, "uri", "filename",
+         "?default_schema");
 
   expose("getShellLogPath", &Testutils::get_shell_log_path);
 
@@ -151,15 +153,16 @@ void Testutils::set_test_execution_context(const std::string &file, int line) {
 ///@{
 /**
  * Gets the path to the configuration file for the specific sandbox.
- * @param port The port of the sandbox owning the configuration file being searched.
+ * @param port The port of the sandbox owning the configuration file being
+ * searched.
  *
  * This function will return the path to the configuration file for the sandbox
  * listening at the specified port.
  */
 #if DOXYGEN_JS
-  String Testutils::getSandboxConfPath(Integer port);
+String Testutils::getSandboxConfPath(Integer port);
 #elif DOXYGEN_PY
-  str Testutils::get_sandbox_conf_path(int port);
+str Testutils::get_sandbox_conf_path(int port);
 #endif
 ///@}
 std::string Testutils::get_sandbox_conf_path(int port) {
@@ -171,15 +174,16 @@ std::string Testutils::get_sandbox_conf_path(int port) {
 ///@{
 /**
  * Gets the path to the error log for the specific sandbox.
- * @param port The port of the sandbox which error log file path will be retrieved.
+ * @param port The port of the sandbox which error log file path will be
+ * retrieved.
  *
  * This function will return the path to the error log for the sandbox
  * listening at the specified port.
  */
 #if DOXYGEN_JS
-  String Testutils::getSandboxLogPath(Integer port);
+String Testutils::getSandboxLogPath(Integer port);
 #elif DOXYGEN_PY
-  str Testutils::get_sandbox_log_path(int port);
+str Testutils::get_sandbox_log_path(int port);
 #endif
 ///@}
 std::string Testutils::get_sandbox_log_path(int port) {
@@ -209,27 +213,26 @@ std::string Testutils::get_sandbox_log_path(int port) {
  * - Any other file, will be valid if it exists on the sandboxdata dir.
  */
 #if DOXYGEN_JS
-  String Testutils::getSandboxPath(Integer port, String name);
+String Testutils::getSandboxPath(Integer port, String name);
 #elif DOXYGEN_PY
-  str Testutils::get_sandbox_path(int port, str name);
+str Testutils::get_sandbox_path(int port, str name);
 #endif
 ///@}
-std::string Testutils::get_sandbox_path(int port,
-                                             const std::string& file) {
+std::string Testutils::get_sandbox_path(int port, const std::string &file) {
   std::string path;
 
-  if (port == 0)
+  if (port == 0) {
     path = _sandbox_dir;
-  else {
+  } else {
     if (file.empty()) {
       path = shcore::path::join_path({_sandbox_dir, std::to_string(port)});
     } else {
       if (file == "my.cnf") {
         path = shcore::path::join_path(
-          {_sandbox_dir, std::to_string(port), "my.cnf"});
+            {_sandbox_dir, std::to_string(port), "my.cnf"});
       } else {
         path = shcore::path::join_path(
-          {_sandbox_dir, std::to_string(port), "sandboxdata", file});
+            {_sandbox_dir, std::to_string(port), "sandboxdata", file});
       }
     }
   }
@@ -243,12 +246,168 @@ std::string Testutils::get_sandbox_path(int port,
 //!<  @name Misc Utilities
 ///@{
 /**
+ * Dumps a list of schemas from a MySQL instance into a file
+ * @param uri URI of the instance. Must be classic protocol.
+ * @param path filename of the dump file to write to
+ * @param schemaList array of schema names to dump
+ *
+ * Calls mysqldump to dump the given schemas.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::dumpData(String uri, String path, Array schemaList);
+#elif DOXYGEN_PY
+None Testutils::dump_data(str uri, str path, list schema_list);
+#endif
+///@}
+void Testutils::dump_data(const std::string &uri, const std::string &path,
+                          const std::vector<std::string> &schemas) {
+  // use mysqldump for now, until we support dumping internally
+  std::string mysqldump = shcore::path::search_stdpath("mysqldump");
+  if (mysqldump.empty()) {
+    throw std::runtime_error("mysqldump executable not found in PATH");
+  }
+
+  auto options = mysqlshdk::db::Connection_options(uri);
+
+  std::string sport =
+      options.has_port() ? std::to_string(options.get_port()) : "3306";
+  std::vector<const char *> argv;
+  argv.push_back(mysqldump.c_str());
+  argv.push_back("-u");
+  argv.push_back(options.get_user().c_str());
+  argv.push_back("-h");
+  argv.push_back(options.get_host().c_str());
+  if (options.has_port()) {
+    argv.push_back("--protocol=TCP");
+    argv.push_back("-P");
+    argv.push_back(sport.c_str());
+  }
+  std::string password;
+  if (options.has_password()) {
+    password = "--password=" + options.get_password();
+    // NOTE: If this ever becomes a public (non-test) function, pwd passing must
+    // be done via stdin or temporary file
+    argv.push_back(password.c_str());
+  }
+  argv.push_back("-r");
+  argv.push_back(path.c_str());
+  argv.push_back("--set-gtid-purged=OFF");
+  argv.push_back("--databases");
+  for (const auto &s : schemas)
+    argv.push_back(s.c_str());
+  if (g_test_trace_scripts > 0) {
+    std::cerr << shcore::str_join(argv, " ") << "\n";
+  }
+  argv.push_back(nullptr);
+  shcore::Process dump(&argv[0]);
+  dump.start();
+  std::string output;
+  bool eof = false;
+  for (;;) {
+    std::string line = dump.read_line(&eof);
+    std::cerr << line;
+    if (!line.empty())
+      output = line;
+    if (eof)
+      break;
+  }
+  int rc = dump.wait();
+  if (rc != 0) {
+    throw std::runtime_error("mysqldump exited with code " +
+                             std::to_string(rc) + ": " + output);
+  }
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Loads a MySQL dump script from a file
+ * @param uri URI of the instance. Must be classic protocol.
+ * @param path filename of the dump file to write to
+ * @param default_schema (optional) Default schema name to use during import.
+ *
+ * Loads a SQL script from a file using mysql cli.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::importData(String uri, String path, String defaultSchema);
+#elif DOXYGEN_PY
+None Testutils::import_data(str uri, str path, str default_schema);
+#endif
+///@}
+void Testutils::import_data(const std::string &uri, const std::string &path,
+                               const std::string &default_schema) {
+  // use mysql for now, until we support efficient import internally
+  std::string mysql = shcore::path::search_stdpath("mysql");
+  if (mysql.empty()) {
+    throw std::runtime_error("mysql executable not found in PATH");
+  }
+
+  auto options = mysqlshdk::db::Connection_options(uri);
+  std::string sport =
+      options.has_port() ? std::to_string(options.get_port()) : "3306";
+  std::vector<const char *> argv;
+  argv.push_back(mysql.c_str());
+  argv.push_back("-u");
+  argv.push_back(options.get_user().c_str());
+  argv.push_back("-h");
+  argv.push_back(options.get_host().c_str());
+  std::string password;
+  if (options.has_password()) {
+    password = "--password=" + options.get_password();
+    // NOTE: If this ever becomes a public (non-test) function, pwd passing must
+    // be done via stdin or temporary file
+    argv.push_back(password.c_str());
+  }
+  if (options.has_port()) {
+    argv.push_back("--protocol=TCP");
+    argv.push_back("-P");
+    argv.push_back(sport.c_str());
+  }
+  if (!default_schema.empty())
+    argv.push_back(default_schema.c_str());
+  if (g_test_trace_scripts > 0) {
+    std::cerr << shcore::str_join(argv, " ") << "\n";
+  }
+  argv.push_back(nullptr);
+  shcore::Process dump(&argv[0]);
+  dump.start();
+  dump.start_output_reader();
+
+  std::ifstream ifile;
+  ifile.open(path);
+  if (!ifile.good())
+    throw std::runtime_error(path + ": " + shcore::errno_to_string(errno));
+
+  std::string output;
+  char buffer[4098];
+  while (!dump.check() && !ifile.eof()) {
+    while (dump.has_output(true))
+      output.append(dump.read_line());
+
+    ifile.read(buffer, sizeof(buffer));
+    if (dump.write(buffer, ifile.gcount()) < ifile.gcount()) {
+      throw std::runtime_error("error writing dump data to mysql client");
+    }
+  }
+  dump.close_write_fd();
+  int rc = dump.wait();
+  while (dump.has_output(false))
+    output.append(dump.read_line());
+  if (rc != 0) {
+    throw std::runtime_error("mysql exited with code " + std::to_string(rc) +
+                             ": " + output);
+  }
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
  * Gets the path to the shell log.
  */
 #if DOXYGEN_JS
-  String Testutils::getShellLogPath();
+String Testutils::getShellLogPath();
 #elif DOXYGEN_PY
-  str Testutils::get_shell_log_path();
+str Testutils::get_shell_log_path();
 #endif
 ///@}
 std::string Testutils::get_shell_log_path() {
@@ -261,9 +420,9 @@ std::string Testutils::get_shell_log_path() {
  * Identifies if the test suite is being executed in reply mode.
  */
 #if DOXYGEN_JS
-  Bool Testutils::isReplying();
+Bool Testutils::isReplying();
 #elif DOXYGEN_PY
-  bool Testutils::is_replying();
+bool Testutils::is_replying();
 #endif
 ///@}
 bool Testutils::is_replaying() {
@@ -281,9 +440,9 @@ bool Testutils::is_replaying() {
  * than falling to the standard validation methods.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::fail();
+Undefined Testutils::fail();
 #elif DOXYGEN_PY
-  None Testutils::fail();
+None Testutils::fail();
 #endif
 ///@}
 void Testutils::fail(const std::string &context) {
@@ -301,7 +460,11 @@ void Testutils::fail(const std::string &context) {
     text = shcore::str_replace(text, "<yellow>", "");
     text = shcore::str_replace(text, "</yellow>", "");
   }
+#ifdef ENABLE_SESSION_RECORDING
+  throw std::logic_error("method not available");
+#else
   ADD_FAILURE_AT(_test_file.c_str(), _test_line) << text << "\n";
+#endif
 }
 
 ///@{
@@ -311,15 +474,14 @@ void Testutils::fail(const std::string &context) {
  * Call from test script when the rest of the test should be skipped.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::skip();
+Undefined Testutils::skip();
 #elif DOXYGEN_PY
-  None Testutils::skip();
+None Testutils::skip();
 #endif
 ///@}
 void Testutils::skip(const std::string &reason) {
   _test_skipped = reason;
 }
-
 
 void Testutils::snapshot_sandbox_conf(int port) {
   if (mysqlshdk::db::replay::g_replay_mode !=
@@ -402,18 +564,18 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
  * suite. It is an improved version of the deploySandboxInstance function of the
  * Admin API which will speed up the process of deploying a new sandbox.
  *
- * First time it is called, it will create a boilerplate sandbox using the normal
- * sandbox deployment procedure.
+ * First time it is called, it will create a boilerplate sandbox using the
+ * normal sandbox deployment procedure.
  *
  * It creates a new sandbox by copying the data on the boilerplate sandbox.
  *
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::deploySandbox(Integer port, String pwd,
-                                     Dictionary options);
+Undefined Testutils::deploySandbox(Integer port, String pwd,
+                                   Dictionary options);
 #elif DOXYGEN_PY
-  None Testutils::deploy_sandbox(int port, str pwd, Dictionary options);
+None Testutils::deploy_sandbox(int port, str pwd, Dictionary options);
 #endif
 ///@}
 void Testutils::deploy_sandbox(int port, const std::string &rootpass,
@@ -452,9 +614,9 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::destroySandbox(Integer port);
+Undefined Testutils::destroySandbox(Integer port);
 #elif DOXYGEN_PY
-  None Testutils::destroy_sandbox(int port);
+None Testutils::destroy_sandbox(int port);
 #endif
 ///@}
 void Testutils::destroy_sandbox(int port, bool quiet_kill) {
@@ -494,7 +656,8 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
 ///@{
 /**
  * Starts the sandbox created at the indicated port
- * @param port The port where the sandbox listens for mysql protocol connections.
+ * @param port The port where the sandbox listens for mysql protocol
+ * connections.
  *
  * This function also works when using the --direct and --record modes of the
  * test suite.
@@ -508,9 +671,9 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::startSandbox(Integer port);
+Undefined Testutils::startSandbox(Integer port);
 #elif DOXYGEN_PY
-  None Testutils::start_sandbox(int port);
+None Testutils::start_sandbox(int port);
 #endif
 ///@}
 void Testutils::start_sandbox(int port) {
@@ -552,12 +715,12 @@ void Testutils::start_sandbox(int port) {
   }
 }
 
-
 //!<  @name Sandbox Operations
 ///@{
 /**
  * Stops the sandbox listening at the indicated port
- * @param port The port where the sandbox listens for mysql protocol connections.
+ * @param port The port where the sandbox listens for mysql protocol
+ * connections.
  *
  * This function works when using the --direct and --record modes of the test
  * suite.
@@ -567,9 +730,9 @@ void Testutils::start_sandbox(int port) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::stopSandbox(Integer port);
+Undefined Testutils::stopSandbox(Integer port);
 #elif DOXYGEN_PY
-  None Testutils::stop_sandbox(int port);
+None Testutils::stop_sandbox(int port);
 #endif
 ///@}
 void Testutils::stop_sandbox(int port, const std::string &rootpass) {
@@ -587,7 +750,8 @@ void Testutils::stop_sandbox(int port, const std::string &rootpass) {
 ///@{
 /**
  * Restarts the sandbox listening at the specified port.
- * @param port The port where the sandbox listens for mysql protocol connections.
+ * @param port The port where the sandbox listens for mysql protocol
+ * connections.
  *
  * This function works when using the --direct and --record modes of the test
  * suite.
@@ -598,9 +762,9 @@ void Testutils::stop_sandbox(int port, const std::string &rootpass) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::restartSandbox(Integer port);
+Undefined Testutils::restartSandbox(Integer port);
 #elif DOXYGEN_PY
-  None Testutils::restart_sandbox(int port);
+None Testutils::restart_sandbox(int port);
 #endif
 ///@}
 void Testutils::restart_sandbox(int port, const std::string &rootpass) {
@@ -612,7 +776,8 @@ void Testutils::restart_sandbox(int port, const std::string &rootpass) {
 ///@{
 /**
  * Kills the sandbox listening at the indicated port
- * @param port The port where the sandbox listens for mysql protocol connections.
+ * @param port The port where the sandbox listens for mysql protocol
+ * connections.
  *
  * This function works when using the --direct and --record modes of the test
  * suite.
@@ -623,9 +788,9 @@ void Testutils::restart_sandbox(int port, const std::string &rootpass) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::killSandbox(Integer port);
+Undefined Testutils::killSandbox(Integer port);
 #elif DOXYGEN_PY
-  None Testutils::kill_sandbox(int port);
+None Testutils::kill_sandbox(int port);
 #endif
 ///@}
 void Testutils::kill_sandbox(int port, bool quiet) {
@@ -694,17 +859,17 @@ void Testutils::wait_sandbox_dead(int port) {
 }
 
 bool is_configuration_option(const std::string &option,
-                             const std::string& line) {
+                             const std::string &line) {
   std::string normalized = shcore::str_replace(line, " ", "");
   return (normalized == option || normalized.find(option + "=") == 0);
 }
 
-bool is_section_line(const std::string& line, const std::string &section = "") {
+bool is_section_line(const std::string &line, const std::string &section = "") {
   bool ret_val = false;
 
   if (!line.empty()) {
     std::string normalized = shcore::str_strip(line);
-    if (normalized[0] == '[' && normalized[normalized.length()-1] == ']') {
+    if (normalized[0] == '[' && normalized[normalized.length() - 1] == ']') {
       ret_val = true;
 
       if (!section.empty())
@@ -720,7 +885,8 @@ bool is_section_line(const std::string& line, const std::string &section = "") {
 /**
  * Delete lines with the option from the given config file.
  * @param port The port of the sandbox where the configuration will be updated.
- * @param option The option name that will be removed from the configuration file.
+ * @param option The option name that will be removed from the configuration
+ * file.
  * @param section The section from which the option will be removed.
  *
  * This function will remove any occurrence of the configuration option on the
@@ -730,9 +896,10 @@ bool is_section_line(const std::string& line, const std::string &section = "") {
  * of the file.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::removeFromSandboxConf(Integer port, String option, String section);
+Undefined Testutils::removeFromSandboxConf(Integer port, String option,
+                                           String section);
 #elif DOXYGEN_PY
-  None Testutils::remove_from_sandbox_conf(int port, str option, str section);
+None Testutils::remove_from_sandbox_conf(int port, str option, str section);
 #endif
 ///@}
 void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
@@ -748,7 +915,6 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
 
   bool in_section = false;
   while (std::getline(cfgfile, line)) {
-
     if (is_section_line(line, section))
       in_section = true;
     else if (is_section_line(line))
@@ -787,15 +953,15 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
  * of the configuration file.
  */
 #if DOXYGEN_JS
-  Undefined Testutils::changeSandboxConf(Integer port, String option,
-                                         String value, String section);
+Undefined Testutils::changeSandboxConf(Integer port, String option,
+                                       String value, String section);
 #elif DOXYGEN_PY
-  None Testutils::change_sandbox_conf(int port, str option, str value,
-                                      str section);
+None Testutils::change_sandbox_conf(int port, str option, str value,
+                                    str section);
 #endif
 ///@}
 void Testutils::change_sandbox_conf(int port, const std::string &option,
-                                    const std::string& value,
+                                    const std::string &value,
                                     const std::string &section) {
   if (_dummy_sandboxes)
     return;
@@ -806,10 +972,8 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
   std::ifstream cfgfile(cfgfile_path);
   std::string line;
 
-
   bool in_section = false;
   while (std::getline(cfgfile, line)) {
-
     if (is_section_line(line, section)) {
       // As soon as the section is found adds the option with the new value
       in_section = true;
@@ -840,8 +1004,10 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
 ///@{
 /**
  * Waits until a cluster member reaches one of the specified states.
- * @param port The port of the instance to be polled listens for MySQL connections.
- * @param states An array containing the states that would cause the poll cycle to finish.
+ * @param port The port of the instance to be polled listens for MySQL
+ * connections.
+ * @param states An array containing the states that would cause the poll cycle
+ * to finish.
  * @returns The state of the member.
  *
  * This function is to be used with the members of a cluster.
@@ -909,9 +1075,9 @@ std::string Testutils::wait_member_state(int member_port,
  * @returns 0 on success, -1 on failure
  */
 #if DOXYGEN_JS
-  Integer Testutils::makeFileReadonly(String path);
+Integer Testutils::makeFileReadonly(String path);
 #elif DOXYGEN_PY
-  int Testutils::make_file_readonly(str path);
+int Testutils::make_file_readonly(str path);
 #endif
 ///@}
 int Testutils::make_file_readonly(const std::string &path) {
@@ -944,9 +1110,9 @@ int Testutils::make_file_readonly(const std::string &path) {
  * This function will return all the lines that matched the given pattern.
  */
 #if DOXYGEN_JS
-  List Testutils::grepFile(String path, String pattern);
+List Testutils::grepFile(String path, String pattern);
 #elif DOXYGEN_PY
-  list Testutils::grep_file(str path, str pattern);
+list Testutils::grep_file(str path, str pattern);
 #endif
 ///@}
 shcore::Array_t Testutils::grep_file(const std::string &path,
@@ -987,9 +1153,9 @@ shcore::Array_t Testutils::grep_file(const std::string &path,
  * prompt validation).
  */
 #if DOXYGEN_JS
-  Undefined Testutils::expectPrompt(String prompt, String answer);
+Undefined Testutils::expectPrompt(String prompt, String answer);
 #elif DOXYGEN_PY
-  None Testutils::expect_prompt(str prompt, str answer);
+None Testutils::expect_prompt(str prompt, str answer);
 #endif
 ///@}
 void Testutils::expect_prompt(const std::string &prompt,
@@ -1000,9 +1166,11 @@ void Testutils::expect_prompt(const std::string &prompt,
 //!<  @name Testing Utilities
 ///@{
 /**
- * Sets an expected password prompt as well as the password to be given as response.
+ * Sets an expected password prompt as well as the password to be given as
+ * response.
  * @param prompt The prompt to be expected.
- * @param password The password to be given when the password prompt is received.
+ * @param password The password to be given when the password prompt is
+ * received.
  *
  * Some of the interative functions of the shell require a password from the
  * user, this is done through password prompts.
@@ -1020,9 +1188,9 @@ void Testutils::expect_prompt(const std::string &prompt,
  * expected password prompt validation).
  */
 #if DOXYGEN_JS
-  Undefined Testutils::expectPassword(String prompt, String password);
+Undefined Testutils::expectPassword(String prompt, String password);
 #elif DOXYGEN_PY
-  None Testutils::expect_password(str prompt, str password);
+None Testutils::expect_password(str prompt, str password);
 #endif
 ///@}
 void Testutils::expect_password(const std::string &prompt,
@@ -1083,8 +1251,8 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
     auto result = session->query("select @@version");
     std::string version = result->fetch_one()->get_string(0);
     shcore::create_file(shcore::path::join_path(
-      _sandbox_dir, std::to_string(port), "version.txt"),
-      mysqlshdk::utils::Version(version).get_full());
+                            _sandbox_dir, std::to_string(port), "version.txt"),
+                        mysqlshdk::utils::Version(version).get_full());
   }
 
   stop_sandbox(port, rootpass);
@@ -1112,10 +1280,12 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   while (retry && attempts) {
     try {
       shcore::rename_file(
-        shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
+          shcore::path::join_path(_sandbox_dir, std::to_string(port)),
+          boilerplate);
       retry = false;
-    } catch (const std::exception& err) {
-      std::cout << "Failed attempt creating boilerplate sandbox: " << err.what() << std::endl;
+    } catch (const std::exception &err) {
+      std::cout << "Failed attempt creating boilerplate sandbox: " << err.what()
+                << std::endl;
       std::string message = err.what();
       if (message.find("Permission denied") != std::string::npos) {
         attempts--;
@@ -1127,7 +1297,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   }
 #else
   shcore::rename_file(
-    shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
+      shcore::path::join_path(_sandbox_dir, std::to_string(port)), boilerplate);
 #endif
 
   shcore::delete_file(
@@ -1145,8 +1315,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
     std::cerr << "Created sandbox boilerplate at " << boilerplate << "\n";
 }
 
-void copy_boilerplate_sandbox(const std::string &from,
-                                         const std::string& to) {
+void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
   shcore::create_directory(to);
   shcore::iterdir(from, [from, to](const std::string &name) {
     try {
@@ -1178,8 +1347,7 @@ void copy_boilerplate_sandbox(const std::string &from,
 
 void Testutils::validate_boilerplate(const std::string &sandbox_dir,
                                      const std::string &version) {
-  std::string basedir =
-      shcore::path::join_path(sandbox_dir, "myboilerplate");
+  std::string basedir = shcore::path::join_path(sandbox_dir, "myboilerplate");
   bool expired = false;
   if (shcore::is_folder(basedir)) {
     try {
@@ -1227,29 +1395,32 @@ bool Testutils::deploy_sandbox_from_boilerplate(
   change_sandbox_conf(port, "server_id", std::to_string(port + 12345),
                       "mysqld");
   change_sandbox_conf(
-      port, "datadir", shcore::str_replace(
-                             shcore::path::join_path(basedir, "sandboxdata"),
-                             "\\", "/"), "mysqld");
+      port, "datadir",
+      shcore::str_replace(shcore::path::join_path(basedir, "sandboxdata"), "\\",
+                          "/"),
+      "mysqld");
   change_sandbox_conf(
       port, "log_error",
-                shcore::str_replace(shcore::path::join_path(
-                                        basedir, "sandboxdata", "error.log"),
-                                    "\\", "/"), "mysqld");
+      shcore::str_replace(
+          shcore::path::join_path(basedir, "sandboxdata", "error.log"), "\\",
+          "/"),
+      "mysqld");
   change_sandbox_conf(
       port, "pid_file",
-                shcore::str_replace(shcore::path::join_path(
-                                        basedir, std::to_string(port) + ".pid"),
-                                    "\\", "/"), "mysqld");
-  change_sandbox_conf(port, "secure_file_priv", shcore::path::join_path(
-                                                      basedir, "mysql-files"),
-                                                      "mysqld");
+      shcore::str_replace(
+          shcore::path::join_path(basedir, std::to_string(port) + ".pid"), "\\",
+          "/"),
+      "mysqld");
+  change_sandbox_conf(port, "secure_file_priv",
+                      shcore::path::join_path(basedir, "mysql-files"),
+                      "mysqld");
   change_sandbox_conf(port, "loose_mysqlx_port", std::to_string(port * 10),
                       "mysqld");
   change_sandbox_conf(port, "report_port", std::to_string(port), "mysqld");
   change_sandbox_conf(port, "general_log", "1", "mysqld");
 
   if (opts && !opts->empty()) {
-    for (const auto& option : (*opts)) {
+    for (const auto &option : (*opts)) {
       change_sandbox_conf(port, option.first, option.second.descr(), "mysqld");
     }
   }
@@ -1346,7 +1517,6 @@ mysqlshdk::db::Connection_options Testutils::sandbox_connection_options(
   copts.set_password(password);
   return copts;
 }
-
 
 namespace {
 void setup_recorder_environment() {

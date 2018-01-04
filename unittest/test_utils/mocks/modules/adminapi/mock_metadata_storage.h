@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,7 +38,6 @@ namespace testing {
 class Mock_metadata_storage : public mysqlsh::dba::MetadataStorage {
  public:
   MOCK_METHOD0(metadata_schema_exists, bool());
-  MOCK_METHOD0(create_metadata_schema, void());
   MOCK_METHOD0(drop_metadata_schema, void());
   MOCK_METHOD1(get_cluster_id, uint64_t(const std::string &));
   MOCK_METHOD1(get_cluster_id, uint64_t(uint64_t));

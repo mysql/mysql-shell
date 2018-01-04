@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,7 +140,8 @@ TEST_P(Auto_script_js, run_and_check) {
 
   // Does not enable recording engine for the devapi tests
   // Recording for CRUD is not available
-  if (folder != "js_devapi")
+  if (folder != "js_devapi" &&
+      GetParam().find("_norecord") == std::string::npos)
     reset_replayable_shell(name.c_str());
 
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());

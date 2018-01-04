@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -672,5 +672,36 @@ TEST_F(TestMySQLSplitter, continued_stmt_hash_comment_batch) {
   EXPECT_EQ(expected, sql.substr(ranges[2].offset(), ranges[2].length()));
 }
 
+TEST_F(TestMySQLSplitter, multiline_comment_bug) {
+  send_sql("/* * */ select 1;");  // This loops forever before bugfix
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("select 0; /* / */ select 1;");
+  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+  EXPECT_EQ("select 0", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ("select 1", sql.substr(ranges[1].offset(), ranges[1].length()));
+
+  send_sql("/*/ */ select 1;");
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("/* /*/ select 1;");
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("/**/ select 1;");
+  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
 }
+
+TEST_F(TestMySQLSplitter, multiline_comment_bug_delim) {
+    send_sql("select 1; /* * */ delimiter //\nselect 2//\nfoo;bar//\n");
+    EXPECT_EQ(3, static_cast<int>(ranges.size()));
+    EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+    EXPECT_EQ("select 2", sql.substr(ranges[1].offset(), ranges[1].length()));
+    EXPECT_EQ("foo;bar", sql.substr(ranges[2].offset(), ranges[2].length()));
 }
+
+}  // namespace sql_shell_tests
+}  // namespace shcore

@@ -89,7 +89,6 @@ class Testutils : public shcore::Cpp_object_bridge {
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
-            const std::vector<int> &default_sandbox_ports = {},
             std::shared_ptr<mysqlsh::Mysql_shell> shell = {},
             const std::string &mysqlsh_path = "");
 
@@ -149,9 +148,10 @@ class Testutils : public shcore::Cpp_object_bridge {
   std::string get_sandbox_log_path(int port);
   std::string get_sandbox_path(int port = 0, const std::string& file = "");
 
-  bool version_check(const std::string &v1,
-                     const std::string &op,
-                     const std::string &v2);
+  void dump_data(const std::string &uri, const std::string &path,
+                 const std::vector<std::string> &schemas);
+  void import_data(const std::string &uri, const std::string &path,
+                   const std::string &schema);
 
  public:
   // InnoDB cluster routines
@@ -178,6 +178,10 @@ class Testutils : public shcore::Cpp_object_bridge {
   void expect_prompt(const std::string &prompt, const std::string &text);
   void expect_password(const std::string &prompt, const std::string &text);
 
+  bool version_check(const std::string &v1,
+                     const std::string &op,
+                     const std::string &v2);
+
  private:
   // Testing stuff
   bool is_replaying();
@@ -193,7 +197,6 @@ class Testutils : public shcore::Cpp_object_bridge {
   std::string _mysqlsh_path;
   shcore::Interpreter_delegate _delegate;
   std::unique_ptr<mysqlsh::dba::ProvisioningInterface> _mp;
-  std::vector<int> _default_sandbox_ports;
   std::string _sandbox_dir;
   std::string _sandbox_snapshot_dir;
   bool _dummy_sandboxes = false;

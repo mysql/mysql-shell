@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -141,7 +141,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
         std::string line = code.substr(ranges[range_index].offset(),
             ranges[range_index].length());
 
-        str_rstrip(line, "\n");
+        line = str_rstrip(line, "\n");
         if (_sql_cache.empty())
           _sql_cache = line;
         else

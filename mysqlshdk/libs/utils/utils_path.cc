@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,8 @@
 
 #include <algorithm>
 #include <string>
+
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
 namespace path {
@@ -89,5 +91,37 @@ size_t span_dirname(const std::string &path) {
 
 }  // namespace detail
 
+std::string search_stdpath(const std::string &name) {
+  char *path = std::getenv("PATH");
+  if (!path) {
+    return "";
+  }
+  return search_path_list(name, path);
+}
+
+
+std::string search_path_list(const std::string &name,
+                             const std::string &pathlist,
+                             const char separator) {
+  std::string fname(name);
+#ifdef _WIN32
+  if (!str_endswith(name, ".exe") && !str_endswith(name, ".com")) {
+    fname.append(".exe");
+  }
+#endif
+
+  std::string sep;
+  if (separator != 0) {
+    sep.push_back(separator);
+  } else {
+    sep.push_back(pathlist_separator);
+  }
+  for (const std::string &dir : str_split(pathlist, sep)) {
+    std::string tmp = join_path(dir, fname);
+    if (exists(tmp))
+      return tmp;
+  }
+  return "";
+}
 }  // namespace path
 }  // namespace shcore

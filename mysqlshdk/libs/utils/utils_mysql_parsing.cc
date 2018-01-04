@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,10 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 //--------------------------------------------------------------------------------------------------
-#include "utils_mysql_parsing.h"
+#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "utils/utils_string.h"
 #include <assert.h>
 #include <iterator>
+#include <utility>
 
 namespace shcore {
 namespace mysql {
@@ -61,7 +62,7 @@ Delimiters::delim_type_t& Delimiters::operator[](std::size_t pos) {
 
 Statement_range::Statement_range(std::size_t begin, std::size_t end,
     Delimiters::delim_type_t delimiter) : m_begin(begin), m_end(end),
-    m_delimiter(std::move(delimiter)){
+    m_delimiter(std::move(delimiter)) {
 
     }
 
@@ -133,8 +134,8 @@ std::vector<Statement_range> determineStatementRanges(
             }
         }
         break;
-      case '/': // Possible multi line comment or hidden (conditional) command.
-        if (*(tail + 1) == '*') {
+      case '/':  // Possible multi line comment or hidden (conditional) command.
+        if (*(tail + 1) == '*' && tail + 1 < end) {
           tail += 2;
 
           // MySQL supports a couple of C variant comments with special meaning:
@@ -143,14 +144,16 @@ std::vector<Statement_range> determineStatementRanges(
           std::string context = "/*";
           if (*tail == '!')
             context.append("!");
-          else if(*tail == '+')
+          else if (*tail == '+')
             context.append("+");
 
+          // Skip the opening char
+          if (tail < end)
+            tail++;
           while (true) {
-            while (tail < end && *tail != '*')
+            while (tail < end && !(*(tail - 1) == '*' && *tail == '/'))
               tail++;
-            if (tail == end) // Unfinished comment.
-            {
+            if (tail == end) {  // Unfinished comment.
               // If valid content was found before the comment
               // it is indicated to the statement is considered
               // complete on the first delimiter found after closing the
@@ -159,19 +162,13 @@ std::vector<Statement_range> determineStatementRanges(
                 input_context_stack.push("-");
               else
                 input_context_stack.push(context);
-
-              break;
             } else {
-              if (*(tail + 1) == '/') {
-                tail++;
-                break;
-              }
+              tail++;
             }
+            break;
           }
-
-          if (context.size() == 2 && !have_content)
-            head = tail + 1; // Skip over the comment.
-
+          if (context == "/*" && !have_content)
+            head = tail + 1;  // Skip over the comment.
         }
         break;
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -58,7 +58,9 @@ endif()
 add_executable(mysqlsh ${mysh_SRC})
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_executable(mysqlshrec ${mysh_SRC})
+add_executable(mysqlshrec ${mysh_SRC}
+  ${CMAKE_SOURCE_DIR}/unittest/test_utils/mod_testutils.cc
+  mysqlsh/debug_shell.cc)
 set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
 
