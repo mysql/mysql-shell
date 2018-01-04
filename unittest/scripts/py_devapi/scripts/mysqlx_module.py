@@ -35,3 +35,10 @@ expr = mysqlx.expr(5)
 #@ mysqlx module: expression
 expr = mysqlx.expr('5+6')
 print expr
+
+#@ mysqlx module: date_value() diffrent parameters
+mysqlx.date_value(2025, 10, 15);
+mysqlx.date_value(2017, 12, 10, 10, 10, 10);
+mysqlx.date_value(2017, 12, 10, 10, 10, 10, 500000);
+mysqlx.date_value(2017, 12, 10, 10, 10, 10, 599999);
+

@@ -27,47 +27,47 @@
 #include <cstdio>
 
 #include "scripting/common.h"
-#include "utils/utils_string.h"
-#include "utils/utils_json.h"
 #include "scripting/object_factory.h"
+#include "utils/utils_json.h"
+#include "utils/utils_string.h"
 
-using namespace shcore;
+namespace shcore {
 
-Date::Date(int year, int month, int day, int hour, int min, double sec)
+Date::Date(int year, int month, int day, int hour, int min, int sec, int usec)
     : _year(year),
-      _month(month),
+      _month(month - 1),
       _day(day),
       _hour(hour),
       _min(min),
       _sec(sec),
+      _usec(usec),
       _has_time(true) {
+  validate();
 }
 
 Date::Date(int year, int month, int day)
     : _year(year),
-      _month(month),
+      _month(month - 1),
       _day(day),
       _hour(0),
       _min(0),
       _sec(0),
+      _usec(0),
       _has_time(false) {
+  validate();
 }
 
-bool Date::operator == (const Object_bridge &other) const {
+bool Date::operator==(const Object_bridge &other) const {
   if (other.class_name() == "Date") {
     return *this == *static_cast<const Date *>(&other);
   }
   return false;
 }
 
-bool Date::operator == (const Date &other) const {
-  if (_year == other._year &&
-      _month == other._month &&
-      _day == other._day &&
-      _hour == other._hour &&
-      _min == other._min &&
-      _sec == other._sec &&
-      _has_time == other._has_time)
+bool Date::operator==(const Date &other) const {
+  if (_year == other._year && _month == other._month && _day == other._day &&
+      _hour == other._hour && _min == other._min && _sec == other._sec &&
+      _usec == other._usec && _has_time == other._has_time)
     return true;
   return false;
 }
@@ -78,13 +78,12 @@ std::string &Date::append_descr(std::string &s_out, int /*indent*/,
     s_out.push_back(quote_strings);
 
   if (_has_time) {
-    if (static_cast<double>(static_cast<int>(_sec)) != _sec)
-      s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%09.6f", _year,
-                              (_month + 1), _day, _hour, _min, _sec));
+    if (_usec != 0)
+      s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%02d.%06d", _year,
+                              (_month + 1), _day, _hour, _min, _sec, _usec));
     else
       s_out.append(str_format("%04d-%02d-%02d %02d:%02d:%02d", _year,
-                              (_month + 1), _day, _hour, _min,
-                              static_cast<int>(_sec)));
+                              (_month + 1), _day, _hour, _min, _sec));
   } else {
     s_out.append(str_format("%04d-%02d-%02d", _year, (_month + 1), _day));
   }
@@ -97,15 +96,16 @@ std::string &Date::append_repr(std::string &s_out) const {
   return append_descr(s_out, 0, '"');
 }
 
-void Date::append_json(shcore::JSON_dumper& dumper) const {
+void Date::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();
 
   dumper.append_int("year", _year);
-  dumper.append_int("month", _month);
+  dumper.append_int("month", _month + 1);
   dumper.append_int("day", _day);
   dumper.append_int("hour", _hour);
   dumper.append_int("minute", _min);
-  dumper.append_float("second", _sec);
+  dumper.append_int("second", _sec);
+  dumper.append_int("usecond", _usec);
 
   dumper.end_object();
 }
@@ -119,16 +119,19 @@ void Date::set_member(const std::string &prop, Value value) {
 }
 
 Object_bridge_ref Date::create(const shcore::Argument_list &args) {
-  args.ensure_count(3, 6, "Date()");
-
 #define GETi(i) (args.size() > i ? args.int_at(i) : 0)
 #define GETf(i) (args.size() > i ? args.double_at(i) : 0)
 
   if (args.size() == 3)
     return Object_bridge_ref(new Date(GETi(0), GETi(1), GETi(2)));
-  else
+  else if (args.size() == 6)
     return Object_bridge_ref(
-        new Date(GETi(0), GETi(1), GETi(2), GETi(3), GETi(4), GETf(5)));
+        new Date(GETi(0), GETi(1), GETi(2), GETi(3), GETi(4), GETf(5), 0));
+  else if (args.size() == 7)
+    return Object_bridge_ref(new Date(GETi(0), GETi(1), GETi(2), GETi(3),
+                                      GETi(4), GETf(5), GETf(6)));
+  throw shcore::Exception::argument_error("3,6 or 7 arguments expected");
+
 #undef GETi
 #undef GETf
 }
@@ -139,14 +142,15 @@ Object_bridge_ref Date::unrepr(const std::string &s) {
   int day = 0;
   int hour = 0;
   int min = 0;
-  double sec = 0.0;
+  int sec = 0;
+  int usec = 0;
 
-  int c = sscanf(s.c_str(), "%d-%d-%d %d:%d:%lf", &year, &month, &day, &hour,
-                 &min, &sec);
+  int c = sscanf(s.c_str(), "%d-%d-%d %d:%d:%d.%d", &year, &month, &day, &hour,
+                 &min, &sec, &usec);
   if (c == 3)
-    return Object_bridge_ref(new Date(year, month - 1, day));
-  else if (c == 6)
-    return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
+    return Object_bridge_ref(new Date(year, month, day));
+  else if (c >= 6)
+    return Object_bridge_ref(new Date(year, month, day, hour, min, sec, usec));
   else
     throw std::invalid_argument("Invalid date value '" + s + "'");
 }
@@ -159,15 +163,15 @@ int64_t Date::as_ms() const {
   t.tm_mday = _day;
   t.tm_hour = _hour;
   t.tm_min = _min;
-  t.tm_sec = static_cast<int>(_sec);
+  t.tm_sec = _sec;
 
   int64_t seconds_since_epoch = mktime(&t);
 
-  return seconds_since_epoch * 1000 + static_cast<int>(_sec * 1000.0) % 1000;
+  return seconds_since_epoch * 1000 + _usec / 1000;
 }
 
 Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
-  double ms = ms_since_epoch % 1000;
+  int ms = ms_since_epoch % 1000;
   time_t seconds_since_epoch = ms_since_epoch / 1000;
 
   struct tm t;
@@ -178,12 +182,31 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
 #endif
 
   return Object_bridge_ref(new Date(t.tm_year + 1900, t.tm_mon, t.tm_mday,
-                                    t.tm_hour, t.tm_min,
-                                    t.tm_sec + ms / 1000.0));
+                                    t.tm_hour, t.tm_min, t.tm_sec, ms * 1000));
 }
 
 Object_bridge_ref Date::from_mysqlx_datetime(const xcl::DateTime &date) {
-  return Object_bridge_ref(new Date(
-      date.year(), date.month()-1, date.day(), date.hour(), date.minutes(),
-      date.seconds() + (static_cast<double>(date.useconds()) / 1000000)));
+  return Object_bridge_ref(new Date(date.year(), date.month(), date.day(),
+                                    date.hour(), date.minutes(), date.seconds(),
+                                    date.useconds()));
 }
+
+void Date::validate() {
+  if (_year > 9999 || _year < 0)
+    throw shcore::Exception::argument_error("Valid year range is 0-9999");
+  if (_month > 11 || _month < 0)
+    throw shcore::Exception::argument_error("Valid month range is 1-12");
+  if (_day > 31 || _day < 1)
+    throw shcore::Exception::argument_error("Valid day range is 1-31");
+  if (_has_time) {
+    if (_hour > 23 || _hour < 0)
+      throw shcore::Exception::argument_error("Valid hour range is 0-23");
+    if (_min > 59 || _min < 0)
+      throw shcore::Exception::argument_error("Valid minute range is 0-59");
+    if (_sec > 59 || _sec < 0)
+      throw shcore::Exception::argument_error("Valid second range is 0-59");
+    if (_usec > 999999 || _usec < 0)
+      throw shcore::Exception::argument_error("Valid second range is 0-999999");
+  }
+}
+}  // namespace shcore

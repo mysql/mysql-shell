@@ -96,8 +96,12 @@ v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_re
     std::shared_ptr<Date> date = std::static_pointer_cast<Date>(object);
     // The only Date constructor exposed to C++ takes milliseconds, the constructor that parses a date from an string is implemented
     // in Javascript, so it is invoked this way.
-    v8::Handle<v8::String> source = v8::String::NewFromUtf8(owner->isolate(), (shcore::str_format("new Date('%d-%d-%d %d:%d:%d')",
-      date->get_year(), date->get_month(), date->get_day(), date->get_hour(), date->get_min(), (int)date->get_sec()).c_str()));
+    v8::Handle<v8::String> source = v8::String::NewFromUtf8(
+        owner->isolate(),
+        (shcore::str_format("new Date(%d, %d, %d, %d, %d, %d, %d)",
+                            date->get_year(), date->get_month()-1,
+                            date->get_day(), date->get_hour(), date->get_min(),
+                            date->get_sec(), date->get_usec() / 1000).c_str()));
     v8::Handle<v8::Script> script = v8::Script::Compile(source);
     v8::Handle<v8::Value> result = script->Run();
     return result;
@@ -110,7 +114,7 @@ Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Objec
   std::string ctorname = *v8::String::Utf8Value(object->GetConstructorName());
 
   if (ctorname == "Date") {
-    int year, month, day, hour, min;
+    int year, month, day, hour, min, msec;
     float sec;
     year = (int)call_num_method(object, "getFullYear");
     month = (int)call_num_method(object, "getMonth");
@@ -118,7 +122,9 @@ Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Objec
     hour = (int)call_num_method(object, "getHours");
     min = (int)call_num_method(object, "getMinutes");
     sec = (float)call_num_method(object, "getSeconds");
-    return Object_bridge_ref(new Date(year, month, day, hour, min, sec));
+    msec = (int)call_num_method(object, "getMilliseconds");
+    return Object_bridge_ref(
+        new Date(year, month+1, day, hour, min, sec, msec * 1000));
   }
 
   return Object_bridge_ref();

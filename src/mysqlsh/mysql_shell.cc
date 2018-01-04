@@ -524,7 +524,7 @@ void Mysql_shell::connect(
     auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(new_session);
 
     if (!default_schema_name.empty()) {
-      if (x_session) {
+      if (x_session && interactive_mode() != shcore::IShell_core::Mode::SQL) {
         default_schema = x_session->get_schema(default_schema_name);
         message += "Default schema `" + default_schema_name +
                    "` accessible through db.";

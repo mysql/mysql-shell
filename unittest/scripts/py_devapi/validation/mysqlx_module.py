@@ -13,3 +13,10 @@
 
 #@ mysqlx module: expression
 |<Expression>|
+
+#@ mysqlx module: date_value() diffrent parameters
+|2025-10-15|
+|2017-12-10 10:10:10|
+|2017-12-10 10:10:10.500000|
+|2017-12-10 10:10:10.599999|
+
