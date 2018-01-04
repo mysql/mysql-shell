@@ -26,6 +26,7 @@
 #include "modules/devapi/mod_mysqlx_constants.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mysqlxtest_utils.h"
 #include "scripting/obj_date.h"
 #include "shellcore/utils_help.h"
 
@@ -174,7 +175,13 @@ DEFINE_FUNCTION(Mysqlx, expr) {
 }
 
 DEFINE_FUNCTION(Mysqlx, date_value) {
-  return shcore::Value(shcore::Date::create(args));
+  args.ensure_count(3, 7, get_function_name("dateValue").c_str());
+  shcore::Value ret_val;
+  try {
+    ret_val = shcore::Value(shcore::Date::create(args));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dateValue"));
+  return ret_val;
 }
 }  // namespace mysqlx
 }  // namespace mysqlsh

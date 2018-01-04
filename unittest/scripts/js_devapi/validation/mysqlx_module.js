@@ -79,3 +79,36 @@ The connection options are case insensitive and can only be defined once.
 If an option is defined more than once, an error will be generated.
 
 For additional information on connection data use \? connection.
+
+//@ mysqlx module: dateValue() diffrent parameters
+|2025-10-15 00:00:00|
+|2017-12-10 10:10:10|
+|2017-12-10 10:10:10.500000|
+|2017-12-10 10:10:10.599000|
+
+//@ mysqlx module: Bug #26429377
+||Invalid number of arguments in mysqlx.dateValue, expected 3 to 7 but got 0 (ArgumentError)
+  
+//@ mysqlx module: Bug #26429377 - 4/5 arguments
+||mysqlx.dateValue: 3,6 or 7 arguments expected (ArgumentError)
+
+//@ mysqlx module: Bug #26429426
+||mysqlx.dateValue: Valid day range is 1-31 (ArgumentError)
+
+//@ month validation
+||mysqlx.dateValue: Valid month range is 1-12 (ArgumentError)
+
+//@ year validation
+||mysqlx.dateValue: Valid year range is 0-9999 (ArgumentError)
+
+//@ hour validation
+||mysqlx.dateValue: Valid hour range is 0-23 (ArgumentError)
+
+//@ minute validation
+||mysqlx.dateValue: Valid minute range is 0-59 (ArgumentError)
+
+//@ second validation
+||mysqlx.dateValue: Valid second range is 0-59 (ArgumentError)
+
+//@ usecond validation
+||mysqlx.dateValue: Valid second range is 0-999999 (ArgumentError)
