@@ -23,10 +23,10 @@
 
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_stacktrace.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/shell_script_tester.h"
 
@@ -35,7 +35,7 @@ extern "C" const char *g_test_home;
 namespace tests {
 
 class Auto_script_js : public Shell_js_script_tester,
-                           public ::testing::WithParamInterface<std::string> {
+                       public ::testing::WithParamInterface<std::string> {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
@@ -101,20 +101,23 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
     code = "var __mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
+    code = "var __mysql_sandbox_port1 = " +
+           std::to_string(_mysql_sandbox_port1) + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
+    code = "var __mysql_sandbox_port2 = " +
+           std::to_string(_mysql_sandbox_port2) + ";";
     exec_and_out_equals(code);
-    code = "var __mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
+    code = "var __mysql_sandbox_port3 = " +
+           std::to_string(_mysql_sandbox_port3) + ";";
     exec_and_out_equals(code);
     code = "var __sandbox_uri1 = 'mysql://root:root@localhost:" +
-           _mysql_sandbox_port1 + "';";
+           std::to_string(_mysql_sandbox_port1) + "';";
     exec_and_out_equals(code);
     code = "var __sandbox_uri2 = 'mysql://root:root@localhost:" +
-           _mysql_sandbox_port2 + "';";
+           std::to_string(_mysql_sandbox_port2) + "';";
     exec_and_out_equals(code);
     code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
-           _mysql_sandbox_port3 + "';";
+           std::to_string(_mysql_sandbox_port3) + "';";
     exec_and_out_equals(code);
 
     code = "var localhost = 'localhost'";
@@ -157,8 +160,8 @@ TEST_P(Auto_script_js, run_and_check) {
 
 std::vector<std::string> find_js_tests(const std::string &subdir,
                                        const std::string &ext) {
-  std::string path = shcore::path::join_path(
-      g_test_home, "scripts", "auto", subdir, "scripts");
+  std::string path = shcore::path::join_path(g_test_home, "scripts", "auto",
+                                             subdir, "scripts");
   if (!shcore::is_folder(path))
     return {};
   auto tests = shcore::listdir(path);
@@ -167,7 +170,7 @@ std::vector<std::string> find_js_tests(const std::string &subdir,
   std::vector<std::string> filtered;
   for (const auto &s : tests) {
     if (shcore::str_endswith(s, ext))
-        filtered.push_back(subdir+"/"+s);
+      filtered.push_back(subdir + "/" + s);
   }
   return filtered;
 }

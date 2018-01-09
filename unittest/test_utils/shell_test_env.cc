@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -29,10 +29,10 @@
 #include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
@@ -52,72 +52,43 @@ class My_random : public mysqlshdk::utils::Random {
   int ts = 0;
 };
 
-#ifdef _WIN32
-std::string Shell_test_env::_path_splitter = "\\";
-#else
-std::string Shell_test_env::_path_splitter = "/";
-#endif
+std::string Shell_test_env::_host;
+std::string Shell_test_env::_port;
+std::string Shell_test_env::_user;
+std::string Shell_test_env::_pwd;
+int Shell_test_env::_port_number;
+std::string Shell_test_env::_hostname;
+std::string Shell_test_env::_hostname_ip;
+std::string Shell_test_env::_uri;
+std::string Shell_test_env::_uri_nopasswd;
+std::string Shell_test_env::_mysql_port;
+std::string Shell_test_env::_mysql57_port;
+int Shell_test_env::_mysql_port_number;
+std::string Shell_test_env::_mysql_uri;
+std::string Shell_test_env::_mysql57_uri;
+std::string Shell_test_env::_mysql_uri_nopasswd;
 
-/**
- * Initializes the variables that serve as base environment for the Unit Tests.
- *
- * The Unit Tests have the following requirements:
- * @li A MySQL Server setup and running.
- * @li PATH must include the path to the binary folder of the MySQL Server that
- * will be used for sandbox operations (if required).
- * @li A set of environment variables that configure the way the Unit Tests will
- * be executed.
- *
- * At least the following environment variables are required:
- * @li MYSQL_URI An URI containing ONLY MySQL user and host where the base MySQL
- * Server is running. The usual value for this variable is root\@localhost.
- * @li MYSQL_PORT The port where the base MySQL Server listens for connections
- * through the MySQL protocol.
- * @li MYSQLX_PORT The port where the base MySQL Server listens for connections
- * through the X protocol.
- *
- * Optionally, the next environment variables can be defined:
- * @li MYSQL_PWD The password for the root account if required. Since it's
- * common that the server is initialized with --initialize-insecure most of the
- * time this is not required.
- * @li MYSQL_SOCKET
- * @li MYSQLX_SOCKET
- * @li MYSQL_HOSTNAME
- * @li MYSQL_SANDBOX_PORT1 The port to be used for the first sandbox on tests
- * that require it, if not specified it will be calculated as the value of
- * MYSQL_PORT + 10
- * @li MYSQL_SANDBOX_PORT2 The port to be used for the first sandbox on tests
- * that require it, if not specified it will be calculated as the value of
- * MYSQL_PORT + 20
- * @li MYSQL_SANDBOX_PORT3 The port to be used for the first sandbox on tests
- * that require it, if not specified it will be calculated as the value of
- * MYSQL_PORT + 30
- * @li TMPDIR The path that will be used to create sandboxes if required, if not
- * specified the path where run_unit_tests binary will be used.
- */
-Shell_test_env::Shell_test_env() {
-  const char *uri = getenv("MYSQL_URI");
-  if (uri == NULL)
-    throw std::runtime_error(
-        "MYSQL_URI environment variable has to be defined for tests");
+std::string Shell_test_env::_socket;
+std::string Shell_test_env::_mysql_socket;
 
-  // Creates connection data and recreates URI, this will fix URI if no
-  // password is defined So the UT don't prompt for password ever
-  auto data = shcore::get_connection_options(uri);
+std::string Shell_test_env::_sandbox_dir;
 
-  _host = data.get_host();
-  _user = data.get_user();
+int Shell_test_env::_def_mysql_sandbox_port1 = 0;
+int Shell_test_env::_def_mysql_sandbox_port2 = 0;
+int Shell_test_env::_def_mysql_sandbox_port3 = 0;
 
-  const char *pwd = getenv("MYSQL_PWD");
-  if (pwd) {
-    _pwd.assign(pwd);
-    data.set_password(_pwd);
-  } else {
-    data.set_password("");
-  }
+mysqlshdk::utils::Version Shell_test_env::_target_server_version;
+mysqlshdk::utils::Version Shell_test_env::_highest_tls_version;
 
-  std::string uri_string = data.as_uri(mysqlshdk::db::uri::formats::full());
-  _uri = uri_string;
+void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
+                               int sandbox_port3) {
+  // All tests expect the following standard test server definitions
+  // Tests that need something else should create a sandbox with the required
+  // configurations
+  _host = "localhost";
+  _user = "root";
+  _pwd = "";
+  _uri = "root:@localhost";
   _mysql_uri = _uri;
 
   const char *xport = getenv("MYSQLX_PORT");
@@ -138,7 +109,7 @@ Shell_test_env::Shell_test_env() {
   const char *port57 = getenv("MYSQL57_PORT");
   if (port57) {
     _mysql57_port.assign(port57);
-    _mysql57_uri = uri_string +":" + _mysql57_port;
+    _mysql57_uri = "root:@localhost:" + _mysql57_port;
   }
 
   const char *xsock = getenv("MYSQLX_SOCKET");
@@ -156,29 +127,9 @@ Shell_test_env::Shell_test_env() {
 
   _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1)
-    _mysql_sandbox_port1.assign(sandbox_port1);
-  else
-    _mysql_sandbox_port1 = std::to_string(atoi(_mysql_port.c_str()) + 10);
-
-  _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
-
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2)
-    _mysql_sandbox_port2.assign(sandbox_port2);
-  else
-    _mysql_sandbox_port2 = std::to_string(atoi(_mysql_port.c_str()) + 20);
-
-  _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
-
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3)
-    _mysql_sandbox_port3.assign(sandbox_port3);
-  else
-    _mysql_sandbox_port3 = std::to_string(atoi(_mysql_port.c_str()) + 30);
-
-  _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+  _def_mysql_sandbox_port1 = sandbox_port1;
+  _def_mysql_sandbox_port2 = sandbox_port2;
+  _def_mysql_sandbox_port3 = sandbox_port3;
 
   const char *tmpdir = getenv("TMPDIR");
   if (tmpdir) {
@@ -189,32 +140,82 @@ Shell_test_env::Shell_test_env() {
     _sandbox_dir = shcore::get_binary_folder();
   }
 
-  std::vector<std::string> path_components = {_sandbox_dir,
-                                              _mysql_sandbox_port1, "my.cnf"};
-  _sandbox_cnf_1 = shcore::str_join(path_components, _path_splitter);
-
-  path_components[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2 = shcore::str_join(path_components, _path_splitter);
-
-  path_components[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3 = shcore::str_join(path_components, _path_splitter);
-
-  std::vector<std::string> backup_path = {_sandbox_dir + _path_splitter + "my",
-                                          _mysql_sandbox_port1, "cnf"};
-
-  _sandbox_cnf_1_bkp = shcore::str_join(backup_path, ".");
-
-  backup_path[1] = _mysql_sandbox_port2;
-  _sandbox_cnf_2_bkp = shcore::str_join(backup_path, ".");
-
-  backup_path[1] = _mysql_sandbox_port3;
-  _sandbox_cnf_3_bkp = shcore::str_join(backup_path, ".");
-
   // Enabling test context for expectations, the default context is the server
   // version
   _target_server_version = g_target_server_version;
   _highest_tls_version = g_highest_tls_version;
+}
+
+/**
+ * Initializes the variables that serve as base environment for the Unit Tests.
+ *
+ * The Unit Tests have the following requirements:
+ * @li A MySQL Server setup and running.
+ * @li PATH must include the path to the binary folder of the MySQL Server that
+ * will be used for sandbox operations (if required).
+ * @li A set of environment variables that configure the way the Unit Tests will
+ * be executed.
+ *
+ * At least the following environment variables are required:
+ * @li MYSQL_PORT The port where the base MySQL Server listens for connections
+ * through the MySQL protocol.
+ * @li MYSQLX_PORT The port where the base MySQL Server listens for connections
+ * through the X protocol.
+ *
+ * @li MYSQL_SANDBOX_PORT1 The port to be used for the first sandbox on tests
+ * that require it, if not specified it will be calculated as the value of
+ * MYSQL_PORT + 10
+ * @li MYSQL_SANDBOX_PORT2 The port to be used for the first sandbox on tests
+ * that require it, if not specified it will be calculated as the value of
+ * MYSQL_PORT + 20
+ * @li MYSQL_SANDBOX_PORT3 The port to be used for the first sandbox on tests
+ * that require it, if not specified it will be calculated as the value of
+ * MYSQL_PORT + 30
+ * @li TMPDIR The path that will be used to create sandboxes if required, if not
+ * specified the path where run_unit_tests binary will be used.
+ */
+Shell_test_env::Shell_test_env() {
+  _mysql_sandbox_port1 = _def_mysql_sandbox_port1;
+  _mysql_sandbox_port2 = _def_mysql_sandbox_port2;
+  _mysql_sandbox_port3 = _def_mysql_sandbox_port3;
+
   _test_context = _target_server_version.get_base();
+}
+
+std::string Shell_test_env::mysql_sandbox_uri1(const std::string &user,
+                                               const std::string &pwd) {
+  return "mysql://" + user + ":" + pwd +
+         "@localhost:" + std::to_string(_mysql_sandbox_port1);
+}
+
+std::string Shell_test_env::mysql_sandbox_uri2(const std::string &user,
+                                               const std::string &pwd) {
+  return "mysql://" + user + ":" + pwd +
+         "@localhost:" + std::to_string(_mysql_sandbox_port2);
+}
+
+std::string Shell_test_env::mysql_sandbox_uri3(const std::string &user,
+                                               const std::string &pwd) {
+  return "mysql://" + user + ":" + pwd +
+         "@localhost:" + std::to_string(_mysql_sandbox_port3);
+}
+
+std::string Shell_test_env::mysqlx_sandbox_uri1(const std::string &user,
+                                                const std::string &pwd) {
+  return "mysqlx://" + user + ":" + pwd +
+         "@localhost:" + std::to_string(_mysql_sandbox_port1 * 10);
+}
+
+std::string Shell_test_env::mysqlx_sandbox_uri2(const std::string &user,
+                                                const std::string &pwd) {
+  return "mysqlx://" + user + ":" + pwd +
+         "@localhost:" + std::to_string(_mysql_sandbox_port2 * 10);
+}
+
+std::string Shell_test_env::mysqlx_sandbox_uri3(const std::string &user,
+                                                const std::string &pwd) {
+  return "mysqlx://" + user + ":" + pwd +
+         "@localhost:" + std::to_string(_mysql_sandbox_port3 * 10);
 }
 
 static bool g_initialized_test = false;
@@ -263,7 +264,8 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     // parameterized test. For such cases, we replace the index with the
     // given sub_test_name, so that we can have a stable test name that doesn't
     // change if the execution order changes
-    context.append(shcore::path::dirname(test_info->name())+"/"+sub_test_name);
+    context.append(shcore::path::dirname(test_info->name()) + "/" +
+                   sub_test_name);
   } else {
     context.append(test_info->name());
   }
@@ -318,30 +320,24 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
 
       // Override environment dependant data with the same values that were
       // used and saved during recording
-      _mysql_sandbox_port1 = info["sandbox_port1"];
-      _mysql_sandbox_nport1 = std::stoi(_mysql_sandbox_port1);
-      _mysql_sandbox_port2 = info["sandbox_port2"];
-      _mysql_sandbox_nport2 = std::stoi(_mysql_sandbox_port2);
-      _mysql_sandbox_port3 = info["sandbox_port3"];
-      _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
+      _mysql_sandbox_port1 = std::stoi(info["sandbox_port1"]);
+      _mysql_sandbox_port2 = std::stoi(info["sandbox_port2"]);
+      _mysql_sandbox_port3 = std::stoi(info["sandbox_port3"]);
 
       _hostname = info["hostname"];
       _hostname_ip = info["hostname_ip"];
     } catch (std::exception &e) {
       // std::cout << e.what() << "\n";
-      _mysql_sandbox_port1 = "3316";
-      _mysql_sandbox_nport1 = 3316;
-      _mysql_sandbox_port2 = "3326";
-      _mysql_sandbox_nport2 = 3326;
-      _mysql_sandbox_port3 = "3336";
-      _mysql_sandbox_nport3 = 3336;
+      _mysql_sandbox_port1 = 3316;
+      _mysql_sandbox_port2 = 3326;
+      _mysql_sandbox_port3 = 3336;
     }
   } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
     std::map<std::string, std::string> info;
 
-    info["sandbox_port1"] = _mysql_sandbox_port1;
-    info["sandbox_port2"] = _mysql_sandbox_port2;
-    info["sandbox_port3"] = _mysql_sandbox_port3;
+    info["sandbox_port1"] = std::to_string(_mysql_sandbox_port1);
+    info["sandbox_port2"] = std::to_string(_mysql_sandbox_port2);
+    info["sandbox_port3"] = std::to_string(_mysql_sandbox_port3);
     info["hostname"] = _hostname;
     info["hostname_ip"] = _hostname_ip;
 
@@ -402,6 +398,12 @@ std::string Shell_test_env::get_path_to_mysqlsh() {
   }
 
   return command;
+}
+
+std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {
+  if (file.empty())
+    return g_test_home;
+  return shcore::path::join_path(g_test_home, file);
 }
 
 /**
@@ -470,16 +472,15 @@ bool Shell_test_env::check_open_sessions() {
   size_t leaks = 0;
   for (const auto &s : _open_sessions) {
     if (auto session = s.session.lock()) {
-      std::cerr << makered("Unclosed/leaked session at")
-                << makeblue(s.location) << "\n";
+      std::cerr << makered("Unclosed/leaked session at") << makeblue(s.location)
+                << "\n";
       std::cerr << s.stacktrace_at_open << "\n\n";
       session->close();
       leaks++;
     }
   }
   if (leaks > 0) {
-    std::cerr << makered("SESSION LEAK CHECK ERROR:") << " There are "
-              << leaks
+    std::cerr << makered("SESSION LEAK CHECK ERROR:") << " There are " << leaks
               << " sessions still open at the end of the test\n";
   }
   _open_sessions.clear();
@@ -510,7 +511,6 @@ void Shell_test_env::on_session_close(
   }
   assert(0);
 }
-
 
 }  // namespace tests
 
@@ -561,19 +561,12 @@ void run_script_classic(const std::vector<std::string> &sql) {
  * I MYSQL_URI is not defined, it will use 'root@localhost'.
  */
 std::string shell_test_server_uri(int proto) {
-  const char *uri = getenv("MYSQL_URI");
-  if (!uri)
-    uri = "root@localhost";
+  const char *uri = "root@localhost";
 
   // Creates connection data and recreates URI, fixes URI if no pwd defined
   // So the UT don't prompt for password ever
   auto data = shcore::get_connection_options(uri);
-
-  const char *pwd = getenv("MYSQL_PWD");
-  if (pwd)
-    data.set_password(pwd);
-  else
-    data.set_password("");
+  data.set_password("");
 
   std::string _uri;
   _uri = mysqlshdk::db::uri::Uri_encoder().encode_uri(

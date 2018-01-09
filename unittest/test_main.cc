@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -298,32 +298,11 @@ static bool delete_sandbox(int port) {
 }
 
 
-static void check_zombie_sandboxes() {
+static void check_zombie_sandboxes(int sport1, int sport2, int sport3) {
   int port = 3306;
   if (getenv("MYSQL_PORT")) {
     port = atoi(getenv("MYSQL_PORT"));
   }
-  int sport1, sport2, sport3;
-
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1) {
-    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
-  } else {
-    sport1 = port + 10;
-  }
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2) {
-    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
-  } else {
-    sport2 = port + 20;
-  }
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3) {
-    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
-  } else {
-    sport3 = port + 30;
-  }
-
   bool have_zombies = false;
 
   have_zombies |= !delete_sandbox(sport1);
@@ -456,8 +435,6 @@ int main(int argc, char **argv) {
         << "The following environment variables are available:\n"
         << "MYSQL_PORT classic protocol port for local MySQL (default 3306)\n"
         << "MYSQLX_PORT X protocol port for local MySQL (default 33060)\n"
-        << "MYSQL_PWD root password for local MySQL server (default "
-           ")\n"
         // << "MYSQL_REMOTE_HOST for tests against remove MySQL (default not
         // set)\n"
         // << "MYSQL_REMOTE_PWD root password for remote MySQL server (default
@@ -638,13 +615,32 @@ int main(int argc, char **argv) {
 #endif
 
   g_mysqlsh_argv0 = mysqlsh_path.c_str();
-
   g_mppath = strdup(mppath.c_str());
 
+  int sport1, sport2, sport3;
+  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+  if (sandbox_port1) {
+    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
+  } else {
+    sport1 = std::stoi(getenv("MYSQL_PORT")) + 10;
+  }
+  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+  if (sandbox_port2) {
+    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
+  } else {
+    sport2 = std::stoi(getenv("MYSQL_PORT")) + 20;
+  }
+  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+  if (sandbox_port3) {
+    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
+  } else {
+    sport3 = std::stoi(getenv("MYSQL_PORT")) + 30;
+  }
   // Check for leftover sandbox servers
   if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
-    check_zombie_sandboxes();
+    check_zombie_sandboxes(sport1, sport2, sport3);
   }
+  tests::Shell_test_env::setup_env(sport1, sport2, sport3);
 
   tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
                                          g_target_server_version.get_full());

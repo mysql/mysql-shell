@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -40,11 +40,11 @@ class Api_connections : public Shell_js_script_tester {
     set_setup_script("setup.js");
     execute_setup();
 
-    _my_port = _mysql_sandbox_port1;
+    _my_port = std::to_string(_mysql_sandbox_port1);
     _my_x_port = get_sandbox_x_port();
 
-    _my_cnf_path = testutil->get_sandbox_conf_path(_mysql_sandbox_nport1);
-    _my_ca_file = testutil->get_sandbox_path(_mysql_sandbox_nport1, "ca.pem");
+    _my_cnf_path = testutil->get_sandbox_conf_path(_mysql_sandbox_port1);
+    _my_ca_file = testutil->get_sandbox_path(_mysql_sandbox_port1, "ca.pem");
     mysqlshdk::db::uri::Uri_encoder encoder;
     _my_ca_file_uri = encoder.encode_value(_my_ca_file);
 
@@ -100,7 +100,7 @@ class Api_connections : public Shell_js_script_tester {
 
 
   std::string get_sandbox_x_port() {
-    return std::to_string(_mysql_sandbox_nport1 * 10);
+    return std::to_string(_mysql_sandbox_port1 * 10);
   }
 
  protected:
@@ -132,7 +132,7 @@ TEST_F(Api_connections, ssl_enabled_require_secure_transport_on) {
 }
 
 TEST_F(Api_connections, ssl_disabled) {
-  disable_ssl_on_instance(_mysql_sandbox_nport1, "unsecure");
+  disable_ssl_on_instance(_mysql_sandbox_port1, "unsecure");
 
   execute("var __my_user = 'unsecure';");
 

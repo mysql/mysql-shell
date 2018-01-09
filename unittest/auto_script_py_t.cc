@@ -100,20 +100,23 @@ class Auto_script_py : public Shell_py_script_tester,
     exec_and_out_equals(code);
     code = "__mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    code = "__mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
+    code =
+        "__mysql_sandbox_port1 = " + std::to_string(_mysql_sandbox_port1) + ";";
     exec_and_out_equals(code);
-    code = "__mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
+    code =
+        "__mysql_sandbox_port2 = " + std::to_string(_mysql_sandbox_port2) + ";";
     exec_and_out_equals(code);
-    code = "__mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
+    code =
+        "__mysql_sandbox_port3 = " + std::to_string(_mysql_sandbox_port3) + ";";
     exec_and_out_equals(code);
     code = "__sandbox_uri1 = 'mysql://root:root@localhost:" +
-           _mysql_sandbox_port1 + "';";
+           std::to_string(_mysql_sandbox_port1) + "';";
     exec_and_out_equals(code);
     code = "__sandbox_uri2 = 'mysql://root:root@localhost:" +
-           _mysql_sandbox_port2 + "';";
+           std::to_string(_mysql_sandbox_port2) + "';";
     exec_and_out_equals(code);
     code = "__sandbox_uri3 = 'mysql://root:root@localhost:" +
-           _mysql_sandbox_port3 + "';";
+           std::to_string(_mysql_sandbox_port3) + "';";
     exec_and_out_equals(code);
 
     code = "localhost = 'localhost'";

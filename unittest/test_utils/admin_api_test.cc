@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -105,5 +105,6 @@ void Admin_api_test::TearDownSampleCluster(const char *context) {
   shell_env.utils()->destroy_sandbox(shell_env.sb_port3());
   shell_env.teardown_replayable_shell();
 }
+
 
 }  // namespace tests
