@@ -250,7 +250,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
   void enable_testutil();
   void enable_replay();
-  virtual void execute_setup() {};
+  virtual void execute_setup() {}
 
   virtual void reset_shell() {
     // If the options have not been set, they must be set now, otherwise
@@ -291,6 +291,12 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   }
 
   std::shared_ptr<tests::Testutils> testutil;
+
+  static std::shared_ptr<tests::Testutils> make_testutils(
+      std::shared_ptr<mysqlsh::Mysql_shell> shell = {}) {
+    return std::make_shared<tests::Testutils>(_sandbox_dir, false, shell,
+                                              get_path_to_mysqlsh());
+  }
 
   std::shared_ptr<mysqlsh::Shell_options> get_options() {
     if (!_opts)

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -25,16 +25,16 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 // Environment variables only
 
 #include <list>
-#include <vector>
-#include <string>
-#include <utility>
 #include <map>
 #include <memory>
-#include "unittest/gtest_clean.h"
+#include <string>
+#include <utility>
+#include <vector>
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/version.h"
+#include "unittest/gtest_clean.h"
 
-extern "C" const char* g_argv0;
+extern "C" const char *g_argv0;
 extern int g_test_trace_scripts;
 extern int g_test_trace_sql;
 extern bool g_test_color_output;
@@ -67,7 +67,6 @@ extern bool g_test_color_output;
                   << " but got another\n";                                    \
   }
 
-
 namespace tests {
 /**
  * \ingroup UTFramework
@@ -76,9 +75,10 @@ namespace tests {
 class Override_row_string : public mysqlshdk::db::replay::Row_hook {
  public:
   Override_row_string(std::unique_ptr<mysqlshdk::db::IRow> source,
-                      uint32_t column, const std::string& value)
-    : mysqlshdk::db::replay::Row_hook(std::move(source)),
-    _column(column), _value(value) {
+                      uint32_t column, const std::string &value)
+      : mysqlshdk::db::replay::Row_hook(std::move(source)),
+        _column(column),
+        _value(value) {
   }
 
   std::string get_string(uint32_t index) const override {
@@ -102,68 +102,89 @@ class Shell_test_env : public ::testing::Test {
  public:
   Shell_test_env();
 
-  virtual void SetUpOnce() {}
+  virtual void SetUpOnce() {
+  }
 
   static void SetUpTestCase();
 
   std::string setup_recorder(const char *sub_test_name = nullptr);
   void teardown_recorder();
 
+  static void setup_env(int sandbox_port1, int sandbox_port2,
+                        int sandbox_port3);
+
  protected:
-  std::string _host;  //!< The host name configured in MYSQL_URI
-  std::string _port;  //!< The port for X protocol sessions, env:MYSQLX_PORT
-  std::string _user;  //!< The user configured in env:MYSQL_URI
-  int _port_number;  //!< The port for X protocol sessions, env:MYSQLX_PORT
-  std::string _hostname;  //!< TBD
-  std::string _hostname_ip;  //!< TBD
-  std::string _uri;  //!< A full URI for X protocol sessions
-  std::string _uri_nopasswd;  //!< A password-less URI for X protocol sessions
-  std::string _pwd;  //!< The password as configured in env:MYSQL_PWD
-  std::string _mysql_port;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT
-  std::string _mysql57_port;  //!< The port of 5.7 server for upgrade checker
-  int _mysql_port_number;  //!< The port for MySQL protocol sessions, env:MYSQL_PORT
-  std::string _mysql_uri;  //!< A full URI for MySQL protocol sessions
-  std::string _mysql57_uri;  //!< An URI of 5.7 server for upgrade checker
-  std::string _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
-  std::string _socket;  //!< env:MYSQLX_SOCKET
-  std::string _mysql_socket;  //!< env:MYSQL_SOCKET
-  mysqlshdk::utils::Version _target_server_version;  //!< The version of the used MySQL Server
-  mysqlshdk::utils::Version _highest_tls_version;  //!< The highest TLS version supported by MySQL Server
+  static std::string _host;  //!< localhost
+  static std::string _port;  //!< The port for X protocol, env:MYSQLX_PORT
+  static std::string _user;
+  static std::string _pwd;
+  static int _port_number;       //!< The port for X protocol, env:MYSQLX_PORT
+  static std::string _hostname;  //!< TBD
+  static std::string _hostname_ip;   //!< TBD
+  static std::string _uri;           //!< A full URI for X protocol sessions
+  static std::string _uri_nopasswd;  //!< A password-less URI for X protocol
+  static std::string
+      _mysql_port;  //!< The port for MySQL protocol, env:MYSQL_PORT
+  static std::string
+      _mysql57_port;  //!< The port of 5.7 server for upgrade checker
+  static int
+      _mysql_port_number;  //!< The port for MySQL protocol, env:MYSQL_PORT
+  static std::string _mysql_uri;  //!< A full URI for MySQL protocol sessions
+  static std::string
+      _mysql57_uri;  //!< An URI of 5.7 server for upgrade checker
+  static std::string
+      _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
+
+  static std::string _socket;        //!< env:MYSQLX_SOCKET
+  static std::string _mysql_socket;  //!< env:MYSQL_SOCKET
+
+  static std::string _sandbox_dir;  //!< Path to the sandbox directory
+
+  // Default sandbox ports
+  static int _def_mysql_sandbox_port1;  //!< Port of the first sandbox
+  static int _def_mysql_sandbox_port2;  //!< Port of the second sandbox
+  static int _def_mysql_sandbox_port3;  //!< Port of the third sandbox
+
+  // Overriden sandbox ports (used for replays)
+  int _mysql_sandbox_port1;  //!< Port of the first sandbox
+  int _mysql_sandbox_port2;  //!< Port of the second sandbox
+  int _mysql_sandbox_port3;  //!< Port of the third sandbox
+
+  static mysqlshdk::utils::Version
+      _target_server_version;  //!< The version of the used MySQL Server
+  static mysqlshdk::utils::Version _highest_tls_version;  //!< The highest TLS
+                                                          //!< version supported
+                                                          //!< by MySQL Server
+
+ protected:
   std::string _test_context;  //!< Context for script validation engine
 
   std::string _current_entry_point;
   std::vector<std::string> _current_entry_point_stacktrace;
   bool _recording_enabled = false;
 
-  std::map<std::string, std::string> _output_tokens; //!< Tokens for string resolution
-  std::string resolve_string(const std::string& source);
+  std::map<std::string, std::string>
+      _output_tokens;  //!< Tokens for string resolution
+  std::string resolve_string(const std::string &source);
 
   void SetUp() override;
   void TearDown() override;
 
  public:
   static std::string get_path_to_mysqlsh();
-
-  std::string _mysql_sandbox_port1;  //!< Port of the first sandbox
-  std::string _mysql_sandbox_port2;  //!< Port of the second sandbox
-  std::string _mysql_sandbox_port3;  //!< Port of the third sandbox
-
-  int _mysql_sandbox_nport1;  //!< Port of the first sandbox
-  int _mysql_sandbox_nport2;  //!< Port of the second sandbox
-  int _mysql_sandbox_nport3;  //!< Port of the third sandbox
-
-  // Paths to the 3 commonly used sandboxes configuration files
-  std::string _sandbox_cnf_1;  //!< Path to the first sandbox cfg file
-  std::string _sandbox_cnf_2;  //!< Path to the second sandbox cfg file
-  std::string _sandbox_cnf_3;  //!< Path to the third sandbox cfg file
-
-  std::string _sandbox_cnf_1_bkp;  //!< Path to the first sandbox cfg file backup
-  std::string _sandbox_cnf_2_bkp;  //!< Path to the second sandbox cfg file backup
-  std::string _sandbox_cnf_3_bkp;  //!< Path to the third sandbox cfg file backup
-
-  static std::string _path_splitter;  //!< OS path separator
-
-  std::string _sandbox_dir;  //!< Path to the configured sandbox directory
+  static std::string get_path_to_test_dir(const std::string &file = "");
+  std::string mysql_sandbox_uri1(const std::string &user = "root",
+                                 const std::string &pwd = "root");
+  std::string mysql_sandbox_uri2(const std::string &user = "root",
+                                 const std::string &pwd = "root");
+  std::string mysql_sandbox_uri3(const std::string &user = "root",
+                                 const std::string &pwd = "root");
+  std::string mysqlx_sandbox_uri1(const std::string &user = "root",
+                                  const std::string &pwd = "root");
+  std::string mysqlx_sandbox_uri2(const std::string &user = "root",
+                                  const std::string &pwd = "root");
+  std::string mysqlx_sandbox_uri3(const std::string &user = "root",
+                                  const std::string &pwd = "root");
 
  private:
   struct Open_session {

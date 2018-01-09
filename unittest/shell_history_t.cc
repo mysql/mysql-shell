@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,13 +79,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(3, args));
   shell._history.set_limit(100);
 
-  const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options(getenv("MYSQL_URI"));
+  auto coptions = shcore::get_connection_options("root@localhost");
   coptions.set_scheme("mysql");
-  if (pwd)
-    coptions.set_password(pwd);
-  else
-    coptions.set_password("");
+  coptions.set_password("");
   coptions.set_port(atoi(getenv("MYSQL_PORT")));
   shell.connect(coptions, false);
 

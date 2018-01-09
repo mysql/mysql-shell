@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,8 +78,8 @@ TEST_F(Dba_sql_test, get_instance_state) {
     add_member_state_query(&queries, "localhost:3300",
                            "8b53fb76-5c0e-11e7-b067-5ce0c50b9d66",
                            "localhost:3300", member_state);
-    START_SERVER_MOCK(_mysql_sandbox_nport1, queries);*/
-    auto session = create_session(_mysql_sandbox_nport1);
+    START_SERVER_MOCK(_mysql_sandbox_port1, queries);*/
+    auto session = create_session(_mysql_sandbox_port1);
     try {
       mysqlsh::dba::ManagedInstance::State state =
           mysqlsh::dba::get_instance_state(session,
@@ -94,7 +94,7 @@ TEST_F(Dba_sql_test, get_instance_state) {
       ADD_FAILURE();
     }
     session->close();
-    // stop_server_mock(_mysql_sandbox_nport1);
+    // stop_server_mock(_mysql_sandbox_port1);
 
     // Test single-primary scenario (gr_primary_member != mysql_server_uuid):
     // variable_value (group_replication_primary_member)
@@ -110,8 +110,8 @@ TEST_F(Dba_sql_test, get_instance_state) {
     add_member_state_query(&queries, "localhost:3300",
                            "1406a49b-5c24-11e7-b979-5ce0c50b9d66",
                            "localhost:3300", member_state);
-    START_SERVER_MOCK(_mysql_sandbox_nport1, queries);*/
-    session = create_session(_mysql_sandbox_nport1);
+    START_SERVER_MOCK(_mysql_sandbox_port1, queries);*/
+    session = create_session(_mysql_sandbox_port1);
     try {
       mysqlsh::dba::ManagedInstance::State state =
           mysqlsh::dba::get_instance_state(session,
@@ -126,7 +126,7 @@ TEST_F(Dba_sql_test, get_instance_state) {
       ADD_FAILURE();
     }
     session->close();
-    // stop_server_mock(_mysql_sandbox_nport1);
+    // stop_server_mock(_mysql_sandbox_port1);
 
     // Test multi-primary scenario (gr_primary_member = ""):
     // variable_value (group_replication_primary_member)
@@ -141,8 +141,8 @@ TEST_F(Dba_sql_test, get_instance_state) {
     add_member_state_query(&queries, "localhost:3300",
                            "1406a49b-5c24-11e7-b979-5ce0c50b9d66",
                            "localhost:3300", member_state);
-    START_SERVER_MOCK(_mysql_sandbox_nport1, queries);*/
-    session = create_session(_mysql_sandbox_nport1);
+    START_SERVER_MOCK(_mysql_sandbox_port1, queries);*/
+    session = create_session(_mysql_sandbox_port1);
     try {
       mysqlsh::dba::ManagedInstance::State state =
           mysqlsh::dba::get_instance_state(session,
@@ -156,7 +156,7 @@ TEST_F(Dba_sql_test, get_instance_state) {
       ADD_FAILURE();
     }
     session->close();
-    // stop_server_mock(_mysql_sandbox_nport1);
+    // stop_server_mock(_mysql_sandbox_port1);
   }
 }
 
@@ -177,8 +177,8 @@ TEST_F(Dba_sql_test, get_instance_state_errors) {
   add_member_state_query(&queries, "localhost:3300",
                          "1406a49b-5c24-11e7-b979-5ce0c50b9d66",
                          "localhost:3300", "INVALID");
-  START_SERVER_MOCK(_mysql_sandbox_nport1, queries);*/
-  auto session = create_session(_mysql_sandbox_nport1);
+  START_SERVER_MOCK(_mysql_sandbox_port1, queries);*/
+  auto session = create_session(_mysql_sandbox_port1);
   try {
     mysqlsh::dba::get_instance_state(session, "localhost:3300");
     SCOPED_TRACE("Exception expected to be thrown for 'INVALID' state.");
@@ -219,11 +219,11 @@ TEST_F(Dba_sql_test, get_peer_seeds_md_in_synch) {
   // JSON_UNQUOTE(addresses->'$.grLocal')
   // ------------------------------------
   // localhost:port2
-  auto session = create_session(_mysql_sandbox_nport1);
+  auto session = create_session(_mysql_sandbox_port1);
   try {
     std::vector<std::string> seeds =
-        mysqlsh::dba::get_peer_seeds(session, "localhost:" + _mysql_sandbox_port1);
-    std::vector<std::string> result = {"localhost:1" + _mysql_sandbox_port2};
+        mysqlsh::dba::get_peer_seeds(session, "localhost:" + std::to_string(_mysql_sandbox_port1));
+    std::vector<std::string> result = {"localhost:1" + std::to_string(_mysql_sandbox_port2)};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -232,6 +232,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_md_in_synch) {
   }
   session->close();
 }
+
 TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   // Test with metadata GR addresses in gr_group_seed variable:
   // group_replication_group_seeds
@@ -242,7 +243,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   // ------------------------------------
   // localhost:port2
   // localhost:port3
-  auto session = create_session(_mysql_sandbox_nport1);
+  auto session = create_session(_mysql_sandbox_port1);
 
   // Insert a fake record for the third instance on the metadata
   std::string query = "insert into mysql_innodb_cluster_metadata.instances "
@@ -253,15 +254,17 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
                       "\"mysqlClassic\": \"localhost:<port>\"}', "
                       "NULL, NULL, NULL)";
 
-  query = shcore::str_replace(query, "<port>", _mysql_sandbox_port3.c_str());
+  query = shcore::str_replace(query, "<port>",
+                              std::to_string(_mysql_sandbox_port3));
 
   session->query(query);
 
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, "localhost:" + _mysql_sandbox_port1);
-    std::vector<std::string> result = {"localhost:1" + _mysql_sandbox_port2,
-                                       "localhost:1" + _mysql_sandbox_port3};
+        session, "localhost:" + std::to_string(_mysql_sandbox_port1));
+    std::vector<std::string> result = {
+        "localhost:1" + std::to_string(_mysql_sandbox_port2),
+        "localhost:1" + std::to_string(_mysql_sandbox_port3)};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -296,14 +299,15 @@ TEST_F(Dba_sql_test, get_peer_seeds_not_in_metadata) {
   metadata_values = {{"localhost:13301"}, {"localhost:13302"}};
   add_get_peer_seeds_queries(&queries, metadata_values, gr_group_seed,
                              "localhost:3300");*/
-  auto session = create_session(_mysql_sandbox_nport1);
+  auto session = create_session(_mysql_sandbox_port1);
   session->query("delete from mysql_innodb_cluster_metadata.instances "
                     " where mysql_server_uuid = '" + uuid_2 + "'");
 
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
-        session, "localhost:" + _mysql_sandbox_port1);
-    std::vector<std::string> result = {"localhost:1" + _mysql_sandbox_port2};
+        session, "localhost:" + std::to_string(_mysql_sandbox_port1));
+    std::vector<std::string> result = {"localhost:1" +
+                                       std::to_string(_mysql_sandbox_port2)};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());

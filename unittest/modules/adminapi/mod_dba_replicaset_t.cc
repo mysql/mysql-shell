@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,7 +103,7 @@ TEST_F(Dba_replicaset_test, rescan_cluster_with_no_changes) {
 // as seen in GR group P_S info, the rescan
 // result should include those on the unavailableInstances list
 TEST_F(Dba_replicaset_test, rescan_cluster_with_unavailable_instances) {
-  auto md_session = create_session(_mysql_sandbox_nport1);
+  auto md_session = create_session(_mysql_sandbox_port1);
 
   // Insert a fake record for the third instance on the metadata
   std::string query = "insert into mysql_innodb_cluster_metadata.instances "
@@ -114,7 +114,8 @@ TEST_F(Dba_replicaset_test, rescan_cluster_with_unavailable_instances) {
                       "\"mysqlClassic\": \"localhost:<port>\"}', "
                       "NULL, NULL, NULL)";
 
-  query = shcore::str_replace(query, "<port>", _mysql_sandbox_port3.c_str());
+  query = shcore::str_replace(query, "<port>",
+                              std::to_string(_mysql_sandbox_port3));
 
   md_session->query(query);
 
@@ -137,7 +138,7 @@ TEST_F(Dba_replicaset_test, rescan_cluster_with_unavailable_instances) {
 
     EXPECT_STREQ(uuid_3.c_str(),
         instance_map->get_string("member_id").c_str());
-    std::string host = "localhost:" + _mysql_sandbox_port3;
+    std::string host = "localhost:" + std::to_string(_mysql_sandbox_port3);
     EXPECT_STREQ(host.c_str(), instance_map->get_string("label").c_str());
     EXPECT_STREQ(host.c_str(), instance_map->get_string("host").c_str());
   } catch (const shcore::Exception &e) {
@@ -154,7 +155,7 @@ TEST_F(Dba_replicaset_test, rescan_cluster_with_unavailable_instances) {
 // as seen in Metadata, the rescan
 // result should include those on the newlyDiscoveredInstances list
 TEST_F(Dba_replicaset_test, rescan_cluster_with_new_instances) {
-  auto md_session = create_session(_mysql_sandbox_nport1);
+  auto md_session = create_session(_mysql_sandbox_port1);
 
   md_session->query("delete from mysql_innodb_cluster_metadata.instances "
                     " where mysql_server_uuid = '" + uuid_2 + "'");
@@ -177,7 +178,7 @@ TEST_F(Dba_replicaset_test, rescan_cluster_with_new_instances) {
 
     EXPECT_STREQ(uuid_2.c_str(),
         instance_map->get_string("member_id").c_str());
-    std::string host = "localhost:" + _mysql_sandbox_port2;
+    std::string host = "localhost:" + std::to_string(_mysql_sandbox_port2);
     EXPECT_STREQ(host.c_str(), instance_map->get_string("name").c_str());
     EXPECT_STREQ(host.c_str(), instance_map->get_string("host").c_str());
 

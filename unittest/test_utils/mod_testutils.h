@@ -151,7 +151,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   void dump_data(const std::string &uri, const std::string &path,
                  const std::vector<std::string> &schemas);
   void import_data(const std::string &uri, const std::string &path,
-                   const std::string &schema);
+                   const std::string &schema = "");
 
  public:
   // InnoDB cluster routines

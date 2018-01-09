@@ -60,21 +60,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     set_setup_script("setup.js");
   }
 
-  void backup_sandbox_configurations() {
-    shcore::copy_file(_sandbox_cnf_1, _sandbox_cnf_1_bkp);
-    shcore::copy_file(_sandbox_cnf_2, _sandbox_cnf_2_bkp);
-    shcore::copy_file(_sandbox_cnf_3, _sandbox_cnf_3_bkp);
-  }
-
-  void restore_sandbox_configuration(int port) {
-    if (port == _mysql_sandbox_nport1)
-      shcore::copy_file(_sandbox_cnf_1_bkp, _sandbox_cnf_1);
-    else if (port == _mysql_sandbox_nport2)
-      shcore::copy_file(_sandbox_cnf_2_bkp, _sandbox_cnf_2);
-    else if (port == _mysql_sandbox_nport3)
-      shcore::copy_file(_sandbox_cnf_3_bkp, _sandbox_cnf_3);
-  }
-
   virtual void set_defaults() {
     Shell_js_script_tester::set_defaults();
 
@@ -132,17 +117,23 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       exec_and_out_equals(code);
       code = "var __mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
-      code = "var __mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
+      code = "var __mysql_sandbox_port1 = " +
+             std::to_string(_mysql_sandbox_port1) + ";";
       exec_and_out_equals(code);
-      code = "var __mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
+      code = "var __mysql_sandbox_port2 = " +
+             std::to_string(_mysql_sandbox_port2) + ";";
       exec_and_out_equals(code);
-      code = "var __mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
+      code = "var __mysql_sandbox_port3 = " +
+             std::to_string(_mysql_sandbox_port3) + ";";
       exec_and_out_equals(code);
-      code = "var uri1 = 'localhost:" + _mysql_sandbox_port1 + "';";
+      code = "var uri1 = 'localhost:" + std::to_string(_mysql_sandbox_port1) +
+             "';";
       exec_and_out_equals(code);
-      code = "var uri2 = 'localhost:" + _mysql_sandbox_port2 + "';";
+      code = "var uri2 = 'localhost:" + std::to_string(_mysql_sandbox_port2) +
+             "';";
       exec_and_out_equals(code);
-      code = "var uri3 = 'localhost:" + _mysql_sandbox_port3 + "';";
+      code = "var uri3 = 'localhost:" + std::to_string(_mysql_sandbox_port3) +
+             "';";
       exec_and_out_equals(code);
     }
     std::string str_have_ssl = _have_ssl ? "true" : "false";
@@ -164,7 +155,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     }
     exec_and_out_equals(code);
 
-    _sandbox_share = _sandbox_dir + _path_splitter + "sandbox.share";
+    _sandbox_share = shcore::path::join_path(_sandbox_dir, "sandbox.share");
 
 #ifdef _WIN32
     code = "var __path_splitter = '\\\\';";
@@ -295,26 +286,6 @@ TEST_F(Shell_js_dba_tests, dba_check_instance_configuration_session) {
   reset_replayable_shell();
   validate_interactive("dba_check_instance_configuration_session.js");
 }
-
-#ifdef obsolete
-// This will deploy the sandbox instances to be recycled by all tests
-// NOTE the previous tests require the sandboxes to NOT be deployed, that's why
-// this test is not the first one
-TEST_F(Shell_js_dba_tests, no_interactive_deploy_instances) {
-  _options->wizards = false;
-  reset_shell();
-
-  execute("dba.verbose = true;");
-
-  validate_interactive("dba_reset_or_deploy.js");
-
-  backup_sandbox_configurations();
-  shcore::create_file(_sandbox_share, "");
-
-  if (::testing::Test::HasFailure())
-    have_sandboxes = false;
-}
-#endif
 
 TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   _options->interactive = true;
@@ -499,6 +470,7 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   MY_EXPECT_LOG_CONTAINS(log);
 }
 
+#if 0
 TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   _options->wizards = false;
   reset_shell();
@@ -551,6 +523,7 @@ TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
   // Clean up sandboxes.
   execute("cleanup_sandboxes(true)");
 }
+#endif
 
 TEST_F(Shell_js_dba_tests, configure_local_instance_errors) {
   _options->wizards = false;
@@ -607,7 +580,7 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
   std::vector<std::string> log = {
     // "DBA: root@localhost:" + _mysql_sandbox_port1 +
     //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
+      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
 
@@ -636,7 +609,7 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {
   std::vector<std::string> log = {
     // "DBA: root@localhost:" + _mysql_sandbox_port1 +
     //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
+      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
 
@@ -653,7 +626,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
   std::vector<std::string> log = {
     // "DBA: root@localhost:" + _mysql_sandbox_port1 +
     //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
+      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
 
@@ -671,7 +644,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   std::vector<std::string> log = {
     // "DBA: root@localhost:" + _mysql_sandbox_port1 +
     //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
-      "DBA: root@localhost:" + _mysql_sandbox_port1 +
+      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
 
@@ -694,7 +667,7 @@ TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
 
   // BUG#26393614
   std::string sandbox_path = shcore::path::join_path(
-      {_sandbox_dir, _mysql_sandbox_port2, "sandboxdata"});
+      {_sandbox_dir, std::to_string(_mysql_sandbox_port2), "sandboxdata"});
   std::vector<std::string> log{
       "'localhost' (" + sandbox_path +
       ") detected as local sandbox. "
@@ -848,24 +821,5 @@ TEST_F(Shell_js_dba_tests, advanced_options) {
 
   validate_interactive("dba_advanced_options.js");
 }
-
-#ifdef obsolete
-TEST_F(Shell_js_dba_tests, no_interactive_delete_instances) {
-  _options->wizards = false;
-  reset_shell();
-
-  enable_debug();
-
-  // Execute setup script to be able to use smart deployment functions.
-  execute_setup();
-
-  execute("cleanup_sandboxes(true);");
-
-  shcore::delete_file(_sandbox_share);
-  shcore::delete_file(_sandbox_cnf_1_bkp);
-  shcore::delete_file(_sandbox_cnf_2_bkp);
-  shcore::delete_file(_sandbox_cnf_3_bkp);
-}
-#endif
 
 }  // namespace shcore
