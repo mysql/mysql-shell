@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <string>
 
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 namespace shcore {
 namespace path {
 namespace detail {
