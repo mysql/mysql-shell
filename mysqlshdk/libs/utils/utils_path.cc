@@ -63,7 +63,11 @@ size_t span_dirname(const std::string &path) {
   if (end == 0 || end == std::string::npos)
     return 1;  // path has no text other than separator
 
-  size_t start = path.find_first_of(k_valid_path_separators, 0, end);
+  size_t start = std::distance(
+      path.begin(),
+      std::find_first_of(
+          path.begin(), path.end() - end, k_valid_path_separators,
+          k_valid_path_separators + strlen(k_valid_path_separators)));
   if (start == std::string::npos)
     return std::string::npos;
 
