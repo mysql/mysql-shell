@@ -7029,7 +7029,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                         '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--mysql', '--sqlc']
-        x_cmds = [("foo\"AnyText\";\n", "ERROR: 1064 (42000): ClassicSession.runSql: You have an error in your SQL syntax")]
+        x_cmds = [("foo\"AnyText\";\n", "ERROR: 1064 (42000): You have an error in your SQL syntax")]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 

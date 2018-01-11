@@ -1231,7 +1231,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   // Tests unable to execute any statement with an expired account
   execute("select host from mysql.user where user = 'expired';");
   MY_EXPECT_STDERR_CONTAINS(
-      "ERROR: 1820 (HY000): ClassicSession.runSql: You must reset your password using ALTER USER "
+      "ERROR: 1820 (HY000): You must reset your password using ALTER USER "
       "statement before executing this statement.");
   output_handler.wipe_all();
 
