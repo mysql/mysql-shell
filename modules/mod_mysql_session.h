@@ -128,9 +128,9 @@ class SHCORE_PUBLIC ClassicSession
   virtual uint64_t get_connection_id() const;
   virtual std::string query_one_string(const std::string &query, int field = 0);
   virtual std::string get_ssl_cipher() const;
-private:
   shcore::Value execute_sql(const std::string &query,
                             const shcore::Array_t &args);
+private:
   virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query);
 public:
   virtual SessionType session_type() const {

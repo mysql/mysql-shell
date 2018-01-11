@@ -216,7 +216,7 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
       r = v8::Integer::New(owner->isolate(), value.value.i);
       break;
     case UInteger:
-      r = v8::Uint32::New(owner->isolate(), (uint32_t)value.value.ui);
+      r = v8::Number::New(owner->isolate(), value.value.ui);
       break;
     case Float:
       r = v8::Number::New(owner->isolate(), value.value.d);
