@@ -187,6 +187,79 @@ TEST_F(Python, basic) {
 
   result = py->execute("1+1+");
   ASSERT_EQ(result, Value());
+
+  // Test lower bigint, handled as Integer
+  py->execute_interactive("a = -9223372036854775808", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.repr(), "-9223372036854775808");
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  // Test bigger bigint, handled as Integer
+  py->execute_interactive("a = 9223372036854775807", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.repr(), "9223372036854775807");
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  // Test bigger unsiged bigint, handled as UInteger
+  py->execute_interactive("a = 18446744073709551615", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.repr(), "18446744073709551615");
+  ASSERT_EQ(result.type, shcore::Value_type::UInteger);
+
+  // Test a bigger number than bigger unsiged bigint
+  // (bigger than the unsigned long long range),
+  // handled as String representation
+  py->execute_interactive("a = 18446744073709551615999", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.repr(), "\"18446744073709551615999L\"");
+  ASSERT_EQ(result.type, shcore::Value_type::String);
+
+  py->execute_interactive("a = -1", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.i, -1);
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  py->execute_interactive("a = +1", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.i, 1);
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  py->execute_interactive("a = -10", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.i, -10);
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  py->execute_interactive("a = +10", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.i, 10);
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  py->execute_interactive("a = 0", cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.i, 0);
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+
+  std::stringstream s;
+  s << "a = " << std::numeric_limits<uint64_t>::max();
+  py->execute_interactive(s.str(), cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.ui, std::numeric_limits<uint64_t>::max());
+  ASSERT_EQ(result.type, shcore::Value_type::UInteger);
+
+  s.str("");
+  s << "a = " << std::numeric_limits<int64_t>::min();
+  py->execute_interactive(s.str(), cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.i, std::numeric_limits<int64_t>::min());
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+
+  s.str("");
+  s << "a = " << std::numeric_limits<int64_t>::max();
+  py->execute_interactive(s.str(), cont);
+  result = py->execute_interactive("a", cont);
+  ASSERT_EQ(result.value.ui, std::numeric_limits<int64_t>::max());
+  ASSERT_EQ(result.type, shcore::Value_type::Integer);
 }
 
 TEST_F(Python, globals) {

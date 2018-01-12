@@ -44,31 +44,61 @@ PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
 */
 
 Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
-  // Some conversions yield errors, in that case a temporary result is assigned to retval and check_err is set
-  bool check_err = false;
+  // Some numeric conversions yield errors, in that case the string representation of the
+  // python object is returned
   Value retval;
 
-  if (!py || py == Py_None)
+  if (!py || py == Py_None) {
     return Value::Null();
-  else if (py == Py_False)
+  } else if (py == Py_False){
     return Value(false);
-  else if (py == Py_True)
+  } else if (py == Py_True) {
     return Value(true);
-  else if (PyInt_Check(py)) {
-    long value = PyInt_AsLong(py);
-    if (value == -1)
-      check_err = true;
-    retval = Value((int64_t)value);
-  } else if (PyLong_Check(py)) {
-    long value = PyLong_AsLong(py);
-    if (value == -1)
-      check_err = true;
-    retval = Value((int64_t)value);
+  } else if (PyInt_Check(py) || PyLong_Check(py)) {
+    int64_t value = PyLong_AsLongLong(py);
+
+    if (value == -1 && PyErr_Occurred()) {
+      // If reading LongLong failed then it attempts
+      // reading UnsignedLongLong
+      PyErr_Clear();
+      uint64_t uint_value = PyLong_AsUnsignedLongLong(py);
+      if (static_cast<int64_t>(uint_value) == -1 && PyErr_Occurred()) {
+        // If reading UnsignedLongLong failed then retrieves
+        // the string representation
+        PyErr_Clear();
+        PyObject *obj_repr = PyObject_Repr(py);
+        if (obj_repr) {
+          const char *s = PyString_AsString(obj_repr);
+
+          if (s)
+            retval = Value(s);
+
+          Py_DECREF(obj_repr);
+        }
+      } else {
+        retval = Value(uint_value);
+      }
+    } else {
+      retval = Value(value);
+    }
   } else if (PyFloat_Check(py)) {
     double value = PyFloat_AsDouble(py);
-    if (value == -1.0)
-      check_err = true;
-    retval = Value(value);
+    if (value == -1.0 && PyErr_Occurred()) {
+      // At this point it means an error was generated above
+      // It is needed to clear it
+      PyErr_Clear();
+      PyObject *obj_repr = PyObject_Repr(py);
+      if (obj_repr) {
+        const char *s = PyString_AsString(obj_repr);
+
+        if (s)
+          retval = Value(s);
+
+        Py_DECREF(obj_repr);
+      }
+    } else {
+      retval = Value(value);
+    }
 #if PY_VERSION_HEX >= 0x2060000
   } else if (PyByteArray_Check(py))
     return Value(PyByteArray_AsString(py), PyByteArray_Size(py));
@@ -148,13 +178,6 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
     }
   }
 
-  if (check_err) {
-    PyObject *pyerror = PyErr_Occurred();
-    if (pyerror) {
-      // TODO: PyErr_Clean();
-      throw Exception::argument_error("Error converting return value");
-    }
-  }
   return retval;
 }
 
