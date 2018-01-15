@@ -1904,7 +1904,6 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
   // Sets a default user if not specified
   mysqlsh::resolve_connection_credentials(&instance_def, nullptr);
-  std::string password = instance_def.get_password();
 
   // TODO(miguel): test if there's already quorum and add a 'force' option to be
   // used if so
@@ -1994,17 +1993,17 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
   for (auto &instance : online_instances) {
     std::string instance_host = instance.endpoint;
-    auto instance_def = shcore::get_connection_options(instance_host, false);
-    instance_def.set_user("root");
-    // We assume the root password is the same on all instances
-    instance_def.set_password(password);
+    auto instance_cnx_opts =
+        shcore::get_connection_options(instance_host, false);
+    // We assume the login credentials are the same on all instances
+    instance_cnx_opts.set_login_options_from(instance_def);
 
     try {
       log_info(
           "Opening a new session to a group_peer instance to obtain the XCOM "
           "address %s",
           instance_host.c_str());
-      session = get_session(instance_def);
+      session = get_session(instance_cnx_opts);
     } catch (std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
