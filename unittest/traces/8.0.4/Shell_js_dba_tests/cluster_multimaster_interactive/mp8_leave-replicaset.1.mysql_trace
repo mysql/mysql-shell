@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "48",
+    "connection_id": "47",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "3d623317-f545-11e7-8b1d-5ce0c50b9d66"
+            "6060fb51-0042-11e8-93bf-5ce0c50b9d66"
         ]
     ]
 },

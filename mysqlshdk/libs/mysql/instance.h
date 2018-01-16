@@ -93,8 +93,6 @@ class IInstance {
       const std::string &user, const std::string &host,
       const std::vector<std::string> &privileges,
       const std::string &on_db, const std::string &on_obj) const = 0;
-  virtual bool check_server_version(uint64_t major, uint64_t minor,
-                                    uint64_t patch) const = 0;
 };
 
 /**
@@ -143,8 +141,6 @@ class Instance : public IInstance {
       const std::string &user, const std::string &host,
       const std::vector<std::string> &privileges,
       const std::string &on_db, const std::string &on_obj) const override;
-  bool check_server_version(uint64_t major, uint64_t minor,
-                            uint64_t patch) const override;
 
   bool is_read_only(bool super) const override;
   utils::Version get_version() const override;

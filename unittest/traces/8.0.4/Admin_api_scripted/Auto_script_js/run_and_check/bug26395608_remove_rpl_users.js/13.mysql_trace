@@ -252,8 +252,8 @@
     ],
     "rows": [
         [
-            "f44f7f2c-f540-11e7-8299-5ce0c50b9d66",
-            "f44f7f2c-f540-11e7-8299-5ce0c50b9d66"
+            "72937a16-003e-11e8-b3d5-5ce0c50b9d66",
+            "72937a16-003e-11e8-b3d5-5ce0c50b9d66"
         ]
     ]
 },
@@ -261,7 +261,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f44f7f2c-f540-11e7-8299-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '72937a16-003e-11e8-b3d5-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
         [
             "default",
             "pm",
-            "f8fbdfa1-f540-11e7-8299-5ce0c50b9d66"
+            "788a85c6-003e-11e8-b3d5-5ce0c50b9d66"
         ]
     ]
 },
@@ -617,7 +617,7 @@
     ],
     "rows": [
         [
-            "f8fbdfa1-f540-11e7-8299-5ce0c50b9d66"
+            "788a85c6-003e-11e8-b3d5-5ce0c50b9d66"
         ]
     ]
 },
@@ -747,8 +747,8 @@
     ],
     "rows": [
         [
-            "f44f7f2c-f540-11e7-8299-5ce0c50b9d66",
-            "f44f7f2c-f540-11e7-8299-5ce0c50b9d66"
+            "72937a16-003e-11e8-b3d5-5ce0c50b9d66",
+            "72937a16-003e-11e8-b3d5-5ce0c50b9d66"
         ]
     ]
 },
@@ -756,7 +756,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f44f7f2c-f540-11e7-8299-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '72937a16-003e-11e8-b3d5-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -980,13 +980,13 @@
     ],
     "rows": [
         [
-            "f44f7f2c-f540-11e7-8299-5ce0c50b9d66",
+            "72937a16-003e-11e8-b3d5-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340"
         ],
         [
-            "f62d38ed-f540-11e7-abe6-5ce0c50b9d66",
+            "7469baa2-003e-11e8-9dd0-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350"
@@ -1622,7 +1622,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "f44f7f2c-f540-11e7-8299-5ce0c50b9d66"
+            "72937a16-003e-11e8-b3d5-5ce0c50b9d66"
         ]
     ]
 },

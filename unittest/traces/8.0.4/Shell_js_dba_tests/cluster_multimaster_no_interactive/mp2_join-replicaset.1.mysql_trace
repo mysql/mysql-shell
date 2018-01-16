@@ -1794,7 +1794,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@log_error",
-            "length": 352,
+            "length": 332,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1807,7 +1807,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3350/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/error.log"
         ]
     ]
 },
@@ -1832,7 +1832,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1845,7 +1845,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -2135,7 +2135,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "SET GLOBAL group_replication_group_name = '983ae425-f546-11e7-a62a-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = 'b3c4bca9-0043-11e8-8113-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2675,7 +2675,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '%/W)2:}e#~1c~|v%*2O>^})V;^a%}&K@' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '#_@W$7]y&,#u()|n:;B3>6%J/;?s:E&*' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

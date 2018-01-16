@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3340/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -153,10 +153,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000003",
-            52750,
+            52669,
             "",
             "",
-            "2f17beba-f541-11e7-ab9d-5ce0c50b9d66:1-91,\n37db47e6-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n451d24c6-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n524d1828-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n5f78d1cb-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n6ca31e50-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n79c4ee6f-f541-11e7-ab9d-5ce0c50b9d66:1-3,\n86e59db8-f541-11e7-ab9d-5ce0c50b9d66:1-3"
+            "06d0b69c-003f-11e8-a5ca-5ce0c50b9d66:1-3,\n13fa256a-003f-11e8-a5ca-5ce0c50b9d66:1-3,\nbbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66:1-91,\nc4d4fdea-003e-11e8-a5ca-5ce0c50b9d66:1-3,\nd2208106-003e-11e8-a5ca-5ce0c50b9d66:1-3,\ndf4dc35e-003e-11e8-a5ca-5ce0c50b9d66:1-3,\nec7b638a-003e-11e8-a5ca-5ce0c50b9d66:1-3,\nf9a875e6-003e-11e8-a5ca-5ce0c50b9d66:1-3"
         ]
     ]
 },

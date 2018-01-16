@@ -1064,7 +1064,7 @@ void ReplicaSet::finalize_instance_removal(
   // Disable and persist GR start on boot if leave-replicaset succeed.
   // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
   //       due to BUG#26495619.
-  if (instance.check_server_version(8, 0, 4))
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 4))
     instance.set_sysvar("group_replication_start_on_boot", false,
                         mysqlshdk::mysql::Var_qualifier::PERSIST);
   else

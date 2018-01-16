@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            983325926
+            2799794672
         ]
     ]
 },
@@ -1794,7 +1794,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@log_error",
-            "length": 352,
+            "length": 332,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1807,7 +1807,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3360/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3360/sandboxdata/error.log"
         ]
     ]
 },
@@ -1832,7 +1832,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1845,7 +1845,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3360/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },
@@ -1917,7 +1917,7 @@
     ],
     "rows": [
         [
-            983325926
+            2799794672
         ]
     ]
 },
@@ -2135,7 +2135,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "SET GLOBAL group_replication_group_name = '81c451f6-f543-11e7-b8c7-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '01c86f7b-0041-11e8-905d-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2675,7 +2675,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000003' /*)*/, MASTER_PASSWORD = /*(*/ '/<^X]@w~=7|r)9{n)?d-R_V|)$W7],:>' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000003' /*)*/, MASTER_PASSWORD = /*(*/ '?_K|#.8x%#&v$-=z<1*g0I#(W]X?$?&@' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

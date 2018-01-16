@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "47",
+    "connection_id": "46",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u001Az@2W\u001ChgvTTw;{z\u0002\nU+\\aVCy7jtS.cNTx7P6IRV3DWPpwIQZycqvlyn4p5DrDa8",
+            "$A$005$VT4@4_h\\5[E|\u0005[C4D-z8O6J5sKeRFMdRYCJ28goDpLB4kb6FQk21CYk0SEzLvL/",
             "N",
-            "2018-01-09 13:41:17",
+            "2018-01-23 13:21:04",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$}/w}'.\u0010:?(C?|;e\u000E\u000Eqe\u0012iBVlHDcV/F.0X5BIATxdSji3bwAawsOYBfn.Qd2Ric3",
+            "$A$005$\u00152\u00130dBp\u0014(L-q\u0001[r7znC\u0007ef5/TY1n2CkJnNGHgUKGPz1xSACuuiX3UC4Dz6ySc51",
             "N",
-            "2018-01-05 14:51:52",
+            "2018-01-23 11:20:14",
             null,
             "N",
             "Y",
@@ -3508,7 +3508,7 @@
     ],
     "rows": [
         [
-            "c4da52f2-f542-11e7-bcaa-5ce0c50b9d66"
+            "43ffe9b4-0040-11e8-aeb3-5ce0c50b9d66"
         ]
     ]
 },
@@ -3636,7 +3636,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = 'c4da52f2-f542-11e7-bcaa-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '43ffe9b4-0040-11e8-aeb3-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4176,7 +4176,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '$%9M1H_}_$s;];$s>+%X>^9-_,x_(A#=' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '%]_P9[+Z=:?k$_h*(R1f?*;+8,%.},X<' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -2753,100 +2753,6 @@ TEST_F(Instance_test, drop_users_with_regexp) {
   EXPECT_CALL(session, execute(
       "DROP USER IF EXISTS 'test_user_r1729237509'@'%'"));
   instance.drop_users_with_regexp("'test_user_r[0-9]{10}.*");
-
-  EXPECT_CALL(session, close());
-  _session->close();
-}
-
-TEST_F(Instance_test, check_server_version) {
-  EXPECT_CALL(session, connect(_connection_options));
-  _session->connect(_connection_options);
-
-  mysqlshdk::mysql::Instance instance(_session);
-
-  // Check version - compatible (server major value is greater).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                     "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  bool result = instance.check_server_version(4, 8, 21);
-  EXPECT_TRUE(result);
-
-  // Check version - compatible (server minor value is greater).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                         "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  result = instance.check_server_version(5, 6, 21);
-  EXPECT_TRUE(result);
-
-  // Check version - compatible (server patch value is greater).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                         "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  result = instance.check_server_version(5, 7, 19);
-  EXPECT_TRUE(result);
-
-  // Check version - compatible (same version).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                         "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  result = instance.check_server_version(5, 7, 20);
-  EXPECT_TRUE(result);
-
-  // Check version - not compatible (server major value is lower).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                         "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  result = instance.check_server_version(6, 6, 19);
-  EXPECT_FALSE(result);
-
-  // Check version - not compatible (server minor value is lower).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                         "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  result = instance.check_server_version(5, 8, 19);
-  EXPECT_FALSE(result);
-
-  // Check version - not compatible (server patch value is lower).
-  session.expect_query("SELECT sys.version_major(), sys.version_minor(), "
-                       "sys.version_patch()")
-      .then_return({{"SELECT sys.version_major(), sys.version_minor(), "
-                         "sys.version_patch()",
-                     {"sys.version_major()", "sys.version_minor()",
-                      "sys.version_patch()"},
-                     {Type::String, Type::String, Type::String},
-                     {{"5", "7", "20"}}}});
-  result = instance.check_server_version(5, 7, 21);
-  EXPECT_FALSE(result);
 
   EXPECT_CALL(session, close());
   _session->close();

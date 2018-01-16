@@ -22,7 +22,7 @@ replayable_tests_filter="Shell_js_dba*:*Auto_script_js*:Dba_common_test.*"
 # Test groups that must be recorded/executed at once instead of case by case
 replayable_test_groups_nosplit="Dba_common_cluster_functions.*:Dba_replicaset_test.*:Dba_sql_test.*"
 
-rut=unittest/run_unit_tests
+rut=bin/run_unit_tests
 
 if ! [ -f $rut ]; then
   echo "Script must be ran on build directory"

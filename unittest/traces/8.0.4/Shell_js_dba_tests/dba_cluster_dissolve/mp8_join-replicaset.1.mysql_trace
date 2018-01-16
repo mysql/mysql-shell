@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "33",
+    "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -1295,7 +1295,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@log_error",
-            "length": 352,
+            "length": 332,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1308,7 +1308,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3350/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/error.log"
         ]
     ]
 },
@@ -1333,7 +1333,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -1640,7 +1640,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = 'c4da52f2-f542-11e7-bcaa-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '43ffe9b4-0040-11e8-aeb3-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2180,7 +2180,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000005' /*)*/, MASTER_PASSWORD = /*(*/ '^y#_S&/1t-]&3;6R%C|#=&[t/_|R<}/r' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000005' /*)*/, MASTER_PASSWORD = /*(*/ '&-]j>(/B1+g4W=[#,*$I?r(]7)Q^*f<&' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

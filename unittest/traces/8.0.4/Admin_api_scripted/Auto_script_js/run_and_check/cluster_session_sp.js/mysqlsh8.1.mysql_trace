@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "ef25cd3e-f234-11e7-a4cd-5ce0c50b9d66",
+            "a75423a7-003d-11e8-9943-5ce0c50b9d66",
             1,
-            "e9ae882f-f234-11e7-a4cd-5ce0c50b9d66",
+            "a117a600-003d-11e8-9943-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'ef25cd3e-f234-11e7-a4cd-5ce0c50b9d66'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'a75423a7-003d-11e8-9943-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -385,14 +385,14 @@
     ],
     "rows": [
         [
-            "e9ae882f-f234-11e7-a4cd-5ce0c50b9d66",
+            "a117a600-003d-11e8-9943-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "localhost:33400"
         ],
         [
-            "eb910771-f234-11e7-b117-5ce0c50b9d66",
+            "a34bd471-003d-11e8-851c-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -404,67 +404,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "show SESSION variables where `variable_name` in ('version')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "session_variables",
-            "table_label": "session_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "session_variables",
-            "table_label": "session_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "version",
-            "8.0.4-rc-log"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 15,
     "sql": "SELECT member_id, member_state, member_host, member_port, member_role FROM performance_schema.replication_group_members"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 16,
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -553,14 +498,14 @@
     ],
     "rows": [
         [
-            "e9ae882f-f234-11e7-a4cd-5ce0c50b9d66",
+            "a117a600-003d-11e8-9943-5ce0c50b9d66",
             "ONLINE",
             "pjesus-TECRA-Z40-B",
             3340,
             "PRIMARY"
         ],
         [
-            "eb910771-f234-11e7-b117-5ce0c50b9d66",
+            "a34bd471-003d-11e8-851c-5ce0c50b9d66",
             "ONLINE",
             "pjesus-TECRA-Z40-B",
             3350,
@@ -571,11 +516,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 17
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 18
+    "index": 16
 },
 null]
