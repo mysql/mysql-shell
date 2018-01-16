@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "37",
+    "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "ba82d28e-f540-11e7-ac2c-5ce0c50b9d66"
+            "3843452f-003e-11e8-b796-5ce0c50b9d66"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "b5c9bbb5-f540-11e7-ac2c-5ce0c50b9d66"
+            "33b3809d-003e-11e8-b796-5ce0c50b9d66"
         ]
     ]
 },
@@ -246,10 +246,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000003",
-            18190,
+            18040,
             "",
             "",
-            "b5c9bbb5-f540-11e7-ac2c-5ce0c50b9d66:1-14,\nba82d28e-f540-11e7-ac2c-5ce0c50b9d66:1-18"
+            "33b3809d-003e-11e8-b796-5ce0c50b9d66:1-14,\n3843452f-003e-11e8-b796-5ce0c50b9d66:1-18"
         ]
     ]
 },

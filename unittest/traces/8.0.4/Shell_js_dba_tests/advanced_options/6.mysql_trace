@@ -191,10 +191,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000003",
-            10992,
+            10917,
             "",
             "",
-            "2f17beba-f541-11e7-ab9d-5ce0c50b9d66:1-15"
+            "bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66:1-15"
         ]
     ]
 },
@@ -285,7 +285,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '9<)L2<c](=l;-@:s^{_R;7A/~=u+-,B,' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '_{5?[4(~^h]v#@E*[P=0_-p}({;T)/#%' /*)*/ "
 },
 {
     "type": "response",
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '9<)L2<c](=l;-@:s^{_R;7A/~=u+-,B,' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '_{5?[4(~^h]v#@E*[P=0_-p}({;T)/#%' /*)*/ "
 },
 {
     "type": "response",

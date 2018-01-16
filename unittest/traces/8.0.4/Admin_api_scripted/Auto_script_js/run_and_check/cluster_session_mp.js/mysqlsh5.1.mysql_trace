@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "8d380c77-f540-11e7-9d30-5ce0c50b9d66",
+            "05dca7e6-003e-11e8-aedc-5ce0c50b9d66",
             0,
-            "894940b6-f540-11e7-9d30-5ce0c50b9d66",
+            "00a77333-003e-11e8-aedc-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -530,7 +530,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -550,7 +550,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqld.sock",
             3340,
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3340/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },

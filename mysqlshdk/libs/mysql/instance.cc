@@ -615,38 +615,9 @@ bool Instance::is_read_only(bool super) const {
 }
 
 utils::Version Instance::get_version() const {
-  if (_version == utils::Version()) {
-    _version = utils::Version(get_sysvar_string("version"));
-  }
+  if (_version == utils::Version())
+    _version = _session->get_server_version();
   return _version;
-}
-
-/**
- * Check the server version compatibility.
- *
- * Verify the server version compatibility against the specified one,
- * returning true if it is greater or equal (compatible).
- *
- * @param major positive integer with the target major version number.
- * @param minor positive integer with the target minor version number.
- * @param patch positive integer with the target patch version number.
- * @return True if server version is greater or equal (>=) than the specified
- *         version. False if server version is lower (<) than the specified
- *         version.
- */
-bool Instance::check_server_version(uint64_t major, uint64_t minor,
-                                    uint64_t patch) const {
-  auto resultset = _session->query("SELECT sys.version_major(), "
-                                   "sys.version_minor(), "
-                                   "sys.version_patch()");
-  auto row = resultset->fetch_one();
-  uint64_t srv_major = row->get_uint(0);
-  uint64_t srv_minor = row->get_uint(1);
-  uint64_t srv_patch = row->get_uint(2);
-  // Retun true if server version >= than the specified one.
-  return (srv_major > major ||
-          (srv_major == major &&
-           (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
 }
 
 }  // namespace mysql

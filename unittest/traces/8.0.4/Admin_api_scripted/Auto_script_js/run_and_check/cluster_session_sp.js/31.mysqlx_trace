@@ -334,7 +334,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 237,
+            "length": 222,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -354,7 +354,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqlx.sock",
             33500,
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -409,7 +409,7 @@
     "rows": [
         [
             "Uptime",
-            "24"
+            "26"
         ]
     ]
 },

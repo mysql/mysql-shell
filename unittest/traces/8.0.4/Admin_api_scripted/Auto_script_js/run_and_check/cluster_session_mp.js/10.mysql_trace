@@ -297,7 +297,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -317,7 +317,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqld.sock",
             3350,
-            "/home/workspace/git/work/bugs/26395608/ngshell/BUILD/unittest/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
