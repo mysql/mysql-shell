@@ -61,10 +61,8 @@ std::string Shell_test_env::_hostname_ip;
 std::string Shell_test_env::_uri;
 std::string Shell_test_env::_uri_nopasswd;
 std::string Shell_test_env::_mysql_port;
-std::string Shell_test_env::_mysql57_port;
 int Shell_test_env::_mysql_port_number;
 std::string Shell_test_env::_mysql_uri;
-std::string Shell_test_env::_mysql57_uri;
 std::string Shell_test_env::_mysql_uri_nopasswd;
 
 std::string Shell_test_env::_socket;
@@ -103,12 +101,6 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
     _mysql_port_number = atoi(port);
     _mysql_port.assign(port);
     _mysql_uri += ":" + _mysql_port;
-  }
-
-  const char *port57 = getenv("MYSQL57_PORT");
-  if (port57) {
-    _mysql57_port.assign(port57);
-    _mysql57_uri = "root:@localhost:" + _mysql57_port;
   }
 
   const char *xsock = getenv("MYSQLX_SOCKET");

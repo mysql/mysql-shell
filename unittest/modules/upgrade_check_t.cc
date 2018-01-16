@@ -27,6 +27,8 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils.h"
 
+using Version = mysqlshdk::utils::Version;
+
 namespace mysqlsh {
 
 using tests::Shell_test_env;
@@ -39,15 +41,17 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
   void SetUp() {
     Shell_test_env::SetUp();
-    if (!_mysql57_uri.empty()) {
+    if (_target_server_version >= Version("5.7.0") ||
+          _target_server_version < Version("8.0.0")) {
       session = mysqlshdk::db::mysql::Session::create();
-      auto connection_options = shcore::get_connection_options(_mysql57_uri);
+      auto connection_options = shcore::get_connection_options(_mysql_uri);
       session->connect(connection_options);
     }
   }
 
   void TearDown() {
-    if (!_mysql57_uri.empty()) {
+    if (_target_server_version >= Version("5.7.0") ||
+          _target_server_version < Version("8.0.0")) {
       if (!db.empty()) {
         session->execute("drop database if exists " + db);
         db.clear();
@@ -83,8 +87,9 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_old_temporal_check();
   std::vector<Upgrade_issue> issues;
@@ -94,8 +99,9 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
 }
 
 TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_reserved_keywords_check();
   std::vector<Upgrade_issue> issues;
@@ -136,8 +142,9 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_utf8mb3_check();
@@ -155,8 +162,9 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
 }
 
 TEST_F(MySQL_upgrade_check_test, mysql_schema) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_mysql_schema_check();
   std::vector<Upgrade_issue> issues;
@@ -180,8 +188,9 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
 }
 
 TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("test_innodb_rowformat");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_innodb_rowformat_check();
@@ -199,8 +208,9 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
 }
 
 TEST_F(MySQL_upgrade_check_test, zerofill) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("aaa_test_zerofill_nondefaultwidth");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_zerofill_check();
@@ -235,8 +245,9 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
 }
 
 TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_foreign_key_length_check();
   std::vector<Upgrade_issue> issues;
@@ -246,8 +257,9 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
 }
 
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("mysql_check_table_test");
   Check_table_command check;
   std::vector<Upgrade_issue> issues;
@@ -263,15 +275,16 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
 }
 
 TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
-  if (_mysql57_uri.empty())
-    SKIP_TEST("This test requires defining MYSQL57_PORT variable");
+  if (_target_server_version < Version("5.7.0") ||
+      _target_server_version >= Version("8.0.0"))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
   Shell_core_test_wrapper::SetUp();
   reset_shell();
   Util util(_interactive_shell->shell_context().get());
   shcore::Argument_list args;
 
   // valid mysql 5.7 superuser
-  args.push_back(shcore::Value(_mysql57_uri));
+  args.push_back(shcore::Value(_mysql_uri));
   try {
     util.check_for_server_upgrade(args);
   } catch (std::exception& e) {
@@ -283,7 +296,7 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   // mysql 5.7 user without privileges
   EXPECT_NO_THROW(
       session->execute("create user if not exists lewy_upgrade@localhost;"));
-  std::string lewy_uri = _mysql57_uri;
+  std::string lewy_uri = _mysql_uri;
   lewy_uri.replace(0, 4, "lewy_upgrade");
   args.push_back(shcore::Value(lewy_uri));
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
