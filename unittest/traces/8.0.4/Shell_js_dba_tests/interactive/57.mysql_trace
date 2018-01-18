@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3350",
+    "uri": "mydba:@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 296,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -66,8 +66,8 @@
     ],
     "rows": [
         [
-            3350,
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },

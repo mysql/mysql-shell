@@ -27,7 +27,6 @@ I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
 Confirm [y|N]:
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
-Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
@@ -188,7 +187,6 @@ I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
 Confirm [y|N]:
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
-Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to

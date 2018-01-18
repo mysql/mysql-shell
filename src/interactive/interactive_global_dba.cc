@@ -318,11 +318,12 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value::Map_type_ref options;
   std::string cluster_name;
 
+  bool adopt_from_gr = false;
+
   try {
     cluster_name = args.string_at(0);
     bool multi_master = false;
     bool force = false;
-    bool adopt_from_gr = false;
     bool prompt_read_only = true;
     // Validate the cluster_name
     mysqlsh::dba::validate_cluster_name(cluster_name);
@@ -397,16 +398,24 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       if (prompt(
             "You are connected to an instance that belongs to an unmanaged "
             "replication group.\nDo you want to setup an InnoDB cluster "
-            "based on this replication group?") == Prompt_answer::YES)
+            "based on this replication group?") == Prompt_answer::YES) {
         (*options)["adoptFromGR"] = shcore::Value(true);
-      else
+        adopt_from_gr = true;
+      } else {
         throw Exception::argument_error(
             "Creating a cluster on an unmanaged "
             "replication group requires "
             "adoptFromGR option to be true");
+      }
     }
 
-    println("A new InnoDB cluster will be created on instance '" +
+    println(std::string{"A new InnoDB cluster will be created"} +
+            (adopt_from_gr
+            ?
+            " based on the existing replication group"
+            :
+            "") +
+            " on instance '" +
             member_session->uri(
                 mysqlshdk::db::uri::formats::no_scheme_no_password()) +
             "'.\n");
@@ -512,19 +521,42 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   // This is an instance of the API cluster
   auto raw_cluster = call_target("createCluster", new_args);
 
-  print("Adding Seed Instance...");
+  auto dba_cluster =
+      std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(raw_cluster.as_object());
+  auto default_replicaset = dba_cluster->get_default_replicaset();
+
+  assert(default_replicaset);
+
+  bool single_primary_mode =
+      default_replicaset->get_topology_type() ==
+          mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster;
+
+  std::string master_uuid;
+
+  if (single_primary_mode) {
+    println("Adding Seed Instance...");
+
+    mysqlsh::dba::get_status_variable(dba_cluster->get_group_session(),
+                                      "group_replication_primary_member",
+                                      master_uuid, false);
+  }
+
+  if (adopt_from_gr) {
+    for (auto& instance : default_replicaset->get_instances_from_metadata()) {
+      if (instance.uuid != master_uuid) {
+        println("Adding Instance '" + instance.label + "'...");
+      }
+    }
+  }
+
   println();
 
-  // Returns an interactive wrapper of this instance
-  Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core);
-  cluster->set_target(
-      std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
-  ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
-
-  println();
-
-  std::string message = "Cluster successfully created. Use Cluster." +
+  std::string message = adopt_from_gr
+                        ?
+                        "Cluster successfully created based on existing "
+                        "replication group."
+                        :
+                        "Cluster successfully created. Use Cluster." +
                         get_member_name("addInstance", naming_style) +
                         "() to add MySQL instances.\n"
                         "At least 3 instances are needed for the cluster to be "
@@ -533,6 +565,12 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   println(message);
   println();
+
+  // Returns an interactive wrapper of this instance
+  Interactive_dba_cluster *cluster =
+      new Interactive_dba_cluster(this->_shell_core);
+  cluster->set_target(dba_cluster);
+  ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 
   return ret_val;
 }

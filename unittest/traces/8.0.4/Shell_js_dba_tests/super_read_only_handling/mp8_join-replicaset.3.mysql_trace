@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@Kenjis-iMac.local:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@vm-ubuntu:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "49",
-    "connection_info": "Kenjis-iMac.local via TCP/IP",
+    "connection_id": "50",
+    "connection_info": "vm-ubuntu via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",

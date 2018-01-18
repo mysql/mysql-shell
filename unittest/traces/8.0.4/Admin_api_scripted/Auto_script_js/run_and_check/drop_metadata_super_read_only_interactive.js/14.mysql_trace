@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "ce3ab466-f124-11e7-bd1e-2d201c2c8724",
-            "ce3ab466-f124-11e7-bd1e-2d201c2c8724"
+            "03f674b8-fd37-11e7-8457-080027c42733",
+            "03f674b8-fd37-11e7-8457-080027c42733"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'ce3ab466-f124-11e7-bd1e-2d201c2c8724'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '03f674b8-fd37-11e7-8457-080027c42733'"
 },
 {
     "type": "response",
@@ -366,8 +366,8 @@
     ],
     "rows": [
         [
-            "ce3ab466-f124-11e7-bd1e-2d201c2c8724",
-            "ce3ab466-f124-11e7-bd1e-2d201c2c8724"
+            "03f674b8-fd37-11e7-8457-080027c42733",
+            "03f674b8-fd37-11e7-8457-080027c42733"
         ]
     ]
 },
@@ -375,7 +375,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'ce3ab466-f124-11e7-bd1e-2d201c2c8724'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '03f674b8-fd37-11e7-8457-080027c42733'"
 },
 {
     "type": "response",
