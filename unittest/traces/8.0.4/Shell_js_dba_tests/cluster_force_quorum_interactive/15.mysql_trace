@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "04d82602-f12a-11e7-aa94-874add76b52a"
+            "403fe9df-fd2f-11e7-b872-080027c42733"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000004",
+            "vm-ubuntu-bin.000004",
             231,
             "",
             "",
-            "03fd239a-f12a-11e7-9040-616f08da2d51:1-14,\n06554abe-f12a-11e7-9040-616f08da2d51:1-18"
+            "3dad3b8f-fd2f-11e7-a460-080027c42733:1-14,\n460f8a50-fd2f-11e7-a460-080027c42733:1-18"
         ]
     ]
 },

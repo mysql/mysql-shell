@@ -805,6 +805,16 @@ TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
   // group? [Y|n]:
   output_handler.prompts.push_back({"*", "y"});
 
+  // Are you sure you want to remove the Metadata? [y|N]:
+  output_handler.prompts.push_back({"*", "y"});
+
+  // Do you want to setup an InnoDB cluster based on this replication
+  // group? [Y|n]:
+  output_handler.prompts.push_back({"*", "n"});
+
+  // Are you sure you want to remove the Metadata? [y|N]:
+  output_handler.prompts.push_back({"*", "y"});
+
   validate_interactive("dba_adopt_from_gr_interactive.js");
 }
 

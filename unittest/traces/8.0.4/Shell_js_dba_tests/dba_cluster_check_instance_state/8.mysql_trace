@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "gtid_executed",
-            "c2c7144a-f128-11e7-9169-62bb835e4e6c:1-14,\nc450ea2a-f128-11e7-9169-62bb835e4e6c:1-2"
+            "6989877c-fd32-11e7-b183-080027c42733:1-14,\n70537946-fd32-11e7-b183-080027c42733:1-2"
         ],
         [
             "gtid_purged",
