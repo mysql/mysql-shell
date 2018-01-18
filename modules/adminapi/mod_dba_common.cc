@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 // #include "mod_dba_instance.h"
@@ -1249,6 +1250,32 @@ bool validate_instance_rejoinable(
   // if the instance is not on the list of missing instances, then it cannot
   // be rejoined
   return it != std::end(missing_instances_list);
+}
+
+/**
+ * Validate the hostname IP.
+ *
+ * A hostname might be resolved to an IP value not supported by the Group
+ * Replication Communication Service (GCS), like 127.0.1.1. This function
+ * validates if the hostname is resolved to a supported IP address, throwing
+ * an exception if not supported.
+ *
+ * @param hostname string with the hostname to check.
+ *
+ * @throws std::runtime_error if the hostname is resolved to a non supported
+ *         IP address.
+ */
+void validate_host_ip(const std::string &hostname) {
+    std::string seed_ip =  mysqlshdk::utils::resolve_hostname_ipv4(hostname);
+  // IP address '127.0.1.1' is not supported by GCS leading to errors.
+  // NOTE: This IP is set by default in Debian platforms.
+  if (seed_ip == "127.0.1.1")
+    throw std::runtime_error(
+        "Cannot perform operation using a connection with a hostname that "
+        "resolves to '127.0.1.1', since it is not supported by the Group "
+        "Replication communication layer. Change your system settings and/or "
+        "connect to the instance using a hostname that resolves to a supported "
+        "IP address (not 127.0.1.1).");
 }
 
 }  // namespace dba

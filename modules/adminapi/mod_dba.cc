@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -911,6 +911,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
       if (opt_map.has_key("groupSeeds"))
         group_seeds = opt_map.string_at("groupSeeds");
+    }
+
+    // Validate if the connection host is resolved to a supported IP address.
+    // NOTE: Not needed when adopting an existing cluster.
+    if (!adopt_from_gr) {
+      Connection_options seed_cnx_opts =
+          group_session->get_connection_options();
+      validate_host_ip(seed_cnx_opts.get_host());
     }
 
     if (state.source_type == GRInstanceType::GroupReplication && !adopt_from_gr)
