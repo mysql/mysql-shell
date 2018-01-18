@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -217,7 +217,7 @@ bool validate_super_read_only(
 bool validate_instance_rejoinable(
     std::shared_ptr<mysqlshdk::db::ISession> instance_session,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
-
+void validate_host_ip(const std::string &hostname);
 
 inline void translate_cluster_exception(std::string operation) {
   if (!operation.empty())

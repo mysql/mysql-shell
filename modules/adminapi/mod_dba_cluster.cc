@@ -482,6 +482,9 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
     auto connection_options =
         mysqlsh::get_connection_options(args, PasswordFormat::OPTIONS);
 
+    // Validate if the connection host is resolved to a supported IP address.
+    validate_host_ip(connection_options.get_host());
+
     shcore::Argument_list rest;
     if (args.size() == 2)
       rest.push_back(args.at(1));
