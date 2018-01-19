@@ -16,12 +16,14 @@ Licensing Information
 
 Product License - MySQL Shell (part of MySQL Server) 8.0
 
-   This is a release of MySQL Shell, brought to you by the MySQL team at
+   This is a release of MySQL Shell (part of MySQL Server) 8.0,
+   brought to you by the MySQL team at
    Oracle. This software is released under version 2 of the GNU General
    Public License (GPLv2), as set forth below, with the following
    additional permissions:
 
-   This distribution of MySQL Shell is distributed with certain software
+   This distribution of MySQL Shell (part of MySQL Server) 8.0 
+   is distributed with certain software
    (including but not limited to OpenSSL) that is licensed under separate
    terms, as designated in a particular file or component or in the
    license documentation. Without limiting your rights under the GPLv2,
