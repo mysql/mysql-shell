@@ -135,6 +135,8 @@ bool Shell_script_tester::validate(const std::string& context,
 
         if (!val->expected_error.empty())
           expect_failures = true;
+      } else {
+        SKIP_VALIDATION(val->def->line);
       }
     }
 
@@ -261,7 +263,7 @@ bool Shell_script_tester::validate(const std::string& context,
 
     if (validations.empty()) {
       ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-          << makered("MISSING VALIDATIONS FOR CHUNK ") << chunk_id
+          << makered("MISSING VALIDATIONS FOR CHUNK ")
           << _chunks[chunk_id].def->line << "\n"
           << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
           << makeyellow("\tSTDERR: ") << original_std_err << "\n";
@@ -277,7 +279,7 @@ bool Shell_script_tester::validate(const std::string& context,
     } else if (!optional && _chunks.find(chunk_id) != _chunks.end()) {
     // The error is that there are no validations
       ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-          << makered("MISSING VALIDATIONS FOR CHUNK ") << chunk_id
+          << makered("MISSING VALIDATIONS FOR CHUNK ")
           << _chunks[chunk_id].def->line << "\n"
           << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
           << makeyellow("\tSTDERR: ") << original_std_err << "\n";
@@ -725,8 +727,7 @@ void Shell_script_tester::execute_script(const std::string& path,
             }
           }
         } else {
-          // Log chunk ignoread as not applicable for context
-          // i.e. no generic chunk found
+          SKIP_CHUNK(chunk.def->line);
         }
       }
 

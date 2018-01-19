@@ -81,6 +81,8 @@ const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
 
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
+std::vector<std::pair<std::string, std::string> > g_skipped_chunks;
+std::vector<std::pair<std::string, std::string> > g_skipped_validations;
 std::vector<std::pair<std::string, std::string> > g_pending_fixes;
 
 static std::string make_socket_absolute_path(const std::string &datadir,
@@ -650,6 +652,20 @@ int main(int argc, char **argv) {
     for (auto &t : g_skipped_tests) {
       std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
       std::cout << "\tNote: " << t.second << "\n";
+    }
+  }
+  if (!g_skipped_chunks.empty()) {
+    std::cout << makeyellow("The following test chunks were SKIPPED:") << "\n";
+    for (auto &t : g_skipped_chunks) {
+      std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
+      std::cout << "\tChunk: " << t.second << "\n";
+    }
+  }
+  if (!g_skipped_validations.empty()) {
+    std::cout << makeyellow("The following test chunk validations were SKIPPED:") << "\n";
+    for (auto &t : g_skipped_validations) {
+      std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
+      std::cout << "\tValidation: " << t.second << "\n";
     }
   }
   if (!g_pending_fixes.empty()) {

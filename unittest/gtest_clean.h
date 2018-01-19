@@ -39,6 +39,8 @@
 #endif
 
 extern std::vector<std::pair<std::string, std::string>> g_skipped_tests;
+extern std::vector<std::pair<std::string, std::string>> g_skipped_chunks;
+extern std::vector<std::pair<std::string, std::string>> g_skipped_validations;
 extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
 
 #define SKIP_TEST(note)                                                      \
@@ -49,6 +51,24 @@ extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
         {std::string(test_info->test_case_name()) + "." + test_info->name(), \
          note});                                                             \
     return;                                                                  \
+  }
+
+#define SKIP_CHUNK(note)                                                     \
+  {                                                                          \
+    const ::testing::TestInfo *const test_info =                             \
+        ::testing::UnitTest::GetInstance()->current_test_info();             \
+    g_skipped_chunks.push_back(                                              \
+        {std::string(test_info->test_case_name()) + "." + test_info->name(), \
+         note});                                                             \
+  }
+
+#define SKIP_VALIDATION(note)                                                \
+  {                                                                          \
+    const ::testing::TestInfo *const test_info =                             \
+        ::testing::UnitTest::GetInstance()->current_test_info();             \
+    g_skipped_validations.push_back(                                         \
+        {std::string(test_info->test_case_name()) + "." + test_info->name(), \
+         note});                                                             \
   }
 
 #define PENDING_BUG_TEST(note)                                           \
