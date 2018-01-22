@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 316,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/27089930/ngshell/BUILD/unittest/3340/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -153,10 +153,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000003",
-            10731,
+            10730,
             "",
             "",
-            "f53064f3-fa0e-11e7-b6d6-5ce0c50b9d66:1-14"
+            "589ca35a-ff8d-11e7-bbc2-5ce0c50b9d66:1-14"
         ]
     ]
 },

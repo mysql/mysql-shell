@@ -169,9 +169,9 @@
     ],
     "rows": [
         [
-            "05dca7e6-003e-11e8-aedc-5ce0c50b9d66",
+            "aa41862c-0108-11e8-bd43-5ce0c50b9d66",
             0,
-            "00a77333-003e-11e8-aedc-5ce0c50b9d66",
+            "a58d4185-0108-11e8-bd43-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -549,7 +549,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqlx.sock",
             33400,
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3340/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -604,7 +604,7 @@
     "rows": [
         [
             "Uptime",
-            "27"
+            "26"
         ]
     ]
 },

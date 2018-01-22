@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -66,8 +66,8 @@
     ],
     "rows": [
         [
-            3336,
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3336/sandboxdata/"
+            3360,
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },

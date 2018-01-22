@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -397,7 +397,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
               "the host. When the host is not specified, the default value is "\
               "the host of the target instance specified as argument. When "\
               "the port is not specified, the default value is the port of "\
-              "the target instance + 10000. In case the automatically "\
+              "the target instance * 10 + 1. In case the automatically "\
               "determined default port value is invalid (> 65535) then a "\
               "random value in the range [1000, 65535] is used.");
 

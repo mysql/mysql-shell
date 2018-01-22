@@ -131,9 +131,9 @@ include a colon (:) and it is numeric, then it is assumed to be the port,
 otherwise it is considered to be the host. When the host is not specified, the
 default value is the host of the current active connection (session). When the
 port is not specified, the default value is the port of the current active
-connection (session) + 10000. In case the automatically determined default port
-value is invalid (> 65535) then a random value in the range [1000, 65535] is
-used.
+connection (session) * 10 + 1. In case the automatically determined default
+port value is invalid (> 65535) then a random value in the range [1000, 65535]
+is used.
 
 The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a

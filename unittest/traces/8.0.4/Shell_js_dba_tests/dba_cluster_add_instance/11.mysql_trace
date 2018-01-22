@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "localhost:13350"
+            "localhost:33501"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET GLOBAL group_replication_force_members = 'localhost:13350'"
+    "sql": "SET GLOBAL group_replication_force_members = 'localhost:33501'"
 },
 {
     "type": "response",

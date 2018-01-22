@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 188,
+            "length": 164,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log MySQL Commercial Server (Advanced)"
+            "8.0.4-rc-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -73,7 +73,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "CREATE USER 'root'@'vm-ubuntu' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'pjesus-TECRA-Z40-B' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -88,7 +88,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'vm-ubuntu' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'pjesus-TECRA-Z40-B' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -103,7 +103,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "CREATE USER 'root'@'10.0.2.15' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'192.168.0.100' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -118,7 +118,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'10.0.2.15' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'192.168.0.100' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -270,8 +270,8 @@
     ],
     "rows": [
         [
-            "222edb90-00ea-11e8-ae18-080027c42733",
-            "222edb90-00ea-11e8-ae18-080027c42733"
+            "42f114ac-0133-11e8-8c8a-5ce0c50b9d66",
+            "42f114ac-0133-11e8-8c8a-5ce0c50b9d66"
         ]
     ]
 },
@@ -279,7 +279,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '222edb90-00ea-11e8-ae18-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '42f114ac-0133-11e8-8c8a-5ce0c50b9d66'"
 },
 {
     "type": "response",

@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:13360"
+            "localhost:33601"
         ]
     ]
 },

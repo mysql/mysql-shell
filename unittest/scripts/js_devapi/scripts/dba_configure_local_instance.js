@@ -31,7 +31,7 @@ else
   var cluster = dba.createCluster('devCluster', {memberSslMode:'DISABLED', clearReadOnly: true});
 
 //@ Validates the createCluster successfully configured the grLocal member of the instance addresses
-var gr_local_port = __mysql_sandbox_port1 + 10000;
+var gr_local_port = __mysql_sandbox_port1 * 10 + 1;
 var res = session.runSql('select json_unquote(addresses->\'$.grLocal\') from mysql_innodb_cluster_metadata.instances where addresses->\'$.mysqlClassic\' = \'localhost:' + __mysql_sandbox_port1 + '\'');
 var row = res.fetchOne();
 print (row[0]);

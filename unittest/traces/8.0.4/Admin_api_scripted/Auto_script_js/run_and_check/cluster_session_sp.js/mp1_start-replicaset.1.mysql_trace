@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\\z8\u0006rIY7.\\jk'*q}}M<RcwdwM/9xjF7pz7ek.SpSXGwukw2DBILmNoSnhC59wED",
+            "$A$005$|iq\nV%#\u0015lm+icw>FT\u0001p\u0016hnD478cRFc9KVFJO7ItJw1XVhzDs5MeQ6tR4SaYaNx2",
             "N",
-            "2018-01-23 13:02:23",
+            "2018-01-24 13:13:01",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u00152\u00130dBp\u0014(L-q\u0001[r7znC\u0007ef5/TY1n2CkJnNGHgUKGPz1xSACuuiX3UC4Dz6ySc51",
+            "$A$005$vq^C\u001F\n#\u0011Ke*s*\u00183\u0017FPRnRk4FciZ2hIvBErc63x.K5ZopuH5Zv5mQujdGM2TtIM5",
             "N",
-            "2018-01-23 11:20:14",
+            "2018-01-24 13:12:50",
             null,
             "N",
             "Y",
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            "a75423a7-003d-11e8-9943-5ce0c50b9d66"
+            "4e40d8f4-0108-11e8-bb1f-5ce0c50b9d66"
         ]
     ]
 },
@@ -3632,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET GLOBAL group_replication_group_name = 'a75423a7-003d-11e8-9943-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '4e40d8f4-0108-11e8-bb1f-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3992,7 +3992,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13340'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -4172,7 +4172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '+];v_|,D>4$1{.9@+/+T;-b.F+X$(|,_' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '#k#{)}P].7d~,?-z3Q)?r+,;)=F{.0P:' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

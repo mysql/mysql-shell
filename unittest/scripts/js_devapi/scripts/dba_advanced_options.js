@@ -91,7 +91,7 @@ c.dissolve({force: true});
 
 //@ Create cluster specifying <valid_host>: for localAddress (FR1-TS-1-3)
 var __local_address_3 = localhost + ":";
-var result_port = __mysql_sandbox_port1 + 10000;
+var result_port = __mysql_sandbox_port1 * 10 + 1;
 var __result_local_address_3 = __local_address_3 + result_port;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_3});
 
@@ -135,7 +135,7 @@ print_gr_local_address();
 c.dissolve({force: true});
 
 //@ Create cluster specifying 127.0.0.1:<valid_port> for groupSeeds (FR2-TS-1-1)
-var default_valid_port1 = __mysql_sandbox_port1 + 10000;
+var default_valid_port1 = __mysql_sandbox_port1 * 10 + 1;
 var __group_seeds_1 = "127.0.0.1:" + default_valid_port1;
 var __result_group_seeds_1 = __group_seeds_1;
 var c = dba.createCluster('test', {clearReadOnly: true, groupSeeds: __group_seeds_1});
@@ -147,8 +147,8 @@ print_gr_group_seeds();
 c.dissolve({force: true});
 
 //@ Create cluster specifying 127.0.0.1:<valid_port>,127.0.0.1:<valid_port2> for groupSeeds (FR2-TS-1-2)
-var default_valid_port1 = __mysql_sandbox_port1 + 10000;
-var default_valid_port2 = __mysql_sandbox_port2 + 10000;
+var default_valid_port1 = __mysql_sandbox_port1 * 10 + 1;
+var default_valid_port2 = __mysql_sandbox_port2 * 10 + 1;
 var __group_seeds_2 = "127.0.0.1:" + default_valid_port1 + ",127.0.0.1:" + default_valid_port2;
 var __result_group_seeds_2 = __group_seeds_2;
 var c = dba.createCluster('test', {clearReadOnly: true, groupSeeds: __group_seeds_2});
@@ -215,7 +215,7 @@ c.removeInstance(add_instance_options);
 
 //@ Add instance specifying <valid_host>: for localAddress (FR1-TS-2-3)
 var __local_address_add_3 = localhost + ":";
-var result_port2 = __mysql_sandbox_port2 + 10000;
+var result_port2 = __mysql_sandbox_port2 * 10 + 1;
 var __result_local_address_add_3 = __local_address_add_3 + result_port2;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_3});
 

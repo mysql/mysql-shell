@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "a75423a7-003d-11e8-9943-5ce0c50b9d66",
+            "4e40d8f4-0108-11e8-bb1f-5ce0c50b9d66",
             1,
-            "a117a600-003d-11e8-9943-5ce0c50b9d66",
+            "49d1e68f-0108-11e8-bb1f-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'a75423a7-003d-11e8-9943-5ce0c50b9d66'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '4e40d8f4-0108-11e8-bb1f-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -385,14 +385,14 @@
     ],
     "rows": [
         [
-            "a117a600-003d-11e8-9943-5ce0c50b9d66",
+            "49d1e68f-0108-11e8-bb1f-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340",
             "localhost:33400"
         ],
         [
-            "a34bd471-003d-11e8-851c-5ce0c50b9d66",
+            "4b0bc847-0108-11e8-8c63-5ce0c50b9d66",
             "localhost:3350",
             "HA",
             "localhost:3350",
@@ -498,14 +498,14 @@
     ],
     "rows": [
         [
-            "a117a600-003d-11e8-9943-5ce0c50b9d66",
+            "49d1e68f-0108-11e8-bb1f-5ce0c50b9d66",
             "ONLINE",
             "pjesus-TECRA-Z40-B",
             3340,
             "PRIMARY"
         ],
         [
-            "a34bd471-003d-11e8-851c-5ce0c50b9d66",
+            "4b0bc847-0108-11e8-8c63-5ce0c50b9d66",
             "ONLINE",
             "pjesus-TECRA-Z40-B",
             3350,

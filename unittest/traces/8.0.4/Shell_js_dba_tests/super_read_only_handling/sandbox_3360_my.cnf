@@ -1,24 +1,24 @@
 [client]
-port = 3316
+port = 3360
 protocol = TCP
 user = root
 [mysqld]
 general_log = 1
-report_port = 3316
-loose_mysqlx_port = 33160
-secure_file_priv = /opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/mysql-files
-pid_file = /opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/3316.pid
-log_error = /opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/error.log
-datadir = /opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata
-server_id = 15661
-port = 3316
+report_port = 3360
+loose_mysqlx_port = 33600
+secure_file_priv = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/mysql-files
+pid_file = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/3360.pid
+log_error = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/sandboxdata/error.log
+datadir = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/sandboxdata
+server_id = 15705
+port = 3360
 transaction_write_set_extraction = XXHASH64
 disabled_storage_engines = BLACKHOLE,FEDERATED,ARCHIVE
 binlog_checksum = NONE
 gtid_mode = ON
 mysqlx_cache_cleaner = ON
-auto_increment_offset = 1
-basedir = /opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.4/usr
+auto_increment_offset = 6
+basedir = /home/workspace/SERVERS/mysql-8.0.4-rc-linux-glibc2.12-x86_64
 log_bin
 loose_mysqlx_socket = mysqlx.sock
 log_slave_updates = ON

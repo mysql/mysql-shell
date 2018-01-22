@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "31",
+    "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -153,10 +153,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000003",
-            18319,
+            18399,
             "",
             "",
-            "5a57f173-0042-11e8-93bf-5ce0c50b9d66:1-14,\n6060fb51-0042-11e8-93bf-5ce0c50b9d66:1-19"
+            "ce53b36f-010d-11e8-9195-5ce0c50b9d66:1-14,\nd43c2461-010d-11e8-9195-5ce0c50b9d66:1-19"
         ]
     ]
 },

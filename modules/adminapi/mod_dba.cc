@@ -720,7 +720,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
               "the host. When the host is not specified, the default value is "\
               "the host of the current active connection (session). When the "\
               "port is not specified, the default value is the port of the "\
-              "current active connection (session) + 10000. In case the "\
+              "current active connection (session) * 10 + 1. In case the "\
               "automatically determined default port value is invalid "\
               "(> 65535) then a random value in the range [1000, 65535] is "\
               "used.");

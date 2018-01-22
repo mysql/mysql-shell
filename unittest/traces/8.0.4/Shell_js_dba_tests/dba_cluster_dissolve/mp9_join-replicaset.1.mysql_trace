@@ -1308,7 +1308,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3360/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/sandboxdata/error.log"
         ]
     ]
 },
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3360/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },
@@ -1460,7 +1460,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:13340'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -1640,7 +1640,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = '43ffe9b4-0040-11e8-aeb3-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '22b1200a-010b-11e8-9a9c-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2000,7 +2000,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 129,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13360'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33601'"
 },
 {
     "type": "response",
@@ -2180,7 +2180,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ '.7.G{._h^[V^&[4J*&v{#6p<+]e.W}.;' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ '5L;)$[u;)(D(^M=_|e2y]+:~_0j],#@A' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

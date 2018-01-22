@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$AI\u001F5\u0016[K\u000EySC/Y\u000EPL?\u0019\"\u00156ndlMxvl36EREMqAqQrsUWaRwEA9c/Xjo70GdJqhsLD",
+            "$A$005$<J\u001BOR\u0002\u001A\u0018x\u0012\u001A*\u001A2\u001Bck5h\fm5LzlKKnj57mwLTEXsnw4obZCMtfnmFssRreHKAnpE8",
             "N",
-            "2018-01-23 13:06:26",
+            "2018-01-24 13:18:25",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u00152\u00130dBp\u0014(L-q\u0001[r7znC\u0007ef5/TY1n2CkJnNGHgUKGPz1xSACuuiX3UC4Dz6ySc51",
+            "$A$005$vq^C\u001F\n#\u0011Ke*s*\u00183\u0017FPRnRk4FciZ2hIvBErc63x.K5ZopuH5Zv5mQujdGM2TtIM5",
             "N",
-            "2018-01-23 11:20:14",
+            "2018-01-24 13:12:50",
             null,
             "N",
             "Y",
@@ -4003,7 +4003,7 @@
     ],
     "rows": [
         [
-            "3843452f-003e-11e8-b796-5ce0c50b9d66"
+            "0f7f561c-0109-11e8-8f52-5ce0c50b9d66"
         ]
     ]
 },
@@ -4131,7 +4131,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 107,
-    "sql": "SET GLOBAL group_replication_group_name = '3843452f-003e-11e8-b796-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '0f7f561c-0109-11e8-8f52-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4491,7 +4491,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 155,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13340'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -4671,7 +4671,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ 'f]=3%)I)g9|>?/*f?{O<$u{?D-#0{&F+' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ 'h>;K6+^@z*|<$3x<I)&7u|#:M%}._|Z-' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
