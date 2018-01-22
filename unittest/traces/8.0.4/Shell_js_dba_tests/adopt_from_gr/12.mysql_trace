@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@Kenjis-iMac.local:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "34",
-    "connection_info": "Kenjis-iMac.local via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@hostname",
-            "length": 68,
+            "length": 72,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -67,7 +67,7 @@
     "rows": [
         [
             null,
-            "Kenjis-iMac.local"
+            "pjesus-TECRA-Z40-B"
         ]
     ]
 },
@@ -169,11 +169,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000003",
-            26382,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            26384,
             "",
             "",
-            "835fe2ec-f127-11e7-b743-0118770cd611:1-14,\n84db406c-f127-11e7-b743-0118770cd611:1-25"
+            "b9fbce78-ff90-11e7-892e-5ce0c50b9d66:1-14,\nbd401b10-ff90-11e7-892e-5ce0c50b9d66:1-25"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     ],
     "rows": [
         [
-            "835fe2ec-f127-11e7-b743-0118770cd611"
+            "b9fbce78-ff90-11e7-892e-5ce0c50b9d66"
         ]
     ]
 },

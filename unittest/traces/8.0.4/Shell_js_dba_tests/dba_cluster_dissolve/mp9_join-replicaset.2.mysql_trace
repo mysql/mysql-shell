@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "64",
+    "connection_id": "65",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "43ffe9b4-0040-11e8-aeb3-5ce0c50b9d66"
+            "22b1200a-010b-11e8-9a9c-5ce0c50b9d66"
         ]
     ]
 },
@@ -761,7 +761,7 @@
     ],
     "rows": [
         [
-            "localhost:13340"
+            "localhost:33401"
         ]
     ]
 },
@@ -1244,7 +1244,7 @@
     ],
     "rows": [
         [
-            "43ffe9b4-0040-11e8-aeb3-5ce0c50b9d66"
+            "22b1200a-010b-11e8-9a9c-5ce0c50b9d66"
         ]
     ]
 },

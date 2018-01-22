@@ -354,7 +354,7 @@
             "8.0.4-rc-log MySQL Community Server (GPL)",
             "mysqlx.sock",
             33500,
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -409,7 +409,7 @@
     "rows": [
         [
             "Uptime",
-            "27"
+            "25"
         ]
     ]
 },

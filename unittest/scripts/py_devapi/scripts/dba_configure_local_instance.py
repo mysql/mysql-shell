@@ -16,7 +16,7 @@ else:
   cluster = dba.create_cluster('devCluster', {'memberSslMode':'DISABLED', 'clearReadOnly': True})
 
 #@ Validates the create_cluster successfully configured the grLocal member of the instance addresses
-gr_local_port = __mysql_sandbox_port1 + 10000
+gr_local_port = __mysql_sandbox_port1 * 10 + 1
 res = session.run_sql('select json_unquote(addresses->\'$.grLocal\') from mysql_innodb_cluster_metadata.instances where addresses->\'$.mysqlClassic\' = \'localhost:' + str(__mysql_sandbox_port1) + '\'')
 row = res.fetch_one()
 print (row[0])

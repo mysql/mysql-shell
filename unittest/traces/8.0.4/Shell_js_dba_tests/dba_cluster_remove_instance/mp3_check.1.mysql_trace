@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "e24dc02f-003c-11e8-8b9d-5ce0c50b9d66"
+            "9490224f-010c-11e8-8ae6-5ce0c50b9d66"
         ]
     ]
 },
@@ -270,11 +270,11 @@
         ],
         [
             "group_replication_group_name",
-            "e24dc02f-003c-11e8-8b9d-5ce0c50b9d66"
+            "9490224f-010c-11e8-8ae6-5ce0c50b9d66"
         ],
         [
             "group_replication_group_seeds",
-            "localhost:13350"
+            "localhost:33501"
         ],
         [
             "group_replication_gtid_assignment_block_size",
@@ -286,7 +286,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:13340"
+            "localhost:33401"
         ],
         [
             "group_replication_member_weight",

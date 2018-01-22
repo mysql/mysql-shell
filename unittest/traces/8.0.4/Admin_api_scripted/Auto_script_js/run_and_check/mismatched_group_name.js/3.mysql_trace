@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3336/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000003",
-            10751,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            10752,
             "",
             "",
-            "ac5be2c0-f124-11e7-a0f1-ce926e6fe42b:1-14"
+            "f630d3e6-ff8b-11e7-831d-5ce0c50b9d66:1-14"
         ]
     ]
 },

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -134,8 +134,8 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
     If a host is not found on gr_host, the returned host is the one given on
     server_host.
     If a port is not found on gr_host, the returned port is the one given on
-    server_port plus 10000, unless the result is higher than 65535, in that
-    case a random port number will be generated.
+    server_port * 10 + 1, unless the result is higher than 65535, in that case
+    a random port number will be generated.
 
     :param gr_host:     Group replication host address in the format:
                         <host>[:<port>] (i.e., host or host and port separated
@@ -156,7 +156,7 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
     # No info provided, use the server to generate it.
     if gr_host is None or gr_host == "":
         gr_host = server_host
-        local_port = str(int(server_port) + 10000)
+        local_port = str(int(server_port) * 10 + 1)
 
     # gr_host can have both elements; host and port, but be aware of IPv6
     elif len(gr_host.rsplit(":", 1)) == 2 and gr_host[-1] != "]":
@@ -164,7 +164,7 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
         if not gr_host:
             gr_host = server_host
         if not local_port:
-            local_port = str(int(server_port) + 10000)
+            local_port = str(int(server_port) * 10 + 1)
         elif (not local_port.isdigit()
               or int(local_port) <= 0 or int(local_port) > 65535):
             # Raise an error if the specified port part is invalid.
@@ -183,9 +183,9 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
             raise GadgetError(
                 _ERROR_INVALID_LOCAL_ADDRESS_PORT.format(local_port))
 
-    # Generate a local port based on the + 10000 rule.
+    # Generate a local port based on the * 10 + 1 rule.
     else:
-        local_port = str(int(server_port) + 10000)
+        local_port = str(int(server_port) * 10 + 1)
 
     # in case the gr_host is a IPv6 remove the square brackets '[ ]'
     gr_host = clean_IPv6(gr_host)
@@ -214,7 +214,7 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
                           "member will expose itself to be contacted by the "
                           "other members of the group. Specify an available "
                           "port to be used with localAddress option or free "
-                          "port {0}.".format(str(int(server_port) + 10000)))
+                          "port {0}.".format(str(int(server_port) * 10 + 1)))
 
     return gr_host, local_port
 

@@ -1,24 +1,24 @@
 [client]
-port = 3316
+port = 3350
 protocol = TCP
 user = root
 [mysqld]
 general_log = 1
-report_port = 3316
-loose_mysqlx_port = 33160
-secure_file_priv = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files
-pid_file = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid
-log_error = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log
-datadir = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata
-server_id = 15661
-port = 3316
+report_port = 3350
+loose_mysqlx_port = 33500
+secure_file_priv = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/mysql-files
+pid_file = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/3350.pid
+log_error = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/sandboxdata/error.log
+datadir = /home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/sandboxdata
+server_id = 15695
+port = 3350
 transaction_write_set_extraction = XXHASH64
 disabled_storage_engines = BLACKHOLE,FEDERATED,ARCHIVE
 binlog_checksum = NONE
 gtid_mode = ON
 mysqlx_cache_cleaner = ON
-auto_increment_offset = 3
-basedir = /usr/local/mysql-8.0.4
+auto_increment_offset = 7
+basedir = /home/workspace/SERVERS/mysql-8.0.4-rc-linux-glibc2.12-x86_64
 log_bin
 loose_mysqlx_socket = mysqlx.sock
 log_slave_updates = ON

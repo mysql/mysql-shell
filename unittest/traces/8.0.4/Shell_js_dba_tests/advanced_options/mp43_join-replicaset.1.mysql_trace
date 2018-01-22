@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "156",
+    "connection_id": "157",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -1308,7 +1308,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/sandboxdata/error.log"
         ]
     ]
 },
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3350/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -2180,7 +2180,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000027' /*)*/, MASTER_PASSWORD = /*(*/ '?e]#:]n@}9;d<)<0&4[B.@;U:$R}y{~<' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000027' /*)*/, MASTER_PASSWORD = /*(*/ ')1]c>(:u#^e(:_K{=[O3]^L8?H-~$;m^' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

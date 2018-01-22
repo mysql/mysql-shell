@@ -206,10 +206,10 @@
     "rows": [
         [
             "pjesus-TECRA-Z40-B-bin.000003",
-            41507,
+            41586,
             "",
             "",
-            "bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66:1-73,\nc4d4fdea-003e-11e8-a5ca-5ce0c50b9d66:1-3,\nd2208106-003e-11e8-a5ca-5ce0c50b9d66:1-3,\ndf4dc35e-003e-11e8-a5ca-5ce0c50b9d66:1-3,\nec7b638a-003e-11e8-a5ca-5ce0c50b9d66:1-3,\nf9a875e6-003e-11e8-a5ca-5ce0c50b9d66:1-3"
+            "8b1631a8-0109-11e8-8447-5ce0c50b9d66:1-73,\n93723d1f-0109-11e8-8447-5ce0c50b9d66:1-3,\na0b444f3-0109-11e8-8447-5ce0c50b9d66:1-3,\nadd8e3a7-0109-11e8-8447-5ce0c50b9d66:1-3,\nbb09458e-0109-11e8-8447-5ce0c50b9d66:1-3,\nc830e459-0109-11e8-8447-5ce0c50b9d66:1-3"
         ]
     ]
 },
@@ -300,7 +300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_00000000011'@'%' IDENTIFIED BY /*(*/ '^l*%K#|5/n)I;W.,T.0?]<#^~><=?2g;' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_00000000011'@'%' IDENTIFIED BY /*(*/ 'z+1T0<]+[g>$U=M(R},@&|#@v/)5b=$[' /*)*/ "
 },
 {
     "type": "response",
@@ -315,7 +315,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_00000000011'@'localhost' IDENTIFIED BY /*(*/ '^l*%K#|5/n)I;W.,T.0?]<#^~><=?2g;' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_00000000011'@'localhost' IDENTIFIED BY /*(*/ 'z+1T0<]+[g>$U=M(R},@&|#@v/)5b=$[' /*)*/ "
 },
 {
     "type": "response",
@@ -621,7 +621,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (6, 69, 'bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66', 'localhost:3340', 'HA', json_object('mysqlClassic', 'localhost:3340', 'mysqlX', 'localhost:33400', 'grLocal', 'localhost:13340'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (6, 69, '8b1631a8-0109-11e8-8447-5ce0c50b9d66', 'localhost:3340', 'HA', json_object('mysqlClassic', 'localhost:3340', 'mysqlX', 'localhost:33400', 'grLocal', 'localhost:33401'))"
 },
 {
     "type": "response",
@@ -666,7 +666,7 @@
     ],
     "rows": [
         [
-            "06d0b69c-003f-11e8-a5ca-5ce0c50b9d66"
+            "d559280c-0109-11e8-8447-5ce0c50b9d66"
         ]
     ]
 },
@@ -674,7 +674,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '06d0b69c-003f-11e8-a5ca-5ce0c50b9d66') WHERE replicaset_id = 69"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'd559280c-0109-11e8-8447-5ce0c50b9d66') WHERE replicaset_id = 69"
 },
 {
     "type": "response",
@@ -826,8 +826,8 @@
     ],
     "rows": [
         [
-            "bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66",
-            "bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66"
+            "8b1631a8-0109-11e8-8447-5ce0c50b9d66",
+            "8b1631a8-0109-11e8-8447-5ce0c50b9d66"
         ]
     ]
 },
@@ -835,7 +835,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8b1631a8-0109-11e8-8447-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1059,7 +1059,7 @@
     ],
     "rows": [
         [
-            "bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66",
+            "8b1631a8-0109-11e8-8447-5ce0c50b9d66",
             "localhost:3340",
             "HA",
             "localhost:3340"
@@ -1695,7 +1695,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "bbb5d6eb-003e-11e8-a5ca-5ce0c50b9d66"
+            "8b1631a8-0109-11e8-8447-5ce0c50b9d66"
         ]
     ]
 },

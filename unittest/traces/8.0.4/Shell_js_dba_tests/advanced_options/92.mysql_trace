@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "129",
+    "connection_id": "128",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "127.0.0.1:13340"
+            "127.0.0.1:33401"
         ]
     ]
 },

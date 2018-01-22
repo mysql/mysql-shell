@@ -221,9 +221,10 @@ TEST_F(Dba_sql_test, get_peer_seeds_md_in_synch) {
   // localhost:port2
   auto session = create_session(_mysql_sandbox_port1);
   try {
-    std::vector<std::string> seeds =
-        mysqlsh::dba::get_peer_seeds(session, "localhost:" + std::to_string(_mysql_sandbox_port1));
-    std::vector<std::string> result = {"localhost:1" + std::to_string(_mysql_sandbox_port2)};
+    std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
+        session, "localhost:" + std::to_string(_mysql_sandbox_port1));
+    std::vector<std::string> result = {
+        "localhost:" + std::to_string(_mysql_sandbox_port2) + "1"};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -250,7 +251,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
                       "values (0, 1, " + std::to_string(_replicaset->get_id()) +
                       ", '" + uuid_3 + "', 'localhost:<port>', "
                       "'HA', NULL, '{\"mysqlX\": \"localhost:<port>0\", "
-                      "\"grLocal\": \"localhost:1<port>\", "
+                      "\"grLocal\": \"localhost:<port>1\", "
                       "\"mysqlClassic\": \"localhost:<port>\"}', "
                       "NULL, NULL, NULL)";
 
@@ -263,8 +264,8 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
         session, "localhost:" + std::to_string(_mysql_sandbox_port1));
     std::vector<std::string> result = {
-        "localhost:1" + std::to_string(_mysql_sandbox_port2),
-        "localhost:1" + std::to_string(_mysql_sandbox_port3)};
+        "localhost:" + std::to_string(_mysql_sandbox_port2) + "1",
+        "localhost:" + std::to_string(_mysql_sandbox_port3) + "1"};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -306,8 +307,8 @@ TEST_F(Dba_sql_test, get_peer_seeds_not_in_metadata) {
   try {
     std::vector<std::string> seeds = mysqlsh::dba::get_peer_seeds(
         session, "localhost:" + std::to_string(_mysql_sandbox_port1));
-    std::vector<std::string> result = {"localhost:1" +
-                                       std::to_string(_mysql_sandbox_port2)};
+    std::vector<std::string> result = {
+        "localhost:" + std::to_string(_mysql_sandbox_port2) + "1"};
     EXPECT_EQ(result, seeds);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());

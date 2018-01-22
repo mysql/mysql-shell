@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336",
+    "uri": "root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "439fb9d8-fd2f-11e7-ab42-080027c42733"
+            "95de5065-0134-11e8-b98a-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000004",
             231,
             "",
             "",
-            "3dad3b8f-fd2f-11e7-a460-080027c42733:1-14,\n460f8a50-fd2f-11e7-a460-080027c42733:1-18"
+            "91907038-0134-11e8-be37-5ce0c50b9d66:1-14,\n99ed6b7e-0134-11e8-be37-5ce0c50b9d66:1-18"
         ]
     ]
 },

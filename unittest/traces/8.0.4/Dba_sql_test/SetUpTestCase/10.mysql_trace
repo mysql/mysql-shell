@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336",
+    "uri": "root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "a7d5f4f0-f1c1-11e7-9165-66ef7ea9d326"
+            "e842c8a8-005c-11e8-a281-5ce0c50b9d66"
         ]
     ]
 },

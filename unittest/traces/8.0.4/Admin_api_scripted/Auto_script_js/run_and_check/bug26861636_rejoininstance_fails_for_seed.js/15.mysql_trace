@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "49",
+    "connection_id": "48",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "localhost:13340,localhost:13350,localhost:13360"
+            "localhost:33401,localhost:33501,localhost:33601"
         ]
     ]
 },

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "39",
+    "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
@@ -1308,7 +1308,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3340/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3340/sandboxdata/error.log"
         ]
     ]
 },
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/26986141/ngshell/BUILD/bin/3340/sandboxdata/"
+            "/home/workspace/git/work/bugs/27146799/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -1460,7 +1460,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:13340,localhost:13350,localhost:13360'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33401,localhost:33501,localhost:33601'"
 },
 {
     "type": "response",
@@ -1640,7 +1640,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_group_name = '3843452f-003e-11e8-b796-5ce0c50b9d66'"
+    "sql": "SET GLOBAL group_replication_group_name = '0f7f561c-0109-11e8-8f52-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2000,7 +2000,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 129,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:13340'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33401'"
 },
 {
     "type": "response",

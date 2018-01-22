@@ -425,7 +425,7 @@
     ],
     "rows": [
         [
-            "localhost:13350"
+            "localhost:33501"
         ]
     ]
 },
@@ -433,7 +433,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:13350'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33501'"
 },
 {
     "type": "response",
