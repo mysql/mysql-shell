@@ -315,20 +315,32 @@ shcore::Value Shell::prompt(const shcore::Argument_list &args) {
 }
 
 // These two lines link the help to be shown on \? connection
-REGISTER_HELP(TOPIC_CONNECTION, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(TOPIC_CONNECTION, "TOPIC_CONNECTION_DATA_BASIC");
 REGISTER_HELP(TOPIC_CONNECTION1, "TOPIC_CONNECTION_DATA_ADDITIONAL");
 
 // These lines link the help that will be shown on the help() for every
 // function using connection data
-REGISTER_HELP(TOPIC_CONNECTION_DATA, "The connection data may be specified in the following formats:");
-REGISTER_HELP(TOPIC_CONNECTION_DATA1, "@li A URI string");
-REGISTER_HELP(TOPIC_CONNECTION_DATA2, "@li A dictionary with the connection options");
-REGISTER_HELP(TOPIC_CONNECTION_DATA3, "TOPIC_URI");
-REGISTER_HELP(TOPIC_CONNECTION_DATA4, "TOPIC_CONNECTION_OPTIONS");
-REGISTER_HELP(TOPIC_CONNECTION_DATA5, "TOPIC_CONNECTION_DATA_DETAILS");
-REGISTER_HELP(TOPIC_CONNECTION_DATA6, "TOPIC_CONNECTION_MORE_INFO");
 
-REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO, "For additional information on connection data use \\? connection.");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC,
+              "The connection data may be specified in the following formats:");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC1, "@li A URI string");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC2,
+              "@li A dictionary with the connection options");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC3, "TOPIC_URI");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC4, "TOPIC_CONNECTION_OPTIONS");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC5, "TOPIC_CONNECTION_DATA_DETAILS");
+
+REGISTER_HELP(TOPIC_CONNECTION_DATA, "TOPIC_CONNECTION_DATA_BASIC");
+REGISTER_HELP(TOPIC_CONNECTION_DATA1, "TOPIC_CONNECTION_MORE_INFO");
+
+REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
+              "For additional information on connection data use "
+              "\\? connection.");
+
+REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY,
+              "TOPIC_CONNECTION_MORE_INFO");
+REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1,
+              "Only TCP/IP connections are allowed for this function.");
 
 REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
 REGISTER_HELP(TOPIC_URI1, "[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]");

@@ -315,7 +315,8 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL,
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3,
               "The options dictionary may contain "
@@ -430,9 +431,9 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL1)
  *
- * \copydoc connection_options
+ * Detailed description of the connection data format is available at \ref connection_data.
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Only TCP/IP connections are allowed for this function.
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL3)
  * $(CLUSTER_ADDINSTANCE_DETAIL4)
@@ -540,7 +541,8 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL,
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3,
               "The options dictionary may "
@@ -616,9 +618,9 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL1)
 *
-* \copydoc connection_options
+* Detailed description of the connection data format is available at \ref connection_data.
 *
-* Detailed description of the connection data format is available at \ref connection_data
+* Only TCP/IP connections are allowed for this function.
 *
 * $(CLUSTER_REJOININSTANCE_DETAIL3)
 * $(CLUSTER_REJOININSTANCE_DETAIL4)
@@ -711,7 +713,8 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL,
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3,
               "The options dictionary may contain the following attributes:");
@@ -755,9 +758,9 @@ REGISTER_HELP(
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
  *
- * \copydoc connection_options
+ * Detailed description of the connection data format is available at \ref connection_data.
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Only TCP/IP connections are allowed for this function.
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
  * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
@@ -1350,7 +1353,8 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL,
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3,
               "The options dictionary may contain the following options:");
@@ -1404,9 +1408,9 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
  *
- * \copydoc connection_options
+ * Detailed description of the connection data format is available at \ref connection_data.
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Only TCP/IP connections are allowed for this function.
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL4)
@@ -1499,7 +1503,8 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL,
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3,
               "The password may be contained on the instance definition, "
@@ -1546,9 +1551,9 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
  *
- * \copydoc connection_options
+ * Detailed description of the connection data format is available at \ref connection_data.
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Only TCP/IP connections are allowed for this function.
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL3)
  *
