@@ -1147,7 +1147,8 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL,
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3,
               "The options dictionary may contain the following options:");
@@ -1224,9 +1225,9 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
 *
-* \copydoc connection_options
+* Detailed description of the connection data format is available at \ref connection_data.
 *
-* Detailed description of the connection data format is available at \ref connection_data
+* Only TCP/IP connections are allowed for this function.
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
@@ -1884,7 +1885,8 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL,
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1,
               "The instance definition is the connection data for the instance.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3,
               "The options dictionary may contain the following options:");
@@ -1972,9 +1974,9 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
 *
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
 *
-* \copydoc connection_options
+* Detailed description of the connection data format is available at \ref connection_data.
 *
-* Detailed description of the connection data format is available at \ref connection_data
+* Only TCP/IP connections are allowed for this function.
 *
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
 * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
