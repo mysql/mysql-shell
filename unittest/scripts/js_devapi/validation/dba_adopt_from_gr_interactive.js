@@ -8,7 +8,7 @@
 ||
 
 //@<OUT> Drop Metadata
-Are you sure you want to remove the Metadata? [y|N]:  [y|N]: Metadata Schema successfully removed.
+Are you sure you want to remove the Metadata? [y|N]: Metadata Schema successfully removed.
 
 //@ Check cluster status after drop metadata schema
 ||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 164,
+            "length": 188,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.4-rc-log MySQL Community Server (GPL)"
+            "8.0.4-rc-log MySQL Commercial Server (Advanced)"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "RECOVERING"
+            "ONLINE"
         ]
     ]
 },
@@ -134,7 +134,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -164,7 +164,7 @@
     ],
     "rows": [
         [
-            "ONLINE"
+            "RECOVERING"
         ]
     ]
 },
@@ -172,7 +172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -202,82 +202,6 @@
     ],
     "rows": [
         [
-            "RECOVERING"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "performance_schema",
-            "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
-            "column_name": "MEMBER_STATE",
-            "column_label": "member_state",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            "RECOVERING"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 15,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 16,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "performance_schema",
-            "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
-            "column_name": "MEMBER_STATE",
-            "column_label": "member_state",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             "ONLINE"
         ]
     ]
@@ -285,13 +209,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 17,
+    "index": 13,
     "sql": "SELECT COUNT(*) FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\""
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 18,
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -323,11 +247,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 19
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 20
+    "index": 16
 },
 null]

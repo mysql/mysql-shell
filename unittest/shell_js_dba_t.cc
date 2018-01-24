@@ -724,6 +724,9 @@ TEST_F(Shell_js_dba_tests, dba_drop_metadata_interactive) {
   //@# drop metadata: user response no
   output_handler.prompts.push_back({"*", "n"});
 
+  //@# drop metadata: expect prompt, user response no
+  output_handler.prompts.push_back({"*", "n"});
+
   //@# drop metadata: user response yes
   output_handler.prompts.push_back({"*", "y"});
 

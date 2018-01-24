@@ -84,7 +84,7 @@ enum GRInstanceType {
   Standalone = 1 << 0,
   GroupReplication = 1 << 1,
   InnoDBCluster = 1 << 2,
-  Any = Standalone | GroupReplication | InnoDBCluster
+  StandaloneWithMetadata = 1 << 3
 };
 
 enum class SlaveReplicationState {

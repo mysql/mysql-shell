@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://root:root@localhost:33400",
+    "uri": "mysqlx://root:root@localhost:33160",
     "protocol": "x"
 },
 {
@@ -13,7 +13,7 @@
     "connection_id": "74",
     "connection_info": "localhost via TCP/IP",
     "server_version": "8.0.4-rc-log",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -49,7 +49,7 @@
     ],
     "rows": [
         [
-            3340
+            3316
         ]
     ]
 },

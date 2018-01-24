@@ -2939,14 +2939,10 @@ static void validate_instance_belongs_to_cluster(
                                      "GR group that is not managed as an "
                                      "InnoDB cluster. ");
 
-    case Standalone:
+    case GRInstanceType::Standalone:
+    case GRInstanceType::StandaloneWithMetadata:
       // We only want to check whether the status if InnoDBCluster or
       // GroupReplication to stop and thrown an exception
-      break;
-
-    case Any:
-      // FIXME(anyone) to silence warning... should not use a enum as a bitmask
-      assert(0);
       break;
   }
 }

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "test_user:@Kenjis-iMac.local:3316",
+    "uri": "test_user:@vm-ubuntu:3316",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "13",
-    "connection_info": "Kenjis-iMac.local via TCP/IP",
+    "connection_info": "vm-ubuntu via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -220,47 +220,7 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
             "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "SYSTEM_VARIABLES_ADMIN",
             "YES"
         ],
         [
@@ -268,7 +228,47 @@
             "YES"
         ],
         [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
+            "YES"
+        ],
+        [
             "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "XA_RECOVER_ADMIN",
             "YES"
         ]
     ]
