@@ -9,6 +9,9 @@
 //@# drop metadata: user response no
 |No changes made to the Metadata Schema.|
 
+//@# drop metadata: expect prompt, user response no
+|No changes made to the Metadata Schema.|
+
 //@# drop metadata: force option
 |No changes made to the Metadata Schema.|
 |Metadata Schema successfully removed.|

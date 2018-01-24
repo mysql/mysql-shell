@@ -21,6 +21,9 @@ dba.dropMetadataSchema()
 //@# drop metadata: user response no
 dba.dropMetadataSchema()
 
+//@# drop metadata: expect prompt, user response no
+dba.dropMetadataSchema({clearReadOnly:true})
+
 //@# drop metadata: force option
 dba.dropMetadataSchema({force:false});
 dba.dropMetadataSchema({force:true});

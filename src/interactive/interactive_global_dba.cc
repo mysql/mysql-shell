@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -586,25 +586,21 @@ shcore::Value Global_dba::drop_metadata_schema(
   shcore::Argument_list new_args;
   bool force = false;
   bool prompt_read_only = true;
+  bool prompt_drop_confirmation = true;
   Value::Map_type_ref options;
 
   if (args.size() < 1) {
-    if (prompt("Are you sure you want to remove the Metadata? [y|N]: ",
-               Prompt_answer::NO) == Prompt_answer::YES) {
-      options.reset(new shcore::Value::Map_type);
-
-      (*options)["force"] = shcore::Value(true);
-
-      force = true;
-    }
+    options.reset(new shcore::Value::Map_type);
   } else {
     try {
       options = args.map_at(0);
       shcore::Argument_map opt_map(*options);
       opt_map.ensure_keys({}, {"force", "clearReadOnly"}, "drop options");
 
-      if (opt_map.has_key("force"))
+      if (opt_map.has_key("force")) {
         force = opt_map.bool_at("force");
+        prompt_drop_confirmation = false;
+      }
 
       if (opt_map.has_key("clearReadOnly")) {
         // This call is done only to validate the passed data
@@ -614,6 +610,13 @@ shcore::Value Global_dba::drop_metadata_schema(
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
         get_function_name("dropMetadataSchema"))
+  }
+
+  if (prompt_drop_confirmation &&
+      prompt("Are you sure you want to remove the Metadata?",
+             Prompt_answer::NO) == Prompt_answer::YES) {
+    (*options)["force"] = shcore::Value(true);
+    force = true;
   }
 
   if (force) {

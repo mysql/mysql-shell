@@ -46,19 +46,25 @@ namespace dba {
 std::map<std::string, FunctionAvailability> AdminAPI_function_availability = {
   // The Dba functions
   {"Dba.createCluster", {GRInstanceType::Standalone |
+                         GRInstanceType::StandaloneWithMetadata |
                          GRInstanceType::GroupReplication,
                          ReplicationQuorum::State::Any,
                          ManagedInstance::State::Any}},
   {"Dba.getCluster", {GRInstanceType::InnoDBCluster,
                       ReplicationQuorum::State::Any,
                       ManagedInstance::State::Any}},
-  {"Dba.dropMetadataSchema", {GRInstanceType::InnoDBCluster,
+  {"Dba.dropMetadataSchema", {GRInstanceType::StandaloneWithMetadata |
+                              GRInstanceType::InnoDBCluster,
                               ReplicationQuorum::State::Normal,
                               ManagedInstance::State::OnlineRW}},
-  {"Dba.rebootClusterFromCompleteOutage", {GRInstanceType::Any,
-                                           ReplicationQuorum::State::Any,
-                                           ManagedInstance::State::OnlineRW |
-                                           ManagedInstance::State::OnlineRO}},
+  {"Dba.rebootClusterFromCompleteOutage",
+                                       {GRInstanceType::Standalone |
+                                        GRInstanceType::StandaloneWithMetadata |
+                                        GRInstanceType::GroupReplication |
+                                        GRInstanceType::InnoDBCluster,
+                                        ReplicationQuorum::State::Any,
+                                        ManagedInstance::State::OnlineRW |
+                                        ManagedInstance::State::OnlineRO}},
 
   // The Replicaset/Cluster functions
   {"Cluster.addInstance", {GRInstanceType::InnoDBCluster,
@@ -214,7 +220,8 @@ ReplicationGroupState check_function_preconditions(
     // Validates availability based on the configuration state
     if (instance_type & availability.instance_config_state) {
       // If it is not a standalone instance, validates the instance state
-      if (instance_type != GRInstanceType::Standalone) {
+      if (instance_type != GRInstanceType::Standalone &&
+          instance_type != GRInstanceType::StandaloneWithMetadata) {
         // Retrieves the instance cluster statues from the perspective of the
         // active session (The Metadata Session)
         state = get_replication_group_state(group_session, instance_type);
@@ -265,6 +272,9 @@ ReplicationGroupState check_function_preconditions(
       switch (instance_type) {
         case GRInstanceType::Standalone:
           error += " to a standalone instance";
+          break;
+        case GRInstanceType::StandaloneWithMetadata:
+          error += " to a standalone instance with existing metadata";
           break;
         case GRInstanceType::GroupReplication:
           error += " to an instance belonging to an unmanaged replication "

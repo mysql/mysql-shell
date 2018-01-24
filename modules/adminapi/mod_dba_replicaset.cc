@@ -449,7 +449,8 @@ shcore::Value ReplicaSet::add_instance(
 
   GRInstanceType type = get_gr_instance_type(session);
 
-  if (type != GRInstanceType::Standalone) {
+  if (type != GRInstanceType::Standalone &&
+      type != GRInstanceType::StandaloneWithMetadata) {
     // Retrieves the new instance UUID
     std::string uuid;
     get_server_variable(session, "server_uuid", uuid);
@@ -487,7 +488,8 @@ shcore::Value ReplicaSet::add_instance(
             static_cast<unsigned long>(_id), instance_address.c_str(),
             is_instance_on_md ? " (already in MD)" : "");
 
-  if (type == GRInstanceType::Standalone) {
+  if (type == GRInstanceType::Standalone ||
+      type == GRInstanceType::StandaloneWithMetadata) {
     log_debug("Instance '%s' is not yet in the cluster",
               instance_address.c_str());
 
@@ -1957,7 +1959,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
   auto instance_type = get_gr_instance_type(session);
 
-  if (instance_type != GRInstanceType::Standalone) {
+  if (instance_type != GRInstanceType::Standalone &&
+      instance_type != GRInstanceType::StandaloneWithMetadata) {
     state = get_replication_group_state(session, instance_type);
 
     if (state.source_state != ManagedInstance::OnlineRW &&

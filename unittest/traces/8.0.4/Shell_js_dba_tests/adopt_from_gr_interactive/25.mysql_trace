@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@vm-ubuntu:3316",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "47",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
+    "connection_info": "vm-ubuntu via TCP/IP",
     "server_info": "8.0.4-rc-log",
     "server_version": "8.0.4",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@hostname",
-            "length": 72,
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -67,7 +67,7 @@
     "rows": [
         [
             null,
-            "pjesus-TECRA-Z40-B"
+            "vm-ubuntu"
         ]
     ]
 },
@@ -169,11 +169,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000003",
-            39442,
+            "vm-ubuntu-bin.000003",
+            39309,
             "",
             "",
-            "42f114ac-0133-11e8-8c8a-5ce0c50b9d66:1-14,\n478933d8-0133-11e8-8c8a-5ce0c50b9d66:1-41"
+            "1c1f5689-04f3-11e8-bba1-080027c42733:1-14,\n1fe6725d-04f3-11e8-bba1-080027c42733:1-41"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     ],
     "rows": [
         [
-            "42f114ac-0133-11e8-8c8a-5ce0c50b9d66"
+            "1c1f5689-04f3-11e8-bba1-080027c42733"
         ]
     ]
 },

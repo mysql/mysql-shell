@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,6 +77,17 @@ GRInstanceType get_gr_instance_type(
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());
     }
+  } else {
+    // This is a standalone instance, check if it has metadata schema.
+    const std::string schema = "mysql_innodb_cluster_metadata";
+
+    query = shcore::sqlstring("show databases like ?", 0) << schema;
+
+    auto result = connection->query(query);
+    auto row = result->fetch_one();
+
+    if (row && row->get_string(0) == schema)
+      ret_val = GRInstanceType::StandaloneWithMetadata;
   }
 
   return ret_val;
