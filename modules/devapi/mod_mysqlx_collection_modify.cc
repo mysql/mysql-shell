@@ -73,22 +73,22 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   add_method("bind", std::bind(&CollectionModify::bind_, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("modify", "");
-  register_dynamic_function("set", "modify, operation");
-  register_dynamic_function("unset", "modify, operation");
-  register_dynamic_function("merge", "modify, operation");
-  register_dynamic_function("patch", "modify, operation");
-  register_dynamic_function("arrayInsert", "modify, operation");
-  register_dynamic_function("arrayAppend", "modify, operation");
-  register_dynamic_function("arrayDelete", "modify, operation");
-  register_dynamic_function("sort", "operation");
-  register_dynamic_function("limit", "operation, sort");
-  register_dynamic_function("bind", "operation, sort, limit, bind");
-  register_dynamic_function("execute", "operation, sort, limit, bind");
-  register_dynamic_function("__shell_hook__", "operation, sort, limit, bind");
+  register_dynamic_function(F::modify, F::_empty);
+  register_dynamic_function(F::set, F::modify | F::operation);
+  register_dynamic_function(F::unset, F::modify | F::operation);
+  register_dynamic_function(F::merge, F::modify | F::operation);
+  register_dynamic_function(F::patch, F::modify | F::operation);
+  register_dynamic_function(F::arrayInsert, F::modify | F::operation);
+  register_dynamic_function(F::arrayAppend, F::modify | F::operation);
+  register_dynamic_function(F::arrayDelete, F::modify | F::operation);
+  register_dynamic_function(F::sort, F::operation);
+  register_dynamic_function(F::limit, F::operation | F::sort);
+  register_dynamic_function(F::bind, F::operation | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::execute, F::operation | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::operation | F::sort | F::limit | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 
@@ -209,7 +209,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
       set_filter(search_condition);
 
       // Updates the exposed functions
-      update_functions("modify");
+      update_functions(F::modify);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("modify"));
   }
@@ -328,7 +328,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, args.string_at(0),
                   args[1]);
 
-    update_functions("operation");
+    update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
 
@@ -506,7 +506,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
 
     // Updates the exposed functions
     if (unset_count)
-      update_functions("operation");
+      update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("unset"));
 
@@ -584,7 +584,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
 
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);
 
-    update_functions("operation");
+    update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("merge"));
 
@@ -691,7 +691,7 @@ shcore::Value CollectionModify::patch(const shcore::Argument_list &args) {
   try {
     set_operation(Mysqlx::Crud::UpdateOperation::MERGE_PATCH, "", args[0]);
 
-    update_functions("operation");
+    update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("patch"));
 
@@ -774,7 +774,7 @@ shcore::Value CollectionModify::array_insert(
                   args.string_at(0), args[1], true);
 
     // Updates the exposed functions
-    update_functions("operation");
+    update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayInsert"));
 
@@ -854,7 +854,7 @@ shcore::Value CollectionModify::array_append(
     set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND,
                   args.string_at(0), args[1]);
 
-    update_functions("operation");
+    update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayAppend"));
 
@@ -934,7 +934,7 @@ shcore::Value CollectionModify::array_delete(
                   shcore::Value(), true);
 
     // Updates the exposed functions
-    update_functions("operation");
+    update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayDelete"));
 
@@ -1013,7 +1013,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
       ::mysqlx::parser::parse_collection_sort_column(*message_.mutable_order(),
                                                      f);
 
-    update_functions("sort");
+    update_functions(F::sort);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
@@ -1074,7 +1074,7 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_row_count(args.uint_at(0));
 
-    update_functions("limit");
+    update_functions(F::limit);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
@@ -1130,7 +1130,7 @@ shcore::Value CollectionModify::bind_(const shcore::Argument_list &args) {
   try {
     bind_value(args.string_at(0), args[1]);
 
-    update_functions("bind");
+    update_functions(F::bind);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 

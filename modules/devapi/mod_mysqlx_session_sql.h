@@ -56,7 +56,7 @@ class SqlExecute : public Dynamic_object,
   SqlResult execute();
 #endif
   explicit SqlExecute(std::shared_ptr<Session> owner);
-  virtual std::string class_name() const { return "SqlExecute"; }
+  std::string class_name() const override { return "SqlExecute"; }
   shcore::Value sql(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
   virtual shcore::Value execute(const shcore::Argument_list &args);
@@ -65,6 +65,25 @@ class SqlExecute : public Dynamic_object,
   std::weak_ptr<Session> _session;
   std::string _sql;
   shcore::Argument_list _parameters;
+
+  struct F {
+    static constexpr Allowed_function_mask _empty = 1 << 0;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
+    static constexpr Allowed_function_mask sql = 1 << 2;
+    static constexpr Allowed_function_mask bind = 1 << 3;
+    static constexpr Allowed_function_mask execute = 1 << 4;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("sql" == s) { return F::sql; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
+
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

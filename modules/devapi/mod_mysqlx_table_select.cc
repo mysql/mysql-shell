@@ -57,33 +57,21 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
              NULL);
 
   // Registers the dynamic function behavior
-  register_dynamic_function("select", "");
-  register_dynamic_function("where", "select");
-  register_dynamic_function("groupBy", "select, where");
-  register_dynamic_function("having", "groupBy");
-  register_dynamic_function("orderBy", "select, where, groupBy, having");
-  register_dynamic_function("limit", "select, where, groupBy, having, orderBy");
-  register_dynamic_function("offset", "limit");
-  register_dynamic_function(
-      "lockShared", "select, where, groupBy, having, orderBy, offset, limit");
-  register_dynamic_function(
-      "lockExclusive",
-      "select, where, groupBy, having, orderBy, offset, limit");
-  register_dynamic_function(
-      "bind",
-      "select, where, groupBy, having, orderBy, offset, limit, "
-      "lockShared, lockExclusive, bind");
-  register_dynamic_function(
-      "execute",
-      "select, where, groupBy, having, orderBy, offset, limit, lockShared, "
-      "lockExclusive, bind");
-  register_dynamic_function(
-      "__shell_hook__",
-      "select, where, groupBy, having, orderBy, offset, limit, lockShared, "
-      "lockExclusive, bind");
+  register_dynamic_function(F::select,F::_empty);
+  register_dynamic_function(F::where, F::select);
+  register_dynamic_function(F::groupBy, F::select | F::where);
+  register_dynamic_function(F::having, F::groupBy);
+  register_dynamic_function(F::orderBy, F::select | F::where | F::groupBy | F::having);
+  register_dynamic_function(F::limit, F::select | F::where | F::groupBy | F::having | F::orderBy);
+  register_dynamic_function(F::offset, F::limit);
+  register_dynamic_function(F::lockShared, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit);
+  register_dynamic_function(F::lockExclusive, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit);
+  register_dynamic_function(F::bind, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit | F::lockShared | F::lockExclusive | F::bind);
+  register_dynamic_function(F::execute, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit | F::lockShared | F::lockExclusive | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit | F::lockShared | F::lockExclusive | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 //! Initializes this record selection handler.
@@ -143,7 +131,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
       }
 
       // Updates the exposed functions
-      update_functions("select");
+      update_functions(F::select);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("select"));
   }
@@ -195,7 +183,7 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
     message_.set_allocated_criteria(::mysqlx::parser::parse_table_filter(
         args.string_at(0), &_placeholders));
 
-    update_functions("where");
+    update_functions(F::where);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
@@ -254,7 +242,7 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
           ::mysqlx::parser::parse_table_filter(field));
     }
 
-    update_functions("groupBy");
+    update_functions(F::groupBy);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
@@ -306,7 +294,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
         ::mysqlx::parser::parse_table_filter(args.string_at(0),
                                              &_placeholders));
 
-    update_functions("having");
+    update_functions(F::having);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("having"));
 
@@ -370,7 +358,7 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
                                                 field);
     }
 
-    update_functions("orderBy");
+    update_functions(F::orderBy);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
@@ -417,7 +405,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_row_count(args.uint_at(0));
 
-    update_functions("limit");
+    update_functions(F::limit);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
@@ -460,7 +448,7 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_offset(args.uint_at(0));
 
-    update_functions("offset");
+    update_functions(F::offset);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("offset"));
 
@@ -527,7 +515,7 @@ shcore::Value TableSelect::lock_shared(const shcore::Argument_list &args) {
   try {
     message_.set_locking(Mysqlx::Crud::Find_RowLock_SHARED_LOCK);
 
-    update_functions("lockShared");
+    update_functions(F::lockShared);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.lockShared");
 
@@ -593,7 +581,7 @@ shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
   try {
     message_.set_locking(Mysqlx::Crud::Find_RowLock_EXCLUSIVE_LOCK);
 
-    update_functions("lockExclusive");
+    update_functions(F::lockExclusive);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.lockExclusive");
 
@@ -641,7 +629,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args) {
   try {
     bind_value(args.string_at(0), args[1]);
 
-    update_functions("bind");
+    update_functions(F::bind);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 

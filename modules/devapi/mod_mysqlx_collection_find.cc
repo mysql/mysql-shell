@@ -59,30 +59,21 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   add_method("bind", std::bind(&CollectionFind::bind_, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("find", "");
-  register_dynamic_function("fields", "find");
-  register_dynamic_function("groupBy", "find, fields");
-  register_dynamic_function("having", "groupBy");
-  register_dynamic_function("sort", "find, fields, groupBy, having");
-  register_dynamic_function("limit", "find, fields, groupBy, having, sort");
-  register_dynamic_function("skip", "limit");
-  register_dynamic_function(
-      "lockShared", "find, fields, groupBy, having, sort, skip, limit");
-  register_dynamic_function(
-      "lockExclusive", "find, fields, groupBy, having, sort, skip, limit");
-  register_dynamic_function(
-      "bind", "find, fields, groupBy, having, sort, skip, limit, lockShared, "
-      "lockExclusive, bind");
-  register_dynamic_function(
-      "execute", "find, fields, groupBy, having, sort, skip, limit, "
-      "lockShared, lockExclusive, bind");
-  register_dynamic_function(
-      "__shell_hook__",
-      "find, fields, groupBy, having, sort, skip, limit, lockShared, "
-      "lockExclusive, bind");
+  register_dynamic_function(F::find, F::_empty);
+  register_dynamic_function(F::fields, F::find);
+  register_dynamic_function(F::groupBy, F::find | F::fields);
+  register_dynamic_function(F::having, F::groupBy);
+  register_dynamic_function(F::sort, F::find | F::fields | F::groupBy | F::having);
+  register_dynamic_function(F::limit, F::find | F::fields | F::groupBy | F::having | F::sort);
+  register_dynamic_function(F::skip, F::limit);
+  register_dynamic_function(F::lockShared, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit);
+  register_dynamic_function(F::lockExclusive, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit);
+  register_dynamic_function(F::bind, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit | F::lockShared | F::lockExclusive | F::bind);
+  register_dynamic_function(F::execute, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit | F::lockShared | F::lockExclusive | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit | F::lockShared | F::lockExclusive | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 REGISTER_HELP(COLLECTIONFIND_FIND_BRIEF,
@@ -151,7 +142,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
           set_filter(search_condition);
       }
       // Updates the exposed functions
-      update_functions("find");
+      update_functions(F::find);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.find");
   }
@@ -286,7 +277,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
             "JSON expression");
       }
 
-      update_functions("fields");
+      update_functions(F::fields);
     } else {
       std::vector<std::string> fields;
       parse_string_list(args, fields);
@@ -367,7 +358,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
       message_.mutable_grouping()->AddAllocated(
           ::mysqlx::parser::parse_collection_filter(field));
 
-    update_functions("groupBy");
+    update_functions(F::groupBy);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
@@ -426,7 +417,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
         ::mysqlx::parser::parse_collection_filter(args.string_at(0),
                                                   &_placeholders));
 
-    update_functions("having");
+    update_functions(F::having);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.having");
 
@@ -511,7 +502,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
       ::mysqlx::parser::parse_collection_sort_column(*message_.mutable_order(),
                                                      field);
 
-    update_functions("sort");
+    update_functions(F::sort);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.sort");
 
@@ -571,7 +562,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_row_count(args.uint_at(0));
 
-    update_functions("limit");
+    update_functions(F::limit);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.limit");
 
@@ -626,7 +617,7 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_offset(args.uint_at(0));
 
-    update_functions("skip");
+    update_functions(F::skip);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.skip");
 
@@ -693,7 +684,7 @@ shcore::Value CollectionFind::lock_shared(const shcore::Argument_list &args) {
   try {
     message_.set_locking(Mysqlx::Crud::Find_RowLock_SHARED_LOCK);
 
-    update_functions("lockShared");
+    update_functions(F::lockShared);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.lockShared");
 
@@ -760,7 +751,7 @@ shcore::Value CollectionFind::lock_exclusive(
   try {
     message_.set_locking(Mysqlx::Crud::Find_RowLock_EXCLUSIVE_LOCK);
 
-    update_functions("lockExclusive");
+    update_functions(F::lockExclusive);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.lockExclusive");
 
@@ -828,7 +819,7 @@ shcore::Value CollectionFind::bind_(const shcore::Argument_list &args) {
   try {
     bind_value(args.string_at(0), args[1]);
 
-    update_functions("bind");
+    update_functions(F::bind);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.bind");
 

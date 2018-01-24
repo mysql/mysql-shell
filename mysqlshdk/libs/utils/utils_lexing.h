@@ -26,6 +26,7 @@
 
 #include <cassert>
 #include <string>
+#include <stdexcept>
 
 namespace mysqlshdk {
 namespace utils {

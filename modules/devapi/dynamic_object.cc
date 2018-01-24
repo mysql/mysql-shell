@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynamic_object.h"
+#include "modules/devapi/dynamic_object.h"
 
 #include "db/mysqlx/mysqlx_parser.h"
 
@@ -30,9 +30,13 @@
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "utils/utils_general.h"
 
-using namespace mysqlsh;
-using namespace mysqlsh::mysqlx;
-using namespace shcore;
+#ifdef _WIN32
+#include <intrin.h>
+#endif
+
+namespace mysqlsh {
+namespace mysqlx {
+using shcore::Value;
 
 std::vector<std::string> Dynamic_object::get_members() const {
   std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
@@ -93,47 +97,51 @@ Value Dynamic_object::call(const std::string &name,
   return Cpp_object_bridge::call(name, args);
 }
 
-/*
-* This method registers the "dynamic" behavior of the functions exposed by the
-* object.
-* Parameters:
-*   - name: indicates the exposed function to be enabled/disabled.
-*   - enable_after: indicate the "states" under which the function should be
-* enabled.
-*/
 void Dynamic_object::register_dynamic_function(
-    const std::string &name, const std::string &enable_after) {
+    Allowed_function_mask name, Allowed_function_mask enable_after) {
+  // name must be a power of 2 and not 0
+  assert((name & (name - 1)) == 0 && name != 0);
+
   // Adds the function to the enabled/disabled state registry
-  _enabled_functions[name] = true;
+  enabled_functions_ |= name;
 
-  // Splits the 'enable' states and associates them to the function
-  std::vector<std::string> tokens =
-      shcore::split_string_chars(enable_after, ", ", true);
-  std::set<std::string> after(tokens.begin(), tokens.end());
-  _enable_paths[name] = after;
+#ifdef _WIN32
+  DWORD x = 0;
+  (void)_BitScanForward(&x, name);
+#else
+  int x = __builtin_ctz(name);
+#endif
+  // We can't register more functions than enabled_paths_ can store.
+  assert(x < shcore::array_size(enabled_paths_));
+
+  enabled_paths_[x] = enable_after;
 }
 
-void Dynamic_object::update_functions(const std::string &source) {
-  std::map<std::string, bool>::iterator it, end = _enabled_functions.end();
+void Dynamic_object::update_functions(Allowed_function_mask f) {
+  // f must be a power of 2 and not 0
+  assert((f & (f - 1)) == 0 && f != 0);
 
-  for (it = _enabled_functions.begin(); it != end; it++) {
-    size_t count = _enable_paths[it->first].count(source);
-    enable_function(it->first.c_str(), count > 0);
+  for (size_t i = 0; i < shcore::array_size(enabled_paths_); i++) {
+    bool enable = enabled_paths_[i] & f;
+    uint32_t name = (1U << i);
+
+    // enable function
+    if (enable) {
+      enabled_functions_ |= name;
+    } else {
+      enabled_functions_ &= ~name;
+    }
   }
-}
-
-void Dynamic_object::enable_function(const char *name, bool enable) {
-  if (_enabled_functions.find(name) != _enabled_functions.end())
-    _enabled_functions[name] = enable;
 }
 
 bool Dynamic_object::is_enabled(const std::string &name) const {
   auto func = lookup_function(name);
   if (func) {
     // filter out disabled functions
-    auto it = _enabled_functions.find(func->name(LowerCamelCase));
-    if (it != _enabled_functions.end() && it->second)
-      return true;
+    auto f = function_name_to_bitmask(func->name(shcore::LowerCamelCase));
+    return f & enabled_functions_;
   }
   return false;
 }
+}  // namespace mysqlx
+}  // namespace mysqlsh

@@ -65,15 +65,15 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
   add_method("bind", std::bind(&CollectionRemove::bind_, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("remove", "");
-  register_dynamic_function("sort", "remove");
-  register_dynamic_function("limit", "remove, sort");
-  register_dynamic_function("bind", "remove, sort, limit, bind");
-  register_dynamic_function("execute", "remove, sort, limit, bind");
-  register_dynamic_function("__shell_hook__", "remove, sort, limit, bind");
+  register_dynamic_function(F::remove, F::_empty);
+  register_dynamic_function(F::sort, F::remove);
+  register_dynamic_function(F::limit, F::remove | F::sort);
+  register_dynamic_function(F::bind, F::remove | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::execute, F::remove | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::remove | F::sort | F::limit | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 // Documentation of remove function
@@ -163,7 +163,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
       set_filter(search_condition);
 
       // Updates the exposed functions
-      update_functions("remove");
+      update_functions(F::remove);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("remove"));
   }
@@ -245,7 +245,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
       ::mysqlx::parser::parse_collection_sort_column(*message_.mutable_order(),
                                                      field);
 
-    update_functions("sort");
+    update_functions(F::sort);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
@@ -300,7 +300,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_row_count(args.uint_at(0));
 
-    update_functions("limit");
+    update_functions(F::limit);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
@@ -361,7 +361,7 @@ shcore::Value CollectionRemove::bind_(const shcore::Argument_list &args) {
   try {
     bind_value(args.string_at(0), args[1]);
 
-    update_functions("bind");
+    update_functions(F::bind);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 

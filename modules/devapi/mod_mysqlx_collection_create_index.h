@@ -51,7 +51,7 @@ class CollectionCreateIndex
  public:
   explicit CollectionCreateIndex(std::shared_ptr<Collection> owner);
 
-  virtual std::string class_name() const { return "CollectionCreateIndex"; }
+  std::string class_name() const override { return "CollectionCreateIndex"; }
 
   shcore::Value create_index(const shcore::Argument_list &args);
   shcore::Value field(const shcore::Argument_list &args);
@@ -74,6 +74,22 @@ class CollectionCreateIndex
  private:
   std::weak_ptr<Collection> _owner;
   shcore::Argument_list _create_index_args;
+
+  struct F {
+    static constexpr Allowed_function_mask _empty      = 1 << 0;
+    static constexpr Allowed_function_mask createIndex = 1 << 1;
+    static constexpr Allowed_function_mask field       = 1 << 2;
+    static constexpr Allowed_function_mask execute     = 1 << 3;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("createIndex" == s) { return F::createIndex; }
+    if ("field" == s) { return F::field; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

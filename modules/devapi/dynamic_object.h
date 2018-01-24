@@ -27,13 +27,14 @@
 #ifndef MODULES_DEVAPI_DYNAMIC_OBJECT_H_
 #define MODULES_DEVAPI_DYNAMIC_OBJECT_H_
 
-#include "scripting/common.h"
-#include "scripting/types_cpp.h"
-
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
+
+#include "scripting/common.h"
+#include "scripting/types_cpp.h"
+#include "utils/utils_general.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -42,6 +43,10 @@ namespace mysqlx {
 //! its functions.
 #endif
 class Dynamic_object : public shcore::Cpp_object_bridge {
+ public:
+  using Allowed_function_mask = uint32_t;
+
+ private:
   // Overrides to consider enabled/disabled status
   virtual std::vector<std::string> get_members() const;
   virtual shcore::Value get_member(const std::string &prop) const;
@@ -53,21 +58,32 @@ class Dynamic_object : public shcore::Cpp_object_bridge {
   virtual bool operator==(const Object_bridge &) const { return false; }
 
  protected:
-  // Holds the dynamic functions enable/disable status
-  std::map<std::string, bool> _enabled_functions;
+  //! Holds the current dynamic functions enable/disable status
+  Allowed_function_mask enabled_functions_ = 0;
 
-  // Holds relation of 'enabled' states for every dynamic function
-  std::map<std::string, std::set<std::string> > _enable_paths;
+  //! Holds relation of 'enabled' states for every dynamic function
+  //! IMPORTANT: 16 is number of max items in `struct F` in child.
+  Allowed_function_mask enabled_paths_[16] = {0};
 
-  // Registers a dynamic function and it's associated 'enabled' states
-  void register_dynamic_function(const std::string &name,
-                                 const std::string &enable_after);
+  /**
+   * Registers a dynamic function and it's associated 'enabled' states exposed
+   * by the object.
+   *
+   * @param name Bitmask with one bit set to true, indicates function name.
+   * @param enable_after Bitmask built with bit encoded function names, which
+   * indicates after what functions, `name`-function should be enabled.
+   */
+  void register_dynamic_function(Allowed_function_mask name,
+                                 Allowed_function_mask enable_after);
 
-  // Enable/disable functions based on the received and registered states
-  void update_functions(const std::string &state);
-  void enable_function(const char *name, bool enable);
+  //! Enable/disable functions based on the received and registered states
+  void update_functions(Allowed_function_mask source);
 
   bool is_enabled(const std::string &name) const;
+
+ private:
+  virtual Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const = 0;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh
