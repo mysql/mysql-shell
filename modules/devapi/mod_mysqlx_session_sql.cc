@@ -53,13 +53,13 @@ SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
   add_method("execute", std::bind(&SqlExecute::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("sql", "");
-  register_dynamic_function("bind", "sql, bind");
-  register_dynamic_function("execute", "sql, bind");
-  register_dynamic_function("__shell_hook__", "sql, bind");
+  register_dynamic_function(F::sql, F::_empty);
+  register_dynamic_function(F::bind, F::sql | F::bind);
+  register_dynamic_function(F::execute, F::sql | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::sql | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 // Documentation of sql function
@@ -114,7 +114,7 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args) {
     _sql = args.string_at(0);
 
     // Updates the exposed functions
-    update_functions("sql");
+    update_functions(F::sql);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sql"));
 

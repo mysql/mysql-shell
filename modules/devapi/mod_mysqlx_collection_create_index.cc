@@ -59,12 +59,12 @@ CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
              "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("createIndex", "");
-  register_dynamic_function("field", "createIndex, field");
-  register_dynamic_function("execute", "field");
+  register_dynamic_function(F::createIndex, F::_empty);
+  register_dynamic_function(F::field, F::createIndex | F::field);
+  register_dynamic_function(F::execute, F::field);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 // Documentation of createIndex function
@@ -157,7 +157,7 @@ shcore::Value CollectionCreateIndex::create_index(
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("createIndex").c_str());
 
-  update_functions("createIndex");
+  update_functions(F::createIndex);
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -219,7 +219,7 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args) {
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("field").c_str());
 
-  update_functions("field");
+  update_functions(F::field);
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -266,7 +266,7 @@ shcore::Value CollectionCreateIndex::execute(
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
-  update_functions("execute");
+  update_functions(F::execute);
 
   return result;
 }

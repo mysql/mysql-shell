@@ -45,7 +45,7 @@ class TableDelete : public Table_crud_definition,
   explicit TableDelete(std::shared_ptr<Table> owner);
 
  public:
-  virtual std::string class_name() const { return "TableDelete"; }
+  std::string class_name() const override { return "TableDelete"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
   shcore::Value remove(const shcore::Argument_list &args);
@@ -54,7 +54,7 @@ class TableDelete : public Table_crud_definition,
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
 #if DOXYGEN_JS
   TableDelete delete ();
   TableDelete where(String searchCondition);
@@ -72,6 +72,30 @@ class TableDelete : public Table_crud_definition,
 #endif
 private:
   Mysqlx::Crud::Delete message_;
+
+  struct F {
+    static constexpr Allowed_function_mask _empty = 1 << 0;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
+    static constexpr Allowed_function_mask delete_ = 1 << 2;
+    static constexpr Allowed_function_mask where = 1 << 3;
+    static constexpr Allowed_function_mask orderBy = 1 << 4;
+    static constexpr Allowed_function_mask limit = 1 << 5;
+    static constexpr Allowed_function_mask bind = 1 << 6;
+    static constexpr Allowed_function_mask execute = 1 << 7;
+  };
+
+  uint32_t function_name_to_bitmask(const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("delete" == s) { return F::delete_; }
+    if ("where" == s) { return F::where; }
+    if ("orderBy" == s) { return F::orderBy; }
+    if ("limit" == s) { return F::limit; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
+
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

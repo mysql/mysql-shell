@@ -51,18 +51,17 @@ TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
   add_method("bind", std::bind(&TableUpdate::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("update", "");
-  register_dynamic_function("set", "update, set");
-  register_dynamic_function("where", "set");
-  register_dynamic_function("orderBy", "set, where");
-  register_dynamic_function("limit", "set, where, orderBy");
-  register_dynamic_function("bind", "set, where, orderBy, limit, bind");
-  register_dynamic_function("execute", "set, where, orderBy, limit, bind");
-  register_dynamic_function("__shell_hook__",
-                            "set, where, orderBy, limit, bind");
+  register_dynamic_function(F::update,F::_empty);
+  register_dynamic_function(F::set, F::update | F::set);
+  register_dynamic_function(F::where, F::set);
+  register_dynamic_function(F::orderBy, F::set | F::where);
+  register_dynamic_function(F::limit, F::set | F::where | F::orderBy);
+  register_dynamic_function(F::bind, F::set | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::execute, F::set | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::set | F::where | F::orderBy | F::limit | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 /**
@@ -101,7 +100,7 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
   if (table) {
     try {
       // Updates the exposed functions
-      update_functions("update");
+      update_functions(F::update);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("update"));
   }
@@ -202,7 +201,7 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
           convert_value(args[1]).release());
     }
 
-    update_functions("set");
+    update_functions(F::set);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
 
@@ -256,7 +255,7 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
         args.string_at(0), &_placeholders));
 
     // Updates the exposed functions
-    update_functions("where");
+    update_functions(F::where);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
@@ -315,7 +314,7 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args) {
     for (auto &f : fields)
       ::mysqlx::parser::parse_table_sort_column(*message_.mutable_order(), f);
 
-    update_functions("orderBy");
+    update_functions(F::orderBy);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
@@ -360,7 +359,7 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_row_count(args.uint_at(0));
 
-    update_functions("limit");
+    update_functions(F::limit);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
@@ -407,7 +406,7 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args) {
   try {
     bind_value(args.string_at(0), args[1]);
 
-    update_functions("bind");
+    update_functions(F::bind);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 

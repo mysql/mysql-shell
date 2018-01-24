@@ -65,7 +65,7 @@ class CollectionRemove : public Collection_crud_definition,
   CollectionFind bind(str name, Value value);
   Result execute();
 #endif
-  virtual std::string class_name() const { return "CollectionRemove"; }
+  std::string class_name() const override { return "CollectionRemove"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
  private:
@@ -74,13 +74,36 @@ class CollectionRemove : public Collection_crud_definition,
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value bind_(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
   shcore::Value execute();
 
   friend class Collection;
   CollectionRemove &set_filter(const std::string& filter);
   CollectionRemove &bind(const std::string &name, shcore::Value value);
   Mysqlx::Crud::Delete message_;
+
+  struct F {
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
+    static constexpr Allowed_function_mask _empty = 1 << 1;
+    static constexpr Allowed_function_mask remove = 1 << 2;
+    static constexpr Allowed_function_mask sort = 1 << 3;
+    static constexpr Allowed_function_mask limit = 1 << 4;
+    static constexpr Allowed_function_mask bind = 1 << 5;
+    static constexpr Allowed_function_mask execute = 1 << 6;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("" == s) { return F::_empty; }
+    if ("remove" == s) { return F::remove; }
+    if ("sort" == s) { return F::sort; }
+    if ("limit" == s) { return F::limit; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
+
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

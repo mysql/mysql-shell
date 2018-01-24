@@ -83,7 +83,7 @@ class CollectionModify : public Collection_crud_definition,
   CollectionFind bind(str name, Value value);
   Result execute();
 #endif
-  virtual std::string class_name() const { return "CollectionModify"; }
+  std::string class_name() const override { return "CollectionModify"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
 private:
@@ -99,7 +99,7 @@ private:
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value bind_(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
   shcore::Value execute();
   friend class Collection;
   Mysqlx::Crud::Update message_;
@@ -107,6 +107,45 @@ private:
   CollectionModify &bind(const std::string &name, shcore::Value value);
   void set_operation(int type, const std::string &path,
                      const shcore::Value &value, bool validate_array = false);
+
+  struct F {
+    static constexpr Allowed_function_mask _empty = 1 << 0;
+    static constexpr Allowed_function_mask operation = 1 << 1;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 2;
+    static constexpr Allowed_function_mask modify = 1 << 3;
+    static constexpr Allowed_function_mask set = 1 << 4;
+    static constexpr Allowed_function_mask unset = 1 << 5;
+    static constexpr Allowed_function_mask merge = 1 << 6;
+    static constexpr Allowed_function_mask patch = 1 << 7;
+    static constexpr Allowed_function_mask arrayInsert = 1 << 8;
+    static constexpr Allowed_function_mask arrayAppend = 1 << 9;
+    static constexpr Allowed_function_mask arrayDelete = 1 << 10;
+    static constexpr Allowed_function_mask sort = 1 << 11;
+    static constexpr Allowed_function_mask limit = 1 << 12;
+    static constexpr Allowed_function_mask bind = 1 << 13;
+    static constexpr Allowed_function_mask execute = 1 << 14;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("operation" == s) { return F::operation; }
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("modify" == s) { return F::modify; }
+    if ("set" == s) { return F::set; }
+    if ("unset" == s) { return F::unset; }
+    if ("merge" == s) { return F::merge; }
+    if ("patch" == s) { return F::patch; }
+    if ("arrayInsert" == s) { return F::arrayInsert; }
+    if ("arrayAppend" == s) { return F::arrayAppend; }
+    if ("arrayDelete" == s) { return F::arrayDelete; }
+    if ("sort" == s) { return F::sort; }
+    if ("limit" == s) { return F::limit; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
+
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

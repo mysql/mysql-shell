@@ -76,7 +76,7 @@ class TableSelect : public Table_crud_definition,
   RowResult execute();
 #endif
   explicit TableSelect(std::shared_ptr<Table> owner);
-  virtual std::string class_name() const { return "TableSelect"; }
+  std::string class_name() const override { return "TableSelect"; }
   shcore::Value select(const shcore::Argument_list &args);
   shcore::Value where(const shcore::Argument_list &args);
   shcore::Value group_by(const shcore::Argument_list &args);
@@ -88,9 +88,43 @@ class TableSelect : public Table_crud_definition,
   shcore::Value lock_exclusive(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
 private:
    Mysqlx::Crud::Find message_;
+
+  struct F {
+    static constexpr Allowed_function_mask _empty = 1 << 0;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
+    static constexpr Allowed_function_mask select = 1 << 2;
+    static constexpr Allowed_function_mask where = 1 << 3;
+    static constexpr Allowed_function_mask groupBy = 1 << 4;
+    static constexpr Allowed_function_mask having = 1 << 5;
+    static constexpr Allowed_function_mask orderBy = 1 << 6;
+    static constexpr Allowed_function_mask limit = 1 << 7;
+    static constexpr Allowed_function_mask offset = 1 << 8;
+    static constexpr Allowed_function_mask lockShared = 1 << 9;
+    static constexpr Allowed_function_mask lockExclusive = 1 << 10;
+    static constexpr Allowed_function_mask bind = 1 << 11;
+    static constexpr Allowed_function_mask execute = 1 << 12;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("select" == s) { return F::select; }
+    if ("where" == s) { return F::where; }
+    if ("groupBy" == s) { return F::groupBy; }
+    if ("having" == s) { return F::having; }
+    if ("orderBy" == s) { return F::orderBy; }
+    if ("limit" == s) { return F::limit; }
+    if ("offset" == s) { return F::offset; }
+    if ("lockShared" == s) { return F::lockShared; }
+    if ("lockExclusive" == s) { return F::lockExclusive; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

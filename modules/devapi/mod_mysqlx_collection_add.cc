@@ -50,12 +50,12 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
   add_method("add", std::bind(&CollectionAdd::add, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("add", ",add");
-  register_dynamic_function("execute", "add");
-  register_dynamic_function("__shell_hook__", "add");
+  register_dynamic_function(F::add, F::_empty | F::add);
+  register_dynamic_function(F::execute, F::add);
+  register_dynamic_function(F::__shell_hook__, F::add);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 REGISTER_HELP(COLLECTIONADD_ADD_BRIEF, "Adds documents into a collection.");
@@ -161,7 +161,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
           }
         }
         // Updates the exposed functions (since a document has been added)
-        update_functions("add");
+        update_functions(F::add);
       }
       CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("add").c_str());
     }

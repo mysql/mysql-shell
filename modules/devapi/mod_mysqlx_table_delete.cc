@@ -47,17 +47,16 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
   add_method("bind", std::bind(&TableDelete::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("delete", "");
-  register_dynamic_function("where", "delete");
-  register_dynamic_function("orderBy", "delete, where");
-  register_dynamic_function("limit", "delete, where, orderBy");
-  register_dynamic_function("bind", "where, orderBy, limit, bind");
-  register_dynamic_function("execute", "delete, where, orderBy, limit, bind");
-  register_dynamic_function("__shell_hook__",
-                            "delete, where, orderBy, limit, bind");
+  register_dynamic_function(F::delete_, F::_empty);
+  register_dynamic_function(F::where, F::delete_);
+  register_dynamic_function(F::orderBy, F::delete_ | F::where);
+  register_dynamic_function(F::limit, F::delete_ | F::where | F::orderBy);
+  register_dynamic_function(F::bind, F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::execute, F::delete_ | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::delete_ | F::where | F::orderBy | F::limit | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 /**
@@ -95,7 +94,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
   if (table) {
     try {
       // Updates the exposed functions
-      update_functions("delete");
+      update_functions(F::delete_);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("delete"));
   }
@@ -151,7 +150,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args) {
           args.string_at(0), &_placeholders));
 
       // Updates the exposed functions
-      update_functions("where");
+      update_functions(F::where);
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
   }
@@ -213,7 +212,7 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
       ::mysqlx::parser::parse_table_sort_column(*message_.mutable_order(),
                                                 field);
 
-    update_functions("orderBy");
+    update_functions(F::orderBy);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
@@ -258,7 +257,7 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
   try {
     message_.mutable_limit()->set_row_count(args.uint_at(0));
 
-    update_functions("limit");
+    update_functions(F::limit);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
@@ -305,7 +304,7 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args) {
   try {
     bind_value(args.string_at(0), args[1]);
 
-    update_functions("bind");
+    update_functions(F::bind);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 

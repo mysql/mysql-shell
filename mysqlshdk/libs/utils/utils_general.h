@@ -39,6 +39,17 @@
 
 namespace shcore {
 
+/**
+ * Calculate in compile time length/size of an array.
+ *
+ * @param array
+ * @return Return size of an array.
+ */
+template <class T, std::size_t N>
+constexpr static std::size_t array_size(const T (&)[N]) noexcept {
+  return N;
+}
+
 class Scoped_callback {
  public:
   explicit Scoped_callback(std::function<void()> c) : callback(c) {

@@ -55,7 +55,7 @@ class CollectionFind : public Collection_crud_definition,
   explicit CollectionFind(std::shared_ptr<Collection> owner);
 
  public:
-  virtual std::string class_name() const { return "CollectionFind"; }
+  std::string class_name() const override { return "CollectionFind"; }
 #if DOXYGEN_JS
   CollectionFind find(String searchCondition);
   CollectionFind fields(String fieldDefinition[, String fieldDefinition, ...]);
@@ -100,13 +100,47 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value lock_exclusive(const shcore::Argument_list &args);
   shcore::Value bind_(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
   CollectionFind &set_filter(const std::string& filter);
   CollectionFind &bind(const std::string &name, shcore::Value value);
   std::unique_ptr<DocResult> execute();
 
  private:
   Mysqlx::Crud::Find message_;
+
+  struct F {
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
+    static constexpr Allowed_function_mask _empty = 1 << 1;
+    static constexpr Allowed_function_mask find = 1 << 2;
+    static constexpr Allowed_function_mask fields = 1 << 3;
+    static constexpr Allowed_function_mask groupBy = 1 << 4;
+    static constexpr Allowed_function_mask having = 1 << 5;
+    static constexpr Allowed_function_mask sort = 1 << 6;
+    static constexpr Allowed_function_mask limit = 1 << 7;
+    static constexpr Allowed_function_mask skip = 1 << 8;
+    static constexpr Allowed_function_mask lockShared = 1 << 9;
+    static constexpr Allowed_function_mask lockExclusive = 1 << 10;
+    static constexpr Allowed_function_mask bind = 1 << 11;
+    static constexpr Allowed_function_mask execute = 1 << 12;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("" == s) { return F::_empty; }
+    if ("find" == s) { return F::find; }
+    if ("fields" == s) { return F::fields; }
+    if ("groupBy" == s) { return F::groupBy; }
+    if ("having" == s) { return F::having; }
+    if ("sort" == s) { return F::sort; }
+    if ("limit" == s) { return F::limit; }
+    if ("skip" == s) { return F::skip; }
+    if ("lockShared" == s) { return F::lockShared; }
+    if ("lockExclusive" == s) { return F::lockExclusive; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

@@ -68,7 +68,7 @@ class TableUpdate : public Table_crud_definition,
   Result execute();
 #endif
   explicit TableUpdate(std::shared_ptr<Table> owner);
-  virtual std::string class_name() const { return "TableUpdate"; }
+  std::string class_name() const override { return "TableUpdate"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
   shcore::Value update(const shcore::Argument_list &args);
@@ -78,9 +78,35 @@ class TableUpdate : public Table_crud_definition,
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value bind(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
 private:
    Mysqlx::Crud::Update message_;
+
+  struct F {
+    static constexpr Allowed_function_mask _empty = 1 << 0;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
+    static constexpr Allowed_function_mask update = 1 << 2;
+    static constexpr Allowed_function_mask set = 1 << 3;
+    static constexpr Allowed_function_mask where = 1 << 4;
+    static constexpr Allowed_function_mask orderBy = 1 << 5;
+    static constexpr Allowed_function_mask limit = 1 << 6;
+    static constexpr Allowed_function_mask bind = 1 << 7;
+    static constexpr Allowed_function_mask execute = 1 << 8;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("update" == s) { return F::update; }
+    if ("set" == s) { return F::set; }
+    if ("where" == s) { return F::where; }
+    if ("orderBy" == s) { return F::orderBy; }
+    if ("limit" == s) { return F::limit; }
+    if ("bind" == s) { return F::bind; }
+    if ("execute" == s) { return F::execute; }
+    return 0;
+  }
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

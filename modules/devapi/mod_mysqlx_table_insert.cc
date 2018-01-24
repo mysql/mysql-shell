@@ -52,14 +52,13 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
   add_method("values", std::bind(&TableInsert::values, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("insert", "");
-  register_dynamic_function("values", "insert, insertFields, values");
-  register_dynamic_function("execute", "insertFieldsAndValues, values, bind");
-  register_dynamic_function("__shell_hook__",
-                            "insertFieldsAndValues, values, bind");
+  register_dynamic_function(F::insert, F::_empty);
+  register_dynamic_function(F::values, F::insert | F::insertFields | F::values);
+  register_dynamic_function(F::execute, F::insertFieldsAndValues | F::values | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::insertFieldsAndValues | F::values | F::bind);
 
   // Initial function update
-  update_functions("");
+  update_functions(F::_empty);
 }
 
 #if DOXYGEN_CPP
@@ -203,7 +202,13 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
   }
 
   // Updates the exposed functions
-  update_functions("insert" + path);
+  if (path == "") {
+    update_functions(F::insert);
+  } else if (path == "Fields") {
+    update_functions(F::insertFields);
+  } else if (path == "FieldsAndValues") {
+    update_functions(F::insertFieldsAndValues);
+  }
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -272,7 +277,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args) {
       encode_expression_value(row->mutable_field()->Add(), args[index]);
     }
     // Updates the exposed functions
-    update_functions("values");
+    update_functions(F::values);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("values"));
 

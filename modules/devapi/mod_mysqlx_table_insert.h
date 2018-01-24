@@ -56,15 +56,40 @@ class TableInsert : public Table_crud_definition,
   Result execute();
 #endif
   explicit TableInsert(std::shared_ptr<Table> owner);
-  virtual std::string class_name() const { return "TableInsert"; }
+  std::string class_name() const override { return "TableInsert"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
   shcore::Value insert(const shcore::Argument_list &args);
   shcore::Value values(const shcore::Argument_list &args);
 
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value execute(const shcore::Argument_list &args) override;
 private:
   Mysqlx::Crud::Insert message_;
+
+  struct F {
+    static constexpr Allowed_function_mask _empty = 1 << 0;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
+    static constexpr Allowed_function_mask insert = 1 << 2;
+    static constexpr Allowed_function_mask values = 1 << 3;
+    static constexpr Allowed_function_mask execute = 1 << 4;
+    static constexpr Allowed_function_mask insertFields = 1 << 5;
+    static constexpr Allowed_function_mask insertFieldsAndValues = 1 << 6;
+    static constexpr Allowed_function_mask bind = 1 << 7;
+  };
+
+  Allowed_function_mask function_name_to_bitmask(
+      const std::string &s) const override {
+    if ("" == s) { return F::_empty; }
+    if ("__shell_hook__" == s) { return F::__shell_hook__; }
+    if ("insert" == s) { return F::insert; }
+    if ("values" == s) { return F::values; }
+    if ("execute" == s) { return F::execute; }
+    if ("insertFields" == s) { return F::insertFields; }
+    if ("insertFieldsAndValues" == s) { return F::insertFieldsAndValues; }
+    if ("bind" == s) { return F::bind; }
+    return 0;
+  }
+
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh
