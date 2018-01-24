@@ -1,6 +1,6 @@
 Licensing Information User Manual
 
-MySQL Shell (part of MySQL Server) 8.0
+MySQL Shell (part of MySQL 8.0)
      __________________________________________________________________
 
 Introduction
@@ -8,36 +8,24 @@ Introduction
    This License Information User Manual contains Oracle's product license
    and other licensing information, including licensing information for
    third-party software which may be included in this distribution of
-   MySQL Shell (part of MySQL Server) 8.0.
+   MySQL Shell (part of MySQL 8.0).
 
    Last updated: January 2018.
 
 Licensing Information
 
-Product License - MySQL Shell (part of MySQL Server) 8.0
+   This is a release of MySQL Shell (part of MySQL 8.0), brought to you by
+   the MySQL team at Oracle. This software is released under version 2 of
+   the GNU General Public License (GPLv2), as set forth below, with the
+   following additional permissions:
 
-   This is a release of MySQL Shell (part of MySQL Server) 8.0,
-   brought to you by the MySQL team at
-   Oracle. This software is released under version 2 of the GNU General
-   Public License (GPLv2), as set forth below, with the following
-   additional permissions:
-
-   This distribution of MySQL Shell (part of MySQL Server) 8.0 
-   is distributed with certain software
-   (including but not limited to OpenSSL) that is licensed under separate
-   terms, as designated in a particular file or component or in the
-   license documentation. Without limiting your rights under the GPLv2,
-   the authors of MySQL hereby grant you an additional permission to link
-   the program and your derivative works with the separately licensed
-   software that they have included with the program.
-
-   This distribution includes the MySQL C API client library
-   (libmysqlclient) otherwise known as MySQL Connector/C. Without limiting
-   the foregoing grant of rights under the GPLv2 and additional permission
-   as to separately licensed software, this Connector is also subject to
-   the Universal FOSS Exception, version 1.0, a copy of which is
-   reproduced below and can also be found along with its FAQ at
-   http://oss.oracle.com/licenses/universal-foss-exception.
+   This distribution of MySQL Shell (part of MySQL 8.0) is distributed
+   with certain software (including but not limited to OpenSSL) that is
+   licensed under separate terms, as designated in a particular file or
+   component or in the license documentation. Without limiting your rights
+   under the GPLv2, the authors of MySQL hereby grant you an additional
+   permission to link the program and your derivative works with the
+   separately licensed software that they have included with the program.
 
    Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights
    reserved.
@@ -422,62 +410,12 @@ you may consider it more useful to permit linking proprietary
 applications with the library.  If this is what you want to do, use
 the GNU Lesser General Public License instead of this License.
 
-MySQL FOSS License Exception, Version 1.0
-
-   In addition to the rights set forth in the other license(s) included in
-   the distribution for this software, data, and/or documentation
-   (collectively the "Software", and such licenses collectively with this
-   additional permission the "Software License"), the copyright holders
-   wish to facilitate interoperability with other software, data, and/or
-   documentation distributed with complete corresponding source under a
-   license that is OSI-approved and/or categorized by the FSF as free
-   (collectively "Other FOSS"). We therefore hereby grant the following
-   additional permission with respect to the use and distribution of the
-   Software with Other FOSS, and the constants, function signatures, data
-   structures and other invocation methods used to run or interact with
-   each of them (as to each, such software's "Interfaces"):
-    i. The Software's Interfaces may, to the extent permitted by the
-       license of the Other FOSS, be copied into, used and distributed in
-       the Other FOSS in order to enable interoperability, without
-       requiring a change to the license of the Other FOSS other than as
-       to any Interfaces of the Software embedded therein. The Software's
-       Interfaces remain at all times under the Software License,
-       including without limitation as used in the Other FOSS (which upon
-       any such use also then contains a portion of the Software under the
-       Software License).
-   ii. The Other FOSS's Interfaces may, to the extent permitted by the
-       license of the Other FOSS, be copied into, used and distributed in
-       the Software in order to enable interoperability, without requiring
-       that such Interfaces be licensed under the terms of the Software
-       License or otherwise altering their original terms, if this does
-       not require any portion of the Software other than such Interfaces
-       to be licensed under the terms other than the Software License.
-   iii. If only Interfaces and no other code is copied between the
-       Software and the Other FOSS in either direction, the use and/or
-       distribution of the Software with the Other FOSS shall not be
-       deemed to require that the Other FOSS be licensed under the license
-       of the Software, other than as to any Interfaces of the Software
-       copied into the Other FOSS. This includes, by way of example and
-       without limitation, statically or dynamically linking the Software
-       together with Other FOSS after enabling interoperability using the
-       Interfaces of one or both, and distributing the resulting
-       combination under different licenses for the respective portions
-       thereof. For avoidance of doubt, a license which is OSI-approved or
-       categorized by the FSF as free, includes, for the purpose of this
-       permission, such licenses with additional permissions, and any
-       license that has previously been so approved or categorized as
-       free, even if now deprecated or otherwise no longer recognized as
-       approved or free. Nothing in this additional permission grants any
-       right to distribute any portion of the Software on terms other than
-       those of the Software License or grants any additional permission
-       of any kind for use or distribution of the Software in conjunction
-       with software other than Other FOSS.
-
 Licenses for Third-Party Components
 
    The following sections contain licensing information for libraries that
-   we have included with the MySQL source and components used to test
-   MySQL. We are thankful to all individuals that have created these.
+   we have included with the MySQL Shell (part of MySQL 8.0) source and
+   components used to test MySQL Shell (part of MySQL 8.0). We are
+   thankful to all individuals that have created these.
 
 argparse
 
