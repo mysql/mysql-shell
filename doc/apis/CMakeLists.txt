@@ -112,6 +112,10 @@ foreach(file ${docs_SRC})
       #MESSAGE ("VAR: '${stripped_variable}' : '${value}'")
       SET(ENV{${stripped_variable}} "${value}")
       SET(process "0")
+
+      if (${stripped_variable} MATCHES "^TOPIC_")
+        list(APPEND all_topic_variables ${stripped_variable})
+      endif()
     ENDIF()
   endforeach()
 endforeach()
@@ -158,3 +162,19 @@ configure_file("${CMAKE_SOURCE_DIR}/doxygen.cfg.in"
                "doxygen_py.cfg")
 
 execute_process(COMMAND doxygen "doxygen_py.cfg")
+
+# search for all unparsed variables
+
+file(GLOB_RECURSE html_files "${CMAKE_BINARY_DIR}/*.html")
+
+foreach(file ${html_files})
+  file(READ "${file}" contents)
+
+  foreach(variable ${all_topic_variables})
+    string(FIND "${contents}" "${variable}" variable_found)
+
+    if(NOT ${variable_found} EQUAL -1)
+      message(WARNING "File ${file} contains unparsed variable ${variable}.")
+    endif()
+  endforeach()
+endforeach()

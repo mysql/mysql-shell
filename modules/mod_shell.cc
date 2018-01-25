@@ -110,11 +110,9 @@ REGISTER_HELP(SHELL_OPTIONS_DETAIL11, \
               "@li table: displays the output in table format (default)");
 REGISTER_HELP(SHELL_OPTIONS_DETAIL12, \
               "@li json: displays the output in JSON format");
-REGISTER_HELP(\
-    SHELL_OPTIONS_DETAIL13, \
+REGISTER_HELP(SHELL_OPTIONS_DETAIL13, \
     "@li json/raw: displays the output in a JSON format but in a single line");
-REGISTER_HELP(\
-    SHELL_OPTIONS_DETAIL14, \
+REGISTER_HELP(SHELL_OPTIONS_DETAIL14, \
     "@li vertical: displays the outputs vertically, one line per column value");
 REGISTER_HELP(SHELL_OPTIONS_DETAIL15,
               "@li " SHCORE_DB_NAME_CACHE \
@@ -190,7 +188,9 @@ REGISTER_HELP(SHELL_PARSEURI_DETAIL2, "For more details about how a URI is "
  *
  * $(SHELL_PARSEURI_DETAIL)
  *
- * $(SHELL_PARSEURI_DETAIL1)
+ * $(TOPIC_URI)
+ *
+ * $(TOPIC_URI1)
  *
  * For more information about the URI format as well as the returned dictionary
  * please look at \ref connection_data
