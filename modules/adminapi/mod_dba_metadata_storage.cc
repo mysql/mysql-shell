@@ -54,9 +54,9 @@ std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
   std::shared_ptr<mysqlshdk::db::IResult> ret_val;
 
   if (log_sql.empty())
-    log_debug("DBA: execute_sql('%s'", sql.c_str());
+    log_debug("DBA: execute_sql('%s')", sql.c_str());
   else
-    log_debug("DBA: execute_sql('%s'", log_sql.c_str());
+    log_debug("DBA: execute_sql('%s')", log_sql.c_str());
 
   if (!_session)
     throw Exception::metadata_error("The Metadata is inaccessible");
@@ -928,24 +928,23 @@ Instance_definition MetadataStorage::get_instance(
 void MetadataStorage::create_account(const std::string &username,
                                      const std::string &password,
                                      const std::string &hostname) {
-  std::string query_to_escape, query_log;
-  shcore::sqlstring query;
+  std::string query_to_escape;
 
   query_to_escape.append("CREATE USER IF NOT EXISTS ?@?");
-
-  query_log = query_to_escape;
-
   query_to_escape.append(" IDENTIFIED ");
   query_to_escape.append("BY /*(*/ ? /*)*/ ");
 
-  query_log + std::string(password.length(), '*');
-  query_log.append("'");
-
-  query = shcore::sqlstring(query_to_escape.c_str(), 0);
+  shcore::sqlstring query = shcore::sqlstring(query_to_escape.c_str(), 0);
   query << username;
   query << hostname;
+
+  shcore::sqlstring query_log{query};
+
   query << password;
   query.done();
+
+  query_log << "<secret>";
+  query_log.done();
 
   execute_sql(query, false, query_log);
 }

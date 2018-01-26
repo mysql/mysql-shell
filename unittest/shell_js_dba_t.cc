@@ -319,10 +319,19 @@ TEST_F(Shell_js_dba_tests, cluster_no_interactive) {
   _options->wizards = false;
   reset_replayable_shell();
 
+  output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
+
   // Tests cluster functionality, adding, removing instances
   // error conditions
   // Lets the cluster empty
   validate_interactive("dba_cluster_no_interactive.js");
+
+  std::vector<std::string> log{
+    R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
+    R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+    R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+  };
+  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, cluster_multimaster_no_interactive) {
@@ -419,6 +428,8 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   _options->interactive = true;
   reset_replayable_shell();
 
+  output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
+
   //@# Cluster: rejoin_instance with interaction, error
   output_handler.passwords.push_back({"*", "n"});
 
@@ -432,6 +443,13 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   // error conditions
   // Lets the cluster empty
   validate_interactive("dba_cluster_interactive.js");
+
+  std::vector<std::string> log{
+    R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
+    R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+    R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+  };
+  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
