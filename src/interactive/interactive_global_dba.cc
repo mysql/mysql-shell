@@ -1360,19 +1360,22 @@ bool Global_dba::ensure_admin_account_usable(
     // there is only one account with a wildcard, so validate it
     if (n_wildcard_accounts == 1 && hiter != hosts.end()) {
       std::string whost = *hiter;
+      std::string validation_error;
+
       if (mysqlsh::dba::validate_cluster_admin_user_privileges(session, user,
-                                                               whost)) {
+              whost, &validation_error)) {
         log_info("Account %s@%s has required privileges for cluster management",
                  user.c_str(), whost.c_str());
         // account accepted
         return true;
       } else {
         log_info(
-            "Account %s@%s is missing privileges needed for cluster management",
-            user.c_str(), whost.c_str());
+            "Account %s@%s is missing privileges needed for cluster management"
+            ": %s", user.c_str(), whost.c_str(), validation_error.c_str());
         std::string msg;
         msg = "Account " + user + "@" + whost + " is missing privileges\n";
         msg += "that may be needed for managing an InnoDB cluster.\n";
+        msg += validation_error + "\n";
         println(msg.c_str());
       }
     } else {

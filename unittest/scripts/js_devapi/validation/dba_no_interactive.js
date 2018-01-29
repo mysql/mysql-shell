@@ -162,7 +162,7 @@
 |Number of accounts: 1|
 
 //@ Dba: configureLocalInstance not enough privileges
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -187,7 +187,7 @@
 ||
 
 //@ Dba: configureLocalInstance create existing invalid admin user
-||Dba.configureLocalInstance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. Missing global privileges: REPLICATION SLAVE. For more information, see the online documentation.
 
 //@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|

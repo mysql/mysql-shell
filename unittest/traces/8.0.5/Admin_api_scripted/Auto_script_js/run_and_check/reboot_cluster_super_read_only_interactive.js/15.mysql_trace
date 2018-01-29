@@ -321,7 +321,7 @@
         [
             "default",
             "pm",
-            "96255f0f-0ff1-11e8-9d98-080027c42733"
+            "ef1ad9d0-115a-11e8-891f-080027c42733"
         ]
     ]
 },
@@ -445,7 +445,7 @@
     ],
     "rows": [
         [
-            "9556af05-0ff1-11e8-9d98-080027c42733",
+            "ee558f4b-115a-11e8-891f-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -648,7 +648,7 @@
     ],
     "rows": [
         [
-            "9556af05-0ff1-11e8-9d98-080027c42733",
+            "ee558f4b-115a-11e8-891f-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -737,7 +737,7 @@
     ],
     "rows": [
         [
-            "9556af05-0ff1-11e8-9d98-080027c42733",
+            "ee558f4b-115a-11e8-891f-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -778,7 +778,7 @@
     ],
     "rows": [
         [
-            "9556af05-0ff1-11e8-9d98-080027c42733:1-20,\n96255f0f-0ff1-11e8-9d98-080027c42733:1-3"
+            "ee558f4b-115a-11e8-891f-080027c42733:1-20,\nef1ad9d0-115a-11e8-891f-080027c42733:1-3"
         ]
     ]
 },
@@ -786,7 +786,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "SELECT GTID_SUBSET('9556af05-0ff1-11e8-9d98-080027c42733:1-20,\\n96255f0f-0ff1-11e8-9d98-080027c42733:1-3', '9556af05-0ff1-11e8-9d98-080027c42733:1-20,\\n96255f0f-0ff1-11e8-9d98-080027c42733:1-3')"
+    "sql": "SELECT GTID_SUBSET('ee558f4b-115a-11e8-891f-080027c42733:1-20,\\nef1ad9d0-115a-11e8-891f-080027c42733:1-3', 'ee558f4b-115a-11e8-891f-080027c42733:1-20,\\nef1ad9d0-115a-11e8-891f-080027c42733:1-3')"
 },
 {
     "type": "response",
@@ -802,7 +802,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('9556af05-0ff1-11e8-9d98-080027c42733:1-20,\\n96255f0f-0ff1-11e8-9d98-080027c42733:1-3', '9556af05-0ff1-11e8-9d98-080027c42733:1-20,\\n96255f0f-0ff1-11e8-9d98-080027c42733:1-3')",
+            "column_label": "GTID_SUBSET('ee558f4b-115a-11e8-891f-080027c42733:1-20,\\nef1ad9d0-115a-11e8-891f-080027c42733:1-3', 'ee558f4b-115a-11e8-891f-080027c42733:1-20,\\nef1ad9d0-115a-11e8-891f-080027c42733:1-3')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -998,7 +998,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ 'j,$^4E{$8)0<|#[V|;h@&r_>$[g>$W:?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ 'D_0+y%{8~Z|}f:+o+%$+w)N~#&6_]S,|' /*)*/ "
 },
 {
     "type": "response",
@@ -1013,7 +1013,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ 'j,$^4E{$8)0<|#[V|;h@&r_>$[g>$W:?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ 'D_0+y%{8~Z|}f:+o+%$+w)N~#&6_]S,|' /*)*/ "
 },
 {
     "type": "response",

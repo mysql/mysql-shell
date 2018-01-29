@@ -61,7 +61,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'%\\''"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'%\\''"
 },
 {
     "type": "response",
@@ -75,9 +75,9 @@
         {
             "schema": "information_schema",
             "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
+            "table_label": "USER_PRIVILEGES",
             "column_name": "PRIVILEGE_TYPE",
-            "column_label": "privilege_type",
+            "column_label": "PRIVILEGE_TYPE",
             "length": 256,
             "fractional": 0,
             "type": "String",
@@ -91,9 +91,9 @@
         {
             "schema": "information_schema",
             "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
+            "table_label": "USER_PRIVILEGES",
             "column_name": "IS_GRANTABLE",
-            "column_label": "is_grantable",
+            "column_label": "IS_GRANTABLE",
             "length": 12,
             "fractional": 0,
             "type": "String",
@@ -284,12 +284,160 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@super_read_only"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'%\\'' ORDER BY TABLE_SCHEMA"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "SCHEMA_PRIVILEGES",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "PRIVILEGE_TYPE",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "SCHEMA_PRIVILEGES",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "IS_GRANTABLE",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "SCHEMA_PRIVILEGES",
+            "column_name": "TABLE_SCHEMA",
+            "column_label": "TABLE_SCHEMA",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'%\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "PRIVILEGE_TYPE",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "IS_GRANTABLE",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "TABLE_SCHEMA",
+            "column_label": "TABLE_SCHEMA",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "TABLE_PRIVILEGES",
+            "table_label": "TABLE_PRIVILEGES",
+            "column_name": "TABLE_NAME",
+            "column_label": "TABLE_NAME",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT @@super_read_only"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -321,13 +469,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 9,
+    "index": 13,
     "sql": "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, COUNT(*) FROM performance_schema.threads WHERE type = 'foreground'  AND name in ('thread/mysqlx/worker', 'thread/sql/one_connection') AND processlist_id <> connection_id()GROUP BY acct;"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 10,
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -371,11 +519,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 11
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 12
+    "index": 16
 },
 null]

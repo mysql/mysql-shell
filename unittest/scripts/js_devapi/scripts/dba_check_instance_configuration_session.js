@@ -46,5 +46,23 @@ session.runSql("SET sql_log_bin = 1");
 
 session.close();
 
+//@ Check if all missing privileges are reported for user with no privileges
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
+// Create account with no privileges
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'no_privileges'@'%'");
+session.runSql("SET sql_log_bin = 1");
+
+// Test
+dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user: 'no_privileges', password:''});
+
+// Drop user
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP user 'no_privileges'@'%'");
+session.runSql("SET sql_log_bin = 1");
+
+session.close()
+
 // Remove the sandbox
 testutil.destroySandbox(__mysql_sandbox_port1);

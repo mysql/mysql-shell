@@ -125,20 +125,24 @@ TEST_F(Group_replication_Test, generate_group_name) {
 
 TEST_F(Group_replication_Test, replication_user) {
   // Confirm that there is no replication user.
-  std::tuple<bool, std::string, bool> res;
-  res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
-  EXPECT_FALSE(std::get<0>(res));
-  EXPECT_STREQ("REPLICATION SLAVE", std::get<1>(res).c_str());
-  EXPECT_FALSE(std::get<2>(res));
+  auto res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user",
+                                                   "%");
+  EXPECT_FALSE(res.user_exists());
+  EXPECT_EQ(std::set<std::string>{"REPLICATION SLAVE"},
+            res.get_missing_privileges());
+  EXPECT_TRUE(res.has_missing_privileges());
+  EXPECT_FALSE(res.has_grant_option());
 
   // Create a replication user.
   mysqlshdk::gr::create_replication_user(*instance, "test_gr_user", "%",
                                          "mypwd");
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
-  EXPECT_TRUE(std::get<0>(res));
-  EXPECT_STREQ("", std::get<1>(res).c_str());
-  EXPECT_FALSE(std::get<2>(res));
+
+  EXPECT_TRUE(res.user_exists());
+  EXPECT_EQ(std::set<std::string>{}, res.get_missing_privileges());
+  EXPECT_FALSE(res.has_missing_privileges());
+  EXPECT_FALSE(res.has_grant_option());
 
   // Clean up (remove the create user at the end)
   instance->drop_user("test_gr_user", "%");

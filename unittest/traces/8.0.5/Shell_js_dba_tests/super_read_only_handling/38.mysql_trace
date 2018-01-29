@@ -321,7 +321,7 @@
         [
             "default",
             "pm",
-            "7c1a88a5-0fec-11e8-ab8b-080027c42733"
+            "adb19851-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -521,19 +521,19 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "HA",
             "localhost:3336"
@@ -736,19 +736,19 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "HA",
             "localhost:3336"
@@ -837,19 +837,19 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "HA",
             "localhost:3336"
@@ -890,7 +890,7 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19"
+            "a8026f9a-1157-11e8-baf6-080027c42733:1-14,\nadb19851-1157-11e8-baf6-080027c42733:1-19"
         ]
     ]
 },
@@ -898,7 +898,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT GTID_SUBSET('752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19', '752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19')"
+    "sql": "SELECT GTID_SUBSET('a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19', 'a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19')"
 },
 {
     "type": "response",
@@ -914,7 +914,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19', '752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19')",
+            "column_label": "GTID_SUBSET('a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19', 'a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -936,7 +936,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "SELECT GTID_SUBSET('752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19', '752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19')"
+    "sql": "SELECT GTID_SUBSET('a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19', 'a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19')"
 },
 {
     "type": "response",
@@ -952,7 +952,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19', '752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19')",
+            "column_label": "GTID_SUBSET('a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19', 'a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -974,7 +974,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT GTID_SUBSET('752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19', '752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19')"
+    "sql": "SELECT GTID_SUBSET('a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19', 'a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19')"
 },
 {
     "type": "response",
@@ -990,7 +990,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19', '752e54bf-0fec-11e8-ab8b-080027c42733:1-14,\\n7c1a88a5-0fec-11e8-ab8b-080027c42733:1-19')",
+            "column_label": "GTID_SUBSET('a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19', 'a8026f9a-1157-11e8-baf6-080027c42733:1-14,\\nadb19851-1157-11e8-baf6-080027c42733:1-19')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -1186,7 +1186,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 53,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'I7.9^;=|$m#m-s_$],(+~&,Y|z?+7,[@' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'z]P*O)%_2p_<7]?3@&#w?_v]R#Y].}<@' /*)*/ "
 },
 {
     "type": "response",
@@ -1201,7 +1201,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'I7.9^;=|$m#m-s_$],(+~&,Y|z?+7,[@' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'z]P*O)%_2p_<7]?3@&#w?_v]R#Y].}<@' /*)*/ "
 },
 {
     "type": "response",
@@ -1384,7 +1384,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -1470,7 +1470,7 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -1511,7 +1511,7 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -1549,13 +1549,13 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733"
+            "a9e1d0e0-1157-11e8-a52e-080027c42733"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733"
+            "abe9cb09-1157-11e8-97cb-080027c42733"
         ]
     ]
 },
@@ -1563,7 +1563,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '76f53776-0fec-11e8-b4bb-080027c42733'"
+    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = 'a9e1d0e0-1157-11e8-a52e-080027c42733'"
 },
 {
     "type": "response",
@@ -1625,7 +1625,7 @@
     ],
     "rows": [
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "localhost:3326"
         ]
@@ -1635,7 +1635,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '7944dd57-0fec-11e8-857f-080027c42733'"
+    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = 'abe9cb09-1157-11e8-97cb-080027c42733'"
 },
 {
     "type": "response",
@@ -1697,7 +1697,7 @@
     ],
     "rows": [
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "localhost:3336"
         ]
@@ -1785,7 +1785,7 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -1919,7 +1919,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -2005,7 +2005,7 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -2046,10 +2046,10 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733"
+            "a9e1d0e0-1157-11e8-a52e-080027c42733"
         ]
     ]
 },
@@ -2087,13 +2087,13 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733"
+            "a9e1d0e0-1157-11e8-a52e-080027c42733"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733"
+            "abe9cb09-1157-11e8-97cb-080027c42733"
         ]
     ]
 },
@@ -2101,7 +2101,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '7944dd57-0fec-11e8-857f-080027c42733'"
+    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = 'abe9cb09-1157-11e8-97cb-080027c42733'"
 },
 {
     "type": "response",
@@ -2163,7 +2163,7 @@
     ],
     "rows": [
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "localhost:3336"
         ]
@@ -2251,13 +2251,13 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326"
@@ -2390,8 +2390,8 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -2399,7 +2399,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 103,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '752e54bf-0fec-11e8-ab8b-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a8026f9a-1157-11e8-baf6-080027c42733'"
 },
 {
     "type": "response",
@@ -2577,7 +2577,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -2717,21 +2717,21 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",
             "ONLINE"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "HA",
             "localhost:3336",
@@ -2865,8 +2865,8 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -2874,7 +2874,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '752e54bf-0fec-11e8-ab8b-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a8026f9a-1157-11e8-baf6-080027c42733'"
 },
 {
     "type": "response",
@@ -3052,7 +3052,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -3192,21 +3192,21 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",
             "ONLINE"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "HA",
             "localhost:3336",
@@ -3340,8 +3340,8 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -3349,7 +3349,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 139,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '752e54bf-0fec-11e8-ab8b-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a8026f9a-1157-11e8-baf6-080027c42733'"
 },
 {
     "type": "response",
@@ -3527,7 +3527,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "752e54bf-0fec-11e8-ab8b-080027c42733"
+            "a8026f9a-1157-11e8-baf6-080027c42733"
         ]
     ]
 },
@@ -3667,21 +3667,21 @@
     ],
     "rows": [
         [
-            "752e54bf-0fec-11e8-ab8b-080027c42733",
+            "a8026f9a-1157-11e8-baf6-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "76f53776-0fec-11e8-b4bb-080027c42733",
+            "a9e1d0e0-1157-11e8-a52e-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",
             "ONLINE"
         ],
         [
-            "7944dd57-0fec-11e8-857f-080027c42733",
+            "abe9cb09-1157-11e8-97cb-080027c42733",
             "localhost:3336",
             "HA",
             "localhost:3336",

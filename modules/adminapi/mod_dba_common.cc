@@ -23,23 +23,23 @@
 
 #include "modules/adminapi/mod_dba_common.h"
 
-#include <string>
-#include <iterator>
 #include <algorithm>
-#include <utility>
-#include <set>
+#include <iterator>
 #include <map>
+#include <set>
+#include <string>
+#include <utility>
 
-#include "utils/utils_general.h"
-#include "utils/utils_string.h"
-#include "utils/utils_sqlstring.h"
-#include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_sql.h"
-#include "modules/adminapi/mod_dba_metadata_storage.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-// #include "mod_dba_instance.h"
+#include "mysqlshdk/libs/mysql/user_privileges.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+
+#include "modules/adminapi/mod_dba.h"
+#include "modules/adminapi/mod_dba_metadata_storage.h"
+#include "modules/adminapi/mod_dba_sql.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -518,7 +518,7 @@ const std::set<std::string> k_metadata_schema_privileges{
   "CREATE ROUTINE", "CREATE TEMPORARY TABLES",
   "CREATE VIEW", "DELETE", "DROP",
   "EVENT", "EXECUTE", "INDEX", "INSERT", "LOCK TABLES",
-  "REFERENCES", "SELECT", "SHOW VIEW", "TRIGGER", "UPDATE"
+  "REFERENCES", "SHOW VIEW", "TRIGGER", "UPDATE"
 };
 
 // Schema privileges needed on the mysql schema
@@ -535,94 +535,52 @@ const std::map<std::string, std::set<std::string>> k_schema_grants {
 };
 
 /** Check that the provided account has privileges to manage a cluster.
-  */
+ */
 bool validate_cluster_admin_user_privileges(
     std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &admin_user, const std::string &admin_host) {
+    const std::string &admin_user, const std::string &admin_host,
+    std::string *validation_error) {
+  bool is_valid = true;
 
-  shcore::sqlstring query;
+  auto append_error_message = [validation_error, &is_valid](
+                                  const std::string &info,
+                                  const std::set<std::string> &privileges) {
+    is_valid = false;
+
+    *validation_error +=
+        "Missing " + info + ": " + shcore::str_join(privileges, ", ") + ". ";
+  };
+
   log_info("Validating account %s@%s...", admin_user.c_str(),
            admin_host.c_str());
 
-  // check what global privileges we have
-  query = shcore::sqlstring("SELECT privilege_type, is_grantable"
-      " FROM information_schema.user_privileges"
-      " WHERE grantee = ?", 0) << shcore::make_account(admin_user, admin_host);
+  mysqlshdk::mysql::User_privileges user_privileges{session, admin_user,
+                                                    admin_host};
 
-  std::set<std::string> global_privs;
+  // Check global privileges.
+  auto global = user_privileges.validate(k_global_privileges);
 
-  auto result = session->query(query);
-  if (result) {
-    auto row = result->fetch_one();
-    while (row) {
-      global_privs.insert(row->get_string(0));
-      if (row->get_string(1) == "NO") {
-        log_info(" Privilege %s for %s@%s is not grantable",
-                 row->get_string(0).c_str(),
-                 admin_user.c_str(), admin_host.c_str());
-        return false;
-      }
-      row = result->fetch_one();
+  if (global.has_missing_privileges()) {
+    auto missing = global.get_missing_privileges();
+
+    if (!global.has_grant_option()) {
+      missing.insert("GRANT OPTION");
+    }
+
+    append_error_message("global privileges", missing);
+  }
+
+  for (const auto &schema_grants : k_schema_grants) {
+    auto schema =
+        user_privileges.validate(schema_grants.second, schema_grants.first);
+
+    if (schema.has_missing_privileges()) {
+      append_error_message("privileges on schema '" + schema_grants.first + "'",
+                           schema.get_missing_privileges());
     }
   }
 
-  if (!std::includes(global_privs.begin(), global_privs.end(),
-                    k_global_privileges.begin(), k_global_privileges.end())) {
-    std::vector<std::string> diff;
-    std::set_difference(k_global_privileges.begin(), k_global_privileges.end(),
-                        global_privs.begin(), global_privs.end(),
-                        std::inserter(diff, diff.begin()));
-    log_debug("  missing some global privs");
-    for (auto &i : diff)
-      log_debug("  - %s", i.c_str());
-    return false;
-  }
-  if (std::includes(global_privs.begin(), global_privs.end(),
-      k_metadata_schema_privileges.begin(),
-      k_metadata_schema_privileges.end())) {
-    // if the account has global grants for all schema privs
-    return true;
-  }
-
-  // now check if there are grants for the individual schemas
-  query = shcore::sqlstring("SELECT table_schema, privilege_type, is_grantable"
-      " FROM information_schema.schema_privileges"
-      " WHERE grantee = ?", 0) << shcore::make_account(admin_user, admin_host);
-
-  auto required_privileges(k_schema_grants);
-  result = session->query(query);
-  if (result) {
-    auto row = result->fetch_one();
-    while (row) {
-      std::string schema = row->get_string(0);
-      std::string priv = row->get_string(1);
-
-      if (required_privileges.find(schema) != required_privileges.end()) {
-        auto &privs(required_privileges[schema]);
-        privs.erase(std::find(privs.begin(), privs.end(), priv));
-      }
-      if (row->get_string(2) == "NO") {
-        log_info(" %s on %s for %s@%s is not grantable",
-                 priv.c_str(), schema.c_str(), admin_user.c_str(),
-                 admin_host.c_str());
-        return false;
-      }
-      row = result->fetch_one();
-    }
-
-    bool ok = true;
-    for (auto &spriv : required_privileges) {
-      if (!spriv.second.empty()) {
-        log_info(" Account missing schema grants on %s:", spriv.first.c_str());
-        for (auto &priv : spriv.second) {
-          log_info("  - %s", priv.c_str());
-        }
-        ok = false;
-      }
-    }
-    return ok;
-  }
-  return false;
+  return is_valid;
 }
 
 static const char *k_admin_user_grants[] = {
@@ -649,16 +607,20 @@ void create_cluster_admin_user(
     user = connection_options.get_user();
   if (connection_options.has_host())
     host = connection_options.get_host();
-  if (!mysqlsh::dba::validate_cluster_admin_user_privileges
-      (session, user, host)) {
-    log_error(
-        "Account '%s'@'%s' lacks the required privileges to create a new "
-            "user account", user.c_str(), host.c_str());
-    std::string msg;
-    msg = "Account '" + user + "'@'" + host
-        + "' does not have all the ";
-    msg += "privileges to create an user for managing an InnoDB cluster.";
-    throw std::runtime_error(msg);
+  {
+    std::string validation_error;
+
+    if (!mysqlsh::dba::validate_cluster_admin_user_privileges
+        (session, user, host, &validation_error)) {
+      log_error(
+          "Account '%s'@'%s' lacks the required privileges to create a new "
+              "user account", user.c_str(), host.c_str());
+      std::string msg;
+      msg = "Account '" + user + "'@'" + host + "' does not have all the "
+            "privileges to create an user for managing an InnoDB cluster. " +
+            validation_error;
+      throw std::runtime_error(msg);
+    }
   }
   session->execute("SET sql_log_bin = 0");
   session->execute("START TRANSACTION");

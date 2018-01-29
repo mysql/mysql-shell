@@ -2675,7 +2675,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000028' /*)*/, MASTER_PASSWORD = /*(*/ '|@:C-/x4-Z/,6%P]t%-/.C?}&s}7[$y,' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000028' /*)*/, MASTER_PASSWORD = /*(*/ '@?&H8:2%U<{|$@$d+P-*$0]#%_o)R*&^' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

@@ -208,9 +208,9 @@
     ],
     "rows": [
         [
-            "b39e8b89-0ff0-11e8-b588-080027c42733",
+            "800a2aaa-115a-11e8-8a91-080027c42733",
             1,
-            "afcfe727-0ff0-11e8-9819-080027c42733",
+            "7c5da773-115a-11e8-ad5c-080027c42733",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'b39e8b89-0ff0-11e8-b588-080027c42733'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '800a2aaa-115a-11e8-8a91-080027c42733'"
 },
 {
     "type": "response",
@@ -385,14 +385,14 @@
     ],
     "rows": [
         [
-            "add55bff-0ff0-11e8-b588-080027c42733",
+            "7abfeeb2-115a-11e8-8a91-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "localhost:33160"
         ],
         [
-            "afcfe727-0ff0-11e8-9819-080027c42733",
+            "7c5da773-115a-11e8-ad5c-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",
@@ -498,14 +498,14 @@
     ],
     "rows": [
         [
-            "add55bff-0ff0-11e8-b588-080027c42733",
+            "7abfeeb2-115a-11e8-8a91-080027c42733",
             "ONLINE",
             "vm-ubuntu",
             3316,
             "PRIMARY"
         ],
         [
-            "afcfe727-0ff0-11e8-9819-080027c42733",
+            "7c5da773-115a-11e8-ad5c-080027c42733",
             "ONLINE",
             "vm-ubuntu",
             3326,

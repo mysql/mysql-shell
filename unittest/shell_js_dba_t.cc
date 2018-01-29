@@ -425,6 +425,9 @@ TEST_F(Shell_js_dba_tests, interactive) {
   output_handler.passwords.push_back({"*", ""});        // account pass
   output_handler.passwords.push_back({"*", ""});        // account pass confirmation
 
+  //@ Check if all missing privileges are reported for user with no privileges
+  output_handler.prompts.push_back({"*", ""});  // press Enter to cancel
+
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.js");
