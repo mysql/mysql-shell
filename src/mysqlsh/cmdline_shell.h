@@ -41,8 +41,7 @@
 
 namespace mysqlsh {
 
-class Command_line_shell : public Mysql_shell,
-                           public shcore::NotificationObserver {
+class Command_line_shell : public Mysql_shell {
  public:
   explicit Command_line_shell(std::shared_ptr<Shell_options> options);
 
@@ -76,6 +75,10 @@ class Command_line_shell : public Mysql_shell,
 
   bool cmd_history(const std::vector<std::string> &args);
 
+  void handle_notification(const std::string &name,
+                           const shcore::Object_bridge_ref &sender,
+                           shcore::Value::Map_type_ref data) override;
+
  private:
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
   Prompt_manager _prompt;
@@ -95,9 +98,6 @@ class Command_line_shell : public Mysql_shell,
       const std::string &var,
       mysqlsh::Prompt_manager::Dynamic_variable_type type);
 
-  void handle_notification(const std::string &name,
-                           const shcore::Object_bridge_ref &sender,
-                           shcore::Value::Map_type_ref data) override;
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, query_variable_classic);
   FRIEND_TEST(Cmdline_shell, query_variable_x);

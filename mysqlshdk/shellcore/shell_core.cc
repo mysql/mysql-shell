@@ -48,13 +48,10 @@ namespace shcore {
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
     : IShell_core(),
-      _client_delegate(shdelegate),
-      _reconnect_session(false) {
+      _client_delegate(shdelegate) {
   DEBUG_OBJ_ALLOC(Shell_core);
   _mode = Mode::None;
   _registry = new Object_registry();
-
-  observe_notification("SN_SESSION_CONNECTION_LOST");
 
   // Setus the shell core delegate
   _delegate.user_data = this;
@@ -403,61 +400,6 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::set_dev_session(
  */
 std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::get_dev_session() {
   return _global_dev_session;
-}
-
-void Shell_core::handle_notification(const std::string &name,
-                                     const shcore::Object_bridge_ref &sender,
-                                     shcore::Value::Map_type_ref data) {
-  // FIXME move this code to Mysql_shell
-  if (name == "SN_SESSION_CONNECTION_LOST") {
-    auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(sender);
-
-    if (session && session == get_dev_session())
-      _reconnect_session = true;
-  }
-}
-
-bool Shell_core::reconnect_if_needed() {
-  // FIXME move this code to Mysql_shell
-  bool ret_val = false;
-  if (_reconnect_session) {
-    {
-      print(
-          "The global session got disconnected.\nAttempting to reconnect to '" +
-          _global_dev_session->uri() + "'..");
-
-      shcore::sleep_ms(500);
-      int attempts = 6;
-      while (!ret_val && attempts > 0) {
-        try {
-          _global_dev_session->reconnect();
-          ret_val = true;
-        } catch (shcore::Exception &e) {
-          ret_val = false;
-        }
-        if (!ret_val) {
-          print("..");
-          attempts--;
-          if (attempts > 0) {
-            // Try again
-            shcore::sleep_ms(1000);
-          }
-        }
-      }
-
-      if (ret_val)
-        print("\nThe global session was successfully reconnected.\n");
-      else
-        print(
-            "\nThe global session could not be reconnected "
-            "automatically.\nPlease use '\\connect " +
-            _global_dev_session->uri() + "' instead to manually reconnect.\n");
-    }
-  }
-
-  _reconnect_session = false;
-
-  return ret_val;
 }
 
 std::string Shell_core::get_main_delimiter() const {

@@ -496,8 +496,8 @@ TEST_F(Completer_frontend, builtin_others) {
 
   EXPECT_AFTER_TAB_TAB(
       "\\", strv({"\\", "\\connect", "\\exit", "\\help", "\\history", "\\js",
-                  "\\nowarnings", "\\py", "\\quit", "\\rehash", "\\source",
-                  "\\sql", "\\status", "\\use", "\\warnings"}));
+                  "\\nowarnings", "\\py", "\\quit", "\\reconnect", "\\rehash",
+                  "\\source", "\\sql", "\\status", "\\use", "\\warnings"}));
 }
 
 // FR4

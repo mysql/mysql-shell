@@ -120,7 +120,7 @@ struct Interpreter_delegate;
 */
 #endif
 
-class SHCORE_PUBLIC Shell_core : public shcore::IShell_core, public shcore::NotificationObserver {
+class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 public:
 
   Shell_core(Interpreter_delegate *shdelegate);
@@ -176,7 +176,6 @@ public:
   virtual const std::string& get_input_source() { return _input_source; }
   virtual const std::vector<std::string>& get_input_args() { return _input_args; }
   virtual bool print_help(const std::string& topic);
-  bool reconnect_if_needed();
   std::string get_main_delimiter() const;
 
  private:
@@ -192,7 +191,6 @@ public:
   std::string format_json_output(const std::string &info, const std::string& tag);
   std::string format_json_output(const shcore::Value &info, const std::string& tag);
 
-  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
   void init_sql();
   void init_js();
   void init_py();
@@ -210,7 +208,6 @@ private:
   std::vector<std::string> _input_args;
   Mode _mode;
   int _global_return_code;
-  bool _reconnect_session;
 };
 };
 
