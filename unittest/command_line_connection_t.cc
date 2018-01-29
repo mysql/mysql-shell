@@ -479,8 +479,8 @@ TEST_F(Command_line_connection_test, expired_account) {
            "create user expired@localhost password expire;",
            nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.");
+      "mysqlsh: [Warning] Using a password on the command line interface can "
+      "be insecure.");
 
   std::string uri;
 

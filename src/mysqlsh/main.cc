@@ -567,7 +567,7 @@ int main(int argc, char **argv) {
               options.connection_options();
 
           if (target.has_password()) {
-            std::cerr << "mysqlx: [Warning] Using a password on the command "
+            std::cerr << "mysqlsh: [Warning] Using a password on the command "
                          "line interface can be insecure.\n";
           }
 
