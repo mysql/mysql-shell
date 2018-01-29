@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,35 +94,35 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
   execute({_mysqlsh, "root@localhost", nullptr}, "whatever");
 
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
-      "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.");
+      "mysqlsh: [Warning] Using a password on the command line interface can "
+      "be insecure.");
   wipe_out();
 #endif
   // Test non secure call passing uri and password with cmd line params
   execute({_mysqlsh, "root@localhost", "-pwhatever", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.");
+      "mysqlsh: [Warning] Using a password on the command line interface can "
+      "be insecure.");
   wipe_out();
 
   execute({_mysqlsh, "root@localhost", "--password=whatever", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.");
+      "mysqlsh: [Warning] Using a password on the command line interface can "
+      "be insecure.");
   wipe_out();
 
   // Test non secure call passing uri with empty password
   execute({_mysqlsh, "root:@localhost", "-e1", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.");
+      "mysqlsh: [Warning] Using a password on the command line interface can "
+      "be insecure.");
   wipe_out();
 
   // Test non secure call passing uri with password
   execute({_mysqlsh, "root:whatever@localhost", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlx: [Warning] Using a password on the command line interface can be "
-      "insecure.");
+      "mysqlsh: [Warning] Using a password on the command line interface can "
+      "be insecure.");
   wipe_out();
 }
 

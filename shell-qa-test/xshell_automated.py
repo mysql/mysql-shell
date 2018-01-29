@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -7039,7 +7039,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '--database=mysql', '--json', '--mysqlx', '-u' +
                         LOCALHOST.user, '-h' + LOCALHOST.host, '--password=' + LOCALHOST.password]
         expectedResult = ["{",
-                          "\"info\": \"mysqlx: [Warning] Using a password on the command line interface can be insecure.\"",
+                          "\"info\": \"mysqlsh: [Warning] Using a password on the command line interface can be insecure.\"",
                           "}",
                           "{",
                           "\"info\": \"Creating an X protocol session to '{0}@{1}/{2}'\"".format(LOCALHOST.user,
