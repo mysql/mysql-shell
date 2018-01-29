@@ -31,6 +31,8 @@ The available topics include:
 - The functions and properties of the classes exposed by the APIs.
 - The available shell commands.
 - Any word that is part of an SQL statement.
+- Command Line - invoking built-in shell functions without entering interactive
+  mode.
 
 SHELL COMMANDS
 
@@ -137,6 +139,8 @@ The available topics include:
 
 - The available shell commands.
 - Any word that is part of an SQL statement.
+- Command Line - invoking built-in shell functions without entering interactive
+  mode.
 
 SHELL COMMANDS
 
@@ -357,3 +361,80 @@ e.g.: \? SQL Syntax/SELECT
 
 //@<OUT> Help for SQL Syntax, no connection
 No help items found matching SQL Syntax
+
+//@<OUT> Help for API Command Line Integration
+Following syntax can be used to execute methods of the Shell global objects
+from command line:
+
+  mysqlsh [options] -- <object> <method> [arguments]
+
+- object - a string identifying shell object exposed to command line:
+  * dba - dba global object
+  * cluster - cluster returned by calling dba.getCluster()
+  * shell - shell global object
+  * shell.options - shell.options object
+  * util - util global object
+
+- method - a string identifying method of the object in either:
+  * Camel case form (e.g. createCluster, checkForServerUpgrade)
+  * Kebab case form (all lower case, words separated by hyphens)
+    (e.g. create-cluster, check-for-server-upgrade)
+
+- arguments - arguments passed to the method in format described below.
+
+Arguments syntax allows mixing positional and named arguments (similar to args
+and *kwargs in Python):
+
+  [ positional_argument ]* [ { named_argument* } ]* [ named_argument ]*
+
+- positional_argument - is a single string representing a value:
+  * positional_argument ::= value
+  * value   ::= string | integer | float | boolean | null
+  * string  ::= plain string, quoted if contains whitespace characters
+  * integer ::= plain integer
+  * float   ::= plain float
+  * boolean ::= 1 | 0 | true | false
+  * null    ::= "-"
+
+- named_argument - a string in '--argument-name[=value]' format where:
+  * argument-name - is a dictionary keyword that method is expecting either
+    in the JS camel case or the command line, lowercase + hyphens, format
+    (e.g. --outputFormat or --output-format)
+  * "--argument-name" is interpreted as "--argument-name=true"
+  * value is analogical to positional argument.
+
+
+Such command line arguments are transformed into method parameters:
+
+- positional arguments are passed to method in the exact order they appear on
+  the command line
+- named arguments grouped by curly braces are packed together into a dictionary
+  that is passed to the method at the exact place it appears on the command
+  line
+- named arguments that are not placed inside curly braces, independent of where
+  they appear on command line, are packed into a single dictionary, passed as a
+  last parameter to the method.
+
+EXAMPLES
+Command line form followed by the equivalent JavaScript call:
+
+$ mysqlsh -- dba deploy-sandbox-instance 1234 --password=secret
+  mysql-js> dba.deploySandboxInstance(1234, {password: secret})
+
+$ mysqlsh root@localhost:1234 -- dba create-cluster mycluster
+  mysql-js> dba.createCluster("mycluster")
+
+$ mysqlsh root@localhost:1234 -- cluster status
+  mysql-js> cluster.status()
+
+$ mysqlsh -- shell.options set-persist history.autoSave true
+  mysql-js> shell.options.setPersist("history.autoSave", true);
+
+$ mysqlsh -- util checkForServerUpgrade root@localhost --outputFormat=JSON
+  mysql-js> util.checkForServerUpgrade("root@localhost",
+                   {outputFormat: "JSON"});
+
+$ mysqlsh -- util check-for-server-upgrade
+                   { --user=root --host=localhost } --password=
+  mysql-js> util.checkForServerUpgrade(
+                   {user:"root", host:"localhost"}, {password:""})

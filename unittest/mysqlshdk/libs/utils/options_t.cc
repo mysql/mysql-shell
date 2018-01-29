@@ -328,6 +328,12 @@ TEST_F(Options_test, cmd_line_handling) {
 
   MY_EXPECT_OUTPUT_CONTAINS("The --deprecated option has been deprecated.",
                             cout.str());
+
+  // options that does not expect value given one
+  char *argv15[] = {const_cast<char *>("ut"),
+                    const_cast<char *>("--some-mode=x"), NULL};
+  EXPECT_THROW_LIKE(handle_cmdline_options(2, argv15), std::invalid_argument,
+                    "does not require an argument");
 }
 
 TEST_F(Options_test, persisting) {

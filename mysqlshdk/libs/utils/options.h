@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,7 +86,7 @@ class Generic_option {
 
   virtual std::vector<std::string> get_cmdline_names();
 
-  bool accepts_null_argument() const { return accept_null; }
+  bool is_value_optional() const { return value_optional; }
   bool accepts_no_cmdline_value() const { return no_cmdline_value; }
 
   std::vector<std::string> get_cmdline_help(std::size_t options_width,
@@ -105,7 +105,7 @@ class Generic_option {
   Source source = Source::Compiled_default;
   const char *environment_variable;
   std::vector<std::string> command_line_names;
-  bool accept_null = true;
+  bool value_optional = true;
   bool no_cmdline_value = true;
   const char *help;
 };
@@ -157,7 +157,7 @@ class Concrete_option : public Generic_option {
   void handle_command_line_input(const std::string &option,
                                  const char *value) override {
     if (value == nullptr) {
-      if (accept_null)
+      if (value_optional)
         value = "";
       else
         throw std::invalid_argument("Option " + option + " needs value");
@@ -222,8 +222,10 @@ T convert(const std::string &data) {
   std::istringstream iss(data);
   iss >> t;
   if (iss.fail()) {
-    iss.clear();
-    iss >> std::boolalpha >> t;
+    if (std::is_same<T, bool>::value) {
+      iss.clear();
+      iss >> std::boolalpha >> t;
+    }
     if (iss.fail()) throw std::invalid_argument("Incorrect option value.");
   } else if (!iss.eof()) {
     throw std::invalid_argument("Malformed option value.");
@@ -238,7 +240,8 @@ std::string convert(const std::string &data);
 template <class T>
 std::string serialize(const T &val) {
   std::ostringstream os;
-  os << std::boolalpha << val;
+  if (std::is_same<T, bool>::value) os << std::boolalpha;
+  os << val;
   return os.str();
 }
 
@@ -372,8 +375,6 @@ class Options {
   };
 
  public:
-  using Custom_cmdline_handler = std::function<bool(char **argv, int *argi)>;
-
   enum class Format {
     INVALID,        /*!< Given argument does not match the expected one(s) */
     MISSING_VALUE,  /*!< Given argument matches the expected one(s) but the
@@ -383,8 +384,36 @@ class Options {
     LONG            /*!< --option=<value> */
   };
 
-  static Format cmdline_arg_with_value(char **argv, int *argi, const char *arg,
-                                       const char *larg, char **value,
+  class Cmdline_iterator {
+   public:
+    Cmdline_iterator(int argc, char const *const *argv, int start)
+        : argv(argv), argc(argc), current(start) {}
+
+    /// Return current cmdline argument.
+    const char *peek() const { return argv[current]; }
+
+    /// Return current cmdline argument and advance to the next.
+    const char *get() { return argv[current++]; }
+
+    /// Go back to previous cmdline argument and return it.
+    const char *back() { return argv[--current]; }
+
+    /// Check if iterator points to valid cmdline argument.
+    bool valid() const { return current < argc && current >= 0; }
+
+    const char *first() const { return argv[0]; }
+
+   private:
+    char const *const *argv;
+    int argc;
+    int current;
+  };
+
+  using Custom_cmdline_handler = std::function<bool(Cmdline_iterator *)>;
+
+  static Format cmdline_arg_with_value(Cmdline_iterator *iterator,
+                                       const char *arg, const char *larg,
+                                       const char **value,
                                        bool accept_null = false) noexcept;
 
   explicit Options(const std::string &config_file = "");
@@ -430,7 +459,7 @@ class Options {
 
   /// Parses command line and stores values in options.
   void handle_cmdline_options(
-      int argc, char **argv, bool allow_unregistered_options = true,
+      int argc, char const *const *argv, bool allow_unregistered_options = true,
       Custom_cmdline_handler custom_cmdline_handler = nullptr);
 
   /** Returns formatted help for all defined command line options.

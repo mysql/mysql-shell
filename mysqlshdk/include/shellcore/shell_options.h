@@ -51,6 +51,7 @@
 #include <vector>
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/options.h"
+#include "mysqlshdk/shellcore/shell_cli_operation.h"
 #include "shellcore/ishell_core.h"
 
 namespace mysqlsh {
@@ -145,6 +146,10 @@ class Shell_options : public shcore::Options {
     return named_options.find(option) != named_options.end();
   }
 
+  shcore::Shell_cli_operation *get_shell_cli_operation() {
+    return m_shell_cli_operation.get();
+  }
+
   void set_interactive(bool value) { storage.interactive = value; }
 
   void set_wizards(bool value) { storage.wizards = value; }
@@ -164,7 +169,7 @@ class Shell_options : public shcore::Options {
   std::vector<std::string> get_named_options();
 
  protected:
-  bool custom_cmdline_handler(char **argv, int *argi);
+  bool custom_cmdline_handler(Cmdline_iterator *iterator);
 
   void override_session_type(const std::string &option, const char *value);
   void set_ssl_mode(const std::string &option, const char *value);
@@ -186,6 +191,7 @@ class Shell_options : public shcore::Options {
   void check_import_options();
 
   Storage storage;
+  std::unique_ptr<shcore::Shell_cli_operation> m_shell_cli_operation;
   mysqlshdk::db::Connection_options uri_data;
   std::string session_type_arg;
 

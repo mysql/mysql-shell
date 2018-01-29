@@ -11,9 +11,16 @@ Usage: mysqlsh [OPTIONS] [URI]
        mysqlsh [OPTIONS] [URI] -f <path> [script args...]
        mysqlsh [OPTIONS] [URI] --dba [command]
        mysqlsh [OPTIONS] [URI] --cluster
+       mysqlsh [OPTIONS] [URI] -- <object> <method> [method args...]
        mysqlsh [OPTIONS] [URI] --import file|- [collection] | [table [, column]
 
   -?, --help                    Display this help and exit.
+  --                            Triggers API Command Line integration, which
+                                allows execution of methods of the Shell global
+                                objects from command line using syntax:
+                                  -- <object> <method> [arguments]
+                                For more details execute '\? cmdline' inside of
+                                the Shell.
   -e, --execute=<cmd>           Execute command and quit.
   -f, --file=file               Process file.
   --uri=value                   Connect to Uniform Resource Identifier. Format:
@@ -129,4 +136,6 @@ $ mysqlsh root@localhost/schema
 $ mysqlsh mysqlx://root@some.server:3307/world_x
 $ mysqlsh --uri root@localhost --py -f sample.py sample param
 $ mysqlsh root@targethost:33070 -s world_x -f sample.js
+$ mysqlsh -- util check-for-server-upgrade root@localhost --output-format=JSON
 $ mysqlsh mysqlx://user@host/db --import ~/products.json shop
+

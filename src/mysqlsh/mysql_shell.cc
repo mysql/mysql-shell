@@ -69,6 +69,9 @@ REGISTER_HELP(HELP_AVAILABLE_TOPICS_TITLE, "The available topics include:");
 REGISTER_HELP(HELP_AVAILABLE_TOPICS_ALL, "@li The available shell commands.");
 REGISTER_HELP(HELP_AVAILABLE_TOPICS_ALL1,
               "@li Any word that is part of an SQL statement.");
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_ALL2,
+              "@li <b>Command Line</b> - invoking built-in shell "
+              "functions without entering interactive mode.");
 
 REGISTER_HELP(HELP_AVAILABLE_TOPICS_SCRIPTING,
               "${HELP_AVAILABLE_TOPICS_TITLE}");
@@ -380,6 +383,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   _global_util =
       std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
 
+  auto shell_cli_operation = cmdline_options->get_shell_cli_operation();
+
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
         new shcore::Global_shell(*_shell.get()));
@@ -397,6 +402,16 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
         "dba",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba),
         shcore::IShell_core::all_scripting_modes());
+    if (shell_cli_operation) {
+      shell_cli_operation->register_provider("dba", [interactive_dba]() {
+        return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
+            interactive_dba);
+      });
+      shell_cli_operation->register_provider("shell", [interactive_shell]() {
+        return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
+            interactive_shell);
+      });
+    }
   } else {
     set_global_object(
         "shell",
@@ -406,6 +421,12 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
         "dba",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
         shcore::IShell_core::all_scripting_modes());
+    if (shell_cli_operation) {
+      shell_cli_operation->register_provider("dba",
+                                             [this]() { return _global_dba; });
+      shell_cli_operation->register_provider(
+          "shell", [this]() { return _global_shell; });
+    }
   }
 
   set_global_object(
@@ -416,6 +437,16 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       "util",
       std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_util),
       shcore::IShell_core::all_scripting_modes());
+
+  if (shell_cli_operation) {
+    shell_cli_operation->register_provider(
+        "cluster", [this]() { return this->set_default_cluster(""); });
+    shell_cli_operation->register_provider("util",
+                                           [this]() { return _global_util; });
+    shell_cli_operation->register_provider("shell.options", [this]() {
+      return _global_shell->get_shell_options();
+    });
+  }
 
   // dummy initialization
   _global_shell->set_session_global({});
@@ -517,10 +548,12 @@ void Mysql_shell::connect(
   mysqlshdk::db::Connection_options connection_options(connection_options_);
   std::string pass;
   std::string schema_name;
+  bool interactive =
+      options().interactive && !get_options()->get_shell_cli_operation();
 
   connection_options.set_default_connection_data();
 
-  if (options().interactive)
+  if (interactive)
     print_connection_message(
         connection_options.get_session_type(),
         connection_options.as_uri(
@@ -541,7 +574,7 @@ void Mysql_shell::connect(
       establish_session(connection_options, options().wizards));
 
   if (old_session && old_session->is_open()) {
-    if (options().interactive) println("Closing old connection...");
+    if (interactive) println("Closing old connection...");
 
     old_session->close();
   }
@@ -561,7 +594,7 @@ void Mysql_shell::connect(
 
     new_session->set_current_schema(schema_name);
   }
-  if (options().interactive) {
+  if (interactive) {
     std::string session_type = new_session->class_name();
     std::string message;
 
@@ -638,11 +671,13 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
 
   request_prompt_variables_update(true);
 
-  // Always refresh schema name completion cache because it can be used in \use
-  // in any mode
-  refresh_schema_completion();
-  if (_shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
-    refresh_completion();
+  if (options().interactive && !get_options()->get_shell_cli_operation()) {
+    // Always refresh schema name completion cache because it can be used in
+    // \use in any mode
+    refresh_schema_completion();
+    if (_shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
+      refresh_completion();
+    }
   }
 
   return new_session;

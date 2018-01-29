@@ -113,6 +113,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(
       const std::shared_ptr<mysqlsh::ShellBaseSession> &session);
   std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
+  std::shared_ptr<mysqlsh::Options> get_shell_options() {
+    return _core_options;
+  }
 
   void enable_pager();
   void disable_pager();

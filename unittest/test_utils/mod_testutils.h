@@ -24,6 +24,7 @@
 #ifndef UNITTEST_TEST_UTILS_MOD_TESTUTILS_H_
 #define UNITTEST_TEST_UTILS_MOD_TESTUTILS_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -209,7 +210,11 @@ class Testutils : public shcore::Cpp_object_bridge {
   // possibly including a stacktrace in the target language
   // set_current_test_case(::testing::Test);
   int call_mysqlsh(const shcore::Array_t &args,
-                   const std::string &std_input = std::string{});
+                   const std::string &std_input = std::string{},
+                   const shcore::Array_t &env = nullptr);
+  int call_mysqlsh_c(const std::vector<std::string> &args,
+                     const std::string &std_input,
+                     const std::vector<std::string> &env);
 
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail

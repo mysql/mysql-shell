@@ -26,8 +26,10 @@
 #include <mutex>
 #include <string>
 #include <system_error>
+#include <utility>
 
 #ifdef WIN32
+#include <Strsafe.h>
 #include <stdio.h>
 #include <tchar.h>
 #else
@@ -321,11 +323,10 @@ void Process::start() {
                            NULL,            // lpThreadAttributes
                            TRUE,            // bInheritHandles
                            creation_flags,  // dwCreationFlags
-                           NULL,            // lpEnvironment
-                           NULL,            // lpCurrentDirectory
-                           &si,             // lpStartupInfo
-                           &pi);            // lpProcessInformation
-
+                           (LPVOID)new_environment.get(),  // lpEnvironment
+                           NULL,                           // lpCurrentDirectory
+                           &si,                            // lpStartupInfo
+                           &pi);  // lpProcessInformation
   if (!bSuccess) {
     report_error(NULL);
   } else {
@@ -455,6 +456,60 @@ std::string Process::read_from_terminal() {
   throw std::runtime_error("This method is not available on Windows.");
 }
 
+void Process::set_environment(const std::vector<std::string> &env) {
+  if (env.empty()) return;
+  std::vector<std::string> vars_to_set;
+  std::size_t nsize = 0;
+  for (const auto &var : env) {
+    nsize += var.length() + 1;
+    std::string::size_type eq = var.find('=');
+    assert(eq != std::string::npos);
+    vars_to_set.emplace_back(var.substr(0, eq));
+  }
+
+  LPTCH eblock = GetEnvironmentStrings();
+  std::size_t env_size = 0;
+  std::vector<std::pair<std::size_t, std::size_t>> offsets;
+  std::size_t offset = 0;
+  if (eblock != nullptr) {
+    LPTCH bIt = eblock;
+    while (*bIt != 0) {
+      bool found = false;
+      std::size_t len = strlen(bIt);
+      for (const auto &var : vars_to_set) {
+        if (strncmp(var.c_str(), bIt, var.length()) == 0) {
+          found = true;
+          offsets.emplace_back(offset, bIt - eblock);
+          offset = bIt - eblock + len + 1;
+          break;
+        }
+      }
+      if (!found) env_size += len + 1;
+      bIt += len + 1;
+    }
+    if (offset != bIt - eblock) offsets.emplace_back(offset, bIt - eblock);
+    env_size++;
+  }
+  new_environment.reset(new char[env_size + nsize]);
+
+  offset = 0;
+  if (eblock != nullptr) {
+    for (const auto &op : offsets) {
+      memcpy(new_environment.get() + offset, eblock + op.first,
+             op.second - op.first);
+      offset += op.second - op.first;
+    }
+    FreeEnvironmentStrings(eblock);
+  }
+
+  for (const auto &e : env) {
+    strncpy(new_environment.get() + offset, e.c_str(), e.length());
+    new_environment[offset + e.length()] = 0;
+    offset += e.length() + 1;
+  }
+  new_environment[offset] = 0;
+}
+
 #else  // !WIN32
 
 void Process::start() {
@@ -522,6 +577,8 @@ void Process::start() {
       exit(128);
     }
 
+    for (const auto &str : new_environment)
+      putenv(const_cast<char *>(str.c_str()));
     execvp(argv[0], (char *const *)argv);
 
     int my_errno = errno;
@@ -723,6 +780,10 @@ int Process::wait() {
     return WEXITSTATUS(_pstatus);
   else
     return WTERMSIG(_pstatus) + 128;
+}
+
+void Process::set_environment(const std::vector<std::string> &env) {
+  new_environment = env;
 }
 
 #endif  // !_WIN32

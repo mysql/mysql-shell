@@ -535,6 +535,43 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   return shcore::Value(ret_val);
 }
 
+void Cpp_object_bridge::detect_overload_conflicts(
+    const std::string &name, const Cpp_function::Metadata &md) {
+  const auto &function_sig = md.signature;
+  auto range = _funcs.equal_range(name);
+  for (auto it = range.first; it != range.second; ++it) {
+    if (it->second->is_legacy)
+      throw Exception::attrib_error("Attempt to overload legacy function: " +
+                                    name);
+
+    const auto &overload_sig = it->second->function_signature();
+    int diff = static_cast<int>(overload_sig.size()) -
+               static_cast<int>(function_sig.size());
+    if (diff < 0) {
+      size_t i = overload_sig.size();
+      for (; i < function_sig.size(); i++)
+        if (function_sig[i].second != Cpp_function::Optional) break;
+      if (i < function_sig.size()) continue;
+    } else if (diff > 0) {
+      size_t i = function_sig.size();
+      for (; i < overload_sig.size(); i++)
+        if (overload_sig[i].second != Cpp_function::Optional) break;
+      if (i < overload_sig.size()) continue;
+    }
+    size_t i = 0;
+    size_t args_num = std::min(overload_sig.size(), function_sig.size());
+    for (; i < args_num; i++)
+      if (!kTypeConvertible[static_cast<int>(overload_sig[i].first)]
+                           [static_cast<int>(function_sig[i].first)] &&
+          !kTypeConvertible[static_cast<int>(function_sig[i].first)]
+                           [static_cast<int>(overload_sig[i].first)])
+        break;
+    if (i == args_num)
+      throw Exception::attrib_error(
+          "Ambiguous overload detected for funtion: " + name);
+  }
+}
+
 void Cpp_object_bridge::set_naming_style(const NamingStyle &style) {
   naming_style = style;
 }

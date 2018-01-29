@@ -56,7 +56,7 @@ const bool shcore::kTypeConvertible[12][12] = {
     {T, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
     {F, T, F, F, F, F, F, T, T, T, T, T},  // Null
     {F, F, T, F, T, T, T, F, F, F, F, F},  // Bool
-    {F, F, F, T, F, F, F, F, F, F, F, F},  // String
+    {F, F, T, T, T, T, T, F, F, F, F, F},  // String
     {F, F, T, F, T, T, T, F, F, F, F, F},  // Integer
     {F, F, T, F, T, T, T, F, F, F, F, F},  // UInteger
     {F, F, T, F, T, T, T, F, F, F, F, F},  // Float
@@ -1292,6 +1292,12 @@ bool Value::as_bool() const {
       return value.ui != 0;
     case Float:
       return value.d != 0.0;
+    case String:
+      try {
+        return lexical_cast<bool>(*value.s);
+      } catch (...) {
+      }
+      break;
     default:
       break;
   }
@@ -1312,6 +1318,12 @@ int64_t Value::as_int() const {
       throw type_range_error(type, Integer);
     case Bool:
       return value.b ? 1 : 0;
+    case String:
+      try {
+        return lexical_cast<int64_t>(*value.s);
+      } catch (...) {
+      }
+      break;
     default:
       break;
   }
@@ -1331,6 +1343,12 @@ uint64_t Value::as_uint() const {
       throw type_range_error(type, UInteger);
     case Bool:
       return value.b ? 1 : 0;
+    case String:
+      try {
+        return lexical_cast<uint64_t>(*value.s);
+      } catch (...) {
+      }
+      break;
     default:
       break;
   }
@@ -1355,6 +1373,12 @@ double Value::as_double() const {
       return value.d;
     case Bool:
       return value.b ? 1.0 : 0.0;
+    case String:
+      try {
+        return lexical_cast<double>(*value.s);
+      } catch (...) {
+      }
+      break;
     default:
       break;
   }
@@ -1372,71 +1396,52 @@ const std::string &Argument_list::string_at(unsigned int i) const {
     default:
       throw Exception::type_error(
           str_format("Argument #%u is expected to be a string", (i + 1)));
-  };
+  }
 }
 
 bool Argument_list::bool_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  switch (at(i).type) {
-    case Bool:
-      return at(i).value.b;
-    case Integer:
-      return at(i).value.i != 0;
-    case UInteger:
-      return at(i).value.ui != 0;
-    case Float:
-      return at(i).value.d != 0.0;
-    default:
-      throw Exception::type_error(
-          str_format("Argument #%u is expected to be a bool", (i + 1)));
+  try {
+    return at(i).as_bool();
+  } catch (...) {
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be a bool", (i + 1)));
   }
 }
 
 int64_t Argument_list::int_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type == Integer)
-    return at(i).value.i;
-  else if (at(i).type == UInteger &&
-           at(i).value.ui <= std::numeric_limits<int64_t>::max())
-    return static_cast<int64_t>(at(i).value.ui);
-  else if (at(i).type == Bool)
-    return at(i).value.b ? 1 : 0;
-  else
+  try {
+    return at(i).as_int();
+  } catch (...) {
     throw Exception::type_error(
         str_format("Argument #%u is expected to be an int", (i + 1)));
+  }
 }
 
 uint64_t Argument_list::uint_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type == UInteger)
-    return at(i).value.ui;
-  else if (at(i).type == Integer && at(i).value.i >= 0)
-    return static_cast<uint64_t>(at(i).value.i);
-  else if (at(i).type == Bool)
-    return at(i).value.b ? 1 : 0;
-  else
+  try {
+    return at(i).as_uint();
+  } catch (...) {
     throw Exception::type_error(
         str_format("Argument #%u is expected to be an unsigned int", (i + 1)));
+  }
 }
 
 double Argument_list::double_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
 
-  if (at(i).type == Float)
-    return at(i).value.d;
-  else if (at(i).type == Integer)
-    return static_cast<double>(at(i).value.i);
-  else if (at(i).type == UInteger)
-    return static_cast<double>(at(i).value.ui);
-  else if (at(i).type == Bool)
-    return at(i).value.b ? 1.0 : 0.0;
-  else
+  try {
+    return at(i).as_double();
+  } catch (...) {
     throw Exception::type_error(
         str_format("Argument #%u is expected to be a double", (i + 1)));
+  }
 }
 
 std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const {
@@ -1513,66 +1518,39 @@ const std::string &Argument_map::string_at(const std::string &key) const {
 }
 
 bool Argument_map::bool_at(const std::string &key) const {
-  const Value &value(at(key));
-  switch (value.type) {
-    case Bool:
-      return value.value.b;
-    case Integer:
-      return value.value.i != 0;
-    case UInteger:
-      return value.value.ui != 0;
-    case Float:
-      return value.value.d != 0.0;
-    default:
-      throw Exception::type_error(
-          std::string("Argument '" + key + "' is expected to be a bool"));
+  try {
+    return at(key).as_bool();
+  } catch (...) {
+    throw Exception::type_error(
+        std::string("Argument '" + key + "' is expected to be a bool"));
   }
 }
 
 int64_t Argument_map::int_at(const std::string &key) const {
-  const Value &value(at(key));
-  if (value.type == Integer)
-    return value.value.i;
-  else if (value.type == UInteger &&
-           value.value.ui <= std::numeric_limits<int64_t>::max())
-    return static_cast<int64_t>(value.value.ui);
-  else if (value.type == Float)
-    return static_cast<int64_t>(value.value.d);
-  else if (value.type == Bool)
-    return value.value.b ? 1 : 0;
-  else
+  try {
+    return at(key).as_int();
+  } catch (...) {
     throw Exception::type_error("Argument '" + key +
                                 "' is expected to be an int");
+  }
 }
 
 uint64_t Argument_map::uint_at(const std::string &key) const {
-  const Value &value(at(key));
-  if (value.type == UInteger)
-    return value.value.ui;
-  else if (value.type == Integer && value.value.i >= 0)
-    return static_cast<uint64_t>(value.value.i);
-  else if (value.type == Float)
-    return static_cast<int64_t>(value.value.d);
-  else if (value.type == Bool)
-    return value.value.b ? 1 : 0;
-  else
+  try {
+    return at(key).as_uint();
+  } catch (...) {
     throw Exception::type_error("Argument '" + key +
                                 "' is expected to be an unsigned int");
+  }
 }
 
 double Argument_map::double_at(const std::string &key) const {
-  const Value &value(at(key));
-  if (value.type == Float)
-    return value.value.d;
-  else if (value.type == Integer)
-    return static_cast<double>(value.value.i);
-  else if (value.type == UInteger)
-    return static_cast<double>(value.value.ui);
-  else if (value.type == Bool)
-    return value.value.b ? 1.0 : 0.0;
-  else
+  try {
+    return at(key).as_double();
+  } catch (...) {
     throw Exception::type_error("Argument '" + key +
                                 "' is expected to be a double");
+  }
 }
 
 std::shared_ptr<Object_bridge> Argument_map::object_at(

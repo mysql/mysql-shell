@@ -370,6 +370,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   virtual shcore::Value help(const shcore::Argument_list &args);
 
  protected:
+  void detect_overload_conflicts(const std::string &name,
+                                 const Cpp_function::Metadata &md);
+
   /** Expose a method with 1 argument with automatic bridging.
 
   For use with methods with 1 argument, using shcore::Value compatible
@@ -402,8 +405,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                    {{a1doc, Type_info<A1>::vtype()}});
     }
 
+    std::string registered_name = name.substr(0, name.find("|"));
+    detect_overload_conflicts(registered_name, md);
     _funcs.emplace(std::make_pair(
-        name.substr(0, name.find("|")),
+        registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
             [this, func,
@@ -430,8 +435,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
       set_metadata(md, name, Type_info<R>::vtype(), {});
     }
 
+    std::string registered_name = name.substr(0, name.find("|"));
+    detect_overload_conflicts(registered_name, md);
     _funcs.emplace(std::make_pair(
-        name.substr(0, name.find("|")),
+        registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md, [this, func](const shcore::Argument_list &) -> shcore::Value {
               return internal::Result_wrapper<R>::call(
@@ -463,8 +470,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
           {{a1doc, Type_info<A1>::vtype()}, {a2doc, Type_info<A2>::vtype()}});
     }
 
+    std::string registered_name = name.substr(0, name.find("|"));
+    detect_overload_conflicts(registered_name, md);
     _funcs.emplace(std::make_pair(
-        name.substr(0, name.find("|")),
+        registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
             [this, func, a1def,
@@ -510,8 +519,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                     {a3doc, Type_info<A3>::vtype()}});
     }
 
+    std::string registered_name = name.substr(0, name.find("|"));
+    detect_overload_conflicts(registered_name, md);
     _funcs.emplace(std::make_pair(
-        name.substr(0, name.find("|")),
+        registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
             [this, func, a1def, a2def,
@@ -566,8 +577,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                     {a4doc, Type_info<A4>::vtype()}});
     }
 
+    std::string registered_name = name.substr(0, name.find("|"));
+    detect_overload_conflicts(registered_name, md);
     _funcs.emplace(std::make_pair(
-        name.substr(0, name.find("|")),
+        registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
             [this, func, a1def, a2def, a3def,

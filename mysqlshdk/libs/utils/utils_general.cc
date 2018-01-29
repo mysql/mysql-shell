@@ -462,7 +462,7 @@ std::string get_member_name(const std::string &name,
   return new_name;
 }
 
-/** Convert string from under_score naming convention to camelCase
+/** Convert string from under_score/dash naming convention to camelCase
 
   As a special case, if string is longer than 2 characters and
   all characters are uppercase, conversion will be skipped.
@@ -473,7 +473,7 @@ std::string to_camel_case(const std::string &name) {
   size_t upper_count = 0;
   for (auto ch : name) {
     if (isupper(ch)) upper_count++;
-    if (ch == '_') {
+    if (ch == '_' || ch == '-') {
       upper_count++;
       upper_next = true;
     } else if (upper_next) {

@@ -147,6 +147,11 @@ Shell_options::Shell_options(int argc, char **argv,
   add_startup_options()
     (&print_cmd_line_helper, false,
         cmdline("-?", "--help"), "Display this help and exit.")
+    (cmdline("--"),
+        "Triggers API Command Line integration, which allows execution of "
+        "methods of the Shell global objects from command line using syntax:\n"
+        "  -- <object> <method> [arguments]\n"
+        "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
     (cmdline("-f", "--file=file"), "Process file.")
@@ -430,7 +435,7 @@ Shell_options::Shell_options(int argc, char **argv,
     if (!configuration_file.empty()) handle_persisted_options();
     handle_cmdline_options(
         argc, argv, false,
-        std::bind(&Shell_options::custom_cmdline_handler, this, _1, _2));
+        std::bind(&Shell_options::custom_cmdline_handler, this, _1));
 
     check_session_type_conflicts();
     check_user_conflicts();
@@ -528,27 +533,35 @@ std::vector<std::string> Shell_options::get_named_options() {
   return res;
 }
 
-bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
-  Format arg_format = Format::INVALID;
-  char *value = nullptr;
-
-  const std::string full_opt{argv[*argi]};
+static void handle_missing_value(shcore::Options::Cmdline_iterator *iterator,
+                                 shcore::Options::Format arg_format,
+                                 const std::string &full_opt) {
   const auto opt = full_opt.substr(0, full_opt.find("="));
+  if (shcore::Options::Format::MISSING_VALUE == arg_format) {
+    throw std::invalid_argument(std::string(iterator->first()) + ": option " +
+                                opt + " requires an argument");
+  }
+}
 
-  const auto handle_missing_value = [&argv, &arg_format, &opt]() {
-    if (Format::MISSING_VALUE == arg_format) {
-      throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
-                                  " requires an argument");
-    }
-  };
+bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
+  Format arg_format = Format::INVALID;
+  const char *value = nullptr;
+  const char *full_opt = iterator->peek();
 
-  if (strcmp(argv[*argi], "-VV") == 0) {
+  if (strcmp(full_opt, "--") == 0) {
+    if (m_shell_cli_operation)
+      throw std::invalid_argument(
+          "MySQL Shell can handle only one operation at a time");
+    iterator->get();
+    m_shell_cli_operation.reset(new shcore::Shell_cli_operation());
+    m_shell_cli_operation->parse(iterator);
+  } else if (strcmp(full_opt, "-VV") == 0) {
     print_cmd_line_version = true;
     print_cmd_line_version_extra = true;
+    iterator->get();
   } else if (Format::INVALID != (arg_format = cmdline_arg_with_value(
-                                     argv, argi, "--file", "-f", &value))) {
-    handle_missing_value();
-
+                                     iterator, "--file", "-f", &value))) {
+    handle_missing_value(iterator, arg_format, full_opt);
     storage.run_file = value;
     if (shcore::str_endswith(value, ".js")) {
       storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
@@ -560,66 +573,31 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
     // the rest of the cmdline options, starting from here are all passed
     // through to the script
     storage.script_argv.push_back(value);
-    for (++(*argi); argv[*argi]; (*argi)++) {
-      storage.script_argv.push_back(argv[*argi]);
-    }
+    while (iterator->valid()) storage.script_argv.push_back(iterator->get());
   } else if (Format::INVALID != (arg_format = cmdline_arg_with_value(
-                                     argv, argi, "--uri", NULL, &value)) ||
-             (argv[*argi][0] != '-' && (value = argv[*argi]))) {
-    handle_missing_value();
-
+                                     iterator, "--uri", NULL, &value)) ||
+             (iterator->peek()[0] != '-' && (value = iterator->get()))) {
+    handle_missing_value(iterator, arg_format, full_opt);
     storage.uri = value;
 
     uri_data = shcore::get_connection_options(storage.uri, false);
 
     if (uri_data.has_password()) {
+      const char *a = iterator->back();
       std::string nopwd_uri = hide_password_in_uri(value, uri_data.get_user());
 
       // Required replacement when --uri=<value>
       if (arg_format == Format::LONG) nopwd_uri = "--uri=" + nopwd_uri;
 
-      strncpy(argv[*argi], nopwd_uri.c_str(), strlen(argv[*argi]) + 1);
+      strncpy(const_cast<char *>(a), nopwd_uri.c_str(), strlen(a) + 1);
+      iterator->get();
     }
   } else if (Format::INVALID !=
-             (arg_format = cmdline_arg_with_value(argv, argi, "--dbpassword",
-                                                  NULL, &value, true))) {
-    // Note that in any connection attempt, password prompt will be done if the
-    // password is missing.
-    // The behavior of the password cmd line argument is as follows:
-
-    // ARGUMENT           EFFECT
-    // --password         forces password prompt no matter it was already
-    // provided
-    // --password value   forces password prompt no matter it was already
-    // provided (value is not taken as password)
-    // --password=        sets password to empty (password is available but
-    // empty so it will not be prompted)
-    // -p<value> sets the password to <value>
-    // --password=<value> sets the password to <value>
-
-    if (!value) {
-      // --password=
-      if (arg_format == Format::LONG) storage.password = storage.pwd.c_str();
-      // --password
-      else
-        storage.prompt_password = true;
-    } else if (arg_format !=
-               Format::SEPARATE_VALUE) {  // --password=value || --pvalue
-      storage.pwd.assign(value);
-      storage.password = storage.pwd.c_str();
-
-      std::string stars(storage.pwd.length(), '*');
-      std::string pwd = arg_format == Format::SHORT ? "-p" : "--dbpassword=";
-      pwd.append(stars);
-
-      strncpy(argv[*argi], pwd.c_str(), strlen(argv[*argi]) + 1);
-    } else {  // --password value (value is ignored)
-      storage.prompt_password = true;
-      (*argi)--;
-    }
-  } else if (Format::INVALID !=
-             (arg_format = cmdline_arg_with_value(argv, argi, "--password",
-                                                  "-p", &value, true))) {
+                 (arg_format = cmdline_arg_with_value(iterator, "--password",
+                                                      "-p", &value, true)) ||
+             Format::INVALID !=
+                 (arg_format = cmdline_arg_with_value(iterator, "--dbpassword",
+                                                      NULL, &value, true))) {
     // Note that in any connection attempt, password prompt will be done if
     // the password is missing.
     // The behavior of the password cmd line argument is as follows:
@@ -642,6 +620,7 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
         storage.prompt_password = true;
     } else if (arg_format !=
                Format::SEPARATE_VALUE) {  // --password=value || -pvalue
+      const char *a = iterator->back();
       storage.pwd.assign(value);
       storage.password = storage.pwd.c_str();
 
@@ -649,26 +628,24 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
       std::string pwd = arg_format == Format::SHORT ? "-p" : "--password=";
       pwd.append(stars);
 
-      strncpy(argv[*argi], pwd.c_str(), strlen(argv[*argi]) + 1);
+      strncpy(const_cast<char *>(a), pwd.c_str(), strlen(a) + 1);
+      iterator->get();
     } else {  // --password value (value is ignored)
       storage.prompt_password = true;
-      (*argi)--;
+      iterator->back();
     }
-  } else if (strcmp("--import", argv[*argi]) == 0) {
-    storage.import_args.push_back(argv[*argi]);
-    (*argi)++;  // omit --import
+  } else if (strcmp("--import", full_opt) == 0) {
+    storage.import_args.push_back(iterator->get());  // omit --import
 
-    while (argv[*argi] != nullptr) {
+    while (iterator->valid()) {
       // We append --import arguments until next shell option in program
       // argument list, i.e. -* or --*. Single char '-' is a --import argument.
-      if (argv[*argi][0] == '-' && argv[*argi][1] != '\0') {
+      const char *arg = iterator->peek();
+      if (arg[0] == '-' && arg[1] != '\0') {
         break;
       }
-      storage.import_args.push_back(argv[*argi]);
-      (*argi)++;
+      storage.import_args.push_back(iterator->get());
     }
-
-    (*argi)--;
   } else {
     return false;
   }

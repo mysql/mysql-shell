@@ -347,6 +347,60 @@ inline Array_t make_array() {
   return Value::Array_type_ref(new Value::Array_type());
 }
 
+class SHCORE_PUBLIC Exception : public std::exception {
+  std::shared_ptr<Value::Map_type> _error;
+
+ public:
+  Exception(const std::shared_ptr<Value::Map_type> e);
+
+  virtual ~Exception() noexcept {}
+
+  static Exception runtime_error(const std::string &message);
+  static Exception argument_error(const std::string &message);
+  static Exception attrib_error(const std::string &message);
+  static Exception value_error(const std::string &message);
+  static Exception type_error(const std::string &message);
+  static Exception logic_error(const std::string &message);
+  static Exception metadata_error(const std::string &message);
+  static Exception external_action_required(const std::string &message);
+
+  static Exception mysql_error_with_code(const std::string &message, int code) {
+    return error_with_code("MySQL Error", message, code);
+  }
+
+  static Exception mysql_error_with_code_and_state(const std::string &message,
+                                                   int code,
+                                                   const char *sqlstate) {
+    return error_with_code_and_state("MySQL Error", message, code, sqlstate);
+  }
+
+  static Exception error_with_code(const std::string &type,
+                                   const std::string &message, int code);
+  static Exception error_with_code_and_state(const std::string &type,
+                                             const std::string &message,
+                                             int code, const char *sqlstate);
+  static Exception parser_error(const std::string &message);
+  static Exception scripting_error(const std::string &message);
+
+  bool is_argument() const;
+  bool is_attribute() const;
+  bool is_value() const;
+  bool is_type() const;
+  bool is_server() const;
+  bool is_mysql() const;
+  bool is_parser() const;
+
+  virtual const char *what() const noexcept;
+
+  const char *type() const noexcept;
+
+  int64_t code() const noexcept;
+
+  std::shared_ptr<Value::Map_type> error() const { return _error; }
+
+  std::string format();
+};
+
 class SHCORE_PUBLIC Argument_list {
  public:
   // TODO(alfredo) remove most of this when possible
@@ -539,7 +593,12 @@ class Option_unpacker {
   Option_unpacker &optional(const char *name, T *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type);
     if (value) {
-      *out_value = value_type_for_native<T>::extract(value);
+      try {
+        *out_value = value_type_for_native<T>::extract(value);
+      } catch (const std::exception &e) {
+        throw Exception::type_error(std::string("Option '") + name +
+                                    "': " + e.what());
+      }
     }
     return *this;
   }
@@ -549,7 +608,12 @@ class Option_unpacker {
                             mysqlshdk::utils::nullable<T> *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type);
     if (value) {
-      *out_value = value_type_for_native<T>::extract(value);
+      try {
+        *out_value = value_type_for_native<T>::extract(value);
+      } catch (const std::exception &e) {
+        throw Exception::type_error(std::string("Option '") + name +
+                                    "': " + e.what());
+      }
     }
     return *this;
   }
@@ -696,60 +760,6 @@ class SHCORE_PUBLIC Function_base {
 /** Pointer to a function that may be implemented in any language.
  */
 typedef std::shared_ptr<Function_base> Function_base_ref;
-
-class SHCORE_PUBLIC Exception : public std::exception {
-  std::shared_ptr<Value::Map_type> _error;
-
- public:
-  Exception(const std::shared_ptr<Value::Map_type> e);
-
-  virtual ~Exception() noexcept {}
-
-  static Exception runtime_error(const std::string &message);
-  static Exception argument_error(const std::string &message);
-  static Exception attrib_error(const std::string &message);
-  static Exception value_error(const std::string &message);
-  static Exception type_error(const std::string &message);
-  static Exception logic_error(const std::string &message);
-  static Exception metadata_error(const std::string &message);
-  static Exception external_action_required(const std::string &message);
-
-  static Exception mysql_error_with_code(const std::string &message, int code) {
-    return error_with_code("MySQL Error", message, code);
-  }
-
-  static Exception mysql_error_with_code_and_state(const std::string &message,
-                                                   int code,
-                                                   const char *sqlstate) {
-    return error_with_code_and_state("MySQL Error", message, code, sqlstate);
-  }
-
-  static Exception error_with_code(const std::string &type,
-                                   const std::string &message, int code);
-  static Exception error_with_code_and_state(const std::string &type,
-                                             const std::string &message,
-                                             int code, const char *sqlstate);
-  static Exception parser_error(const std::string &message);
-  static Exception scripting_error(const std::string &message);
-
-  bool is_argument() const;
-  bool is_attribute() const;
-  bool is_value() const;
-  bool is_type() const;
-  bool is_server() const;
-  bool is_mysql() const;
-  bool is_parser() const;
-
-  virtual const char *what() const noexcept;
-
-  const char *type() const noexcept;
-
-  int64_t code() const noexcept;
-
-  std::shared_ptr<Value::Map_type> error() const { return _error; }
-
-  std::string format();
-};
 
 bool my_strnicmp(const char *c1, const char *c2, size_t n);
 }  // namespace shcore

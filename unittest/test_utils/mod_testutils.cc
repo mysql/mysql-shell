@@ -146,7 +146,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
 
-  expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput");
+  expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput", "?envp");
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
@@ -2159,8 +2159,16 @@ void setup_recorder_environment() {
 }  // namespace
 
 int Testutils::call_mysqlsh(const shcore::Array_t &args,
-                            const std::string &std_input) {
-  std::vector<std::string> argv = shcore::Value(args).to_string_vector();
+                            const std::string &std_input,
+                            const shcore::Array_t &env) {
+  return call_mysqlsh_c(
+      shcore::Value(args).to_string_vector(), std_input,
+      env ? shcore::Value(env).to_string_vector() : std::vector<std::string>{});
+}
+
+int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
+                              const std::string &std_input,
+                              const std::vector<std::string> &env) {
   std::vector<const char *> full_argv;
   std::string path;
 
@@ -2176,7 +2184,7 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args,
   }
   assert(strlen(full_argv.front()) > 0);
 
-  for (const std::string &arg : argv) {
+  for (const std::string &arg : args) {
     full_argv.push_back(arg.c_str());
   }
   if (g_test_trace_scripts) {
@@ -2189,6 +2197,9 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args,
   std::string output;
 
   shcore::Process_launcher process(&full_argv[0]);
+
+  if (!env.empty()) process.set_environment(env);
+
 #ifdef _WIN32
   process.set_create_process_group();
 #endif

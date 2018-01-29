@@ -24,9 +24,9 @@
 ||Option 'memberWeight' not available for target server version.
 
 //@ WL#11032: Create cluster errors using memberWeight option {VER(>=5.7.20)}
-||Option 'memberWeight' is expected to be of type Integer, but is String (TypeError)
+||Option 'memberWeight': Invalid typecast: Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Bool (TypeError)
-||Option 'memberWeight' is expected to be of type Integer, but is String (TypeError)
+||Option 'memberWeight': Invalid typecast: Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
 
 
