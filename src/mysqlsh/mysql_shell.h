@@ -39,7 +39,8 @@ namespace mysqlsh {
 class Shell;  // from modules
 class Util;
 
-class Mysql_shell : public mysqlsh::Base_shell {
+class Mysql_shell : public mysqlsh::Base_shell,
+                    public shcore::NotificationObserver {
  public:
   Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
               shcore::Interpreter_delegate* custom_delegate);
@@ -57,6 +58,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   bool cmd_print_shell_help(const std::vector<std::string>& args);
   bool cmd_start_multiline(const std::vector<std::string>& args);
   bool cmd_connect(const std::vector<std::string>& args);
+  bool cmd_reconnect(const std::vector<std::string>& args);
   bool cmd_quit(const std::vector<std::string>& args);
   bool cmd_warnings(const std::vector<std::string>& args);
   bool cmd_nowarnings(const std::vector<std::string>& args);
@@ -66,6 +68,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   virtual bool cmd_process_file(const std::vector<std::string>& params);
 
   virtual void process_line(const std::string& line);
+  bool reconnect_if_needed(bool force = false);
 
   static bool sql_safe_for_logging(const std::string &sql);
 
@@ -93,10 +96,16 @@ class Mysql_shell : public mysqlsh::Base_shell {
                                 const std::string& uri,
                                 const std::string& sessionid);
 
+  void handle_notification(const std::string& name,
+                           const shcore::Object_bridge_ref& sender,
+                           shcore::Value::Map_type_ref data) override;
+
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
   std::shared_ptr<mysqlsh::Util> _global_util;
+
+  bool _reconnect_session;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);

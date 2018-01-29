@@ -1623,36 +1623,6 @@ TEST_F(Interactive_shell_test, x_sql_result) {
   execute("drop schema itst;");
 }
 
-TEST_F(Interactive_shell_test, BUG25974014) {
-  // We are going to test if shell attempts to reconnect after session is
-  // disconnected
-  _options->uri = _uri + "/mysql";
-  _options->interactive = true;
-  _options->initial_mode = shcore::IShell_core::Mode::SQL;
-  reset_shell();
-  _interactive_shell->connect(_options->connection_options());
-  output_handler.wipe_all();
-  std::stringstream cmd;
-  cmd << get_path_to_mysqlsh() << " " << _mysql_uri << " --sql -e \"kill "
-      << _interactive_shell->shell_context()
-             ->get_dev_session()
-             ->get_connection_id()
-      << "\"";
-  EXPECT_EQ(system(cmd.str().c_str()), 0);
-  output_handler.wipe_all();
-
-  // After the kill first command receives interrupted error
-  execute("\\use mysql");
-  MY_EXPECT_STDERR_CONTAINS("interrupted");
-  EXPECT_EQ("", output_handler.std_out);
-  output_handler.wipe_all();
-
-  // On second execution shell should attempt to reconnect
-  execute("\\use mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Attempting to reconnect");
-  output_handler.wipe_all();
-}
-
 TEST_F(Interactive_shell_test, ssl_status) {
   if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
     PENDING_BUG_TEST("Caching_sha2 with xproto and no ssl is broken");
@@ -1825,6 +1795,33 @@ TEST_F(Interactive_shell_test, status_classic) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));
   EXPECT_NE(std::string::npos, line.find("sec"));
+}
+
+TEST_F(Interactive_shell_test, reconnect_command) {
+  execute("\\reconnect");
+  MY_EXPECT_STDERR_CONTAINS("enable reconnection");
+  wipe_all();
+
+  execute("\\reconnect dummy_arg");
+  MY_EXPECT_STDERR_CONTAINS("not accept");
+  wipe_all();
+
+  execute("\\connect " + _mysql_uri);
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\reconnect");
+  MY_EXPECT_STDOUT_CONTAINS("successfully reconnected");
+  wipe_all();
+
+  execute("\\sql");
+  execute("kill CONNECTION_ID();");
+  MY_EXPECT_STDERR_CONTAINS("interrupted");
+  wipe_all();
+
+  execute("\\reconnect");
+  MY_EXPECT_STDOUT_CONTAINS("successfully reconnected");
+  wipe_all();
 }
 
 }  // namespace mysqlsh

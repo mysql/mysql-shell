@@ -114,8 +114,10 @@ class Shell_command_provider : public shcore::completer::Provider {
 
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
-    : mysqlsh::Base_shell(cmdline_options, custom_delegate) {
+    : mysqlsh::Base_shell(cmdline_options, custom_delegate),
+      _reconnect_session(false) {
   DEBUG_OBJ_ALLOC(Mysql_shell);
+  observe_notification("SN_SESSION_CONNECTION_LOST");
 
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
@@ -264,6 +266,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                     Mysql_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect,
                     Mysql_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\reconnect", "Reconnect with a server.", "",
+                      Mysql_shell::cmd_reconnect);
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.",
                     "", Mysql_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w",
@@ -850,6 +854,17 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   return true;
 }
 
+bool Mysql_shell::cmd_reconnect(const std::vector<std::string> &args) {
+  if (args.size() > 1)
+    print_error("\\reconnect command does not accept any arguments.");
+  else if (!_shell->get_dev_session())
+    print_error("There had to be a connection first to enable reconnection.");
+  else
+    reconnect_if_needed(true);
+
+  return true;
+}
+
 bool Mysql_shell::cmd_quit(const std::vector<std::string> &UNUSED(args)) {
   shell_options->set_interactive(false);
 
@@ -1210,8 +1225,59 @@ void Mysql_shell::process_line(const std::string &line) {
     notify_executed_statement(line);
   else
     Base_shell::process_line(line);
+}
 
-  _shell->reconnect_if_needed();
+void Mysql_shell::handle_notification(const std::string &name,
+                                      const shcore::Object_bridge_ref &sender,
+                                      shcore::Value::Map_type_ref data) {
+  if (name == "SN_SESSION_CONNECTION_LOST") {
+    auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(sender);
+
+    if (session && session == _shell->get_dev_session())
+      _reconnect_session = true;
+  }
+}
+
+bool Mysql_shell::reconnect_if_needed(bool force) {
+  bool ret_val = false;
+  if (_reconnect_session || force) {
+    if (!force)
+      _shell->print("The global session got disconnected..\n");
+    _shell->print("Attempting to reconnect to '" +
+                  _shell->get_dev_session()->uri() + "'..");
+
+    shcore::sleep_ms(500);
+    int attempts = 6;
+    while (!ret_val && attempts > 0) {
+      try {
+        _shell->get_dev_session()->reconnect();
+        ret_val = true;
+      } catch (shcore::Exception &e) {
+        ret_val = false;
+      }
+      if (!ret_val) {
+        _shell->print("..");
+        attempts--;
+        if (attempts > 0) {
+          // Try again
+          shcore::sleep_ms(1000);
+        }
+      }
+    }
+
+    if (ret_val)
+      _shell->print("\nThe global session was successfully reconnected.\n");
+    else
+      _shell->print(
+          "\nThe global session could not be reconnected "
+          "automatically.\nPlease use '\\connect " +
+          _shell->get_dev_session()->uri() +
+          "' instead to manually reconnect.\n");
+  }
+
+  _reconnect_session = false;
+
+  return ret_val;
 }
 
 static std::vector<std::string> g_patterns;

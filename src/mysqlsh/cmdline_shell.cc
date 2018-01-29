@@ -469,6 +469,7 @@ void Command_line_shell::command_loop() {
         std::cout << cmd << "\n";
     }
     process_line(cmd);
+    reconnect_if_needed();
   }
 
   std::cout << "Bye!\n";
@@ -558,6 +559,8 @@ void Command_line_shell::handle_notification(
     } else if (data->get_string("option") == SHCORE_HISTIGNORE) {
       set_sql_safe_for_logging(data->get_string("value"));
     }
+  } else {
+    Mysql_shell::handle_notification(name, sender, data);
   }
 }
 }  // namespace mysqlsh
