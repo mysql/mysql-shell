@@ -37,6 +37,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace shcore {
 // Launches a process as child of current process and exposes the stdin & stdout
@@ -197,6 +198,13 @@ class Process {
   /** Perform Windows specific quoting of args and build a command line */
   static std::string make_windows_cmdline(const char *const *argv);
 
+  /** Sets environment variables of new process.
+   *
+   * Needs to be called before start.
+   * String need to be in format VARIABLE=<value>.
+   */
+  void set_environment(const std::vector<std::string> &env);
+
  private:
   /** Closes child process */
   void close();
@@ -217,12 +225,14 @@ class Process {
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
   bool create_process_group = false;
+  std::unique_ptr<char[]> new_environment;
 #else
   pid_t childpid;
   int fd_in[2] = {-1, -1};
   int fd_out[2] = {-1, -1};
   int m_master_device = -1;
   bool m_use_pseudo_tty = false;
+  std::vector<std::string> new_environment;
 #endif
   int _pstatus = 0;
   bool _wait_pending = false;

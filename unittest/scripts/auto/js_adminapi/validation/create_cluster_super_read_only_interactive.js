@@ -73,7 +73,7 @@ Cancelled
 ||
 
 //@# create_cluster.read_only_invalid_flag_value
-||Dba.createCluster: Option 'clearReadOnly' is expected to be of type Bool, but is String
+||Dba.createCluster: Option 'clearReadOnly': Invalid typecast: Bool expected, but value is String (TypeError)
 
 //@ prepare create_cluster.read_only_flag_true
 ||

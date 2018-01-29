@@ -53,3 +53,6 @@ session.close()
 
 //@ Help for SQL Syntax, no connection
 \? SQL Syntax
+
+//@ Help for API Command Line Integration
+\? cmdline

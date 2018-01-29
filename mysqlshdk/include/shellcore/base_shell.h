@@ -100,6 +100,9 @@ class SHCORE_PUBLIC Base_shell {
 
   const Shell_options::Storage &options() const { return get_options()->get(); }
 
+  virtual void print_result(shcore::Value result);
+  virtual void process_result(shcore::Value result);
+
  protected:
   void request_prompt_variables_update(bool clear_cache = false);
 
@@ -115,7 +118,6 @@ class SHCORE_PUBLIC Base_shell {
       _completer_object_registry;
   std::shared_ptr<shcore::completer::Provider_sql> _provider_sql;
 
-  virtual void process_result(shcore::Value result);
   virtual void process_sql_result(
       std::shared_ptr<mysqlshdk::db::IResult> result,
       const shcore::Sql_result_info &info);

@@ -449,56 +449,57 @@ void Base_shell::process_sql_result(
   }
 }
 
-void Base_shell::process_result(shcore::Value result) {
-  assert(_shell->interactive_mode() != shcore::Shell_core::Mode::SQL);
+void Base_shell::print_result(shcore::Value result) {
+  if (result) {
+    shcore::Value shell_hook;
+    std::shared_ptr<shcore::Object_bridge> object;
+    if (result.type == shcore::Object) {
+      object = result.as_object();
+      if (object && object->has_member("__shell_hook__"))
+        shell_hook = object->get_member("__shell_hook__");
 
-  if (options().interactive) {
-    if (result) {
-      shcore::Value shell_hook;
-      std::shared_ptr<shcore::Object_bridge> object;
-      if (result.type == shcore::Object) {
-        object = result.as_object();
-        if (object && object->has_member("__shell_hook__"))
-          shell_hook = object->get_member("__shell_hook__");
+      if (shell_hook) {
+        shcore::Argument_list args;
+        shcore::Value hook_result = object->call("__shell_hook__", args);
 
-        if (shell_hook) {
-          shcore::Argument_list args;
-          shcore::Value hook_result = object->call("__shell_hook__", args);
-
-          // Recursive call to continue processing shell hooks if any
-          process_result(hook_result);
-        }
+        // Recursive call to continue processing shell hooks if any
+        process_result(hook_result);
       }
+    }
 
-      // If the function is not found the values still needs to be printed
-      if (!shell_hook) {
-        // Resultset objects get printed
-        if (object &&
-            object->class_name().find("Result") != std::string::npos) {
-          std::shared_ptr<mysqlsh::ShellBaseResult> resultset =
-              std::static_pointer_cast<mysqlsh::ShellBaseResult>(object);
+    // If the function is not found the values still needs to be printed
+    if (!shell_hook) {
+      // Resultset objects get printed
+      if (object && object->class_name().find("Result") != std::string::npos) {
+        std::shared_ptr<mysqlsh::ShellBaseResult> resultset =
+            std::static_pointer_cast<mysqlsh::ShellBaseResult>(object);
 
-          // TODO(alfredo) - dumping of SqlResults should be redirected to
-          // process_sql_result()
+        // TODO(alfredo) - dumping of SqlResults should be redirected to
+        // process_sql_result()
 
-          // Result buffering will be done ONLY if on any of the scripting
-          // interfaces
-          ResultsetDumper dumper(resultset, _shell->interactive_mode() !=
-                                                shcore::IShell_core::Mode::SQL);
-          dumper.dump();
-        } else {
-          // In JSON mode: the json representation is used for Object, Array and
-          // Map For anything else a map is printed with the "value" key
-          std::string tag;
-          if (result.type != shcore::Object && result.type != shcore::Array &&
-              result.type != shcore::Map)
-            tag = "value";
+        // Result buffering will be done ONLY if on any of the scripting
+        // interfaces
+        ResultsetDumper dumper(resultset, _shell->interactive_mode() !=
+                                              shcore::IShell_core::Mode::SQL);
+        dumper.dump();
+      } else {
+        // In JSON mode: the json representation is used for Object, Array and
+        // Map For anything else a map is printed with the "value" key
+        std::string tag;
+        if (result.type != shcore::Object && result.type != shcore::Array &&
+            result.type != shcore::Map)
+          tag = "value";
 
-          m_console_handler.get()->print_value(result, tag);
-        }
+        m_console_handler.get()->print_value(result, tag);
       }
     }
   }
+}
+
+void Base_shell::process_result(shcore::Value result) {
+  assert(_shell->interactive_mode() != shcore::Shell_core::Mode::SQL);
+
+  if (options().interactive) print_result(result);
 
   // Return value of undefined implies an error processing
   if (result.type == shcore::Undefined) _shell->set_error_processing();

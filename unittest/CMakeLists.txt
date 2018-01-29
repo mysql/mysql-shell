@@ -77,6 +77,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_collection_find_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_table_select_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/shell_cli_operation_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"

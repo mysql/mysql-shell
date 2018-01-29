@@ -738,9 +738,10 @@ int main(int argc, char **argv) {
       }
 
       std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
+      auto shell_cli_operation = shell_options->get_shell_cli_operation();
 
       // If default cluster specified on the cmdline, set cluster global var
-      if (options.default_cluster_set) {
+      if (options.default_cluster_set && !shell_cli_operation) {
         try {
           default_cluster = shell->set_default_cluster(options.default_cluster);
         } catch (shcore::Exception &e) {
@@ -754,7 +755,21 @@ int main(int argc, char **argv) {
       g_shell_ptr = shell.get();
       if (valid_color_capability) shell->load_prompt_theme(pick_prompt_theme());
 
-      if (!options.execute_statement.empty()) {
+      if (shell_cli_operation && !shell_cli_operation->empty()) {
+        try {
+          shell->print_result(shell_cli_operation->execute());
+        } catch (const shcore::Shell_cli_operation::Mapping_error &e) {
+          mysqlsh::current_console()->print_error(e.what());
+          ret_val = 10;
+        } catch (const shcore::Exception &e) {
+          mysqlsh::current_console()->print_value(shcore::Value(e.error()),
+                                                  "error");
+          ret_val = 1;
+        } catch (const std::exception &e) {
+          mysqlsh::current_console()->print_error(e.what());
+          ret_val = 1;
+        }
+      } else if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell->process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {

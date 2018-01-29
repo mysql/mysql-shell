@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -96,10 +96,7 @@ class Test_object : public Cpp_object_bridge {
   void do_expose_overloaded() {
     expose("overload", &Test_object::f_overload);
     expose<int, int>("overload", &Test_object::f_overload, "i");
-    expose<int, int, const std::string &>("overload", &Test_object::f_overload,
-                                          "i", "?s");
     expose<int, int, int>("overload", &Test_object::f_overload, "i", "ii");
-    expose<int, const std::string &>("overload", &Test_object::f_overload, "a");
     expose<int, shcore::Dictionary_t>("overload", &Test_object::f_overload,
                                       "a");
   }
@@ -328,7 +325,7 @@ TEST_F(Types_cpp, arg_check_optional) {
 TEST_F(Types_cpp, arg_check_type_fail) {
   obj.do_expose();
   obj.do_expose_optionals();
-  EXPECT_THROW(obj.call("f_s_i", make_args("42")), shcore::Exception);
+  EXPECT_THROW(obj.call("f_s_i", make_args("foo")), shcore::Exception);
 
   EXPECT_THROW(obj.call("test1", make_args(42, 42)), shcore::Exception);
   EXPECT_THROW(obj.call("test1", make_args("foo", 42)), shcore::Exception);
@@ -370,13 +367,12 @@ TEST_F(Types_cpp, throwing_functions) {
 TEST_F(Types_cpp, expose_overload) {
   obj.do_expose_overloaded();
 
-  EXPECT_THROW_LIKE(obj.call("overload", make_args(42)).as_int(),
-                    shcore::Exception, "ambiguous");
+  EXPECT_NO_THROW(obj.call("overload", make_args(42)).as_int());
   EXPECT_EQ(obj.f_overload(), obj.call("overload", make_args()).as_int());
   EXPECT_EQ(obj.f_overload(42, 34),
             obj.call("overload", make_args(42, 34)).as_int());
-  EXPECT_EQ(obj.f_overload(42, "bla"),
-            obj.call("overload", make_args(42, "bla")).as_int());
+  EXPECT_THROW(obj.call("overload", make_args(42, "bla")).as_int(),
+               shcore::Exception);
 }
 
 // check expose() of multiple functions with same name, but diff signatures
@@ -387,7 +383,7 @@ TEST_F(Types_cpp, arg_check_overload) {
   EXPECT_EQ(obj.f_overload(), obj.call("overload", make_args()).as_int());
   EXPECT_EQ(obj.f_overload(1, 2),
             obj.call("overload", make_args(1, 2)).as_int());
-  EXPECT_EQ(obj.f_overload("a"), obj.call("overload", make_args("a")).as_int());
+  EXPECT_EQ(obj.f_overload(1), obj.call("overload", make_args("1")).as_int());
   EXPECT_EQ(obj.f_overload(shcore::Dictionary_t()),
             obj.call("overload", make_args(shcore::Dictionary_t())).as_int());
 
@@ -418,16 +414,39 @@ TEST_F(Types_cpp, arg_check_overload) {
     FAIL() << "Expected exception but didn't get one";
   } catch (const std::logic_error &) {
   }
+
+  // ambiguous overload on type paramters
+  try {
+    obj.expose<int, int, const std::string &>(
+        "overload", &Test_object::f_overload, "i", "?s");
+    FAIL() << "Expected exception but didn't get one";
+  } catch (const shcore::Exception &) {
+  }
+  try {
+    obj.expose<int, const std::string &>("overload", &Test_object::f_overload,
+                                         "a");
+    FAIL() << "Expected exception but didn't get one";
+  } catch (const shcore::Exception &) {
+  }
 }
 
 TEST_F(Types_cpp, arg_check_overload_ambiguous) {
-  obj.expose<int, const std::string &>("overload", &Test_object::f_overload,
-                                       "?s");
   obj.expose<int, int>("overload", &Test_object::f_overload, "?i");
+  try {
+    obj.expose<int, const std::string &>("overload", &Test_object::f_overload,
+                                         "?s");
+    FAIL() << "Expected exception but didn't get one";
+  } catch (const shcore::Exception &) {
+  }
 
-  EXPECT_EQ(obj.f_overload(""), obj.call("overload", make_args("")).as_int());
+  try {
+    obj.expose<int>("overload", &Test_object::f_overload);
+    FAIL() << "Expected exception but didn't get one";
+  } catch (const shcore::Exception &) {
+  }
+
+  EXPECT_EQ(obj.f_overload(1), obj.call("overload", make_args("11")).as_int());
   EXPECT_EQ(obj.f_overload(11), obj.call("overload", make_args(11)).as_int());
-  EXPECT_THROW_LIKE(obj.call("overload", make_args()), shcore::Exception,
-                    "ambiguous");
+  EXPECT_EQ(obj.f_overload(0), obj.call("overload", make_args()).as_int());
 }
 }  // namespace shcore

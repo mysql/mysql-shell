@@ -570,7 +570,7 @@ TEST(modules_mod_utils, unpack_options_types) {
           .optional("neg", &ui)
           .end(),
       shcore::Exception,
-      "Option 'neg' is expected to be of type UInteger, but is String");
+      "Option 'neg': Invalid typecast: UInteger expected, but value is String");
 
   str = "xxx";
   EXPECT_THROW_LIKE(
@@ -585,7 +585,7 @@ TEST(modules_mod_utils, unpack_options_types) {
   EXPECT_THROW_LIKE(
       Unpack_options(maked("str", shcore::Value(""))).optional("str", &i).end(),
       shcore::Exception,
-      "Option 'str' is expected to be of type Integer, but is String");
+      "Option 'str': Invalid typecast: Integer expected, but value is String");
   EXPECT_EQ(0, i);
 
   EXPECT_THROW_LIKE(

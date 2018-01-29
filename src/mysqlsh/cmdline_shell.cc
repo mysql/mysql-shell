@@ -619,6 +619,7 @@ void Command_line_shell::print_cmd_line_helper() {
   println("       mysqlsh [OPTIONS] [URI] -f <path> [script args...]");
   println("       mysqlsh [OPTIONS] [URI] --dba [command]");
   println("       mysqlsh [OPTIONS] [URI] --cluster");
+  println("       mysqlsh [OPTIONS] [URI] -- <object> <method> [method args...]");
   println("       mysqlsh [OPTIONS] [URI] --import file|- [collection] | [table [, column]");
   println("");
   // clang-format on
@@ -631,6 +632,9 @@ void Command_line_shell::print_cmd_line_helper() {
   println("$ mysqlsh mysqlx://root@some.server:3307/world_x");
   println("$ mysqlsh --uri root@localhost --py -f sample.py sample param");
   println("$ mysqlsh root@targethost:33070 -s world_x -f sample.js");
+  println(
+      "$ mysqlsh -- util check-for-server-upgrade root@localhost "
+      "--output-format=JSON");
   println("$ mysqlsh mysqlx://user@host/db --import ~/products.json shop");
   println("");
 }

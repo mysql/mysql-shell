@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,7 +86,7 @@ std::vector<std::string> Generic_option::get_cmdline_names() {
       if (pos != 0 && cmd_name[pos - 1] == '[')
         --pos;
       else
-        accept_null = false;
+        value_optional = false;
       res.push_back(cmd_name.substr(0, pos));
     } else {
       res.push_back(cmd_name);
@@ -254,7 +254,7 @@ std::string serialize(const std::string &val) {
 }  // namespace opts
 
 // Will verify if the argument is the one specified by arg or larg and return
-// its associated value
+// its associated value and advance iterator pass parsed option.
 // The function has different behaviors:
 //
 // Options come in three flavors
@@ -270,37 +270,37 @@ std::string serialize(const std::string &val) {
 //
 // ReturnValue: Returns the # of format found based on the list above, or 0 if
 // no valid value was found
-Options::Format Options::cmdline_arg_with_value(char **argv, int *argi,
+Options::Format Options::cmdline_arg_with_value(Cmdline_iterator *iterator,
                                                 const char *arg,
-                                                const char *larg, char **value,
+                                                const char *larg,
+                                                const char **value,
                                                 bool accept_null) noexcept {
   Format ret_val = Format::INVALID;
   *value = nullptr;
 
-  if (strcmp(argv[*argi], arg) == 0 ||
-      (larg && strcmp(argv[*argi], larg) == 0)) {
+  if (strcmp(iterator->peek(), arg) == 0 ||
+      (larg && strcmp(iterator->peek(), larg) == 0)) {
     // --option [value] or -o [value]
     ret_val = Format::SEPARATE_VALUE;
+    iterator->get();
 
     // value can be in next arg and can't start with - which indicates next
     // option
-    if (argv[*argi + 1] != NULL && strncmp(argv[*argi + 1], "-", 1) != 0) {
-      ++(*argi);
-      *value = argv[*argi];
-    }
-  } else if (larg && strncmp(argv[*argi], larg, strlen(larg)) == 0 &&
-             strlen(argv[*argi]) > strlen(larg)) {
+    if (iterator->peek() != NULL && strncmp(iterator->peek(), "-", 1) != 0)
+      *value = iterator->get();
+  } else if (larg && strncmp(iterator->peek(), larg, strlen(larg)) == 0 &&
+             strlen(iterator->peek()) > strlen(larg)) {
     // -o<value>
     ret_val = Format::SHORT;
-    *value = argv[*argi] + strlen(larg);
-  } else if (strncmp(argv[*argi], arg, strlen(arg)) == 0 &&
-             argv[*argi][strlen(arg)] == '=') {
+    *value = iterator->get() + strlen(larg);
+  } else if (strncmp(iterator->peek(), arg, strlen(arg)) == 0 &&
+             iterator->peek()[strlen(arg)] == '=') {
     // --option=[value]
     ret_val = Format::LONG;
+    const char *opt = iterator->get();
 
     // Value was specified
-    if (strlen(argv[*argi]) > (strlen(arg) + 1))
-      *value = argv[*argi] + strlen(arg) + 1;
+    if (strlen(opt) > (strlen(arg) + 1)) *value = opt + strlen(arg) + 1;
   }
 
   // Option requires an argument
@@ -427,12 +427,13 @@ void Options::handle_persisted_options() {
 }
 
 void Options::handle_cmdline_options(
-    int argc, char **argv, bool allow_unregistered_options,
+    int argc, char const *const *argv, bool allow_unregistered_options,
     Custom_cmdline_handler custom_cmdline_handler) {
-  for (int i = 1; i < argc; i++) {
-    if (custom_cmdline_handler && custom_cmdline_handler(argv, &i)) continue;
+  Cmdline_iterator iterator(argc, argv, 1);
+  while (iterator.valid()) {
+    if (custom_cmdline_handler && custom_cmdline_handler(&iterator)) continue;
 
-    std::string opt(argv[i]);
+    std::string opt(iterator.peek());
     std::size_t epos = opt.find('=');
 
     if (epos != std::string::npos) {
@@ -445,17 +446,18 @@ void Options::handle_cmdline_options(
       if (it->second->accepts_no_cmdline_value()) {
         if (epos == std::string::npos) {
           it->second->handle_command_line_input(opt, nullptr);
+          iterator.get();
         } else {
           throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
-                                      " does not require an argument");
+                                      +" does not require an argument");
         }
       } else {
         const std::string &cmd = it->first;
-        char *value = nullptr;
+        const char *value = nullptr;
         if (Format::MISSING_VALUE !=
-            cmdline_arg_with_value(argv, &i, cmd.c_str(),
+            cmdline_arg_with_value(&iterator, cmd.c_str(),
                                    cmd[1] == '-' ? nullptr : cmd.c_str(),
-                                   &value, it->second->accepts_null_argument()))
+                                   &value, it->second->is_value_optional()))
           it->second->handle_command_line_input(cmd, value);
         else
           throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +

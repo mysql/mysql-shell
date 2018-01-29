@@ -35,6 +35,7 @@ set(SHELLCORE_SOURCES
   interrupt_handler.cc
   ishell_core.cc
   scoped_contexts.cc
+  shell_cli_operation.cc
   shell_core.cc
   shell_init.cc
   shell_notifications.cc

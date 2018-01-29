@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 #ifdef _WIN32
@@ -179,6 +180,38 @@ inline std::wstring win_a_to_w_string(const std::string &str) {
   return wstr;
 }
 #endif
+
+template <class T>
+T lexical_cast(const T &data) {
+  return data;
+}
+
+template <class T>
+std::string lexical_cast(const T &data) {
+  std::stringstream ss;
+  ss << data;
+  return ss.str();
+}
+
+template <class T, class S>
+T lexical_cast(const S &data) {
+  std::stringstream ss;
+  ss << data;
+  if (std::is_unsigned<T>::value && ss.peek() == '-')
+    throw std::invalid_argument("Unable to perform conversion.");
+  T t;
+  ss >> t;
+  if (ss.fail()) {
+    if (std::is_same<T, bool>::value) {
+      ss.clear();
+      ss >> std::boolalpha >> t;
+    }
+    if (ss.fail()) throw std::invalid_argument("Unable to perform conversion.");
+  } else if (!ss.eof()) {
+    throw std::invalid_argument("Conversion did not consume whole input.");
+  }
+  return t;
+}
 
 }  // namespace shcore
 
