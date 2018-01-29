@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "117",
+    "connection_id": "118",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
@@ -153,10 +153,10 @@
     "rows": [
         [
             "vm-ubuntu-bin.000003",
-            85869,
+            85861,
             "",
             "",
-            "50c7f22b-0fed-11e8-a7e0-080027c42733:1-97,\n59fa8139-0fed-11e8-a7e0-080027c42733:1-3,\n63fe0481-0fed-11e8-a7e0-080027c42733:1-3,\n6df90b29-0fed-11e8-a7e0-080027c42733:1-3,\n77f44a33-0fed-11e8-a7e0-080027c42733:1-3,\n81f99489-0fed-11e8-a7e0-080027c42733:1-3,\n8c0c6da5-0fed-11e8-a7e0-080027c42733:1-3,\n96191926-0fed-11e8-a7e0-080027c42733:1-3,\naa10b395-0fed-11e8-a7e0-080027c42733:1-79,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3"
+            "04c8dce5-1158-11e8-bf88-080027c42733:1-97,\n0e05c1ad-1158-11e8-bf88-080027c42733:1-3,\n180b7d0a-1158-11e8-bf88-080027c42733:1-3,\n2203b45a-1158-11e8-bf88-080027c42733:1-3,\n2bf8dbcb-1158-11e8-bf88-080027c42733:1-3,\n35f1d9db-1158-11e8-bf88-080027c42733:1-3,\n3fe8eb49-1158-11e8-bf88-080027c42733:1-3,\n49e11462-1158-11e8-bf88-080027c42733:1-3,\n5dd2e751-1158-11e8-bf88-080027c42733:1-79,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3"
         ]
     ]
 },

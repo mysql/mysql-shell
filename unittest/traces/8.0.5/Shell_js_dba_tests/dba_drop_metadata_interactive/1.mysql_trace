@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "9f46166e-0feb-11e8-8fa1-080027c42733",
-            "9f46166e-0feb-11e8-8fa1-080027c42733"
+            "58a4d230-1157-11e8-8f19-080027c42733",
+            "58a4d230-1157-11e8-8f19-080027c42733"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9f46166e-0feb-11e8-8fa1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '58a4d230-1157-11e8-8f19-080027c42733'"
 },
 {
     "type": "response",
@@ -404,8 +404,8 @@
     ],
     "rows": [
         [
-            "9f46166e-0feb-11e8-8fa1-080027c42733",
-            "9f46166e-0feb-11e8-8fa1-080027c42733"
+            "58a4d230-1157-11e8-8f19-080027c42733",
+            "58a4d230-1157-11e8-8f19-080027c42733"
         ]
     ]
 },
@@ -413,7 +413,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9f46166e-0feb-11e8-8fa1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '58a4d230-1157-11e8-8f19-080027c42733'"
 },
 {
     "type": "response",
@@ -628,8 +628,8 @@
     ],
     "rows": [
         [
-            "9f46166e-0feb-11e8-8fa1-080027c42733",
-            "9f46166e-0feb-11e8-8fa1-080027c42733"
+            "58a4d230-1157-11e8-8f19-080027c42733",
+            "58a4d230-1157-11e8-8f19-080027c42733"
         ]
     ]
 },
@@ -637,7 +637,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9f46166e-0feb-11e8-8fa1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '58a4d230-1157-11e8-8f19-080027c42733'"
 },
 {
     "type": "response",
@@ -852,8 +852,8 @@
     ],
     "rows": [
         [
-            "9f46166e-0feb-11e8-8fa1-080027c42733",
-            "9f46166e-0feb-11e8-8fa1-080027c42733"
+            "58a4d230-1157-11e8-8f19-080027c42733",
+            "58a4d230-1157-11e8-8f19-080027c42733"
         ]
     ]
 },
@@ -861,7 +861,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9f46166e-0feb-11e8-8fa1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '58a4d230-1157-11e8-8f19-080027c42733'"
 },
 {
     "type": "response",
@@ -1076,8 +1076,8 @@
     ],
     "rows": [
         [
-            "9f46166e-0feb-11e8-8fa1-080027c42733",
-            "9f46166e-0feb-11e8-8fa1-080027c42733"
+            "58a4d230-1157-11e8-8f19-080027c42733",
+            "58a4d230-1157-11e8-8f19-080027c42733"
         ]
     ]
 },
@@ -1085,7 +1085,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9f46166e-0feb-11e8-8fa1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '58a4d230-1157-11e8-8f19-080027c42733'"
 },
 {
     "type": "response",
@@ -1300,8 +1300,8 @@
     ],
     "rows": [
         [
-            "9f46166e-0feb-11e8-8fa1-080027c42733",
-            "9f46166e-0feb-11e8-8fa1-080027c42733"
+            "58a4d230-1157-11e8-8f19-080027c42733",
+            "58a4d230-1157-11e8-8f19-080027c42733"
         ]
     ]
 },
@@ -1309,7 +1309,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 61,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9f46166e-0feb-11e8-8fa1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '58a4d230-1157-11e8-8f19-080027c42733'"
 },
 {
     "type": "response",

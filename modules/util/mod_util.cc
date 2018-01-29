@@ -145,8 +145,8 @@ shcore::Value Util::check_for_server_upgrade(
     shcore::split_account(row->get_string(0), &user, &host);
 
     mysqlshdk::mysql::Instance instance(session);
-    auto res = instance.check_user(user, host, {"all"}, "*", "*");
-    if ("" != std::get<1>(res))
+    auto res = instance.get_user_privileges(user, host)->validate({"all"});
+    if (res.has_missing_privileges())
       throw std::invalid_argument(
           "The upgrade check needs to be performed by user with ALL "
           "privileges.");

@@ -25,6 +25,7 @@ set(mysql_SOURCE
     sandbox.cc
     script.cc
     group_replication.cc
+    user_privileges.cc
 )
 
 add_convenience_library(mysql ${mysql_SOURCE})

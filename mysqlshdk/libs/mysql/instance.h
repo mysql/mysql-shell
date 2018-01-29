@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -89,10 +90,8 @@ class IInstance {
   virtual void drop_user(const std::string &user,
                          const std::string &host) const = 0;
   virtual void drop_users_with_regexp(const std::string &regexp) const = 0;
-  virtual std::tuple<bool, std::string, bool> check_user(
-      const std::string &user, const std::string &host,
-      const std::vector<std::string> &privileges,
-      const std::string &on_db, const std::string &on_obj) const = 0;
+  virtual std::unique_ptr<User_privileges> get_user_privileges(
+      const std::string &user, const std::string &host) const = 0;
 };
 
 /**
@@ -137,10 +136,8 @@ class Instance : public IInstance {
   void drop_user(const std::string &user,
                  const std::string &host) const override;
   void drop_users_with_regexp(const std::string &regexp) const override;
-  std::tuple<bool, std::string, bool> check_user(
-      const std::string &user, const std::string &host,
-      const std::vector<std::string> &privileges,
-      const std::string &on_db, const std::string &on_obj) const override;
+  std::unique_ptr<User_privileges> get_user_privileges(const std::string &user,
+      const std::string &host) const override;
 
   bool is_read_only(bool super) const override;
   utils::Version get_version() const override;
@@ -148,14 +145,6 @@ class Instance : public IInstance {
  private:
   std::shared_ptr<db::ISession> _session;
   mutable mysqlshdk::utils::Version _version;
-  // List of privileges equivalent to "ALL [PRIVILEGES]".
-  const std::vector<std::string> kAllPrivileges = {
-      "ALTER", "ALTER ROUTINE", "CREATE", "CREATE ROUTINE",
-      "CREATE TABLESPACE", "CREATE TEMPORARY TABLES", "CREATE USER",
-      "CREATE VIEW", "DELETE", "DROP", "EVENT", "EXECUTE", "FILE", "INDEX",
-      "INSERT", "LOCK TABLES", "PROCESS", "REFERENCES", "RELOAD",
-      "REPLICATION CLIENT", "REPLICATION SLAVE", "SELECT", "SHOW DATABASES",
-      "SHOW VIEW", "SHUTDOWN", "SUPER", "TRIGGER", "UPDATE"};
 };
 
 }  // namespace mysql

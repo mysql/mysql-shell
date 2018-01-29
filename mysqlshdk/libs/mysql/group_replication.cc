@@ -26,6 +26,7 @@
 #include <limits>
 #include <memory>
 #include <random>
+#include <set>
 
 #ifdef WIN32
 #include <windows.h>
@@ -624,20 +625,16 @@ std::string generate_group_name() {
  * @param host string with the host part for the user account. If none is
  *             provide (empty) then use '%'.
  *
- * @return A tuple containing the result of the check operation including
- *         the details about the requisites that were not meet (e.g., privilege
- *         missing). The return tuple has three elements: first, boolean value
- *         indicating if the user exists (true) or not (false); second, string
- *         with a comma separated list of the missing privileges; third,
- *         boolean value indicating if the user has GRANT OPTION (true) or not
- *         (false).
+ * @return A User_privileges_result instance containing the result of the check
+ *         operation including the details about the requisites that were not
+ *         met (e.g., privilege missing).
  */
-std::tuple<bool, std::string, bool> check_replication_user(
+mysql::User_privileges_result check_replication_user(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host) {
   // Check if user has REPLICATION SLAVE on *.*
-  std::vector<std::string> gr_grants{"REPLICATION SLAVE"};
-  return instance.check_user(user, host, gr_grants, "*", "*");
+  const std::set<std::string> gr_grants{"REPLICATION SLAVE"};
+  return instance.get_user_privileges(user, host)->validate(gr_grants);
 }
 
 /**

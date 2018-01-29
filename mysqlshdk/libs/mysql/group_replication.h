@@ -125,7 +125,7 @@ void stop_group_replication(const mysqlshdk::mysql::IInstance &instance);
 std::string generate_group_name();
 
 // Function to manage the replication (recovery) user for GR.
-std::tuple<bool, std::string, bool> check_replication_user(
+mysql::User_privileges_result check_replication_user(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host);
 void create_replication_user(const mysqlshdk::mysql::IInstance &instance,

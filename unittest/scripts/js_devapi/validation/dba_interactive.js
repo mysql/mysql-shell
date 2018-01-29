@@ -129,13 +129,13 @@ Validating instance...
 |Number of accounts: 1|
 
 //@ Dba: configureLocalInstance not enough privileges 1
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
 
 //@ Dba: configureLocalInstance not enough privileges 2
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
 
 //@ Dba: configureLocalInstance not enough privileges 3
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -200,10 +200,13 @@ You can now use it in an InnoDB Cluster.
 ||
 
 //@ Dba: configureLocalInstance create existing invalid admin user
-||Dba.configureLocalInstance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Dba.configureLocalInstance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. Missing global privileges: REPLICATION SLAVE. For more information, see the online documentation.
 
 //@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|
+
+//@ Check if all missing privileges are reported for user with no privileges
+|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER. Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE. Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string

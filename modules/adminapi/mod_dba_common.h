@@ -188,7 +188,8 @@ std::pair<int, int> find_cluster_admin_accounts(
     const std::string &admin_user, std::vector<std::string> *out_hosts);
 bool validate_cluster_admin_user_privileges(
     std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &admin_user, const std::string &admin_host);
+    const std::string &admin_user, const std::string &admin_host,
+    std::string *validation_error);
 void create_cluster_admin_user(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &username, const std::string &password);

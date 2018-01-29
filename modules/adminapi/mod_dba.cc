@@ -2077,11 +2077,42 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
 
   std::string cnfpath, cluster_admin, cluster_admin_password;
   std::string admin_user, admin_user_host, validate_user, validate_host;
-  std::string current_user, current_host, account_type, error_msg_extra;
+  std::string current_user, current_host;
   std::string uri_user = instance_def.get_user();
   std::string uri_host = instance_def.get_host();
   bool cluster_admin_user_exists = false;
   bool clear_read_only = false;
+
+  auto create_privilege_error = [&cluster_admin_user_exists,
+                                 &uri_user,
+                                 &uri_host]
+                                (const std::string &user,
+                                 const std::string &host,
+                                 const std::string &extra) -> std::string {
+    std::string error;
+
+    if (cluster_admin_user_exists)
+      error += "Cluster Admin";
+    else
+      error += "Session";
+
+    error += " account '" + user + "'@'" + host + "'";
+
+    if (!cluster_admin_user_exists && (uri_host != host || uri_user != user))
+      error += " (used to authenticate '" + uri_user + "'@'" + uri_host + "')";
+
+    error += " does not have all the required privileges to execute this"
+             " operation.";
+
+    std::string extra_trimmed = shcore::str_strip(extra);
+
+    if (!extra_trimmed.empty())
+      error += " " + extra_trimmed;
+
+    error += " For more information, see the online documentation.";
+
+    return error;
+  };
 
   if (options) {
     shcore::Argument_map tmp_map(*options);
@@ -2155,18 +2186,8 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
       if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
         // the current_account doesn't have enough privileges to execute
         // the query
-        std::string error_msg;
-        if (uri_host != current_host || uri_user != current_user)
-          error_msg =
-              "Session account '" + current_user + "'@'" + current_host +
-              "'(used to authenticate '" + uri_user + "'@'" + uri_host +
-              "') does not have all the required privileges to execute this "
-              "operation. For more information, see the online documentation.";
-        else
-          error_msg =
-              "Session account '" + current_user + "'@'" + current_host +
-              "' does not have all the required privileges to execute this "
-              "operation. For more information, see the online documentation.";
+        std::string error_msg = create_privilege_error(current_user,
+            current_host, "Missing global privilege: SELECT.");
         log_error("%s", error_msg.c_str());
         throw std::runtime_error(error_msg);
       } else {
@@ -2178,28 +2199,23 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
     // cluster admin account exists, so we will validate its privileges
     validate_user = admin_user;
     validate_host = admin_user_host;
-    account_type = "Cluster Admin";
   } else {
     // cluster admin doesn't exist, so we validate the privileges of the
     // current user
     validate_user = current_user;
     validate_host = current_host;
-    account_type = "Session";
-    if (uri_host != current_host || uri_user != current_user)
-      error_msg_extra =
-          " (used to authenticate '" + uri_user + "'@'" + uri_host + "')";
   }
-  // Validate the permissions of the user running the operation.
-  if (!validate_cluster_admin_user_privileges(session, validate_user,
-                                              validate_host)) {
-    std::string error_msg =
-        account_type + " account '" + validate_user + "'@'" + validate_host +
-        "'" + error_msg_extra +
-        " does not have all the required privileges to "
-        "execute this operation. For more information, see the online "
-        "documentation.";
-    log_error("%s", error_msg.c_str());
-    throw std::runtime_error(error_msg);
+  {
+    std::string validation_error;
+
+    // Validate the permissions of the user running the operation.
+    if (!validate_cluster_admin_user_privileges(session, validate_user,
+            validate_host, &validation_error)) {
+      std::string error_msg = create_privilege_error(validate_user,
+          validate_host, validation_error);
+      log_error("%s", error_msg.c_str());
+      throw std::runtime_error(error_msg);
+    }
   }
   // Now validates the instance GR status itself
   std::string uri = session->uri(mysqlshdk::db::uri::formats::only_transport());
