@@ -267,7 +267,7 @@ the instance cannot rejoin.
 
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Rejoining instance to the cluster ...
 
-The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
+The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
 
 //@<OUT> Cluster: status for rejoin: success
 {

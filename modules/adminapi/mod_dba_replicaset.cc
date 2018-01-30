@@ -957,9 +957,8 @@ shcore::Value ReplicaSet::rejoin_instance(
         *instance_def, seed_instance_def, "", instance_password, "", ssl_mode,
         ip_whitelist, "", gr_group_seeds, true, &errors);
     if (exit_code == 0) {
-      ret_val = shcore::Value("The instance '" + instance_address +
-                              "' was successfully added to the MySQL "
-                              "Cluster.");
+      log_info("The instance '%s' was successfully rejoined on the cluster.",
+               instance_address.c_str());
     } else {
       throw shcore::Exception::runtime_error(
           get_mysqlprovision_error_string(errors));
