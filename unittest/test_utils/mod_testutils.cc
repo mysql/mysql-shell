@@ -1554,7 +1554,7 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
   if (mysqlshdk::db::replay::g_replay_mode !=
       mysqlshdk::db::replay::Mode::Direct) {
     // use mysqlshrec unless in direct mode
-    path = shcore::path::join_path(shcore::path::dirname(_mysqlsh_path),
+    path = shcore::path::join_path(shcore::get_binary_folder(),
                                    "mysqlshrec");
     full_argv.push_back(path.c_str());
   } else {
