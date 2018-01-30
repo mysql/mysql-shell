@@ -307,7 +307,7 @@ def check(**kwargs):
                           "given.")
 
     if option_file:
-        msg = "Running {0} command for file '{1}'.".format(CHECK, option_file)
+        msg = u"Running {0} command for file '{1}'.".format(CHECK, option_file)
     else:
         msg = "Running {0} command.".format(CHECK)
     _LOGGER.step(msg)
@@ -347,7 +347,7 @@ def check(**kwargs):
                 skip_schema_checks = True
 
             _LOGGER.step("Checking Group Replication "
-                        "prerequisites.")
+                         "prerequisites.")
 
             # set dry_run to avoid changes on server as replication user
             # creation.

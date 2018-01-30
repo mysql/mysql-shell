@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,7 @@ import sys
 import json
 
 from mysql_gadgets.common.logger import setup_logging, CustomLevelLogger
+from mysql_gadgets.common.tools import fs_decode
 from mysql_gadgets.command.gr_admin import check, CHECK, join, leave, start
 from mysql_gadgets.command.sandbox import create_sandbox, stop_sandbox, \
     kill_sandbox, delete_sandbox, start_sandbox, SANDBOX, SANDBOX_CREATE, \
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         if line == ".\n":
             break
         data += line
-    shell_options = json.loads(data)
+    shell_options = json.loads(fs_decode(data))
     cmd_options = shell_options[0]
     del shell_options[0]
 
@@ -129,15 +130,24 @@ if __name__ == "__main__":
 
         except GadgetError:
             _, err, _ = sys.exc_info()
-            _LOGGER.error("Error %s: %s", command_error_msg, str(err))
+            _LOGGER.error(u"Error %s: %s", command_error_msg, unicode(err))
+            if _LOGGER.level <= logging.DEBUG:
+                import traceback
+                _LOGGER.debug(traceback.format_exc())
+            sys.exit(1)
+        except UnicodeEncodeError:
+            _, err, _ = sys.exc_info()
+            _LOGGER.error(u"Unicode error %s: %s. Make sure your locale "
+                          u"system settings support UTF-8 to use non-ASCII "
+                          u"values.", command_error_msg, unicode(err))
             if _LOGGER.level <= logging.DEBUG:
                 import traceback
                 _LOGGER.debug(traceback.format_exc())
             sys.exit(1)
         except Exception:  # pylint: disable=broad-except
             _, err, _ = sys.exc_info()
-            _LOGGER.error("Unexpected error %s: %s", command_error_msg,
-                          str(err))
+            _LOGGER.error(u"Unexpected error %s: %s", command_error_msg,
+                          unicode(err))
             if _LOGGER.level <= logging.DEBUG:
                 import traceback
                 _LOGGER.debug(traceback.format_exc())

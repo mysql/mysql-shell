@@ -266,11 +266,17 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
                          "5123456789612345678971234567898123456789";
   shcore::ensure_dir_exists(dir_long);
 
+  // Create directory with non-ascii characteres.
+  std::string dir_non_ascii = _sandbox_dir + path_splitter +
+                              "no_café_para_los_niños";
+  shcore::ensure_dir_exists(dir_non_ascii);
+
   validate_interactive("dba_sandboxes.js");
 
   // Remove previously created directories.
   shcore::remove_directory(dir);
   shcore::remove_directory(dir_long);
+  shcore::remove_directory(dir_non_ascii);
   // BUG#26393614
   std::vector<std::string> log{
       "Warning: Sandbox instances are only suitable for deploying and "

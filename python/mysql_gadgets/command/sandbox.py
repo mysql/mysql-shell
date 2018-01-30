@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -46,14 +46,14 @@ from mysql_gadgets import exceptions, MIN_MYSQL_VERSION, MAX_MYSQL_VERSION
 logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
-_CREATE_SANDBOX_CMD = ("{mysqld_path} --defaults-file={config_file} "
-                       "--initialize-insecure")
-_START_SERVER_CMD = "{mysqld_path} --defaults-file={config_file}"
-_STOP_SERVER_CMD = ("{mysqladmin_path} --defaults-file={config_file} "
-                    "shutdown -p")
-_CREATE_RSA_SSL_FILES_CMD = "{mysql_ssl_rsa_setup_path} --datadir={datadir}"
-_WIN_SCRIPT = "echo \"{message}\" & {content}\n"
-_UNIX_SCRIPT = "#!/bin/sh\n\necho '{message}'; {content}\n"
+_CREATE_SANDBOX_CMD = (u"{mysqld_path} --defaults-file={config_file} "
+                       u"--initialize-insecure")
+_START_SERVER_CMD = u"{mysqld_path} --defaults-file={config_file}"
+_STOP_SERVER_CMD = (u"{mysqladmin_path} --defaults-file={config_file} "
+                    u"shutdown -p")
+_CREATE_RSA_SSL_FILES_CMD = u"{mysql_ssl_rsa_setup_path} --datadir={datadir}"
+_WIN_SCRIPT = u"echo \"{message}\" & {content}\n"
+_UNIX_SCRIPT = u"#!/bin/sh\n\necho '{message}'; {content}\n"
 
 # default value for auto_increment_increment
 DEFAULT_AUTO_INCREMENT_INCREMENT = 7
@@ -131,11 +131,12 @@ def _create_start_script(script_name, script_path, mysqld, config_file):
         start_path += ".sh"
 
     _LOGGER.debug("Creating start script on '%s'", start_path)
+    enc_start_path = tools.fs_encode(start_path)
     try:
-        with open(start_path, "w") as f:
-            f.write(script_contents.format(
+        with open(enc_start_path, "w") as f:
+            f.write(tools.fs_encode(script_contents.format(
                 mysqld_path=tools.shell_quote(mysqld),
-                config_file=tools.shell_quote(config_file)))
+                config_file=tools.shell_quote(config_file))))
     except Exception as err:
         raise exceptions.GadgetError("Unable to create start script for "
                                      "sandbox instance", cause=err)
@@ -144,7 +145,7 @@ def _create_start_script(script_name, script_path, mysqld, config_file):
     if os.name == "posix":
         # No need to set exec permissions on windows, also python can't do it.
         _LOGGER.debug("Changing permissions of start script to 700")
-        os.chmod(start_path, 0o700)
+        os.chmod(enc_start_path, 0o700)
         _LOGGER.debug("Permissions changed successfully.")
     return start_path
 
@@ -182,11 +183,12 @@ def _create_stop_script(script_name, script_path, mysqladmin, config_file):
         stop_path += ".sh"
 
     _LOGGER.debug("Creating stop script on '%s'", stop_path)
+    enc_stop_path = tools.fs_encode(stop_path)
     try:
-        with open(stop_path, "w") as f:
-            f.write(script_contents.format(
+        with open(enc_stop_path, "w") as f:
+            f.write(tools.fs_encode(script_contents.format(
                 mysqladmin_path=tools.shell_quote(mysqladmin),
-                config_file=tools.shell_quote(config_file)))
+                config_file=tools.shell_quote(config_file))))
     except Exception as err:
         raise exceptions.GadgetError("Unable to create stop script for "
                                      "sandbox instance", cause=err)
@@ -195,7 +197,7 @@ def _create_stop_script(script_name, script_path, mysqladmin, config_file):
     if os.name == "posix":
         # No need to set exec permissions on windows, also python can't do it.
         _LOGGER.debug("Changing permissions of stop script to 700")
-        os.chmod(stop_path, 0o700)
+        os.chmod(enc_stop_path, 0o700)
         _LOGGER.debug("Permissions changed successfully.")
     return stop_path
 
@@ -288,11 +290,12 @@ def _set_secure_file_priv(opt_override_dict, sandbox_dir):
     if secure_file_priv is None:
         # No value set for secure_file_priv, overwrite the default value.
         secure_file_priv = os.path.join(sandbox_dir, "mysql-files")
+        enc_secure_file_priv = tools.fs_encode(secure_file_priv)
         # Check if secure_file_priv exists:
-        if not os.path.isdir(secure_file_priv):
+        if not os.path.isdir(enc_secure_file_priv):
             # Try to create it if it does not exist
             try:
-                os.makedirs(secure_file_priv)
+                os.makedirs(enc_secure_file_priv)
             except OSError as err:
                 raise exceptions.GadgetError(
                     _ERROR_CREATE_DIR.format(dir="secure-file-priv",
@@ -343,8 +346,8 @@ def sandbox_exists(**kwargs):
     """
     # Get sandbox paths
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
-
-    return os.path.isdir(sandbox_dir) and os.listdir(sandbox_dir)
+    enc_sandbox_dir = tools.fs_encode(sandbox_dir)
+    return os.path.isdir(enc_sandbox_dir) and os.listdir(enc_sandbox_dir)
 
 
 # pylint: disable=R0915, R0914
@@ -409,10 +412,11 @@ def create_sandbox(**kwargs):
             "option to specify a custom value.".format(mysqlx_port))
 
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
+    enc_sandbox_dir = tools.fs_encode(sandbox_dir)
     # Check if sandbox_dir is empty
-    if os.path.isdir(sandbox_dir) and os.listdir(sandbox_dir):
-        raise exceptions.GadgetError("The sandbox dir '{0}' is not empty."
-                                     "".format(sandbox_dir))
+    if os.path.isdir(enc_sandbox_dir) and os.listdir(enc_sandbox_dir):
+        raise exceptions.GadgetError(u"The sandbox dir '{0}' is not empty."
+                                     u"".format(sandbox_dir))
     # If no value is provided for mysqld, search value on PATH and default
     # mysqld paths.
     try:
@@ -506,14 +510,14 @@ def create_sandbox(**kwargs):
     # pylint: disable=E1101
     _LOGGER.step("Initializing new MySQL sandbox on '%s'.", sandbox_dir)
     # Check if sandbox_dir exists:
-    if not os.path.isdir(sandbox_dir):
+    if not os.path.isdir(enc_sandbox_dir):
         # Try to create it if it does not exist
         try:
-            os.makedirs(sandbox_dir)
+            os.makedirs(enc_sandbox_dir)
         except OSError as err:
             raise exceptions.GadgetError(
                 _ERROR_CREATE_DIR.format(dir="sandbox", dir_path=sandbox_dir,
-                                         error=str(err)))
+                                         error=unicode(err)))
 
     # Update opt_override_dict with value used for secure_file_priv.
     _set_secure_file_priv(opt_override_dict, sandbox_dir)
@@ -579,21 +583,24 @@ def create_sandbox(**kwargs):
     if os.name != "nt" and sys.platform != "darwin":
         local_mysqld_path = os.path.join(sandbox_dir, "mysqld")
         try:
-            _LOGGER.debug("Copying mysqld binary '%s' to '%s'", mysqld_path,
+            _LOGGER.debug(u"Copying mysqld binary '%s' to '%s'", mysqld_path,
                           sandbox_dir)
-            shutil.copy(mysqld_path, local_mysqld_path)
+            shutil.copy(tools.fs_encode(mysqld_path),
+                        tools.fs_encode(local_mysqld_path))
             bindir = os.path.dirname(mysqld_path)
             # Symlink possibly bundled OpenSSL shared libs
-            for name in os.listdir(bindir):
+            for name in os.listdir(tools.fs_encode(bindir)):
                 if name.startswith("lib") and ".so" in name:
                     path = os.path.join(bindir, name)
-                    _LOGGER.debug("Symlinking '%s' to '%s'", path,
+                    _LOGGER.debug(u"Symlinking '%s' to '%s'", path,
                                   sandbox_dir)
-                    os.symlink(path, os.path.join(sandbox_dir, name))
+                    os.symlink(tools.fs_encode(path),
+                               tools.fs_encode(os.path.join(sandbox_dir,
+                                                            name)))
         except (IOError, shutil.Error) as err:
             raise exceptions.GadgetError(
-                "Unable to copy mysqld binary '{0}' to '{1}': '{2}'."
-                "".format(mysqld_path, sandbox_dir, str(err)))
+                u"Unable to copy mysqld binary '{0}' to '{1}': '{2}'."
+                u"".format(mysqld_path, sandbox_dir, unicode(err)))
     else:
         local_mysqld_path = mysqld_path
 
@@ -609,7 +616,7 @@ def create_sandbox(**kwargs):
 
     # Fake PID to avoid the server starting the monitoring process
     if os.name == "nt":
-        os.environ['MYSQLD_PARENT_PID'] = '0';
+        os.environ['MYSQLD_PARENT_PID'] = '0'
 
     init_proc = tools.run_subprocess(create_cmd, shell=False, close_fds=True)
     init_proc.wait()
@@ -620,10 +627,11 @@ def create_sandbox(**kwargs):
                                                     init_proc.returncode))
 
     _LOGGER.debug("Creating SSL/RSA files.")
+    enc_datadir = tools.fs_encode(datadir)
     # Create SSL/RSA Files if they don't exist using the mysql_ssl_rsa_setup.
-    if (os.path.isfile(os.path.join(datadir, "ca.pem")) or
-            os.path.isfile(os.path.join(datadir, "server-cert.pem")) or
-            os.path.isfile(os.path.join(datadir, "server-key.pem"))):
+    if (os.path.isfile(os.path.join(enc_datadir, "ca.pem")) or
+            os.path.isfile(os.path.join(enc_datadir, "server-cert.pem")) or
+            os.path.isfile(os.path.join(enc_datadir, "server-key.pem"))):
         _LOGGER.debug("SSL/RSA files already exist.")
     elif mysql_ssl_rsa_setup_path:
         # MySQL servers have the capability of automatically generating
@@ -903,13 +911,13 @@ def start_sandbox(**kwargs):
         # search the $PATH.
         if not mysqld_path:
             mysqld_path = os.path.join(sandbox_dir, "mysqld")
-            if not os.path.isfile(mysqld_path):
+            if not os.path.isfile(tools.fs_encode(mysqld_path)):
                 if sys.platform != "darwin":
-                    _LOGGER.warning("Could not find a copy of the mysqld "
-                                    "executable in '%s'. Start operation might "
-                                    "fail if AppArmor or SELinux are blocking "
-                                    "the mysqld access to the sandbox directory.",
-                                    sandbox_dir)
+                    _LOGGER.warning(
+                        "Could not find a copy of the mysqld executable in "
+                        "'%s'. Start operation might fail if AppArmor or "
+                        "SELinux are blocking the mysqld access to the "
+                        "sandbox directory.", sandbox_dir)
                 try:
                     mysqld_path = tools.get_tool_path(
                         None, "mysqld", search_path=True, required=True,
@@ -933,8 +941,8 @@ def start_sandbox(**kwargs):
     # Checking if mysqld meets requirements
     if not tools.is_executable(mysqld_path):
         raise exceptions.GadgetError(
-            "Provided mysqld '{0}' is not a valid executable."
-            "".format(mysqld_path))
+            u"Provided mysqld '{0}' is not a valid executable."
+            u"".format(mysqld_path))
 
     mysqld_ver, version_str = server.get_mysqld_version(mysqld_path)
     if not MIN_MYSQL_VERSION <= mysqld_ver < MAX_MYSQL_VERSION:
@@ -999,8 +1007,9 @@ def start_sandbox(**kwargs):
     flags = os.O_CREAT | os.O_EXCL | os.O_RDONLY
     lock_file_path = os.path.normpath(os.path.join(sandbox_dir,
                                                    _LOCKFILE_NAME))
+    enc_lock_file_path = tools.fs_encode(lock_file_path)
     try:
-        file_handle = os.open(lock_file_path, flags)
+        file_handle = os.open(enc_lock_file_path, flags)
         os.close(file_handle)
 
         start_cmd = _START_SERVER_CMD.format(
@@ -1016,11 +1025,12 @@ def start_sandbox(**kwargs):
 
         error_log_path = os.path.normpath(
             mysql_opt_parser.get("mysqld", "log_error"))
-        if os.path.isfile(error_log_path):
+        enc_error_log_path = tools.fs_encode(error_log_path)
+        if os.path.isfile(enc_error_log_path):
             # Find out last position of error log, before starting the process
             # since the error log persists several sessions.
-            error_log_end_pos = os.path.getsize(error_log_path)
-            error_log_mtime = os.stat(error_log_path).st_mtime
+            error_log_end_pos = os.path.getsize(enc_error_log_path)
+            error_log_mtime = os.stat(enc_error_log_path).st_mtime
         else:
             # if error_log didn't exist, start reading at the beginning of the
             # file
@@ -1029,7 +1039,7 @@ def start_sandbox(**kwargs):
 
         # Fake PID to avoid the server starting the monitoring process
         if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = '0';
+            os.environ['MYSQLD_PARENT_PID'] = '0'
 
         server_proc = tools.run_subprocess(start_cmd, shell=False,
                                            close_fds=True)
@@ -1042,11 +1052,11 @@ def start_sandbox(**kwargs):
         # in case it does not exist.
         i = 0
         while i < timeout:
-            if not os.path.isfile(error_log_path):
+            if not os.path.isfile(enc_error_log_path):
                 # Wait for the log file to be created by the server.
                 time.sleep(1)
                 i += 1
-            elif os.stat(error_log_path).st_mtime > error_log_mtime:
+            elif os.stat(enc_error_log_path).st_mtime > error_log_mtime:
                 # Log file created or updated by the server and available.
                 break
             else:
@@ -1055,12 +1065,12 @@ def start_sandbox(**kwargs):
                 i += 1
         else:
             raise exceptions.GadgetError(
-                "Timeout waiting for the MySQL log error file to be "
-                "available: '{0}'. Please check configuration for 'log_error' "
-                "in '{1}' file and that the log file is accessible."
-                "".format(error_log_path, optf_path))
+                u"Timeout waiting for the MySQL log error file to be "
+                u"available: '{0}'. Please check configuration for "
+                u"'log_error' in '{1}' file and that the log file is "
+                u"accessible.".format(error_log_path, optf_path))
 
-        with open(error_log_path, 'r') as f:
+        with open(enc_error_log_path, 'r') as f:
             # jump to current session position
             f.seek(error_log_end_pos)
             # Check that server has started correctly:
@@ -1094,8 +1104,8 @@ def start_sandbox(**kwargs):
                     # critical error, server won't start but will shutdown
                     # on its own.
                     raise exceptions.GadgetError(
-                        "Unable to start server on port '{0}'. For more "
-                        "information, check error log '{1}'".format(
+                        u"Unable to start server on port '{0}'. For more "
+                        u"information, check error log '{1}'".format(
                             port, error_log_path))
 
                 if "[ERROR]" in line:
@@ -1117,10 +1127,10 @@ def start_sandbox(**kwargs):
                 else:
                     # server was successfully terminated
                     raise exceptions.GadgetError(
-                        "Timeout waiting for sandbox mysqld process with "
-                        "pid '{0}' to start. For more information, check "
-                        "error log '{1}'.".format(server_proc.pid,
-                                                  error_log_path))
+                        u"Timeout waiting for sandbox mysqld process with "
+                        u"pid '{0}' to start. For more information, check "
+                        u"error log '{1}'.".format(server_proc.pid,
+                                                   error_log_path))
 
         _LOGGER.info("MySQL sandbox running on port '%i' with process ID: "
                      "'%i'", port, server_proc.pid)
@@ -1134,8 +1144,8 @@ def start_sandbox(**kwargs):
                 str(err)))
     finally:
         try:
-            _LOGGER.debug("Removing lock file '%s'", lock_file_path)
-            os.remove(lock_file_path)
+            _LOGGER.debug(u"Removing lock file '%s'", lock_file_path)
+            os.remove(enc_lock_file_path)
             _LOGGER.debug("Lock file removed")
         except OSError as err:
             if err.errno == errno.ENOENT:
@@ -1143,8 +1153,8 @@ def start_sandbox(**kwargs):
                 pass
             else:
                 raise exceptions.GadgetError(
-                    "Unable to remove lock file '{0}': {1}".format(
-                        lock_file_path, str(err)))
+                    u"Unable to remove lock file '{0}': {1}".format(
+                        lock_file_path, unicode(err)))
 
 
 def stop_sandbox(**kwargs):
@@ -1176,12 +1186,13 @@ def stop_sandbox(**kwargs):
     # pylint: disable=E1101
     _LOGGER.step("Stopping MySQL sandbox on '%s'.", sandbox_dir)
     # if a pid file still exists
-    if os.path.exists(pidf_path):
+    enc_pidf_path = tools.fs_encode(pidf_path)
+    if os.path.exists(enc_pidf_path):
         _LOGGER.debug("Found pid file '%s'", pidf_path)
         # and a server listening on the port we specified
         if tools.is_listening("localhost", port):
             _LOGGER.debug("Found server listening on port '%i'", port)
-            with open(pidf_path) as f:
+            with open(enc_pidf_path) as f:
                 pid = int(f.readline().strip())
                 _LOGGER.debug("Got pid '%i' from pid file '%s'", pid,
                               pidf_path)
@@ -1231,7 +1242,14 @@ def stop_sandbox(**kwargs):
             # remove pid file
             try:
                 _LOGGER.debug("Removing pid file '%s'", pidf_path)
-                os.unlink(pidf_path)
+                # On Windows os.unlink() issues an error if the encoded PID
+                # file path is used (despite actually removing the file). Not
+                # using the encoded PID file path works on Windows and avoids
+                # this problem.
+                if os.name == "nt":
+                    os.unlink(pidf_path)
+                else:
+                    os.unlink(enc_pidf_path)
             except OSError as err:
                 _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
         else:
@@ -1240,7 +1258,14 @@ def stop_sandbox(**kwargs):
             _LOGGER.warning("There is no MySQL sandbox listening on port %i, "
                             "but a pid file was still found. Removing it.")
             try:
-                os.unlink(pidf_path)
+                # On Windows os.unlink() issues an error if the encoded PID
+                # file path is used (despite actually removing the file). Not
+                # using the encoded PID file path works on Windows and avoids
+                # this problem.
+                if os.name == "nt":
+                    os.unlink(pidf_path)
+                else:
+                    os.unlink(enc_pidf_path)
             except OSError as err:
                 _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
     else:
@@ -1269,18 +1294,19 @@ def kill_sandbox(**kwargs):
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
     # pif file path
     pidf_path = os.path.join(sandbox_dir, "{0}.pid".format(port))
+    enc_pidf_path = tools.fs_encode(pidf_path)
 
     # Check if the pid file exists and if the port on which it is running is
     # still listening, meaning the sandbox is running.
     # pylint: disable=E1101
     _LOGGER.step("Killing MySQL sandbox on '%s'.", sandbox_dir)
     # if a pid file still exists
-    if os.path.exists(pidf_path):
+    if os.path.exists(enc_pidf_path):
         _LOGGER.debug("Found pid file '%s'", pidf_path)
         # and a server listening on the port we specified
         if tools.is_listening("localhost", port):
             _LOGGER.debug("Found server listening on port '%i'", port)
-            with open(pidf_path) as f:
+            with open(enc_pidf_path) as f:
                 pid = int(f.readline().strip())
                 _LOGGER.debug("Got pid '%i' from pid file '%s'", pid,
                               pidf_path)
@@ -1290,7 +1316,7 @@ def kill_sandbox(**kwargs):
             # remove pid file
             try:
                 _LOGGER.debug("Removing pid file '%s'", pidf_path)
-                os.unlink(pidf_path)
+                os.unlink(enc_pidf_path)
             except OSError as err:
                 _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
         else:
@@ -1299,7 +1325,7 @@ def kill_sandbox(**kwargs):
             _LOGGER.warning("There is no MySQL sandbox listening on port %i, "
                             "but a pid file was still found. Removing it.")
             try:
-                os.unlink(pidf_path)
+                os.unlink(enc_pidf_path)
             except OSError as err:
                 _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
     else:
@@ -1357,7 +1383,7 @@ def delete_sandbox(**kwargs):
     # pylint: disable=E1101
     _LOGGER.step("Deleting MySQL sandbox on '%s'.", sandbox_dir)
     # if a pid file still exists
-    if os.path.exists(pidf_path):
+    if os.path.exists(tools.fs_encode(pidf_path)):
         _LOGGER.debug("Found pid file '%s'", pidf_path)
         # and a server listening on the port we specified, we cannot destroy it
         if tools.is_listening("localhost", port):
@@ -1388,14 +1414,15 @@ def delete_sandbox(**kwargs):
             else:
                 # Failed to successfully remove the sandbox folder.
                 raise exceptions.GadgetError(
-                    "Unable to delete MySQL sandbox folder '{0}': '{1}'"
-                    "".format(sandbox_dir, str(err)))
+                    u"Unable to delete MySQL sandbox folder '{0}': '{1}'"
+                    u"".format(sandbox_dir, unicode(err)))
 
     else:
         # no pid file was found so we can safely delete
         try:
-            shutil.rmtree(sandbox_dir, onerror=on_delete_sandbox_error)
+            shutil.rmtree(tools.fs_encode(sandbox_dir),
+                          onerror=on_delete_sandbox_error)
         except Exception as err:
             raise exceptions.GadgetError(
-                "Unable to delete MySQL sandbox folder '{0}': '{1}'"
-                "".format(sandbox_dir, str(err)))
+                u"Unable to delete MySQL sandbox folder '{0}': '{1}'"
+                u"".format(sandbox_dir, unicode(err)), cause=err)
