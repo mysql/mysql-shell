@@ -21,3 +21,15 @@ dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 
 
 //@ Delete sandbox in dir with long path
 try_delete_sandbox(__mysql_sandbox_port1, test_dir);
+
+// BUG27181177: dba commands fail if user name has non-standard characters
+//@ Deploy sandbox in dir with non-ascii characters.
+dba.verbose = 2;
+var test_dir = __sandbox_dir + __path_splitter + "no_café_para_los_niños";
+dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 'root'});
+
+//@ Stop sandbox in dir with non-ascii characters.
+dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 'root'});
+
+//@ Delete sandbox in dir with non-ascii characters.
+try_delete_sandbox(__mysql_sandbox_port1, test_dir);

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -276,11 +276,11 @@ def is_executable(exec_path):
     :rtype: bool
     """
     _LOGGER.debug("Checking if file '%s' is executable.", exec_path)
-    is_file = os.path.isfile(exec_path)
+    is_file = os.path.isfile(fs_encode(exec_path))
     if not is_file:
         _LOGGER.debug("File '%s' could not be found.", exec_path)
         return False
-    elif os.access(exec_path, os.X_OK):
+    elif os.access(fs_encode(exec_path), os.X_OK):
         _LOGGER.debug("File '%s' exists and is executable.", exec_path)
         return True
     else:
@@ -306,9 +306,11 @@ def run_subprocess(cmd_str, **kwargs):
     _LOGGER.debug("Spawning subprocess with command '%s'", cmd_str)
     if os.name == "nt":
         # on windows we can use the string directly
-        cmd_list = cmd_str
+        cmd_list = cmd_str.encode('mbcs')
     else:
-        cmd_list = shlex.split(cmd_str)
+        # shlex.split() does not fully support UTF-8.
+        cmd_list = map(
+            lambda s: s, shlex.split(cmd_str.encode('utf-8')))
     proc = subprocess.Popen(cmd_list, **kwargs)
     return proc
 
@@ -371,4 +373,46 @@ def shell_quote(param):
     if os.name == "posix":
         return quote(param)
     else:
-        return "{0}{1}{0}".format(QUOTE_CHAR, param)
+        return u"{0}{1}{0}".format(QUOTE_CHAR, param)
+
+
+def fs_encode(value):
+    """ Encode the value according to the file system default codec.
+
+    This function is used to encode non-ascii strings (e.g., paths) correctly,
+    according to the default system codec. By default, on non-windows
+    platforms 'utf-8' is used (supported), and on Windows 'mbcs' (ANSI) is
+    used. Not using the right codec will result in incorrect characters,
+    and failure of file system operations for paths with non-ascii characters.
+
+    NOTE: On non-windows platforms, even if locale are not set (LC_CTYPE),
+          'utf-8' can be used since it is expected to be supported, otherwise
+          an UnicodeEncodeError will be raised. For this reason,
+          sys.getfilesystemencoding() is not used to automatically get the
+          encoding, "forcing" the use of the expected supported codec
+          independently of the current locale settings.
+
+    :param value: value (non-ascii) to encode.
+    :return: encoded value according to the default system codec.
+    """
+    if os.name == "nt":
+        return value.encode('mbcs')
+    else:
+        return value.encode('utf-8')
+
+
+def fs_decode(value):
+    """ Decode the value according to the file system default codec.
+
+    This function is used to decode non-ascii strings correctly,
+    according to the default system codec. By default, on non-windows
+    platforms 'utf-8' is used (supported), and on Windows 'mbcs' (ANSI) is
+    used. Not using the right codec will result in incorrect characters.
+
+    :param value: value (non-ascii) to decode.
+    :return: decoded value according to the default system codec.
+    """
+    if os.name == "nt":
+        return value.decode('mbcs')
+    else:
+        return value.decode('utf-8')

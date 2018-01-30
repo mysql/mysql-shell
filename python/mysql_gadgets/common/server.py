@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -90,7 +90,7 @@ def get_mysqld_version(mysqld_path):
     :return: tuple with with major, minor and release number and version string
     :rtype tuple((int, int, int), str)
     """
-    cmd = "{0} --version".format(shell_quote(mysqld_path))
+    cmd = u"{0} --version".format(shell_quote(mysqld_path))
     version_proc = run_subprocess(cmd,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE, shell=False,

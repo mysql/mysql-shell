@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -83,7 +83,8 @@ class CustomLevelLogger(logging.getLoggerClass()):
                                  "{0}".format(kwargs))
         if self.isEnabledFor(STEP_LOG_LEVEL_VALUE):
             sys.stdout.write(
-                "%s\n" % {"type": "STEP", "msg": (msg % args).encode('utf8')})
+                u"%s\n" % {"type": "STEP",
+                           "msg": (msg % args).encode('utf-8')})
         shell.log("INFO", "mysqlprovision: " + msg % args)
 
     def debug(self, msg, *args, **kwargs):
@@ -94,7 +95,8 @@ class CustomLevelLogger(logging.getLoggerClass()):
                                  "{0}".format(kwargs))
         if self.isEnabledFor(logging.DEBUG):
             sys.stdout.write(
-                "%s\n" % {"type": "DEBUG", "msg": (msg % args).encode('utf8')})
+                u"%s\n" % {"type": "DEBUG",
+                           "msg": (msg % args).encode('utf-8')})
         shell.log("DEBUG", "mysqlprovision: " + msg % args)
 
     def info(self, msg, *args, **kwargs):
@@ -105,7 +107,8 @@ class CustomLevelLogger(logging.getLoggerClass()):
                                  "{0}".format(kwargs))
         if self.isEnabledFor(logging.INFO):
             sys.stdout.write(
-                "%s\n" % {"type": "INFO", "msg": (msg % args).encode('utf8')})
+                u"%s\n" % {"type": "INFO",
+                           "msg": (msg % args).encode('utf-8')})
         shell.log("INFO", "mysqlprovision: " + msg % args)
 
     def warning(self, msg, *args, **kwargs):
@@ -116,8 +119,8 @@ class CustomLevelLogger(logging.getLoggerClass()):
                                  "{0}".format(kwargs))
         if self.isEnabledFor(logging.WARNING):
             sys.stdout.write(
-                "%s\n" % {"type": "WARNING",
-                          "msg": (msg % args).encode('utf8')})
+                u"%s\n" % {"type": "WARNING",
+                           "msg": (msg % args).encode('utf-8')})
         shell.log("WARNING", "mysqlprovision: " + msg % args)
 
     def error(self, msg, *args, **kwargs):
@@ -128,7 +131,8 @@ class CustomLevelLogger(logging.getLoggerClass()):
                                  "{0}".format(kwargs))
         if self.isEnabledFor(logging.ERROR):
             sys.stderr.write(
-                "%s\n" % {"type": "ERROR", "msg": (msg % args).encode('utf8')})
+                u"%s\n" % {"type": "ERROR",
+                           "msg": (msg % args).encode('utf-8')})
         shell.log("ERROR", "mysqlprovision: " + msg % args)
 
     def critical(self, msg, *args, **kwargs):
@@ -139,7 +143,8 @@ class CustomLevelLogger(logging.getLoggerClass()):
                                  "{0}".format(kwargs))
         if self.isEnabledFor(logging.CRITICAL):
             sys.stderr.write(
-                "%s\n" % {"type": "ERROR", "msg": (msg % args).encode('utf8')})
+                u"%s\n" % {"type": "ERROR",
+                           "msg": (msg % args).encode('utf-8')})
         shell.log("ERROR", "mysqlprovision: " + msg % args)
 
     def log(self, level, msg, *args, **kwargs):
@@ -154,10 +159,10 @@ class CustomLevelLogger(logging.getLoggerClass()):
         if self.isEnabledFor(level):
             if level >= logging.ERROR:
                 sys.stderr.write(
-                    "%s\n" % {"type": levelname,
-                              "msg": (msg % args).encode('utf8')})
+                    u"%s\n" % {"type": levelname,
+                               "msg": (msg % args).encode('utf-8')})
             else:
                 sys.stdout.write(
-                    "%s\n" % {"type": levelname,
-                              "msg": (msg % args).encode('utf8')})
+                    u"%s\n" % {"type": levelname,
+                               "msg": (msg % args).encode('utf-8')})
         shell.log(levelname, "mysqlprovision: " + msg % args)
