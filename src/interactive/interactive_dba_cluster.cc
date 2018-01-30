@@ -38,6 +38,7 @@
 
 using namespace std::placeholders;
 using namespace shcore;
+using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
 void Interactive_dba_cluster::init() {
   add_method("addInstance",
@@ -261,7 +262,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
   ret_val = call_target("rejoinInstance", new_args);
 
   println("The instance '" +
-    instance_def.as_uri(user_transport()) + ""
+    instance_def.as_uri(only_transport()) + ""
     "' was successfully rejoined on the cluster.");
   println();
 

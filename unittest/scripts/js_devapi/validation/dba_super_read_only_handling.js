@@ -69,9 +69,7 @@ the instance cannot rejoin.
 
 Rejoining instance to the cluster ...
 
-The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
-
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the MySQL Cluster.
+The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
 
 //@ Stop sandbox 1
 ||
