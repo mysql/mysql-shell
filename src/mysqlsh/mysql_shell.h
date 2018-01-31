@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,7 +67,7 @@ class Mysql_shell : public mysqlsh::Base_shell,
   bool cmd_rehash(const std::vector<std::string>& args);
   virtual bool cmd_process_file(const std::vector<std::string>& params);
 
-  virtual void process_line(const std::string& line);
+  void process_line(const std::string& line) override;
   bool reconnect_if_needed(bool force = false);
 
   static bool sql_safe_for_logging(const std::string &sql);
