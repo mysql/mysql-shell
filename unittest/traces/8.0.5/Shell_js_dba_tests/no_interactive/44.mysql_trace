@@ -142,10 +142,6 @@
     ],
     "rows": [
         [
-            "SELECT",
-            "YES"
-        ],
-        [
             "RELOAD",
             "YES"
         ],
@@ -251,44 +247,14 @@
             "mysql"
         ],
         [
-            "UPDATE",
+            "SELECT",
             "YES",
             "mysql"
         ],
         [
-            "CREATE VIEW",
+            "UPDATE",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "EVENT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "INSERT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "DELETE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "DROP",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "INDEX",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "CREATE TEMPORARY TABLES",
@@ -344,6 +310,46 @@
             "LOCK TABLES",
             "YES",
             "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "EVENT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "INSERT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "DELETE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "DROP",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "INDEX",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "sys"
         ]
     ]
 },
@@ -427,6 +433,61 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_coordinator"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_worker"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_members"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_member_stats"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "threads"
+        ]
+    ]
 },
 null]

@@ -605,9 +605,7 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
   validate_interactive("dba_cluster_misconfigurations.js");
 
   std::vector<std::string> log = {
-    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
-    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
-      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
+      "DBA: ca@localhost:" + std::to_string(_mysql_sandbox_port1) +
           " : Server variable binlog_checksum was changed from 'CRC32' to "
           "'NONE'"};
 

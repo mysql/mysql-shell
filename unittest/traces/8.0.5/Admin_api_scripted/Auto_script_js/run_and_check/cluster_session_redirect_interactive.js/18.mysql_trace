@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "7c5da773-115a-11e8-ad5c-080027c42733",
-            "7abfeeb2-115a-11e8-8a91-080027c42733"
+            "66a7a043-116e-11e8-97fd-080027c42733",
+            "647c53c7-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7c5da773-115a-11e8-ad5c-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '66a7a043-116e-11e8-97fd-080027c42733'"
 },
 {
     "type": "response",
@@ -469,7 +469,7 @@
         [
             "default",
             "pm",
-            "800a2aaa-115a-11e8-8a91-080027c42733"
+            "6af3a29b-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -507,7 +507,7 @@
     ],
     "rows": [
         [
-            "800a2aaa-115a-11e8-8a91-080027c42733"
+            "6af3a29b-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -637,8 +637,8 @@
     ],
     "rows": [
         [
-            "7c5da773-115a-11e8-ad5c-080027c42733",
-            "7abfeeb2-115a-11e8-8a91-080027c42733"
+            "66a7a043-116e-11e8-97fd-080027c42733",
+            "647c53c7-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -646,7 +646,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7c5da773-115a-11e8-ad5c-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '66a7a043-116e-11e8-97fd-080027c42733'"
 },
 {
     "type": "response",
@@ -861,8 +861,8 @@
     ],
     "rows": [
         [
-            "7c5da773-115a-11e8-ad5c-080027c42733",
-            "7abfeeb2-115a-11e8-8a91-080027c42733"
+            "66a7a043-116e-11e8-97fd-080027c42733",
+            "647c53c7-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -870,7 +870,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7c5da773-115a-11e8-ad5c-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '66a7a043-116e-11e8-97fd-080027c42733'"
 },
 {
     "type": "response",
@@ -1085,8 +1085,8 @@
     ],
     "rows": [
         [
-            "7c5da773-115a-11e8-ad5c-080027c42733",
-            "7abfeeb2-115a-11e8-8a91-080027c42733"
+            "66a7a043-116e-11e8-97fd-080027c42733",
+            "647c53c7-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -1094,7 +1094,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7c5da773-115a-11e8-ad5c-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '66a7a043-116e-11e8-97fd-080027c42733'"
 },
 {
     "type": "response",
@@ -1309,8 +1309,8 @@
     ],
     "rows": [
         [
-            "7c5da773-115a-11e8-ad5c-080027c42733",
-            "7abfeeb2-115a-11e8-8a91-080027c42733"
+            "66a7a043-116e-11e8-97fd-080027c42733",
+            "647c53c7-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -1318,7 +1318,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7c5da773-115a-11e8-ad5c-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '66a7a043-116e-11e8-97fd-080027c42733'"
 },
 {
     "type": "response",
@@ -1496,7 +1496,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "7abfeeb2-115a-11e8-8a91-080027c42733"
+            "647c53c7-116e-11e8-acd9-080027c42733"
         ]
     ]
 },
@@ -1636,14 +1636,14 @@
     ],
     "rows": [
         [
-            "7abfeeb2-115a-11e8-8a91-080027c42733",
+            "647c53c7-116e-11e8-acd9-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "7c5da773-115a-11e8-ad5c-080027c42733",
+            "66a7a043-116e-11e8-97fd-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",

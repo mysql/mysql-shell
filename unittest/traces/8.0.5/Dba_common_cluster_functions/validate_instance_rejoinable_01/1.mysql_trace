@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '52d7dab3-0fef-11e8-8773-080027c42733', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
+    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '261a7dbb-116d-11e8-9582-080027c42733', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
 },
 {
     "type": "response",
@@ -65,10 +65,10 @@
     ],
     "rows": [
         [
-            "4e25734d-0fef-11e8-9334-080027c42733"
+            "21303cdd-116d-11e8-9ffd-080027c42733"
         ],
         [
-            "5032ee92-0fef-11e8-bc6f-080027c42733"
+            "2301cf5e-116d-11e8-8ad9-080027c42733"
         ]
     ]
 },
@@ -106,13 +106,13 @@
     ],
     "rows": [
         [
-            "4e25734d-0fef-11e8-9334-080027c42733"
+            "21303cdd-116d-11e8-9ffd-080027c42733"
         ],
         [
-            "5032ee92-0fef-11e8-bc6f-080027c42733"
+            "2301cf5e-116d-11e8-8ad9-080027c42733"
         ],
         [
-            "52d7dab3-0fef-11e8-8773-080027c42733"
+            "261a7dbb-116d-11e8-9582-080027c42733"
         ]
     ]
 },
@@ -120,7 +120,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '52d7dab3-0fef-11e8-8773-080027c42733'"
+    "sql": "SELECT mysql_server_uuid, instance_name, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '261a7dbb-116d-11e8-9582-080027c42733'"
 },
 {
     "type": "response",
@@ -182,7 +182,7 @@
     ],
     "rows": [
         [
-            "52d7dab3-0fef-11e8-8773-080027c42733",
+            "261a7dbb-116d-11e8-9582-080027c42733",
             "localhost:3336",
             "localhost:3336"
         ]
@@ -192,7 +192,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '52d7dab3-0fef-11e8-8773-080027c42733'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '261a7dbb-116d-11e8-9582-080027c42733'"
 },
 {
     "type": "response",

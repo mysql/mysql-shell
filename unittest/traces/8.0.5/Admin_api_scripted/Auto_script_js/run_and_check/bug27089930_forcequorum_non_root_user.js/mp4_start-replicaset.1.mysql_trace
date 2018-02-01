@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$ILK{yB%<R\u001E\u0018-n\b@\u0004u*lFIohZhFmuyx1R32SN0OXb.C.pnXJPNpPVM7GCoBW40k5",
+            "$A$005$\u001B~afSMe5U-n\u0015\u0010&;^\u001B~\u001CgQvY4xT1Zm1xoSMGG8Cz8eCTW2QFwDf/1wcCZnWDDvh7",
             "N",
-            "2018-02-14 08:39:28",
+            "2018-02-14 11:00:00",
             null,
             "N",
             "N",
@@ -2512,7 +2512,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN information_schema.columns c     ON t.table_schema = c.table_schema         AND t.table_name = c.table_name WHERE t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') GROUP BY t.table_schema, t.table_name HAVING sum(if(c.column_key='PRI', 1, 0)) = 0"
+    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
@@ -2525,7 +2525,7 @@
     "columns": [
         {
             "schema": "mysql",
-            "table_name": "schemata",
+            "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
@@ -2541,7 +2541,7 @@
         },
         {
             "schema": "mysql",
-            "table_name": "tables",
+            "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
@@ -3126,7 +3126,7 @@
     ],
     "rows": [
         [
-            "301a94a1-115a-11e8-9f09-080027c42733"
+            "d1bf6f25-116d-11e8-8a09-080027c42733"
         ]
     ]
 },
@@ -3254,7 +3254,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "SET GLOBAL group_replication_group_name = '301a94a1-115a-11e8-9f09-080027c42733'"
+    "sql": "SET GLOBAL group_replication_group_name = 'd1bf6f25-116d-11e8-8a09-080027c42733'"
 },
 {
     "type": "response",
@@ -3794,7 +3794,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 149,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '{&C#@E|<2$k/6u{[o.E$^g+*:<R5^,^#' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ ')}3f6c(;3)<-_+?X=z&j=&}<#-Y<~}H#' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

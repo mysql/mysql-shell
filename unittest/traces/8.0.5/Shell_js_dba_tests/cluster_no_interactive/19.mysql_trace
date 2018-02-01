@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "bbcce934-0fe8-11e8-bde6-080027c42733"
+            "ff4bb7e4-1165-11e8-8641-080027c42733"
         ]
     ]
 },
@@ -153,7 +153,7 @@
     ],
     "rows": [
         [
-            "bbcce934-0fe8-11e8-bde6-080027c42733",
+            "ff4bb7e4-1165-11e8-8641-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326"

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "29",
+    "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
@@ -153,10 +153,10 @@
     "rows": [
         [
             "vm-ubuntu-bin.000003",
-            20184,
+            20071,
             "",
             "",
-            "0270e00b-0feb-11e8-804a-080027c42733:1-14,\n060883bf-0feb-11e8-b3cf-080027c42733:1-6,\n06fcbdd8-0feb-11e8-804a-080027c42733:1-13:1000009-1000014"
+            "35baac45-1168-11e8-ba1c-080027c42733:1-14,\n39b26262-1168-11e8-9494-080027c42733:1-6,\n3a7a3aa1-1168-11e8-ba1c-080027c42733:1-13:1000009-1000014"
         ]
     ]
 },

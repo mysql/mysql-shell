@@ -142,7 +142,7 @@
     ],
     "rows": [
         [
-            "6a854e3d-0ff0-11e8-802b-080027c42733",
+            "2c05a271-116e-11e8-86bc-080027c42733",
             ""
         ]
     ]
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6a854e3d-0ff0-11e8-802b-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2c05a271-116e-11e8-86bc-080027c42733'"
 },
 {
     "type": "response",
@@ -469,7 +469,7 @@
         [
             "default",
             "mm",
-            "6e447daa-0ff0-11e8-b73a-080027c42733"
+            "2f9bcced-116e-11e8-952f-080027c42733"
         ]
     ]
 },
@@ -507,7 +507,7 @@
     ],
     "rows": [
         [
-            "6e447daa-0ff0-11e8-b73a-080027c42733"
+            "2f9bcced-116e-11e8-952f-080027c42733"
         ]
     ]
 },
@@ -637,7 +637,7 @@
     ],
     "rows": [
         [
-            "6a854e3d-0ff0-11e8-802b-080027c42733",
+            "2c05a271-116e-11e8-86bc-080027c42733",
             ""
         ]
     ]
@@ -646,7 +646,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6a854e3d-0ff0-11e8-802b-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2c05a271-116e-11e8-86bc-080027c42733'"
 },
 {
     "type": "response",
@@ -909,14 +909,14 @@
     ],
     "rows": [
         [
-            "68205edd-0ff0-11e8-b73a-080027c42733",
+            "298637a7-116e-11e8-952f-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "6a854e3d-0ff0-11e8-802b-080027c42733",
+            "2c05a271-116e-11e8-86bc-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",

@@ -129,13 +129,13 @@ Validating instance...
 |Number of accounts: 1|
 
 //@ Dba: configureLocalInstance not enough privileges 1
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
 
 //@ Dba: configureLocalInstance not enough privileges 2
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
 
 //@ Dba: configureLocalInstance not enough privileges 3
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -206,7 +206,7 @@ You can now use it in an InnoDB Cluster.
 |Number of 'mydba'@'localhost' accounts: 0|
 
 //@ Check if all missing privileges are reported for user with no privileges
-|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER. Missing privileges on schema 'mysql': DELETE, INSERT, UPDATE. Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE.|
+|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER. Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE. Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE. Missing privileges on schema 'sys': SELECT. Missing privileges on table 'performance_schema.replication_applier_configuration': SELECT. Missing privileges on table 'performance_schema.replication_applier_status': SELECT. Missing privileges on table 'performance_schema.replication_applier_status_by_coordinator': SELECT. Missing privileges on table 'performance_schema.replication_applier_status_by_worker': SELECT. Missing privileges on table 'performance_schema.replication_connection_configuration': SELECT. Missing privileges on table 'performance_schema.replication_connection_status': SELECT. Missing privileges on table 'performance_schema.replication_group_member_stats': SELECT. Missing privileges on table 'performance_schema.replication_group_members': SELECT. Missing privileges on table 'performance_schema.threads': SELECT.|
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string

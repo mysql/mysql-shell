@@ -17,7 +17,7 @@ disabled_storage_engines = BLACKHOLE,FEDERATED,ARCHIVE
 binlog_checksum = NONE
 gtid_mode = ON
 mysqlx_cache_cleaner = ON
-auto_increment_offset = 2
+auto_increment_offset = 1
 basedir = /opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.5/usr
 log_bin
 loose_mysqlx_socket = mysqlx.sock

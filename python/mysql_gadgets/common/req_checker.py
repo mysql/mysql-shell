@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -646,13 +646,18 @@ class RequirementChecker(object):
         compliance_qry = (
             "SELECT t.table_schema, t.table_name "
             "FROM information_schema.tables t "
-            "    LEFT JOIN information_schema.columns c "
-            "    ON t.table_schema = c.table_schema "
-            "        AND t.table_name = c.table_name "
-            "WHERE t.table_type = 'BASE TABLE' "
-            "    AND t.table_schema NOT IN {0} "
-            "GROUP BY t.table_schema, t.table_name "
-            "HAVING sum(if(c.column_key='PRI', 1, 0)) = 0"
+            "    LEFT JOIN (SELECT table_schema, table_name "
+            "               FROM information_schema.statistics "
+            "               GROUP BY table_schema, table_name, index_name "
+            "               HAVING SUM(CASE "
+            "                   WHEN non_unique = 0 AND nullable != 'YES' "
+            "                   THEN 1 ELSE 0 END) = COUNT(*) "
+            "              ) puks "
+            "    ON t.table_schema = puks.table_schema "
+            "        AND t.table_name = puks.table_name "
+            "WHERE puks.table_name IS NULL "
+            "    AND t.table_type = 'BASE TABLE' "
+            "    AND t.table_schema NOT IN {0}"
             "".format(GR_COMPLIANCE_SKIP_SCHEMAS)
         )
         res = server.exec_query(compliance_qry)

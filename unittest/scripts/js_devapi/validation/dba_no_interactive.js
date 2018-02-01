@@ -162,7 +162,7 @@
 |Number of accounts: 1|
 
 //@ Dba: configureLocalInstance not enough privileges
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing global privilege: SELECT. For more information, see the online documentation.
+||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|

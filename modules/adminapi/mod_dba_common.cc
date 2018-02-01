@@ -496,6 +496,7 @@ std::pair<int, int> find_cluster_admin_accounts(
   return std::make_pair(w, nw);
 }
 
+namespace {
 
 /*
  * Validate if the user specified for being the cluster admin has all of the
@@ -509,7 +510,7 @@ std::pair<int, int> find_cluster_admin_accounts(
 const std::set<std::string> k_global_privileges{
   "RELOAD", "SHUTDOWN", "PROCESS", "FILE",
   "SUPER", "REPLICATION SLAVE", "REPLICATION CLIENT",
-  "CREATE USER", "SELECT"
+  "CREATE USER"
 };
 
 // Schema privileges needed on the metadata schema
@@ -518,21 +519,47 @@ const std::set<std::string> k_metadata_schema_privileges{
   "CREATE ROUTINE", "CREATE TEMPORARY TABLES",
   "CREATE VIEW", "DELETE", "DROP",
   "EVENT", "EXECUTE", "INDEX", "INSERT", "LOCK TABLES",
-  "REFERENCES", "SHOW VIEW", "TRIGGER", "UPDATE"
+  "REFERENCES", "SELECT", "SHOW VIEW", "TRIGGER", "UPDATE"
 };
 
 // Schema privileges needed on the mysql schema
 const std::set<std::string> k_mysql_schema_privileges{
-  "INSERT", "UPDATE", "DELETE"
+  "SELECT", "INSERT", "UPDATE", "DELETE"
 };
 
 // list of (schema, [privilege]) pairs, with the required privileges on each
 // schema
 const std::map<std::string, std::set<std::string>> k_schema_grants {
   {"mysql_innodb_cluster_metadata", k_metadata_schema_privileges},
+  {"sys", {"SELECT"}},
   {"mysql", k_mysql_schema_privileges }  // need for mysql.plugin,
                                          // mysql.user others
 };
+
+// List of (schema, (table, [privilege])) triples, with the required privileges
+// on each schema.table.
+// Our code uses some additional performance_schema system variable tables
+// (global_status, session_status, variables_info), but they do not require a
+// specific privilege (enabled by default).
+// See: https://dev.mysql.com/doc/refman/8.0/en/performance-schema-system-variable-tables.html
+const std::map<std::string, std::map<std::string, std::set<std::string>>>
+    k_table_grants {
+  {
+    "performance_schema", {
+      {"replication_applier_configuration", {"SELECT"}},
+      {"replication_applier_status", {"SELECT"}},
+      {"replication_applier_status_by_coordinator", {"SELECT"}},
+      {"replication_applier_status_by_worker", {"SELECT"}},
+      {"replication_connection_configuration", {"SELECT"}},
+      {"replication_connection_status", {"SELECT"}},
+      {"replication_group_member_stats", {"SELECT"}},
+      {"replication_group_members", {"SELECT"}},
+      {"threads", {"SELECT"}},  // used in code
+    }
+  }
+};
+
+}  // namespace
 
 /** Check that the provided account has privileges to manage a cluster.
  */
@@ -580,16 +607,53 @@ bool validate_cluster_admin_user_privileges(
     }
   }
 
+  for (const auto &schema_grants : k_table_grants) {
+    for (const auto &table_grants : schema_grants.second) {
+      auto table = user_privileges.validate(table_grants.second,
+                                            schema_grants.first,
+                                            table_grants.first);
+
+      if (table.has_missing_privileges()) {
+        append_error_message("privileges on table '" + schema_grants.first +
+                             "." + table_grants.first + "'",
+                             table.get_missing_privileges());
+      }
+    }
+  }
+
   return is_valid;
 }
 
-static const char *k_admin_user_grants[] = {
-  "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, "
-  "REPLICATION CLIENT, CREATE USER ON *.*",
-  "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.*",
-  "GRANT SELECT ON *.*",
-  "GRANT INSERT, UPDATE, DELETE ON mysql.*"
-};
+namespace {
+
+std::string create_grant(const std::string &username,
+                         const std::set<std::string> &privileges,
+                         const std::string &schema = "*",
+                         const std::string &object = "*") {
+  return "GRANT " + shcore::str_join(privileges, ", ") + " ON " + schema +
+         "." + object + " TO " + username + " WITH GRANT OPTION";
+}
+
+std::vector<std::string> create_grants(const std::string &username) {
+  std::vector<std::string> grants;
+
+  // global privileges
+  grants.emplace_back(create_grant(username, k_global_privileges));
+
+  // privileges for schemas
+  for (const auto &schema : k_schema_grants)
+    grants.emplace_back(create_grant(username, schema.second, schema.first));
+
+  // privileges for tables
+  for (const auto &schema : k_table_grants)
+    for (const auto &table : schema.second)
+      grants.emplace_back(create_grant(username, table.second, schema.first,
+                                       table.first));
+
+  return grants;
+}
+
+}  // namespace
 
 void create_cluster_admin_user(
     std::shared_ptr<mysqlshdk::db::ISession> session,
@@ -598,49 +662,28 @@ void create_cluster_admin_user(
   shcore::split_account(username, nullptr, nullptr);
 #endif
 
-  shcore::sqlstring query;
-  // we need to check if the provided account has the privileges to
-  // create the new account
-  auto connection_options = session->get_connection_options();
-  std::string user, host;
-  if (connection_options.has_user())
-    user = connection_options.get_user();
-  if (connection_options.has_host())
-    host = connection_options.get_host();
-  {
-    std::string validation_error;
+  // We're not checking if the current user has enough privileges to create a
+  // cluster admin here, because such check should be performed before calling
+  // this function.
+  // If the current user doesn't have the right privileges to create a cluster
+  // admin, one of the SQL statements below will throw.
 
-    if (!mysqlsh::dba::validate_cluster_admin_user_privileges
-        (session, user, host, &validation_error)) {
-      log_error(
-          "Account '%s'@'%s' lacks the required privileges to create a new "
-              "user account", user.c_str(), host.c_str());
-      std::string msg;
-      msg = "Account '" + user + "'@'" + host + "' does not have all the "
-            "privileges to create an user for managing an InnoDB cluster. " +
-            validation_error;
-      throw std::runtime_error(msg);
-    }
-  }
   session->execute("SET sql_log_bin = 0");
   session->execute("START TRANSACTION");
   try {
     log_info("Creating account %s", username.c_str());
     // Create the user
     {
-      query = shcore::sqlstring(("CREATE USER " + username +
-                                 " IDENTIFIED BY ?").c_str(), 0);
+      auto query = shcore::sqlstring(("CREATE USER " + username +
+                                      " IDENTIFIED BY ?").c_str(), 0);
       query << password;
       query.done();
       session->execute(query);
     }
 
     // Give the grants
-    for (size_t i = 0; i < sizeof(k_admin_user_grants) / sizeof(char*); i++) {
-      std::string grant(k_admin_user_grants[i]);
-      grant += " TO " + username + " WITH GRANT OPTION";
+    for (const auto &grant : create_grants(username))
       session->execute(grant);
-    }
     session->execute("COMMIT");
     session->execute("SET sql_log_bin = 1");
   } catch (...) {

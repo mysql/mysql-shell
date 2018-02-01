@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "b8acbfd4-1156-11e8-aadb-080027c42733"
+            "5eebe548-1167-11e8-ab87-080027c42733"
         ]
     ]
 },
@@ -270,7 +270,7 @@
         ],
         [
             "group_replication_group_name",
-            "b8acbfd4-1156-11e8-aadb-080027c42733"
+            "5eebe548-1167-11e8-ab87-080027c42733"
         ],
         [
             "group_replication_group_seeds",
