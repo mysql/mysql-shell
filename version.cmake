@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,7 @@ ENDMACRO()
 GET_MYSQL_VERSION()
 
 SET(MYSH_BUILD_ID     "$ENV{PARENT_ID}")
+SET(MYSH_COMMIT_ID    "$ENV{PUSH_REVISION}")
 
 # On Windows, AssemblyVersion does not allow slashes. Example: 1.0.5-labs
 IF(WIN32)
