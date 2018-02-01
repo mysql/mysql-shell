@@ -536,25 +536,31 @@ int main(int argc, char **argv) {
     init_shell(shell);
 
     auto cleanup = shcore::on_leave_scope([shell]() { finalize_shell(shell); });
+    std::string version_msg;
+    version_msg.resize(1024);
 
     if (shell_options->action_print_version()) {
-      char version_msg[1024];
       if (*MYSH_BUILD_ID && shell_options->action_print_version_extra()) {
-        snprintf(version_msg, sizeof(version_msg),
+        snprintf(&version_msg[0], version_msg.size(),
                  "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
                  argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
                  LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT, MYSH_BUILD_ID);
+        version_msg.resize(strlen(&version_msg[0]));
+        if (*MYSH_COMMIT_ID) {
+          version_msg.append(" - commit_id ");
+          version_msg.append(MYSH_COMMIT_ID);
+        }
       } else {
-        snprintf(version_msg, sizeof(version_msg),
+        snprintf(&version_msg[0], version_msg.size(),
                  "%s   Ver %s for %s on %s - for MySQL %s (%s)", argv[0],
                  MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE, LIBMYSQL_VERSION,
                  MYSQL_COMPILATION_COMMENT);
+        version_msg.resize(strlen(&version_msg[0]));
       }
 #ifdef ENABLE_SESSION_RECORDING
-      shell->println(std::string(version_msg) + " + session_recorder");
-#else
-      shell->println(version_msg);
+      version_msg.append(" + session_recorder");
 #endif
+      shell->println(version_msg);
       ret_val = options.exit_code;
     } else if (shell_options->action_print_help()) {
       shell->print_cmd_line_helper();

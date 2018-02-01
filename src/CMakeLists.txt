@@ -55,6 +55,8 @@ if(WIN32)
       )
 endif()
 
+add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
+
 add_executable(mysqlsh ${mysh_SRC})
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
 fix_target_output_directory(mysqlsh "${INSTALL_BINDIR}")
