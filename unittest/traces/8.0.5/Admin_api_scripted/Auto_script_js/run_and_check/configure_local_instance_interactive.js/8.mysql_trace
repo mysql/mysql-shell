@@ -142,10 +142,6 @@
     ],
     "rows": [
         [
-            "SELECT",
-            "YES"
-        ],
-        [
             "RELOAD",
             "YES"
         ],
@@ -255,39 +251,14 @@
             "mysql"
         ],
         [
-            "UPDATE",
+            "SELECT",
             "YES",
             "mysql"
         ],
         [
-            "CREATE",
+            "UPDATE",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "REFERENCES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "ALTER",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "LOCK TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE VIEW",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "EVENT",
@@ -348,6 +319,41 @@
             "UPDATE",
             "YES",
             "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "REFERENCES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "LOCK TABLES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "sys"
         ]
     ]
 },
@@ -431,7 +437,62 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_coordinator"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_worker"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_members"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_member_stats"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "threads"
+        ]
+    ]
 },
 {
     "type": "request",

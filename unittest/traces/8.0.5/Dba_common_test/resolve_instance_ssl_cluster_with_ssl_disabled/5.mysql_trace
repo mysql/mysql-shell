@@ -450,7 +450,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'%' IDENTIFIED BY /*(*/ '[o{0I~/.e.>_*x>)5^*L9k_%@_E_&?%L' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'%' IDENTIFIED BY /*(*/ '[}c7k)=[8-/t)~^t/$?L&A%F&}.[3-[+' /*)*/ "
 },
 {
     "type": "response",
@@ -465,7 +465,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost' IDENTIFIED BY /*(*/ '[o{0I~/.e.>_*x>)5^*L9k_%@_E_&?%L' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost' IDENTIFIED BY /*(*/ '[}c7k)=[8-/t)~^t/$?L&A%F&}.[3-[+' /*)*/ "
 },
 {
     "type": "response",
@@ -780,7 +780,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, 'f01798e0-1159-11e8-9287-080027c42733', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '16972f6c-116d-11e8-ad49-080027c42733', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
@@ -825,7 +825,7 @@
     ],
     "rows": [
         [
-            "f405a672-1159-11e8-9287-080027c42733"
+            "1a57e44d-116d-11e8-ad49-080027c42733"
         ]
     ]
 },
@@ -833,7 +833,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'f405a672-1159-11e8-9287-080027c42733') WHERE replicaset_id = 1"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '1a57e44d-116d-11e8-ad49-080027c42733') WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -910,7 +910,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "f01798e0-1159-11e8-9287-080027c42733"
+            "16972f6c-116d-11e8-ad49-080027c42733"
         ]
     ]
 },

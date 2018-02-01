@@ -1,6 +1,9 @@
 //@ Initialization
 ||
 
+//@ create cluster admin
+|"status": "ok"|
+
 //@ Dba.createCluster
 ||
 

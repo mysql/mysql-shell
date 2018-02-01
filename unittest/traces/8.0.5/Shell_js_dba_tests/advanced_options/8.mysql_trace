@@ -229,10 +229,10 @@
     "rows": [
         [
             "vm-ubuntu-bin.000003",
-            12811,
+            12735,
             "",
             "",
-            "04c8dce5-1158-11e8-bf88-080027c42733:1-22"
+            "15e24e69-116b-11e8-911a-080027c42733:1-22"
         ]
     ]
 },
@@ -323,7 +323,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ ']<?o|H^;2{<&=$M1+|3H>}A&:*a@(_,j' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '}@5o/(%E/+X%{6(l$x]$+#r<&$-S{7|[' /*)*/ "
 },
 {
     "type": "response",
@@ -338,7 +338,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ ']<?o|H^;2{<&=$M1+|3H>}A&:*a@(_,j' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '}@5o/(%E/+X%{6(l$x]$+#r<&$-S{7|[' /*)*/ "
 },
 {
     "type": "response",

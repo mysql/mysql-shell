@@ -142,10 +142,6 @@
     ],
     "rows": [
         [
-            "SELECT",
-            "YES"
-        ],
-        [
             "RELOAD",
             "YES"
         ],
@@ -245,6 +241,16 @@
     ],
     "rows": [
         [
+            "SELECT",
+            "YES",
+            "mysql"
+        ],
+        [
+            "UPDATE",
+            "YES",
+            "mysql"
+        ],
+        [
             "INSERT",
             "YES",
             "mysql"
@@ -255,9 +261,34 @@
             "mysql"
         ],
         [
+            "ALTER ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "TRIGGER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
             "UPDATE",
             "YES",
-            "mysql"
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "REFERENCES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
         ],
         [
             "ALTER",
@@ -320,34 +351,9 @@
             "mysql_innodb_cluster_metadata"
         ],
         [
-            "ALTER ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
             "SELECT",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "TRIGGER",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "UPDATE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "REFERENCES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "sys"
         ]
     ]
 },
@@ -431,7 +437,62 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_coordinator"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_worker"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_members"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_member_stats"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "threads"
+        ]
+    ]
 },
 {
     "type": "request",

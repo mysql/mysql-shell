@@ -3,13 +3,22 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
+// create cluster admin as a root
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
+//@ create cluster admin
+dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+
+session.close();
+
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 // TODO(.) - changing the binlog_format will cause the createCluster to fail because of bug #27112727
 // testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "MIXED");
 
 testutil.restartSandbox(__mysql_sandbox_port1, "root");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+// connect as cluster admin
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
 
 //@ Dba.createCluster
 if (__have_ssl)
@@ -21,6 +30,11 @@ else
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 cluster.dissolve({force: true});
 cluster.disconnect();
+
+session.close();
+
+// switch to root account to create database and tables
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 // Disable super-read-only (BUG#26422638)
 session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
@@ -42,6 +56,11 @@ session.runSql('INSERT INTO pke_test.t3 VALUES (NULL);');
 session.runSql('INSERT INTO pke_test.t3 VALUES (NULL);');
 session.runSql('SET sql_log_bin=1');
 
+session.close();
+
+// switch back to cluster admin
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
+
 //@ Create cluster fails (one table is not compatible)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 var cluster = dba.createCluster('dev');
@@ -58,11 +77,21 @@ var cluster = dba.createCluster('dev');
 // Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES NOT EXIST
 dba.verbose = 0;
 
+session.close();
+
+// delete database as root
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
 // Clean-up test schema with PK, PKE, and UK
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 session.runSql('SET sql_log_bin=0');
 session.runSql('DROP SCHEMA pke_test');
 session.runSql('SET sql_log_bin=1');
+
+session.close();
+
+// switch back to cluster admin
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
 
 //@ Create cluster succeeds (no incompatible table)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION

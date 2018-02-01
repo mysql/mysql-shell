@@ -577,383 +577,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'mydba\\'@\\'localhost\\''"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 20,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "USER_PRIVILEGES",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "PRIVILEGE_TYPE",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "USER_PRIVILEGES",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "IS_GRANTABLE",
-            "length": 12,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "SELECT",
-            "YES"
-        ],
-        [
-            "INSERT",
-            "YES"
-        ],
-        [
-            "UPDATE",
-            "YES"
-        ],
-        [
-            "DELETE",
-            "YES"
-        ],
-        [
-            "CREATE",
-            "YES"
-        ],
-        [
-            "DROP",
-            "YES"
-        ],
-        [
-            "RELOAD",
-            "YES"
-        ],
-        [
-            "SHUTDOWN",
-            "YES"
-        ],
-        [
-            "PROCESS",
-            "YES"
-        ],
-        [
-            "FILE",
-            "YES"
-        ],
-        [
-            "REFERENCES",
-            "YES"
-        ],
-        [
-            "INDEX",
-            "YES"
-        ],
-        [
-            "ALTER",
-            "YES"
-        ],
-        [
-            "SHOW DATABASES",
-            "YES"
-        ],
-        [
-            "SUPER",
-            "YES"
-        ],
-        [
-            "CREATE TEMPORARY TABLES",
-            "YES"
-        ],
-        [
-            "LOCK TABLES",
-            "YES"
-        ],
-        [
-            "EXECUTE",
-            "YES"
-        ],
-        [
-            "REPLICATION SLAVE",
-            "YES"
-        ],
-        [
-            "REPLICATION CLIENT",
-            "YES"
-        ],
-        [
-            "CREATE VIEW",
-            "YES"
-        ],
-        [
-            "SHOW VIEW",
-            "YES"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES"
-        ],
-        [
-            "CREATE USER",
-            "YES"
-        ],
-        [
-            "EVENT",
-            "YES"
-        ],
-        [
-            "TRIGGER",
-            "YES"
-        ],
-        [
-            "CREATE TABLESPACE",
-            "YES"
-        ],
-        [
-            "CREATE ROLE",
-            "YES"
-        ],
-        [
-            "DROP ROLE",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
-            "YES"
-        ],
-        [
-            "SYSTEM_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "XA_RECOVER_ADMIN",
-            "YES"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 21,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'mydba\\'@\\'localhost\\'' ORDER BY TABLE_SCHEMA"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 22,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "SCHEMA_PRIVILEGES",
-            "table_label": "SCHEMA_PRIVILEGES",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "PRIVILEGE_TYPE",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "SCHEMA_PRIVILEGES",
-            "table_label": "SCHEMA_PRIVILEGES",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "IS_GRANTABLE",
-            "length": 12,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "SCHEMA_PRIVILEGES",
-            "table_label": "SCHEMA_PRIVILEGES",
-            "column_name": "TABLE_SCHEMA",
-            "column_label": "TABLE_SCHEMA",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": []
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 23,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'mydba\\'@\\'localhost\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 24,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "TABLE_PRIVILEGES",
-            "table_label": "TABLE_PRIVILEGES",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "PRIVILEGE_TYPE",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "TABLE_PRIVILEGES",
-            "table_label": "TABLE_PRIVILEGES",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "IS_GRANTABLE",
-            "length": 12,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "TABLE_PRIVILEGES",
-            "table_label": "TABLE_PRIVILEGES",
-            "column_name": "TABLE_SCHEMA",
-            "column_label": "TABLE_SCHEMA",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "TABLE_PRIVILEGES",
-            "table_label": "TABLE_PRIVILEGES",
-            "column_name": "TABLE_NAME",
-            "column_label": "TABLE_NAME",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": []
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 25,
     "sql": "SET sql_log_bin = 0"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 26,
+    "index": 20,
     "auto_increment_value": 0,
     "affected_rows": 0,
     "warning_count": 0,
@@ -962,8 +591,53 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 27,
+    "index": 21,
     "sql": "START TRANSACTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 22,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 23,
+    "sql": "CREATE USER 'dba_test'@'%' IDENTIFIED BY ''"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 24,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 25,
+    "sql": "GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER ON *.* TO 'dba_test'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 26,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 1,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 27,
+    "sql": "GRANT DELETE, INSERT, SELECT, UPDATE ON mysql.* TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -978,7 +652,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "CREATE USER 'dba_test'@'%' IDENTIFIED BY ''"
+    "sql": "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -993,7 +667,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "GRANT RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'dba_test'@'%' WITH GRANT OPTION"
+    "sql": "GRANT SELECT ON sys.* TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -1001,14 +675,14 @@
     "index": 32,
     "auto_increment_value": 0,
     "affected_rows": 0,
-    "warning_count": 1,
+    "warning_count": 0,
     "info": ""
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "GRANT ALL PRIVILEGES ON mysql_innodb_cluster_metadata.* TO 'dba_test'@'%' WITH GRANT OPTION"
+    "sql": "GRANT SELECT ON performance_schema.replication_applier_configuration TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -1023,7 +697,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "GRANT SELECT ON *.* TO 'dba_test'@'%' WITH GRANT OPTION"
+    "sql": "GRANT SELECT ON performance_schema.replication_applier_status TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -1038,7 +712,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "GRANT INSERT, UPDATE, DELETE ON mysql.* TO 'dba_test'@'%' WITH GRANT OPTION"
+    "sql": "GRANT SELECT ON performance_schema.replication_applier_status_by_coordinator TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -1053,7 +727,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "COMMIT"
+    "sql": "GRANT SELECT ON performance_schema.replication_applier_status_by_worker TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -1068,12 +742,102 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "SET sql_log_bin = 1"
+    "sql": "GRANT SELECT ON performance_schema.replication_connection_configuration TO 'dba_test'@'%' WITH GRANT OPTION"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 42,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 43,
+    "sql": "GRANT SELECT ON performance_schema.replication_connection_status TO 'dba_test'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 44,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 45,
+    "sql": "GRANT SELECT ON performance_schema.replication_group_member_stats TO 'dba_test'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 46,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 47,
+    "sql": "GRANT SELECT ON performance_schema.replication_group_members TO 'dba_test'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 48,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 49,
+    "sql": "GRANT SELECT ON performance_schema.threads TO 'dba_test'@'%' WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 50,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 51,
+    "sql": "COMMIT"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 52,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 53,
+    "sql": "SET sql_log_bin = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 54,
     "auto_increment_value": 0,
     "affected_rows": 0,
     "warning_count": 0,

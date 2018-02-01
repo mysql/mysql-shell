@@ -180,7 +180,7 @@
     ],
     "rows": [
         [
-            "e51f192e-1157-11e8-9f69-080027c42733",
+            "850b4f51-116a-11e8-a122-080027c42733",
             ""
         ]
     ]
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e51f192e-1157-11e8-9f69-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '850b4f51-116a-11e8-a122-080027c42733'"
 },
 {
     "type": "response",

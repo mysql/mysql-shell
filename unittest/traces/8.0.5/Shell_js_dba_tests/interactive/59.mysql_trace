@@ -142,10 +142,6 @@
     ],
     "rows": [
         [
-            "SELECT",
-            "YES"
-        ],
-        [
             "RELOAD",
             "YES"
         ],
@@ -241,11 +237,6 @@
     ],
     "rows": [
         [
-            "UPDATE",
-            "YES",
-            "mysql"
-        ],
-        [
             "INSERT",
             "YES",
             "mysql"
@@ -254,6 +245,21 @@
             "DELETE",
             "YES",
             "mysql"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "mysql"
+        ],
+        [
+            "UPDATE",
+            "YES",
+            "mysql"
+        ],
+        [
+            "INDEX",
+            "YES",
+            "mysql_innodb_cluster_metadata"
         ],
         [
             "CREATE TEMPORARY TABLES",
@@ -341,9 +347,9 @@
             "mysql_innodb_cluster_metadata"
         ],
         [
-            "INDEX",
+            "SELECT",
             "YES",
-            "mysql_innodb_cluster_metadata"
+            "sys"
         ]
     ]
 },
@@ -427,6 +433,61 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_coordinator"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_applier_status_by_worker"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_configuration"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_connection_status"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_members"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "replication_group_member_stats"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "performance_schema",
+            "threads"
+        ]
+    ]
 },
 null]

@@ -766,7 +766,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN information_schema.columns c     ON t.table_schema = c.table_schema         AND t.table_name = c.table_name WHERE t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') GROUP BY t.table_schema, t.table_name HAVING sum(if(c.column_key='PRI', 1, 0)) = 0"
+    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
@@ -779,7 +779,7 @@
     "columns": [
         {
             "schema": "mysql",
-            "table_name": "schemata",
+            "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
@@ -795,7 +795,7 @@
         },
         {
             "schema": "mysql",
-            "table_name": "tables",
+            "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
@@ -2135,7 +2135,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "SET GLOBAL group_replication_group_name = 'c225d1d6-0fe8-11e8-9bbe-080027c42733'"
+    "sql": "SET GLOBAL group_replication_group_name = '0333de33-1166-11e8-9649-080027c42733'"
 },
 {
     "type": "response",
@@ -2675,7 +2675,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ 's[+/%6$?*a%Z%+[5(:_-=+r({>(M2k,(' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '6}%@(%V/}m%M&|;&/;1Z*z$>H:+(8-/r' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

@@ -2187,7 +2187,7 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
         // the current_account doesn't have enough privileges to execute
         // the query
         std::string error_msg = create_privilege_error(current_user,
-            current_host, "Missing global privilege: SELECT.");
+            current_host, "Missing privilege on schema 'mysql': SELECT.");
         log_error("%s", error_msg.c_str());
         throw std::runtime_error(error_msg);
       } else {

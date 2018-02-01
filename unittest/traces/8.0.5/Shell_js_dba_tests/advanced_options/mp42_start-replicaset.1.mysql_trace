@@ -1500,9 +1500,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$-vC\u0001\u001FF\u0016HJ!YCcuL\u001F65Lc3eSE4BRTC39ScuZEvSX1K1tsGfLF4TtnlNbXMf47XH2",
+            "$A$005$\u001Ed-.XBr\u0013\u0018;G@oK\u0001c\\~J\u0017gsl9o137u.1yIVPJzQs4MQDe5v73t.tmP6ZYLt1B8I.",
             "N",
-            "2018-02-14 08:28:57",
+            "2018-02-14 10:45:27",
             null,
             "N",
             "N",
@@ -2482,9 +2482,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$72\u0016LlR%Q%jla\u001BF:_*x/\u0001G2hvAgrsSrzMrBVQfw0z6fuL1qPXrsZFYNLcN4DGwq8",
+            "$A$005$&[`,wyb\"\\\u0002\u0017\u001DIr\n|Y+aSWJlUPwYibAKU8aMz1up06i73gmKus5teIURiC6ldIt4",
             "N",
-            "2018-02-14 08:08:19",
+            "2018-02-14 10:02:26",
             null,
             "N",
             "Y",
@@ -2890,7 +2890,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN information_schema.columns c     ON t.table_schema = c.table_schema         AND t.table_name = c.table_name WHERE t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema') GROUP BY t.table_schema, t.table_name HAVING sum(if(c.column_key='PRI', 1, 0)) = 0"
+    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
@@ -2903,7 +2903,7 @@
     "columns": [
         {
             "schema": "mysql",
-            "table_name": "schemata",
+            "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
@@ -2919,7 +2919,7 @@
         },
         {
             "schema": "mysql",
-            "table_name": "tables",
+            "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
@@ -4228,7 +4228,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000026' /*)*/, MASTER_PASSWORD = /*(*/ '-]c.Z(o<=8[:-*_>:*1f+9(^~%n-=)C^' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_00000000026' /*)*/, MASTER_PASSWORD = /*(*/ '*X:U]}D#_1?)}6+_4J>d,_~@z=:|t<@=' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
