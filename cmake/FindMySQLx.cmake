@@ -67,17 +67,22 @@ if(MYSQL_DIR)
     "${MYSQL_DIR}/lib"
   )
 else()
+  SET(MYSQL_XPLUGIN_FOLDER "")
+  IF(EXISTS "${MYSQL_SOURCE_DIR}/rapid/plugin/x/client/mysqlxclient.h")
+    SET(MYSQL_XPLUGIN_FOLDER "/rapid")
+  ENDIF()
+
   set(MYSQLX_INCLUDES
     "${MYSQL_BUILD_DIR}/include"
-    "${MYSQL_BUILD_DIR}/rapid/plugin/x/generated"
+    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/generated"
     "${MYSQL_SOURCE_DIR}/include"
-    "${MYSQL_SOURCE_DIR}/rapid/plugin/x/client"
+    "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
     "${MYSQL_SOURCE_DIR}/libbinlogevents/export"
   )
 
   set(MYSQLX_LIBRARY_PATHS
-    "${MYSQL_BUILD_DIR}/rapid/plugin/x/client"
-    "${MYSQL_BUILD_DIR}/rapid/plugin/x/protocol"
+    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
+    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/protocol"
     "${MYSQL_BUILD_DIR}/archive_output_directory"
   )
   set(MYSQL_LIBRARY_PATHS
