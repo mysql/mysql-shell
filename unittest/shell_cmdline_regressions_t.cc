@@ -67,19 +67,34 @@ TEST_F(Command_line_test, bug24912358) {
 
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
-  // In 8.0.4+, the mysqlx_cache_cleaner is also supposed to be installed
+  // In 8.0.4, the mysqlx_cache_cleaner is also supposed to be installed
+  // In 8.0.5+, both plugins are built-in, cannot be uninstalled
   std::string uri = "--uri=" + _mysql_uri;
 
   execute({_mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;",
            NULL});
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1619 (HY000): Built-in plugins "
+                                  "cannot be deleted");
+  }
+
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
     execute({_mysqlsh, uri.c_str(), "--sqlc", "-e",
              "uninstall plugin mysqlx_cache_cleaner;", NULL});
+    if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1619 (HY000): Built-in plugins "
+                                    "cannot be deleted");
+    }
   }
 
-  execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: Installing plugin mysqlx...");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: done");
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 5)) {
+    execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol",
+            NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: Installing plugin "
+                                  "mysqlx...");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: done");
+  }
 
   execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e",
            "session.runSql('SELECT COUNT(*) FROM information_schema.plugins "
@@ -140,8 +155,13 @@ TEST_F(Command_line_test, bug24905066) {
     execute(
         {_mysqlsh, "--mysqlx", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("RuntimeError: Unknown database "
-                                  "'some_unexisting_schema'");
+    if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL Error 1045: Unknown database "
+                                    "'some_unexisting_schema'");
+    } else {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("RuntimeError: Unknown database "
+                                    "'some_unexisting_schema'");
+    }
   }
 }
 

@@ -1237,7 +1237,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   output_handler.wipe_all();
 
   // Tests allow reseting the password on an expired account
-  execute("set password = password('updated');");
+  execute("ALTER USER expired@'%' IDENTIFIED BY 'updated';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
@@ -1297,7 +1297,7 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   output_handler.wipe_all();
 
   // Tests allow reseting the password on an expired account
-  execute("set password = password('updated');");
+  execute("ALTER USER expired@'%' IDENTIFIED BY 'updated';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
