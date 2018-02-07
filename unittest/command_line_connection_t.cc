@@ -376,7 +376,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
 
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
-    if (g_target_server_version == mysqlshdk::utils::Version(8, 0, 4)) {
+    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
           "Invalid authentication method: PLAIN over unsecure channel");
     } else {
