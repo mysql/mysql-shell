@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@vm-ubuntu:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "35",
-    "connection_info": "vm-ubuntu via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -118,8 +118,8 @@
     ],
     "rows": [
         [
-            "850b4f51-116a-11e8-a122-080027c42733",
-            "850b4f51-116a-11e8-a122-080027c42733"
+            "65deee5c-1349-11e8-a60b-5ce0c50b9d66",
+            "65deee5c-1349-11e8-a60b-5ce0c50b9d66"
         ]
     ]
 },
@@ -127,7 +127,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '850b4f51-116a-11e8-a122-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '65deee5c-1349-11e8-a60b-5ce0c50b9d66'"
 },
 {
     "type": "response",

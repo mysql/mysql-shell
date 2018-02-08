@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
+            "/home/workspace/git/work/bugs/26962715/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            10680,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            10751,
             "",
             "",
-            "d7f96787-116e-11e8-81c4-080027c42733:1-14"
+            "cb7e0423-1345-11e8-9d03-5ce0c50b9d66:1-14"
         ]
     ]
 },
@@ -276,12 +276,67 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "show GLOBAL variables where `variable_name` in ('server_uuid')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "server_uuid",
+            "cb7e0423-1345-11e8-9d03-5ce0c50b9d66"
+        ]
+    ]
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 16
 },
 null]

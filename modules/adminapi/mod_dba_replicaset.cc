@@ -484,6 +484,9 @@ shcore::Value ReplicaSet::add_instance(
     }
   }
 
+  // Check instance server UUID (must be unique among the cluster members).
+  validate_server_uuid(session);
+
   log_debug("RS %lu: Adding instance '%s' to replicaset%s",
             static_cast<unsigned long>(_id), instance_address.c_str(),
             is_instance_on_md ? " (already in MD)" : "");
@@ -2278,6 +2281,52 @@ void ReplicaSet::rejoin_instances(
             "belong to the cluster. Skipping rejoin to the Cluster.";
         throw shcore::Exception::runtime_error(msg);
       }
+    }
+  }
+}
+
+/**
+ * Check the instance server UUID of the specified intance.
+ *
+ * The server UUID must be unique for all instances in a cluster. This function
+ * checks if the server_uuid of the target instance is unique among all active
+ * members of the cluster.
+ *
+ * @param instance_session Session to the target instance to check its server
+ *                         UUID.
+ */
+void ReplicaSet::validate_server_uuid(
+    std::shared_ptr<mysqlshdk::db::ISession> instance_session) {
+  // Get the server_uuid of the target instance.
+  auto instance = mysqlshdk::mysql::Instance(instance_session);
+  std::string server_uuid = instance.get_sysvar_string(
+      "server_uuid",
+      mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  // Get connection option for the metadata.
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster) {
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+  }
+  std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
+      cluster->get_group_session();
+  Connection_options cluster_cnx_opt =
+      cluster_session->get_connection_options();
+
+  // Get list of instances in the metadata
+  std::vector<Instance_definition> metadata_instances =
+      _metadata_storage->get_replicaset_active_instances(_id);
+
+  // Get and compare the server UUID of all instances with the one of
+  // the target instance.
+  for (Instance_definition &instance_def : metadata_instances) {
+    if (server_uuid == instance_def.uuid) {
+      // Raise an error if the server uuid is the same of a cluster member.
+      throw Exception::runtime_error(
+          "Cannot add an instance with the same server UUID (" + server_uuid +
+          ") of an active member of the cluster '" + instance_def.endpoint +
+          "'. Please change the server UUID of the instance to add, all "
+          "members must have a unique server UUID.");
     }
   }
 }

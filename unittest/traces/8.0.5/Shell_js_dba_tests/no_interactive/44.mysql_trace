@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3326",
+    "uri": "mydba:@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -237,6 +237,16 @@
     ],
     "rows": [
         [
+            "SELECT",
+            "YES",
+            "mysql"
+        ],
+        [
+            "UPDATE",
+            "YES",
+            "mysql"
+        ],
+        [
             "INSERT",
             "YES",
             "mysql"
@@ -245,51 +255,6 @@
             "DELETE",
             "YES",
             "mysql"
-        ],
-        [
-            "SELECT",
-            "YES",
-            "mysql"
-        ],
-        [
-            "UPDATE",
-            "YES",
-            "mysql"
-        ],
-        [
-            "CREATE TEMPORARY TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "EXECUTE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "SHOW VIEW",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "SELECT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "TRIGGER",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "UPDATE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
         ],
         [
             "CREATE",
@@ -343,6 +308,41 @@
         ],
         [
             "INDEX",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE TEMPORARY TABLES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "EXECUTE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SHOW VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "TRIGGER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "UPDATE",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "07e57a33-116e-11e8-9a62-080027c42733"
+            "b2118571-1346-11e8-9038-5ce0c50b9d66"
         ]
     ]
 },
@@ -270,11 +270,11 @@
         ],
         [
             "group_replication_group_name",
-            "07e57a33-116e-11e8-9a62-080027c42733"
+            "b2118571-1346-11e8-9038-5ce0c50b9d66"
         ],
         [
             "group_replication_group_seeds",
-            "localhost:33261"
+            "localhost:33501"
         ],
         [
             "group_replication_gtid_assignment_block_size",
@@ -286,7 +286,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:33161"
+            "localhost:33401"
         ],
         [
             "group_replication_member_weight",
@@ -429,7 +429,7 @@
         ],
         [
             "auto_increment_offset",
-            "3"
+            "6"
         ]
     ]
 },

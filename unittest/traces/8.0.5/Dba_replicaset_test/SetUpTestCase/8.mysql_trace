@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "30",
+    "connection_id": "29",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "3956669d-1170-11e8-b478-080027c42733"
+            "b0805c3e-1347-11e8-8555-5ce0c50b9d66"
         ]
     ]
 },
@@ -122,7 +122,7 @@
     "rows": [
         [
             "group_replication_group_name",
-            "3f406620-1170-11e8-b478-080027c42733"
+            "b59ce4a9-1347-11e8-8555-5ce0c50b9d66"
         ]
     ]
 },

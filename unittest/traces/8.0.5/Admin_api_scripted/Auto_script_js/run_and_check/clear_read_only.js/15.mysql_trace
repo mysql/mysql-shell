@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -321,7 +321,7 @@
         [
             "default",
             "pm",
-            "e8d84262-116d-11e8-92fc-080027c42733"
+            "e953b7e2-1346-11e8-a4f5-5ce0c50b9d66"
         ]
     ]
 },
@@ -329,7 +329,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -445,10 +445,10 @@
     ],
     "rows": [
         [
-            "e7b57a64-116d-11e8-92fc-080027c42733",
-            "localhost:3316",
+            "e7e7181f-1346-11e8-a4f5-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -648,10 +648,10 @@
     ],
     "rows": [
         [
-            "e7b57a64-116d-11e8-92fc-080027c42733",
-            "localhost:3316",
+            "e7e7181f-1346-11e8-a4f5-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -737,10 +737,10 @@
     ],
     "rows": [
         [
-            "e7b57a64-116d-11e8-92fc-080027c42733",
-            "localhost:3316",
+            "e7e7181f-1346-11e8-a4f5-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -778,7 +778,7 @@
     ],
     "rows": [
         [
-            "e7b57a64-116d-11e8-92fc-080027c42733:1-15,\ne8d84262-116d-11e8-92fc-080027c42733:1-2"
+            "e7e7181f-1346-11e8-a4f5-5ce0c50b9d66:1-15,\ne953b7e2-1346-11e8-a4f5-5ce0c50b9d66:1-2"
         ]
     ]
 },
@@ -786,7 +786,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "SELECT GTID_SUBSET('e7b57a64-116d-11e8-92fc-080027c42733:1-15,\\ne8d84262-116d-11e8-92fc-080027c42733:1-2', 'e7b57a64-116d-11e8-92fc-080027c42733:1-15,\\ne8d84262-116d-11e8-92fc-080027c42733:1-2')"
+    "sql": "SELECT GTID_SUBSET('e7e7181f-1346-11e8-a4f5-5ce0c50b9d66:1-15,\\ne953b7e2-1346-11e8-a4f5-5ce0c50b9d66:1-2', 'e7e7181f-1346-11e8-a4f5-5ce0c50b9d66:1-15,\\ne953b7e2-1346-11e8-a4f5-5ce0c50b9d66:1-2')"
 },
 {
     "type": "response",
@@ -802,7 +802,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('e7b57a64-116d-11e8-92fc-080027c42733:1-15,\\ne8d84262-116d-11e8-92fc-080027c42733:1-2', 'e7b57a64-116d-11e8-92fc-080027c42733:1-15,\\ne8d84262-116d-11e8-92fc-080027c42733:1-2')",
+            "column_label": "GTID_SUBSET('e7e7181f-1346-11e8-a4f5-5ce0c50b9d66:1-15,\\ne953b7e2-1346-11e8-a4f5-5ce0c50b9d66:1-2', 'e7e7181f-1346-11e8-a4f5-5ce0c50b9d66:1-15,\\ne953b7e2-1346-11e8-a4f5-5ce0c50b9d66:1-2')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",

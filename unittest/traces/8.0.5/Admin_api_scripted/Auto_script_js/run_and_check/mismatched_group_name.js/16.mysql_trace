@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "fe05b8f0-116e-11e8-86c6-080027c42733",
-            "fe05b8f0-116e-11e8-86c6-080027c42733"
+            "a31c7511-1345-11e8-b160-5ce0c50b9d66",
+            "a31c7511-1345-11e8-b160-5ce0c50b9d66"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'fe05b8f0-116e-11e8-86c6-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a31c7511-1345-11e8-b160-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -469,7 +469,7 @@
         [
             "default",
             "pm",
-            "04e87a4c-116f-11e8-86c6-080027c42733"
+            "a9fc2e7c-1345-11e8-b160-5ce0c50b9d66"
         ]
     ]
 },
@@ -507,7 +507,7 @@
     ],
     "rows": [
         [
-            "04e87a4c-116f-11e8-86c6-080027c42733"
+            "a9fc2e7c-1345-11e8-b160-5ce0c50b9d66"
         ]
     ]
 },
@@ -637,8 +637,8 @@
     ],
     "rows": [
         [
-            "fe05b8f0-116e-11e8-86c6-080027c42733",
-            "fe05b8f0-116e-11e8-86c6-080027c42733"
+            "a31c7511-1345-11e8-b160-5ce0c50b9d66",
+            "a31c7511-1345-11e8-b160-5ce0c50b9d66"
         ]
     ]
 },
@@ -646,7 +646,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'fe05b8f0-116e-11e8-86c6-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a31c7511-1345-11e8-b160-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -739,7 +739,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3326'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3350'"
 },
 {
     "type": "response",

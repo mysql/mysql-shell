@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@vm-ubuntu:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "80",
-    "connection_info": "vm-ubuntu via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "root@vm-ubuntu"
+            "root@pjesus-tecra-z40-b"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'vm-ubuntu\\''"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'pjesus-tecra-z40-b\\''"
 },
 {
     "type": "response",
@@ -281,7 +281,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'vm-ubuntu\\'' ORDER BY TABLE_SCHEMA"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'pjesus-tecra-z40-b\\'' ORDER BY TABLE_SCHEMA"
 },
 {
     "type": "response",
@@ -347,7 +347,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'vm-ubuntu\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'pjesus-tecra-z40-b\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
 },
 {
     "type": "response",

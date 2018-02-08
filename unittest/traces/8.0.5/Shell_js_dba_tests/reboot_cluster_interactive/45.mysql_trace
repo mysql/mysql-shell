@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3326",
+    "uri": "root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "b43052c6-1167-11e8-a95c-080027c42733:1-14,\nb9ca4556-1167-11e8-a95c-080027c42733:1-18"
+            "c5c00858-134b-11e8-afa0-5ce0c50b9d66:1-14,\ncb027feb-134b-11e8-afa0-5ce0c50b9d66:1-18"
         ]
     ]
 },

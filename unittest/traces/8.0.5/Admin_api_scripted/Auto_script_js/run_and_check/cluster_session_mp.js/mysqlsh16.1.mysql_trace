@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "2f9bcced-116e-11e8-952f-080027c42733",
+            "9285149f-1346-11e8-89e4-5ce0c50b9d66",
             0,
-            "2c05a271-116e-11e8-86bc-080027c42733",
+            "8fdce785-1346-11e8-94ae-5ce0c50b9d66",
             "ONLINE"
         ]
     ]

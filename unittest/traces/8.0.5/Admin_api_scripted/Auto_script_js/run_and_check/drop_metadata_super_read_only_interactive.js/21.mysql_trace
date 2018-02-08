@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 176,
+            "length": 152,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.5-log MySQL Commercial Server (Advanced)"
+            "8.0.5-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "e85264a2-116e-11e8-a4d1-080027c42733",
-            "e85264a2-116e-11e8-a4d1-080027c42733"
+            "dd64c30a-1345-11e8-831c-5ce0c50b9d66",
+            "dd64c30a-1345-11e8-831c-5ce0c50b9d66"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e85264a2-116e-11e8-a4d1-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'dd64c30a-1345-11e8-831c-5ce0c50b9d66'"
 },
 {
     "type": "response",

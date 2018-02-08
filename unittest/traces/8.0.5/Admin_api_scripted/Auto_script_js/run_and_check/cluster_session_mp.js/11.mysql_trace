@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -252,7 +252,7 @@
     ],
     "rows": [
         [
-            "2c05a271-116e-11e8-86bc-080027c42733",
+            "8fdce785-1346-11e8-94ae-5ce0c50b9d66",
             ""
         ]
     ]
@@ -261,7 +261,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2c05a271-116e-11e8-86bc-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8fdce785-1346-11e8-94ae-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
         [
             "default",
             "mm",
-            "2f9bcced-116e-11e8-952f-080027c42733"
+            "9285149f-1346-11e8-89e4-5ce0c50b9d66"
         ]
     ]
 },
@@ -617,7 +617,7 @@
     ],
     "rows": [
         [
-            "2f9bcced-116e-11e8-952f-080027c42733"
+            "9285149f-1346-11e8-89e4-5ce0c50b9d66"
         ]
     ]
 },
@@ -747,7 +747,7 @@
     ],
     "rows": [
         [
-            "2c05a271-116e-11e8-86bc-080027c42733",
+            "8fdce785-1346-11e8-94ae-5ce0c50b9d66",
             ""
         ]
     ]
@@ -756,7 +756,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2c05a271-116e-11e8-86bc-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8fdce785-1346-11e8-94ae-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1019,17 +1019,17 @@
     ],
     "rows": [
         [
-            "298637a7-116e-11e8-952f-080027c42733",
-            "localhost:3316",
+            "8e106ed2-1346-11e8-89e4-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
+            "localhost:3340",
             "ONLINE"
         ],
         [
-            "2c05a271-116e-11e8-86bc-080027c42733",
-            "localhost:3326",
+            "8fdce785-1346-11e8-94ae-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326",
+            "localhost:3350",
             "ONLINE"
         ]
     ]

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "no_privileges:@localhost:3326",
+    "uri": "no_privileges:@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -66,8 +66,8 @@
     ],
     "rows": [
         [
-            3326,
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+            3350,
+            "/home/workspace/git/work/bugs/26962715/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
