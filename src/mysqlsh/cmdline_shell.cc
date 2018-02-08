@@ -116,9 +116,9 @@ Command_line_shell::Command_line_shell(
       "   \\history del 10-20     Delete entries 10 to 20\n"
       "   \\history del 10-       Delete entries from 10 to last\n"
       "\n"
-      "NOTE: The history.autoSave shell option may be set to true to "
-      "automatically save the contents of the command history when the shell "
-      "exits.";
+      "NOTE: The history.autoSave shell option must be set to true to "
+      "automatically save the contents of the command history when MySQL "
+      "Shell exits.";
   SET_SHELL_COMMAND("\\history", "View and edit command line history.",
                     cmd_help_history, Command_line_shell::cmd_history);
 }

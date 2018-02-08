@@ -188,9 +188,9 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       "WHERE:\n"
       "   TYPE is an optional parameter to specify the session type. Accepts "
       "the following values:\n"
-      "        -mc, --mysql: open a classic MySQL protocol session (default port 3306)\n"
-      "        -mx, --mysqlx: open an X protocol session (default port 33060)\n"
-      "        -ma: attempt automatic detection of the protocol type\n"
+      "        -mc, --mysql: create a classic MySQL protocol session (default port 3306)\n"
+      "        -mx, --mysqlx: create an X protocol session (default port 33060)\n"
+      "        -ma: attempt to create a session using automatic detection of the protocol type\n"
       "        If TYPE is omitted, -ma is assumed by default, unless the protocol is given in the URI.\n"
       "   URI format is: [user[:password]@]hostname[:port]\n\n"
       "EXAMPLE:\n"
@@ -208,8 +208,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       "   \\source /home/me/sakila.sql\n"
       "   \\. /home/me/sakila.sql\n\n"
 #endif
-      "NOTE: Can execute files from the supported types: SQL, Javascript, or Python.\n"
-      "Processing is done using the active language set for processing mode.\n";
+      "NOTE: Can execute files from the following supported types: SQL, JavaScript, or Python.\n"
+      "The file is processed using the active language set for processing mode.\n";
 
   std::string cmd_help_use =
     "SYNTAX:\n"
@@ -219,7 +219,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
     "   \\use mysql"
     "   \\u 'my schema'"
     "NOTE: This command works with the active session.\n"
-    "If it is either an X protocol or a Classic session, the current schema will be updated (affects SQL mode).\n"
+    "If it is either an X Protocol or a classic MySQL protocol session, the current schema will be updated (affects SQL mode).\n"
     "The global 'db' variable will be updated to hold the requested schema.\n";
 
   std::string cmd_help_rehash =
@@ -291,7 +291,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       "WHERE:\n"
       "   SESSION_CONFIG_NAME is the name to be assigned to the session configuration. Must be a valid identifier\n"
       "   -f is an optional flag, when specified the store operation will override the configuration associated to SESSION_CONFIG_NAME\n"
-      "   URI Optional. the connection string following the URI convention. If not provided, will use the URI of the current session.\n\n"
+      "   URI Optional. Must be a connection string following the URI convention. If not provided, use the URI of the current session.\n\n"
       "EXAMPLES:\n"
       "   \\saveconn my_config_name root:123@localhost:33060\n";
   const std::string cmd_help_delete_connection =
@@ -758,11 +758,6 @@ bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
       }
     }
 
-    println();
-    println(
-        "Please note that MySQL Document Store APIs are subject to change in "
-        "future");
-    println("releases.");
     println("");
     println(
         "For more help on a global variable use <var>.help(), e.g. dba.help()");
