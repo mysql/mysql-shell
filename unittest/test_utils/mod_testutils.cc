@@ -1000,6 +1000,66 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
   shcore::rename_file(new_cfgfile_path, cfgfile_path);
 }
 
+/**
+ * Change sandbox server UUID.
+ *
+ * This function will set the server UUID of a sandbox by changing it in the
+ * corresponding auto.cnf file. If the auto.cnf file does not exist then it
+ * will be created.
+ *
+ * Note: The sandbox need to be restarted for the change to take effect if
+ *       already running.
+ *
+ * @param port The port of the sandbox where the configuration will be updated.
+ * @param server_uuid A string with the server UUID value to set.
+ */
+void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
+  if (_dummy_sandboxes)
+    return;
+
+  // Get path of the auto.cnf file (containing the server_uuid information).
+  std::string autocnf_path = shcore::path::join_path(
+      {_sandbox_dir, std::to_string(port), "sandboxdata", "auto.cnf"});
+
+  // Check if the auto.cnf file exists (only created on the first server start).
+  if (shcore::file_exists(autocnf_path)) {
+    // Replace the server-uuid with the new value in the auto.cnf file.
+    std::string new_autocnf_path = autocnf_path + ".new";
+    std::ofstream new_autocnf_file(new_autocnf_path);
+    std::ifstream autocnf_file(autocnf_path);
+    std::string line;
+    bool in_section = false;
+
+    while (std::getline(autocnf_file, line)) {
+      if (is_section_line(line, "auto")) {
+        // As soon as the "auto" section is found adds the new server-uuid value.
+        in_section = true;
+        new_autocnf_file << line << std::endl;
+        new_autocnf_file << "server-uuid=" << server_uuid << std::endl;
+        continue;
+      } else if (is_section_line(line)) {
+        in_section = false;
+      }
+
+      // If we are in the "auto" section and the server-uuid option is found,
+      // it is removed since it will be the old value.
+      if (in_section) {
+        if (is_configuration_option("server-uuid", line))
+          continue;
+      }
+      new_autocnf_file << line << std::endl;
+    }
+    autocnf_file.close();
+    new_autocnf_file.close();
+    shcore::delete_file(autocnf_path);
+    shcore::rename_file(new_autocnf_path, autocnf_path);
+  } else {
+    // File does not exist, create a new one with the desired server UUID.
+    std::string file_contents = "[auto]\nserver-uuid=" + server_uuid + "\n";
+    shcore::create_file(autocnf_path, file_contents);
+  }
+}
+
 //!<  @name InnoDB Cluster Utilities
 ///@{
 /**
@@ -1420,6 +1480,17 @@ bool Testutils::deploy_sandbox_from_boilerplate(
   change_sandbox_conf(port, "general_log", "1", "mysqld");
 
   if (opts && !opts->empty()) {
+    // Handle server-uuid (or server_uuid) option.
+    // It is a special case that cannot be set in the configuration file,
+    // it has to be changed in another specific file ($DATADIR/auto.cnf).
+    if (opts->has_key("server-uuid")) {
+      change_sandbox_uuid(port, opts->get_string("server-uuid"));
+      opts->erase("server-uuid");
+    }
+    if (opts->has_key("server_uuid")) {
+      change_sandbox_uuid(port, opts->get_string("server_uuid"));
+      opts->erase("server_uuid");
+    }
     for (const auto &option : (*opts)) {
       change_sandbox_conf(port, option.first, option.second.descr(), "mysqld");
     }

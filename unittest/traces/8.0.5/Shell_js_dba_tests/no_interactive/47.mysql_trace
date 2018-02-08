@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -252,8 +252,8 @@
     ],
     "rows": [
         [
-            "dc5b7e20-1165-11e8-9611-080027c42733",
-            "dc5b7e20-1165-11e8-9611-080027c42733"
+            "4f2c3590-134e-11e8-8e25-5ce0c50b9d66",
+            "4f2c3590-134e-11e8-8e25-5ce0c50b9d66"
         ]
     ]
 },
@@ -261,7 +261,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'dc5b7e20-1165-11e8-9611-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4f2c3590-134e-11e8-8e25-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -464,9 +464,9 @@
     ],
     "rows": [
         [
-            10,
+            13,
             "devCluster",
-            10,
+            13,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -515,7 +515,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 10"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 13"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
         [
             "default",
             "pm",
-            "f428cd99-1165-11e8-9611-080027c42733"
+            "6726cf06-134e-11e8-8e25-5ce0c50b9d66"
         ]
     ]
 },
@@ -617,7 +617,7 @@
     ],
     "rows": [
         [
-            "f428cd99-1165-11e8-9611-080027c42733"
+            "6726cf06-134e-11e8-8e25-5ce0c50b9d66"
         ]
     ]
 },

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@vm-ubuntu:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "47",
-    "connection_info": "vm-ubuntu via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@hostname",
-            "length": 36,
+            "length": 72,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -67,7 +67,7 @@
     "rows": [
         [
             null,
-            "vm-ubuntu"
+            "pjesus-TECRA-Z40-B"
         ]
     ]
 },
@@ -169,11 +169,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            39203,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            39447,
             "",
             "",
-            "850b4f51-116a-11e8-a122-080027c42733:1-14,\n885744b2-116a-11e8-a122-080027c42733:1-41"
+            "65deee5c-1349-11e8-a60b-5ce0c50b9d66:1-14,\n6985a630-1349-11e8-a60b-5ce0c50b9d66:1-41"
         ]
     ]
 },
@@ -325,18 +325,73 @@
     ],
     "rows": [
         [
-            "850b4f51-116a-11e8-a122-080027c42733"
+            "65deee5c-1349-11e8-a60b-5ce0c50b9d66"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "show GLOBAL variables where `variable_name` in ('server_uuid')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "server_uuid",
+            "65deee5c-1349-11e8-a60b-5ce0c50b9d66"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 15
+    "index": 17
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 16
+    "index": 18
 },
 null]

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -67,7 +67,7 @@
     "rows": [
         [
             "gtid_executed",
-            "c078db3c-1168-11e8-a663-080027c42733:1-14,\nc3b737f3-1168-11e8-a663-080027c42733:1-2"
+            "ca3d1bab-134a-11e8-9cae-5ce0c50b9d66:1-14,\nccf6d534-134a-11e8-9cae-5ce0c50b9d66:1-2"
         ],
         [
             "gtid_purged",

@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "35",
+    "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
@@ -50,10 +50,10 @@
     ],
     "rows": [
         [
-            "21303cdd-116d-11e8-9ffd-080027c42733"
+            "bf7b7a41-1347-11e8-9786-5ce0c50b9d66"
         ],
         [
-            "2301cf5e-116d-11e8-8ad9-080027c42733"
+            "c11cd5b5-1347-11e8-9f9c-5ce0c50b9d66"
         ]
     ]
 },
@@ -91,10 +91,10 @@
     ],
     "rows": [
         [
-            "21303cdd-116d-11e8-9ffd-080027c42733"
+            "bf7b7a41-1347-11e8-9786-5ce0c50b9d66"
         ],
         [
-            "2301cf5e-116d-11e8-8ad9-080027c42733"
+            "c11cd5b5-1347-11e8-9f9c-5ce0c50b9d66"
         ]
     ]
 },

@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3326?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3350?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "181",
+    "connection_id": "174",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
@@ -274,7 +274,7 @@
         ],
         [
             "group_replication_group_seeds",
-            "localhost:23316,localhost:23326,localhost:23336"
+            "localhost:23340,localhost:23350,localhost:23360"
         ],
         [
             "group_replication_gtid_assignment_block_size",
@@ -286,7 +286,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:23326"
+            "localhost:23350"
         ],
         [
             "group_replication_member_weight",

@@ -216,6 +216,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
   bool deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts);
+  void change_sandbox_uuid(int port, const std::string &server_uuid);
 };
 
 }  // namespace tests

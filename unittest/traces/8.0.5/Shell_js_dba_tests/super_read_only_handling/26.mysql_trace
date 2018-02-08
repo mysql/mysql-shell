@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "e9c54d92-116f-11e8-97fb-080027c42733"
+            "9e71e056-1349-11e8-a5d0-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000004",
             231,
             "",
             "",
-            "e574583f-116f-11e8-b10e-080027c42733:1-14,\nec5fbc48-116f-11e8-b10e-080027c42733:1-18"
+            "9b32912b-1349-11e8-9115-5ce0c50b9d66:1-14,\na0c6207d-1349-11e8-9115-5ce0c50b9d66:1-18"
         ]
     ]
 },

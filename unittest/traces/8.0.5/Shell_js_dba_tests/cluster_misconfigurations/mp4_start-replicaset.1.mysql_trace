@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "ca:ca@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "ca:ca@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -295,7 +295,7 @@
     ],
     "rows": [
         [
-            3316
+            3340
         ]
     ]
 },
@@ -578,7 +578,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -2302,9 +2302,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$?\u0010l(]\u0006B:?V1I%+j?\r\n\u00101A80T6SP98xq1KPQxcgI6Xrw9c6xbSDTfRa7HLYWoRQ/",
+            "$A$005$/;`D/\u0012\r\u000B\u0003\u0002I\r@vNKa1eHaL7hWjy2NonCf.RuzgZgllJ1.KEsIhYHIZMz3Hzf7q4",
             "N",
-            "2018-02-14 10:18:21",
+            "2018-02-16 19:00:56",
             null,
             "N",
             "N",

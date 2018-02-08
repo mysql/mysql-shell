@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "2f9bcced-116e-11e8-952f-080027c42733",
+            "9285149f-1346-11e8-89e4-5ce0c50b9d66",
             0,
-            "2c05a271-116e-11e8-86bc-080027c42733",
+            "8fdce785-1346-11e8-94ae-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -482,7 +482,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 176,
+            "length": 152,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -530,7 +530,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -547,10 +547,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.5-log MySQL Commercial Server (Advanced)",
+            "8.0.5-log MySQL Community Server (GPL)",
             "mysqld.sock",
-            3326,
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+            3350,
+            "/home/workspace/git/work/bugs/26962715/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },

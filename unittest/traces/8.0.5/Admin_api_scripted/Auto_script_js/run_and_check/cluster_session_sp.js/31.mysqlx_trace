@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://root:root@localhost:33260",
+    "uri": "mysqlx://root:root@localhost:33500",
     "protocol": "x"
 },
 {
@@ -36,7 +36,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 132,
+            "length": 114,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -49,7 +49,7 @@
     ],
     "rows": [
         [
-            "8.0.5-log MySQL Commercial Server (Advanced)"
+            "8.0.5-log MySQL Community Server (GPL)"
         ]
     ]
 },
@@ -87,7 +87,7 @@
     ],
     "rows": [
         [
-            3326
+            3350
         ]
     ]
 },
@@ -286,7 +286,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 132,
+            "length": 114,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -334,7 +334,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 174,
+            "length": 222,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -351,10 +351,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.5-log MySQL Commercial Server (Advanced)",
+            "8.0.5-log MySQL Community Server (GPL)",
             "mysqlx.sock",
-            33260,
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+            33500,
+            "/home/workspace/git/work/bugs/26962715/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -409,7 +409,7 @@
     "rows": [
         [
             "Uptime",
-            "21"
+            "20"
         ]
     ]
 },

@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "276",
+    "connection_id": "275",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.5-log",
     "server_version": "8.0.5",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
+            "/home/workspace/git/work/bugs/26962715/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            95269,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            95339,
             "",
             "",
-            "15e24e69-116b-11e8-911a-080027c42733:1-103,\n1e80810a-116b-11e8-911a-080027c42733:1-3,\n28b1b832-116b-11e8-911a-080027c42733:1-3,\n32c7374f-116b-11e8-911a-080027c42733:1-3,\n3cca3b10-116b-11e8-911a-080027c42733:1-3,\n46d9f610-116b-11e8-911a-080027c42733:1-3,\n50db8f28-116b-11e8-911a-080027c42733:1-3,\n5aeeae1a-116b-11e8-911a-080027c42733:1-3,\n6ef36f10-116b-11e8-911a-080027c42733:1-104,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3"
+            "0959bcd1-1348-11e8-b12e-5ce0c50b9d66:1-3,\n1378e02d-1348-11e8-b12e-5ce0c50b9d66:1-3,\n1d94f80b-1348-11e8-b12e-5ce0c50b9d66:1-3,\n27b302e5-1348-11e8-b12e-5ce0c50b9d66:1-3,\n31caced8-1348-11e8-b12e-5ce0c50b9d66:1-3,\n3be44a90-1348-11e8-b12e-5ce0c50b9d66:1-3,\n501454c5-1348-11e8-b12e-5ce0c50b9d66:1-104,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3,\nf7f08d29-1347-11e8-b12e-5ce0c50b9d66:1-103,\nff28e2a9-1347-11e8-b12e-5ce0c50b9d66:1-3"
         ]
     ]
 },
@@ -276,12 +276,67 @@
 },
 {
     "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "show GLOBAL variables where `variable_name` in ('server_uuid')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "server_uuid",
+            "f7f08d29-1347-11e8-b12e-5ce0c50b9d66"
+        ]
+    ]
+},
+{
+    "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 16
 },
 null]
