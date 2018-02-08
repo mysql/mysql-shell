@@ -443,9 +443,9 @@ TEST_F(Shell_history, history_linenoise) {
         "   \\history del 10-20     Delete entries 10 to 20\n"
         "   \\history del 10-       Delete entries from 10 to last\n"
         "\n"
-        "NOTE: The history.autoSave shell option may be set to true to "
-        "automatically save the contents of the command history when the shell "
-        "exits.\n\n",
+        "NOTE: The history.autoSave shell option must be set to true to "
+        "automatically save the contents of the command history when MySQL "
+        "Shell exits.\n\n",
         capture);
 
     // TS_SC#1

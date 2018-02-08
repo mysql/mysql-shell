@@ -912,8 +912,8 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
 
   execute("\\help \\source");
   MY_EXPECT_STDOUT_CONTAINS(
-      "NOTE: Can execute files from the supported types: SQL, Javascript, or "
-      "Python.");
+      "NOTE: Can execute files from the following supported types: SQL, "
+      "JavaScript, or Python.");
   output_handler.wipe_all();
 
   execute("\\help \\connect");
@@ -932,12 +932,13 @@ TEST_F(Interactive_shell_test, shell_command_help_js) {
       "   TYPE is an optional parameter to specify the session type. Accepts "
       "the following values:");
   MY_EXPECT_STDOUT_CONTAINS(
-      "        -mc, --mysql: open a classic MySQL protocol session (default "
-      "port 3306)");
+      "-mc, --mysql: create a classic MySQL protocol session (default port "
+      "3306)");
   MY_EXPECT_STDOUT_CONTAINS(
-      "        -mx, --mysqlx: open an X protocol session (default port 33060)");
+      "-mx, --mysqlx: create an X protocol session (default port 33060)");
   MY_EXPECT_STDOUT_CONTAINS(
-      "        -ma: attempt automatic detection of the protocol type");
+      "-ma: attempt to create a session using automatic detection of the "
+      "protocol type");
   MY_EXPECT_STDOUT_CONTAINS(
       "        If TYPE is omitted, -ma is assumed by default, unless the "
       "protocol is given in the URI.");
