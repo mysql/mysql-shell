@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -200,7 +200,11 @@ std::string Row_copy::get_as_string(uint32_t index) const {
 
 int64_t Row_copy::get_int(uint32_t index) const {
   Type ftype;
-  GET_VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger));
+  std::string dec;
+  GET_VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger ||
+                            (ftype == Type::Decimal &&
+                             (dec = get<std::string>(index)).find('.') ==
+                                 std::string::npos)));
 
   if (ftype == Type::UInteger) {
     uint64_t u = get<uint64_t>(index);
@@ -208,13 +212,19 @@ int64_t Row_copy::get_int(uint32_t index) const {
       throw FIELD_ERROR(index, "field value out of the allowed range");
     }
     return static_cast<int64_t>(u);
+  } else if (ftype == Type::Decimal) {
+    return std::stoll(dec);
   }
   return get<int64_t>(index);
 }
 
 uint64_t Row_copy::get_uint(uint32_t index) const {
   Type ftype;
-  GET_VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger));
+  std::string dec;
+  GET_VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger ||
+                            (ftype == Type::Decimal &&
+                             (dec = get<std::string>(index)).find('.') ==
+                                 std::string::npos)));
 
   if (ftype == Type::Integer) {
     int64_t i = get<int64_t>(index);
@@ -222,6 +232,11 @@ uint64_t Row_copy::get_uint(uint32_t index) const {
       throw FIELD_ERROR(index, "field value out of the allowed range");
     }
     return static_cast<uint64_t>(i);
+  } else if (ftype == Type::Decimal) {
+    if (!dec.empty() && dec[0] == '-') {
+      throw FIELD_ERROR(index, "field value out of the allowed range");
+    }
+    return std::stoull(dec);
   }
   return get<uint64_t>(index);
 }

@@ -171,7 +171,6 @@ ENDIF()
 
 # Needed for protobuf header paths, which are needed to use libmysqlxclient
 INCLUDE(protobuf)
-add_definitions(-DUSE_MYSQLX_FULL_PROTO)
 INCLUDE(FindMySQLx)
 
 ##

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,7 +80,7 @@ std::string Uri_encoder::encode_uri(const Connection_options& info,
   // All the SSL attributes come in the format of attribute=value
   if (format.is_set(Tokens::Query)) {
     std::vector<std::string> attributes;
-    for (auto ssl_attribute : mysqlshdk::db::Ssl_options::option_str_list) {
+    for (auto ssl_attribute : mysqlshdk::db::Ssl_options::option_str_list()) {
       if (info.has_value(ssl_attribute)) {
         attributes.push_back(ssl_attribute + "=" +
                              encode_value(info.get(ssl_attribute)));

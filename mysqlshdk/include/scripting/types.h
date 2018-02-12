@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,7 @@
 #include <memory>
 
 #include "mysqlshdk_export.h"
-#include "utils/utils_json.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace shcore {
 /** Basic types that can be passed around code in different languages.

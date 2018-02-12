@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -150,7 +150,8 @@ std::string Row::get_as_string(uint32_t index) const {
 int64_t Row::get_int(uint32_t index) const {
   int64_t ret_val = 0;
 
-  VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger));
+  VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger ||
+                        (ftype == Type::Decimal && !strchr(_row[index], '.'))));
 
   if (_result->get_metadata()[index].is_unsigned()) {
     uint64_t unsigned_val = strtoull(_row[index], nullptr, 10);
@@ -172,7 +173,8 @@ int64_t Row::get_int(uint32_t index) const {
 uint64_t Row::get_uint(uint32_t index) const {
   uint64_t ret_val = 0;
 
-  VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger));
+  VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger ||
+                        (ftype == Type::Decimal && !strchr(_row[index], '.'))));
 
   if (_result->get_metadata()[index].is_unsigned()) {
     ret_val = strtoull(_row[index], nullptr, 10);

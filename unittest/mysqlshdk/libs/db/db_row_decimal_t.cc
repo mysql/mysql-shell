@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -85,6 +85,41 @@ TEST_F(Db_tests, row_decimal) {
       NEXT_ROW();
       CHECK_DOUBLE_EQ(0, 0, get_double);
       CHECK_DOUBLE_EQ(1, 0, get_double);
+      LAST_ROW();
+    }
+
+    {
+      TABLE_ROW("t_decimal3", 2);
+
+      CHECK_FAIL_STRING(0);
+      CHECK_FAIL(0, get_bit);
+      CHECK_NOT_NULL(0);
+      CHECK_FAIL_STRING(1);
+      CHECK_FAIL(1, get_bit);
+      CHECK_NOT_NULL(1);
+      CHECK_FAIL_ALL(10);
+      CHECK_FAIL(10, is_null);
+
+      // clang-format off
+      CHECK_DOUBLE_EQ(0, -1, get_double);  // NOLINT
+      CHECK_EQ(0, -1, get_int);  // NOLINT
+      CHECK_FAIL(0, get_uint);  // NOLINT
+      CHECK_EQ(0, "-1", get_as_string);  // NOLINT
+      CHECK_DOUBLE_EQ(1, 1, get_double);  // NOLINT
+      CHECK_EQ(1, 1, get_int);  // NOLINT
+      CHECK_EQ(1, 1, get_uint);  // NOLINT
+      CHECK_EQ(1, "1", get_as_string);  // NOLINT
+      NEXT_ROW();
+      CHECK_DOUBLE_EQ(0, -5, get_double);  // NOLINT
+      CHECK_EQ(0, -5, get_int);  // NOLINT
+      CHECK_FAIL(0, get_uint);  // NOLINT
+      CHECK_EQ(0, "-5", get_as_string);  // NOLINT
+      CHECK_DOUBLE_EQ(1, 5, get_double);  // NOLINT
+      CHECK_EQ(1, 5, get_int);  // NOLINT
+      CHECK_EQ(1, 5, get_uint);  // NOLINT
+      CHECK_EQ(1, "5", get_as_string);  // NOLINT
+      // clang-format on
+      NEXT_ROW();
       LAST_ROW();
     }
   } while (switch_proto());

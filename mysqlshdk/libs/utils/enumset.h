@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,7 @@
 
 #include <cstdint>
 
-namespace shcore {
+namespace mysqlshdk {
 namespace utils {
 
 template <typename Enum, Enum last_value>
@@ -42,13 +42,29 @@ class Enum_set {
     return tmp;
   }
 
+  static Enum_set all() {
+    Enum_set tmp;
+    tmp._value = (1 << (static_cast<uint32_t>(last_value) + 1)) - 1;
+    return tmp;
+  }
+
   Enum_set &set(Enum value) {
     _value = _value | (1 << static_cast<uint32_t>(value));
     return *this;
   }
 
+  Enum_set &set(Enum_set values) {
+    _value = _value | values._value;
+    return *this;
+  }
+
   Enum_set &unset(Enum value) {
     _value = _value & ~(1 << static_cast<uint32_t>(value));
+    return *this;
+  }
+
+  Enum_set &clear() {
+    _value = 0;
     return *this;
   }
 
@@ -62,13 +78,21 @@ class Enum_set {
     return (_value & set._value) != 0;
   }
 
+  Enum_set &operator|=(Enum value) {
+    return set(value);
+  }
+
+  bool operator&(Enum value) const { return is_set(value); }
+
   bool operator==(Enum_set set) const { return _value == set._value; }
+
+  bool operator!=(Enum_set set) const { return _value != set._value; }
 
  private:
   uint32_t _value;
 };
 
 }  // namespace utils
-}  // namespace shcore
+}  // namespace mysqlshdk
 
 #endif  // MYSQLSHDK_LIBS_UTILS_ENUMSET_H_

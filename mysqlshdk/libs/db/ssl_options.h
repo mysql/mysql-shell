@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -97,7 +97,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void remove(const std::string& name);
   void validate() const;
 
-  static const std::set<std::string> option_str_list;
+  static const std::set<std::string> &option_str_list();
 
  private:
   const std::string& _get(const std::string& attribute) const;

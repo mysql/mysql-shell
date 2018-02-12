@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,36 +21,36 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/utils/enumset.h"
-#include "unittest/gtest_clean.h"
+#ifndef MYSQLSHDK_LIBS_UTILS_STRFORMAT_H_
+#define MYSQLSHDK_LIBS_UTILS_STRFORMAT_H_
+
+#include <string>
+#include <utility>
 
 namespace mysqlshdk {
 namespace utils {
 
-TEST(Enumset, test) {
-  enum Fruit { Apple, Banana, Cantaloupe };
-  typedef Enum_set<Fruit, Cantaloupe> Fruit_set;
-  Fruit_set fruitset;
-  Fruit_set fruitset2;
-  Fruit_set empty;
-
-  EXPECT_TRUE(fruitset.empty());
-  EXPECT_FALSE(fruitset.is_set(Apple));
-  EXPECT_FALSE(fruitset.is_set(Banana));
-  EXPECT_FALSE(fruitset.matches_any(Fruit_set::any()));
-  EXPECT_TRUE(fruitset == empty);
-
-  fruitset.set(Apple);
-  EXPECT_TRUE(fruitset.matches_any(Fruit_set::any()));
-  EXPECT_TRUE(Fruit_set::any().matches_any(fruitset));
-
-  fruitset2.set(Banana).set(Cantaloupe);
-  EXPECT_FALSE(fruitset == fruitset2);
-  EXPECT_FALSE(fruitset2.is_set(Apple));
-  EXPECT_TRUE(fruitset2.is_set(Banana));
-  EXPECT_TRUE(fruitset2.is_set(Cantaloupe));
-  fruitset2.unset(Cantaloupe);
-  EXPECT_FALSE(fruitset2.is_set(Cantaloupe));
+inline std::pair<std::string, double> scale_value(uint64_t n) {
+  if (n > 1000000000000)
+    return {"T", n / 1000000000000.0};
+  else if (n > 1000000000)
+    return {"G", n / 1000000000.0};
+  else if (n > 1000000)
+    return {"M", n / 1000000.0};
+  else if (n > 1000)
+    return {"K", n / 1000.0};
+  return {"", n};
 }
+
+std::string format_seconds(double secs);
+std::string format_bytes(uint64_t bytes);
+
+std::string format_throughput_items(const std::string &item_name,
+                                    uint64_t items, double seconds);
+
+std::string format_throughput_bytes(uint64_t bytes, double seconds);
+
 }  // namespace utils
 }  // namespace mysqlshdk
+
+#endif  // MYSQLSHDK_LIBS_UTILS_STRFORMAT_H_

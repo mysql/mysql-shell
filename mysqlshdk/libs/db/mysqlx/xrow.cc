@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,6 +101,12 @@ int64_t Row::get_int(uint32_t index) const {
   if (!_row->get_int64(index, &value)) {
     uint64_t uvalue;
     if (!_row->get_uint64(index, &uvalue)) {
+      xcl::Decimal dec;
+      if (_row->get_decimal(index, &dec)) {
+        std::string s = dec.to_string();
+        if (!s.empty() && s.find('.') == std::string::npos)
+          return std::stoll(s);
+      }
       FAILED_GET_TYPE(index, (false));
     } else {
       if (uvalue > LLONG_MAX) {
@@ -119,6 +125,12 @@ uint64_t Row::get_uint(uint32_t index) const {
   if (!_row->get_uint64(index, &value)) {
     int64_t svalue;
     if (!_row->get_int64(index, &svalue)) {
+      xcl::Decimal dec;
+      if (_row->get_decimal(index, &dec)) {
+        std::string s = dec.to_string();
+        if (!s.empty() && s.find('.') == std::string::npos && s[0] != '-')
+          return std::stoull(s);
+      }
       FAILED_GET_TYPE(index, (false));
     } else {
       if (svalue < 0) {

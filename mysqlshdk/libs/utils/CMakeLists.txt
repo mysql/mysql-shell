@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -33,9 +33,11 @@ set(utils_SOURCE
     utils_json.cc
     utils_general.cc
     utils_sqlstring.cc
+    strformat.cc
     utils_string.cc
     utils_uuid.cc
     utils_stacktrace.cc
+    utils_lexing.cc
     trandom.cc
     nullable_options.cc
     base_tokenizer.cc
@@ -46,6 +48,7 @@ set(utils_SOURCE
     options.cc
     uuid_gen.cc
     version.cc
+    profiling.cc
 )
 
 # platform dependent implementations
