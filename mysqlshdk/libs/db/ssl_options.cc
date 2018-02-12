@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,18 +30,23 @@ namespace db {
 using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 
-const std::set<std::string> Ssl_options::option_str_list = {
-    kSslCa,      kSslCaPath,  kSslCert,       kSslKey, kSslCrl,
-    kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode};
+const std::set<std::string> &Ssl_options::option_str_list() {
+  static std::set<std::string> k_options;
+  if (k_options.empty()) {
+    k_options = {kSslCa,      kSslCaPath, kSslCert,       kSslKey, kSslCrl,
+                 kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode};
+  }
+  return k_options;
+}
 
 Ssl_options::Ssl_options(Comparison_mode mode)
     : Nullable_options(mode, "SSL Connection") {
-  for (auto o : option_str_list)
+  for (auto o : option_str_list())
     Nullable_options::set(o, nullptr, Set_mode::CREATE);
 }
 
 bool Ssl_options::has_data() const {
-  for (auto o : option_str_list) {
+  for (auto o : option_str_list()) {
     if (has_value(o))
       return true;
   }

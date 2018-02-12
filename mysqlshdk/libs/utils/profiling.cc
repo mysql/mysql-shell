@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,36 +21,24 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/utils/enumset.h"
-#include "unittest/gtest_clean.h"
+#include "mysqlshdk/libs/utils/profiling.h"
+#include <cassert>
 
 namespace mysqlshdk {
 namespace utils {
 
-TEST(Enumset, test) {
-  enum Fruit { Apple, Banana, Cantaloupe };
-  typedef Enum_set<Fruit, Cantaloupe> Fruit_set;
-  Fruit_set fruitset;
-  Fruit_set fruitset2;
-  Fruit_set empty;
+Profile_timer *g_active_timer = nullptr;
 
-  EXPECT_TRUE(fruitset.empty());
-  EXPECT_FALSE(fruitset.is_set(Apple));
-  EXPECT_FALSE(fruitset.is_set(Banana));
-  EXPECT_FALSE(fruitset.matches_any(Fruit_set::any()));
-  EXPECT_TRUE(fruitset == empty);
+Profile_timer *Profile_timer::activate() {
+  assert(g_active_timer == nullptr);
 
-  fruitset.set(Apple);
-  EXPECT_TRUE(fruitset.matches_any(Fruit_set::any()));
-  EXPECT_TRUE(Fruit_set::any().matches_any(fruitset));
-
-  fruitset2.set(Banana).set(Cantaloupe);
-  EXPECT_FALSE(fruitset == fruitset2);
-  EXPECT_FALSE(fruitset2.is_set(Apple));
-  EXPECT_TRUE(fruitset2.is_set(Banana));
-  EXPECT_TRUE(fruitset2.is_set(Cantaloupe));
-  fruitset2.unset(Cantaloupe);
-  EXPECT_FALSE(fruitset2.is_set(Cantaloupe));
+  return g_active_timer = new utils::Profile_timer();
 }
+
+void Profile_timer::deactivate() {
+  delete g_active_timer;
+  g_active_timer = nullptr;
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

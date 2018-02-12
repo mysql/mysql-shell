@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -297,12 +297,10 @@ std::string escape_sql_string(const std::string &s, bool wildcards) {
         escape = 'Z';
         break;
       case '_':
-        if (wildcards)
-          escape = '_';
+        if (wildcards) escape = '_';
         break;
       case '%':
-        if (wildcards)
-          escape = '%';
+        if (wildcards) escape = '%';
         break;
     }
     if (escape) {
@@ -359,8 +357,7 @@ std::string escape_backticks(const std::string &s) {
 bool is_reserved_word(const std::string &word) {
   std::string upper = str_upper(word);
   for (const char **kw = reserved_keywords; *kw != NULL; ++kw) {
-    if (upper.compare(*kw) == 0)
-      return true;
+    if (upper.compare(*kw) == 0) return true;
   }
   return false;
 }
@@ -391,8 +388,7 @@ std::string quote_identifier_if_needed(const std::string &ident,
       if ((*i >= 'a' && *i <= 'z') || (*i >= 'A' && *i <= 'Z') ||
           (*i >= '0' && *i <= '9') || (*i == '_') || (*i == '$') ||
           ((unsigned char)(*i) > 0x7F)) {
-        if (*i >= '0' && *i <= '9')
-          digits++;
+        if (*i >= '0' && *i <= '9') digits++;
 
         continue;
       }
@@ -414,6 +410,12 @@ sqlstring::sqlstring(const char *format_string, const sqlstringformat format)
   append(consume_until_next_escape());
 }
 
+sqlstring::sqlstring(const std::string &format_string,
+                     const sqlstringformat format)
+    : _format_string_left(format_string), _format(format) {
+  append(consume_until_next_escape());
+}
+
 sqlstring::sqlstring(const sqlstring &copy)
     : _formatted(copy._formatted),
       _format_string_left(copy._format_string_left),
@@ -425,8 +427,7 @@ std::string sqlstring::consume_until_next_escape() {
   std::string::size_type e = _format_string_left.length(), p = 0;
   while (p < e) {
     char ch = _format_string_left[p];
-    if (ch == '?' || ch == '!')
-      break;
+    if (ch == '?' || ch == '!') break;
     ++p;
   }
   if (p > 0) {
@@ -500,7 +501,7 @@ sqlstring &sqlstring::operator<<(const std::string &v) {
       append("\"").append(escape_sql_string(v)).append("\"");
     else
       append("'").append(escape_sql_string(v)).append("'");
-  } else { // shouldn't happen
+  } else {  // shouldn't happen
     throw std::invalid_argument(
         "Error formatting SQL query: internal error, expected ? or ! escape "
         "got something else");
@@ -548,4 +549,4 @@ sqlstring &sqlstring::operator<<(const char *v) {
 
   return *this;
 }
-}
+}  // namespace shcore

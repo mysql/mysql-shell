@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -133,7 +133,8 @@ void Recorder_mysqlx::connect(const mysqlshdk::db::Connection_options& data) {
   _trace.reset(
       Trace_writer::create(new_recording_path("mysqlx_trace"), _print_traces));
   try {
-    _port = data.get_port();
+    if (data.has_port())
+      _port = data.get_port();
     _trace->serialize_connect(data, "x");
     super::connect(data);
     std::map<std::string, std::string> info;

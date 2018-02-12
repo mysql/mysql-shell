@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <map>
 #include <string>
 #include "mysqlshdk_export.h"  // NOLINT
+#include "mysqlshdk/libs/textui/term_vt100.h"
 
 namespace mysqlshdk {
 namespace textui {
@@ -34,6 +35,11 @@ namespace textui {
 enum Color_capability { No_color, Color_16, Color_256, Color_rgb };
 
 void SHCORE_PUBLIC set_color_capability(Color_capability cap);
+
+inline bool has_color() {
+  extern Color_capability g_color_capability;
+  return g_color_capability != No_color;
+}
 
 void SHCORE_PUBLIC cls();
 
@@ -119,6 +125,68 @@ struct SHCORE_PUBLIC Style {
 
   void merge(const Style &style);
 };
+
+inline std::string strip_colors(const std::string &text) {
+  std::string s;
+  size_t p = 0;
+  auto pos = text.find("\033[");
+  while (pos != std::string::npos) {
+    s.append(text.substr(p, pos - p));
+    auto end = text.find("m", pos);
+    if (end == std::string::npos)
+      break;
+    p = end + 1;
+    pos = text.find("\033[", p);
+  }
+  s.append(text.substr(p));
+  return s;
+}
+
+inline size_t strip_color_length(const std::string &text) {
+  size_t len = 0;
+  size_t p = 0;
+  auto pos = text.find("\033[");
+  while (pos != std::string::npos) {
+    len += pos - p;
+    auto end = text.find("m", pos);
+    if (end == std::string::npos)
+      break;
+    p = end + 1;
+    pos = text.find("\033[", p);
+  }
+  len += text.size() - p;
+  return len;
+}
+
+inline std::string bold(const std::string &text) {
+  if (!has_color())
+    return text;
+  return vt100::attr(-1, -1, vt100::Bright) + text + vt100::attr();
+}
+
+inline std::string error(const std::string &text) {
+  if (!has_color())
+    return text;
+  return vt100::attr(1, -1, vt100::Bright) + text + vt100::attr();
+}
+
+inline std::string alert(const std::string &text) {
+  if (!has_color())
+    return text;
+  return vt100::attr(1, -1, vt100::Bright) + text + vt100::attr();
+}
+
+inline std::string warning(const std::string &text) {
+  if (!has_color())
+    return text;
+  return vt100::attr(3, -1, vt100::Bright) + text + vt100::attr();
+}
+
+inline std::string notice(const std::string &text) {
+  if (!has_color())
+    return text;
+  return vt100::attr(4, -1, vt100::Bright) + text + vt100::attr();
+}
 
 }  // namespace textui
 }  // namespace mysqlshdk

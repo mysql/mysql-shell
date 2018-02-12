@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,7 +58,7 @@ enum Tokens {
   Query = 5
 };
 
-typedef shcore::utils::Enum_set<Tokens, Tokens::Query> Tokens_mask;
+typedef mysqlshdk::utils::Enum_set<Tokens, Tokens::Query> Tokens_mask;
 
 namespace formats {
 inline Tokens_mask full() {

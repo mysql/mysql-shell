@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,7 @@ public:
 
   sqlstring();
   sqlstring(const char* format_string, const sqlstringformat format);
+  sqlstring(const std::string &format_string, const sqlstringformat format);
   sqlstring(const sqlstring &copy);
   void done() const;
 
@@ -99,6 +100,35 @@ public:
   //! replaces a ? or ! with the content of the other string verbatim
   sqlstring &operator <<(const sqlstring&);
 };
-};
+
+namespace detail {
+
+inline void sqlformat(sqlstring *sqls) {
+  sqls->done();
+}
+
+template<typename Arg, typename... Args>
+inline void sqlformat(sqlstring *sqls, const Arg &arg, const Args& ...args) {
+  *sqls << arg;
+  sqlformat(sqls, args...);
+}
+
+}  // namespace detail
+
+/**
+ * Variadic query formatter
+ * @param s    format string with placeholders, as in sqlstring
+ * @param args values to substitute for placeholders
+ *
+ * @return query string with placeholders substituted
+ */
+template<typename... Args>
+inline std::string sqlformat(const std::string &s, const Args& ...args) {
+  sqlstring sqls(s, 0);
+  detail::sqlformat(&sqls, args...);
+  return sqls.str();
+}
+
+}  // namespace shcore
 
 #endif

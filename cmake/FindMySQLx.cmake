@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -54,8 +54,12 @@ endmacro()
 ####
 ####
 
-set(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL 8.0 source directory")
-set(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL 8.0 build directory")
+IF(NOT MYSQL_SOURCE_DIR)
+  SET(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL 8.0 source directory")
+ENDIF()
+IF(NOT MYSQL_BUILD_DIR)
+  SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL 8.0 build directory")
+ENDIF()
 
 if(MYSQL_DIR)
   set(MYSQLX_INCLUDES "${MYSQL_DIR}/include")
@@ -106,7 +110,7 @@ if(NOT WIN32)
   # portion with the actual location we detected, but leave the rest
   # which contains other dependencies
   _mysql_conf(_mysql_config_output "--libs")
-  message(STATUS "config --libs ${_mysql_config_output}")
+  message(STATUS "${MYSQL_CONFIG_EXECUTABLE} --libs: ${_mysql_config_output}")
   message(STATUS "${MYSQL_CLIENT_LIB}")
   string(REGEX REPLACE ".* -lmysqlclient *(.*)" "\\1" _mysql_config_output "${_mysql_config_output}")
   string(REGEX REPLACE "-l\([^ ]+\)" "\\1" _mysql_config_output "${_mysql_config_output}")
@@ -150,6 +154,8 @@ if(MYSQLX_INCLUDES AND MYSQLX_CLIENT_LIB AND MYSQL_CLIENT_LIB)
 else()
   set(MYSQLX_FOUND FALSE)
 endif()
+
+ADD_DEFINITIONS(-DUSE_MYSQLX_FULL_PROTO)
 
 if(MYSQLX_FOUND)
   message(STATUS "Found MySQL client Libraries")
