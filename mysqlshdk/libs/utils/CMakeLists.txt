@@ -44,7 +44,6 @@ set(utils_SOURCE
     logger.cc
     process_launcher.cc
     debug.cc
-    dtoa.cc
     options.cc
     uuid_gen.cc
     version.cc

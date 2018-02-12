@@ -37,6 +37,12 @@
 #include <cstring>
 #include <cstdlib>
 
+#if !defined(__linux__)
+#if !defined(HAVE_ULONG)
+typedef unsigned long ulong; /* Short for unsigned long */
+#endif
+#endif
+
 /*
 Begin of MySQL defs and structs
 */
@@ -366,7 +372,9 @@ double my_rnd(rand_struct *rand_st)
   return (((double) rand_st->seed1) / rand_st->max_value_dbl);
 }
 
-
+#ifdef _WIN32
+extern unsigned long long my_getsystime();
+#else
 unsigned long long my_getsystime()
 {
 #ifdef HAVE_CLOCK_GETTIME
@@ -390,7 +398,7 @@ unsigned long long my_getsystime()
   return (unsigned long long)tv.tv_sec*10000000+(unsigned long long)tv.tv_usec*10;
 #endif
 }
-
+#endif
 
 unsigned long sql_rnd_with_mutex()
 {
@@ -400,18 +408,8 @@ unsigned long sql_rnd_with_mutex()
   return tmp;
 }
 
-
-void randominit(struct rand_struct *rand_st, unsigned long seed1, unsigned long seed2)
-{                                               /* For mysql 3.21.# */
-#ifdef HAVE_purify
-  memset(rand_st, 0, sizeof(*rand_st));       /* Avoid UMC varnings */
-#endif
-  rand_st->max_value= 0x3FFFFFFFL;
-  rand_st->max_value_dbl=(double) rand_st->max_value;
-  rand_st->seed1=seed1%rand_st->max_value ;
-  rand_st->seed2=seed2%rand_st->max_value;
-}
-
+extern void randominit(struct rand_struct *rand_st, ulong seed1,
+                ulong seed2);
 
 static uint16 get_proc_id()
 {
@@ -423,7 +421,6 @@ static uint16 get_proc_id()
 #endif
   return proc_id;
 }
-
 
 void init_uuid(unsigned long seed)
 {
