@@ -1,0 +1,464 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "mydba:@localhost:3326",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "31",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.5-log",
+    "server_version": "8.0.5",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "SELECT CURRENT_USER()"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "CURRENT_USER()",
+            "length": 372,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "mydba@localhost"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SELECT COUNT(*) from mysql.user WHERE User = 'dba_test' AND Host = '%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "COUNT(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            1
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'dba_test\\'@\\'%\\''"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "privilege_type",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "is_grantable",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "SELECT",
+            "YES"
+        ],
+        [
+            "RELOAD",
+            "YES"
+        ],
+        [
+            "SHUTDOWN",
+            "YES"
+        ],
+        [
+            "PROCESS",
+            "YES"
+        ],
+        [
+            "FILE",
+            "YES"
+        ],
+        [
+            "SUPER",
+            "YES"
+        ],
+        [
+            "REPLICATION SLAVE",
+            "YES"
+        ],
+        [
+            "REPLICATION CLIENT",
+            "YES"
+        ],
+        [
+            "CREATE USER",
+            "YES"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SELECT table_schema, privilege_type, is_grantable FROM information_schema.schema_privileges WHERE grantee = '\\'dba_test\\'@\\'%\\''"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "schema_privileges",
+            "column_name": "TABLE_SCHEMA",
+            "column_label": "table_schema",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "schema_privileges",
+            "column_name": "PRIVILEGE_TYPE",
+            "column_label": "privilege_type",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMA_PRIVILEGES",
+            "table_label": "schema_privileges",
+            "column_name": "IS_GRANTABLE",
+            "column_label": "is_grantable",
+            "length": 12,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "mysql",
+            "INSERT",
+            "YES"
+        ],
+        [
+            "mysql",
+            "UPDATE",
+            "YES"
+        ],
+        [
+            "mysql",
+            "DELETE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "SELECT",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "INSERT",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "UPDATE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "DELETE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "CREATE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "DROP",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "REFERENCES",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "INDEX",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "ALTER",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "CREATE TEMPORARY TABLES",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "LOCK TABLES",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "EXECUTE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "CREATE VIEW",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "SHOW VIEW",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "CREATE ROUTINE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "ALTER ROUTINE",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "EVENT",
+            "YES"
+        ],
+        [
+            "mysql_innodb_cluster_metadata",
+            "TRIGGER",
+            "YES"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "show databases like 'mysql_innodb_cluster_metadata'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "mysql",
+            "table_name": "schemata",
+            "table_label": "SCHEMATA",
+            "column_name": "Database (mysql_innodb_cluster_metadata)",
+            "column_label": "Database (mysql_innodb_cluster_metadata)",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "SELECT @@super_read_only"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@super_read_only",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
+},
+null]
