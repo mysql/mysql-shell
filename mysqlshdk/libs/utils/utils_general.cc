@@ -814,16 +814,18 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
   return p;
 }
 
-static std::size_t span_quotable_string_literal(const std::string &s,
-                                                std::size_t p,
-                                                std::string *out_string) {
+static std::size_t span_quotable_string_literal(
+    const std::string &s, std::size_t p, std::string *out_string,
+    bool allow_number_at_beginning = false) {
   if (s.size() <= p)
     return p;
 
   char quote = s[p];
   if (quote != '\'' && quote != '"') {
     // check if valid initial char
-    if (!std::isalpha(quote) && quote != '_' && quote != '$')
+    if (!std::isalpha(quote) &&
+        !(allow_number_at_beginning && std::isdigit(quote)) && quote != '_' &&
+        quote != '$' && quote != '%')
       throw std::runtime_error("Invalid character in string literal");
     quote = 0;
   } else {
@@ -832,7 +834,8 @@ static std::size_t span_quotable_string_literal(const std::string &s,
 
   if (quote == 0) {
     while (p < s.size()) {
-      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$' && s[p] != '.')
+      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$' && s[p] != '.' &&
+          s[p] != '%')
         break;
       if (out_string)
         out_string->push_back(s[p]);
@@ -1005,7 +1008,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
     }
     bool try_quoting = false;
     try {
-      res = span_quotable_string_literal(s, p, out_string);
+      res = span_quotable_string_literal(s, p, out_string, true);
 
       // If the complete string was not consumed could be a hostname that
       // requires quotes, they should be enabled only if not quoted already
@@ -1015,7 +1018,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
 
         try_quoting = !quoted;
       }
-    } catch (std::runtime_error e) {
+    } catch (std::runtime_error &e) {
       // In case of error parsing, tries quoting
       try_quoting = auto_quote_hosts;
     }
@@ -1026,7 +1029,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
       // reset out_string
       if (out_string)
         *out_string = "";
-      res = span_quotable_string_literal(quoted_s, old_p, out_string);
+      res = span_quotable_string_literal(quoted_s, old_p, out_string, true);
     }
   }
   return res;

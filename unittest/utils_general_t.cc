@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License, version 2.0,
@@ -87,6 +87,8 @@ TEST(utils_general, split_account) {
     {"```foo`@```1234`", "`foo", "`1234"},
     {"foo@` .::1lol\\t\\n\\r\\b\\0'\"&$%`", "foo", " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
     {"root@foo.bar.warblegarble.com", "root", "foo.bar.warblegarble.com"},
+    {"root@192.168.0.3", "root", "192.168.0.3"},
+    {"root@%", "root", "%"}
   };
   for (auto &t : good_cases_no_auto_quote) {
     a.clear();

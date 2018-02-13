@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,8 +41,8 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
   void SetUp() {
     Shell_test_env::SetUp();
-    if (_target_server_version >= Version("5.7.0") ||
-          _target_server_version < Version("8.0.0")) {
+    if (_target_server_version >= Version(5, 7, 0) ||
+        _target_server_version < Version(8, 0, 0)) {
       session = mysqlshdk::db::mysql::Session::create();
       auto connection_options = shcore::get_connection_options(_mysql_uri);
       session->connect(connection_options);
@@ -50,8 +50,8 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   }
 
   void TearDown() {
-    if (_target_server_version >= Version("5.7.0") ||
-          _target_server_version < Version("8.0.0")) {
+    if (_target_server_version >= Version(5, 7, 0) ||
+        _target_server_version < Version(8, 0, 0)) {
       if (!db.empty()) {
         session->execute("drop database if exists " + db);
         db.clear();
@@ -87,8 +87,8 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_old_temporal_check();
@@ -99,8 +99,8 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
 }
 
 TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_reserved_keywords_check();
@@ -142,8 +142,8 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
   std::unique_ptr<Sql_upgrade_check> check =
@@ -162,8 +162,8 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
 }
 
 TEST_F(MySQL_upgrade_check_test, mysql_schema) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_mysql_schema_check();
@@ -188,8 +188,8 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
 }
 
 TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("test_innodb_rowformat");
   std::unique_ptr<Sql_upgrade_check> check =
@@ -208,8 +208,8 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
 }
 
 TEST_F(MySQL_upgrade_check_test, zerofill) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("aaa_test_zerofill_nondefaultwidth");
   std::unique_ptr<Sql_upgrade_check> check =
@@ -245,8 +245,8 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
 }
 
 TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_foreign_key_length_check();
@@ -257,8 +257,8 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
 }
 
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("mysql_check_table_test");
   Check_table_command check;
@@ -275,8 +275,8 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
 }
 
 TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
-  if (_target_server_version < Version("5.7.0") ||
-      _target_server_version >= Version("8.0.0"))
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   Shell_core_test_wrapper::SetUp();
   reset_shell();
@@ -293,17 +293,34 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   }
   args.clear();
 
-  // mysql 5.7 user without privileges
-  EXPECT_NO_THROW(
-      session->execute("create user if not exists lewy_upgrade@localhost;"));
-  std::string lewy_uri = _mysql_uri;
-  lewy_uri.replace(0, 4, "lewy_upgrade");
-  args.push_back(shcore::Value(lewy_uri));
+  // new user with all privileges sans grant option and '%' in host
+  EXPECT_NO_THROW(session->execute(
+      "create user if not exists 'percent'@'%' identified by 'percent';"));
+  std::string percent_uri = _mysql_uri;
+  percent_uri.replace(0, 4, "percent:percent");
+  args.push_back(shcore::Value(percent_uri));
+  // No privileges function should throw
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
-  EXPECT_NO_THROW(session->execute("drop user lewy_upgrade@localhost;"));
-  args.clear();
 
+  // Still not enough privileges
+  EXPECT_NO_THROW(session->execute("grant SUPER on *.* to 'percent'@'%';"));
+  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+
+  // Privileges check out we should succeed
+  EXPECT_NO_THROW(session->execute("grant ALL on *.* to 'percent'@'%';"));
+  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
+
+  EXPECT_NO_THROW(session->execute("drop user 'percent'@'%';"));
+}
+
+TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
   // session established with 8.0 server
+  if (_target_server_version < Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 8.0");
+  Shell_core_test_wrapper::SetUp();
+  Util util(_interactive_shell->shell_context().get());
+  shcore::Argument_list args;
+  args.push_back(shcore::Value(_mysql_uri));
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
 }
 
