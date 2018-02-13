@@ -148,7 +148,7 @@ shcore::Value Util::check_for_server_upgrade(
     auto res = instance.check_user(user, host, {"all"}, "*", "*");
     if ("" != std::get<1>(res))
       throw std::invalid_argument(
-          "The upgrade check needs to be performed by user with SUPER "
+          "The upgrade check needs to be performed by user with ALL "
           "privileges.");
 
     auto version_result = session->query("select @@version, @@version_comment");
