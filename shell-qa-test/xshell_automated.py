@@ -8434,6 +8434,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("This test now requires conditional execution, moved to unittests/auto/dba_enable_x_protocol_norecord.js")
     def test_MYS_536(self):
         '''[CHLOG 1.0.2.5_2] enabledXProtocol arg'''
         results = ''
