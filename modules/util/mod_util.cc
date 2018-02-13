@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -145,8 +145,8 @@ shcore::Value Util::check_for_server_upgrade(
     shcore::split_account(row->get_string(0), &user, &host);
 
     mysqlshdk::mysql::Instance instance(session);
-    auto res = instance.check_user(user, host, {"super"}, "*", "*");
-    if ("" != std::get<1>(res) || !std::get<2>(res))
+    auto res = instance.check_user(user, host, {"all"}, "*", "*");
+    if ("" != std::get<1>(res))
       throw std::invalid_argument(
           "The upgrade check needs to be performed by user with SUPER "
           "privileges.");
