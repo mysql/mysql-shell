@@ -441,6 +441,8 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
+      // FIXME(rennox): X connection bug introduced at BUG27192091
+      // SSL is being enabled by default, in classic it must be required
       {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
@@ -465,6 +467,8 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
+      // FIXME(rennox): X connection bug introduced at BUG27192091
+      // SSL is being enabled by default, in classic it must be required
       {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
@@ -488,6 +492,81 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
 
   run_script_classic(
       {"DROP USER rooty@localhost"});
+}
+
+
+TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password_require_ssl) {
+  // Test basic SSL support using mysql_native_password auth require ssl
+  // ssl-mode: default, disabled, required, preferred
+  // X and classic protocols
+  // TCP and socket
+  // normal server with SSL
+  // account requiring ssl
+
+  run_script_classic(
+      {"DROP USER IF EXISTS rootssl@localhost",
+       "CREATE USER rootssl@localhost IDENTIFIED WITH 'mysql_native_password' "
+       "require ssl",
+       "GRANT ALL ON *.* TO rootssl@localhost"});
+
+  // Note: tests to the default localhost are via default (compiled-in)
+  // socket path, which will not work in CI environments, so they're disabled
+
+  std::vector<Combination> combos{
+      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::SRoot, {}},
+#ifndef _WIN32
+      // FIXME(rennox): X connection bug introduced at BUG27192091
+      // SSL is being enabled by default, in classic it must be required
+      {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {Expect::Fail, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+
+// {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+// default connection method when port is not given is socket
+      {Expect::Fail, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+#endif
+      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+
+      {Expect::Fail, Ssl::Disab, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {Expect::Fail, Ssl::Disab, Proto::C, Srv::Main, Usr::SRoot, {}},
+#ifndef _WIN32
+      {Expect::Fail, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {Expect::Fail, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+
+// {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+     {Expect::Fail, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+#endif
+      {Expect::Fail, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {Expect::Fail, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::SRoot, {}},
+#ifndef _WIN32rooty
+      // FIXME(rennox): X connection bug introduced at BUG27192091
+      // SSL is being enabled by default, in classic it must be required
+      {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {Expect::Fail, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+
+// {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {Expect::Fail, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+#endif
+      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::SRoot, {}},
+#ifndef _WIN32
+      {Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+
+// {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+     {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+#endif
+      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::SRoot, {}}};
+  TRY_COMBINATIONS(combos);
+
+  run_script_classic(
+      {"DROP USER rootssl@localhost"});
 }
 
 TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
@@ -515,6 +594,8 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
+      // FIXME(rennox): X connection bug introduced at BUG27192091
+      // SSL is being enabled by default, in classic it must be required
       {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
@@ -543,6 +624,8 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
+      // FIXME(rennox): X connection bug introduced at BUG27192091
+      // SSL is being enabled by default, in classic it must be required
       {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
