@@ -202,6 +202,14 @@ Value Constant::get_constant_value(const std::string &module,
       } else if (id == "NULL" && module == "mysql") {
         ret_val = Value("NULL");
       }
+    } else if (group == "LockContention") {
+      if (id == "NOWAIT") {
+        ret_val = Value("NOWAIT");
+      } else if (id == "SKIP_LOCK") {
+        ret_val = Value("SKIP_LOCK");
+      } else if (id == "DEFAULT") {
+        ret_val = Value("DEFAULT");
+      }
     } else {
       throw shcore::Exception::logic_error(
           "Invalid group on constant definition:" + group + "." + id);

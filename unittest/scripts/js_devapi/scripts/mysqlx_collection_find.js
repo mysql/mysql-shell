@@ -114,9 +114,11 @@ crud = collection.find().limit(1).skip();
 crud = collection.find().limit(1).skip('');
 
 //@# CollectionFind: Error conditions on lockShared
+crud = collection.find().lockShared(5,1);
 crud = collection.find().lockShared(5);
 
 //@# CollectionFind: Error conditions on lockExclusive
+crud = collection.find().lockExclusive(5,1);
 crud = collection.find().lockExclusive(5);
 
 //@# CollectionFind: Error conditions on bind

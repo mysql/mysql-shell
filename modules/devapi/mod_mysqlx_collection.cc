@@ -457,7 +457,8 @@ REGISTER_HELP(
     "Retrieves documents from a collection, matching a specified criteria.");
 REGISTER_HELP(
     COLLECTION_FIND_CHAINED,
-    "CollectionFind.find.[fields].[groupBy->[having]].[sort].[limit->[skip]].[bind].[execute]");
+    "CollectionFind.find.[fields].[groupBy->[having]].[sort].[limit->[skip]]"
+    ".[lockShared].[lockExclusive].[bind].[execute]");
 
 /**
 * $(COLLECTION_FIND_BRIEF)
@@ -469,7 +470,6 @@ REGISTER_HELP(
 *     <tr><td>Collection</td><td>.find(...)</td></tr>
 *     <tr><td></td><td>[.fields(...)]</td></tr>
 */
-
 #if DOXYGEN_JS
 /**
  * <tr><td></td><td>[.groupBy(...)[.$(COLLECTIONFIND_HAVING_SYNTAX)]]</td></tr>*/
@@ -480,6 +480,15 @@ REGISTER_HELP(
 /**
 *     <tr><td></td><td>[.sort(...)]</td></tr>
 *     <tr><td></td><td>[.$(COLLECTIONFIND_LIMIT_SYNTAX)[.$(COLLECTIONFIND_SKIP_SYNTAX)]]</td></tr>
+*/
+#if DOXYGEN_JS
+/**
+ * <tr><td></td><td>[.lockShared(lockContention)|.lockExclusive(lockContention)]</td></tr>*/
+#elif DOXYGEN_PY
+/**
+ * <tr><td></td><td>[.lock_shared(lockContention)|.lock_exclusive(lockContention)]</td></tr>*/
+#endif
+/**
 *     <tr><td></td><td>[.$(COLLECTIONFIND_BIND_SYNTAX)]</td></tr>
 *     <tr><td></td><td>.$(COLLECTIONFIND_EXECUTE_SYNTAX)</td></tr>
 *   </table>
@@ -560,6 +569,85 @@ REGISTER_HELP(
 * #### .$(COLLECTIONFIND_SKIP_SYNTAX)
 *
 * $(COLLECTIONFIND_SKIP_DETAIL)
+*/
+
+#if DOXYGEN_JS
+/**
+*
+* #### .lockShared(lockContention)
+*
+*/
+#elif DOXYGEN_PY
+/**
+*
+* #### .lock_shared(lockContention)
+*
+*/
+#endif
+/**
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL1)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL2)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL3)
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL4)
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL5)
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL6)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL7)
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL8)
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL9)
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL10)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL11)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL12)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL13)
+*
+* $(COLLECTIONFIND_LOCKSHARED_DETAIL14)
+*/
+#if DOXYGEN_JS
+/**
+*
+* #### .lockExclusive(lockContention)
+*
+*/
+#elif DOXYGEN_PY
+/**
+*
+* #### .lock_exclusive(lockContention)
+*
+*/
+#endif
+
+/**
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL1)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL2)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL3)
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL4)
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL5)
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL6)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL7)
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL8)
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL9)
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL10)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL11)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL12)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL13)
+*
+* $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL14)
 *
 * #### .$(COLLECTIONFIND_BIND_SYNTAX)
 *

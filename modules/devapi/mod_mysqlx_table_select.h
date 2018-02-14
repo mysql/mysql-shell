@@ -58,8 +58,8 @@ class TableSelect : public Table_crud_definition,
   TableSelect orderBy(List sortExprStr);
   TableSelect limit(Integer numberOfRows);
   TableSelect offset(Integer limitOffset);
-  TableSelect lockShared();
-  TableSelect lockExclusive();
+  TableSelect lockShared(String lockContention);
+  TableSelect lockExclusive(String lockContention);
   TableSelect bind(String name, Value value);
   RowResult execute();
 #elif DOXYGEN_PY
@@ -70,8 +70,8 @@ class TableSelect : public Table_crud_definition,
   TableSelect order_by(list sortExprStr);
   TableSelect limit(int numberOfRows);
   TableSelect offset(int limitOffset);
-  TableSelect lock_shared();
-  TableSelect lock_exclusive();
+  TableSelect lock_shared(str lockContention);
+  TableSelect lock_exclusive(str lockContention);
   TableSelect bind(str name, Value value);
   RowResult execute();
 #endif
@@ -91,6 +91,7 @@ class TableSelect : public Table_crud_definition,
   shcore::Value execute(const shcore::Argument_list &args) override;
 private:
    Mysqlx::Crud::Find message_;
+   void set_lock_contention(const shcore::Argument_list &args);
 
   struct F {
     static constexpr Allowed_function_mask _empty = 1 << 0;

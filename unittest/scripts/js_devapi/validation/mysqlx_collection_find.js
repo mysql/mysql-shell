@@ -86,10 +86,12 @@
 ||CollectionFind.skip: Argument #1 is expected to be an unsigned int
 
 //@# CollectionFind: Error conditions on lockShared
-||Invalid number of arguments in CollectionFind.lockShared, expected 0 but got 1
+||Invalid number of arguments in CollectionFind.lockShared, expected 0 to 1 but got 2
+||CollectionFind.lockShared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCK
 
 //@# CollectionFind: Error conditions on lockExclusive
-||Invalid number of arguments in CollectionFind.lockExclusive, expected 0 but got 1
+||Invalid number of arguments in CollectionFind.lockExclusive, expected 0 to 1 but got 2
+||CollectionFind.lockExclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCK
 
 //@# CollectionFind: Error conditions on bind
 ||Invalid number of arguments in CollectionFind.bind, expected 2 but got 0

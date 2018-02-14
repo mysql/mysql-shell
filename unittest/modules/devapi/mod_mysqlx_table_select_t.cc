@@ -186,6 +186,186 @@ TEST_F(Table_select, lock_shared) {
   _cout.str("");
 }
 
+TEST_F(Table_select, lock_shared_nowait_string) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockShared('nowait');");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_shared",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: SHARED_LOCK",
+                  "  locking_options: NOWAIT",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
+TEST_F(Table_select, lock_shared_nowait_constant) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockShared(mysqlx.LockContention.NOWAIT);");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_shared",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: SHARED_LOCK",
+                  "  locking_options: NOWAIT",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
+TEST_F(Table_select, lock_shared_skip_lock_string) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockShared('skip_lock');");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_shared",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: SHARED_LOCK",
+                  "  locking_options: SKIP_LOCKED",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
+TEST_F(Table_select, lock_shared_skip_lock_constant) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockShared(mysqlx.LockContention.SKIP_LOCK);");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_shared",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: SHARED_LOCK",
+                  "  locking_options: SKIP_LOCKED",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
 TEST_F(Table_select, lock_exclusive) {
   execute("session.startTransaction();");
   _cout.str("");
@@ -229,6 +409,186 @@ TEST_F(Table_select, lock_exclusive) {
   execute("session.rollback();");
   _cout.str("");
 
+}
+
+TEST_F(Table_select, lock_exclusive_nowait_string) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockExclusive('nowait');");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_exclusive",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: EXCLUSIVE_LOCK",
+                  "  locking_options: NOWAIT",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
+TEST_F(Table_select, lock_exclusive_nowait_constant) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCK);");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_exclusive",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: EXCLUSIVE_LOCK",
+                  "  locking_options: SKIP_LOCKED",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
+TEST_F(Table_select, lock_exclusive_skip_lock_string) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockExclusive('skip_lock');");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_exclusive",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: EXCLUSIVE_LOCK",
+                  "  locking_options: SKIP_LOCKED",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
+}
+
+TEST_F(Table_select, lock_exclusive_skip_lock_constant) {
+  execute("session.startTransaction();");
+  _cout.str("");
+  execute("table.select().where('_id = \"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCK);");
+  // Validates the stream
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "Table_select.lock_exclusive",
+      multiline({
+                  ">>>> SEND Mysqlx.Crud.Find {",
+                  "  collection {",
+                  "    name: \"test_table\"",
+                  "    schema: \"test_locking\"",
+                  "  }",
+                  "  data_model: TABLE",
+                  "  criteria {",
+                  "    type: OPERATOR",
+                  "    operator {",
+                  "      name: \"==\"",
+                  "      param {",
+                  "        type: IDENT",
+                  "        identifier {",
+                  "          name: \"_id\"",
+                  "        }",
+                  "      }",
+                  "      param {",
+                  "        type: LITERAL",
+                  "        literal {",
+                  "          type: V_OCTETS",
+                  "          v_octets {",
+                  "            value: \"1\"",
+                  "          }",
+                  "        }",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  locking: EXCLUSIVE_LOCK",
+                  "  locking_options: SKIP_LOCKED",
+                  "}"
+                 }),
+      _cout.str());
+
+  execute("session.rollback();");
+  _cout.str("");
 }
 
 }

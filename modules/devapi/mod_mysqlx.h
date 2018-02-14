@@ -88,6 +88,7 @@ virtual shcore::Value get_member(const std::string &prop) const;
 
 private:
 shcore::Object_bridge_ref _type;
+shcore::Object_bridge_ref _lock_contention;
 
 END_DECLARE_MODULE();
 }  // namespace mysqlx
