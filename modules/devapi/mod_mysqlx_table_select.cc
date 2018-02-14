@@ -27,6 +27,7 @@
 #include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
+#include "modules/devapi/base_constants.h"
 #include "scripting/common.h"
 #include "utils/utils_time.h"
 #include "shellcore/utils_help.h"
@@ -100,6 +101,28 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
 * - groupBy(List searchExprStr)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
 * - bind(String name, Value value)
 * - execute()
 *
@@ -166,6 +189,28 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
 * - groupBy(List searchExprStr)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
 * - bind(String name, Value value)
 * - execute()
 *
@@ -215,6 +260,28 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
 * - having(String searchCondition)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
 * - bind(String name, Value value)
 * - execute()
 *
@@ -276,6 +343,28 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
 *
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
 * - bind(String name, Value value)
 * - execute()
 *
@@ -331,6 +420,28 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
 * - bind(String name, Value value)
 * - execute()
 *
@@ -389,6 +500,28 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
 * After this function invocation, the following functions can be invoked:
 *
 * - offset(Integer limitOffset)
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
 * - bind(String name, Value value)
 * - execute()
 *
@@ -455,27 +588,90 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+void TableSelect::set_lock_contention(const shcore::Argument_list &args) {
+  std::string lock_contention;
+  if (args.size() == 1) {
+    if (args[0].type == shcore::Object) {
+      std::shared_ptr<Constant> constant =
+          std::dynamic_pointer_cast<Constant>(args.object_at(0));
+      if (constant && constant->group() == "LockContention")
+        lock_contention = constant->data().as_string();
+    } else if (args[0].type == shcore::String) {
+      lock_contention = args.string_at(0);
+    }
+
+    if (!shcore::str_casecmp(lock_contention.c_str(), "nowait")) {
+      message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_NOWAIT);
+    } else if (!shcore::str_casecmp(lock_contention.c_str(), "skip_lock")) {
+      message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
+    } else if (shcore::str_casecmp(lock_contention.c_str(), "default")) {
+        throw shcore::Exception::argument_error(
+            "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
+            "SKIP_LOCK");
+    }
+  }
+}
+
 REGISTER_HELP(TABLESELECT_LOCK_SHARED_BRIEF,
               "Instructs the server to acquire shared row locks in documents "
               "matched by this find operation.");
+REGISTER_HELP(
+    TABLESELECT_LOCK_SHARED_PARAM,
+    "@param lockContention optional parameter to indicate how to handle rows "
+    "that are already locked.");
 REGISTER_HELP(TABLESELECT_LOCK_SHARED_RETURNS,
               "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL,
-              "When this function is called, the selected documents will be"
+              "When this function is called, the selected rows will be"
               "locked for write operations, they may be retrieved on a "
               "different session, but no updates will be allowed.");
 REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL1,
               "The acquired locks will be released when the current "
               "transaction is commited or rolled back.");
+
 REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL2,
-              "If another session already holds an exclusive lock on the "
-              "matching documents, the find will block until the lock is "
-              "released.");
+              "The lockContention parameter defines the behavior of the "
+              "operation if another session contains an exlusive lock to "
+              "matching rows.");
+
 REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL3,
+              "The lockContention can be specified using the following "
+              "constants:");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL4,
+              "@li mysqlx.LockContention.DEFAULT");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL5,
+              "@li mysqlx.LockContention.NOWAIT");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL6,
+              "@li mysqlx.LockContention.SKIP_LOCK");
+
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL7,
+              "The lockContention can also be specified using the following "
+              "string literals (no case sensitive):");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL8, "@li 'DEFAULT'");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL9, "@li 'NOWAIT'");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL10, "@li 'SKIP_LOCK'");
+
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL11,
+              "If no lockContention or the default is specified, the operation "
+              "will block if another session already holds an exclusive lock "
+              "on matching rows until the lock is released.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL12,
+              "If lockContention is set to NOWAIT and another session "
+              "already holds an exclusive lock on matching rows, the "
+              "operation will not block and an error will be generated.");
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL13,
+              "If lockContention is set to SKIP_LOCK and another session "
+              "already holds an exclusive lock on matching rows, the "
+              "operation will not block and will return only those rows "
+              "not having an exclusive lock.");
+
+REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL14,
               "This operation only makes sense within a transaction.");
 
 /**
  * $(TABLESELECT_LOCK_SHARED_BRIEF)
+ *
+ * $(TABLESELECT_LOCK_SHARED_PARAM)
  *
  * $(TABLESELECT_LOCK_SHARED_RETURNS)
  *
@@ -486,6 +682,22 @@ REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL3,
  * $(TABLESELECT_LOCK_SHARED_DETAIL2)
  *
  * $(TABLESELECT_LOCK_SHARED_DETAIL3)
+ * $(TABLESELECT_LOCK_SHARED_DETAIL4)
+ * $(TABLESELECT_LOCK_SHARED_DETAIL5)
+ * $(TABLESELECT_LOCK_SHARED_DETAIL6)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL7)
+ * $(TABLESELECT_LOCK_SHARED_DETAIL8)
+ * $(TABLESELECT_LOCK_SHARED_DETAIL9)
+ * $(TABLESELECT_LOCK_SHARED_DETAIL10)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL11)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL12)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL13)
+ *
+ * $(TABLESELECT_LOCK_SHARED_DETAIL14)
  *
  * #### Method Chaining
  *
@@ -493,7 +705,17 @@ REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL3,
  *
  * After this function invocation, the following functions can be invoked:
  *
- * - lockExclusive()
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+*/
+#endif
+/**
  * - bind(String name, Value value)
  * - execute()
  *
@@ -502,46 +724,87 @@ REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL3,
  */
 //@{
 #if DOXYGEN_JS
-TableSelect TableSelect::lockShared() {
+TableSelect TableSelect::lockShared(String lockContention) {
 }
 #elif DOXYGEN_PY
-TableSelect TableSelect::lock_shared() {
+TableSelect TableSelect::lock_shared(str lockContention) {
 }
 #endif
 //@}
 shcore::Value TableSelect::lock_shared(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("lockShared").c_str());
+  args.ensure_count(0, 1, get_function_name("lockShared").c_str());
 
   try {
     message_.set_locking(Mysqlx::Crud::Find_RowLock_SHARED_LOCK);
 
+    set_lock_contention(args);
+
     update_functions(F::lockShared);
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.lockShared");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("lockShared"));
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_BRIEF,
-              "Instructs the server to acquire an exclusive lock on documents "
+              "Instructs the server to acquire an exclusive lock on rows "
               "matched by this find operation.");
+REGISTER_HELP(
+    TABLESELECT_LOCK_EXCLUSIVE_PARAM,
+    "@param lockContention optional parameter to indicate how to handle "
+    "rows that are already locked.");
 REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_RETURNS,
               "@returns This TableSelect object.");
 REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL,
-              "When this function is called, the selected documents will be"
+              "When this function is called, the selected rows will be"
               "locked for read operations, they will not be retrievable by "
               "other session.");
 REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL1,
               "The acquired locks will be released when the current "
               "transaction is commited or rolled back.");
+
 REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL2,
-              "The operation will block if another session already holds a "
-              "lock on matching documents (either shared and exclusive).");
+              "The lockContention parameter defines the behavior of the "
+              "operation if another session contains a lock to matching "
+              "rows.");
+
 REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3,
+              "The lockContention can be specified using the following "
+              "constants:");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL4,
+              "@li mysqlx.LockContention.DEFAULT");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL5,
+              "@li mysqlx.LockContention.NOWAIT");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL6,
+              "@li mysqlx.LockContention.SKIP_LOCK");
+
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL7,
+              "The lockContention can also be specified using the following "
+              "string literals (no case sensitive):");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL8, "@li 'DEFAULT'");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL9, "@li 'NOWAIT'");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL10, "@li 'SKIP_LOCK'");
+
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL11,
+              "If no lockContention or the default is specified, the operation "
+              "will block if another session already holds a lock on matching "
+              "rows until the lock is released.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL12,
+              "If lockContention is set to NOWAIT and another session "
+              "already holds a lock on matching rows, the operation will not "
+              "block and an error will be generated.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL13,
+              "If lockContention is set to SKIP_LOCK and another session "
+              "already holds a lock on matching rows, the operation will not "
+              "block and will return only those rows not having an exclusive "
+              "lock.");
+REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL14,
               "This operation only makes sense within a transaction.");
 
 /**
  * $(TABLESELECT_LOCK_EXCLUSIVE_BRIEF)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_PARAM)
  *
  * $(TABLESELECT_LOCK_EXCLUSIVE_RETURNS)
  *
@@ -552,6 +815,22 @@ REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3,
  * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL2)
  *
  * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3)
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL4)
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL5)
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL6)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL7)
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL8)
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL9)
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL10)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL11)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL12)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL13)
+ *
+ * $(TABLESELECT_LOCK_EXCLUSIVE_DETAIL14)
  *
  * #### Method Chaining
  *
@@ -559,7 +838,17 @@ REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3,
  *
  * After this function invocation, the following functions can be invoked:
  *
- * - lockShared()
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+*/
+#endif
+/**
  * - bind(String name, Value value)
  * - execute()
  *
@@ -568,22 +857,24 @@ REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3,
  */
 //@{
 #if DOXYGEN_JS
-TableSelect TableSelect::lockExclusive() {
+TableSelect TableSelect::lockExclusive(String lockContention) {
 }
 #elif DOXYGEN_PY
-TableSelect TableSelect::lock_exclusive() {
+TableSelect TableSelect::lock_exclusive(str lockContention) {
 }
 #endif
 //@}
 shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("lockExclusive").c_str());
+  args.ensure_count(0, 1, get_function_name("lockExclusive").c_str());
 
   try {
     message_.set_locking(Mysqlx::Crud::Find_RowLock_EXCLUSIVE_LOCK);
 
+    set_lock_contention(args);
+
     update_functions(F::lockExclusive);
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.lockExclusive");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("lockExclusive"));
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

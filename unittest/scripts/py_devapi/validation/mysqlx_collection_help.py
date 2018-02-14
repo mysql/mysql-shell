@@ -205,6 +205,8 @@ SYNTAX
               [.group_by(...)[.having(searchCondition)]]
               [.sort(...)]
               [.limit(numberOfRows)[.skip(offset)]]
+              [.lock_shared(...)]
+              [.lock_exclusive(...)]
               [.bind(placeHolder, value)[.bind(...)]]
               [.execute()]
 
@@ -285,6 +287,82 @@ Retrieves documents from a collection, matching a specified criteria.
 
     If used, the first 'offset' records will not be included on the result.
 
+  .lock_shared(...)
+
+    When this function is called, the selected documents will belocked for
+    write operations, they may be retrieved on a different session, but no
+    updates will be allowed.
+
+    The acquired locks will be released when the current transaction is
+    commited or rolled back.
+
+    The lockContention parameter defines the behavior of the operation if
+    another session contains an exlusive lock to matching documents.
+
+    The lockContention can be specified using the following constants:
+
+     - mysqlx.LockContention.DEFAULT
+     - mysqlx.LockContention.NOWAIT
+     - mysqlx.LockContention.SKIP_LOCK
+
+    The lockContention can also be specified using the following string
+    literals (no case sensitive):
+
+     - 'DEFAULT'
+     - 'NOWAIT'
+     - 'SKIP_LOCK'
+
+    If no lockContention or the default is specified, the operation will block
+    if another session already holds an exclusive lock on matching documents
+    until the lock is released.
+
+    If lockContention is set to NOWAIT and another session already holds an
+    exclusive lock on matching documents, the operation will not block and an
+    error will be generated.
+
+    If lockContention is set to SKIP_LOCK and another session already holds an
+    exclusive lock on matching documents, the operation will not block and will
+    return only those documents not having an exclusive lock.
+
+    This operation only makes sense within a transaction.
+
+  .lock_exclusive(...)
+
+    When this function is called, the selected documents will be locked for
+    read operations, they will not be retrievable by other session.
+
+    The acquired locks will be released when the current transaction is
+    commited or rolled back.
+
+    The lockContention parameter defines the behavior of the operation if
+    another session contains a lock to matching documents.
+
+    The lockContention can be specified using the following constants:
+
+     - mysqlx.LockContention.DEFAULT
+     - mysqlx.LockContention.NOWAIT
+     - mysqlx.LockContention.SKIP_LOCK
+
+    The lockContention can also be specified using the following string
+    literals (no case sensitive):
+
+     - 'DEFAULT'
+     - 'NOWAIT'
+     - 'SKIP_LOCK'
+
+    If no lockContention or the default is specified, the operation will block
+    if another session already holds a lock on matching documents.
+
+    If lockContention is set to NOWAIT and another session already holds a lock
+    on matching documents, the operation will not block and an error will be
+    generated.
+
+    If lockContention is set to SKIP_LOCK and  another session already holds a
+    lock on matching documents, the operation will not block and will return
+    only those documents not having a lock.
+
+    This operation only makes sense within a transaction.
+
   .bind(placeHolder, value)[.bind(...)]
 
     Binds a value to a specific placeholder used on this CollectionFind object.
@@ -298,6 +376,8 @@ Retrieves documents from a collection, matching a specified criteria.
   .execute()
 
     Executes the find operation with all the configured options.
+
+
 
 #@<OUT> Collection.help('get_name')
 Returns the name of this database object.

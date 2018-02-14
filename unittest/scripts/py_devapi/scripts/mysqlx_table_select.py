@@ -117,9 +117,11 @@ crud = table.select().limit(1).offset()
 crud = table.select().limit(1).offset('')
 
 #@# TableSelect: Error conditions on lock_shared
+crud = table.select().lock_shared(5,1)
 crud = table.select().lock_shared(5)
 
 #@# TableSelect: Error conditions on lock_exclusive
+crud = table.select().lock_exclusive(5,1)
 crud = table.select().lock_exclusive(5)
 
 #@# TableSelect: Error conditions on bind

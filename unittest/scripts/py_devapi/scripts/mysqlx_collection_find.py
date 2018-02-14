@@ -115,9 +115,11 @@ crud = collection.find().limit(1).skip()
 crud = collection.find().limit(1).skip('')
 
 #@# CollectionFind: Error conditions on lock_shared
+crud = collection.find().lock_shared(5,1)
 crud = collection.find().lock_shared(5)
 
 #@# CollectionFind: Error conditions on lock_exclusive
+crud = collection.find().lock_exclusive(5,1)
 crud = collection.find().lock_exclusive(5)
 
 #@# CollectionFind: Error conditions on bind

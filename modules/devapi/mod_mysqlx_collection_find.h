@@ -68,8 +68,8 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(String sortCriteria[, String sortCriteria, ...]);
   CollectionFind limit(Integer numberOfRows);
   CollectionFind skip(Integer offset);
-  CollectionFind lockShared();
-  CollectionFind lockExclusive();
+  CollectionFind lockShared(String lockContention);
+  CollectionFind lockExclusive(String lockContention);
   CollectionFind bind(String name, Value value);
   DocResult execute();
 #elif DOXYGEN_PY
@@ -84,8 +84,8 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(str sortCriteria[, str sortCriteria, ...]);
   CollectionFind limit(int numberOfRows);
   CollectionFind skip(int offset);
-  CollectionFind lock_shared();
-  CollectionFind lock_exclusive();
+  CollectionFind lock_shared(str lockContention);
+  CollectionFind lock_exclusive(str lockContention);
   CollectionFind bind(str name, Value value);
   DocResult execute();
 #endif
@@ -107,6 +107,7 @@ class CollectionFind : public Collection_crud_definition,
 
  private:
   Mysqlx::Crud::Find message_;
+  void set_lock_contention(const shcore::Argument_list &args);
 
   struct F {
     static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;

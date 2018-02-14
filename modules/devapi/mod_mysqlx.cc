@@ -67,6 +67,7 @@ REGISTER_MODULE(Mysqlx, mysqlx) {
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
 
   _type.reset(new Type());
+  _lock_contention.reset(new LockContention());
 }
 
 // We need to hide this from doxygen to avoif warnings
@@ -76,6 +77,8 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 
   if (prop == "Type")
     ret_val = shcore::Value(_type);
+  else if (prop == "LockContention")
+    ret_val = shcore::Value(_lock_contention);
   else
     ret_val = Cpp_object_bridge::get_member(prop);
 

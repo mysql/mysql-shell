@@ -116,9 +116,11 @@ crud = table.select().limit(1).offset();
 crud = table.select().limit(1).offset('');
 
 //@# TableSelect: Error conditions on lockShared
+crud = table.select().lockShared(5,1);
 crud = table.select().lockShared(5);
 
 //@# TableSelect: Error conditions on lockExclusive
+crud = table.select().lockExclusive(5,1);
 crud = table.select().lockExclusive(5);
 
 //@# TableSelect: Error conditions on bind
