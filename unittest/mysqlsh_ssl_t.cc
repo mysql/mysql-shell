@@ -441,7 +441,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Sok, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
@@ -465,7 +465,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Sok, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
@@ -476,8 +476,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
       {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      // ssl + socket not support for X protocol
-      {Expect::Fail, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
@@ -516,7 +515,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Sok, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
@@ -544,7 +543,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Sok, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
@@ -555,8 +554,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
       {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      // ssl + socket not support for X protocol
-      {Expect::Fail, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
       {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
 // {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
