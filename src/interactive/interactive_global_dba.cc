@@ -568,7 +568,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   // Returns an interactive wrapper of this instance
   Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core);
+      new Interactive_dba_cluster(this->_shell_core, _delegate);
   cluster->set_target(dba_cluster);
   ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 
@@ -672,7 +672,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   }
 
   Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core);
+      new Interactive_dba_cluster(this->_shell_core, _delegate);
   cluster->set_target(
       std::dynamic_pointer_cast<Cpp_object_bridge>(cluster_obj));
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
@@ -711,7 +711,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     }
 
     if (options) {
-      Connection_options connection_options;
+      mysqlshdk::db::Connection_options connection_options;
       mysqlsh::set_user_from_map(&connection_options, options);
       mysqlsh::set_password_from_map(&connection_options, options);
 
@@ -964,7 +964,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       get_function_name("rebootClusterFromCompleteOutage"));
 
   Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core);
+      new Interactive_dba_cluster(this->_shell_core, _delegate);
   cluster->set_target(
       std::dynamic_pointer_cast<Cpp_object_bridge>(ret_val.as_object()));
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
@@ -1016,9 +1016,10 @@ void Global_dba::print_validation_results(
       (*opt_map)["note"] = shcore::Value(note);
     }
 
-    dump_table({"option", "current", "required", "note"},
-               {"Variable", "Current Value", "Required Value", "Note"},
-               config_errors);
+    dump_table(
+        {"option", "current", "required", "note"},
+        {"Variable", "Current Value", "Required Value", "Note"},
+        config_errors);
 
     for (auto option : *config_errors) {
       auto opt_map = option.as_map();
@@ -1230,7 +1231,7 @@ bool Global_dba::resolve_cnf_path(
         // Prompt the user to validate if shall use it or not
         println("Found configuration file at standard location: " + value);
 
-        if (prompt("Do you want to modify this file? [Y|n]: ") ==
+        if (prompt("Do you want to modify this file?") ==
             Prompt_answer::YES) {
           cnfPath = value;
           break;
@@ -1294,11 +1295,9 @@ std::string Global_dba::prompt_confirmed_password() {
   std::string password2;
   for (;;) {
     if (shcore::Prompt_result::Ok ==
-        _delegate->password(_delegate->user_data,
-                            "Password for new account: ", &password1)) {
+        _delegate->prompt_password("Password for new account: ", &password1)) {
       if (shcore::Prompt_result::Ok ==
-          _delegate->password(_delegate->user_data,
-                              "Confirm password: ", &password2)) {
+          _delegate->prompt_password("Confirm password: ", &password2)) {
         if (password1 != password2) {
           println("Passwords don't match, please try again.");
           continue;

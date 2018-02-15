@@ -34,6 +34,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/mod_sys.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "src/mysqlsh/shell_console.h"
 
 namespace mysqlsh {
 class Shell;  // from modules
@@ -76,6 +77,10 @@ class Mysql_shell : public mysqlsh::Base_shell,
     return &_shell_command_handler;
   }
 
+  std::shared_ptr<mysqlsh::Shell_console> get_console_handler() {
+    return _console_handler;
+  }
+
  protected:
   shcore::Shell_command_handler _shell_command_handler;
   static void set_sql_safe_for_logging(const std::string &patterns);
@@ -104,6 +109,7 @@ class Mysql_shell : public mysqlsh::Base_shell,
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
   std::shared_ptr<mysqlsh::Util> _global_util;
+  std::shared_ptr<mysqlsh::Shell_console> _console_handler;
 
   bool _reconnect_session;
 

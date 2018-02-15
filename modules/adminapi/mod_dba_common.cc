@@ -36,8 +36,8 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-
-#include "modules/adminapi/mod_dba.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+// #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_sql.h"
 
@@ -1292,6 +1292,5 @@ void validate_host_ip(const std::string &hostname) {
         "connect to the instance using a hostname that resolves to a supported "
         "IP address (not 127.0.1.1).");
 }
-
 }  // namespace dba
 }  // namespace mysqlsh

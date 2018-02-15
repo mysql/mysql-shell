@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,7 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
-
+#include "mysqlshdk/include/shellcore/console.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -50,7 +50,8 @@ namespace dba {
 class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
                           public std::enable_shared_from_this<Dba> {
  public:
-  explicit Dba(shcore::IShell_core *owner);
+  Dba(shcore::IShell_core *owner,
+      std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode);
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
@@ -88,6 +89,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const char *name, std::shared_ptr<MetadataStorage> metadata,
       std::shared_ptr<mysqlshdk::db::ISession> group_session) const;
 
+  std::shared_ptr<mysqlsh::IConsole> get_console_handler() {
+    return m_console_handler;
+  }
+
  public:  // Exported public methods
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
   // create and start
@@ -123,6 +128,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const shcore::Value::Map_type_ref &options,
       const std::shared_ptr<mysqlshdk::db::ISession> &instance_session);
 
+  std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
+      return _provisioning_interface;
+  }
+
 #if DOXYGEN_JS
   Integer verbose;
   Cluster createCluster(String name, Dictionary options);
@@ -135,7 +144,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Undefined stopSandboxInstance(Integer port, Dictionary options);
   Undefined checkInstanceConfiguration(
       InstanceDef instance, Dictionary options);
-  Instance configureLocalInstance(InstanceDef instance, Dictionary options);
+  JSON configureLocalInstance(InstanceDef instance, Dictionary options);
   Undefined rebootClusterFromCompleteOutage(
       String clusterName, Dictionary options);
 #elif DOXYGEN_PY
@@ -175,6 +184,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
  private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
+  std::shared_ptr<mysqlsh::IConsole> m_console_handler;
+  bool m_wizards_mode;
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);

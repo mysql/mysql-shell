@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,6 +52,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
+#include "src/mysqlsh/shell_console.h"
 
 DEBUG_OBJ_ENABLE(Mysql_shell);
 
@@ -119,20 +120,27 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   DEBUG_OBJ_ALLOC(Mysql_shell);
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
+  // Create the interaction_handler
+  _console_handler =
+      std::shared_ptr<mysqlsh::Shell_console>(
+          new mysqlsh::Shell_console(custom_delegate));
+
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
   _global_js_sys =
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
   _global_dba =
-      std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
+      std::shared_ptr<mysqlsh::dba::Dba>(
+          new mysqlsh::dba::Dba(_shell.get(), _console_handler,
+                                options().wizards));
   _global_util =
       std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
 
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
-        new shcore::Global_shell(*_shell.get()));
+        new shcore::Global_shell(*_shell.get(), _console_handler));
     auto interactive_dba = std::shared_ptr<shcore::Global_dba>(
-        new shcore::Global_dba(*_shell.get()));
+        new shcore::Global_dba(*_shell.get(), _console_handler));
 
     interactive_shell->set_target(_global_shell);
     interactive_dba->set_target(_global_dba);

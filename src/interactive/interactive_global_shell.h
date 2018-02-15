@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,13 +24,19 @@
 #ifndef _INTERACTIVE_GLOBAL_SHELL_H_
 #define _INTERACTIVE_GLOBAL_SHELL_H_
 
+#include <memory>
+
 #include "modules/interactive_object_wrapper.h"
 
 namespace shcore {
   //! Interactive wrapper for the active session
   class Global_shell : public Interactive_object_wrapper {
   public:
-    Global_shell(Shell_core& shell_core) : Interactive_object_wrapper("shell", shell_core) { init(); }
+    Global_shell(Shell_core& shell_core,
+                 std::shared_ptr<mysqlsh::IConsole> console_handler) :
+      Interactive_object_wrapper("shell", shell_core, console_handler) {
+        init();
+      }
 
     shcore::Value connect(const shcore::Argument_list &args);
 

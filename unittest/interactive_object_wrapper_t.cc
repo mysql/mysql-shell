@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License, version 2.0,
@@ -23,28 +23,31 @@
 
 #include "gtest/gtest_prod.h"
 #include "modules/interactive_object_wrapper.h"
-#include "test_utils.h"
+#include "unittest/test_utils.h"
 
 namespace shcore {
 class Interactive_object_wrapper_modified : public Interactive_object_wrapper {
-public:
-  Interactive_object_wrapper_modified(Shell_core& shell_core) :
-  Interactive_object_wrapper("test", shell_core) {   };
+ public:
+  Interactive_object_wrapper_modified(
+      Shell_core& shell_core,
+      std::shared_ptr<mysqlsh::IConsole> console_handler) :
+  Interactive_object_wrapper("test", shell_core, console_handler) {}
 
-private:
+ private:
   FRIEND_TEST(Interactive_object_wrapper_test, prompt_answer);
-
 };
 
 class Interactive_object_wrapper_test : public Shell_core_test_wrapper {
-  public:
+ public:
   virtual void SetUp() {
     Shell_core_test_wrapper::SetUp();
   }
 };
 
 TEST_F(Interactive_object_wrapper_test, prompt_answer) {
-  Interactive_object_wrapper_modified wrap(*(_interactive_shell->shell_context()));
+  Interactive_object_wrapper_modified wrap(
+      *_interactive_shell->shell_context(),
+      _interactive_shell->get_console_handler());
 
   output_handler.prompts.push_back({"*", ""});
   Prompt_answer ans = wrap.prompt("ques?");
@@ -127,5 +130,4 @@ TEST_F(Interactive_object_wrapper_test, prompt_answer) {
   ans = wrap.prompt("ques?", Prompt_answer::NO);
   EXPECT_EQ(ans, Prompt_answer::NO);
 }
-}
-
+}  // namespace shcore

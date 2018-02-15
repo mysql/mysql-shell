@@ -141,8 +141,10 @@
  */
 
 using std::placeholders::_1;
-using namespace mysqlsh;
-using namespace mysqlsh::dba;
+
+namespace mysqlsh {
+namespace dba {
+
 using namespace shcore;
 
 #define PASSWORD_LENGHT 16
@@ -187,8 +189,9 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL3,
 REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
-
-Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) {
+Dba::Dba(shcore::IShell_core *owner,
+    std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode)
+    : _shell_core(owner) {
   init();
 }
 
@@ -3166,3 +3169,6 @@ void Dba::validate_instances_gtid_reboot_cluster(
         most_updated_instance.first + "'.");
   }
 }
+
+}  // namespace dba
+}  // namespace mysqlsh

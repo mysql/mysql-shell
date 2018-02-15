@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,9 +27,12 @@
 #ifndef _MOD_INTERACTIVE_PROXY_H_
 #define _MOD_INTERACTIVE_PROXY_H_
 
+#include <memory>
+
 #include "scripting/types_cpp.h"
 #include "scripting/lang_base.h"
 #include "shellcore/shell_core.h"
+#include "mysqlshdk/include/shellcore/console.h"
 
 namespace shcore {
 class Shell_core;
@@ -61,7 +64,9 @@ enum class Prompt_answer {
 */
 class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
 public:
-  Interactive_object_wrapper(const std::string& alias, Shell_core& core);
+  Interactive_object_wrapper(
+      const std::string& alias, Shell_core& core,
+      std::shared_ptr<mysqlsh::IConsole> console_handler);
 
   // Returns Undefined if the _target is NOT set
   virtual std::string class_name() const { return _target ? _target->class_name() : "Undefined"; }
@@ -124,7 +129,7 @@ protected:
   std::string _alias;
   std::shared_ptr<Cpp_object_bridge> _target;
   Shell_core& _shell_core;
-  Interpreter_delegate *_delegate;
+  std::shared_ptr<mysqlsh::IConsole> _delegate;
 
   // Helper functions to enable implementing interaction
   void print(const std::string& text) const;

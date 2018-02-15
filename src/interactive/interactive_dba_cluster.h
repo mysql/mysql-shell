@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #define SRC_INTERACTIVE_INTERACTIVE_DBA_CLUSTER_H_
 
 #include <string>
+#include <memory>
 
 #include "modules/interactive_object_wrapper.h"
 #include "modules/adminapi/mod_dba_common.h"
@@ -35,8 +36,10 @@
 namespace shcore {
 class Interactive_dba_cluster : public Interactive_object_wrapper {
  public:
-  explicit Interactive_dba_cluster(Shell_core &shell_core) :
-    Interactive_object_wrapper("dba", shell_core) { init(); }
+  explicit Interactive_dba_cluster(
+      Shell_core &shell_core,
+      std::shared_ptr<mysqlsh::IConsole> console_handler) :
+    Interactive_object_wrapper("dba", shell_core, console_handler) { init(); }
 
   void init();
 
