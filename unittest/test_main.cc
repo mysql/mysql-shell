@@ -199,7 +199,8 @@ static void detect_mysql_environment(int port, const char *pwd) {
   const std::string xsocket_absolute =
       make_socket_absolute_path(datadir, xsocket);
 
-  std::string hostname_ip = mysqlshdk::utils::resolve_hostname_ipv4(hostname);
+  std::string hostname_ip =
+      mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
 
   std::cout << "Target MySQL server:\n";
   std::cout << "version=" << g_target_server_version.get_full() << "\n";

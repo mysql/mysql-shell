@@ -173,6 +173,12 @@ class Shell_test_env : public ::testing::Test {
  public:
   static std::string get_path_to_mysqlsh();
   static std::string get_path_to_test_dir(const std::string &file = "");
+  static std::string hostname() {
+    return _hostname;
+  }
+  static std::string hostname_ip() {
+    return _hostname_ip;
+  }
   std::string mysql_sandbox_uri1(const std::string &user = "root",
                                  const std::string &pwd = "root");
   std::string mysql_sandbox_uri2(const std::string &user = "root",

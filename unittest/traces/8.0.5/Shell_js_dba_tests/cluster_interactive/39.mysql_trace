@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3331",
+    "uri": "root:root@localhost:3336",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "14",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "120fb016-168e-11e8-a91d-4485005154dc"
+            "4901f95f-1ad2-11e8-a959-080027c42733"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "1119d016-168e-11e8-bbc4-4485005154dc"
+            "462c5591-1ad2-11e8-be6e-080027c42733"
         ]
     ]
 },
@@ -143,7 +143,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33111,localhost:33211"
+            "localhost:33161,localhost:33261"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "T460-bin.000004",
+            "vm-ubuntu-bin.000004",
             231,
             "",
             "",
-            "0e7797ec-168e-11e8-a91d-4485005154dc:1-14,\n120fb016-168e-11e8-a91d-4485005154dc:1-39"
+            "431d8853-1ad2-11e8-a959-080027c42733:1-14,\n4901f95f-1ad2-11e8-a959-080027c42733:1-39"
         ]
     ]
 },

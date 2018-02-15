@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 #include "utils/utils_general.h"
+#include "utils/utils_net.h"
 #include "utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -173,7 +174,12 @@ std::string Uri_encoder::encode_host(const std::string& data) {
   _tokenizer.set_complex_token("sub-delims", SUBDELIMITERS);
   _tokenizer.set_complex_token("unreserved", UNRESERVED);
 
-  return process(data);
+  std::string host = process(data);
+
+  if (mysqlshdk::utils::Net::is_ipv6(data))
+    return "[" + host + "]";
+  else
+    return host;
 }
 
 std::string Uri_encoder::encode_port(int port) {

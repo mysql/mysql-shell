@@ -98,7 +98,7 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
   _mysql_sandbox_nport3 = std::stoi(_mysql_sandbox_port3);
 
   _hostname = getenv("MYSQL_HOSTNAME");
-  _hostname_ip = mysqlshdk::utils::resolve_hostname_ipv4(_hostname);
+  _hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(_hostname);
 
   reset();
 }

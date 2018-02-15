@@ -422,6 +422,9 @@ REGISTER_HELP(DBA_GETCLUSTER_THROWS3,
               "@throws ArgumentError if the Cluster name is invalid.");
 REGISTER_HELP(DBA_GETCLUSTER_THROWS4,
               "@throws ArgumentError if the Cluster does not exist.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS5,
+              "@throws RuntimeError if the current connection cannot be used "
+              "for Group Replication.");
 
 REGISTER_HELP(DBA_GETCLUSTER_RETURNS,
               "@returns The cluster object identified "
@@ -449,6 +452,7 @@ REGISTER_HELP(DBA_GETCLUSTER_DETAIL2,
  * $(DBA_GETCLUSTER_THROWS2)
  * $(DBA_GETCLUSTER_THROWS3)
  * $(DBA_GETCLUSTER_THROWS4)
+ * $(DBA_GETCLUSTER_THROWS5)
  *
  * $(DBA_GETCLUSTER_RETURNS)
  *
@@ -617,6 +621,9 @@ REGISTER_HELP(DBA_CREATECLUSTER_THROWS9,
               "@throws RuntimeError if the value for the groupName, "\
               "localAddress, or groupSeeds options is not valid for Group "\
               "Replication.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS10,
+              "@throws RuntimeError if the current connection cannot be used "
+              "for Group Replication.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_RETURNS,
               "@returns The created cluster object.");
@@ -749,6 +756,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
  * $(DBA_CREATECLUSTER_THROWS7)
  * $(DBA_CREATECLUSTER_THROWS8)
  * $(DBA_CREATECLUSTER_THROWS9)
+ * $(DBA_CREATECLUSTER_THROWS10)
  *
  * $(DBA_CREATECLUSTER_RETURNS)
  *
@@ -1044,6 +1052,9 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM,
               "the drop operation.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS,
               "@throws MetadataError if the Metadata is inaccessible.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS1,
+              "@throws RuntimeError if the current connection cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_RETURNS, "@returns nothing.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL,
               "The options dictionary may contain the following options:");
@@ -1062,6 +1073,7 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL2,
 * $(DBA_DROPMETADATASCHEMA_PARAM)
 *
 * $(DBA_DROPMETADATASCHEMA_THROWS)
+* $(DBA_DROPMETADATASCHEMA_THROWS1)
 *
 * $(DBA_DROPMETADATASCHEMA_RETURNS)
 *
@@ -1139,13 +1151,16 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS2,
               "@throws ArgumentError if the instance definition is a "
               "connection dictionary but empty.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS3,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS4,
-              "@throws RuntimeError if the instance is offline.");
+              "@throws RuntimeError if the instance accounts are invalid.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS5,
+              "@throws RuntimeError if the instance is offline.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS6,
               "@throws RuntimeError if the instance is already part of a "
               "Replication Group.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS6,
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS7,
               "@throws RuntimeError if the instance is already part of an "
               "InnoDB Cluster.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_RETURNS,
@@ -1228,6 +1243,7 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
 * $(DBA_CHECKINSTANCECONFIGURATION_THROWS4)
 * $(DBA_CHECKINSTANCECONFIGURATION_THROWS5)
 * $(DBA_CHECKINSTANCECONFIGURATION_THROWS6)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS7)
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_RETURNS)
 *
@@ -1873,14 +1889,17 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS2,
               "@throws ArgumentError if the instance definition is a "
               "connection dictionary but empty.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS3,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS4,
-              "@throws RuntimeError if the instance is offline.");
+              "@throws RuntimeError if the instance accounts are invalid.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS5,
+              "@throws RuntimeError if the instance is offline.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS6,
               "@throws RuntimeError if the "
               "instance is already part of "
               "a Replication Group.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS6,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS7,
               "@throws RuntimeError if the "
               "instance is already part of "
               "an InnoDB Cluster.");
@@ -1977,6 +1996,7 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
 * $(DBA_CONFIGURELOCALINSTANCE_THROWS4)
 * $(DBA_CONFIGURELOCALINSTANCE_THROWS5)
 * $(DBA_CONFIGURELOCALINSTANCE_THROWS6)
+* $(DBA_CONFIGURELOCALINSTANCE_THROWS7)
 *
 * $(DBA_CONFIGURELOCALINSTANCE_RETURNS)
 *
@@ -2070,6 +2090,8 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
 shcore::Value::Map_type_ref Dba::_check_instance_configuration(
     const mysqlshdk::db::Connection_options &instance_def,
     const shcore::Value::Map_type_ref &options, bool allow_update) {
+  validate_connection_options(instance_def);
+
   shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
   shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
 
@@ -2498,6 +2520,9 @@ REGISTER_HELP(
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5,
               "@throws RuntimeError if some instance of the Cluster belongs to "
               "a Replication Group.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6,
+              "@throws RuntimeError if the current connection cannot be used "
+              "for Group Replication.");
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS,
               "@returns The rebooted cluster object.");
@@ -2544,6 +2569,7 @@ REGISTER_HELP(
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
+* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6)
 *
 * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
 *

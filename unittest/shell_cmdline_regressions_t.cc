@@ -345,8 +345,7 @@ TEST_F(Command_line_test, bug26970629) {
     execute({_mysqlsh, usr.c_str(), pwd.c_str(), host.c_str(), socket.c_str(),
              "-e", "dba.createCluster('sample')", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Dba.createCluster: a MySQL session through TCP/IP is required to "
-        "perform this operation ");
+        "a MySQL session through TCP/IP is required to perform this operation");
   }
 }
 #endif

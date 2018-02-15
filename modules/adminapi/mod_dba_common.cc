@@ -1074,7 +1074,7 @@ bool validate_instance_rejoinable(
  *         IP address.
  */
 void validate_host_ip(const std::string &hostname) {
-    std::string seed_ip =  mysqlshdk::utils::resolve_hostname_ipv4(hostname);
+  std::string seed_ip =  mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
   // IP address '127.0.1.1' is not supported by GCS leading to errors.
   // NOTE: This IP is set by default in Debian platforms.
   if (seed_ip == "127.0.1.1")
@@ -1085,5 +1085,38 @@ void validate_host_ip(const std::string &hostname) {
         "connect to the instance using a hostname that resolves to a supported "
         "IP address (not 127.0.1.1).");
 }
+
+void validate_connection_options(const Connection_options &options,
+    std::function<shcore::Exception(const std::string &)> factory) {
+  auto throw_exception = [&options, &factory](const std::string &error) {
+    throw factory("Connection '" +
+        options.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
+        "' is not valid: " + error + ".");
+  };
+
+  if (options.has_transport_type() &&
+      options.get_transport_type() != mysqlshdk::db::Tcp) {
+    // TODO(ak) this restriction should be lifted and sockets allowed
+    throw_exception("a MySQL session through TCP/IP is required to perform "
+                    "this operation");
+  }
+
+  if (options.has_host()) {
+    // host has to be an IPv4 address or resolve to an IPv4 address
+    const std::string &host = options.get_host();
+
+    if (mysqlshdk::utils::Net::is_ipv6(host))
+      throw_exception(host + " is an IPv6 address, which is not supported by "
+          "the Group Replication. Please ensure an IPv4 address is used when "
+          "setting up an InnoDB cluster");
+
+    try {
+      mysqlshdk::utils::Net::resolve_hostname_ipv4(host);
+    } catch (mysqlshdk::utils::net_error &error) {
+      throw_exception("unable to resolve the IPv4 address");
+    }
+  }
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

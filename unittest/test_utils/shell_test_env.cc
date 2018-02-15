@@ -40,6 +40,7 @@ extern mysqlshdk::utils::Version g_highest_tls_version;
 extern "C" const char *g_test_home;
 
 namespace tests {
+namespace {
 
 class My_random : public mysqlshdk::utils::Random {
  public:
@@ -50,6 +51,48 @@ class My_random : public mysqlshdk::utils::Random {
  private:
   int ts = 0;
 };
+
+/**
+ * Network utilities used by the unit tests.
+ */
+class Test_net_utilities : public mysqlshdk::utils::Net {
+ public:
+  ~Test_net_utilities() override {
+    remove();
+  }
+
+  /**
+   * Injects this instance of network utilities, replacing the default
+   * behaviour.
+   */
+  void inject() {
+    set(this);
+  }
+
+  /**
+   * Removes the injected instance, restoring the default behaviour.
+   */
+  void remove() {
+    if (get() == this)
+      set(nullptr);
+  }
+
+ protected:
+  /**
+   * Allows to resolve the hostname stored by the shell test environment.
+   */
+  std::string resolve_hostname_ipv4_impl(const std::string &name) const
+                                                                  override {
+    if (name == Shell_test_env::hostname())
+      return Shell_test_env::hostname_ip();
+    else
+      return Net::resolve_hostname_ipv4_impl(name);
+  }
+};
+
+Test_net_utilities test_net_utilities;
+
+}  // namespace
 
 std::string Shell_test_env::_host;
 std::string Shell_test_env::_port;
@@ -114,7 +157,7 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
   }
 
   _hostname = getenv("MYSQL_HOSTNAME");
-  _hostname_ip = mysqlshdk::utils::resolve_hostname_ipv4(_hostname);
+  _hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(_hostname);
 
   _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 
@@ -135,6 +178,8 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
   // version
   _target_server_version = g_target_server_version;
   _highest_tls_version = g_highest_tls_version;
+
+  test_net_utilities.inject();
 }
 
 /**
