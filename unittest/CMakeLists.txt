@@ -145,6 +145,11 @@ if(WITH_TESTS)
       )
     ENDIF()
 
+    IF(OPENSSL_TO_BUNDLE_DIR AND NOT APPLE AND NOT WIN32)
+       SET_PROPERTY(TARGET run_unit_tests PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
+       SET_PROPERTY(TARGET run_unit_tests PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
+    ENDIF()
+
     if(HAVE_V8)
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
     endif()
