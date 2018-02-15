@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/preconditions.h"
 #include <map>
+#include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
 
 namespace mysqlsh {
@@ -91,6 +92,33 @@ const std::map<std::string, FunctionAvailability>
           ReplicationQuorum::State::Any,
           ManagedInstance::State::OnlineRW |
               ManagedInstance::State::OnlineRO}}};
+
+/**
+ * Validates the session used to manage the group.
+ *
+ * Checks if the given session is valid for use with AdminAPI.
+ *
+ * @param group_session A group session to validate.
+ *
+ * @throws shcore::Exception::runtime_error if session is not valid.
+ */
+void validate_group_session(
+    const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
+  // A classic session is required to perform any of the AdminAPI operations
+  if (!group_session) {
+    throw shcore::Exception::runtime_error(
+        "The shell must be connected to a member of the InnoDB cluster being "
+        "managed");
+  } else if (!group_session->is_open()) {
+    throw shcore::Exception::runtime_error(
+        "The session was closed. An open session is required to perform "
+        "this operation");
+  }
+
+  validate_connection_options(group_session->get_connection_options(),
+                              shcore::Exception::runtime_error);
+}
+
 }  // namespace
 
 namespace ManagedInstance {
@@ -128,41 +156,24 @@ std::string describe(State state) {
 
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
+  validate_group_session(group_session);
+
   Cluster_check_info state;
+  // TODO(ak) make get_gr_instance_type() check the metadata of the MD server
+  // instead
+  // Retrieves the instance configuration type from the perspective of the
+  // active session
+  state.source_type = get_gr_instance_type(group_session);
 
-  // A classic session is required to perform any of the AdminAPI operations
-  if (!group_session) {
-    throw shcore::Exception::runtime_error(
-        "The shell must be connected to a member of the InnoDB cluster being "
-        "managed");
-  } else if (!group_session->is_open()) {
-    throw shcore::Exception::runtime_error(
-        "The session was closed. An open session is required to perform "
-        "this operation");
-  } else if (group_session->get_connection_options().has_transport_type() &&
-             group_session->get_connection_options().get_transport_type() !=
-                 mysqlshdk::db::Tcp) {
-    // TODO(ak) this restriction should be lifted and sockets allowed
-    throw shcore::Exception::runtime_error(
-        "a MySQL session through TCP/IP is required to perform this "
-        "operation");
+  // If it is not a standalone instance, validates the instance state
+  if (state.source_type != GRInstanceType::Standalone &&
+      state.source_type != GRInstanceType::StandaloneWithMetadata) {
+    // Retrieves the instance cluster statues from the perspective of the
+    // active session (The Metadata Session)
+    state = get_replication_group_state(group_session, state.source_type);
   } else {
-    // TODO(ak) make get_gr_instance_type() check the metadata of the MD server
-    // instead
-    // Retrieves the instance configuration type from the perspective of the
-    // active session
-    state.source_type = get_gr_instance_type(group_session);
-
-    // If it is not a standalone instance, validates the instance state
-    if (state.source_type != GRInstanceType::Standalone &&
-        state.source_type != GRInstanceType::StandaloneWithMetadata) {
-      // Retrieves the instance cluster statues from the perspective of the
-      // active session (The Metadata Session)
-      state = get_replication_group_state(group_session, state.source_type);
-    } else {
-      state.quorum = ReplicationQuorum::Normal;
-      state.source_state = ManagedInstance::Offline;
-    }
+    state.quorum = ReplicationQuorum::Normal;
+    state.source_state = ManagedInstance::Offline;
   }
 
   return state;

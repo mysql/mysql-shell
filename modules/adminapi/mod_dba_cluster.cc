@@ -283,26 +283,29 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS4,
               "instance definition is a "
               "connection dictionary but empty.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS5,
-              "@throws RuntimeError if the "
-              "instance accounts are invalid.");
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS6,
-              "@throws RuntimeError if the "
-              "instance is not in bootstrapped "
-              "state.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7,
               "@throws ArgumentError if the "
               "value for the memberSslMode "
               "option is not one of the "
               "allowed: \"AUTO\", \"DISABLED\", "
               "\"REQUIRED\".");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7,
+              "@throws ArgumentError if the value for the ipWhitelist, "\
+              "localAddress, or groupSeeds options is empty.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS8,
+              "@throws RuntimeError if the "
+              "instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS9,
+              "@throws RuntimeError if the "
+              "instance is not in bootstrapped "
+              "state.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS10,
               "@throws RuntimeError if the SSL "
               "mode specified is not compatible "
               "with the one used in the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS9,
-              "@throws ArgumentError if the value for the ipWhitelist, "\
-              "localAddress, or groupSeeds options is empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS10,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS11,
               "@throws RuntimeError if the value for the localAddress or "\
               "groupSeeds options is not valid for Group Replication.");
 
@@ -425,6 +428,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
  * $(CLUSTER_ADDINSTANCE_THROWS8)
  * $(CLUSTER_ADDINSTANCE_THROWS9)
  * $(CLUSTER_ADDINSTANCE_THROWS10)
+ * $(CLUSTER_ADDINSTANCE_THROWS11)
  *
  * $(CLUSTER_ADDINSTANCE_RETURNS)
  *
@@ -483,6 +487,8 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
     auto connection_options =
         mysqlsh::get_connection_options(args, PasswordFormat::OPTIONS);
 
+    validate_connection_options(connection_options);
+
     // Validate if the connection host is resolved to a supported IP address.
     validate_host_ip(connection_options.get_host());
 
@@ -513,25 +519,28 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS1,
               "@throws MetadataError if the "
               "Metadata update operation failed.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS2,
-              "@throws RuntimeError if the "
-              "instance does not exist.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3,
-              "@throws RuntimeError if the "
-              "instance accounts are invalid.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4,
-              "@throws RuntimeError if the "
-              "instance is not in bootstrapped "
-              "state.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5,
               "@throws ArgumentError if the "
               "value for the memberSslMode "
               "option is not one of the allowed: "
               "\"AUTO\", \"DISABLED\", \"REQUIRED\".");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3,
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4,
+              "@throws RuntimeError if the "
+              "instance does not exist.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5,
+              "@throws RuntimeError if the "
+              "instance accounts are invalid.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS6,
+              "@throws RuntimeError if the "
+              "instance is not in bootstrapped "
+              "state.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS7,
               "@throws RuntimeError if the SSL "
               "mode specified is not compatible "
               "with the one used in the cluster.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS7,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS8,
               "@throws RuntimeError if the "
               "instance is an active member "
               "of the ReplicaSet.");
@@ -615,6 +624,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
 * $(CLUSTER_REJOININSTANCE_THROWS5)
 * $(CLUSTER_REJOININSTANCE_THROWS6)
 * $(CLUSTER_REJOININSTANCE_THROWS7)
+* $(CLUSTER_REJOININSTANCE_THROWS8)
 *
 * $(CLUSTER_REJOININSTANCE_RETURNS)
 *
@@ -666,6 +676,8 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
     auto instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
+    validate_connection_options(instance_def);
+
     shcore::Value::Map_type_ref options;
 
     if (args.size() == 2)
@@ -701,8 +713,11 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS4,
               "@throws ArgumentError if the instance definition is a "
               "connection dictionary but empty.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS5,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS6,
+              "@throws RuntimeError if the instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS7,
               "@throws RuntimeError if an error occurs when trying to remove "
               "the instance "
               "(e.g., instance is not reachable).");
@@ -755,6 +770,7 @@ REGISTER_HELP(
  * $(CLUSTER_REMOVEINSTANCE_THROWS4)
  * $(CLUSTER_REMOVEINSTANCE_THROWS5)
  * $(CLUSTER_REMOVEINSTANCE_THROWS6)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS7)
  *
  * $(CLUSTER_REMOVEINSTANCE_RETURNS)
  *
@@ -1331,9 +1347,10 @@ REGISTER_HELP(
     "@param password Optional string with the password for the connection.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS,
-              "@throws MetadataError if the instance parameter is empty.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1,
               "@throws ArgumentError if the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1,
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(
     CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2,
     "@throws RuntimeError if the instance does not exist on the Metadata.");
@@ -1409,7 +1426,7 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6)
  *
- ** $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS)
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL)
  *
@@ -1495,11 +1512,14 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS2,
               "@throws ArgumentError if the instance definition is a "
               "connection dictionary but empty.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS3,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@throws ArgumentError if the instance definition cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4,
+              "@throws RuntimeError if the instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS5,
               "@throws RuntimeError if the instance is offline.");
 
-REGISTER_HELP(LUSTER_CHECKINSTANCESTATE_RETURNS,
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_RETURNS,
               "@returns resultset A JSON object with the status.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL,
@@ -1553,6 +1573,15 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  *
  * $(CLUSTER_CHECKINSTANCESTATE_PARAM)
  * $(CLUSTER_CHECKINSTANCESTATE_PARAM1)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS1)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS2)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS3)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS4)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS5)
+ *
+ * $(CLUSTER_CHECKINSTANCESTATE_RETURNS)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL)
  *

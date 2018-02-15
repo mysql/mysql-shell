@@ -1353,6 +1353,8 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   auto instance_cnx_opt =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
+  validate_connection_options(instance_cnx_opt);
+
   if (!instance_cnx_opt.has_port())
     instance_cnx_opt.set_port(mysqlshdk::db::k_default_mysql_port);
 
@@ -1842,6 +1844,8 @@ shcore::Value ReplicaSet::retrieve_instance_state(
   auto instance_def =
       mysqlsh::get_connection_options(args, PasswordFormat::STRING);
 
+  validate_connection_options(instance_def);
+
   if (!instance_def.has_port())
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
@@ -2095,6 +2099,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
   auto instance_def =
       mysqlsh::get_connection_options(args, PasswordFormat::STRING);
+
+  validate_connection_options(instance_def);
 
   if (!instance_def.has_port())
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);

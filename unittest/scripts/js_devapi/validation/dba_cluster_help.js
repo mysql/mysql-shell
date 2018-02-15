@@ -77,14 +77,16 @@ EXCEPTIONS
   ArgumentError: if the instance definition is invalid.
   ArgumentError: if the instance definition is a connection dictionary but
                  empty.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if the instance is not in bootstrapped state.
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   ArgumentError: if the value for the memberSslMode option is not one of the
                  allowed: "AUTO", "DISABLED", "REQUIRED".
-  RuntimeError: if the SSL mode specified is not compatible with the one used
-                in the cluster.
   ArgumentError: if the value for the ipWhitelist, localAddress, or groupSeeds
                  options is empty.
+  RuntimeError: if the instance accounts are invalid.
+  RuntimeError: if the instance is not in bootstrapped state.
+  RuntimeError: if the SSL mode specified is not compatible with the one used
+                in the cluster.
   RuntimeError: if the value for the localAddress or groupSeeds options is not
                 valid for Group Replication.
 
@@ -168,8 +170,14 @@ EXCEPTIONS
   ArgumentError: if the instance definition is invalid.
   ArgumentError: if the instance definition is a connection dictionary but
                  empty.
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   RuntimeError: if the instance accounts are invalid.
   RuntimeError: if the instance is offline.
+
+RETURNS
+
+ resultset A JSON object with the status.
 
 DESCRIPTION
 
@@ -309,8 +317,9 @@ WHERE
 
 EXCEPTIONS
 
-  MetadataError: if the instance parameter is empty.
   ArgumentError: if the instance parameter is empty.
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   RuntimeError: if the instance does not exist on the Metadata.
   RuntimeError: if the instance is not on the ONLINE state.
   RuntimeError: if the instance does is not an active member of a replication
@@ -387,11 +396,13 @@ EXCEPTIONS
 
   MetadataError: if the Metadata is inaccessible.
   MetadataError: if the Metadata update operation failed.
+  ArgumentError: if the value for the memberSslMode option is not one of the
+                 allowed: "AUTO", "DISABLED", "REQUIRED".
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   RuntimeError: if the instance does not exist.
   RuntimeError: if the instance accounts are invalid.
   RuntimeError: if the instance is not in bootstrapped state.
-  ArgumentError: if the value for the memberSslMode option is not one of the
-                 allowed: "AUTO", "DISABLED", "REQUIRED".
   RuntimeError: if the SSL mode specified is not compatible with the one used
                 in the cluster.
   RuntimeError: if the instance is an active member of the ReplicaSet.
@@ -456,6 +467,8 @@ EXCEPTIONS
   ArgumentError: if the instance definition is invalid.
   ArgumentError: if the instance definition is a connection dictionary but
                  empty.
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   RuntimeError: if the instance accounts are invalid.
   RuntimeError: if an error occurs when trying to remove the instance (e.g.,
                 instance is not reachable).

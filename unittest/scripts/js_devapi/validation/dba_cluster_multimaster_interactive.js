@@ -254,7 +254,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.rejoinInstance: Invalid values in connection options: authMethod
-||Cluster.rejoinInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 Rejoining the instance to the InnoDB cluster. Depending on the original

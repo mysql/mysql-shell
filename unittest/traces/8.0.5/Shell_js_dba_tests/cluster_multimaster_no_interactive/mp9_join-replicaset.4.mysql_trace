@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@T460:3321?ssl-mode=PREFERRED",
+    "uri": "root:root@vm-ubuntu:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "50",
-    "connection_info": "T460 via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "connection_id": "49",
+    "connection_info": "vm-ubuntu via TCP/IP",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            15666
+            15671
         ]
     ]
 },

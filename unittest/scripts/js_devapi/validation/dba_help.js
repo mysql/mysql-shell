@@ -62,6 +62,7 @@ EXCEPTIONS
                  groupSeeds options is empty.
   RuntimeError: if the value for the groupName, localAddress, or groupSeeds
                 options is not valid for Group Replication.
+  RuntimeError: if the current connection cannot be used for Group Replication.
 
 RETURNS
 
@@ -245,6 +246,7 @@ WHERE
 EXCEPTIONS
 
   MetadataError: if the Metadata is inaccessible.
+  RuntimeError: if the current connection cannot be used for Group Replication.
 
 RETURNS
 
@@ -278,6 +280,7 @@ EXCEPTIONS
   ArgumentError: if the Cluster name is empty.
   ArgumentError: if the Cluster name is invalid.
   ArgumentError: if the Cluster does not exist.
+  RuntimeError: if the current connection cannot be used for Group Replication.
 
 RETURNS
 
@@ -385,6 +388,8 @@ EXCEPTIONS
   ArgumentError: if the instance definition is invalid.
   ArgumentError: if the instance definition is a connection dictionary but
                  empty.
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   RuntimeError: if the instance accounts are invalid.
   RuntimeError: if the instance is offline.
   RuntimeError: if the instance is already part of a Replication Group.
@@ -495,6 +500,8 @@ EXCEPTIONS
   ArgumentError: if the instance definition is invalid.
   ArgumentError: if the instance definition is a connection dictionary but
                  empty.
+  ArgumentError: if the instance definition cannot be used for Group
+                 Replication.
   RuntimeError: if the instance accounts are invalid.
   RuntimeError: if the instance is offline.
   RuntimeError: if the instance is already part of a Replication Group.
@@ -589,6 +596,7 @@ EXCEPTIONS
   ArgumentError: if the options contain an invalid attribute.
   RuntimeError: if the Cluster does not exist on the Metadata.
   RuntimeError: if some instance of the Cluster belongs to a Replication Group.
+  RuntimeError: if the current connection cannot be used for Group Replication.
 
 RETURNS
 

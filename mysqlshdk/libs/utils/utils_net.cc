@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,54 +22,113 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_net.h"
+
 #ifdef WIN32
-#include <windows.h>
-#include <WinSock2.h>
+#include <Ws2tcpip.h>
 #else
 #include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #endif
 
 #include <cstring>
+#include <memory>
 
 namespace mysqlshdk {
 namespace utils {
 
-std::string resolve_hostname_ipv4(const std::string &name) {
-  struct hostent *hpaddr;
-#ifndef WIN32
-  struct in_addr addr;
-#endif
+namespace {
 
-#ifdef WIN32
-  if (inet_addr(name.c_str()) != INADDR_NONE) {
-#else
-  if (inet_aton(name.c_str(), &addr) != 0) {
-#endif
+/**
+ * Provides the protocol family for the given literal address.
+ *
+ * @param address The address to be checked.
+ *
+ * @return AF_INET if address is an IPv4 address, AF_INET6 if it's IPv6, 0 in
+ *         case of failure.
+ */
+int get_protocol_family(const std::string &address) {
+  addrinfo hints;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_flags = AI_NUMERICHOST;
+
+  addrinfo *info = nullptr;
+  int result = getaddrinfo(address.c_str(), nullptr, &hints, &info);
+  int family = 0;
+
+  if (result == 0) {
+    family = info->ai_family;
+    freeaddrinfo(info);
+    info = nullptr;
+  }
+
+  return family;
+}
+
+}  // namespace
+
+Net *Net::s_implementation = nullptr;
+
+std::string Net::resolve_hostname_ipv4(const std::string &name) {
+  return get()->resolve_hostname_ipv4_impl(name);
+}
+
+bool Net::is_ipv4(const std::string &host) {
+  return get_protocol_family(host) == AF_INET;
+}
+
+bool Net::is_ipv6(const std::string &host) {
+  return get_protocol_family(host) == AF_INET6;
+}
+
+Net *Net::get() {
+  static Net instance;
+
+  if (s_implementation != nullptr)
+    return s_implementation;
+  else
+    return &instance;
+}
+
+void Net::set(Net *implementation) {
+  s_implementation = implementation;
+}
+
+std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
+  auto prepare_net_error = [&name](const char *error) -> net_error {
+    return net_error{"Could not resolve " + name + ": " + error + "."};
+  };
+
+  if (is_ipv4(name))
     return name;
+
+  addrinfo hints;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;  // IPv4
+
+  addrinfo *info = nullptr;
+  int result = getaddrinfo(name.c_str(), nullptr, &hints, &info);
+
+  if (result != 0)
+    throw prepare_net_error(gai_strerror(result));
+
+  if (info != nullptr) {
+    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+
+    // return first IP address
+    char ip[NI_MAXHOST];
+
+    result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
+                          nullptr, 0, NI_NUMERICHOST);
+
+    if (result != 0)
+      throw prepare_net_error(gai_strerror(result));
+
+    return ip;
   } else {
-    hpaddr = gethostbyname(name.c_str());
-    if (!hpaddr) {
-      switch (h_errno) {
-        case HOST_NOT_FOUND:
-          throw net_error("Could not resolve " + name + ": host not found");
-        case TRY_AGAIN:
-          throw net_error("Could not resolve " + name + ": try again");
-        case NO_RECOVERY:
-          throw net_error("Could not resolve " + name + ": no recovery");
-        case NO_DATA:
-          throw net_error("Could not resolve " + name + ": no_data");
-        default:
-          throw net_error("Could not resolve " + name);
-      }
-    } else {
-      struct in_addr in;
-      memcpy(reinterpret_cast<char *>(&in.s_addr),
-             reinterpret_cast<char *>(*hpaddr->h_addr_list), sizeof(in.s_addr));
-      return inet_ntoa(in);
-    }
+    throw prepare_net_error("Unable to resolve host");
   }
 }
 

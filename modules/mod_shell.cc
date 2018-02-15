@@ -456,8 +456,9 @@ REGISTER_HELP(TOPIC_URI_ENCODED_VALUE1, "URL encoded values only accept alphanum
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE2, "Any other character must be URL encoded.");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE3, "URL encoding is done by replacing the character being encoded by the sequence: %XX");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE4, "Where XX is the hexadecimal ASCII value of the character being encoded.");
-
-
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE5,
+              "If host is a literal IPv6 address it should be enclosed in "
+              "\"[\" and \"]\" characters.");
 
 REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");
 REGISTER_HELP(SHELL_CONNECT_PARAM, "@param connectionData the connection data to be used to establish the session.");

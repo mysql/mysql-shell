@@ -230,43 +230,52 @@ TEST(Connection_options, pipe_functions) {
 }
 
 TEST(Connection_options, uri_constructor) {
-  mysqlshdk::db::Connection_options data(
-      "mysqlx://user:password@localhost:3300/"
-      "myschema?ssl-mode=REQUIRED");
+  const std::string hosts[][2] = {{"localhost", "localhost"}, {"[::1]", "::1"}};
 
-  ASSERT_TRUE(data.has_scheme());
-  ASSERT_STREQ("mysqlx", data.get_scheme().c_str());
+  for (const auto &test : hosts) {
+    std::string uri = "mysqlx://user:password@" + test[0] + ":3300/"
+                      "myschema?ssl-mode=REQUIRED";
 
-  ASSERT_TRUE(data.has_user());
-  ASSERT_STREQ("user", data.get_user().c_str());
+    SCOPED_TRACE(uri);
 
-  ASSERT_TRUE(data.has_password());
-  ASSERT_STREQ("password", data.get_password().c_str());
+    mysqlshdk::db::Connection_options data(uri);
 
-  ASSERT_TRUE(data.has_host());
-  ASSERT_STREQ("localhost", data.get_host().c_str());
+    ASSERT_TRUE(data.has_scheme());
+    ASSERT_STREQ("mysqlx", data.get_scheme().c_str());
 
-  ASSERT_TRUE(data.has_port());
-  ASSERT_EQ(3300, data.get_port());
+    ASSERT_TRUE(data.has_user());
+    ASSERT_STREQ("user", data.get_user().c_str());
 
-  ASSERT_TRUE(data.has_schema());
-  ASSERT_STREQ("myschema", data.get_schema().c_str());
+    ASSERT_TRUE(data.has_password());
+    ASSERT_STREQ("password", data.get_password().c_str());
 
-  ASSERT_FALSE(data.has_socket());
-  ASSERT_FALSE(data.has_pipe());
-  ASSERT_TRUE(data.get_ssl_options().has_data());
+    ASSERT_TRUE(data.has_host());
+    ASSERT_EQ(test[1], data.get_host());
 
-  auto ssl_options = data.get_ssl_options();
-  ASSERT_TRUE(ssl_options.has_mode());
-  ASSERT_EQ(mysqlshdk::db::Ssl_mode::Required, ssl_options.get_mode());
-  ASSERT_FALSE(ssl_options.has_ca());
-  ASSERT_FALSE(ssl_options.has_capath());
-  ASSERT_FALSE(ssl_options.has_cert());
-  ASSERT_FALSE(ssl_options.has_cipher());
-  ASSERT_FALSE(ssl_options.has_crl());
-  ASSERT_FALSE(ssl_options.has_crlpath());
-  ASSERT_FALSE(ssl_options.has_key());
-  ASSERT_FALSE(ssl_options.has_tls_version());
+    ASSERT_TRUE(data.has_port());
+    ASSERT_EQ(3300, data.get_port());
+
+    ASSERT_TRUE(data.has_schema());
+    ASSERT_STREQ("myschema", data.get_schema().c_str());
+
+    ASSERT_FALSE(data.has_socket());
+    ASSERT_FALSE(data.has_pipe());
+    ASSERT_TRUE(data.get_ssl_options().has_data());
+
+    auto ssl_options = data.get_ssl_options();
+    ASSERT_TRUE(ssl_options.has_mode());
+    ASSERT_EQ(mysqlshdk::db::Ssl_mode::Required, ssl_options.get_mode());
+    ASSERT_FALSE(ssl_options.has_ca());
+    ASSERT_FALSE(ssl_options.has_capath());
+    ASSERT_FALSE(ssl_options.has_cert());
+    ASSERT_FALSE(ssl_options.has_cipher());
+    ASSERT_FALSE(ssl_options.has_crl());
+    ASSERT_FALSE(ssl_options.has_crlpath());
+    ASSERT_FALSE(ssl_options.has_key());
+    ASSERT_FALSE(ssl_options.has_tls_version());
+
+    ASSERT_EQ(uri, data.as_uri(mysqlshdk::db::uri::formats::full()));
+  }
 }
 
 void combine(

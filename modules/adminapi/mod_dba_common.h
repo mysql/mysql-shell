@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_MOD_DBA_COMMON_H_
 #define MODULES_ADMINAPI_MOD_DBA_COMMON_H_
 
+#include <functional>
 #include <locale>
 #include <map>
 #include <memory>
@@ -137,6 +138,22 @@ bool validate_instance_rejoinable(
     std::shared_ptr<mysqlshdk::db::ISession> instance_session,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 void validate_host_ip(const std::string &hostname);
+
+/**
+ * Validates the connection options.
+ *
+ * Checks if the given connection options are valid for use with AdminAPI.
+ *
+ * @param options Connection options to validate.
+ * @param factory Factory function used to create the exception,
+ *                shcore::Exception::argument_error by default.
+ *
+ * @throws shcore::Exception created by the 'factory' function if connection
+ *                           options are not valid.
+ */
+void validate_connection_options(const Connection_options &options,
+    std::function<shcore::Exception(const std::string &)> factory =
+        shcore::Exception::argument_error);
 
 inline void translate_cluster_exception(std::string operation) {
   if (!operation.empty())

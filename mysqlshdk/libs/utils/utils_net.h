@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,68 @@ class net_error : public std::runtime_error {
   }
 };
 
-std::string resolve_hostname_ipv4(const std::string &name);
+/**
+ * Various network-related utilities.
+ *
+ * This class allows to provide a custom implementation for network-related
+ * operations, enabling i.e. mocking the behaviour for unit tests.
+ */
+class Net {
+ public:
+  virtual ~Net() = default;
+
+  /**
+   * Resolves the given hostname to an IPv4 address.
+   *
+   * @param name The hostname to be resolved.
+   *
+   * @return The resolved IPv4 address.
+   * @throws net_error if address cannot be resolved.
+   */
+  static std::string resolve_hostname_ipv4(const std::string &name);
+
+  /**
+   * Checks if the given host is an IPv4 literal address.
+   *
+   * @param host The string to be checked.
+   *
+   * @return True, if the host was specified using an IPv4 address.
+   */
+  static bool is_ipv4(const std::string &host);
+
+  /**
+   * Checks if the given host is an IPv6 literal address.
+   *
+   * @param host The string to be checked.
+   *
+   * @return True, if the host was specified using an IPv6 address.
+   */
+  static bool is_ipv6(const std::string &host);
+
+ protected:
+  /**
+   * Provides the singleton instance of this class.
+   *
+   * @return currently used implementation.
+   */
+  static Net *get();
+
+  /**
+   * Overrides default implementation with a custom behaviour.
+   *
+   * @param implementation An implementation to use, nullptr restores default
+   *                       behaviour.
+   */
+  static void set(Net *implementation);
+
+  /**
+   * Implementation of resolve_hostname_ipv4() method.
+   */
+  virtual std::string resolve_hostname_ipv4_impl(const std::string &name) const;
+
+ private:
+  static Net *s_implementation;
+};
 
 }  // namespace utils
 }  // namespace mysqlshdk

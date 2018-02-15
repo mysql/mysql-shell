@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@T460:3331?ssl-mode=PREFERRED",
+    "uri": "root:root@vm-ubuntu:3336?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "ERROR",
     "index": 2,
     "code": "1045",
-    "msg": "Access denied for user 'root'@'T460.lan' (using password: YES)",
+    "msg": "Access denied for user 'root'@'vm-ubuntu' (using password: YES)",
     "sqlstate": "28000"
 },
 null]

@@ -113,8 +113,9 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 3
 ||Invalid connection options, expected either a URI or a Dictionary
+||Cluster.removeInstance: Argument auth-method is expected to be a string
 ||Cluster.removeInstance: The instance 'localhost:33060' does not belong to the ReplicaSet: 'default'
-||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.removeInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 
 //@ Cluster: removeInstance
 ||
@@ -265,10 +266,10 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
 ||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
 ||Invalid connection options, expected either a URI or a Dictionary
-||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.rejoinInstance: Invalid values in connection options: ipWhitelist, memberSslMode
-||Cluster.rejoinInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
+||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
+||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist, string value cannot be empty.

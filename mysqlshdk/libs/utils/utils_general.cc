@@ -768,7 +768,8 @@ bool is_local_host(const std::string &host, bool check_hostname) {
   // a given IP address or hostname against the local interfaces
   return (host == "127.0.0.1" ||
           host == "localhost" ||
-          (host == get_my_hostname() && check_hostname));
+          host == "::1" ||
+          (check_hostname && host == get_my_hostname()));
 }
 
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
