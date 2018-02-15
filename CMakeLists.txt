@@ -141,7 +141,7 @@ if(NOT DEFINED MYSQLCLIENT_STATIC_LINKING)
 endif()
 
 ### Bundling of OpenSSL libraries (if needed)
-IF(WIN32 OR APPLE)
+IF(WIN32 OR APPLE OR BUNDLED_OPENSSL_DIR)
 
   # In MySQL Server 8.0.4 and up, OpenSSL is linked dynamically and
   # preferably linked against the system installed OpenSSL. But there
@@ -149,7 +149,6 @@ IF(WIN32 OR APPLE)
   # bundle the library copying it from the server install we link
   # against.
 
-  SET(OPENSSL_TO_BUNDLE_DIR)
   IF(WIN32)
     IF(EXISTS "${MYSQL_BUILD_DIR}/runtime_output_directory/RelWithDebInfo/ssleay32.dll")
       FILE(TO_CMAKE_PATH ${MYSQL_BUILD_DIR} MYSQL_BUILD_DIR)
@@ -166,6 +165,11 @@ IF(WIN32 OR APPLE)
     # Find the "version" from the file name, it is the same
     FILE(GLOB CRYPTO_VERSION  RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.*.*.*.dylib")
     FILE(GLOB OPENSSL_VERSION RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libssl.*.*.*.dylib")
+  ELSE()
+    SET(OPENSSL_TO_BUNDLE_DIR "${BUNDLED_OPENSSL_DIR}/lib")
+    # Find the "version" from the file name, it is the same
+    FILE(GLOB CRYPTO_VERSION  RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.so.*.*.*")
+    FILE(GLOB OPENSSL_VERSION RELATIVE ${OPENSSL_TO_BUNDLE_DIR} "${OPENSSL_TO_BUNDLE_DIR}/libssl.so.*.*.*")
   ENDIF()
 ENDIF()
 

@@ -93,88 +93,90 @@ target_link_libraries(mysqlshrec
     ${MYSQL_EXTRA_LIBRARIES}
 )
 
-install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
+INSTALL(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 
 ### Bundling of OpenSSL libraries (if needed)
-if(WIN32 OR APPLE)
-  if(WIN32)
-    if(OPENSSL_TO_BUNDLE_DIR)
-      message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
-      install(FILES
-        "${OPENSSL_TO_BUNDLE_DIR}/ssleay32.dll"
-        "${OPENSSL_TO_BUNDLE_DIR}/libeay32.dll"
-        DESTINATION ${INSTALL_BINDIR}
-        COMPONENT main
-      )
-    endif()
+if(OPENSSL_TO_BUNDLE_DIR)
+  IF(WIN32)
+    message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
+    install(FILES
+      "${OPENSSL_TO_BUNDLE_DIR}/ssleay32.dll"
+      "${OPENSSL_TO_BUNDLE_DIR}/libeay32.dll"
+      DESTINATION ${INSTALL_BINDIR}
+      COMPONENT main
+    )
+  ELSEIF(APPLE)
+    message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
+    # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
+    add_custom_command(TARGET mysqlsh POST_BUILD
+      COMMAND install_name_tool -change
+              "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+              $<TARGET_FILE:mysqlsh>
+      COMMAND install_name_tool -change
+              "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+              $<TARGET_FILE:mysqlsh>
+    )
 
-  elseif(APPLE)
-    if(EXISTS "${MYSQL_BUILD_DIR}/library_output_directory/libssl.dylib")
-      set(OPENSSL_TO_BUNDLE_DIR "${MYSQL_BUILD_DIR}/library_output_directory")
-    elseif(WITH_SSL AND EXISTS "${WITH_SSL}/lib/libssl.dylib")
-      set(OPENSSL_TO_BUNDLE_DIR "${WITH_SSL}/lib")
-    endif()
-
-    if(OPENSSL_TO_BUNDLE_DIR)
-      message(STATUS "Copying OpenSSL shared libraries from ${OPENSSL_TO_BUNDLE_DIR}")
-      # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
-      add_custom_command(TARGET mysqlsh POST_BUILD
+    IF(WITH_TESTS)
+      add_custom_command(TARGET mysqlshrec POST_BUILD
         COMMAND install_name_tool -change
                 "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-                $<TARGET_FILE:mysqlsh>
+                $<TARGET_FILE:mysqlshrec>
         COMMAND install_name_tool -change
                 "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-                $<TARGET_FILE:mysqlsh>
+                $<TARGET_FILE:mysqlshrec>
       )
+    ENDIF()
 
-      IF(WITH_TESTS)
-        add_custom_command(TARGET mysqlshrec POST_BUILD
-          COMMAND install_name_tool -change
-                  "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-                  $<TARGET_FILE:mysqlshrec>
-          COMMAND install_name_tool -change
-                  "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-                  $<TARGET_FILE:mysqlshrec>
-        )
-      ENDIF()
+    # Copy the OpenSSL libraries to the build dir
+    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
+      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
 
-      # Copy the OpenSSL libraries to the build dir
-      add_custom_command(TARGET mysqlsh POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
-                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
+    # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
+    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+      COMMAND install_name_tool -change
+              "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+              $<TARGET_FILE:mysqlsh>
+      COMMAND install_name_tool -change
+              "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+              $<TARGET_FILE:mysqlsh>
+    )
 
-      # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
-      add_custom_command(TARGET mysqlsh POST_BUILD
-        COMMAND install_name_tool -change
-                "${CRYPTO_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-                $<TARGET_FILE:mysqlsh>
-        COMMAND install_name_tool -change
-                "${OPENSSL_VERSION}" "@loader_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-                $<TARGET_FILE:mysqlsh>
-      )
+    # Install/bundle the OpenSSL libraries including the soft links
+    INSTALL(FILES
+      "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.dylib"
+      "${OPENSSL_TO_BUNDLE_DIR}/libssl.dylib"
+      "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+      "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+      DESTINATION ${INSTALL_LIBDIR}
+      COMPONENT main
+    )
+  ELSE() # Linux
+    # We will not pollute "/usr/lib/", OpenSSL libraries ends up in "/usr/lib/mysqlsh/"
+    SET_PROPERTY(TARGET mysqlsh    PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
+    SET_PROPERTY(TARGET mysqlshrec PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
+    SET_PROPERTY(TARGET mysqlsh PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
+    SET_PROPERTY(TARGET mysqlshrec PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
 
-      # Copy the OpenSSL libraries to the build dir
-      add_custom_command(TARGET mysqlsh POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-        COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
-                    "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
+    # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
+    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
+      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+      COMMAND ${CMAKE_COMMAND} -E copy "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
 
-      # Install/bundle the OpenSSL libraries including the soft links
-      install(FILES
-        "${OPENSSL_TO_BUNDLE_DIR}/libcrypto.dylib"
-        "${OPENSSL_TO_BUNDLE_DIR}/libssl.dylib"
-        "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
-        "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT main
-      )
-    endif()
-  endif()
+    INSTALL(FILES
+      "${OPENSSL_TO_BUNDLE_DIR}/${CRYPTO_VERSION}"
+      "${OPENSSL_TO_BUNDLE_DIR}/${OPENSSL_VERSION}"
+      DESTINATION ${INSTALL_LIBDIR}
+      COMPONENT main
+    )
+  ENDIF()
 endif()
 
 
