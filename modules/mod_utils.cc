@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -288,8 +288,43 @@ shcore::Value(ssl.get_tls_version());
  * - Password is resolved based on a delegate, if no password is available and
  *   a delegate is provided, the password will be retrieved through the delegate
  */
-void resolve_connection_credentials(mysqlshdk::db::Connection_options* options,
-                                    shcore::Interpreter_delegate* delegate) {
+void resolve_connection_credentials(
+    mysqlshdk::db::Connection_options* options,
+    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+  // Sets a default user if not specified
+  // TODO(rennox): Why is it setting root when it should actually be the
+  // system user???
+  // Maybe not for the interactives??
+  // Maybe the default user should be passed as parameters and use system if
+  // empty oO
+  if (!options->has_user())
+    options->set_user("root");
+
+  if (!options->has_password()) {
+    std::string uri =
+        options->as_uri(mysqlshdk::db::uri::formats::full_no_password());
+    if (console_handler) {
+      std::string answer;
+
+      std::string prompt = "Please provide the password for '" + uri + "': ";
+
+      if (console_handler->prompt_password(prompt.c_str(), &answer) ==
+          shcore::Prompt_result::Ok) {
+        options->set_password(answer);
+      } else {
+        throw shcore::Exception::argument_error("Missing password for '" + uri +
+                                                "'");
+      }
+    } else {
+      throw shcore::Exception::argument_error("Missing password for '" + uri +
+                                              "'");
+    }
+  }
+}
+
+void resolve_connection_credentials_deleg(
+    mysqlshdk::db::Connection_options* options,
+    shcore::Interpreter_delegate* delegate) {
   // Sets a default user if not specified
   // TODO(rennox): Why is it setting root when it should actually be the
   // system user???

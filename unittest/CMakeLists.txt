@@ -65,20 +65,6 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"
-
-        # NOTE: these sources are required because Mysql_shell is not part of a library used by the test system
-        # but is ont the application level. At some point we should put Mysql_shell available in a alibrary
-        # to be integrable as Full Shell Functionality
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/get_password.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/mysql_shell.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/prompt_renderer.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/prompt_manager.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/cmdline_shell.cc"
-        "${CMAKE_SOURCE_DIR}/src/mysqlsh/history.cc"
-
-        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_dba.cc"
-        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_dba_cluster.cc"
-        "${CMAKE_SOURCE_DIR}/src/interactive/interactive_global_shell.cc"
     )
     if(NOT HAVE_PROTOBUF)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")
@@ -102,10 +88,12 @@ if(WITH_TESTS)
     set_target_properties(run_unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
     fix_target_output_directory(run_unit_tests "${INSTALL_BINDIR}")
     add_dependencies(run_unit_tests
+            shellfe
             api_modules
             mysqlshdk-static)
 
     target_link_libraries(run_unit_tests
+            shellfe
             api_modules
             db
             mysqlshdk-static

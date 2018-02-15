@@ -39,6 +39,7 @@
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
+#include "mysqlshdk/include/shellcore/console.h"
 
 namespace mysqlsh {
 namespace dba {

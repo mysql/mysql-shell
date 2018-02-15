@@ -97,6 +97,13 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   std::vector<Instance_definition> get_instances_from_metadata();
 
+  void execute_in_members(
+      const std::vector<std::string> &states,
+      const mysqlshdk::db::Connection_options &cnx_opt,
+      const std::vector<std::string> &ignore_instances_vector,
+      std::function<void(std::shared_ptr<mysqlshdk::db::ISession> session)>
+      functor);
+
   static char const *kTopologyPrimaryMaster;
   static char const *kTopologyMultiMaster;
 
@@ -198,7 +205,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
   std::string get_cluster_group_seeds(
-      std::shared_ptr<mysqlshdk::db::ISession> instance_session);
+      std::shared_ptr<mysqlshdk::db::ISession> instance_session=nullptr);
 
   void finalize_instance_removal(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,

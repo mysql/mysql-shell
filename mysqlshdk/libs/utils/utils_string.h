@@ -79,6 +79,10 @@ inline bool str_caseeq(const char *a, const char *b, size_t n) {
 #endif
 }
 
+inline bool str_caseeq(const std::string &a, const std::string &b) {
+  return str_caseeq(a.c_str(), b.c_str());
+}
+
 /** Checks whether a string has another as a prefix */
 inline bool str_beginswith(const char *s, const char *prefix) {
   return strncmp(s, prefix, strlen(prefix)) == 0;

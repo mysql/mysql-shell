@@ -28,13 +28,13 @@ include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
 set(mysh_SRC
-    mysqlsh/main.cc
     mysqlsh/get_password.cc
     mysqlsh/cmdline_shell.cc
     mysqlsh/history.cc
     mysqlsh/mysql_shell.cc
     mysqlsh/prompt_renderer.cc
     mysqlsh/prompt_manager.cc
+    mysqlsh/shell_console.cc
     interactive/interactive_dba_cluster.cc
     interactive/interactive_global_dba.cc
     interactive/interactive_global_shell.cc
@@ -42,6 +42,8 @@ set(mysh_SRC
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp
 )
+
+ADD_CONVENIENCE_LIBRARY(shellfe ${mysh_SRC})
 
 if(WIN32)
   SET(MYSH_FILE_TYPE "VFT_APP")
@@ -57,11 +59,11 @@ endif()
 
 add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
 
-add_executable(mysqlsh ${mysh_SRC})
+add_executable(mysqlsh mysqlsh/main.cc)
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
 fix_target_output_directory(mysqlsh "${INSTALL_BINDIR}")
 
-add_executable(mysqlshrec ${mysh_SRC}
+add_executable(mysqlshrec mysqlsh/main.cc
   ${CMAKE_SOURCE_DIR}/unittest/test_utils/mod_testutils.cc
   mysqlsh/debug_shell.cc)
 set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
@@ -72,6 +74,7 @@ ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
 
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlsh
+    shellfe
     api_modules
     mysqlshdk-static
     ${GCOV_LDFLAGS}
@@ -81,6 +84,7 @@ target_link_libraries(mysqlsh
 )
 
 target_link_libraries(mysqlshrec
+    shellfe
     api_modules
     mysqlshdk-static
     ${GCOV_LDFLAGS}

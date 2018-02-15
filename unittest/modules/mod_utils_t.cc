@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -401,8 +401,8 @@ TEST(modules_mod_utils,
 
   try {
     output_handler.passwords.push_back({"*", "<<<CANCEL>>>"});
-    mysqlsh::resolve_connection_credentials(&connection_options,
-                                            &output_handler.deleg);
+    mysqlsh::resolve_connection_credentials_deleg(&connection_options,
+                                                  &output_handler.deleg);
   } catch (const std::exception& e) {
     std::string error(e.what());
     EXPECT_EQ("Missing password for 'root@localhost'", error);
@@ -417,8 +417,8 @@ TEST(modules_mod_utils, resolve_connection_credentials_resolve_password) {
   mysqlshdk::db::Connection_options connection_options;
   connection_options.set_host("localhost");
 
-  mysqlsh::resolve_connection_credentials(&connection_options,
-                                          &output_handler.deleg);
+  mysqlsh::resolve_connection_credentials_deleg(&connection_options,
+                                                &output_handler.deleg);
 
   EXPECT_TRUE(connection_options.has_host());
   EXPECT_TRUE(connection_options.has_user());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1326,8 +1326,12 @@ inline Exception type_range_error(Value_type from, Value_type expected) {
   return Exception::type_error("Invalid typecast: "+type_name(expected)+" expected, but "+type_name(from)+" value is out of range");
 }
 
+bool is_compatible_type(Value_type source_type, Value_type target_type) {
+  return kTypeConvertible[source_type][target_type];
+}
+
 void Value::check_type(Value_type t) const {
-  if (!kTypeConvertible[type][t])
+  if (!is_compatible_type(type, t))
     throw type_conversion_error(type, t);
 }
 
@@ -1709,6 +1713,86 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
   }
 
   return missing_keys.empty() && invalid_keys.empty();
+}
+
+Option_unpacker::Option_unpacker(const Dictionary_t &options)
+    : m_options(options) {
+  if (m_options)
+    for (const auto &opt : *m_options) m_unknown.insert(opt.first);
+}
+
+Value Option_unpacker::get_required(const char *name, Value_type type) {
+  if (!m_options) {
+    m_missing.insert(name);
+    return Value();
+  }
+  auto opt = m_options->find(name);
+  if (opt == m_options->end()) {
+    m_missing.insert(name);
+    return Value();
+  } else {
+    m_unknown.erase(name);
+
+    if (!is_compatible_type(opt->second.type, type)) {
+      throw Exception::type_error(str_format(
+          "Option '%s' is expected to be of type %s, but is %s", name,
+          type_name(type).c_str(), type_name(opt->second.type).c_str()));
+    }
+
+    return opt->second;
+  }
+}
+
+Value Option_unpacker::get_optional(const char *name, Value_type type,
+                                    bool case_insensitive) {
+  if (!m_options) {
+    return Value();
+  }
+  auto opt = m_options->find(name);
+
+  if (case_insensitive && opt == m_options->end()) {
+    for (auto it = m_options->begin(); it != m_options->end(); ++it) {
+      if (str_caseeq(it->first.c_str(), name) == 0) {
+        name = it->first.c_str();
+        opt = it;
+        break;
+      }
+    }
+  }
+  if (opt != m_options->end()) {
+    m_unknown.erase(name);
+
+    if (!is_compatible_type(opt->second.type, type)) {
+      throw Exception::type_error(str_format(
+          "Option '%s' is expected to be of type %s, but is %s", name,
+          type_name(type).c_str(), type_name(opt->second.type).c_str()));
+    }
+
+    return opt->second;
+  }
+  return Value();
+}
+
+void Option_unpacker::end() {
+  validate();
+}
+
+void Option_unpacker::validate() {
+  std::string msg;
+  if (!m_unknown.empty() && !m_missing.empty()) {
+    msg.append("Invalid and missing options ");
+    msg.append("(invalid: ").append(str_join(m_unknown, ", "));
+    msg.append("), (missing: ").append(str_join(m_missing, ", "));
+    msg.append(")");
+  } else if (!m_unknown.empty()) {
+    msg.append("Invalid options: ");
+    msg.append(str_join(m_unknown, ", "));
+  } else if (!m_missing.empty()) {
+    msg.append("Missing required options: ");
+    msg.append(str_join(m_missing, ", "));
+  }
+  if (!msg.empty())
+    throw Exception::argument_error(msg);
 }
 
 

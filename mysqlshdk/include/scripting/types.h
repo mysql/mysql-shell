@@ -417,37 +417,134 @@ template<class T> struct value_type_for_native {};
 template <>
 struct value_type_for_native<bool> {
   static const Value_type type = Bool;
+
+  static bool extract(const Value &value) {
+    return value.as_bool();
+  }
 };
 template <>
 struct value_type_for_native<int64_t> {
   static const Value_type type = Integer;
+
+  static int64_t extract(const Value &value) {
+    return value.as_int();
+  }
 };
 template <>
 struct value_type_for_native<uint64_t> {
   static const Value_type type = UInteger;
+
+  static uint64_t extract(const Value &value) {
+    return value.as_uint();
+  }
 };
 template <>
 struct value_type_for_native<double> {
   static const Value_type type = Float;
+
+  static double extract(const Value &value) {
+    return value.as_double();
+  }
 };
 template <>
 struct value_type_for_native<std::string> {
   static const Value_type type = String;
+
+  static std::string extract(const Value &value) {
+    return value.as_string();
+  }
 };
 template <>
 struct value_type_for_native<Object_bridge *> {
   static const Value_type type = Object;
 };
 template <>
+struct value_type_for_native<Object_bridge_ref> {
+  static const Value_type type = Object;
+
+  static Object_bridge_ref extract(const Value &value) {
+    return value.as_object();
+  }
+};
+template <>
 struct value_type_for_native<Value::Map_type> {
   static const Value_type type = Map;
+};
+template <>
+struct value_type_for_native<Dictionary_t> {
+  static const Value_type type = Map;
+
+  static Dictionary_t extract(const Value &value) {
+    return value.as_map();
+  }
 };
 template <>
 struct value_type_for_native<Value::Array_type> {
   static const Value_type type = Array;
 };
+template <>
+struct value_type_for_native<Array_t> {
+  static const Value_type type = Array;
+
+  static Array_t extract(const Value &value) {
+    return value.as_array();
+  }
+};
 
 std::string SHCORE_PUBLIC type_name(Value_type type);
+
+// Extract option values from an options dictionary, with validations
+// Replaces Argument_map
+class Option_unpacker {
+ public:
+  explicit Option_unpacker(const Dictionary_t &options);
+
+  virtual ~Option_unpacker() {}
+
+  // Extract required option
+  template<typename T>
+  Option_unpacker &required(const char *name, T *out_value) {
+    Value value = get_required(name, value_type_for_native<T>::type);
+    if (value) {
+      *out_value = value_type_for_native<T>::extract(value);
+    }
+    return *this;
+  }
+
+  // Extract optional option
+  template<typename T>
+  Option_unpacker &optional(const char *name, T *out_value) {
+    Value value = get_optional(name, value_type_for_native<T>::type);
+    if (value) {
+      *out_value = value_type_for_native<T>::extract(value);
+    }
+    return *this;
+  }
+
+  // Case insensitive
+  template<typename T>
+  Option_unpacker &optional_ci(const char *name, T *out_value) {
+    Value value = get_optional(name, value_type_for_native<T>::type, true);
+    if (value) {
+      *out_value = value_type_for_native<T>::extract(value);
+    }
+    return *this;
+  }
+
+  void end();
+
+ protected:
+  Dictionary_t m_options;
+  std::set<std::string> m_unknown;
+  std::set<std::string> m_missing;
+
+  Value get_required(const char *name, Value_type type);
+  Value get_optional(const char *name, Value_type type,
+                     bool case_insensitive = false);
+
+  void validate();
+};
+
 
 class JSON_dumper;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "modules/interactive_object_wrapper.h"
 #include <string>
+#include <memory>
 
 #include "utils/utils_string.h"
 
@@ -31,9 +32,11 @@ namespace shcore {
 // TODO(alfredo) this should become standalone interactive objects instead
 // of wrappers
 
-Interactive_object_wrapper::Interactive_object_wrapper(const std::string &alias,
-                                                       shcore::Shell_core &core)
-    : _alias(alias), _shell_core(core), _delegate(core.get_delegate()) {}
+Interactive_object_wrapper::Interactive_object_wrapper(
+    const std::string &alias,
+    shcore::Shell_core &core,
+    std::shared_ptr<mysqlsh::IConsole> console_handler)
+    : _alias(alias), _shell_core(core), _delegate(console_handler) {}
 
 Value Interactive_object_wrapper::get_member_advanced(
     const std::string &prop, const NamingStyle &style) const {
