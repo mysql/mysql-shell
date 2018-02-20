@@ -112,6 +112,8 @@ class Mysql_shell : public mysqlsh::Base_shell,
   std::shared_ptr<mysqlsh::Shell_console> _console_handler;
 
   bool _reconnect_session;
+  /// Last schema set by the user via \use command.
+  std::string _last_active_schema;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);

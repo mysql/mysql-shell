@@ -179,23 +179,8 @@ shcore::Value ClassicSession::_run_sql(const std::string& function, const shcore
     if (!_session || !_session->is_open()) {
       throw Exception::logic_error("Not connected.");
     } else {
-      try {
-        Interruptible intr(this);
-        ret_val =
-            execute_sql(query, values);
-      } catch (shcore::Exception & e) {
-        // Connection lost, sends a notification
-        std::shared_ptr<ClassicSession> myself =
-            std::const_pointer_cast<ClassicSession>(shared_from_this());
-
-        if (e.code() == CR_SERVER_GONE_ERROR || e.code() == CR_SERVER_LOST)
-          ShellNotifications::get()->notify(
-              "SN_SESSION_CONNECTION_LOST",
-              std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
-
-        // Rethrows the exception for normal flow
-        throw;
-      }
+      Interruptible intr(this);
+      ret_val = execute_sql(query, values);
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function));
 
@@ -294,6 +279,13 @@ shcore::Value ClassicSession::execute_sql(
         timer.end();
         result->set_execution_time(timer.raw_duration());
       } catch (const mysqlshdk::db::Error &error) {
+        // Connection lost, sends a notification
+        if (error.code() == CR_SERVER_GONE_ERROR ||
+            error.code() == CR_SERVER_LOST)
+          ShellNotifications::get()->notify(
+              "SN_SESSION_CONNECTION_LOST",
+              std::dynamic_pointer_cast<Cpp_object_bridge>(shared_from_this()));
+
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());
       }

@@ -807,13 +807,13 @@ TEST_F(Interactive_shell_test, shell_command_sql_use) {
   output_handler.wipe_all();
 
   execute("use mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`");
   MY_EXPECT_STDOUT_CONTAINS(
       "Fetching table and column names from `mysql` for auto-completion...");
   output_handler.wipe_all();
 
   execute("use mysql;");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`");
   MY_EXPECT_STDOUT_CONTAINS(
       "Fetching table and column names from `mysql` for auto-completion...");
   output_handler.wipe_all();
@@ -839,7 +839,7 @@ TEST_F(Interactive_shell_test, shell_command_sql_use) {
   output_handler.wipe_all();
 
   execute("use mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`");
   output_handler.wipe_all();
 
   execute("\\connect -mc " + _mysql_uri);
