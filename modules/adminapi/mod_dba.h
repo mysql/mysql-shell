@@ -50,6 +50,36 @@ namespace dba {
 class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
                           public std::enable_shared_from_this<Dba> {
  public:
+#if DOXYGEN_JS
+  Integer verbose;
+  Undefined checkInstanceConfiguration(InstanceDef instance,
+                                       Dictionary options);
+  JSON configureLocalInstance(InstanceDef instance, Dictionary options);
+  Cluster createCluster(String name, Dictionary options);
+  Undefined deleteSandboxInstance(Integer port, Dictionary options);
+  Instance deploySandboxInstance(Integer port, Dictionary options);
+  Undefined dropMetadataSchema(Dictionary options);
+  Cluster getCluster(String name, Dictionary options);
+  Undefined killSandboxInstance(Integer port, Dictionary options);
+  Undefined rebootClusterFromCompleteOutage(String clusterName,
+                                            Dictionary options);
+  Undefined startSandboxInstance(Integer port, Dictionary options);
+  Undefined stopSandboxInstance(Integer port, Dictionary options);
+#elif DOXYGEN_PY
+  int verbose;
+  None check_instance_configuration(InstanceDef instance, dict options);
+  JSON configure_local_instance(InstanceDef instance, dict options);
+  Cluster create_cluster(str name, dict options);
+  None delete_sandbox_instance(int port, dict options);
+  Instance deploy_sandbox_instance(int port, dict options);
+  None drop_metadata_schema(dict options);
+  Cluster get_cluster(str name, dict options);
+  None kill_sandbox_instance(int port, dict options);
+  None reboot_cluster_from_complete_outage(str clusterName, dict options);
+  None start_sandbox_instance(int port, dict options);
+  None stop_sandbox_instance(int port, dict options);
+#endif
+
   Dba(shcore::IShell_core *owner,
       std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode);
   virtual ~Dba();
@@ -131,37 +161,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
       return _provisioning_interface;
   }
-
-#if DOXYGEN_JS
-  Integer verbose;
-  Cluster createCluster(String name, Dictionary options);
-  Undefined deleteSandboxInstance(Integer port, Dictionary options);
-  Instance deploySandboxInstance(Integer port, Dictionary options);
-  Undefined dropMetadataSchema(Dictionary options);
-  Cluster getCluster(String name, Dictionary options);
-  Undefined killSandboxInstance(Integer port, Dictionary options);
-  Undefined startSandboxInstance(Integer port, Dictionary options);
-  Undefined stopSandboxInstance(Integer port, Dictionary options);
-  Undefined checkInstanceConfiguration(
-      InstanceDef instance, Dictionary options);
-  JSON configureLocalInstance(InstanceDef instance, Dictionary options);
-  Undefined rebootClusterFromCompleteOutage(
-      String clusterName, Dictionary options);
-#elif DOXYGEN_PY
-  int verbose;
-  Cluster create_cluster(str name, dict options);
-  None delete_sandbox_instance(int port, dict options);
-  Instance deploy_sandbox_instance(int port, dict options);
-  None drop_cluster(str name);
-  None drop_metadata_schema(dict options);
-  Cluster get_cluster(str name, dict options);
-  None kill_sandbox_instance(int port, dict options);
-  None start_sandbox_instance(int port, dict options);
-  None stop_sandbox_instance(int port, dict options);
-  None check_instance_configuration(InstanceDef instance, dict options);
-  JSON configure_local_instance(InstanceDef instance, dict options);
-  None reboot_cluster_from_complete_outage(str clusterName, dict options);
-#endif
 
   static std::shared_ptr<mysqlshdk::db::ISession> get_session(
       const mysqlshdk::db::Connection_options &args);

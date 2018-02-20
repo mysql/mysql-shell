@@ -49,6 +49,34 @@ class MetadataStorage;
 class Cluster : public std::enable_shared_from_this<Cluster>,
                 public shcore::Cpp_object_bridge {
  public:
+#if DOXYGEN_JS
+  String name;  //!< $(CLUSTER_NAME_BRIEF)
+  Undefined addInstance(InstanceDef instance, Dictionary options);
+  Dictionary checkInstanceState(InstanceDef instance, String password);
+  String describe();
+  Undefined disconnect();
+  Undefined dissolve(Dictionary options);
+  Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
+  String getName();
+  Undefined rejoinInstance(InstanceDef instance, Dictionary options);
+  Undefined removeInstance(InstanceDef instance, Dictionary options);
+  Undefined rescan();
+  String status();
+#elif DOXYGEN_PY
+  str name;  //!< $(CLUSTER_NAME_BRIEF)
+  None add_instance(InstanceDef instance, dict options);
+  dict check_instance_state(InstanceDef instance, str password);
+  str describe();
+  None disconnect();
+  None dissolve(Dictionary options);
+  None force_quorum_using_partition_of(InstanceDef instance, str password);
+  str get_name();
+  None rejoin_instance(InstanceDef instance, dict options);
+  None remove_instance(InstanceDef instance, dict options);
+  None rescan();
+  str status();
+#endif
+
   Cluster(const std::string &name,
           std::shared_ptr<mysqlshdk::db::ISession> group_session,
           std::shared_ptr<MetadataStorage> metadata_storage,
@@ -135,33 +163,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   ReplicationGroupState check_preconditions(
       const std::string& function_name) const;
-
-#if DOXYGEN_JS
-  String name;  //!< $(CLUSTER_NAME_BRIEF)
-  String getName();
-  String getAdminType();
-  Undefined addInstance(InstanceDef instance, Dictionary options);
-  Undefined rejoinInstance(InstanceDef instance, Dictionary options);
-  Undefined removeInstance(InstanceDef instance, Dictionary options);
-  Dictionary checkInstanceState(InstanceDef instance, String password);
-  String describe();
-  String status();
-  Undefined dissolve(Dictionary options);
-  Undefined rescan();
-  Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
-#elif DOXYGEN_PY
-  str name;  //!< $(CLUSTER_NAME_BRIEF)
-  str get_name();
-  None add_instance(InstanceDef instance, dict options);
-  None rejoin_instance(InstanceDef instance, dict options);
-  None remove_instance(InstanceDef instance, dict options);
-  dict check_instance_state(InstanceDef instance, str password);
-  str describe();
-  str status();
-  None dissolve(Dictionary options);
-  None rescan();
-  None force_quorum_using_partition_of(InstanceDef instance, str password);
-#endif
 
  protected:
   Cluster() : _dissolved(false) { init(); }  // To support basic mocking
