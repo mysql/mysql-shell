@@ -25,6 +25,10 @@
 #include "utils/utils_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 
+#ifndef MAX_PATH
+const int MAX_PATH = 4096;
+#endif
+
 namespace tests {
 
 TEST_F(Command_line_test, bug24912358) {
@@ -168,9 +172,6 @@ TEST_F(Command_line_test, bug24905066) {
 TEST_F(Command_line_test, bug24967838) {
   // Check if processor is available
   ASSERT_NE(system(NULL), 0);
-#ifndef MAX_PATH
-  const int MAX_PATH = 4096;
-#endif
 
   // Tests that if error happens when executing script, return code should be
   // different then 0
@@ -208,38 +209,56 @@ TEST_F(Command_line_test, bug24967838) {
 TEST_F(Command_line_test, Bug25974014) {
   // Check if processor is available
   ASSERT_NE(system(NULL), 0);
-#ifndef MAX_PATH
-  const int MAX_PATH = 4096;
-#endif
 
-  // Tests that if error happens when executing script, return code should be
-  // different then 0
-  {
-    char cmd[MAX_PATH];
-    std::snprintf(cmd, MAX_PATH,
+  char buf[MAX_PATH];
+  char cmd[MAX_PATH];
+  std::string out;
+  FILE *fp;
+
+  // X session
+  std::snprintf(cmd, MAX_PATH,
 #ifdef _WIN32
-                  "echo kill CONNECTION_ID(); \\use mysql; | %s --uri=%s --sql "
-                  "--interactive 2> nul",
+                "echo kill CONNECTION_ID(); \\use mysql; | %s --uri=%s --sql "
+                "--interactive 2> nul",
 #else
-                  "echo \"kill CONNECTION_ID(); \\use mysql;\" | %s --uri=%s "
-                  "--sql --interactive 2> /dev/null",
+                "echo \"kill CONNECTION_ID(); \\use mysql;\" | %s --uri=%s "
+                "--sql --interactive 2> /dev/null",
 #endif
-                  _mysqlsh, _uri.c_str());
+                _mysqlsh, _uri.c_str());
 
 #ifdef _WIN32
-    FILE *fp = _popen(cmd, "r");
+  fp = _popen(cmd, "r");
 #else
-    FILE *fp = popen(cmd, "r");
+  fp = popen(cmd, "r");
 #endif
-    ASSERT_NE(nullptr, fp);
-    char buf[MAX_PATH];
-    /* Read the output a line at a time - output it. */
-    std::string out;
-    while (fgets(buf, sizeof(buf) - 1, fp) != NULL) {
-      out.append(buf);
-    }
-    EXPECT_NE(std::string::npos, out.find("Attempting to reconnect"));
+  ASSERT_NE(nullptr, fp);
+  while (fgets(buf, sizeof(buf) - 1, fp) != NULL) {
+    out.append(buf);
   }
+  EXPECT_NE(std::string::npos, out.find("Attempting to reconnect"));
+
+  // Classic session
+  out.clear();
+  std::snprintf(cmd, MAX_PATH,
+#ifdef _WIN32
+                "echo kill CONNECTION_ID(); \\use mysql; | %s --uri=%s --sql "
+                "--interactive 2> nul",
+#else
+                "echo \"kill CONNECTION_ID(); \\use mysql;\" | %s --uri=%s "
+                "--sql --interactive 2> /dev/null",
+#endif
+                _mysqlsh, _mysql_uri.c_str());
+
+#ifdef _WIN32
+  fp = _popen(cmd, "r");
+#else
+  fp = popen(cmd, "r");
+#endif
+  ASSERT_NE(nullptr, fp);
+  while (fgets(buf, sizeof(buf) - 1, fp) != NULL) {
+    out.append(buf);
+  }
+  EXPECT_NE(std::string::npos, out.find("Attempting to reconnect"));
 }
 
 TEST_F(Command_line_test, Bug25105307) {
@@ -248,6 +267,38 @@ TEST_F(Command_line_test, Bug25105307) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("interrupted");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Attempting to reconnect");
+}
+
+TEST_F(Command_line_test, retain_schema_after_reconnect) {
+  // Check if processor is available
+  ASSERT_NE(system(NULL), 0);
+
+  char cmd[MAX_PATH];
+  std::snprintf(
+      cmd, MAX_PATH,
+#ifdef _WIN32
+      "echo use mysql;\nkill CONNECTION_ID(); show tables; | %s --uri=%s --sql "
+      "--interactive 2> nul",
+#else
+      "echo \"use mysql;\nkill CONNECTION_ID(); show tables;\" | %s --uri=%s "
+      "--sql --interactive 2> /dev/null",
+#endif
+      _mysqlsh, _uri.c_str());
+
+#ifdef _WIN32
+  FILE *fp = _popen(cmd, "r");
+#else
+  FILE *fp = popen(cmd, "r");
+#endif
+  ASSERT_NE(nullptr, fp);
+  char buf[MAX_PATH];
+  /* Read the output a line at a time - output it. */
+  std::string out;
+  while (fgets(buf, sizeof(buf) - 1, fp) != NULL) {
+    out.append(buf);
+  }
+  EXPECT_NE(std::string::npos, out.find("Attempting to reconnect"));
+  EXPECT_NE(std::string::npos, out.find("/mysql'.."));
 }
 
 // The following test is temporarily disabled in Windows.

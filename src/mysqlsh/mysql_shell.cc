@@ -1055,21 +1055,17 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
     if (error.empty()) {
       try {
         _global_shell->set_current_schema(real_param);
+        _last_active_schema = real_param;
 
         auto session = _shell->get_dev_session();
 
         if (session) {
-          auto session_type = session->class_name();
-          std::string message =
-              "Default schema `" + real_param + "` accessible through db.";
-
-          if (session_type == "ClassicSession")
-            message = "Default schema set to `" + real_param + "`.";
+          if (session->class_name() == "ClassicSession" ||
+              interactive_mode() == shcore::IShell_core::Mode::SQL)
+            println("Default schema set to `" + real_param + "`.");
           else
-            message =
-                "Default schema `" + real_param + "` accessible through db.";
-
-          println(message);
+            println("Default schema `" + real_param +
+                    "` accessible through db.");
 
           _update_variables_pending = 1;
           refresh_completion();
@@ -1244,16 +1240,20 @@ void Mysql_shell::handle_notification(const std::string &name,
 bool Mysql_shell::reconnect_if_needed(bool force) {
   bool ret_val = false;
   if (_reconnect_session || force) {
+    auto session = _shell->get_dev_session();
+    Connection_options co = session->get_connection_options();
+    if (!_last_active_schema.empty() &&
+        (!co.has_schema() || co.get_schema() != _last_active_schema))
+      co.set_schema(_last_active_schema);
     if (!force)
       _shell->print("The global session got disconnected..\n");
-    _shell->print("Attempting to reconnect to '" +
-                  _shell->get_dev_session()->uri() + "'..");
+    _shell->print("Attempting to reconnect to '" + co.as_uri() + "'..");
 
     shcore::sleep_ms(500);
     int attempts = 6;
     while (!ret_val && attempts > 0) {
       try {
-        _shell->get_dev_session()->reconnect();
+        session->connect(co);
         ret_val = true;
       } catch (shcore::Exception &e) {
         ret_val = false;
@@ -1272,10 +1272,8 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
       _shell->print("\nThe global session was successfully reconnected.\n");
     else
       _shell->print(
-          "\nThe global session could not be reconnected "
-          "automatically.\nPlease use '\\connect " +
-          _shell->get_dev_session()->uri() +
-          "' instead to manually reconnect.\n");
+          "\nThe global session could not be reconnected automatically.\n"
+          "Please use '\\reconnect' instead to manually reconnect.\n");
   }
 
   _reconnect_session = false;
