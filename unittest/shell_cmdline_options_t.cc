@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -1001,7 +1001,7 @@ TEST_F(Shell_cmdline_options, conflicts_host) {
 
 TEST_F(Shell_cmdline_options, conflicts_host_socket) {
   auto error =
-      "Conflicting options: socket can not be used if host is "
+      "Conflicting options: socket cannot be used if host is "
       "not 'localhost'.\n";
 
   char *argv0[] = {
@@ -1053,7 +1053,7 @@ TEST_F(Shell_cmdline_options, conflicts_socket) {
 
 TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   std::string error0 =
-      "Conflicting options: port and socket can not be used "
+      "Conflicting options: port and socket cannot be used "
       "together.\n";
 
   char *argv0[] = {
@@ -1066,7 +1066,7 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   test_conflicting_options("--port --socket", 3, argv0, error0);
 
   auto error1 =
-      "Conflicting options: port can not be used if the URI "
+      "Conflicting options: port cannot be used if the URI "
       "contains a socket.\n";
 
   char *argv1[] = {
@@ -1079,7 +1079,7 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
   test_conflicting_options("--uri --port", 3, argv1, error1);
 
   auto error2 =
-      "Conflicting options: socket can not be used if the URI "
+      "Conflicting options: socket cannot be used if the URI "
       "contains a port.\n";
 
   char *argv2[] = {
