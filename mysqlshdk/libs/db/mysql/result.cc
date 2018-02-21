@@ -87,7 +87,7 @@ const IRow *Result::fetch_one() {
         unsigned long *lengths;
         lengths = mysql_fetch_lengths(res.get());
 
-        _row.reset(new Row(shared_from_this(), mysql_row, lengths));
+        _row.reset(new Row(this, mysql_row, lengths));
 
         // Each read row increases the count
         _fetched_row_count++;

@@ -62,10 +62,10 @@ class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
 
  private:
   friend class Result;
-  Row(std::shared_ptr<Result> result, MYSQL_ROW row,
+  Row(Result* result, MYSQL_ROW row,
       const unsigned long *lengths);
 
-  std::shared_ptr<Result> _result;
+  Result &_result;
   MYSQL_ROW _row;
   std::vector<uint64_t> _lengths;
 };

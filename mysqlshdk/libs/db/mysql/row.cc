@@ -83,9 +83,8 @@ namespace mysqlshdk {
 namespace db {
 namespace mysql {
 
-Row::Row(std::shared_ptr<Result> result, MYSQL_ROW row,
-         const unsigned long *lengths)
-    : _result(result), _row(row) {
+Row::Row(Result *result, MYSQL_ROW row, const unsigned long *lengths)
+    : _result(*result), _row(row) {
   // TODO(alfredo) there's actually no need to keep a copy of the lengths list
   // because it is valid for as long as MYSQL_ROW is and both should become
   // invalidated when the next row is fetched
@@ -109,7 +108,7 @@ Row::Row(std::shared_ptr<Result> result, MYSQL_ROW row,
 
 #define VALIDATE_TYPE(index, TYPE_CHECK)                                       \
   do {                                                                         \
-    if (index >= static_cast<uint32_t>(_result->get_metadata().size()))        \
+    if (index >= num_fields())                                                 \
       throw FIELD_ERROR(index, "index out of bounds");                         \
     if (_row[index] == nullptr)                                                \
       throw FIELD_ERROR(index, "field is NULL");                               \
@@ -125,12 +124,12 @@ bool Row::is_null(uint32_t index) const {
 }
 
 uint32_t Row::num_fields() const {
-  return static_cast<uint32_t>(_result->get_metadata().size());
+  return static_cast<uint32_t>(_result.get_metadata().size());
 }
 
 Type Row::get_type(uint32_t index) const {
   VALIDATE_INDEX(index);
-  return _result->get_metadata().at(index).get_type();
+  return _result.get_metadata().at(index).get_type();
 }
 
 std::string Row::get_as_string(uint32_t index) const {
@@ -143,7 +142,7 @@ std::string Row::get_as_string(uint32_t index) const {
     return "NULL";
   if (get_type(index) == Type::Bit)
     return shcore::bits_to_string(get_bit(index),
-                                  _result->get_metadata()[index].get_length());
+                                  _result.get_metadata()[index].get_length());
   return std::string(_row[index], _lengths[index]);
 }
 
@@ -153,7 +152,7 @@ int64_t Row::get_int(uint32_t index) const {
   VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger ||
                         (ftype == Type::Decimal && !strchr(_row[index], '.'))));
 
-  if (_result->get_metadata()[index].is_unsigned()) {
+  if (_result.get_metadata()[index].is_unsigned()) {
     uint64_t unsigned_val = strtoull(_row[index], nullptr, 10);
 
     if ((errno == ERANGE && unsigned_val == ULLONG_MAX) ||
@@ -176,7 +175,7 @@ uint64_t Row::get_uint(uint32_t index) const {
   VALIDATE_TYPE(index, (ftype == Type::Integer || ftype == Type::UInteger ||
                         (ftype == Type::Decimal && !strchr(_row[index], '.'))));
 
-  if (_result->get_metadata()[index].is_unsigned()) {
+  if (_result.get_metadata()[index].is_unsigned()) {
     ret_val = strtoull(_row[index], nullptr, 10);
     if (ret_val == ULLONG_MAX && errno == ERANGE)
       throw FIELD_ERROR(index, "field value exceeds allowed range");
