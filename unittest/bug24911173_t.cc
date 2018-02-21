@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,7 @@ namespace tests {
 TEST_F(Command_line_test, bug24911173) {
   // Test all the --socket(-S)/--port(-P) posibilities
   {
-    std::string error("Conflicting options: port and socket can not be used together.");
+    std::string error("Conflicting options: port and socket cannot be used together.");
     execute({_mysqlsh, "--socket=/some/path", "--port=3306", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
@@ -79,7 +79,7 @@ TEST_F(Command_line_test, bug24911173) {
 
   // Tests URI + socket
   {
-    std::string error("Conflicting options: socket can not be used if the URI contains a port.");
+    std::string error("Conflicting options: socket cannot be used if the URI contains a port.");
     execute({_mysqlsh, "--uri=root@localhost:3306", "--socket=/some/path", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
@@ -111,7 +111,7 @@ TEST_F(Command_line_test, bug24911173) {
 
   // Tests URI + port
   {
-    std::string error("Conflicting options: port can not be used if the URI contains a socket.");
+    std::string error("Conflicting options: port cannot be used if the URI contains a socket.");
     execute({_mysqlsh, "--uri=root@/socket", "--port=3310", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
