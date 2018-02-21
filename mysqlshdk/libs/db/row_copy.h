@@ -60,7 +60,11 @@ class SHCORE_PUBLIC Row_copy : public IRow {
   uint64_t get_bit(uint32_t index) const override;
 
  private:
-  class Field_data_ {};
+  class Field_data_ {
+   public:
+    virtual ~Field_data_() {
+    }
+  };
   template <typename T>
   class Field_data : public Field_data_ {
    public:

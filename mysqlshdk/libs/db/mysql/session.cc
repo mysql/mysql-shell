@@ -235,8 +235,6 @@ bool Session_impl::next_resultset() {
 }
 
 void Session_impl::prepare_fetch(Result *target, bool buffered) {
-  Result *real_target = dynamic_cast<Result *>(target);
-
   MYSQL_RES *result;
 
   if (buffered)
@@ -250,9 +248,9 @@ void Session_impl::prepare_fetch(Result *target, bool buffered) {
   if (_prev_result) {
     // We need to update the received result object with the information
     // for the next result set
-    real_target->reset(_prev_result);
+    target->reset(_prev_result);
 
-    real_target->fetch_metadata();
+    target->fetch_metadata();
   }
 }
 
