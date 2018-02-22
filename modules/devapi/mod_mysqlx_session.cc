@@ -870,17 +870,20 @@ std::string Session::db_object_exists(std::string &type,
                                           const std::string &name,
                                           const std::string &owner) {
   Interruptible intr(this);
+  // match must be exact, since both branches below use LIKE and both escape
+  // their arguments it's enough to just escape the wildcards
+  std::string escaped_name = escape_wildcards(name);
 
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> result;
   if (type == "Schema") {
-    result = execute_sql(sqlstring("show databases like ?", 0) << name);
+    result = execute_sql(sqlstring("show databases like ?", 0) << escaped_name);
     if (auto row = result->fetch_one()) {
       return row->get_string(0);
     }
   } else {
     shcore::Dictionary_t args = shcore::make_dict();
     args->set("schema", shcore::Value(owner));
-    args->set("pattern", shcore::Value(name));
+    args->set("pattern", shcore::Value(escaped_name));
     result = execute_mysqlx_stmt("list_objects", args);
     if (auto row = result->fetch_one()) {
       std::string object_name = row->get_string(0);

@@ -43,6 +43,14 @@ enum SqlStringFlags {
 
 SHCORE_PUBLIC std::string escape_sql_string(const std::string &string, bool wildcards = false); // "strings" or 'strings'
 SHCORE_PUBLIC std::string escape_backticks(const std::string &string);  // `identifier`
+/**
+ * Escapes the SQL wildcard characters ('%', '_') in the given string.
+ *
+ * @param string A string to be processed.
+ *
+ * @return The input string with all the wildcard characters escaped.
+ */
+SHCORE_PUBLIC std::string escape_wildcards(const std::string &string);
 SHCORE_PUBLIC std::string quote_identifier(const std::string& identifier, const char quote_char);
 SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident, const char quote_char);
 
