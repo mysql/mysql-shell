@@ -68,7 +68,7 @@ class Global_dba : public Interactive_object_wrapper {
   std::shared_ptr<mysqlsh::IConsole> _delegate;
 
  private:
-  mysqlsh::dba::ReplicationGroupState check_preconditions(
+  mysqlsh::dba::Cluster_check_info check_preconditions(
         std::shared_ptr<mysqlshdk::db::ISession> group_session,
         const std::string& function_name) const;
   std::vector<std::pair<std::string, std::string>>

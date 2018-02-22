@@ -63,7 +63,7 @@ void Interactive_dba_cluster::init() {
       this, _1));
 }
 
-mysqlsh::dba::ReplicationGroupState
+mysqlsh::dba::Cluster_check_info
     Interactive_dba_cluster::check_preconditions(
         const std::string& function_name) const {
   ScopedStyle ss(_target.get(), naming_style);

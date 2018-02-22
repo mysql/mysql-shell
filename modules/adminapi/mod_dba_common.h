@@ -35,6 +35,7 @@
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "modules/adminapi/preconditions.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -73,82 +74,6 @@ struct Instance_definition {
   }
 };
 
-// Note that this structure may be initialized using initializer
-// lists, so the order of hte fields is very important
-struct FunctionAvailability {
-  int instance_config_state;
-  int cluster_status;
-  int instance_status;
-};
-
-enum GRInstanceType {
-  Standalone = 1 << 0,
-  GroupReplication = 1 << 1,
-  InnoDBCluster = 1 << 2,
-  StandaloneWithMetadata = 1 << 3
-};
-
-enum class SlaveReplicationState {
-  New,
-  Recoverable,
-  Diverged,
-  Irrecoverable
-};
-
-struct NewInstanceInfo {
-  std::string member_id;
-  std::string host;
-  int port;
-};
-
-struct MissingInstanceInfo {
-  std::string id;
-  std::string label;
-  std::string host;
-};
-
-namespace ManagedInstance {
-enum State {
-  OnlineRW = 1 << 0,
-  OnlineRO = 1 << 1,
-  Recovering = 1 << 2,
-  Unreachable = 1 << 3,
-  Offline = 1 << 4,
-  Error = 1 << 5,
-  Missing = 1 << 6,
-  Any = OnlineRO | OnlineRW | Recovering | Unreachable | Offline | Error |
-      Missing
-};
-
-std::string describe(State state);
-};  // namespace ManagedInstance
-
-namespace ReplicationQuorum {
-enum State {
-  Normal = 1 << 0,
-  Quorumless = 1 << 1,
-  Dead = 1 << 2,
-  Any = Normal | Quorumless | Dead
-};
-}
-
-struct ReplicationGroupState {
-  // The state of the cluster from the quorum point of view
-  ReplicationQuorum::State quorum;
-
-  // The UIUD of the master instance
-  std::string master;
-
-  // The UUID of the instance from which the data was consulted
-  std::string source;
-
-  // The configuration type of the instance from which the data was consulted
-  GRInstanceType source_type;
-
-  // The state of the instance from which the data was consulted
-  ManagedInstance::State source_state;
-};
-
 namespace ReplicaSetStatus {
 enum Status {
   OK,
@@ -163,10 +88,6 @@ std::string describe(Status state);
 
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors);
-ReplicationGroupState check_function_preconditions(
-    const std::string &class_name, const std::string &base_function_name,
-    const std::string &function_name,
-    std::shared_ptr<mysqlshdk::db::ISession> group_session);
 
 extern const char *kMemberSSLModeAuto;
 extern const char *kMemberSSLModeRequired;

@@ -161,7 +161,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
       const shcore::Argument_list &args);
   shcore::Value disconnect(const shcore::Argument_list &args);
 
-  ReplicationGroupState check_preconditions(
+  Cluster_check_info check_preconditions(
       const std::string& function_name) const;
 
  protected:

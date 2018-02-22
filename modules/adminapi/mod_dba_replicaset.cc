@@ -2155,7 +2155,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   }
 
   // Get the instance state
-  ReplicationGroupState state;
+  Cluster_check_info state;
 
   auto instance_type = get_gr_instance_type(session);
 
@@ -2241,15 +2241,14 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   return ret_val;
 }
 
-ReplicationGroupState ReplicaSet::check_preconditions(
+Cluster_check_info ReplicaSet::check_preconditions(
     std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
   try {
-    return check_function_preconditions(class_name(), function_name,
-                                        get_function_name(function_name),
+    return check_function_preconditions("ReplicaSet." + function_name,
                                         group_session);
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return ReplicationGroupState{};
+  return Cluster_check_info{};
 }
 
 shcore::Value ReplicaSet::get_description() const {
@@ -2279,7 +2278,7 @@ shcore::Value ReplicaSet::get_description() const {
 }
 
 shcore::Value ReplicaSet::get_status(
-    const mysqlsh::dba::ReplicationGroupState &state) const {
+    const mysqlsh::dba::Cluster_check_info &state) const {
   shcore::Value ret_val = shcore::Value::new_map();
   auto status = ret_val.as_map();
 

@@ -76,7 +76,7 @@ void Global_dba::init() {
              shcore::Map, NULL);
 }
 
-mysqlsh::dba::ReplicationGroupState Global_dba::check_preconditions(
+mysqlsh::dba::Cluster_check_info Global_dba::check_preconditions(
     std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
   ScopedStyle ss(_target.get(), naming_style);
@@ -310,7 +310,7 @@ shcore::Value Global_dba::start_sandbox_instance(
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
-  mysqlsh::dba::ReplicationGroupState state;
+  mysqlsh::dba::Cluster_check_info state;
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
   std::shared_ptr<mysqlshdk::db::ISession> member_session;
 
