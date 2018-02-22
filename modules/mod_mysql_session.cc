@@ -439,9 +439,12 @@ void ClassicSession::drop_schema(const std::string &name) {
 std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) {
   std::string statement;
   std::string ret_val;
+  // match must be exact, since both branches below use LIKE and both escape
+  // their arguments it's enough to just escape the wildcards
+  std::string escaped_name = escape_wildcards(name);
 
   if (type == "Schema") {
-    statement = sqlstring("show databases like ?", 0) << name;
+    statement = sqlstring("show databases like ?", 0) << escaped_name;
     auto val_result = execute_sql(statement, shcore::Array_t());
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
@@ -452,7 +455,8 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
         ret_val = row->get_member(0).as_string();
     }
   } else {
-    statement = sqlstring("show full tables from ! like ?", 0) << owner << name;
+    statement = sqlstring("show full tables from ! like ?", 0) << owner
+                                                               << escaped_name;
     auto val_result = execute_sql(statement, shcore::Array_t());
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());

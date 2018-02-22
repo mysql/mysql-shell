@@ -352,6 +352,22 @@ std::string escape_backticks(const std::string &s) {
   return result;
 }
 
+std::string escape_wildcards(const std::string &s) {
+  std::string result;
+  result.reserve(s.size());
+
+  for (const auto &ch : s) {
+    bool escape = (ch == '%' || ch == '_');
+
+    if (escape)
+      result.push_back('\\');
+
+    result.push_back(ch);
+  }
+
+  return result;
+}
+
 //--------------------------------------------------------------------------------------------------
 
 bool is_reserved_word(const std::string &word) {
