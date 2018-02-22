@@ -97,7 +97,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  ReplicationGroupState check_preconditions(
+  Cluster_check_info check_preconditions(
       std::shared_ptr<mysqlshdk::db::ISession> group_session,
       const std::string &function_name) const;
 

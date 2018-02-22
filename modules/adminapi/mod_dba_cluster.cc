@@ -1606,15 +1606,14 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-ReplicationGroupState Cluster::check_preconditions(
+Cluster_check_info Cluster::check_preconditions(
     const std::string &function_name) const {
   try {
-    return check_function_preconditions(class_name(), function_name,
-                                        get_function_name(function_name),
+    return check_function_preconditions("Cluster." + function_name,
                                         _group_session);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return ReplicationGroupState{};
+  return Cluster_check_info{};
 }
 
 }  // namespace dba

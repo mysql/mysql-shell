@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -51,6 +51,7 @@ file(GLOB api_module_SOURCES
       "adminapi/mod_dba_provisioning_interface.cc"
       "adminapi/mod_dba_replicaset.cc"
       "adminapi/mod_dba_common.cc"
+      "adminapi/preconditions.cc"
       "adminapi/mod_dba_sql.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})

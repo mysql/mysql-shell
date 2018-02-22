@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,7 +45,7 @@ void get_gtid_state_variables(
 SlaveReplicationState get_slave_replication_state(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     const std::string &slave_executed);
-ReplicationGroupState get_replication_group_state(
+Cluster_check_info get_replication_group_state(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     GRInstanceType source_type);
 ManagedInstance::State SHCORE_PUBLIC

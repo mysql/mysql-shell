@@ -175,10 +175,10 @@ SlaveReplicationState get_slave_replication_state(
 // instance within the group.
 // For that reason, this function should be called ONLY when the instance has
 // been validated to be NOT Standalone
-ReplicationGroupState get_replication_group_state(
+Cluster_check_info get_replication_group_state(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     GRInstanceType source_type) {
-  ReplicationGroupState ret_val;
+  Cluster_check_info ret_val;
 
   // Sets the source instance type
   ret_val.source_type = source_type;

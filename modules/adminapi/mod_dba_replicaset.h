@@ -157,13 +157,13 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value force_quorum_using_partition_of_(
       const shcore::Argument_list &args);
   shcore::Value get_status(
-      const mysqlsh::dba::ReplicationGroupState &state) const;
+      const mysqlsh::dba::Cluster_check_info &state) const;
 
   void remove_instances_from_gr(
       const std::vector<Instance_definition> &instances);
   void remove_instance_from_gr(const std::string &instance_str,
                                const mysqlshdk::db::Connection_options &data);
-  ReplicationGroupState check_preconditions(
+  Cluster_check_info check_preconditions(
       std::shared_ptr<mysqlshdk::db::ISession> group_session,
       const std::string& function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);

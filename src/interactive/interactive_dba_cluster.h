@@ -57,7 +57,7 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
   bool resolve_instance_options(const std::string &function,
                                 const shcore::Argument_list &args,
                                 shcore::Value::Map_type_ref &options) const;
-  mysqlsh::dba::ReplicationGroupState check_preconditions(
+  mysqlsh::dba::Cluster_check_info check_preconditions(
       const std::string &function_name) const;
   void assert_valid(const std::string& function_name) const;
 };

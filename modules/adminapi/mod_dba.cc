@@ -516,10 +516,7 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       }
     }
 
-    // TODO(.) This may be redundant
-    check_function_preconditions(class_name(), "getCluster",
-                                 get_function_name("getCluster"),
-                                 group_session);
+    check_function_preconditions("Dba.getCluster", group_session);
 
     return shcore::Value(
         get_cluster(default_cluster ? nullptr : cluster_name.c_str(),
@@ -798,7 +795,7 @@ Cluster Dba::create_cluster(str name, dict options) {}
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("createCluster").c_str());
 
-  ReplicationGroupState state;
+  Cluster_check_info state;
 
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<mysqlshdk::db::ISession> group_session;
@@ -2847,16 +2844,14 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   return ret_val;
 }
 
-ReplicationGroupState Dba::check_preconditions(
+Cluster_check_info Dba::check_preconditions(
     std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
   try {
-    return check_function_preconditions(class_name(), function_name,
-                                        get_function_name(function_name),
-                                        group_session);
+    return check_function_preconditions("Dba." + function_name, group_session);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return ReplicationGroupState{};
+  return Cluster_check_info{};
 }
 
 /*
