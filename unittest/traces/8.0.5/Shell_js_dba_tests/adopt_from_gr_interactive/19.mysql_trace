@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@T460:3321",
+    "uri": "root:root@dhcp-10-159-155-195.vpn.oracle.com:3326",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "25",
-    "connection_info": "T460 via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "connection_info": "dhcp-10-159-155-195.vpn.oracle.com via TCP/IP",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "e339b3ed-1687-11e8-b122-4485005154dc"
+            "b43270e6-1914-11e8-a7af-c09dd143d872"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            33210
+            33260
         ]
     ]
 },
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "localhost:33211"
+            "localhost:33261"
         ]
     ]
 },

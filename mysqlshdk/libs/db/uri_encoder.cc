@@ -80,9 +80,9 @@ std::string Uri_encoder::encode_uri(const Connection_options& info,
   // All the SSL attributes come in the format of attribute=value
   if (format.is_set(Tokens::Query)) {
     std::vector<std::string> attributes;
-    for (auto ssl_attribute : mysqlshdk::db::Ssl_options::option_str_list()) {
+    for (auto ssl_attribute : mysqlshdk::db::Ssl_options::option_str_list) {
       if (info.has_value(ssl_attribute)) {
-        attributes.push_back(ssl_attribute + "=" +
+        attributes.push_back(std::string(ssl_attribute) + "=" +
                              encode_value(info.get(ssl_attribute)));
       }
     }

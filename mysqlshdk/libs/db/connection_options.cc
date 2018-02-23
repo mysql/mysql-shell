@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,8 +48,10 @@ std::string to_string(Transport_type type) {
   return "Unknown";
 }
 
-const std::set<std::string> Connection_options::fixed_str_list = {
+namespace {
+static constexpr const char *fixed_str_list[] = {
     kHost, kSocket, kScheme, kSchema, kUser, kPassword};
+}
 
 Connection_options::Connection_options(Comparison_mode mode)
     : Nullable_options(mode, "connection"),
@@ -131,7 +133,7 @@ void Connection_options::set_pipe(const std::string& pipe) {
   if ((!_transport_type.is_null() && *_transport_type == Socket) ||
       !_port.is_null() ||
       (Nullable_options::has_value(kHost) &&
-       (!shcore::is_local_host(get_value(kHost), false) && 
+       (!shcore::is_local_host(get_value(kHost), false) &&
         !(get_value(kHost) == "." && win32))))
     raise_connection_type_error("pipe connection to '" + pipe + "'");
 

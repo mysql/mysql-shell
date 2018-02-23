@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@T460:3311",
+    "uri": "mysql://root:root@dhcp-10-159-155-195.vpn.oracle.com:3316",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "42",
-    "connection_info": "T460 via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "connection_info": "dhcp-10-159-155-195.vpn.oracle.com via TCP/IP",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "e1e38fdc-1687-11e8-88de-4485005154dc",
-            "e1e38fdc-1687-11e8-88de-4485005154dc"
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30",
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e1e38fdc-1687-11e8-88de-4485005154dc'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b35220a4-1914-11e8-8d9a-9dcd2e7eee30'"
 },
 {
     "type": "response",
@@ -366,8 +366,8 @@
     ],
     "rows": [
         [
-            "e1e38fdc-1687-11e8-88de-4485005154dc",
-            "e1e38fdc-1687-11e8-88de-4485005154dc"
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30",
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
         ]
     ]
 },
@@ -375,7 +375,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e1e38fdc-1687-11e8-88de-4485005154dc'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b35220a4-1914-11e8-8d9a-9dcd2e7eee30'"
 },
 {
     "type": "response",

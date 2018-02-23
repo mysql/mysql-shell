@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@T460:3311",
+    "uri": "mysql://root:root@dhcp-10-159-155-195.vpn.oracle.com:3316",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "39",
-    "connection_info": "T460 via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "connection_info": "dhcp-10-159-155-195.vpn.oracle.com via TCP/IP",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -142,8 +142,8 @@
     ],
     "rows": [
         [
-            "e7b64000-1683-11e8-a447-4485005154dc",
-            "e7b64000-1683-11e8-a447-4485005154dc"
+            "e3211be6-1914-11e8-8188-6906e0560d3d",
+            "e3211be6-1914-11e8-8188-6906e0560d3d"
         ]
     ]
 },
@@ -151,7 +151,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e7b64000-1683-11e8-a447-4485005154dc'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e3211be6-1914-11e8-8188-6906e0560d3d'"
 },
 {
     "type": "response",
@@ -354,9 +354,9 @@
     ],
     "rows": [
         [
-            5,
+            3,
             "bla",
-            5,
+            3,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -367,7 +367,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 5"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -431,7 +431,7 @@
         [
             "default",
             "pm",
-            "e899b5af-1683-11e8-a447-4485005154dc"
+            "e3f6081a-1914-11e8-8188-6906e0560d3d"
         ]
     ]
 },
@@ -439,7 +439,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 5 AND addresses->'$.mysqlClassic' = 'T460:3311'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'dhcp-10-159-155-195.vpn.oracle.com:3316'"
 },
 {
     "type": "response",
@@ -477,7 +477,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 5"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -555,10 +555,10 @@
     ],
     "rows": [
         [
-            "e7b64000-1683-11e8-a447-4485005154dc",
-            "T460:3311",
+            "e3211be6-1914-11e8-8188-6906e0560d3d",
+            "dhcp-10-159-155-195.vpn.oracle.com:3316",
             "HA",
-            "T460:3311"
+            "dhcp-10-159-155-195.vpn.oracle.com:3316"
         ]
     ]
 },
@@ -566,7 +566,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 5"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 3"
 },
 {
     "type": "response",

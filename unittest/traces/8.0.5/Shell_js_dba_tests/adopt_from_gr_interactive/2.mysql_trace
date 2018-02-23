@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3311",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 140,
+            "length": 100,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.5-debug-log Source distribution"
+            "8.0.5 Source distribution"
         ]
     ]
 },
@@ -73,7 +73,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "CREATE USER 'root'@'T460' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'dhcp-10-159-155-195.vpn.oracle.com' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -88,7 +88,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'T460' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'dhcp-10-159-155-195.vpn.oracle.com' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -103,7 +103,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "CREATE USER 'root'@'192.168.1.66' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'10.159.155.195' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -118,7 +118,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'192.168.1.66' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'10.159.155.195' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -270,8 +270,8 @@
     ],
     "rows": [
         [
-            "e1e38fdc-1687-11e8-88de-4485005154dc",
-            "e1e38fdc-1687-11e8-88de-4485005154dc"
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30",
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
         ]
     ]
 },
@@ -279,7 +279,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'e1e38fdc-1687-11e8-88de-4485005154dc'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b35220a4-1914-11e8-8d9a-9dcd2e7eee30'"
 },
 {
     "type": "response",

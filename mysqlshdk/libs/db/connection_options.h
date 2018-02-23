@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -125,8 +125,6 @@ class SHCORE_PUBLIC Connection_options
   std::string get_iname(const std::string& name) const;
 
   void raise_connection_type_error(const std::string& source);
-
-  static const std::set<std::string> fixed_str_list;
 
   nullable<int> _port;
   nullable<Transport_type> _transport_type;
