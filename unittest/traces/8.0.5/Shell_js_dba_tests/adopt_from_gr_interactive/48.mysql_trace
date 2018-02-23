@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@T460:3311",
+    "uri": "mysql://root:root@dhcp-10-159-155-195.vpn.oracle.com:3316",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "86",
-    "connection_info": "T460 via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "connection_info": "dhcp-10-159-155-195.vpn.oracle.com via TCP/IP",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@hostname",
-            "length": 16,
+            "length": 136,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -67,7 +67,7 @@
     "rows": [
         [
             null,
-            "T460"
+            "dhcp-10-159-155-195.vpn.oracle.com"
         ]
     ]
 },
@@ -169,11 +169,11 @@
     ],
     "rows": [
         [
-            "T460-bin.000003",
-            59673,
+            "dhcp-10-159-155-195-bin.000003",
+            60539,
             "",
             "",
-            "e1e38fdc-1687-11e8-88de-4485005154dc:1-20,\ne4458795-1687-11e8-88de-4485005154dc:1-43,\nf74958b9-1687-11e8-88de-4485005154dc:1-25"
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30:1-20,\nb52ea3f2-1914-11e8-8d9a-9dcd2e7eee30:1-43,\nc829fad8-1914-11e8-8d9a-9dcd2e7eee30:1-25"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     ],
     "rows": [
         [
-            "e1e38fdc-1687-11e8-88de-4485005154dc"
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
         ]
     ]
 },
@@ -380,18 +380,8 @@
     "rows": [
         [
             "server_uuid",
-            "e1e38fdc-1687-11e8-88de-4485005154dc"
+            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
         ]
     ]
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 17
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 18
 },
 null]

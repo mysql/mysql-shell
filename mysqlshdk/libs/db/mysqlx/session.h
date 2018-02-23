@@ -138,8 +138,6 @@ class SHCORE_PUBLIC Session : public ISession,
 
   void close() override {
     _impl->close();
-    // TODO(.) see if we can get rid of these pre-allocations
-    _impl.reset(new XSession_impl());
   }
 
   virtual uint64_t get_connection_id() const {

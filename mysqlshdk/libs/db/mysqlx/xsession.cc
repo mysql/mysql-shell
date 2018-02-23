@@ -280,10 +280,21 @@ void XSession_impl::close() {
     while (result->next_resultset()) {
     }
   }
+
+  if (_enable_trace) {
+    enable_trace(false);
+    _enable_trace = true;
+  }
+
   _connection_id = 0;
   _connection_info.clear();
   _ssl_cipher.clear();
   _mysql.reset();
+  _version = utils::Version();
+  _expired_account = false;
+  _case_sensitive_table_names = false;
+  _prev_result.reset();
+  _connection_options = Connection_options();
 }
 
 void XSession_impl::enable_trace(bool flag) {

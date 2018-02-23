@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3321?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "10",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -447,7 +447,7 @@
     ],
     "rows": [
         [
-            3321
+            3326
         ]
     ]
 },
@@ -616,7 +616,7 @@
     "rows": [
         [
             "version",
-            "8.0.5-debug-log"
+            "8.0.5"
         ]
     ]
 },
@@ -654,7 +654,7 @@
     ],
     "rows": [
         [
-            15666
+            15671
         ]
     ]
 },
@@ -750,36 +750,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
             "schema": "",
@@ -816,36 +816,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         },
         {
-            "schema": "mysql",
+            "schema": "",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": []
@@ -1333,7 +1333,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@log_error",
-            "length": 124,
+            "length": 300,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1346,7 +1346,7 @@
     ],
     "rows": [
         [
-            "/tmp/3321/sandboxdata/error.log"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/error.log"
         ]
     ]
 },
@@ -1371,7 +1371,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 88,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1384,7 +1384,7 @@
     ],
     "rows": [
         [
-            "/tmp/3321/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/"
         ]
     ]
 },
@@ -1456,7 +1456,7 @@
     ],
     "rows": [
         [
-            15666
+            15671
         ]
     ]
 },
@@ -1494,7 +1494,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "SET PERSIST group_replication_group_seeds = 'localhost:33111'"
+    "sql": "SET PERSIST group_replication_group_seeds = 'localhost:33161'"
 },
 {
     "type": "response",
@@ -1674,7 +1674,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 83,
-    "sql": "SET PERSIST group_replication_group_name = 'e4458795-1687-11e8-88de-4485005154dc'"
+    "sql": "SET PERSIST group_replication_group_name = 'b52ea3f2-1914-11e8-8d9a-9dcd2e7eee30'"
 },
 {
     "type": "response",
@@ -2124,7 +2124,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 143,
-    "sql": "SET PERSIST group_replication_local_address = 'localhost:33211'"
+    "sql": "SET PERSIST group_replication_local_address = 'localhost:33261'"
 },
 {
     "type": "response",
@@ -2304,7 +2304,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 167,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ ']L}_={6&.[3]&.[r{}^R9|-I;${h;V@>' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '+=V,:>{n1:8f[a;%l:.,P^4_S{X}-/-;' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

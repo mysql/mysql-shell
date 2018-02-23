@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3311?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "0da92f60-1688-11e8-8fa4-4485005154dc"
+            "884570fa-1914-11e8-ad51-bf6bdc0ca416"
         ]
     ]
 },
@@ -273,8 +273,8 @@
     ],
     "rows": [
         [
-            "T460",
-            3311
+            "dhcp-10-159-155-195.vpn.oracle.com",
+            3316
         ]
     ]
 },
@@ -757,7 +757,7 @@
     ],
     "rows": [
         [
-            "localhost:33111"
+            "localhost:33161"
         ]
     ]
 },
@@ -1240,7 +1240,7 @@
     ],
     "rows": [
         [
-            "0da92f60-1688-11e8-8fa4-4485005154dc"
+            "884570fa-1914-11e8-ad51-bf6bdc0ca416"
         ]
     ]
 },
