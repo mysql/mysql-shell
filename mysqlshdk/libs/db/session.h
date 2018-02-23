@@ -116,25 +116,6 @@ class SHCORE_PUBLIC ISession {
   }
 };
 
-template <class C>
-class Scoped_session {
- public:
-  explicit Scoped_session(std::shared_ptr<C> session) : _session(session) {}
-
-  ~Scoped_session() {
-    if (_session) _session->close();
-  }
-
-  C& operator*() { return *_session; }
-
-  C* operator->() { return _session.get(); }
-
-  operator std::shared_ptr<C>() { return _session; }
-
- private:
-  std::shared_ptr<C> _session;
-};
-
 }  // namespace db
 }  // namespace mysqlshdk
 #endif  // MYSQLSHDK_LIBS_DB_SESSION_H_

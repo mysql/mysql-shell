@@ -183,6 +183,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
             }
           }
         }
+        mysql_free_result(res);
       }
     }
   }
@@ -589,7 +590,6 @@ int main(int argc, char **argv) {
 #endif
 
   g_mysqlsh_argv0 = mysqlsh_path.c_str();
-  g_mppath = strdup(mppath.c_str());
 
   int sport1, sport2, sport3;
   const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");

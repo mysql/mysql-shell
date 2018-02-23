@@ -524,7 +524,7 @@ shcore::Value ReplicaSet::add_instance(
   bool is_instance_on_md =
       _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
-  mysqlshdk::db::Scoped_session<mysqlshdk::db::ISession> session(
+  std::shared_ptr<mysqlshdk::db::ISession> session(
       mysqlshdk::db::mysql::Session::create());
   session->connect(instance_cnx_opt);
 
