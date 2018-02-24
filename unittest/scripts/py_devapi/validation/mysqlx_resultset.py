@@ -29,10 +29,10 @@
 |get_warnings: OK|
 |affected_item_count: OK|
 |auto_increment_value: OK|
-|last_document_id: OK|
+|generated_ids: OK|
 |get_affected_item_count: OK|
 |get_auto_increment_value: OK|
-|get_last_document_id: OK|
+|get_generated_ids: OK|
 
 #@ RowResult member validation
 |execution_time: OK|

@@ -132,10 +132,6 @@ TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_help) {
   validate_interactive("mysqlx_collection_help.js");
 }
 
-TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_add) {
-  validate_interactive("mysqlx_collection_add.js");
-}
-
 TEST_F(Shell_js_mysqlx_tests, mysqlx_collection_find) {
   validate_interactive("mysqlx_collection_find.js");
 }

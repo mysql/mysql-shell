@@ -57,12 +57,10 @@ validateMember(resultMembers, 'getWarningCount');
 validateMember(resultMembers, 'getWarnings');
 validateMember(resultMembers, 'affectedItemCount');
 validateMember(resultMembers, 'autoIncrementValue');
-validateMember(resultMembers, 'lastDocumentId');
-validateMember(resultMembers, 'lastDocumentIds');
+validateMember(resultMembers, 'generatedIds');
 validateMember(resultMembers, 'getAffectedItemCount');
 validateMember(resultMembers, 'getAutoIncrementValue');
-validateMember(resultMembers, 'getLastDocumentId');
-validateMember(resultMembers, 'getLastDocumentIds');
+validateMember(resultMembers, 'getGeneratedIds');
 
 //@ RowResult member validation
 var result = table.select().execute();

@@ -43,10 +43,6 @@
 |Affected Rows Columns: 1|
 |Affected Rows Multiple Values: 2|
 |Affected Rows Document: 1|
-|lastDocumentId: Result.getLastDocumentId: document id is not available.|
-|getLastDocumentId(): Result.getLastDocumentId: document id is not available.|
-|lastDocumentIds: Result.getLastDocumentIds: document ids are not available.|
-|getLastDocumentIds(): Result.getLastDocumentIds: document ids are not available.|
 
 //@ Table.insert execution on a View
 |Affected Rows Through View: 1|

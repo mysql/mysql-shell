@@ -58,10 +58,10 @@ validateMember(resultMembers, 'get_warning_count')
 validateMember(resultMembers, 'get_warnings')
 validateMember(resultMembers, 'affected_item_count')
 validateMember(resultMembers, 'auto_increment_value')
-validateMember(resultMembers, 'last_document_id')
+validateMember(resultMembers, 'generated_ids')
 validateMember(resultMembers, 'get_affected_item_count')
 validateMember(resultMembers, 'get_auto_increment_value')
-validateMember(resultMembers, 'get_last_document_id')
+validateMember(resultMembers, 'get_generated_ids')
 
 #@ RowResult member validation
 result = table.select().execute()

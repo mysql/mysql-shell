@@ -75,10 +75,6 @@
 
 #@ TableUpdate: test using limits
 |Affected Rows: 2|
-|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
-|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
-|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
-|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 |With 16 Years: 3|
 |With 15 Years: 1|
 

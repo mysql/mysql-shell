@@ -239,13 +239,7 @@ Result::Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : BaseResult(result) {
   add_property("affectedItemCount", "getAffectedItemCount");
   add_property("autoIncrementValue", "getAutoIncrementValue");
-  add_property("lastDocumentId", "getLastDocumentId");
-  add_property("lastDocumentIds", "getLastDocumentIds");
-}
-
-void Result::set_last_document_ids(const std::vector<std::string> &ids) {
-  last_document_ids_ = ids;
-  has_document_ids_ = true;
+  add_property("generatedIds", "getGeneratedIds");
 }
 
 shcore::Value Result::get_member(const std::string &prop) const {
@@ -257,12 +251,9 @@ shcore::Value Result::get_member(const std::string &prop) const {
   else if (prop == "autoIncrementValue")
     ret_val = Value(get_auto_increment_value());
 
-  else if (prop == "lastDocumentId")
-    ret_val = Value(get_last_document_id());
-
-  else if (prop == "lastDocumentIds") {
+  else if (prop == "generatedIds") {
     shcore::Value::Array_type_ref ret_val(new shcore::Value::Array_type);
-    std::vector<std::string> doc_ids = get_last_document_ids();
+    std::vector<std::string> doc_ids = get_generated_ids();
 
     for (auto doc_id : doc_ids)
       ret_val->push_back(shcore::Value(doc_id));
@@ -343,55 +334,42 @@ int64_t Result::get_auto_increment_value() const {
 }
 
 // Documentation of getLastDocumentId function
-REGISTER_HELP(RESULT_GETLASTDOCUMENTID_BRIEF,
-              "The id of the last document inserted into a collection.");
-REGISTER_HELP(
-    RESULT_GETLASTDOCUMENTID_RETURNS,
-    "@returns the string representing the if of the last inserted document.");
-REGISTER_HELP(RESULT_GETLASTDOCUMENTID_DETAIL,
-              "Note that this value will be available only when the result is "
-              "for a Collection.add operation.");
-
+REGISTER_HELP(RESULT_GETGENERATEDIDS_BRIEF,
+              "Returns the list of document ids generated on the server.");
+REGISTER_HELP(RESULT_GETGENERATEDIDS_RETURNS,
+    "@returns a list of strings containing the generated ids.");
+REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL,
+    "When adding documents into a collection, it is required that an ID is "
+    "associated to the document, if a document is added without an '_id' "
+    "field, an error will be generated.");
+REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL1,
+    "At MySQL 8.0.5 if the documents being added do not have an '_id' field, "
+    "the server will automatically generate an ID and assign it to the "
+    "document.");
+REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL2,
+    "This function returns a list of the IDs that were generated for the "
+    "server to satisfy this requirement.");
 /**
- * $(RESULT_GETLASTDOCUMENTID_BRIEF)
+ * $(RESULT_GETGENERATEDIDS_BRIEF)
  *
- * $(RESULT_GETLASTDOCUMENTID_RETURNS)
+ * $(RESULT_GETGENERATEDIDS_RETURNS)
  *
- * $(RESULT_GETLASTDOCUMENTID_DETAIL)
+ * $(RESULT_GETGENERATEDIDS_DETAIL)
+ *
+ * $(RESULT_GETGENERATEDIDS_DETAIL1)
+ *
+ * $(RESULT_GETGENERATEDIDS_DETAIL2)
  */
 #if DOXYGEN_JS
-String Result::getLastDocumentId() {
-}
+  List Result::getGeneratedIds(){};
 #elif DOXYGEN_PY
-str Result::get_last_document_id() {
-}
+  list Result::get_generated_ids(){};
 #endif
-
-std::string Result::get_last_document_id() const {
-  std::string ret_val;
-  try {
-    if (!has_document_ids_ || last_document_ids_.size() != 1) {
-      // Last document id is only available on collection add operations
-      // and only if a single document is added (MY-139 Spec, Req 4, 6)
-      throw std::logic_error("document id is not available.");
-    }
-    ret_val = last_document_ids_.front();
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("getLastDocumentId"));
-  return ret_val;
-}
-
-const std::vector<std::string> Result::get_last_document_ids() const {
-  try {
-    // Last document ids are available on any collection add operation (MY-139
-    // Spec, Req 1-5)
-    if (!has_document_ids_)
-      throw std::logic_error("document ids are not available.");
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("getLastDocumentIds"));
-  return last_document_ids_;
+const std::vector<std::string> Result::get_generated_ids() const {
+  if (_result)
+    return _result->get_generated_ids();
+  else
+    return {};
 }
 
 void Result::append_json(shcore::JSON_dumper &dumper) const {

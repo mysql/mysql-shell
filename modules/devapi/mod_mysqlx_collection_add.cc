@@ -215,7 +215,7 @@ void CollectionAdd::add_one_document(shcore::Value doc,
     }
   }
 
-  std::string id = extract_id(docx.get());
+  /*std::string id = extract_id(docx.get());
   if (id.empty()) {
     auto session = std::dynamic_pointer_cast<Session>(_owner->session());
     id = session->get_uuid();
@@ -224,7 +224,7 @@ void CollectionAdd::add_one_document(shcore::Value doc,
     fld->set_key("_id");
     mysqlshdk::db::mysqlx::util::set_scalar(*fld->mutable_value(), id);
   }
-  last_document_ids_.push_back(id);
+  last_document_ids_.push_back(id);*/
   message_.mutable_row()->Add()->mutable_field()->AddAllocated(docx.release());
 }
 
@@ -252,42 +252,42 @@ REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, "execute()");
 /**
  * #### Using a Document List
  * Adding document using an existing document list
- * \snippet mysqlx_collection_add.js CollectionAdd: Document List
+ * \snippet collection_add.js CollectionAdd: Document List
  *
  * #### Multiple Parameters
  * Adding document using a separate parameter for each document on a single call
  * to add(...)
- * \snippet mysqlx_collection_add.js CollectionAdd: Multiple Parameters
+ * \snippet collection_add.js CollectionAdd: Multiple Parameters
  *
  * #### Chaining Addition
  * Adding documents using chained calls to add(...)
- * \snippet mysqlx_collection_add.js CollectionAdd: Chained Calls
+ * \snippet collection_add.js CollectionAdd: Chained Calls
  *
  * $(COLLECTIONADD_ADD_DETAIL9)
  *
  * $(COLLECTIONADD_ADD_DETAIL10)
- * \snippet mysqlx_collection_add.js CollectionAdd: Using an Expression
+ * \snippet collection_add.js CollectionAdd: Using an Expression
  */
 Result CollectionAdd::execute() {}
 #elif DOXYGEN_PY
 /**
  * #### Using a Document List
  * Adding document using an existing document list
- * \snippet mysqlx_collection_add.py CollectionAdd: Document List
+ * \snippet collection_add.py CollectionAdd: Document List
  *
  * #### Multiple Parameters
  * Adding document using a separate parameter for each document on a single call
  * to add(...)
- * \snippet mysqlx_collection_add.py CollectionAdd: Multiple Parameters
+ * \snippet collection_add.py CollectionAdd: Multiple Parameters
  *
  * #### Chaining Addition
  * Adding documents using chained calls to add(...)
- * \snippet mysqlx_collection_add.py CollectionAdd: Chained Calls
+ * \snippet collection_add.py CollectionAdd: Chained Calls
  *
  * $(COLLECTIONADD_ADD_DETAIL9)
  *
  * $(COLLECTIONADD_ADD_DETAIL10)
- * \snippet mysqlx_collection_add.py CollectionAdd: Using an Expression
+ * \snippet collection_add.py CollectionAdd: Using an Expression
  */
 Result CollectionAdd::execute() {}
 #endif
@@ -315,10 +315,8 @@ shcore::Value CollectionAdd::execute(bool upsert) {
     result.reset(new mysqlx::Result(safe_exec([this]() {
       return session()->session()->execute_crud(message_);
     })));
-    result->set_last_document_ids(last_document_ids_);
   } else {
     result.reset(new mysqlsh::mysqlx::Result({}));
-    result->set_last_document_ids({});
   }
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_ellapsed());

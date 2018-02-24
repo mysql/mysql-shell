@@ -110,31 +110,27 @@ public:
   // C++ Interface
   int64_t get_affected_item_count() const;
   int64_t get_auto_increment_value() const;
-  std::string get_last_document_id() const;
-  const std::vector<std::string> get_last_document_ids() const;
+  const std::vector<std::string> get_generated_ids() const;
 
 #if DOXYGEN_JS
   Integer affectedItemCount;   //!< Same as getAffectedItemCount()
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
-  Integer lastDocumentId;      //!< Same as getLastDocumentId()
+  List generatedIds;  //!< Same as getGeneratedIds()
 
   Integer getAffectedItemCount();
   Integer getAutoIncrementValue();
-  String getLastDocumentId();
+  List getGeneratedIds();
 #elif DOXYGEN_PY
   int affected_item_count;   //!< Same as get_affected_item_count()
   int auto_increment_value;  //!< Same as get_auto_increment_value()
-  int last_document_id;      //!< Same as get_last_document_id()
+  list generated_ids;      //!< Same as get_generated_ids()
 
   int get_affected_item_count();
   int get_auto_increment_value();
-  str get_last_document_id();
+  list get_generated_ids();
 #endif
- public:
-   void set_last_document_ids(const std::vector<std::string> &ids);
 
  private:
-   std::vector<std::string> last_document_ids_;
    bool has_document_ids_ = false;
 };
 

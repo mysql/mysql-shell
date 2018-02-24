@@ -6354,6 +6354,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("WL11435: the function was removed in favor of getGeneratedIds.")
     def test_4_11_3(self):
         ''' using  getLastDocumentId() function'''
         results = ''
@@ -7540,6 +7541,7 @@ class XShell_TestCases(unittest.TestCase):
                 break
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("WL11435: the functions have been removed in favor of getGeneratedIDs.")
     def test_MYS_400_01(self):
         ''' using  getDocumentId() and getDocumentIds() functions based in js'''
         results = ''
@@ -7566,6 +7568,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("WL11435: the functions have been removed in favor of getGeneratedIDs.")
     def test_MYS_400_02(self):
         ''' using  getDocumentId() and getDocumentIds() functions based in py'''
         results = ''
@@ -8538,7 +8541,6 @@ class XShell_TestCases(unittest.TestCase):
 
         x_cmds = [("var myColl = session.getSchema('world_x').getCollection('CountryInfo');\n", "mysql-js>"),
                   ("var result = myColl.add(" + var + " ).execute();\n", "mysql-js>"),
-                  ("result.getLastDocumentId();\n", "SEA"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')

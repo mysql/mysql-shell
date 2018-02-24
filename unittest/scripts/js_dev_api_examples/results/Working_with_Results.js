@@ -6,4 +6,4 @@ var myColl = db.getCollection('my_collection');
 var res = myColl.add({ name: 'Jack', age: 15, height: 1.76 }).execute();
 
 // Print the documentId that was assigned to the document
-print('Document Id:', res.getLastDocumentId());
+print('Document Id:', res.getGeneratedIds()[0]);
