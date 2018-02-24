@@ -84,34 +84,6 @@ print("Affected Rows Multiple Values:", result.affectedItemCount, "\n");
 result = table.insert({ 'age': 14, 'name': 'jackie', 'gender': 'female' }).execute();
 print("Affected Rows Document:", result.affectedItemCount, "\n");
 
-try {
-  print("lastDocumentId:", result.lastDocumentId, "\n");
-}
-catch (err) {
-  print("lastDocumentId:", err.message, "\n");
-}
-
-try {
-  print("getLastDocumentId():", result.getLastDocumentId());
-}
-catch (err) {
-  print("getLastDocumentId():", err.message, "\n");
-}
-
-try {
-  print("lastDocumentIds:", result.lastDocumentIds);
-}
-catch (err) {
-  print("lastDocumentIds:", err.message, "\n");
-}
-
-try {
-  print("getLastDocumentIds():", result.getLastDocumentIds());
-}
-catch (err) {
-  print("getLastDocumentIds():", err.message, "\n");
-}
-
 //@ Table.insert execution on a View
 var view = schema.getTable('view1');
 var result = view.insert({ 'my_age': 15, 'my_name': 'jhonny', 'my_gender': 'male' }).execute();

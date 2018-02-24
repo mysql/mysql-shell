@@ -29,11 +29,10 @@
 |getWarnings: OK|
 |affectedItemCount: OK|
 |autoIncrementValue: OK|
-|lastDocumentId: OK|
-|lastDocumentIds: OK|
+|generatedIds: OK|
 |getAffectedItemCount: OK|
 |getAutoIncrementValue: OK|
-|getLastDocumentId: OK|
+|getGeneratedIds: OK|
 
 //@ RowResult member validation
 |executionTime: OK|

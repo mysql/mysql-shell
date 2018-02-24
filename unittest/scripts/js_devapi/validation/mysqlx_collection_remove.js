@@ -50,10 +50,6 @@
 
 //@ CollectionRemove: remove under condition
 |Affected Rows: 1|
-|lastDocumentId: Result.getLastDocumentId: document id is not available.|
-|getLastDocumentId(): Result.getLastDocumentId: document id is not available.|
-|lastDocumentIds: Result.getLastDocumentIds: document ids are not available.|
-|getLastDocumentIds(): Result.getLastDocumentIds: document ids are not available.|
 |Records Left: 4|
 
 //@ CollectionRemove: remove with binding

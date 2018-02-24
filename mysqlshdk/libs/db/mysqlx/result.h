@@ -69,6 +69,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   uint64_t get_fetched_row_count() const override { return _fetched_row_count; }
   uint64_t get_warning_count() const override;
   const std::vector<Column>& get_metadata() const override { return _metadata; }
+  std::vector<std::string> get_generated_ids();
 
  protected:
   explicit Result(std::unique_ptr<xcl::XQuery_result> result);

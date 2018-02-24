@@ -160,10 +160,6 @@
 
 #@ CollectionModify: array_append Execution
 |Array Append Affected Rows: 1|
-|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
-|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
-|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
-|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 |Brian's girlfriends: 3|
 |Brian's last: cloe|
 

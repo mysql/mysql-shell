@@ -123,10 +123,6 @@ TEST_F(Shell_py_mysqlx_tests, mysqlx_collection_help) {
   validate_interactive("mysqlx_collection_help.py");
 }
 
-TEST_F(Shell_py_mysqlx_tests, mysqlx_collection_add) {
-  validate_interactive("mysqlx_collection_add.py");
-}
-
 TEST_F(Shell_py_mysqlx_tests, mysqlx_collection_find) {
   validate_interactive("mysqlx_collection_find.py");
 }

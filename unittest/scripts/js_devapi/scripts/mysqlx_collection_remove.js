@@ -86,42 +86,6 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 var result = collection.remove('age = 15').execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
-try
-{
-  print("lastDocumentId:", result.lastDocumentId, "\n");
-}
-catch(err)
-{
-  print("lastDocumentId:", err.message, "\n");
-}
-
-try
-{
-  print ("getLastDocumentId():", result.getLastDocumentId());
-}
-catch(err)
-{
-  print ("getLastDocumentId():", err.message, "\n");
-}
-
-try
-{
-  print ("lastDocumentIds:", result.lastDocumentIds);
-}
-catch(err)
-{
-  print ("lastDocumentIds:", err.message, "\n");
-}
-
-try
-{
-  print ("getLastDocumentIds():", result.getLastDocumentIds());
-}
-catch(err)
-{
-  print ("getLastDocumentIds():", err.message, "\n");
-}
-
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
 //! [CollectionRemove: remove under condition]

@@ -173,6 +173,14 @@ uint64_t Result::get_warning_count() const {
   return 0;
 }
 
+std::vector<std::string> Result::get_generated_ids() {
+  std::vector<std::string> ids;
+
+  _result->try_get_generated_document_ids(&ids);
+
+  return ids;
+}
+
 Result::~Result() {
   // flush all
   if (_result) {

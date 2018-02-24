@@ -172,34 +172,6 @@ crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').b
 var result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute();
 print('Set Affected Rows:', result.affectedItemCount, '\n');
 
-try {
-  print("lastDocumentId:", result.lastDocumentId, "\n");
-}
-catch (err) {
-  print("lastDocumentId:", err.message, "\n");
-}
-
-try {
-  print("getLastDocumentId():", result.getLastDocumentId());
-}
-catch (err) {
-  print("getLastDocumentId():", err.message, "\n");
-}
-
-try {
-  print("lastDocumentIds:", result.lastDocumentIds);
-}
-catch (err) {
-  print("lastDocumentIds:", err.message, "\n");
-}
-
-try {
-  print("getLastDocumentIds():", result.getLastDocumentIds());
-}
-catch (err) {
-  print("getLastDocumentIds():", err.message, "\n");
-}
-
 var result = collection.find('name = "brian"').execute();
 var doc = result.fetchOne();
 print(dir(doc));

@@ -85,26 +85,6 @@ print "Affected Rows Multiple Values:", result.affected_item_count, "\n"
 result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()
 print "Affected Rows Document:", result.affected_item_count, "\n"
 
-try:
-  print "last_document_id:", result.last_document_id
-except Exception, err:
-  print "last_document_id:", str(err), "\n"
-
-try:
-  print "get_last_document_id():", result.get_last_document_id()
-except Exception, err:
-  print "get_last_document_id():", str(err), "\n"
-
-try:
-  print "last_document_ids:", result.last_document_ids
-except Exception, err:
-  print "last_document_ids:", str(err), "\n"
-
-try:
-  print "get_last_document_ids():", result.get_last_document_ids()
-except Exception, err:
-  print "get_last_document_ids():", str(err), "\n"
-
 #@ Table.insert execution on a View
 view = schema.get_table('view1')
 result = view.insert({ 'my_age': 15, 'my_name': 'jhonny', 'my_gender': 'male' }).execute()

@@ -81,8 +81,4 @@
 
 #@ TableDelete: with limit 3
 |Affected Rows: 1|
-|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
-|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
-|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
-|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 |Records Left: 0|

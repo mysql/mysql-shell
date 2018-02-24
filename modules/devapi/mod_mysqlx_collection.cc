@@ -130,41 +130,41 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
 */
 #if DOXYGEN_JS
 /**
-* \snippet mysqlx_collection_add.js CollectionAdd: Chained Calls
+* \snippet collection_add.js CollectionAdd: Chained Calls
 *
 * $(COLLECTIONADD_ADD_DETAIL9)
 *
 * $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet mysqlx_collection_add.js CollectionAdd: Using an Expression
+* \snippet collection_add.js CollectionAdd: Using an Expression
 *
 * #### Using a Document List
 * Adding document using an existing document list
-* \snippet mysqlx_collection_add.js CollectionAdd: Document List
+* \snippet collection_add.js CollectionAdd: Document List
 *
 * #### Multiple Parameters
 * Adding document using a separate parameter for each document on a single call
 * to add(...)
-* \snippet mysqlx_collection_add.js CollectionAdd: Multiple Parameters
+* \snippet collection_add.js CollectionAdd: Multiple Parameters
 */
 CollectionAdd Collection::add(...) {}
 #elif DOXYGEN_PY
 /**
 * Adding documents using chained calls to add(...)
-* \snippet mysqlx_collection_add.py CollectionAdd: Chained Calls
+* \snippet collection_add.py CollectionAdd: Chained Calls
 *
 * $(COLLECTIONADD_ADD_DETAIL9)
 *
 * $(COLLECTIONADD_ADD_DETAIL10)
-* \snippet mysqlx_collection_add.py CollectionAdd: Using an Expression
+* \snippet collection_add.py CollectionAdd: Using an Expression
 *
 * #### Using a Document List
 * Adding document using an existing document list
-* \snippet mysqlx_collection_add.py CollectionAdd: Document List
+* \snippet collection_add.py CollectionAdd: Document List
 *
 * #### Multiple Parameters
 * Adding document using a separate parameter for each document on a single call
 * to add(...)
-* \snippet mysqlx_collection_add.py CollectionAdd: Multiple Parameters
+* \snippet collection_add.py CollectionAdd: Multiple Parameters
 */
 CollectionAdd Collection::add(...) {}
 #endif
