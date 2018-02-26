@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,15 +67,15 @@ const char kUser[] = "user";
 const char kDbUser[] = "dbUser";
 const char kPassword[] = "password";
 const char kDbPassword[] = "dbPassword";
-const char kSslCa[] = "ssl-ca";
-const char kSslCaPath[] = "ssl-capath";
-const char kSslCert[] = "ssl-cert";
-const char kSslKey[] = "ssl-key";
-const char kSslCrl[] = "ssl-crl";
-const char kSslCrlPath[] = "ssl-crlpath";
-const char kSslCipher[] = "ssl-cipher";
-const char kSslTlsVersion[] = "tls-version";
-const char kSslMode[] = "ssl-mode";
+constexpr char kSslCa[] = "ssl-ca";
+constexpr char kSslCaPath[] = "ssl-capath";
+constexpr char kSslCert[] = "ssl-cert";
+constexpr char kSslKey[] = "ssl-key";
+constexpr char kSslCrl[] = "ssl-crl";
+constexpr char kSslCrlPath[] = "ssl-crlpath";
+constexpr char kSslCipher[] = "ssl-cipher";
+constexpr char kSslTlsVersion[] = "tls-version";
+constexpr char kSslMode[] = "ssl-mode";
 const char kAuthMethod[] = "auth-method";
 
 const char kSslModeDisabled[] = "disabled";
