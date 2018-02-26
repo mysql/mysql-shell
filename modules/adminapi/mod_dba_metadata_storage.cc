@@ -761,6 +761,18 @@ bool MetadataStorage::is_instance_on_replicaset(
   return count == 1;
 }
 
+bool MetadataStorage::is_instance_label_unique(uint64_t rs_id,
+                                               const std::string &label) const {
+  shcore::sqlstring query = shcore::sqlstring{
+      "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE replicaset_id = ? AND instance_name = ?", 0};
+  query << rs_id;
+  query << label;
+  query.done();
+
+  return 0 == execute_sql(query)->fetch_one()->get_int(0);
+}
+
 std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   std::string seed_address, query;
 
