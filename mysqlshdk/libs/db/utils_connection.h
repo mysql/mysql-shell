@@ -58,31 +58,31 @@ class SHCORE_PUBLIC MapSslModeNameToValue {
 };
 
 // common keys for dictionary connection data
-const char kHost[] = "host";
-const char kPort[] = "port";
-const char kSocket[] = "socket";
-const char kScheme[] = "scheme";
-const char kSchema[] = "schema";
-const char kUser[] = "user";
-const char kDbUser[] = "dbUser";
-const char kPassword[] = "password";
-const char kDbPassword[] = "dbPassword";
-constexpr char kSslCa[] = "ssl-ca";
-constexpr char kSslCaPath[] = "ssl-capath";
-constexpr char kSslCert[] = "ssl-cert";
-constexpr char kSslKey[] = "ssl-key";
-constexpr char kSslCrl[] = "ssl-crl";
-constexpr char kSslCrlPath[] = "ssl-crlpath";
-constexpr char kSslCipher[] = "ssl-cipher";
-constexpr char kSslTlsVersion[] = "tls-version";
-constexpr char kSslMode[] = "ssl-mode";
-const char kAuthMethod[] = "auth-method";
+constexpr const char kHost[] = "host";
+constexpr const char kPort[] = "port";
+constexpr const char kSocket[] = "socket";
+constexpr const char kScheme[] = "scheme";
+constexpr const char kSchema[] = "schema";
+constexpr const char kUser[] = "user";
+constexpr const char kDbUser[] = "dbUser";
+constexpr const char kPassword[] = "password";
+constexpr const char kDbPassword[] = "dbPassword";
+constexpr const char kSslCa[] = "ssl-ca";
+constexpr const char kSslCaPath[] = "ssl-capath";
+constexpr const char kSslCert[] = "ssl-cert";
+constexpr const char kSslKey[] = "ssl-key";
+constexpr const char kSslCrl[] = "ssl-crl";
+constexpr const char kSslCrlPath[] = "ssl-crlpath";
+constexpr const char kSslCipher[] = "ssl-cipher";
+constexpr const char kSslTlsVersion[] = "tls-version";
+constexpr const char kSslMode[] = "ssl-mode";
+constexpr const char kAuthMethod[] = "auth-method";
 
-const char kSslModeDisabled[] = "disabled";
-const char kSslModePreferred[] = "preferred";
-const char kSslModeRequired[] = "required";
-const char kSslModeVerifyCA[] = "verify_ca";
-const char kSslModeVerifyIdentity[] = "verify_identity";
+constexpr const char kSslModeDisabled[] = "disabled";
+constexpr const char kSslModePreferred[] = "preferred";
+constexpr const char kSslModeRequired[] = "required";
+constexpr const char kSslModeVerifyCA[] = "verify_ca";
+constexpr const char kSslModeVerifyIdentity[] = "verify_identity";
 
 const std::set<std::string> connection_attributes = {
     kHost,       kPort,          kSocket,   kScheme,     kSchema,
