@@ -92,6 +92,15 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   bool is_replicaset_empty(uint64_t rs_id);
   virtual bool is_instance_on_replicaset(uint64_t rs_id,
                                          const std::string &address);
+  /**
+   * Checks if the given instance label is unique in the specified replica set.
+   *
+   * @param rs_id ID of a replica set.
+   * @param label Instance label to be checked.
+   *
+   * @return True if the given instance label is unique.
+   */
+  bool is_instance_label_unique(uint64_t rs_id, const std::string &label) const;
   uint64_t get_replicaset_count(uint64_t rs_id) const;
 
   std::string get_seed_instance(uint64_t rs_id);

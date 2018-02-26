@@ -502,6 +502,12 @@ shcore::Value ReplicaSet::add_instance(
     if (add_options->has_key("label")) {
       instance_label = add_options->get_string("label");
       mysqlsh::dba::validate_label(instance_label);
+
+      if (!_metadata_storage->is_instance_label_unique(get_id(),
+                                                       instance_label))
+        throw shcore::Exception::argument_error(
+            "An instance with label '" + instance_label +
+            "' is already part of this InnoDB cluster");
     }
 
     if (add_options->has_key("localAddress"))
