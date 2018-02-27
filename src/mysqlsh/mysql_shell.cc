@@ -134,7 +134,9 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
           new mysqlsh::dba::Dba(_shell.get(), _console_handler,
                                 options().wizards));
   _global_util =
-      std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
+      std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get(),
+                                                       _console_handler,
+                                                       options().wizards));
 
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(

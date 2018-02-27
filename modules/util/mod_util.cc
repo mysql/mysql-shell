@@ -43,7 +43,11 @@ REGISTER_HELP(
     UTIL_BRIEF,
     "Global object that groups miscellaneous tools like upgrade checker.");
 
-Util::Util(shcore::IShell_core* owner) : _shell_core(*owner) {
+Util::Util(shcore::IShell_core* owner,
+    std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode) :
+    _shell_core(*owner),
+    m_console_handler(console_handler),
+    m_wizards_mode(wizards_mode){
   add_method("checkForServerUpgrade", std::bind(&Util::check_for_server_upgrade,
                                                 this, std::placeholders::_1),
              "data", shcore::Map, NULL);
@@ -124,6 +128,10 @@ shcore::Value Util::check_for_server_upgrade(
             ? _shell_core.get_dev_session()->get_connection_options()
             : mysqlsh::get_connection_options(args,
                                               mysqlsh::PasswordFormat::STRING);
+
+    mysqlsh::resolve_connection_credentials(&connection_options,
+                                            m_wizards_mode ? m_console_handler
+                                                           : nullptr);
 
     _shell_core.print(shcore::str_format(
         "The MySQL server at %s will now be checked for compatibility "
