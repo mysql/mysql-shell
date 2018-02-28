@@ -2270,16 +2270,16 @@ shcore::Value ReplicaSet::get_description() const {
   auto instances = _metadata_storage->get_replicaset_instances(_id);
 
   (*description)["name"] = shcore::Value(_name);
-  (*description)["instances"] = shcore::Value::new_array();
+  (*description)["topology"] = shcore::Value::new_array();
 
-  auto instance_list = description->get_array("instances");
+  auto instance_list = description->get_array("topology");
 
   for (const auto &value : instances) {
     auto instance = shcore::Value::new_map();
     auto instance_obj = instance.as_map();
 
     (*instance_obj)["label"] = shcore::Value(value.label);
-    (*instance_obj)["host"] = shcore::Value(value.endpoint);
+    (*instance_obj)["address"] = shcore::Value(value.endpoint);
     (*instance_obj)["role"] = shcore::Value(value.role);
 
     instance_list->push_back(instance);

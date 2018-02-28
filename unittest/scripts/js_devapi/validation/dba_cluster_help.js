@@ -238,18 +238,18 @@ information, ReplicaSets and Instances.
 The returned JSON object contains the following attributes:
 
  - clusterName: the cluster name
- - defaultReplicaSet: the default replicaSet object
+ - defaultReplicaSet: the default ReplicaSet object
 
 The defaultReplicaSet JSON object contains the following attributes:
 
- - name: the default replicaSet name
- - instances: a List of dictionaries describing each instance belonging to the
-   Default ReplicaSet.
+ - name: the ReplicaSet name
+ - topology: a list of dictionaries describing each instance belonging to the
+   ReplicaSet.
 
 Each instance dictionary contains the following attributes:
 
+ - address: the instance address in the form of host:port
  - label: the instance name identifier
- - host: the instance hostname and IP address in the form of host:port
  - role: the instance role
 
 //@<OUT> Disconnect
@@ -551,20 +551,31 @@ Instances.
 The returned JSON object contains the following attributes:
 
  - clusterName: the cluster name
- - defaultReplicaSet: the default replicaSet object
+ - defaultReplicaSet: the default ReplicaSet object
+ - groupInformationSourceMember: URI of the internal connection used to obtain
+   information about the cluster
+ - metadataServer: optional, URI of the metadata server if it is different from
+   groupInformationSourceMember
+ - warning: optional, string containing any warning messages raised during
+   execution of this operation
 
 The defaultReplicaSet JSON object contains the following attributes:
 
- - name: the default replicaSet name
- - primary: the Default ReplicaSet single-master primary instance
- - status: the Default ReplicaSet status
- - statusText: the Default ReplicaSet status descriptive text
- - topology: a List of instances belonging to the Default ReplicaSet.
+ - name: the ReplicaSet name
+ - primary: the ReplicaSet single-master primary instance
+ - ssl: the ReplicaSet SSL mode
+ - status: the ReplicaSet status
+ - statusText: the descriptive text of ReplicaSet status
+ - topology: a dictionary of instances belonging to the ReplicaSet, where keys
+   are instance labels and values are instance objects
 
-Each instance is dictionary containing the following attributes:
+Each instance is a dictionary containing the following attributes:
 
- - label: the instance name identifier
- - address: the instance hostname and IP address in the form of host:port
+ - address: the instance address in the form of host:port
+ - mode: the instance mode
+ - readReplicas: a list of read replica Instances of the instance.
+ - role: the instance role
+ - status: the instance status
 
 
 //@ Finalization

@@ -23,7 +23,7 @@ session.close();
 
 // Sets the correct local host
 var desc = Cluster.describe();
-var localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0];
+var localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0];
 
 
 var members = dir(Cluster);
