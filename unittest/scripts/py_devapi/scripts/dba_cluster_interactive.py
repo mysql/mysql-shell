@@ -10,7 +10,7 @@ shell.connect({'scheme': 'mysql', 'host': localhost, 'port': __mysql_sandbox_por
 session.close()
 
 desc = cluster.describe()
-localhost = desc.defaultReplicaSet.instances[0].label.split(':')[0]
+localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0]
 
 
 all_members = dir(cluster)

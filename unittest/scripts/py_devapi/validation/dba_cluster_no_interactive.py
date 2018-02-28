@@ -42,24 +42,24 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "second",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 
@@ -113,19 +113,19 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 
@@ -164,24 +164,24 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 
@@ -231,19 +231,19 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "third_sandbox",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 
@@ -282,24 +282,24 @@
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "label": "third_sandbox",
                 "role": "HA"
             },
             {
-                "host": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "label": "first_sandbox",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 

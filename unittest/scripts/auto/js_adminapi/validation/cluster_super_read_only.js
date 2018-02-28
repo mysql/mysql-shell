@@ -56,19 +56,19 @@ Cluster.rescan: This function is not available through a session to a read only 
 {
     "clusterName": "cluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "label": "localhost:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "host": "localhost:<<<__mysql_sandbox_port2>>>",
+                "address": "localhost:<<<__mysql_sandbox_port2>>>",
                 "label": "localhost:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 

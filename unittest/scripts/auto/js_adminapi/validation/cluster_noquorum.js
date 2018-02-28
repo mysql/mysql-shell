@@ -52,19 +52,19 @@ Cluster.rescan: There is no quorum to perform the operation (RuntimeError)
 {
     "clusterName": "cluster",
     "defaultReplicaSet": {
-        "instances": [
+        "name": "default",
+        "topology": [
             {
-                "host": "localhost:<<<__mysql_sandbox_port1>>>",
+                "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "label": "localhost:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             },
             {
-                "host": "localhost:<<<__mysql_sandbox_port2>>>",
+                "address": "localhost:<<<__mysql_sandbox_port2>>>",
                 "label": "localhost:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ],
-        "name": "default"
+        ]
     }
 }
 

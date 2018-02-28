@@ -888,23 +888,22 @@ REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL1,
               "The returned JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL2, "@li clusterName: the cluster name");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL3,
-              "@li defaultReplicaSet: the default replicaSet object");
+              "@li defaultReplicaSet: the default ReplicaSet object");
 REGISTER_HELP(
     CLUSTER_DESCRIBE_DETAIL4,
     "The defaultReplicaSet JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL5,
-              "@li name: the default replicaSet name");
+              "@li name: the ReplicaSet name");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL6,
-              "@li instances: a List of dictionaries "
-              "describing each instance belonging to "
-              "the Default ReplicaSet.");
+              "@li topology: a list of dictionaries describing each instance "
+              "belonging to the ReplicaSet.");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL7,
               "Each instance dictionary contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL8,
-              "@li label: the instance name identifier");
 REGISTER_HELP(
-    CLUSTER_DESCRIBE_DETAIL9,
-    "@li host: the instance hostname and IP address in the form of host:port");
+    CLUSTER_DESCRIBE_DETAIL8,
+    "@li address: the instance address in the form of host:port");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL9,
+              "@li label: the instance name identifier");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL10, "@li role: the instance role");
 
 /**
@@ -916,12 +915,15 @@ REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL10, "@li role: the instance role");
  * $(CLUSTER_DESCRIBE_RETURNS)
  *
  * $(CLUSTER_DESCRIBE_DETAIL)
+ *
  * $(CLUSTER_DESCRIBE_DETAIL1)
  * $(CLUSTER_DESCRIBE_DETAIL2)
  * $(CLUSTER_DESCRIBE_DETAIL3)
+ *
  * $(CLUSTER_DESCRIBE_DETAIL4)
  * $(CLUSTER_DESCRIBE_DETAIL5)
  * $(CLUSTER_DESCRIBE_DETAIL6)
+ *
  * $(CLUSTER_DESCRIBE_DETAIL7)
  * $(CLUSTER_DESCRIBE_DETAIL8)
  * $(CLUSTER_DESCRIBE_DETAIL9)
@@ -988,42 +990,52 @@ REGISTER_HELP(CLUSTER_STATUS_RETURNS,
               "@returns A JSON object describing the status of the cluster.");
 
 REGISTER_HELP(CLUSTER_STATUS_DETAIL,
-              "This function describes the status of "
-              "the cluster including its ReplicaSets "
-              "and Instances.");
+              "This function describes the status of the cluster including its "
+              "ReplicaSets and Instances.");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL1,
               "The returned JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL2, "@li clusterName: the cluster name");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL3,
-              "@li defaultReplicaSet: the default replicaSet object");
+              "@li defaultReplicaSet: the default ReplicaSet object");
 REGISTER_HELP(
     CLUSTER_STATUS_DETAIL4,
-    "The defaultReplicaSet JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL5, "@li name: the default replicaSet name");
+    "@li groupInformationSourceMember: URI of the internal connection used to "
+    "obtain information about the cluster");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL5,
+    "@li metadataServer: optional, URI of the metadata server if it is "
+    "different from groupInformationSourceMember");
 REGISTER_HELP(
     CLUSTER_STATUS_DETAIL6,
-    "@li primary: the Default ReplicaSet single-master primary instance");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL7,
-              "@li status: the Default ReplicaSet status");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL8,
-              "@li statusText: the Default ReplicaSet status descriptive text");
+    "@li warning: optional, string containing any warning messages raised "
+    "during execution of this operation");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL7,
+    "The defaultReplicaSet JSON object contains the following attributes:");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL8, "@li name: the ReplicaSet name");
 REGISTER_HELP(
     CLUSTER_STATUS_DETAIL9,
-    "@li topology: a List of instances belonging to the Default ReplicaSet.");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL10,
-    "Each instance is dictionary containing the following attributes:");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL11,
-              "@li label: the instance name identifier");
+    "@li primary: the ReplicaSet single-master primary instance");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL10, "@li ssl: the ReplicaSet SSL mode");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL11, "@li status: the ReplicaSet status");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL12,
-              "@li address: the instance hostname and "
-              "IP address in the form of host:port");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL14, "@li status: the instance status");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL15, "@li role: the instance role");
+              "@li statusText: the descriptive text of ReplicaSet status");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL13,
+    "@li topology: a dictionary of instances belonging to the ReplicaSet, "
+    "where keys are instance labels and values are instance objects");
+REGISTER_HELP(
+    CLUSTER_STATUS_DETAIL14,
+    "Each instance is a dictionary containing the following attributes:");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL15,
+              "@li address: the instance address in the form of host:port");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL16, "@li mode: the instance mode");
 REGISTER_HELP(
     CLUSTER_STATUS_DETAIL17,
-    "@li readReplicas: a List of read replica Instances of the instance.");
+    "@li readReplicas: a list of read replica Instances of the instance.");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL18, "@li role: the instance role");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL19, "@li status: the instance status");
+
 
 /**
  * $(CLUSTER_STATUS_BRIEF)
@@ -1034,22 +1046,28 @@ REGISTER_HELP(
  * $(CLUSTER_STATUS_RETURNS)
  *
  * $(CLUSTER_STATUS_DETAIL)
+ *
  * $(CLUSTER_STATUS_DETAIL1)
  * $(CLUSTER_STATUS_DETAIL2)
  * $(CLUSTER_STATUS_DETAIL3)
  * $(CLUSTER_STATUS_DETAIL4)
  * $(CLUSTER_STATUS_DETAIL5)
  * $(CLUSTER_STATUS_DETAIL6)
+ *
  * $(CLUSTER_STATUS_DETAIL7)
  * $(CLUSTER_STATUS_DETAIL8)
+ * $(CLUSTER_STATUS_DETAIL9)
  * $(CLUSTER_STATUS_DETAIL10)
  * $(CLUSTER_STATUS_DETAIL11)
  * $(CLUSTER_STATUS_DETAIL12)
  * $(CLUSTER_STATUS_DETAIL13)
+ *
  * $(CLUSTER_STATUS_DETAIL14)
  * $(CLUSTER_STATUS_DETAIL15)
  * $(CLUSTER_STATUS_DETAIL16)
  * $(CLUSTER_STATUS_DETAIL17)
+ * $(CLUSTER_STATUS_DETAIL18)
+ * $(CLUSTER_STATUS_DETAIL19)
  */
 #if DOXYGEN_JS
 String Cluster::status() {}
