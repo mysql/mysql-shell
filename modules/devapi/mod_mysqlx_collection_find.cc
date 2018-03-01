@@ -32,7 +32,7 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -1274,13 +1274,13 @@ shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
 std::unique_ptr<DocResult> CollectionFind::execute() {
   std::unique_ptr<DocResult> result;
 
-  MySQL_timer timer;
+  mysqlshdk::utils::Profile_timer timer;
   insert_bound_values(message_.mutable_args());
-  timer.start();
+  timer.stage_begin("CollectionFind::execute");
   result.reset(new DocResult(safe_exec(
       [this]() { return session()->session()->execute_crud(message_); })));
-  timer.end();
-  result->set_execution_time(timer.raw_duration());
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
 
   return result;
 }

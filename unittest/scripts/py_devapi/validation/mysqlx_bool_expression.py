@@ -97,7 +97,6 @@ actors in actors
 [1,2,3] in actors
 actor.name IN ['a name', null, (1<5-4), myvar.jsonobj.name]
 true IN [1-5/2*2 > 3-2/1*2]
-Query OK, 0 rows affected (0.00 sec)
 
 #@<OUT> IN basic - collection remove
 (1>5) in (true, false)
@@ -111,7 +110,6 @@ actors in actors
 [1,2,3] in actors
 actor.name IN ['a name', null, (1<5-4), myvar.jsonobj.name]
 true IN [1-5/2*2 > 3-2/1*2]
-Query OK, 0 rows affected (0.00 sec)
 
 #@<OUT> IN basic - table select
 (1>5) in (true, false)

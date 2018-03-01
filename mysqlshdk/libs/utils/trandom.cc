@@ -20,16 +20,32 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#if defined(WIN32)
+#include <time.h>
+#else
+#include <sys/times.h>
+#ifdef _SC_CLK_TCK // For mit-pthreads
+#undef CLOCKS_PER_SEC
+#define CLOCKS_PER_SEC (sysconf(_SC_CLK_TCK))
+#endif
+#endif
 
 #include "mysqlshdk/libs/utils/trandom.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace utils {
 
 std::string Random::get_time_string() {
-  MySQL_timer timer;
-  return std::to_string(timer.get_time());
+  uint64_t time;
+
+#if defined(WIN32)
+  time = clock();
+#else
+  struct tms tms_tmp;
+  time = times(&tms_tmp);
+#endif
+
+  return std::to_string(time);
 }
 
 static Random *g_random = nullptr;

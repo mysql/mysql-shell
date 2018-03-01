@@ -26,7 +26,6 @@ include_directories(
 set(utils_SOURCE
     utils_mysql_parsing.cc
     utils_net.cc
-    utils_time.cc
     utils_file.cc
     utils_path.cc
     utils_process.cc

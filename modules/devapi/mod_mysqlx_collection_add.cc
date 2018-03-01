@@ -32,7 +32,7 @@
 #include "shellcore/utils_help.h"
 #include "db/mysqlx/util/setter_any.h"
 #include "utils/utils_string.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -306,9 +306,9 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args) {
 shcore::Value CollectionAdd::execute(bool upsert) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
 
-  MySQL_timer timer;
+  mysqlshdk::utils::Profile_timer timer;
   insert_bound_values(message_.mutable_args());
-  timer.start();
+  timer.stage_begin("CollectionAdd::execute");
   if (upsert)
     message_.set_upsert(upsert);
   if (message_.mutable_row()->size()) {
@@ -320,8 +320,8 @@ shcore::Value CollectionAdd::execute(bool upsert) {
     result.reset(new mysqlsh::mysqlx::Result({}));
     result->set_last_document_ids({});
   }
-  timer.end();
-  result->set_execution_time(timer.raw_duration());
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

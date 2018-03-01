@@ -30,9 +30,8 @@
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 #include "db/mysqlx/mysqlx_parser.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 
 using std::placeholders::_1;
 using namespace shcore;
@@ -430,13 +429,13 @@ shcore::Value CollectionRemove::execute(const shcore::Argument_list &args) {
 shcore::Value CollectionRemove::execute() {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
 
-  MySQL_timer timer;
+  mysqlshdk::utils::Profile_timer timer;
   insert_bound_values(message_.mutable_args());
-  timer.start();
+  timer.stage_begin("CollectionRemove::execute");
   result.reset(new mysqlx::Result(
       safe_exec([this]() { return session()->session()->execute_crud(message_); })));
-  timer.end();
-  result->set_execution_time(timer.raw_duration());
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

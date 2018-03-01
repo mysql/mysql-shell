@@ -28,7 +28,7 @@
 #include "shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
 #include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 
 using namespace std::placeholders;
@@ -466,7 +466,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
 
   if (prop == "executionTime")
     return shcore::Value(
-        MySQL_timer::format_legacy(_execution_time, 2));
+        mysqlshdk::utils::format_seconds(_execution_time));
 
   if (prop == "autoIncrementValue")
     return shcore::Value((int)_result->get_auto_increment_value());

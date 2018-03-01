@@ -28,7 +28,7 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
 #include "scripting/common.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
@@ -345,13 +345,13 @@ shcore::Value TableDelete::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    MySQL_timer timer;
+    mysqlshdk::utils::Profile_timer timer;
     insert_bound_values(message_.mutable_args());
-    timer.start();
+    timer.stage_begin("TableDelete::execute");
     result.reset(new mysqlsh::mysqlx::Result(safe_exec(
         [this]() { return session()->session()->execute_crud(message_); })));
-    timer.end();
-    result->set_execution_time(timer.raw_duration());
+    timer.stage_end();
+    result->set_execution_time(timer.total_seconds_ellapsed());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
