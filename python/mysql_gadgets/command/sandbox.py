@@ -538,7 +538,6 @@ def create_sandbox(**kwargs):
         "log_syslog": "OFF",  # Disable syslog to avoid issue on Windows.
         "report_port": port,
         "log_error": os.path.join(datadir, "error.log").replace("\\", "/"),
-        "plugin_load": "mysqlx.so" if os.name == "posix" else "mysqlx.dll",
         "relay_log_info_repository": "TABLE",
         "binlog_checksum": "NONE",
         "master_info_repository": "TABLE",
@@ -561,12 +560,16 @@ def create_sandbox(**kwargs):
         "user": "root",
         "protocol": "TCP",
     }}
-    # Enable mysql_cache_cleaner plugin on server versions >= 8.0.4.
+    # Enable mysql_cache_cleaner plugin on server versions = 8.0.4.
     # This plugin is required for the hash based authentication to work
     # (caching_sha2_password) to allow the shell to connect using the X
     # protocol if SSL is disabled.
-    if mysqld_ver >= (8, 0, 4):
+    if mysqld_ver == (8, 0, 4):
         opt_dict["mysqld"]["mysqlx_cache_cleaner"] = "ON"
+    # MySQLx plugin is automatically loaded starting from versions 8.0.5.
+    if mysqld_ver < (8, 0, 5):
+        opt_dict["mysqld"]["plugin_load"] = \
+            "mysqlx.so" if os.name == "posix" else "mysqlx.dll"
     if opt_override_dict:
         # If port is one of the options to override raise exception
         _LOGGER.debug("Adding/Overriding option file values.")
