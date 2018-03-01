@@ -43,7 +43,6 @@
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
-#include "utils/utils_time.h"
 #ifdef _WIN32
 #define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else

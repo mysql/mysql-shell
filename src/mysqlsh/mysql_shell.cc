@@ -48,7 +48,7 @@
 #include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
@@ -1015,7 +1015,7 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
 
           std::string time = stats.substr(start, end - start);
           std::string str_time =
-              MySQL_timer::format_legacy(std::stoul(time), false, true);
+              mysqlshdk::utils::format_seconds(std::stod(time));
 
           println(
               shcore::str_format(format.c_str(), "Uptime: ", str_time.c_str()));

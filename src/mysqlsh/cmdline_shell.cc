@@ -45,7 +45,6 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"

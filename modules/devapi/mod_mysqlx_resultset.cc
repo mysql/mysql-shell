@@ -34,7 +34,7 @@
 #include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 
 using std::placeholders::_1;
 using shcore::Value;
@@ -164,7 +164,7 @@ str BaseResult::get_execution_time() {
 #endif
 
 std::string BaseResult::get_execution_time() const {
-  return MySQL_timer::format_legacy(_execution_time, 2);
+  return mysqlshdk::utils::format_seconds(_execution_time);
 }
 
 // Documentation of getWarningCount function

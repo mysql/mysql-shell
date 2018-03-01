@@ -25,7 +25,6 @@
 #include <vector>
 #include <map>
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 #include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "unittest/test_utils/shell_test_env.h"

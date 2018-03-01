@@ -40,7 +40,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_path.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/utils_help.h"
 #include "modules/mod_utils.h"
 
@@ -270,14 +270,14 @@ shcore::Value ClassicSession::execute_sql(
     } else {
       Interruptible intr(this);
       try {
-        MySQL_timer timer;
-        timer.start();
+        mysqlshdk::utils::Profile_timer timer;
+        timer.stage_begin("query");
         ClassicResult *result;
         ret_val = Value::wrap(result = new ClassicResult(
             std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
                 _session->query(sub_query_placeholders(query, args)))));
-        timer.end();
-        result->set_execution_time(timer.raw_duration());
+        timer.stage_end();
+        result->set_execution_time(timer.total_seconds_ellapsed());
       } catch (const mysqlshdk::db::Error &error) {
         // Connection lost, sends a notification
         if (error.code() == CR_SERVER_GONE_ERROR ||
@@ -304,13 +304,15 @@ std::shared_ptr<ClassicResult> ClassicSession::execute_sql(
     if (query.empty()) {
       throw Exception::argument_error("No query specified.");
     } else {
-      MySQL_timer timer;
-      timer.start();
+      mysqlshdk::utils::Profile_timer timer;
+      timer.activate();
+      timer.stage_begin("query");
       auto result = std::shared_ptr<ClassicResult>(new ClassicResult(
           std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
               _session->query(query))));
-      timer.end();
-      result->set_execution_time(timer.raw_duration());
+      timer.stage_end();
+      timer.deactivate();
+      result->set_execution_time(timer.total_seconds_ellapsed());
       return result;
     }
   }

@@ -33,7 +33,6 @@
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "mysqlshdk/libs/utils/trandom.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 
 // How many times to retry a query if it fails because it's SUPER_READ_ONLY
 static const int kMaxReadOnlyRetries = 10;

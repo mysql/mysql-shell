@@ -29,7 +29,6 @@
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
-#include "utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace db {

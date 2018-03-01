@@ -51,7 +51,7 @@ public:
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   // The execution time is not available at the moment of creating the resultset
-  void set_execution_time(unsigned long execution_time) {
+  void set_execution_time(double execution_time) {
     _execution_time = execution_time;
   }
 
@@ -82,7 +82,7 @@ public:
 
 protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
-  unsigned long _execution_time;
+  double _execution_time;
 };
 
 /**

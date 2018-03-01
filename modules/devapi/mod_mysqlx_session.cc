@@ -51,7 +51,7 @@
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
-#include "utils/utils_time.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_uuid.h"
 
 #if _MSC_VER
@@ -1138,18 +1138,18 @@ shcore::Value Session::_execute_stmt(const std::string &ns,
                                          const std::string &command,
                                          const ::xcl::Arguments &args,
                                          bool expect_data) {
-  MySQL_timer timer;
-  timer.start();
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("Session::execute_stmt");
   if (expect_data) {
     SqlResult *result =
         new SqlResult(execute_stmt(ns, command, args));
-    timer.end();
-    result->set_execution_time(timer.raw_duration());
+    timer.stage_end();
+    result->set_execution_time(timer.total_seconds_ellapsed());
     return shcore::Value::wrap(result);
   } else {
     Result *result = new Result(execute_stmt(ns, command, args));
-    timer.end();
-    result->set_execution_time(timer.raw_duration());
+    timer.stage_end();
+    result->set_execution_time(timer.total_seconds_ellapsed());
     return shcore::Value::wrap(result);
   }
   return {};
@@ -1177,11 +1177,11 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
 
 shcore::Value Session::_execute_sql(const std::string &statement,
                                         const shcore::Argument_list &args) {
-  MySQL_timer timer;
-  timer.start();
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("Session::execute_sql");
   SqlResult *result = new SqlResult(execute_sql(statement, args));
-  timer.end();
-  result->set_execution_time(timer.raw_duration());
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
   return shcore::Value::wrap(result);
 }
 
