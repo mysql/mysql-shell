@@ -2343,6 +2343,11 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
                     option_tokens.erase(option_tokens.begin() + 3);
                   }
 
+                  if (option_tokens[1] == "<unique") {
+                    option_tokens[1] = "<unique ID>";
+                    option_tokens.erase(option_tokens.begin() + 2);
+                  }
+
                   // The tokens describing each option have length of 5
                   if (option_tokens.size() > 5) {
                     index--;
@@ -2367,13 +2372,24 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
                       std::string::npos) {
                     option_type = "server";
                     loading_options = true;
-                    index += 3;  // Skips to the actual option table
+                    // Skips to the actual option table
+                    do {
+                      index++;
+                    } while (
+                        lines[index].find("-------------------------------") ==
+                        std::string::npos);
+
                   } else if (lines[index].find("Some of the configuration "
                                                "values on your options file") !=
                              std::string::npos) {
                     option_type = "config";
                     loading_options = true;
-                    index += 3;  // Skips to the actual option table
+                    // Skips to the actual option table
+                    do {
+                      index++;
+                    } while (
+                        lines[index].find("-------------------------------") ==
+                        std::string::npos);
                   }
                 }
               }

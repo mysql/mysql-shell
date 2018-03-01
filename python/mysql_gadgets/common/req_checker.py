@@ -555,7 +555,7 @@ class RequirementChecker(object):
         :type alt_server:   Server instance.
 
         :return: a dictionary with the results, including the key pass with
-                 True if the user has the privileges
+                 True if the server_id is valid.
         :rtype:  dict
         """
         _LOGGER.debug('checking server id uniqueness')
@@ -570,20 +570,21 @@ class RequirementChecker(object):
         results = {}
 
         # Starting from MySQL 8.0.3, server_id = 1 by default (to enable
-        # binary logging). In this when need to check if the default value was
+        # binary logging). For this versions we check if the default value was
         # changed by the user. Otherwise server_id is 0 (not set) by default
-        # for previous server versions.
+        # for previous server versions (it cannot be 0 for any version).
+        if this_server_id == '0':
+            _LOGGER.warning("The server_id can not be 0 ")
+            results["pass"] = False
+            results["server_id"] = (False, "<unique ID>", this_server_id)
+            return results
         if server.check_version_compat(8, 0, 3):
             if server.has_default_value('server_id'):
                 _LOGGER.warning("The server_id must be changed (using default "
                                 "server value) and unique among all servers.")
                 results["pass"] = False
                 results["compiled_default"] = True
-                return results
-        else:
-            if this_server_id == '0':
-                _LOGGER.warning("The server_id can not be 0 ")
-                results["pass"] = False
+                results["server_id"] = (False, "<unique ID>", this_server_id)
                 return results
 
         # check for duplicates
@@ -598,6 +599,7 @@ class RequirementChecker(object):
                                 peer_server, peer_id)
                 results["duplicate"] = peer_server
                 results["pass"] = False
+                results["server_id"] = (False, "<unique ID>", this_server_id)
             else:
                 _LOGGER.debug("The peer %s have a different server_id "
                               " %s", peer_server, peer_id)
@@ -605,6 +607,7 @@ class RequirementChecker(object):
         results["used_server_id_dict"] = server_ids
         if "pass" not in results.keys():
             results["pass"] = True
+            results["server_id"] = (True, this_server_id, this_server_id)
 
         return results
 

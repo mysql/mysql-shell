@@ -351,6 +351,10 @@ def _format_table_results(dict_result, verbose=False):
 
     rows = []
     for var in col_n[1:]:
+        # Some auxiliary elements might appear in the result dictionary that
+        # are not variables (tuple) and those must be ignored.
+        if not isinstance(server_vars[var], tuple):
+            continue
         res, exp, cur_val = server_vars[var]
         # Show passed options only if verbose output or variable value is
         # not the one expected
@@ -1235,6 +1239,10 @@ def check_server_id(req_checker, error_msgs=None):
     :param error_msgs:  List of errors to which errors that occur during check
                         are appended.
     :type error_msgs:   list
+
+    :return: a dictionary with the results, including the key pass with
+             True if the server_id is valid.
+    :rtype:  dict
     """
     if error_msgs is None:
         error_msgs = []
@@ -1253,21 +1261,22 @@ def check_server_id(req_checker, error_msgs=None):
                    "server value), it must be changed and unique among all "
                    "servers (valid values: positive integer in the range from "
                    "1 to 4294967295)."
-                   "".format(server.select_variable("server_id"),
+                   "".format(server_id_res["server_id"][2],
                              server))
         elif duplicate is None:
             msg = ("The server_id {0} on {1} is not valid, it must be a "
                    "positive integer in the range from 1 to 4294967295."
-                   "".format(server.select_variable("server_id"),
+                   "".format(server_id_res["server_id"][2],
                              server))
         else:
             msg = ("The server_id {0} is already used by peer {1}"
-                   "".format(server.select_variable("server_id"),
+                   "".format(server_id_res["server_id"][2],
                              duplicate))
         error_msgs.append(msg)
         msg = ("The server_id must be different from the ones in use by "
                "the members of the GR group.")
         error_msgs.append(msg)
+    return server_id_res
 
 
 def check_server_version(req_checker, error_msgs=None):
@@ -1789,12 +1798,13 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
     # Checking server id
     if SERVER_ID in req_dict.keys():
         errors = []
-        check_server_id(req_checker, errors)
+        server_id_res = check_server_id(req_checker, errors)
         # Error if the server_id is not valid (value zero or duplicate found).
         # Note: A restart is required despite the server_id being a dynamic
         # variable, otherwise an error is issued by the CHANGE MASTER
         # statement when trying to join the instance to a group.
         if errors:
+            id_msg = ""
             # Update the option file if provided and update is requested or if
             # our version supports the set persist only syntax.
             if (update and (OPTION_PARSER in req_dict.keys() or
@@ -1811,16 +1821,45 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                     id_msg = ("A new server_id with value {0} was set in the "
                               "options file.\n{1}").format(server_id,
                                                            restart_msg)
-                else:
-                    server.set_variable("server_id", server_id, "persist_only")
+                # Persist the new server_id if supported by the server.
+                # NOTE: PERSIST_ONLY is used (not PERSIST) despite the
+                # server_id being a dynamic variable because a restart is
+                # required for the change to take effect, otherwise replication
+                # will not work. This way consecutive configure instances
+                # commands will still report the same error until a restart
+                # occurs.
+                if server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION):
+                    # /*(*/{0}/*)*/ is used in the query to ignore the random
+                    # server_id in replayed test traces (otherwise they fail).
+                    server.exec_query(
+                        "SET @@persist_only.server_id="
+                        "/*(*/{0}/*)*/".format(server_id))
                     restart_msg = _ERROR_RESTART_SERVER_PERSISTED.format(
                         req_checker.server)
-                    id_msg = ("A new server_id with value {0} was persisted."
-                              "\n{1}").format(server_id, restart_msg)
-                errors.append(id_msg)
-                error_msgs[SERVER_ID] = errors
+                    msg = ("A new server_id with value {0} was persisted."
+                           "\n{1}").format(server_id, restart_msg)
+                    id_msg = "{0}{1}".format(id_msg, msg)
             else:
-                error_msgs[SERVER_ID] = errors
+                id_msg = ("Please configure the instance for InnoDB Cluster "
+                          "usage and try again.")
+            # Use SERVER_VARIABLES errors instead of SERVER_ID to treat
+            # the server_id as another variables not meeting the
+            # requirements.
+            if SERVER_VARIABLES in error_msgs:
+                error_msgs[SERVER_VARIABLES] = \
+                    error_msgs[SERVER_VARIABLES] + errors
+            else:
+                # Use the same initial error message as for server
+                # variables check to maintain the compatibility with the
+                # AdminAPI output parsing.
+                srv_errors = [
+                    _ERROR_SERVER_VARIABLES.format(server, id_msg)
+                ]
+                error_msgs[SERVER_VARIABLES] = srv_errors + errors
+            # Include the server_id result in the dictionary with the
+            # variables information, to include in the results like others.
+            if 'pass' in server_id_res and not server_id_res['pass']:
+                options_res.update(server_id_res)
         _LOGGER.info("")
 
     # Checking MTS settings
@@ -1909,12 +1948,16 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
             error_msg_list.extend(error_msgs[test_name])
             # Attach comparison results table
             if test_name == SERVER_VARIABLES:
-                results_table = _format_table_results(options_res, verbose)
+                # Always use verbose = False to format table results to only
+                # show variables that do not meet the requirements.
+                results_table = _format_table_results(options_res, False)
                 error_msg_list.extend(results_table)
             # Whit update option the table is already logged.
             elif test_name == CONFIG_SETTINGS and not update:
+                # Always use verbose = False to format table results to only
+                # show variables that do not meet the requirements.
                 results_table = _format_table_results(options_results,
-                                                      verbose)
+                                                      False)
                 error_msg_list.extend(results_table)
 
         # Raise an error since the server does not met the requirements for GR
