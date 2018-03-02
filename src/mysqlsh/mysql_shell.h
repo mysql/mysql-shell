@@ -66,6 +66,7 @@ class Mysql_shell : public mysqlsh::Base_shell,
   bool cmd_status(const std::vector<std::string>& args);
   bool cmd_use(const std::vector<std::string>& args);
   bool cmd_rehash(const std::vector<std::string>& args);
+  bool cmd_option(const std::vector<std::string>& args);
   virtual bool cmd_process_file(const std::vector<std::string>& params);
 
   void process_line(const std::string& line) override;

@@ -268,6 +268,14 @@ std::string quote_string(const std::string &s, char quote);
 #define STRINGIFY(s) STRINGIFY_(s)
 #define STRINGIFY_(s) #s
 
+/** Breaks string into lines of specified width without breaking words.
+ *
+ * @param line long string to break.
+ * @param line_width maximum line width
+ * @return vector with split lines.
+ */
+std::vector<std::string> str_break_into_lines(const std::string &line,
+                                              std::size_t line_width);
 
 }  // namespace shcore
 

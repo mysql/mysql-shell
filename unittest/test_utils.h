@@ -202,6 +202,10 @@ class Shell_test_output_handler {
   * Base class for tests that use an instance of the shell library.
   */
 class Shell_core_test_wrapper : public tests::Shell_base_test {
+ public:
+  static std::string get_options_file_name(
+      const char *name = "test_options.json");
+
  protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
@@ -227,18 +231,21 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
   // This can be use to reinitialize the interactive shell with different
   // options First set the options on _options
-  void reset_options() {
+  void reset_options(int argc = 0, const char **argv = nullptr,
+                     bool remove_config = true) {
     extern char *g_mppath;
-    _opts.reset(new mysqlsh::Shell_options());
-    _options = const_cast<mysqlsh::Shell_options::Storage*>(&_opts->get());
+    std::string options_file = get_options_file_name();
+    if (remove_config)
+      std::remove(options_file.c_str());
+    _opts.reset(new mysqlsh::Shell_options(argc, const_cast<char **>(argv),
+                                           options_file));
+    _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
     _options->gadgets_path = g_mppath;
     _options->db_name_cache = false;
 
     // Allows derived classes configuring specific options
     set_options();
   }
-
-
 
   bool debug;
   void enable_debug() {
@@ -271,6 +278,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
+  std::shared_ptr<mysqlsh::Shell_options> _opts;
   mysqlsh::Shell_options::Storage* _options;
 
   // set to true in a subclass if reset_shell() should not be called
@@ -304,9 +312,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
     return _opts;
   }
-
- private:
-  std::shared_ptr<mysqlsh::Shell_options> _opts;
 };
 
 /**

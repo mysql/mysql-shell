@@ -113,6 +113,17 @@ class Shell_command_provider : public shcore::completer::Provider {
   }
 };
 
+// clang-format off
+const char* cmd_help_option =
+  "USAGE:\n"
+  "   \\option -h, --help [<filter>]: print help for options matching filter.\n"
+  "   \\option -l, --list [--show-origin]: list all the options.\n"
+  "   \\option <option_name>: print value of he option.\n"
+  "   \\option <option_name> <value> or <name>=<value>: set value of the option.\n"
+  "   \\option --unset <option_name>: remove option from configuration file and\n"
+  "                                  reset its value to the default.\n";
+// clang-format on
+
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
     : mysqlsh::Base_shell(cmdline_options, custom_delegate),
@@ -278,6 +289,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                     Mysql_shell::cmd_connect);
   SET_SHELL_COMMAND("\\reconnect", "Reconnect with a server.", "",
                       Mysql_shell::cmd_reconnect);
+  SET_SHELL_COMMAND("\\option", "Manage MySQL Shell options.", cmd_help_option,
+                    Mysql_shell::cmd_option);
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.",
                     "", Mysql_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w",
@@ -1151,6 +1164,46 @@ void Mysql_shell::refresh_completion(bool force) {
       }
     }
   }
+}
+
+bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
+  try {
+    if (args.size() < 2 || args.size() > 4) {
+      print_error(cmd_help_option);
+    } else if (args[1] == "-h" || args[1] == "--help") {
+      std::string filter = args.size() > 2 ? args[2] : "";
+      auto help = shell_options->get_named_help(filter, 80, 1);
+      if (help.empty())
+        print_error("No help found for filter: " + filter);
+      else
+        println(help.substr(0, help.size()-1));
+    } else if (args[1] == "-l" || args[1] == "--list") {
+      bool show_origin =
+          args.size() > 2 && args[2] == "--show-origin" ? true : false;
+      for (const auto &line :
+           shell_options->get_options_description(show_origin))
+        println(" " + line);
+    } else if (args.size() == 2) {
+      std::size_t offset = args[1].find('=');
+      if (offset == std::string::npos) {
+        println(shell_options->get_value_as_string(args[1]));
+      } else {
+        std::string opt = args[1].substr(0, offset);
+        std::string val = args[1].substr(offset + 1);
+        shell_options->set_and_notify(opt, val, true);
+      }
+    } else if (args[1] == "--unset") {
+      shell_options->unset(args[2]);
+    } else {
+      shell_options->set_and_notify(
+          args[1], args[2] == "=" && args.size() == 4 ? args[3] : args[2],
+          true);
+    }
+  } catch (const std::exception &e) {
+    print_error(e.what());
+  }
+
+  return true;
 }
 
 bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {

@@ -114,7 +114,7 @@ public:
 
   static bool is_level_none(const std::string& tag);
 
-  static std::string get_level_range_info();
+  static const char* get_level_range_info();
 
   ~Logger();
 

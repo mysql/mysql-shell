@@ -216,4 +216,21 @@ std::string quote_string(const std::string &s, char quote) {
   return std::string(q + esc + q);
 }
 
+std::vector<std::string> str_break_into_lines(const std::string &line,
+                                              std::size_t line_width) {
+  std::vector<std::string> result;
+  std::string rem(line);
+  while (rem.length() > line_width) {
+    std::size_t split_point = line_width - 1;
+    while (rem[split_point] != ' ' && split_point > 0)
+      --split_point;
+    if (split_point == 0)
+      break;
+    result.push_back(rem.substr(0, split_point));
+    rem = rem.substr(split_point + 1);
+  }
+  result.push_back(rem);
+  return result;
+}
+
 }  // namespace shcore

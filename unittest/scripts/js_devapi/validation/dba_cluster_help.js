@@ -367,7 +367,6 @@ RETURNS
  The name of the cluster.
 
 //@<OUT> Help
-
 SYNTAX
 
   <Cluster>.help()

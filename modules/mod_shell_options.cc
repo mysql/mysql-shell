@@ -22,7 +22,7 @@
  */
 
 #include "modules/mod_shell_options.h"
-#include "shellcore/shell_notifications.h"
+#include "modules/mysqlxtest_utils.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -51,12 +51,7 @@ Value Mod_shell_options::get_member(const std::string &prop) const {
 void Mod_shell_options::set_member(const std::string &prop, Value value) {
   if (!options->has_key(prop))
     return Cpp_object_bridge::set_member(prop, value);
-  options->set(prop, value);
-  shcore::Value::Map_type_ref info = shcore::Value::new_map().as_map();
-  (*info)["option"] = shcore::Value(prop);
-  (*info)["value"] = value;
-  shcore::ShellNotifications::get()->notify(SN_SHELL_OPTION_CHANGED, nullptr,
-                                            info);
+  options->set_and_notify(prop, value, true);
 }
 
 Mod_shell_options::Mod_shell_options(
@@ -64,5 +59,20 @@ Mod_shell_options::Mod_shell_options(
     : options(options) {
   for (const auto &opt : options->get_named_options())
     add_property(opt + "|" + opt);
+  add_method("unset",
+             std::bind(&Mod_shell_options::unset, this, std::placeholders::_1),
+             "option_name", shcore::String, NULL);
 }
+
+shcore::Value Mod_shell_options::unset(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("unset").c_str());
+
+  try {
+    std::string option_name = args.string_at(0);
+    options->unset(option_name);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset"));
+  return Value();
+}
+
 }  // namespace shcore

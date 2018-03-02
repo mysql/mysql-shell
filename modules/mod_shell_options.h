@@ -30,8 +30,6 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "scripting/types_cpp.h"
 
-#define SN_SHELL_OPTION_CHANGED "SN_SHELL_OPTION_CHANGED"
-
 namespace shcore {
 class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
  public:
@@ -39,7 +37,7 @@ class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
   virtual ~Mod_shell_options() {
   }
 
-  // Exposes the object to JS/PY to allow custom validatiogit ns on options
+  // Exposes the object to JS/PY to allow custom validations on options
   static std::shared_ptr<Mod_shell_options> get_instance();
   static void reset_instance();
 
@@ -58,6 +56,8 @@ class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
   void set_member(const std::string &prop, Value value) override;
   std::string &append_descr(std::string &s_out, int indent = -1,
                             int quote_strings = 0) const override;
+
+  shcore::Value unset(const shcore::Argument_list &args);
 
  private:
   std::shared_ptr<mysqlsh::Shell_options> options;

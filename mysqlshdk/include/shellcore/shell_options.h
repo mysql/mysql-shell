@@ -24,6 +24,8 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 
+#define SN_SHELL_OPTION_CHANGED "SN_SHELL_OPTION_CHANGED"
+
 #define SHCORE_OUTPUT_FORMAT "outputFormat"
 #define SHCORE_INTERACTIVE "interactive"
 #define SHCORE_SHOW_WARNINGS "showWarnings"
@@ -51,7 +53,7 @@
 
 namespace mysqlsh {
 
-class Shell_options : protected shcore::Options {
+class Shell_options : public shcore::Options {
  public:
   struct Storage {
     shcore::IShell_core::Mode initial_mode = shcore::IShell_core::Mode::None;
@@ -100,11 +102,7 @@ class Shell_options : protected shcore::Options {
     std::string histignore;
     int history_max_size = 1000;
     bool history_autosave = false;
-    enum {
-      None,
-      Primary,
-      Secondary
-    } redirect_session = None;
+    enum { None, Primary, Secondary } redirect_session = None;
     std::string default_cluster;
     bool default_cluster_set = false;
     bool get_server_public_key = false;
@@ -119,9 +117,19 @@ class Shell_options : protected shcore::Options {
     mysqlshdk::db::Connection_options connection_options() const;
   };
 
-  explicit Shell_options(int argc = 0, char** argv = nullptr);
+  explicit Shell_options(int argc = 0, char** argv = nullptr,
+                         const std::string& configuration_file = "");
 
-  void set(const std::string& option, const shcore::Value value);
+  void set(const std::string& option, const std::string& value) {
+    Options::set(option, value);
+  }
+  void set(const std::string& option, const shcore::Value& value);
+  void set_and_notify(const std::string& option, const std::string& value,
+                      bool save_to_file = false);
+  void set_and_notify(const std::string& option, const shcore::Value& value,
+                      bool save_to_file = false);
+
+  void unset(const std::string& option);
 
   shcore::Value get(const std::string& option);
 

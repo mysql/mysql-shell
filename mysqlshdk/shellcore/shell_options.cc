@@ -28,6 +28,7 @@
 #include <limits>
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "shellcore/ishell_core.h"
+#include "shellcore/shell_notifications.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -143,9 +144,9 @@ using shcore::opts::deprecated;
 using shcore::opts::cmdline;
 using shcore::opts::assign_value;
 
-Shell_options::Shell_options(int argc, char** argv)
-    : Options(false,
-              std::bind(&Shell_options::custom_cmdline_handler, this, _1, _2)) {
+Shell_options::Shell_options(int argc, char** argv,
+                             const std::string& configuration_file)
+    : Options(configuration_file) {
   std::string home = shcore::get_home_dir();
 #ifdef WIN32
   home += ("MySQL\\mysql-sandboxes");
@@ -262,7 +263,7 @@ Shell_options::Shell_options(int argc, char** argv)
         "DISABLED.");
 
   add_named_options()
-    (&storage.output_format, "", SHCORE_OUTPUT_FORMAT,
+    (&storage.output_format, "table", SHCORE_OUTPUT_FORMAT,
         "Determines output format",
         [](const std::string &val, shcore::opts::Source) {
           if (val != "table" && val != "json" && val != "json/raw" &&
@@ -309,8 +310,7 @@ Shell_options::Shell_options(int argc, char** argv)
         "continue if an error is found.", shcore::opts::Read_only<bool>())
     (reinterpret_cast<int*>(&storage.log_level),
         ngcommon::Logger::LOG_INFO, "logLevel", cmdline("--log-level=value"),
-        "The log level. Value must be an integer between 1 and 8 any of "
-        "[none, internal, error, warning, info, debug, debug2, debug3].",
+        ngcommon::Logger::get_level_range_info(),
         [this](const std::string &val, shcore::opts::Source) {
           const char* value = val.c_str();
           if (*value == '@') {
@@ -340,8 +340,11 @@ Shell_options::Shell_options(int argc, char** argv)
         "Shell's history autosave.")
     (&storage.sandbox_directory, home, SHCORE_SANDBOX_DIR,
         "Default sandbox directory")
-    (&storage.gadgets_path, "", SHCORE_GADGETS_PATH, "Gadgets path")
-    (&storage.wizards, true, SHCORE_USE_WIZARDS, "Enables wizard mode.");
+    (&storage.wizards, true, SHCORE_USE_WIZARDS, "Enables wizard mode.")
+    (&storage.initial_mode, shcore::IShell_core::Mode::None,
+        "defaultMode", "Specifies the shell mode to use when shell is started "
+        "- one of sql, js or py.", std::bind(&shcore::parse_mode, _1),
+        &shcore::to_string);
 
   add_startup_options()
     (cmdline("--name-cache"),
@@ -411,7 +414,11 @@ Shell_options::Shell_options(int argc, char** argv)
 
   try {
     handle_environment_options();
-    handle_cmdline_options(argc, argv);
+    if (!configuration_file.empty())
+      handle_persisted_options();
+    handle_cmdline_options(
+        argc, argv, false,
+        std::bind(&Shell_options::custom_cmdline_handler, this, _1, _2));
 
     check_session_type_conflicts();
     check_user_conflicts();
@@ -427,15 +434,45 @@ Shell_options::Shell_options(int argc, char** argv)
   }
 }
 
-void Shell_options::set(const std::string& option, const shcore::Value value) {
+static inline std::string value_to_string(const shcore::Value& value) {
+  return value.type == shcore::Value_type::String ? value.as_string()
+                                                  : value.repr();
+}
+
+void Shell_options::set(const std::string& option, const shcore::Value& value) {
   try {
-    if (value.type == shcore::Value_type::String)
-      shcore::Options::set(option, value.as_string());
-    else
-      shcore::Options::set(option, value.repr());
+    shcore::Options::set(option, value_to_string(value));
   } catch (const std::exception& e) {
     throw shcore::Exception::argument_error(e.what());
   }
+}
+
+void Shell_options::set_and_notify(const std::string& option,
+                                   const std::string& value,
+                                   bool save_to_file) {
+  try {
+    Options::set(option, value);
+    shcore::Value::Map_type_ref info = shcore::Value::new_map().as_map();
+    (*info)["option"] = shcore::Value(option);
+    (*info)["value"] = get(option);
+    shcore::ShellNotifications::get()->notify(SN_SHELL_OPTION_CHANGED, nullptr,
+                                              info);
+    if (save_to_file)
+      save(option);
+  } catch (const std::exception& e) {
+    throw shcore::Exception::argument_error(e.what());
+  }
+}
+
+void Shell_options::set_and_notify(const std::string& option,
+                                   const shcore::Value& value,
+                                   bool save_to_file) {
+  set_and_notify(option, value_to_string(value), save_to_file);
+}
+
+void Shell_options::unset(const std::string& option) {
+  unsave(option);
+  find_option(option)->second->reset_to_default_value();
 }
 
 shcore::Value Shell_options::get(const std::string& option) {
@@ -448,18 +485,12 @@ shcore::Value Shell_options::get(const std::string& option) {
   if (opt_bool != nullptr)
     return shcore::Value(opt_bool->get());
 
-  Concrete_option<std::string>* opt_string =
-      dynamic_cast<Concrete_option<std::string>*>(it->second);
-  if (opt_string != nullptr)
-    return shcore::Value(opt_string->get());
-
   Concrete_option<int>* opt_int =
       dynamic_cast<Concrete_option<int>*>(it->second);
   if (opt_int != nullptr)
     return shcore::Value(opt_int->get());
 
-  throw std::runtime_error(option + ": unable to deduce option type");
-  return shcore::Value();
+  return shcore::Value(get_value_as_string(option));
 }
 
 std::vector<std::string> Shell_options::get_named_options() {
@@ -631,9 +662,10 @@ void Shell_options::set_ssl_mode(const std::string& option, const char* value) {
   int mode = mysqlshdk::db::MapSslModeNameToValue::get_value(value);
 
   if (mode == 0) {
-    throw std::invalid_argument(option +
+    throw std::invalid_argument(
+        option +
         " must be any any of [DISABLED, PREFERRED, REQUIRED, "
-                  "VERIFY_CA, VERIFY_IDENTITY]");
+        "VERIFY_CA, VERIFY_IDENTITY]");
   }
 
   storage.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));

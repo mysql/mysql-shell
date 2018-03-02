@@ -19,6 +19,7 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
+#include <cstdio>
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
@@ -38,6 +39,11 @@ using opts::Read_only;
 
 class Options_test : public Shell_core_test_wrapper, public Options {
  public:
+  Options_test(std::string options_file =
+                   get_options_file_name("options_test_options.json"))
+      : Options(options_file), options_file(options_file) {
+  }
+
   void SetUp() {
     Shell_core_test_wrapper::SetUp();
     options.clear();
@@ -87,12 +93,14 @@ class Options_test : public Shell_core_test_wrapper, public Options {
     // clang-format on
   }
 
-  bool interactive;
-  bool wizards;
-  int history_max_size;
+  bool interactive = true;
+  bool wizards = false;
+  int history_max_size = 1000;
   std::string sandbox_dir;
   std::string dummy_value;
   bool some_mode = false;
+
+  std::string options_file;
 };
 
 TEST_F(Options_test, basic_type_validation) {
@@ -328,6 +336,74 @@ TEST_F(Options_test, cmd_line_handling) {
                             cout.str());
 }
 
+TEST_F(Options_test, persisting) {
+  CreateTestOptions();
+  // No file present
+  ASSERT_FALSE(options_file.empty());
+  remove(options_file.c_str());
+  ASSERT_NO_THROW(handle_persisted_options());
+
+  ASSERT_FALSE(wizards);
+  ASSERT_EQ(history_max_size, 1000);
+  ASSERT_EQ(sandbox_dir, "/tmp");
+
+  // Test saving options
+  ASSERT_NO_THROW(save("wizards"));
+  ASSERT_NO_THROW(save("history.maxSize"));
+  ASSERT_NO_THROW(save("sandboxDir"));
+  ASSERT_THROW(save("dummyDummy"), std::invalid_argument);
+  wizards = true;
+  history_max_size = 0;
+  sandbox_dir = "";
+  ASSERT_NO_THROW(handle_persisted_options());
+  ASSERT_FALSE(wizards);
+  ASSERT_EQ(history_max_size, 1000);
+  ASSERT_EQ(sandbox_dir, "/tmp");
+
+  // Test changing value of saved options
+  history_max_size = 10;
+  sandbox_dir = "/tmp/mysqlsh";
+  ASSERT_NO_THROW(save("history.maxSize"));
+  ASSERT_NO_THROW(save("sandboxDir"));
+  history_max_size = 0;
+  sandbox_dir = "";
+  ASSERT_NO_THROW(handle_persisted_options());
+  ASSERT_EQ(history_max_size, 10);
+  ASSERT_EQ(sandbox_dir, "/tmp/mysqlsh");
+
+  // Test unsaving options
+  ASSERT_NO_THROW(unsave("wizards"));
+  ASSERT_NO_THROW(unsave("history.maxSize"));
+  ASSERT_NO_THROW(unsave("sandboxDir"));
+  ASSERT_THROW(unsave("sandboxDir"), std::invalid_argument);
+  wizards = true;
+  history_max_size = 0;
+  sandbox_dir = "";
+  ASSERT_NO_THROW(handle_persisted_options());
+  ASSERT_TRUE(wizards);
+  ASSERT_EQ(history_max_size, 0);
+  ASSERT_EQ(sandbox_dir, "");
+
+#ifndef _MSC_VER
+  // Check if processor is available
+  ASSERT_NE(system(NULL), 0);
+  ASSERT_EQ(system(("echo '{\n\"sandboxDir\": \n}' > " + options_file).c_str()),
+            0);
+  EXPECT_THROW(handle_persisted_options(), std::runtime_error);
+
+  ASSERT_EQ(
+      system(("echo '{\n\"sandboxDir\": 1\n}' > " + options_file).c_str()), 0);
+  EXPECT_THROW(handle_persisted_options(), std::runtime_error);
+
+  ASSERT_EQ(
+      system(
+          ("echo '{\n\"simplyWrong\": \"true\"\n}' > " + options_file).c_str()),
+      0);
+  EXPECT_THROW(handle_persisted_options(), std::runtime_error);
+#endif
+  remove(options_file.c_str());
+}
+
 TEST_F(Options_test, access_from_code) {
   CreateTestOptions();
   Options &test_options = *this;
@@ -342,9 +418,7 @@ TEST_F(Options_test, access_from_code) {
   EXPECT_EQ("/dummy", sandbox_dir);
   EXPECT_EQ("/dummy", test_options.get<std::string>("sandboxDir"));
   ASSERT_THROW(test_options.get<int>("sandboxDir"), std::invalid_argument);
-
   EXPECT_EQ(11, test_options.get_cmdline_help().size());
-  //  for(const auto& ht : test_options.get_cmdline_help())
-  //    std::cout << ht << std::endl;
+  EXPECT_EQ(named_options.size(), get_options_description().size());
 }
 }  // namespace shcore

@@ -353,12 +353,9 @@ bool Logger::is_level_none(const std::string& tag) {
     return false;
 }
 
-std::string Logger::get_level_range_info()
-{
-  std::vector<std::string> info = { "Value must be an integer between 1 and 8 "
-                                    "any of [none, internal, error, warning, "
-                                    "info, debug, debug2, debug3]."};
-  return shcore::format_markup_text(info, 80, 27);
+const char* Logger::get_level_range_info() {
+  return "The log level value must be an integer between 1 and 8 any of "
+         "[none, internal, error, warning, info, debug, debug2, debug3].";
 }
 
 Logger::LOG_LEVEL Logger::Logger_levels_table::get_level_by_name(

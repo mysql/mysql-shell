@@ -468,7 +468,7 @@ void Shell_script_tester::load_validations(const std::string& path) {
         if (current_val_def && lines.size()) {
           std::string value = multiline(lines);
 
-          value = str_strip(value);
+          value = shcore::str_rstrip(value);
 
           if (current_val_def->stream == "OUT")
             add_validation(current_val_def, {"", value, ""});
