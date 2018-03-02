@@ -1825,4 +1825,153 @@ TEST_F(Interactive_shell_test, reconnect_command) {
   wipe_all();
 }
 
+TEST_F(Interactive_shell_test, mod_shell_options) {
+  execute("\\js");
+  wipe_all();
+
+  execute("shell.options");
+  auto named_opts = _opts->get_named_options();
+  for (const auto& name : named_opts) {
+    MY_EXPECT_STDOUT_CONTAINS(name);
+  }
+
+  EXPECT_TRUE(_options->show_warnings);
+  execute("shell.options.showWarnings=false");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->show_warnings);
+
+  reset_options(0, nullptr, false);
+  reset_shell();
+  EXPECT_FALSE(_options->show_warnings);
+  wipe_all();
+
+  execute("shell.options.unset(\"showWarnings\");");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_TRUE(_options->show_warnings);
+  reset_options(0, nullptr, false);
+  reset_shell();
+  EXPECT_TRUE(_options->show_warnings);
+
+  wipe_all();
+  reset_options();
+  reset_shell();
+}
+
+TEST_F(Interactive_shell_test, option_command) {
+  wipe_all();
+  execute("\\option");
+  MY_EXPECT_STDERR_CONTAINS("USAGE");
+  wipe_all();
+
+  auto named_opts = _opts->get_named_options();
+  execute("\\option --list");
+  for (const auto& name : named_opts) {
+    MY_EXPECT_STDOUT_CONTAINS(name);
+  }
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      to_string(shcore::opts::Source::Compiled_default));
+  wipe_all();
+
+  execute("\\option -l --show-origin");
+  for (const auto& name : named_opts) {
+    MY_EXPECT_STDOUT_CONTAINS(name);
+  }
+  MY_EXPECT_STDOUT_CONTAINS(to_string(shcore::opts::Source::Compiled_default));
+  wipe_all();
+
+  execute("\\option -h");
+  for (const auto& name : named_opts) {
+    MY_EXPECT_STDOUT_CONTAINS(name);
+  }
+  wipe_all();
+
+  // TODO(konrad): add test for exact help output
+  execute("\\option -h " SHCORE_USE_WIZARDS);
+  MY_EXPECT_STDOUT_CONTAINS(SHCORE_USE_WIZARDS);
+  MY_EXPECT_STDOUT_NOT_CONTAINS(SHCORE_HISTIGNORE);
+  wipe_all();
+
+  execute("\\option -h zzzzz");
+  MY_EXPECT_STDERR_CONTAINS("No help found for filter: zzzzz");
+  wipe_all();
+
+  for (const auto& name : named_opts) {
+    execute("\\option " + name);
+    MY_EXPECT_STDOUT_CONTAINS(_opts->get_value_as_string(name));
+    wipe_all();
+  }
+
+  execute("\\option zzzzz");
+  MY_EXPECT_STDERR_CONTAINS("Unrecognized option: zzzzz");
+  wipe_all();
+
+  execute("\\option zzzzz=val");
+  MY_EXPECT_STDERR_CONTAINS("Unrecognized option: zzzzz");
+  wipe_all();
+
+  execute("\\option zzzzz 1");
+  MY_EXPECT_STDERR_CONTAINS("Unrecognized option: zzzzz");
+  wipe_all();
+
+  ASSERT_TRUE(_options->wizards);
+  execute("\\option " SHCORE_USE_WIZARDS " false");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->wizards);
+  wipe_all();
+
+  execute("\\option -l --show-origin");
+  MY_EXPECT_STDOUT_CONTAINS(to_string(shcore::opts::Source::User));
+  wipe_all();
+
+  execute("\\option " SHCORE_USE_WIZARDS "=true");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_TRUE(_options->wizards);
+  wipe_all();
+
+  const char* args[] = {"ut", "--show-warnings=false"};
+  reset_options(2, args, false);
+  reset_shell();
+  EXPECT_TRUE(_options->wizards);
+  execute("\\option -l --show-origin");
+  MY_EXPECT_STDOUT_CONTAINS(
+      to_string(shcore::opts::Source::Configuration_file));
+  MY_EXPECT_STDOUT_CONTAINS(
+      to_string(shcore::opts::Source::Command_line));
+  wipe_all();
+
+  execute("\\option " SHCORE_USE_WIZARDS " = false");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->wizards);
+  wipe_all();
+
+  execute("\\option " SHCORE_USE_WIZARDS " dummy");
+  EXPECT_FALSE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->wizards);
+  wipe_all();
+
+  execute("\\option --unset " SHCORE_USE_WIZARDS);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_TRUE(_options->wizards);
+  wipe_all();
+
+  reset_options(0, nullptr, false);
+  reset_shell();
+  EXPECT_TRUE(_options->wizards);
+  execute("\\option -l --show-origin");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      to_string(shcore::opts::Source::Configuration_file));
+  wipe_all();
+
+  execute("\\option dummy_variable=5");
+  EXPECT_FALSE(output_handler.std_err.empty());
+  wipe_all();
+
+  // value already unsaved
+  execute("\\option -u " SHCORE_USE_WIZARDS);
+  EXPECT_FALSE(output_handler.std_err.empty());
+  wipe_all();
+  reset_options();
+  reset_shell();
+}
+
 }  // namespace mysqlsh

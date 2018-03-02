@@ -21,8 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <iostream>
 #include "mysqlshdk/libs/utils/options.h"
+#include <rapidjson/error/en.h>
+#include <iostream>
+#include "rapidjson/document.h"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/stringbuffer.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -30,6 +34,22 @@
 namespace shcore {
 
 namespace opts {
+
+std::string to_string(Source s) {
+  switch (s) {
+    case Source::Command_line:
+      return "Command line";
+    case Source::Compiled_default:
+      return "Compiled default";
+    case Source::Configuration_file:
+      return "Configuration file";
+    case Source::Environment_variable:
+      return "Environment variable";
+    case Source::User:
+      return "User defined";
+  }
+  return "";
+}
 
 Generic_option::Generic_option(const std::string &name,
                                const char *environment_variable,
@@ -47,6 +67,11 @@ void Generic_option::handle_environment_variable() {
     if (val != nullptr)
       set(val, Source::Environment_variable);
   }
+}
+
+void Generic_option::handle_persisted_value(const char *value) {
+  if (value != nullptr)
+    set(value, Source::Configuration_file);
 }
 
 std::vector<std::string> Generic_option::get_cmdline_names() {
@@ -92,21 +117,11 @@ std::vector<std::string> Generic_option::get_cmdline_help(
   result.push_back(line);
 
   std::size_t help_filled = 1;
-  if (strlen(help) <= help_width) {
+  if (std::strlen(help) <= help_width) {
     result[0] += help;
   } else {
-    std::vector<std::string> help_lines;
-    std::string rem(help);
-    while (rem.length() > help_width) {
-      std::size_t split_point = help_width - 1;
-      while (rem[split_point] != ' ') {
-        --split_point;
-        assert(split_point > 0);
-      }
-      help_lines.push_back(rem.substr(0, split_point));
-      rem = rem.substr(split_point + 1);
-    }
-    help_lines.push_back(rem);
+    std::vector<std::string> help_lines =
+        shcore::str_break_into_lines(help, help_width);
     for (std::size_t i = 0; i < help_lines.size(); ++i)
       if (i < result.size())
         result[i] += help_lines[i];
@@ -149,7 +164,7 @@ std::vector<std::string> Proxy_option::get_cmdline_names() {
   return Generic_option::get_cmdline_names();
 }
 
-bool icomp(const std::string& lhs, const std::string& rhs) {
+bool icomp(const std::string &lhs, const std::string &rhs) {
   return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
 
@@ -171,11 +186,11 @@ bool icomp(const std::string& lhs, const std::string& rhs) {
  * For each deprecated option used, a warning will be generated
  *
  */
-Proxy_option::Handler deprecated(const char *replacement,
-    Proxy_option::Handler target, const char *def,
+Proxy_option::Handler deprecated(
+    const char *replacement, Proxy_option::Handler target, const char *def,
     const std::map<std::string, std::string> &map) {
   return [replacement, target, def, map](const std::string &opt,
-                                                  const char *value) {
+                                         const char *value) {
     std::stringstream ss;
     ss << "The " << opt << " option has been deprecated";
     if (replacement != nullptr) {
@@ -230,6 +245,12 @@ template <>
 std::string convert(const std::string &data) {
   return data;
 }
+
+template <>
+std::string serialize(const std::string &val) {
+  return val;
+}
+
 }  // namespace opts
 
 // Will verify if the argument is the one specified by arg or larg and return
@@ -288,17 +309,18 @@ int Options::cmdline_arg_with_value(char **argv, int *argi, const char *arg,
   return ret_val;
 }
 
-Options::Options(bool allow_unregistered_options,
-                 Custom_cmdline_handler custom_cmdline_handler)
-    : allow_unregistered_options(allow_unregistered_options),
-      custom_cmdline_handler(custom_cmdline_handler) {
+Options::Options(const std::string &config_file) : config_file(config_file) {
 }
 
-void Options::set(const std::string &name, const std::string &new_value) {
-  auto it = named_options.find(name);
-  if (it == named_options.end())
-    throw std::invalid_argument("No option defined under name: " + name);
+void Options::set(const std::string &option_name,
+                  const std::string &new_value) {
+  auto it = find_option(option_name);
   it->second->set(new_value);
+}
+
+std::string Options::get_value_as_string(const std::string &option_name) {
+  auto it = find_option(option_name);
+  return it->second->get_value_as_string();
 }
 
 void Options::handle_environment_options() {
@@ -306,7 +328,108 @@ void Options::handle_environment_options() {
     opt->handle_environment_variable();
 }
 
-void Options::handle_cmdline_options(int argc, char **argv) {
+static std::unique_ptr<rapidjson::Document> read_json_from_file(
+    const std::string &filename) {
+  if (filename.empty())
+    throw std::runtime_error("Configuration file was not specified");
+
+  std::unique_ptr<rapidjson::Document> d(new rapidjson::Document());
+
+  std::ifstream f(filename, std::ios::binary);
+  if (f.is_open()) {
+    std::stringstream buffer;
+    buffer << f.rdbuf();
+    d->Parse(buffer.str().c_str());
+    if (d->HasParseError())
+      throw std::runtime_error("Error while parsing configuration file '" +
+                               filename + "': ." +
+                               rapidjson::GetParseError_En(d->GetParseError()));
+
+  } else if (errno != ENOENT) {
+    throw std::runtime_error("Unable to open configuration file " + filename +
+                             "for reading: " + strerror(errno));
+  }
+
+  if (!d->IsObject())
+    d->SetObject();
+
+  return d;
+}
+
+static void write_json_to_file(const std::string &filename,
+                               rapidjson::Document *d) {
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  d->Accept(writer);
+
+  // in case of a tragedy
+  std::rename(filename.c_str(), (filename + ".old").c_str());
+  std::ofstream f(filename, std::ios::binary);
+  if (f.is_open()) {
+    f.write(buffer.GetString(), buffer.GetSize());
+    if (f.fail())
+      throw std::runtime_error(std::string("Error '") + strerror(errno) +
+                               "' while writing to file " + filename +
+                               ", old file contents is available as file " +
+                               filename + ".old");
+    else
+      f.flush();
+  } else {
+    throw std::runtime_error("Unable to open file " + filename +
+                             " for writing" + ": " + strerror(errno));
+  }
+}
+
+void Options::save(const std::string &option_name) {
+  std::string opval = get_value_as_string(option_name);
+  std::unique_ptr<rapidjson::Document> d = read_json_from_file(config_file);
+  rapidjson::Value new_value(opval.c_str(), opval.length(), d->GetAllocator());
+  auto it = d->FindMember(option_name.c_str());
+  if (it != d->MemberEnd())
+    it->value = new_value;
+  else
+    d->AddMember(
+        rapidjson::StringRef(option_name.c_str(), option_name.length()),
+        new_value, d->GetAllocator());
+  write_json_to_file(config_file, d.get());
+}
+
+void Options::unsave(const std::string &option_name) {
+  find_option(option_name);
+  std::unique_ptr<rapidjson::Document> d = read_json_from_file(config_file);
+  if (!d->RemoveMember(option_name.c_str()))
+    throw std::invalid_argument("Option " + option_name +
+                                " not present in file " + config_file);
+  write_json_to_file(config_file, d.get());
+}
+
+void Options::handle_persisted_options() {
+  using rapidjson::Value;
+  std::unique_ptr<rapidjson::Document> d = read_json_from_file(config_file);
+  for (Value::ConstMemberIterator it = d->MemberBegin(); it != d->MemberEnd();
+       ++it) {
+    std::string opt_name(it->name.GetString());
+    auto op = named_options.find(opt_name);
+    if (op == named_options.end())
+      throw std::runtime_error("Unrecognized option: " + opt_name +
+                               " in configuration file: " + config_file);
+    if (!it->value.IsString())
+      throw std::runtime_error("Malformed value for option '" + opt_name +
+                               "' in configuration file. All values need to be "
+                               "represented as strings.");
+    try {
+      op->second->handle_persisted_value(it->value.GetString());
+    } catch (const std::invalid_argument &e) {
+      throw std::invalid_argument(
+          "Error while reading configuration file, option " + opt_name + ": " +
+          e.what());
+    }
+  }
+}
+
+void Options::handle_cmdline_options(
+    int argc, char **argv, bool allow_unregistered_options,
+    Custom_cmdline_handler custom_cmdline_handler) {
   for (int i = 1; i < argc; i++) {
     if (custom_cmdline_handler && custom_cmdline_handler(argv, &i))
       continue;
@@ -316,16 +439,12 @@ void Options::handle_cmdline_options(int argc, char **argv) {
     auto it = cmdline_options.find(
         epos == std::string::npos ? opt : opt.substr(0, epos));
     if (it != cmdline_options.end()) {
-      if (it->second->accepts_no_cmdline_value()) {
-        if (epos != std::string::npos)
-          throw std::invalid_argument(std::string(argv[0]) + ": option " +
-                                      it->first + " expects no argument.");
+      if (it->second->accepts_no_cmdline_value() && epos == std::string::npos) {
         it->second->handle_command_line_input(opt, nullptr);
       } else {
         const std::string &cmd = it->first;
         char *value = nullptr;
-        if (it->second->accepts_no_cmdline_value() ||
-            cmdline_arg_with_value(argv, &i, cmd.c_str(),
+        if (cmdline_arg_with_value(argv, &i, cmd.c_str(),
                                    cmd[1] == '-' ? nullptr : cmd.c_str(),
                                    &value, it->second->accepts_null_argument()))
           it->second->handle_command_line_input(cmd, value);
@@ -343,12 +462,71 @@ void Options::handle_cmdline_options(int argc, char **argv) {
 std::vector<std::string> Options::get_cmdline_help(
     std::size_t options_width, std::size_t help_width) const {
   std::vector<std::string> result;
-  for (auto &opt : options) {
+  for (const auto &opt : options) {
     auto oh = opt->get_cmdline_help(options_width, help_width);
     result.insert(result.end(), oh.begin(), oh.end());
   }
 
   return result;
+}
+
+std::vector<std::string> Options::get_options_description(
+    bool show_origin) const {
+  std::vector<std::string> res;
+  std::size_t first_column_width = 0;
+  for (const auto &it : named_options) {
+    if (first_column_width < it.first.length())
+      first_column_width = it.first.length();
+  }
+  first_column_width += 2;
+
+  for (auto &it : named_options) {
+    opts::Generic_option *opt = it.second;
+    std::stringstream ss;
+    ss << opt->get_name();
+    for (std::size_t i = opt->get_name().length(); i < first_column_width; i++)
+      ss.put(' ');
+    ss << opt->get_value_as_string();
+    if (show_origin)
+      ss << " (" << to_string(opt->get_source()) << ")";
+    res.emplace_back(ss.str());
+  }
+  return res;
+}
+
+std::string Options::get_named_help(const std::string &filter,
+                                    std::size_t output_width,
+                                    std::size_t padding) {
+  std::string res;
+
+  std::size_t first_column_width = 0;
+  for (const auto &it : named_options) {
+    if (!filter.empty() && it.first.find(filter) == std::string::npos)
+      continue;
+    if (first_column_width < it.first.length())
+      first_column_width = it.first.length();
+  }
+  first_column_width += 2 + padding;
+  assert(first_column_width < output_width - 20);
+  std::size_t second_column_width = output_width - first_column_width;
+
+  for (const auto &it : named_options) {
+    if (!filter.empty() && it.first.find(filter) == std::string::npos)
+      continue;
+    opts::Generic_option *opt = it.second;
+    const char *help = opt->get_help();
+    std::string first_column(first_column_width, ' ');
+    first_column.replace(padding, opt->get_name().length(), opt->get_name());
+    if (std::strlen(help) <= second_column_width)
+      res.append(first_column + help + "\n");
+    else
+      res.append(first_column +
+                 shcore::format_text({help},
+                                     second_column_width + first_column_width,
+                                     first_column_width, false) +
+                 "\n");
+  }
+  return res;
 }
 
 bool Options::Command_line_comparator::operator()(
@@ -389,6 +567,14 @@ void Options::add_option(Generic_option *option) {
     cmdline_options.emplace(cmd_name, opt.get());
 
   options.emplace_back(std::move(opt));
+}
+
+Options::NamedOptions::const_iterator Options::find_option(
+    const std::string &option_name) const {
+  auto op = named_options.find(option_name);
+  if (op == named_options.end())
+    throw std::invalid_argument("Unrecognized option: " + option_name + ".");
+  return op;
 }
 
 } /* namespace shcore */

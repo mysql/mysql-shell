@@ -379,6 +379,10 @@ std::string Shell_core_test_wrapper::context_identifier() {
   return ret_val;
 }
 
+std::string Shell_core_test_wrapper::get_options_file_name(const char *name) {
+  return shcore::path::join_path(shcore::get_user_config_path(), name);
+}
+
 void Shell_core_test_wrapper::SetUp() {
   Shell_base_test::SetUp();
 

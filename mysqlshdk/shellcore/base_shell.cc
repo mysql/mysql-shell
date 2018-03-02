@@ -60,9 +60,6 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 
   _input_mode = shcore::Input_state::Ok;
 
-  if (options().output_format.empty())
-    shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("table"));
-
   _shell.reset(new shcore::Shell_core(custom_delegate));
   _completer_object_registry.reset(new shcore::completer::Object_registry());
 

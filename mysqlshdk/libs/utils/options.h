@@ -37,7 +37,7 @@
 #include "mysqlshdk/include/scripting/common.h"
 
 namespace shcore {
-  class Options;
+class Options;
 
 namespace opts {
 
@@ -48,6 +48,8 @@ enum class Source {
   Command_line,
   User
 };
+
+std::string to_string(Source s);
 
 /// Convenience function for passing command line options.
 template <class... Ts>
@@ -69,10 +71,21 @@ class Generic_option {
     set(new_value, Source::User);
   }
 
+  virtual std::string get_value_as_string() const {
+    assert(false);  // unimplemented
+    return "";
+  }
+
+  virtual void reset_to_default_value() {
+    assert(false);  // unimplemented
+  }
+
   void handle_environment_variable();
 
   virtual void handle_command_line_input(const std::string &option,
                                          const char *value) = 0;
+
+  void handle_persisted_value(const char *value);
 
   virtual std::vector<std::string> get_cmdline_names();
 
@@ -88,6 +101,14 @@ class Generic_option {
 
   const std::string &get_name() const {
     return name;
+  }
+
+  Source get_source() const {
+    return source;
+  }
+
+  const char *get_help() const {
+    return help;
   }
 
  protected:
@@ -108,22 +129,40 @@ class Concrete_option : public Generic_option {
   using Validator =
       typename std::function<T(const std::string &, Source source)>;
 
+  using Serializer = typename std::function<std::string(const T &)>;
+
   Concrete_option(T *landing_spot, T default_value, const std::string &name,
                   const char *environment_variable,
                   std::vector<std::string> &&command_line_names,
-                  const char *help, Validator validator)
+                  const char *help, Validator validator,
+                  Serializer serializer = nullptr)
       : Generic_option(
             name, environment_variable,
             std::forward<std::vector<std::string> &&>(command_line_names),
             help),
         landing_spot(landing_spot),
-        validator(validator) {
+        default_value(default_value),
+        validator(validator),
+        serializer(serializer) {
+    assert(validator != nullptr);
     *landing_spot = default_value;
   }
 
   void set(const std::string &new_value, Source source) override {
     *landing_spot = validator(new_value, source);
     this->source = source;
+  }
+
+  std::string get_value_as_string() const override {
+    if (!serializer)
+      throw std::runtime_error("Serializer has not been defined for option: " +
+                               name);
+    return serializer(*landing_spot);
+  }
+
+  void reset_to_default_value() override {
+    *landing_spot = default_value;
+    source = Source::Compiled_default;
   }
 
   void handle_command_line_input(const std::string &option,
@@ -134,7 +173,7 @@ class Concrete_option : public Generic_option {
       else
         throw std::invalid_argument("Option " + option + " needs value");
     }
-    set(value, Source::Compiled_default);
+    set(value, Source::Command_line);
   }
 
   const T &get() const {
@@ -143,16 +182,18 @@ class Concrete_option : public Generic_option {
 
  protected:
   T *landing_spot;
+  const T default_value;
   Validator validator;
+  Serializer serializer;
 };
 
 /* This class is supposed to handle special cases.
  *
- * 1) Option that has not concrete storage but rather method/function (handler)
+ * 1) Option that has no concrete storage but rather method/function (handler)
  *    that is supposed to be called when new value is available.
- * 2) Option that is there to only appear in help message, but is handled
+ * 2) Option that is there only to appear in help message, but is handled
  *    outside of normal processing e.g. in Options::Custom_cmdline_handler.
- * 3) Deprecated options (use deprecated function to define them.
+ * 3) Deprecated options (use deprecated function to define them).
  */
 class Proxy_option : public Generic_option {
  public:
@@ -174,8 +215,9 @@ class Proxy_option : public Generic_option {
   Handler handler;
 };
 
-Proxy_option::Handler deprecated(const char *replacement = nullptr,
-    Proxy_option::Handler handler = {}, const char *def_value = nullptr,
+Proxy_option::Handler deprecated(
+    const char *replacement = nullptr, Proxy_option::Handler handler = {},
+    const char *def_value = nullptr,
     const std::map<std::string, std::string> &map = {});
 
 template <class T, class S>
@@ -189,7 +231,7 @@ template <class T>
 T convert(const std::string &data) {
   // assuming that option specification turns it on
   if (data.empty())
-    return 1;
+    return static_cast<T>(1);
   T t;
   std::istringstream iss(data);
   iss >> t;
@@ -197,9 +239,9 @@ T convert(const std::string &data) {
     iss.clear();
     iss >> std::boolalpha >> t;
     if (iss.fail())
-      throw std::invalid_argument("incorrect value");
+      throw std::invalid_argument("Incorrect option value.");
   } else if (!iss.eof()) {
-    throw std::invalid_argument("malformed value");
+    throw std::invalid_argument("Malformed option value.");
   }
   return t;
 }
@@ -207,10 +249,21 @@ T convert(const std::string &data) {
 template <>
 std::string convert(const std::string &data);
 
+/// Standard serialization mechanism for options
+template <class T>
+std::string serialize(const T &val) {
+  std::ostringstream os;
+  os << std::boolalpha << val;
+  return os.str();
+}
+
+template <>
+std::string serialize(const std::string &val);
+
 /// Validator that does some standard type conversion
 template <class T>
 struct Basic_type {
-  T operator()(const std::string &data, Source UNUSED(source)) {
+  T operator()(const std::string &data, Source) {
     return convert<T>(data);
   }
 };
@@ -220,7 +273,7 @@ template <class T>
 struct Read_only : public Basic_type<T> {
   T operator()(const std::string &data, Source source) {
     if (source == Source::User)
-      throw std::logic_error("read only.");
+      throw std::logic_error("This option is read only.");
     return Basic_type<T>::operator()(data, source);
   }
 };
@@ -245,6 +298,8 @@ struct Range : public Basic_type<T> {
 }  // namespace opts
 
 class Options {
+  using NamedOptions = std::map<std::string, opts::Generic_option *>;
+
   struct Add_named_option_helper {
     explicit Add_named_option_helper(Options &options) : parent(options) {
     }
@@ -254,9 +309,11 @@ class Options {
         T *landing_spot, S &&default_value, const std::string &optname,
         const char *help,
         typename opts::Concrete_option<T>::Validator validator =
-            opts::Basic_type<T>()) {
+            opts::Basic_type<T>(),
+        typename opts::Concrete_option<T>::Serializer serializer =
+            opts::serialize<T>) {
       return (*this)(landing_spot, std::forward<S>(default_value), optname,
-                     nullptr, opts::cmdline(), help, validator);
+                     nullptr, opts::cmdline(), help, validator, serializer);
     }
 
     template <class T, class S>
@@ -264,9 +321,12 @@ class Options {
         T *landing_spot, S &&default_value, const std::string &optname,
         std::vector<std::string> &&command_line_names, const char *help,
         typename opts::Concrete_option<T>::Validator validator =
-            opts::Basic_type<T>()) {
+            opts::Basic_type<T>(),
+        typename opts::Concrete_option<T>::Serializer serializer =
+            opts::serialize<T>) {
       return (*this)(landing_spot, std::forward<S>(default_value), optname,
-                     nullptr, std::move(command_line_names), help, validator);
+                     nullptr, std::move(command_line_names), help, validator,
+                     serializer);
     }
 
     template <class T, class S>
@@ -275,10 +335,12 @@ class Options {
         const char *envname, std::vector<std::string> &&command_line_names,
         const char *help,
         typename opts::Concrete_option<T>::Validator validator =
-            opts::Basic_type<T>()) {
+            opts::Basic_type<T>(),
+        typename opts::Concrete_option<T>::Serializer serializer =
+            opts::serialize<T>) {
       parent.add_option(new opts::Concrete_option<T>(
           landing_spot, T(std::forward<S>(default_value)), optname, envname,
-          std::move(command_line_names), help, validator));
+          std::move(command_line_names), help, validator, serializer));
       return *this;
     }
 
@@ -338,8 +400,7 @@ class Options {
                                     const char *larg, char **value,
                                     bool accept_null = false) noexcept;
 
-  Options(bool allow_unregistered_options = true,
-          Custom_cmdline_handler custom_cmdline_handler = nullptr);
+  explicit Options(const std::string &config_file = "");
   virtual ~Options() {
   }
 
@@ -356,14 +417,11 @@ class Options {
     return Add_startup_option_helper(*this);
   }
 
-  void set(const std::string &name, const std::string &new_value);
+  void set(const std::string &option_name, const std::string &new_value);
 
   template <class T>
   const T &get(const std::string &option_name) const {
-    auto it = named_options.find(option_name);
-    if (it == named_options.end())
-      throw std::invalid_argument("No option registered under name: " +
-                                  option_name);
+    auto it = find_option(option_name);
     typename opts::Concrete_option<T> *opt =
         dynamic_cast<typename opts::Concrete_option<T> *>(it->second);
     if (opt == nullptr)
@@ -373,11 +431,21 @@ class Options {
     return opt->get();
   }
 
+  std::string get_value_as_string(const std::string &option_name);
+
   /// Gets values from environment variables to options.
   void handle_environment_options();
 
+  void save(const std::string &option_name);
+  void unsave(const std::string &option_name);
+
+  /// Reads values persisted in configuration file.
+  void handle_persisted_options();
+
   /// Parses command line and stores values in options.
-  void handle_cmdline_options(int argc, char **argv);
+  void handle_cmdline_options(
+      int argc, char **argv, bool allow_unregistered_options = true,
+      Custom_cmdline_handler custom_cmdline_handler = nullptr);
 
   /** Returns formatted help for all defined command line options.
    *
@@ -390,19 +458,27 @@ class Options {
   std::vector<std::string> get_cmdline_help(std::size_t options_width = 28,
                                             std::size_t help_width = 50) const;
 
+  std::vector<std::string> get_options_description(
+      bool show_origin = false) const;
+
+  std::string get_named_help(const std::string &filter = "",
+                             std::size_t output_width = 80,
+                             std::size_t front_padding = 0);
+
  protected:
   struct Command_line_comparator {
     bool operator()(const std::string &lhs, const std::string &rhs) const;
   };
 
   void add_option(opts::Generic_option *opt);
+  NamedOptions::const_iterator find_option(
+      const std::string &option_name) const;
 
   std::vector<std::unique_ptr<opts::Generic_option> > options;
-  std::map<std::string, opts::Generic_option *> named_options;
+  NamedOptions named_options;
   std::map<std::string, opts::Generic_option *, Command_line_comparator>
       cmdline_options;
-  bool allow_unregistered_options = true;
-  Custom_cmdline_handler custom_cmdline_handler;
+  std::string config_file;
 };
 
 } /* namespace shcore */

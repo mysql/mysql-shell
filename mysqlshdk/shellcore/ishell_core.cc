@@ -22,6 +22,40 @@
  */
 
 #include "shellcore/ishell_core.h"
+#include "utils/utils_string.h"
 
-shcore::IShell_core::IShell_core(void) {}
-shcore::IShell_core::~IShell_core() {}
+namespace shcore {
+
+IShell_core::IShell_core(void) {
+}
+IShell_core::~IShell_core() {
+}
+
+std::string to_string(const IShell_core::Mode mode) {
+  switch (mode) {
+    case IShell_core::Mode::SQL:
+      return "sql";
+    case IShell_core::Mode::Python:
+      return "py";
+    case IShell_core::Mode::JavaScript:
+      return "js";
+    case IShell_core::Mode::None:
+      return "none";
+    default:
+      throw std::runtime_error("Unrecognized IShell_core::Mode found");
+  }
+}
+
+IShell_core::Mode parse_mode(const std::string& value) {
+  if (str_casecmp(value, "sql") == 0)
+    return shcore::IShell_core::Mode::SQL;
+  if (str_casecmp(value, "py") == 0)
+    return shcore::IShell_core::Mode::Python;
+  if (str_casecmp(value, "js") == 0)
+    return shcore::IShell_core::Mode::JavaScript;
+  if (str_casecmp(value, "none") == 0)
+    return shcore::IShell_core::Mode::JavaScript;
+  throw std::invalid_argument(
+      "Valid values for shell mode are sql, js, py or none.");
+}
+}  // namespace shcore

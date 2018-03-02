@@ -24,9 +24,11 @@
 #ifndef _ISHELL_CORE_
 #define _ISHELL_CORE_
 
-#include <iostream>
-#include <vector>
 #include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "scripting/object_registry.h"
 #include "scripting/types_common.h"
@@ -92,6 +94,10 @@ class SHCORE_PUBLIC IShell_core {
   virtual const std::vector<std::string>& get_input_args() = 0;
   virtual bool print_help(const std::string& topic) = 0;
 };
-};
+
+std::string to_string(const IShell_core::Mode mode);
+IShell_core::Mode parse_mode(const std::string& value);
+
+}  // namespace shcore
 
 #endif

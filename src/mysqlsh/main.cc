@@ -29,6 +29,7 @@
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include <mysql_version.h>
@@ -458,7 +459,9 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
 #ifdef ENABLE_SESSION_RECORDING
   handle_debug_options(argc, argv);
 #endif
-  auto shell_options = std::make_shared<mysqlsh::Shell_options>(*argc, *argv);
+  auto shell_options = std::make_shared<mysqlsh::Shell_options>(
+      *argc, *argv,
+      shcore::path::join_path(shcore::get_user_config_path(), "options.json"));
   const mysqlsh::Shell_options::Storage &options = shell_options->get();
 
   detect_interactive(shell_options.get(), &stdin_is_tty, &stdout_is_tty);
@@ -473,7 +476,7 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
   if (!options.interactive)
     shell_options->set_wizards(false);
   // Switch default output format to tab separated instead of table
-  if (!options.interactive && options.output_format.empty() && !stdout_is_tty)
+  if (!options.interactive && options.output_format == "table" && !stdout_is_tty)
     shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));
 
   return shell_options;
