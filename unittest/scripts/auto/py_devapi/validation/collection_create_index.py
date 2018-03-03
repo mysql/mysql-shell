@@ -198,7 +198,7 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
-  `<<<idx_col_1>>>` geometry GENERATED ALWAYS AS (st_geomfromgeojson(json_extract(`doc`,_utf8mb4'$.myGeoJsonField'),1,4326)) STORED NOT NULL,
+  `<<<idx_col_1>>>` geometry GENERATED ALWAYS AS (st_geomfromgeojson(json_extract(`doc`,_utf8mb4'$.myGeoJsonField'),1,4326)) STORED NOT NULL /*!80003 SRID 4326 */,
   PRIMARY KEY (`_id`),
   SPATIAL KEY `myIndex` (`<<<idx_col_1>>>`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -226,7 +226,7 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
-  `<<<idx_col_1>>>` geometry GENERATED ALWAYS AS (st_geomfromgeojson(json_extract(`doc`,_utf8mb4'$.myGeoJsonField'),1,4326)) STORED NOT NULL,
+  `<<<idx_col_1>>>` geometry GENERATED ALWAYS AS (st_geomfromgeojson(json_extract(`doc`,_utf8mb4'$.myGeoJsonField'),1,4326)) STORED NOT NULL /*!80003 SRID 4326 */,
   PRIMARY KEY (`_id`),
   SPATIAL KEY `myIndex` (`<<<idx_col_1>>>`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -255,7 +255,7 @@ Index_comment:
 Create Table: CREATE TABLE `my_coll` (
   `doc` json DEFAULT NULL,
   `_id` varbinary(32) GENERATED ALWAYS AS (json_unquote(json_extract(`doc`,_utf8mb4'$._id'))) STORED NOT NULL,
-  `<<<idx_col_1>>>` geometry GENERATED ALWAYS AS (st_geomfromgeojson(json_extract(`doc`,_utf8mb4'$.myGeoJsonField'),2,4400)) STORED NOT NULL,
+  `<<<idx_col_1>>>` geometry GENERATED ALWAYS AS (st_geomfromgeojson(json_extract(`doc`,_utf8mb4'$.myGeoJsonField'),2,4400)) STORED NOT NULL /*!80003 SRID 4400 */,
   PRIMARY KEY (`_id`),
   SPATIAL KEY `myIndex` (`<<<idx_col_1>>>`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -724,7 +724,7 @@ Create Table: CREATE TABLE `my_coll` (
 ||SyntaxError: invalid syntax
 
 #@ Create an index where its definition is a JSON document but its structure is not valid. (WL10858-FR5_4)
-||MySQL Error (5015): Invalid number of arguments, expected value for 'field'
+||MySQL Error (5015): Invalid number of arguments, expected value for 'fields[0].field'
 
 #@ Create an index with the index type not "INDEX" or "SPATIAL" (case insensitive). (WL10858-FR5_5)
 ||MySQL Error (5017): Argument value 'IDX' for index type is invalid
