@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-10-159-155-195.vpn.oracle.com:3316",
+    "uri": "mysql://root:root@vm-ubuntu:3316",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "40",
-    "connection_info": "dhcp-10-159-155-195.vpn.oracle.com via TCP/IP",
-    "server_info": "8.0.5",
+    "connection_info": "vm-ubuntu via TCP/IP",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -53,7 +53,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@hostname",
-            "length": 136,
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -67,7 +67,7 @@
     "rows": [
         [
             null,
-            "dhcp-10-159-155-195.vpn.oracle.com"
+            "vm-ubuntu"
         ]
     ]
 },
@@ -169,11 +169,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-155-195-bin.000003",
-            26516,
+            "vm-ubuntu-bin.000003",
+            26542,
             "",
             "",
-            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30:1-14,\nb52ea3f2-1914-11e8-8d9a-9dcd2e7eee30:1-25"
+            "42d20320-213e-11e8-ab3e-080027c42733:1-14,\n44979e6d-213e-11e8-ab3e-080027c42733:1-25"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     ],
     "rows": [
         [
-            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
+            "42d20320-213e-11e8-ab3e-080027c42733"
         ]
     ]
 },
@@ -380,7 +380,7 @@
     "rows": [
         [
             "server_uuid",
-            "b35220a4-1914-11e8-8d9a-9dcd2e7eee30"
+            "42d20320-213e-11e8-ab3e-080027c42733"
         ]
     ]
 },

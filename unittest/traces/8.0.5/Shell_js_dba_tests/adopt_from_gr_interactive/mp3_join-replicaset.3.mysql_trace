@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-10-159-155-195.vpn.oracle.com:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@vm-ubuntu:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "28",
-    "connection_info": "dhcp-10-159-155-195.vpn.oracle.com via TCP/IP",
-    "server_info": "8.0.5",
+    "connection_info": "vm-ubuntu via TCP/IP",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },

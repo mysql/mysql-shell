@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "58",
     "connection_info": "vm-ubuntu via TCP/IP",
-    "server_info": "8.0.5",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },

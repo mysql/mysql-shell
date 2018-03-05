@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3321?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -443,7 +443,7 @@
     ],
     "rows": [
         [
-            3321
+            3326
         ]
     ]
 },
@@ -574,7 +574,7 @@
     "rows": [
         [
             "version",
-            "8.0.5-debug-log"
+            "8.0.5-commercial"
         ]
     ]
 },
@@ -658,50 +658,42 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "SELECT @@server_id"
+    "sql": "SET @@persist_only.server_id=/*(*/2373564674/*)*/"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 36,
     "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
+    "affected_rows": 0,
     "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@server_id",
-            "length": 21,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            1
-        ]
-    ]
+    "info": ""
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT @@slave_parallel_workers"
+    "sql": "commit"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 38,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 39,
+    "sql": "SELECT @@slave_parallel_workers"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 40,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -733,13 +725,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 39,
+    "index": 41,
     "sql": "SELECT table_schema, table_name, engine FROM information_schema.tables WHERE engine NOT IN ('InnoDB', 'MEMORY') AND table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 40,
+    "index": 42,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -799,13 +791,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 41,
+    "index": 43,
     "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 42,
+    "index": 44,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -849,11 +841,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 43
+    "index": 45
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 44
+    "index": 46
 },
 null]

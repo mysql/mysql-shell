@@ -139,6 +139,17 @@ std::map<std::string, std::string> check_data_compliance(
 std::map<std::string, std::string> check_server_variables(
     const mysqlshdk::mysql::IInstance &instance);
 
+/**
+ * Checks if the thread for a delayed initialization of the group replication is
+ * currently running on the given instance.
+ *
+ * @param instance Instance to be checked.
+ *
+ * @return True if group replication is currently being initialized.
+ */
+bool is_group_replication_delayed_starting(
+    const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace gr
 }  // namespace mysqlshdk
 

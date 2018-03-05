@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "14",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -153,10 +153,10 @@
     "rows": [
         [
             "vm-ubuntu-bin.000003",
-            10749,
+            10722,
             "",
             "",
-            "a7642059-1ad9-11e8-a13c-080027c42733:1-14"
+            "90279cb7-213b-11e8-ad9d-080027c42733:1-14"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     "rows": [
         [
             "server_uuid",
-            "a7642059-1ad9-11e8-a13c-080027c42733"
+            "90279cb7-213b-11e8-ad9d-080027c42733"
         ]
     ]
 },

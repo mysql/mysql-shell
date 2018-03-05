@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3311?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "11",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -447,7 +447,7 @@
     ],
     "rows": [
         [
-            3311
+            3316
         ]
     ]
 },
@@ -578,7 +578,7 @@
     "rows": [
         [
             "version",
-            "8.0.5-debug-log"
+            "8.0.5-commercial"
         ]
     ]
 },
@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            15656
+            15661
         ]
     ]
 },
@@ -1538,9 +1538,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$e@<:d`DeQ\"\bb\u0018u9C\u0014\u0012jHZ.xQtD3rX5BKCLWsLR00mXKuUhbxFwqMsVNzBsW7q9",
+            "$A$005$\u0006>_P\u0005:H\t\u0018\u0001l\u0004u\\d'\u0013E\u001A64WxsvA4qN8qFGx9j5u4VG2aONUGtTyJdyLEmKAQOpl7",
             "N",
-            "2018-02-20 21:24:31",
+            "2018-03-06 13:23:44",
             null,
             "N",
             "N",
@@ -2520,9 +2520,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0018II\u00158\u0004.\u001BLh_SEM5~\b]\u000F\u0014BPfhXgyhV48zJR8KJYKQkqIa8SpLC37jlvHqhREwyD6",
+            "$A$005$nJ\u0014grW?X?^%jSV\u0017.\u001C\u001A`(V6gKVIctrl0tK3HuhZZ5Li2GR9KvDpmzlzH1ajnsYA.",
             "N",
-            "2018-02-16 19:46:02",
+            "2018-03-06 13:23:15",
             null,
             "N",
             "Y",
@@ -3076,308 +3076,308 @@
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "mysql_native_password",
             "ACTIVE",
             "AUTHENTICATION",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "sha256_password",
             "ACTIVE",
             "AUTHENTICATION",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "caching_sha2_password",
             "ACTIVE",
             "AUTHENTICATION",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "sha2_cache_cleaner",
             "ACTIVE",
             "AUDIT",
             null,
-            "GPL"
-        ],
-        [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_TRX",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CMP",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CMP_RESET",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CMPMEM",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CMPMEM_RESET",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CMP_PER_INDEX",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CMP_PER_INDEX_RESET",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_BUFFER_PAGE",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_BUFFER_PAGE_LRU",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_BUFFER_POOL_STATS",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_TEMP_TABLE_INFO",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_METRICS",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_FT_DEFAULT_STOPWORD",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_FT_DELETED",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_FT_BEING_DELETED",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_FT_CONFIG",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_FT_INDEX_CACHE",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_FT_INDEX_TABLE",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_TABLES",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_TABLESTATS",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_INDEXES",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_TABLESPACES",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_COLUMNS",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_VIRTUAL",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "INNODB_CACHED_INDEXES",
             "ACTIVE",
             "INFORMATION SCHEMA",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
-            "MyISAM",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "MyISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
         ],
         [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
         ],
         [
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
             null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
-            null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "mysqlx",
             "ACTIVE",
             "DAEMON",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
+            null,
+            "PROPRIETARY"
         ],
         [
             "group_replication",
             "ACTIVE",
             "GROUP REPLICATION",
             "group_replication.so",
-            "GPL"
+            "PROPRIETARY"
         ]
     ]
 },
@@ -3504,7 +3504,7 @@
     ],
     "rows": [
         [
-            15656
+            15661
         ]
     ]
 },
@@ -3542,7 +3542,7 @@
     ],
     "rows": [
         [
-            "70a05d5e-1684-11e8-bff3-4485005154dc"
+            "364af07d-2139-11e8-b94c-080027c42733"
         ]
     ]
 },
@@ -3670,7 +3670,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 99,
-    "sql": "SET PERSIST group_replication_group_name = '70a05d5e-1684-11e8-bff3-4485005154dc'"
+    "sql": "SET PERSIST group_replication_group_name = '364af07d-2139-11e8-b94c-080027c42733'"
 },
 {
     "type": "response",
@@ -3850,7 +3850,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 123,
-    "sql": "SET PERSIST auto_increment_offset = 5"
+    "sql": "SET PERSIST auto_increment_offset = 3"
 },
 {
     "type": "response",
@@ -4120,7 +4120,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 159,
-    "sql": "SET PERSIST group_replication_local_address = 'localhost:33111'"
+    "sql": "SET PERSIST group_replication_local_address = 'localhost:33161'"
 },
 {
     "type": "response",
@@ -4300,7 +4300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000003' /*)*/, MASTER_PASSWORD = /*(*/ '9,@h*~]%x4~c>$&-)8%;<Q>A];R^/+&<' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000003' /*)*/, MASTER_PASSWORD = /*(*/ '%]L^{2:&~*|i)&9=+[$0+}+M/>V-W=;#' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

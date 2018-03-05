@@ -44,6 +44,8 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -440,24 +442,25 @@ void Testutils::wait_for_delayed_gr_start(int port,
   std::shared_ptr<mysqlshdk::db::ISession> session;
   session = mysqlshdk::db::mysql::Session::create();
   session->connect(cnx_opt);
+  mysqlshdk::mysql::Instance instance{session};
 
-  std::string count_query =
-      "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
-          "'thread/group_rpl/THD_delayed_initialization'";
   int elapsed_time = 0;
-  uint64_t thread_count = 1;
+  bool is_starting = false;
+  const uint32_t sleep_time = mysqlshdk::db::replay::g_replay_mode ==
+      mysqlshdk::db::replay::Mode::Replay ? 1 : 1000;
   // Convert negative timeout values to 0
   timeout = timeout >= 0 ? timeout : 0;
   while (!timeout || elapsed_time < timeout) {
-    thread_count = session->query(count_query)->fetch_one()->get_uint(0);
-    if (0 == thread_count) {
+    is_starting =
+        mysqlshdk::gr::is_group_replication_delayed_starting(instance);
+    if (!is_starting) {
       break;
     }
     elapsed_time += 1;
-    shcore::sleep_ms(1000);
+    shcore::sleep_ms(sleep_time);
   }
   session->close();
-  if (0 != thread_count) {
+  if (is_starting) {
     throw std::runtime_error(
         "Timeout waiting for the Group Replication Plugin to start/stop");
   }

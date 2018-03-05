@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3311",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "10",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 88,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/tmp/3311/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "T460-bin.000003",
-            10750,
+            "vm-ubuntu-bin.000003",
+            10794,
             "",
             "",
-            "4e9ac666-168a-11e8-9ad4-4485005154dc:1-14"
+            "42500de1-2142-11e8-876b-080027c42733:1-14"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     "rows": [
         [
             "server_uuid",
-            "4e9ac666-168a-11e8-9ad4-4485005154dc"
+            "42500de1-2142-11e8-876b-080027c42733"
         ]
     ]
 },
@@ -380,7 +380,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33111"
+            "localhost:33161"
         ]
     ]
 },
@@ -508,15 +508,5 @@
     "affected_rows": 0,
     "warning_count": 0,
     "info": ""
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 23
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 24
 },
 null]

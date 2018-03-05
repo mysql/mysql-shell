@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "15",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -574,7 +574,7 @@
     "rows": [
         [
             "version",
-            "8.0.5"
+            "8.0.5-commercial"
         ]
     ]
 },
@@ -708,36 +708,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
             "schema": "",
@@ -774,36 +774,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": []

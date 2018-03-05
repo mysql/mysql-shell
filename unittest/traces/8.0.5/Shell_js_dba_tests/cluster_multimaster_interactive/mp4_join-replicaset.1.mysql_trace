@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -616,7 +616,7 @@
     "rows": [
         [
             "version",
-            "8.0.5"
+            "8.0.5-commercial"
         ]
     ]
 },
@@ -983,13 +983,6 @@
             "PROPRIETARY"
         ],
         [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "PROPRIETARY"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1172,7 +1165,7 @@
             "PROPRIETARY"
         ],
         [
-            "PERFORMANCE_SCHEMA",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1186,7 +1179,7 @@
             "PROPRIETARY"
         ],
         [
-            "TempTable",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1200,15 +1193,15 @@
             "PROPRIETARY"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "TempTable",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -1223,6 +1216,13 @@
         [
             "ARCHIVE",
             "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -1421,13 +1421,6 @@
             "PROPRIETARY"
         ],
         [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "PROPRIETARY"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1610,7 +1603,7 @@
             "PROPRIETARY"
         ],
         [
-            "PERFORMANCE_SCHEMA",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1624,7 +1617,7 @@
             "PROPRIETARY"
         ],
         [
-            "TempTable",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1638,15 +1631,15 @@
             "PROPRIETARY"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "TempTable",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -1661,6 +1654,13 @@
         [
             "ARCHIVE",
             "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -2173,7 +2173,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "SET PERSIST group_replication_group_name = 'b58db3b4-1ad2-11e8-b997-080027c42733'"
+    "sql": "SET PERSIST group_replication_group_name = 'c9f1e78b-2145-11e8-a0bf-080027c42733'"
 },
 {
     "type": "response",
@@ -2803,7 +2803,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 177,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ 'Y<:c,^(w1|x}]#;-:&0E}&$C?=5#>Q#/' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ 'C|d*>_>h9~&a&<-H.[*6+.;[c+0#W:*~' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

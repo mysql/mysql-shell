@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -237,16 +237,6 @@
     ],
     "rows": [
         [
-            "SELECT",
-            "YES",
-            "mysql"
-        ],
-        [
-            "UPDATE",
-            "YES",
-            "mysql"
-        ],
-        [
             "INSERT",
             "YES",
             "mysql"
@@ -257,34 +247,14 @@
             "mysql"
         ],
         [
-            "REFERENCES",
+            "SELECT",
             "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
-            "ALTER",
+            "UPDATE",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "LOCK TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE VIEW",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "EVENT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "INSERT",
@@ -343,6 +313,36 @@
         ],
         [
             "CREATE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "REFERENCES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "LOCK TABLES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "EVENT",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],
