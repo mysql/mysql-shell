@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "11",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -578,7 +578,7 @@
     "rows": [
         [
             "version",
-            "8.0.5"
+            "8.0.5-commercial"
         ]
     ]
 },
@@ -1538,9 +1538,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$RD\u0015!R#*M\u0017Pt(\u000B@l0X\u001Di7kiFj8ap3V9M0z6aaRQ5TUDdInT4grUBkVIoxOOS6EL2",
+            "$A$005$g%\u0002sf\t\u0001l-z\"@\u0016D&f)y#yHmcWXCx6DbRurJzbayF4jCHALv93eTAWEMT8BSLwrT2",
             "N",
-            "2018-02-26 10:37:15",
+            "2018-03-06 15:06:10",
             null,
             "N",
             "N",
@@ -2520,9 +2520,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$&V!sp\u00193\u0002\u001B\u0002}87)C\u001A\u0017)\f\"n9e2UZeh7TOXFymcfSV5kKbqPkEQkAQsfO9swKNM0Z3",
+            "$A$005$6s.\u001A9j\u0013byk\u0001\rO(4\u000Fq\u0017\b\nM7xbW0MWIRoFmfA1VZaxNAKJHS0DO98oWXdzw6GSQP/",
             "N",
-            "2018-02-26 10:37:05",
+            "2018-03-06 15:06:03",
             null,
             "N",
             "Y",
@@ -3107,13 +3107,6 @@
             "PROPRIETARY"
         ],
         [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "PROPRIETARY"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3296,7 +3289,7 @@
             "PROPRIETARY"
         ],
         [
-            "PERFORMANCE_SCHEMA",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3310,7 +3303,7 @@
             "PROPRIETARY"
         ],
         [
-            "TempTable",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3324,15 +3317,15 @@
             "PROPRIETARY"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "TempTable",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -3347,6 +3340,13 @@
         [
             "ARCHIVE",
             "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -3545,13 +3545,6 @@
             "PROPRIETARY"
         ],
         [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "PROPRIETARY"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3734,7 +3727,7 @@
             "PROPRIETARY"
         ],
         [
-            "PERFORMANCE_SCHEMA",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3748,7 +3741,7 @@
             "PROPRIETARY"
         ],
         [
-            "TempTable",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3762,15 +3755,15 @@
             "PROPRIETARY"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "TempTable",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -3785,6 +3778,13 @@
         [
             "ARCHIVE",
             "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "PROPRIETARY"
@@ -4041,7 +4041,7 @@
     ],
     "rows": [
         [
-            "a17b2a08-1ad8-11e8-835b-080027c42733"
+            "85edd77f-2147-11e8-b9de-080027c42733"
         ]
     ]
 },
@@ -4169,7 +4169,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 109,
-    "sql": "SET PERSIST group_replication_group_name = 'a17b2a08-1ad8-11e8-835b-080027c42733'"
+    "sql": "SET PERSIST group_replication_group_name = '85edd77f-2147-11e8-b9de-080027c42733'"
 },
 {
     "type": "response",
@@ -4799,7 +4799,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 193,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '&e_8,#L%:<f-},m(.F9#q]{7Q~&A/./^' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '^@p*/8{@1;[w?|r=I,=}|q]<=K_<4X*)' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

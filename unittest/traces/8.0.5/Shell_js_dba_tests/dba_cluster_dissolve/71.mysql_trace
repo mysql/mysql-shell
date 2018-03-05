@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3331",
+    "uri": "mysql://root:root@localhost:3336",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "15",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 88,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/tmp/3331/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3336/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "T460-bin.000004",
+            "vm-ubuntu-bin.000004",
             311,
             "",
             "",
-            "05f9d70d-1687-11e8-8425-4485005154dc:1-26,\n09705e6c-1687-11e8-8425-4485005154dc:1-19,\n2534babc-1687-11e8-8425-4485005154dc:1-19,\n467567b4-1687-11e8-8425-4485005154dc:1-18"
+            "5cc819d2-213d-11e8-ac20-080027c42733:1-26,\n5f6216d3-213d-11e8-ac20-080027c42733:1-19,\n847127c7-213d-11e8-ac20-080027c42733:1-19,\n9db02986-213d-11e8-ac20-080027c42733:1-18"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     "rows": [
         [
             "server_uuid",
-            "089e4f6b-1687-11e8-9163-4485005154dc"
+            "5e469102-213d-11e8-ba90-080027c42733"
         ]
     ]
 },
@@ -380,7 +380,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33311"
+            "localhost:33361"
         ]
     ]
 },
@@ -435,7 +435,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33111,localhost:33211"
+            "localhost:33161,localhost:33261"
         ]
     ]
 },
@@ -498,7 +498,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33111,localhost:33211'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33161,localhost:33261'"
 },
 {
     "type": "response",
@@ -508,15 +508,5 @@
     "affected_rows": 0,
     "warning_count": 0,
     "info": ""
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 23
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 24
 },
 null]

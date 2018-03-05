@@ -22,9 +22,13 @@
  */
 
 #include "modules/adminapi/preconditions.h"
+
 #include <map>
+
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -117,6 +121,12 @@ void validate_group_session(
 
   validate_connection_options(group_session->get_connection_options(),
                               shcore::Exception::runtime_error);
+
+  if (mysqlshdk::gr::is_group_replication_delayed_starting(
+      mysqlshdk::mysql::Instance(group_session)))
+    throw shcore::Exception::runtime_error(
+        "Cannot perform operation while group replication is "
+        "starting up");
 }
 
 }  // namespace

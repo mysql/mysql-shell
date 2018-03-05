@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3321",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "181",
+    "connection_id": "180",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -535,7 +535,7 @@
     ],
     "rows": [
         [
-            "localhost:23311,localhost:23321,localhost:23331"
+            "localhost:23316,localhost:23326,localhost:23336"
         ]
     ]
 },
@@ -543,7 +543,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3321' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3321')"
+    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3326' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3326')"
 },
 {
     "type": "response",
@@ -573,10 +573,10 @@
     ],
     "rows": [
         [
-            "localhost:23311"
+            "localhost:23316"
         ],
         [
-            "localhost:23331"
+            "localhost:23336"
         ]
     ]
 },
@@ -584,7 +584,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:23311,localhost:23321,localhost:23331'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:23316,localhost:23326,localhost:23336'"
 },
 {
     "type": "response",

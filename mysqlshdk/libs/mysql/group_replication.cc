@@ -725,5 +725,13 @@ std::map<std::string, std::string> check_server_variables(
   return {};
 }
 
+bool is_group_replication_delayed_starting(
+    const mysqlshdk::mysql::IInstance &instance) {
+  return instance.get_session()->query(
+      "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+      "'thread/group_rpl/THD_delayed_initialization'")->fetch_one()
+          ->get_uint(0) != 0;
+}
+
 }  // namespace gr
 }  // namespace mysqlshdk

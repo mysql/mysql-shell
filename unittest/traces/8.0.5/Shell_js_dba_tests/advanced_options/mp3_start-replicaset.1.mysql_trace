@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3311?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "20",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -447,7 +447,7 @@
     ],
     "rows": [
         [
-            3311
+            3316
         ]
     ]
 },
@@ -578,7 +578,7 @@
     "rows": [
         [
             "version",
-            "8.0.5-debug-log"
+            "8.0.5-commercial"
         ]
     ]
 },
@@ -616,7 +616,7 @@
     ],
     "rows": [
         [
-            15656
+            15661
         ]
     ]
 },
@@ -1538,9 +1538,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u000BO{\tL\"MN\u0019e\rE\roZuW'GEK49SFYRx9GLwyseCe7jUFnNECMwgk72JtC1anv0BA",
+            "$A$005$ ^[D~=ho\u0016M\u001AX\u00178j7M<mGGWi0jEPTBu64G84eIZEt9rckqwhHldG/3A8ygtlcvJ3",
             "N",
-            "2018-02-20 21:34:42",
+            "2018-03-06 13:44:33",
             null,
             "N",
             "N",
@@ -2520,9 +2520,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0018II\u00158\u0004.\u001BLh_SEM5~\b]\u000F\u0014BPfhXgyhV48zJR8KJYKQkqIa8SpLC37jlvHqhREwyD6",
+            "$A$005$^\u0019\u001B\u0005\u0013d<zj\u00130rb\u0016\u0012k\u00146\u0014'dqVvcFzv.1dgaq2M75L.PxDGDiqzFo.Z688M48azJo/",
             "N",
-            "2018-02-16 19:46:02",
+            "2018-03-06 13:44:24",
             null,
             "N",
             "Y",

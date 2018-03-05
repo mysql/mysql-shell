@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3321",
+    "uri": "mydba:@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "36",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -261,21 +261,6 @@
             "mysql"
         ],
         [
-            "REFERENCES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "ALTER",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "LOCK TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
             "CREATE VIEW",
             "YES",
             "mysql_innodb_cluster_metadata"
@@ -347,6 +332,21 @@
         ],
         [
             "CREATE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "REFERENCES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "LOCK TABLES",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

@@ -28,6 +28,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 
 namespace testing {
 
@@ -443,6 +444,37 @@ TEST_F(Group_replication_Test, get_replication_user) {
   if (init_plugin_state.is_null()) {
     mysqlshdk::gr::uninstall_plugin(*instance);
   }
+}
+
+TEST_F(Group_replication_Test, is_group_replication_delayed_starting) {
+  using mysqlshdk::db::Type;
+
+  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  mysqlshdk::mysql::Instance instance{mock_session};
+
+  mock_session
+    ->expect_query(
+        "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+        "'thread/group_rpl/THD_delayed_initialization'")
+    .then_return({{
+        "",
+        {"COUNT(*)"},
+        {Type::UInteger},
+        {{"1"}}
+    }});
+  EXPECT_TRUE(mysqlshdk::gr::is_group_replication_delayed_starting(instance));
+
+  mock_session
+    ->expect_query(
+        "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+        "'thread/group_rpl/THD_delayed_initialization'")
+    .then_return({{
+        "",
+        {"COUNT(*)"},
+        {Type::UInteger},
+        {{"0"}}
+    }});
+  EXPECT_FALSE(mysqlshdk::gr::is_group_replication_delayed_starting(instance));
 }
 
 }  // namespace testing

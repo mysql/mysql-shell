@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3321",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 140,
+            "length": 212,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.5-debug-log Source distribution"
+            "8.0.5-commercial MySQL Enterprise Server - Commercial"
         ]
     ]
 },
@@ -249,7 +249,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 140,
+            "length": 212,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -297,7 +297,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 88,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -314,10 +314,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.5-debug-log Source distribution",
+            "8.0.5-commercial MySQL Enterprise Server - Commercial",
             "mysqld.sock",
-            3321,
-            "/tmp/3321/sandboxdata/"
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },

@@ -3,30 +3,30 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3311",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "33",
+    "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-debug-log",
+    "server_info": "8.0.5-commercial",
     "server_version": "8.0.5",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, 'a268706f-1685-11e8-901b-4485005154dc', 'localhost:3331', 'HA', NULL, '{\"mysqlX\": \"localhost:33310\", \"grLocal\": \"localhost:13331\", \"mysqlClassic\": \"localhost:3331\"}', NULL, NULL, NULL)"
+    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, 'bea09d08-213b-11e8-9c6f-080027c42733', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 4,
-    "auto_increment_value": 5,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -35,7 +35,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'a268706f-1685-11e8-901b-4485005154dc'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'bea09d08-213b-11e8-9c6f-080027c42733'"
 },
 {
     "type": "response",
