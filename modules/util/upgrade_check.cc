@@ -21,12 +21,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <array>
 #include <sstream>
 #include <utility>
 
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -78,6 +81,11 @@ std::vector<std::unique_ptr<Upgrade_check> > Upgrade_check::create_checklist(
   result.emplace_back(Sql_upgrade_check::get_mysql_schema_check());
   result.emplace_back(Sql_upgrade_check::get_old_temporal_check());
   result.emplace_back(Sql_upgrade_check::get_foreign_key_length_check());
+  result.emplace_back(Sql_upgrade_check::get_maxdb_sql_mode_flags_check());
+  result.emplace_back(Sql_upgrade_check::get_obsolete_sql_mode_flags_check());
+  result.emplace_back(
+      Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check());
+  result.emplace_back(Sql_upgrade_check::get_removed_functions_check());
   return result;
 }
 
@@ -106,8 +114,11 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
     //    puts(query.c_str());
     auto result = session->query(query);
     const mysqlshdk::db::IRow* row = nullptr;
-    while ((row = result->fetch_one()) != nullptr)
-      issues.push_back(parse_row(row));
+    while ((row = result->fetch_one()) != nullptr) {
+      Upgrade_issue issue = parse_row(row);
+      if (!issue.empty())
+        issues.emplace_back(std::move(issue));
+    }
   }
 
   for (const auto& stm : clean_up)
@@ -293,7 +304,265 @@ Sql_upgrade_check::get_foreign_key_length_check() {
        "length(substr(id,instr(id,'/')+1))>64);"},
       Upgrade_issue::ERROR,
       "The following tables must be altered to have constraint names shorter "
-      "than 64 characters (use ALTER TABLE). "));
+      "than 64 characters (use ALTER TABLE)."));
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
+  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "Usage of obsolete MAXDB sql_mode flag",
+      {"select routine_schema, routine_name, concat(routine_type, ' uses "
+       "obsolete MAXDB sql_mode') from information_schema.routines where "
+       "find_in_set('MAXDB', sql_mode);",
+       "select event_schema, event_name, 'EVENT uses obsolete MAXDB sql_mode' "
+       "from information_schema.EVENTS where find_in_set('MAXDB', sql_mode);",
+       "select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
+       "sql_mode' from information_schema.TRIGGERS where find_in_set('MAXDB', "
+       "sql_mode);"},
+      Upgrade_issue::WARNING,
+      "The following DB objects have the obsolete MAXDB option persisted for "
+      "sql_mode, which will be cleared during upgrade to 8.0. It "
+      "can potentially change the datatype DATETIME into TIMESTAMP if it is "
+      "used inside object's definition, and this in turn can change the "
+      "behavior in case of dates earlier than 1970 or later than 2037. If this "
+      "is a concern, please redefine these objects so that they do not rely on "
+      "the MAXDB flag before running the upgrade to 8.0."));
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
+  const std::array<const char*, 9> modes = {"DB2",
+                                            "MSSQL",
+                                            "MYSQL323",
+                                            "MYSQL40",
+                                            "NO_FIELD_OPTIONS",
+                                            "NO_KEY_OPTIONS",
+                                            "NO_TABLE_OPTIONS",
+                                            "ORACLE",
+                                            "POSTGRESQL"};
+  std::vector<std::string> queries;
+  for (const char* mode : modes) {
+    queries.emplace_back(shcore::str_format(
+        "select routine_schema, routine_name, concat(routine_type, ' uses "
+        "obsolete %s sql_mode') from information_schema.routines where "
+        "find_in_set('%s', sql_mode);",
+        mode, mode));
+    queries.emplace_back(shcore::str_format(
+        "select event_schema, event_name, 'EVENT uses obsolete %s sql_mode' "
+        "from information_schema.EVENTS where find_in_set('%s', sql_mode);",
+        mode, mode));
+    queries.emplace_back(shcore::str_format(
+        "select trigger_schema, trigger_name, 'TRIGGER uses obsolete %s "
+        "sql_mode' from information_schema.TRIGGERS where find_in_set('%s', "
+        "sql_mode);",
+        mode, mode));
+  }
+
+  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "Usage of obsolete sql_mode flags", std::move(queries),
+      Upgrade_issue::NOTICE,
+      "The following DB objects have obsolete options persisted for sql_mode, "
+      "which will be cleared during upgrade to 8.0."));
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
+  return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "Usage of partitioned tables in shared tablespaces",
+      {"SELECT TABLE_SCHEMA, TABLE_NAME, concat('Partition ', PARTITION_NAME, "
+       "' is in shared tablespace ', TABLESPACE_NAME) as description FROM "
+       "information_schema.PARTITIONS WHERE PARTITION_NAME IS NOT NULL AND "
+       "(TABLESPACE_NAME IS NOT NULL AND "
+       "TABLESPACE_NAME!='innodb_file_per_table');"},
+      Upgrade_issue::ERROR,
+      "The following tables have partitions in shared tablespaces. Before "
+      "upgrading to 8.0 they need to be moved to file-per-table tablespace. "
+      "You can do this by running query like 'ALTER TABLE table_name "
+      "REORGANIZE PARTITION X INTO (PARTITION X VALUES LESS THAN (30) "
+      "TABLESPACE=innodb_file_per_table);'"));
+}
+
+class Removed_functions_check : public Sql_upgrade_check {
+ private:
+  const std::array<std::string, 66> functions{{"AREA",
+                                               "ASBINARY",
+                                               "ASTEXT",
+                                               "ASWKB",
+                                               "ASWKT",
+                                               "BUFFER",
+                                               "CENTROID",
+                                               "CONTAINS",
+                                               "CROSSES",
+                                               "DIMENSION",
+                                               "DISJOINT",
+                                               "DISTANCE",
+                                               "ENDPOINT",
+                                               "ENVELOPE",
+                                               "EQUALS",
+                                               "EXTERIORRING",
+                                               "GEOMCOLLFROMTEXT",
+                                               "GEOMCOLLFROMWKB",
+                                               "GEOMETRYCOLLECTIONFROMTEXT",
+                                               "GEOMETRYCOLLECTIONFROMWKB",
+                                               "GEOMETRYFROMTEXT",
+                                               "GEOMETRYFROMWKB",
+                                               "GEOMETRYN",
+                                               "GEOMETRYTYPE",
+                                               "GEOMFROMTEXT",
+                                               "GEOMFROMWKB",
+                                               "GLENGTH",
+                                               "INTERIORRINGN",
+                                               "INTERSECTS",
+                                               "ISCLOSED",
+                                               "ISEMPTY",
+                                               "ISSIMPLE",
+                                               "LINEFROMTEXT",
+                                               "LINEFROMWKB",
+                                               "LINESTRINGFROMTEXT",
+                                               "LINESTRINGFROMWKB",
+                                               "MBREQUAL",
+                                               "MLINEFROMTEXT",
+                                               "MLINEFROMWKB",
+                                               "MPOINTFROMTEXT",
+                                               "MPOINTFROMWKB",
+                                               "MPOLYFROMTEXT",
+                                               "MPOLYFROMWKB",
+                                               "MULTILINESTRINGFROMTEXT",
+                                               "MULTILINESTRINGFROMWKB",
+                                               "MULTIPOINTFROMTEXT",
+                                               "MULTIPOINTFROMWKB",
+                                               "MULTIPOLYGONFROMTEXT",
+                                               "MULTIPOLYGONFROMWKB",
+                                               "NUMGEOMETRIES",
+                                               "NUMINTERIORRINGS",
+                                               "NUMPOINTS",
+                                               "OVERLAPS",
+                                               "POINTFROMTEXT",
+                                               "POINTFROMWKB",
+                                               "POINTN",
+                                               "POLYFROMTEXT",
+                                               "POLYFROMWKB",
+                                               "POLYGONFROMTEXT",
+                                               "POLYGONFROMWKB",
+                                               "SRID",
+                                               "STARTPOINT",
+                                               "TOUCHES",
+                                               "WITHIN",
+                                               "X",
+                                               "Y"}};
+
+ public:
+  Removed_functions_check()
+      : Sql_upgrade_check(
+            "Usage of removed functions",
+            {"select routine_schema, routine_name, '', routine_type, "
+             "UPPER(routine_definition) from information_schema.routines;",
+             "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'Column'"
+             ", UPPER(GENERATION_EXPRESSION) from "
+             "information_schema.columns where extra regexp 'generated';",
+             "select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
+             "UPPER(ACTION_STATEMENT) from information_schema.triggers;"},
+            Upgrade_issue::ERROR,
+            "Following db object make use of functions that have "
+            "been removed in version 8.0 in favor of the MBR and "
+            "ST_ names. Please make sure to update them to use "
+            "supported alternatives before upgrade.") {
+  }
+
+ protected:
+  std::size_t find_function(const std::string& str, const std::string& function,
+                            std::size_t it = 0) {
+    std::size_t pos = 0;
+    do {
+      pos = str.find(function, it);
+      if (pos == std::string::npos)
+        return pos;
+      if (pos != 0 && std::isalnum(str[pos - 1])) {
+        it = pos + 1;
+      } else {
+        std::size_t after = pos + function.size();
+        if (after < str.size()) {
+          while (std::isspace(str[after]))
+            ++after;
+          if (str[after] != '(')
+            it = after;
+        }
+      }
+    } while (it > pos);
+
+    return pos;
+  }
+
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow* row) override {
+    Upgrade_issue res;
+    std::vector<std::string> flagged_functions;
+    std::string definition = row->get_as_string(4);
+    for (const std::string& func : functions) {
+      std::size_t pos = find_function(definition, func);
+
+      std::size_t it = 0;
+      while (pos != std::string::npos && it < pos) {
+        switch (definition[it]) {
+          case '\'':
+            it = mysqlshdk::utils::span_quoted_string_sq(definition, it);
+            break;
+          case '"':
+            it = mysqlshdk::utils::span_quoted_string_dq(definition, it);
+            break;
+          case '/':
+            if (definition[it + 1] == '*')
+              it = mysqlshdk::utils::span_cstyle_comment(definition, it);
+            else
+              ++it;
+            break;
+          case '#':
+            ++it;
+            while (it < definition.size() && definition[it] != '\n')
+              ++it;
+            break;
+          case '-':
+            ++it;
+            if (it + 1 < definition.size() && definition[it] == '-' &&
+                std::isspace(definition[it + 1])) {
+              ++it;
+              while (it < definition.size() && definition[it] != '\n')
+                ++it;
+            }
+            break;
+          default:
+            ++it;
+        }
+        if (it > pos)
+          pos = find_function(definition, func, it);
+      }
+
+      if (pos != std::string::npos)
+        flagged_functions.push_back(func);
+    }
+
+    if (flagged_functions.empty())
+      return res;
+
+    std::stringstream ss;
+    ss << row->get_as_string(3) << " uses removed function";
+    if (flagged_functions.size() > 1)
+      ss << "s";
+    ss << " " << flagged_functions[0];
+    for (std::size_t i = 1; i < flagged_functions.size(); ++i)
+      ss << ", " << flagged_functions[i];
+
+    res.schema = row->get_as_string(0);
+    res.table = row->get_as_string(1);
+    res.column = row->get_as_string(2);
+    res.description = ss.str();
+    res.level = level;
+    return res;
+  }
+};
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_removed_functions_check() {
+  return std::unique_ptr<Sql_upgrade_check>(new Removed_functions_check());
 }
 
 Check_table_command::Check_table_command()
