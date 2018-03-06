@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -210,8 +210,8 @@ int ProvisioningInterface::execute_mysqlprovision(
   if (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0) {
     std::cerr << message << "\n"
       << value_from_argmap(kwargs).repr() << "\n";
-    for (int i = 0; i < args.size(); i++)
-      std::cerr << args[i].repr() << "\n";
+    for (const auto &arg : args)
+      std::cerr << arg.repr() << "\n";
   }
 #endif
   if (verbose > 1) {

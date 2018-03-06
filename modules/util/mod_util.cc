@@ -50,7 +50,7 @@ Util::Util(shcore::IShell_core* owner,
     m_wizards_mode(wizards_mode){
   add_method("checkForServerUpgrade", std::bind(&Util::check_for_server_upgrade,
                                                 this, std::placeholders::_1),
-             "data", shcore::Map, NULL);
+             "data", shcore::Map);
 }
 
 static std::string format_upgrade_issue(const Upgrade_issue& problem) {

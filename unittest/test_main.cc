@@ -300,10 +300,6 @@ static bool delete_sandbox(int port) {
 
 
 static void check_zombie_sandboxes(int sport1, int sport2, int sport3) {
-  int port = 3306;
-  if (getenv("MYSQL_PORT")) {
-    port = atoi(getenv("MYSQL_PORT"));
-  }
   bool have_zombies = false;
 
   have_zombies |= !delete_sandbox(sport1);

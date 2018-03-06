@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -393,8 +393,8 @@ REGISTER_HELP(DOCRESULT_BRIEF,
 
 DocResult::DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : BaseResult(result) {
-  add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1), NULL);
-  add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1), NULL);
+  add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1));
+  add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1));
 }
 
 // Documentation of fetchOne function
@@ -513,8 +513,8 @@ RowResult::RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
   add_property("columns", "getColumns");
   add_property("columnNames", "getColumnNames");
 
-  add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1), NULL);
-  add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1), NULL);
+  add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1));
+  add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1));
 
   _column_names.reset(new std::vector<std::string>());
   for (auto &cmd : _result->get_metadata())
@@ -781,9 +781,8 @@ REGISTER_HELP(SQLRESULT_BRIEF,
 
 SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : RowResult(result) {
-  add_method("hasData", std::bind(&SqlResult::has_data, this, _1), NULL);
-  add_method("nextDataSet", std::bind(&SqlResult::next_data_set, this, _1),
-             NULL);
+  add_method("hasData", std::bind(&SqlResult::has_data, this, _1));
+  add_method("nextDataSet", std::bind(&SqlResult::next_data_set, this, _1));
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("affectedRowCount", "getAffectedRowCount");
 }

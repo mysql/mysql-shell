@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,26 +60,26 @@ Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
 }
 void Collection::init() {
   add_method("add", std::bind(&Collection::add_, this, _1), "searchCriteria",
-             shcore::String, NULL);
+             shcore::String);
   add_method("modify", std::bind(&Collection::modify_, this, _1),
-             "searchCriteria", shcore::String, NULL);
+             "searchCriteria", shcore::String);
   add_method("find", std::bind(&Collection::find_, this, _1), "searchCriteria",
-             shcore::String, NULL);
+             shcore::String);
   add_method("remove", std::bind(&Collection::remove_, this, _1),
-             "searchCriteria", shcore::String, NULL);
+             "searchCriteria", shcore::String);
   add_method("createIndex", std::bind(&Collection::create_index_, this, _1),
-             "searchCriteria", shcore::String, NULL);
+             "searchCriteria", shcore::String);
   add_method("dropIndex", std::bind(&Collection::drop_index_, this, _1),
-             "searchCriteria", shcore::String, NULL);
+             "searchCriteria", shcore::String);
   add_method("replaceOne", std::bind(&Collection::replace_one_, this, _1),
-              "id", shcore::String, "doc", shcore::Map, NULL);
+              "id", shcore::String, "doc", shcore::Map);
   add_method("addOrReplaceOne",
              std::bind(&Collection::add_or_replace_one, this, _1), "id",
-             shcore::String, "doc", shcore::Map, NULL);
+             shcore::String, "doc", shcore::Map);
   add_method("getOne", std::bind(&Collection::get_one, this, _1), "id",
-             shcore::String, NULL);
+             shcore::String);
   add_method("removeOne", std::bind(&Collection::remove_one, this, _1),
-              "id", shcore::String, NULL);
+              "id", shcore::String);
 }
 
 Collection::~Collection() {}
@@ -823,15 +823,15 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
   try {
     auto index_name = args.string_at(0);
     auto index = args.map_at(1);
-    
+
     std::shared_ptr<ShellBaseSession> session_obj = session();
     std::shared_ptr<DatabaseObject> schema_obj = schema();
-    
+
     if (session_obj && schema_obj) {
       (*index)["schema"] = shcore::Value(schema_obj->name());
       (*index)["collection"] = shcore::Value(_name);
       (*index)["name"] = shcore::Value(index_name);
-      
+
       // Moves "fields" to "constraint"
       if (index->has_key("fields")) {
         std::swap((*index)["constraint"], (*index)["fields"]);
@@ -880,7 +880,7 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
         (*index)["type"] = shcore::Value("index");
 
       auto session = std::dynamic_pointer_cast<Session>(session_obj);
-    
+
       if (session) {
         // This inner try/catch is just to translate plugin errors to
         // devapi errors
@@ -899,7 +899,7 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
       }
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createIndex"));
-  
+
   return ret_val;
 }
 

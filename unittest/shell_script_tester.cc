@@ -840,7 +840,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
 
         auto chunk = _chunks[_chunk_order[index]];
 
-        bool enabled;
+        bool enabled = false;
         try {
           enabled = context_enabled(chunk.def->context);
         } catch (const std::invalid_argument& e) {

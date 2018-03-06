@@ -621,7 +621,8 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
 
   mysqlshdk::db::Connection_options connection =
       session->get_connection_options();
-  mysqlshdk::innodbcluster::Protocol_type proto;
+  mysqlshdk::innodbcluster::Protocol_type proto =
+      mysqlshdk::innodbcluster::Protocol_type::X;
   switch (get_session_type(connection)) {
     case mysqlsh::SessionType::X:
       proto = mysqlshdk::innodbcluster::Protocol_type::X;

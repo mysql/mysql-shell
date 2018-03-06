@@ -345,10 +345,9 @@ bool Cpp_object_bridge::has_method_advanced(const std::string &name,
   return false;
 }
 
-void Cpp_object_bridge::add_method(const std::string &name,
-                                   Cpp_function::Function func,
-                                   const char *arg1_name, Value_type arg1_type,
-                                   ...) {
+void Cpp_object_bridge::add_method_(
+    const std::string &name, Cpp_function::Function func,
+    std::vector<std::pair<std::string, Value_type>> *signature) {
   auto f = _funcs.find(name);
   if (f != _funcs.end()) {
 #ifndef NDEBUG
@@ -358,27 +357,8 @@ void Cpp_object_bridge::add_method(const std::string &name,
     _funcs.erase(f);
   }
 
-  std::vector<std::pair<std::string, Value_type>> signature;
-  va_list l;
-  if (arg1_name && arg1_type != Undefined) {
-    const char *n;
-    Value_type t;
-
-    va_start(l, arg1_type);
-    signature.push_back(std::make_pair(arg1_name, arg1_type));
-    do {
-      n = va_arg(l, const char *);
-      if (n) {
-        t = (Value_type)va_arg(l, int);
-        if (t != Undefined)
-          signature.push_back(std::make_pair(n, t));
-      }
-    } while (n && t != Undefined);
-    va_end(l);
-  }
-
   auto function =
-      std::shared_ptr<Cpp_function>(new Cpp_function(name, func, signature));
+      std::shared_ptr<Cpp_function>(new Cpp_function(name, func, *signature));
   function->is_legacy = true;
   _funcs.emplace(name.substr(0, name.find("|")), function);
 }
@@ -409,8 +389,7 @@ void Cpp_object_bridge::add_property(const std::string &name,
   if (!getter.empty())
     add_method(getter,
                std::bind(&Cpp_object_bridge::get_member_method, this, _1,
-                         getter, name),
-               NULL);
+                         getter, name));
 }
 
 void Cpp_object_bridge::delete_property(const std::string &name,

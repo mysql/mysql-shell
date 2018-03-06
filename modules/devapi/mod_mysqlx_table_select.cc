@@ -52,10 +52,9 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
   add_method("limit", std::bind(&TableSelect::limit, this, _1), "data");
   add_method("offset", std::bind(&TableSelect::offset, this, _1), "data");
   add_method("bind", std::bind(&TableSelect::bind, this, _1), "data");
-  add_method("lockShared", std::bind(&TableSelect::lock_shared, this, _1),
-             NULL);
-  add_method("lockExclusive", std::bind(&TableSelect::lock_exclusive, this, _1),
-             NULL);
+  add_method("lockShared", std::bind(&TableSelect::lock_shared, this, _1));
+  add_method("lockExclusive",
+             std::bind(&TableSelect::lock_exclusive, this, _1));
 
   // Registers the dynamic function behavior
   register_dynamic_function(F::select,F::_empty);

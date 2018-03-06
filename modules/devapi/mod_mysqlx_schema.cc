@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,25 +77,23 @@ Schema::Schema(std::shared_ptr<Session> session, const std::string &schema)
 Schema::~Schema() {}
 
 void Schema::init() {
-  add_method("getTables", std::bind(&Schema::get_tables, this, _1), NULL);
-  add_method("getCollections", std::bind(&Schema::get_collections, this, _1),
-             NULL);
-
+  add_method("getTables", std::bind(&Schema::get_tables, this, _1));
+  add_method("getCollections", std::bind(&Schema::get_collections, this, _1));
   add_method("getTable", std::bind(&Schema::get_table, this, _1), "name",
-             shcore::String, NULL);
+             shcore::String);
   add_method("getCollection", std::bind(&Schema::get_collection, this, _1),
-             "name", shcore::String, NULL);
+             "name", shcore::String);
   add_method("getCollectionAsTable",
              std::bind(&Schema::get_collection_as_table, this, _1), "name",
-             shcore::String, NULL);
+             shcore::String);
 
   add_method("createCollection",
              std::bind(&Schema::create_collection, this, _1), "name",
-             shcore::String, NULL);
+             shcore::String);
   add_method(
       "dropCollection",
       std::bind(&Schema::drop_schema_object, this, _1, "Collection"),
-      "name", shcore::String, NULL);
+      "name", shcore::String);
 
   // Note: If properties are added uncomment this
   // _base_property_count = _properties.size();

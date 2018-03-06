@@ -209,34 +209,34 @@ void Dba::init() {
 
   // Pure functions
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1),
-             "clusterName", shcore::String, NULL);
+             "clusterName", shcore::String);
   add_method("getCluster", std::bind(&Dba::get_cluster_, this, _1),
-             "clusterName", shcore::String, NULL);
+             "clusterName", shcore::String);
   add_method("dropMetadataSchema",
              std::bind(&Dba::drop_metadata_schema, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("checkInstanceConfiguration",
              std::bind(&Dba::check_instance_configuration, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("deploySandboxInstance",
              std::bind(&Dba::deploy_sandbox_instance, this, _1,
                        "deploySandboxInstance"),
-             "data", shcore::Map, NULL);
+             "data", shcore::Map);
   add_method("startSandboxInstance",
              std::bind(&Dba::start_sandbox_instance, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("stopSandboxInstance",
              std::bind(&Dba::stop_sandbox_instance, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("deleteSandboxInstance",
              std::bind(&Dba::delete_sandbox_instance, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("killSandboxInstance",
              std::bind(&Dba::kill_sandbox_instance, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("configureLocalInstance",
              std::bind(&Dba::configure_local_instance, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_varargs_method(
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));

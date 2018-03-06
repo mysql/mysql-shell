@@ -34,8 +34,6 @@
 
 using namespace shcore;
 
-static bool g_test_sessions = getenv("TEST_SESSIONS") != nullptr;
-
 std::vector<std::string> Shell_test_output_handler::log;
 ngcommon::Logger *Shell_test_output_handler::_logger;
 

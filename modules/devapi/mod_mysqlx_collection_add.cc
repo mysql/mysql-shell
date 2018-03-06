@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -171,6 +171,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
       std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#if 0
 static std::string extract_id(Mysqlx::Expr::Expr *expr) {
   assert(expr->type() == Mysqlx::Expr::Expr::OBJECT);
 
@@ -189,6 +190,7 @@ static std::string extract_id(Mysqlx::Expr::Expr *expr) {
   }
   return "";
 }
+#endif
 
 void CollectionAdd::add_one_document(shcore::Value doc,
                                      const std::string &error_context) {

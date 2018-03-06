@@ -893,7 +893,8 @@ class InputBuffer {
     size_t newlen = startIndex + textLength + tailLength;
     size_t tailIndex = startIndex + textLength;
 
-    if (newlen > buflen) {  // truncate if bigger than buffer
+    if (newlen > static_cast<size_t>(buflen)) {
+      // truncate if bigger than buffer
       textLength = buflen - (tailLength + startIndex);
       newlen = buflen;
       ok = false;

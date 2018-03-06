@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// clang-format off
+#include "scripting/python_utils.h"  // must be the 1st include
+// clang-format on
 #include "mysqlshdk/shellcore/provider_python.h"
 #include <algorithm>
 #include <cctype>
@@ -34,7 +37,6 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "scripting/python_context.h"
 #include "scripting/python_object_wrapper.h"
-#include "scripting/python_utils.h"
 
 namespace shcore {
 namespace completer {
@@ -302,7 +304,7 @@ Provider_script::Chain Provider_python::parse_until(const std::string &s,
       case '{':
       case '[':
       case '(': {
-        int closer;
+        int closer = 0;
         switch (s[p]) {
           case '[':
             closer = ']';

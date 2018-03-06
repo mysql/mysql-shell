@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -331,7 +331,7 @@ Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
-  const std::array<const char*, 9> modes = {"DB2",
+  const std::array<const char*, 9> modes = {{"DB2",
                                             "MSSQL",
                                             "MYSQL323",
                                             "MYSQL40",
@@ -339,7 +339,7 @@ Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
                                             "NO_KEY_OPTIONS",
                                             "NO_TABLE_OPTIONS",
                                             "ORACLE",
-                                            "POSTGRESQL"};
+                                            "POSTGRESQL"}};
   std::vector<std::string> queries;
   for (const char* mode : modes) {
     queries.emplace_back(shcore::str_format(

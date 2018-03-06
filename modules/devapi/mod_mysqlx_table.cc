@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,13 +60,13 @@ Table::Table(std::shared_ptr<const Schema> owner, const std::string &name,
 }
 
 void Table::init() {
-  add_method("insert", std::bind(&Table::insert_, this, _1), NULL);
-  add_method("update", std::bind(&Table::update_, this, _1), NULL);
+  add_method("insert", std::bind(&Table::insert_, this, _1));
+  add_method("update", std::bind(&Table::update_, this, _1));
   add_method("select", std::bind(&Table::select_, this, _1), "searchCriteria",
-             shcore::Array, NULL);
+             shcore::Array);
   add_method("delete", std::bind(&Table::delete_, this, _1), "tableFields",
-             shcore::Array, NULL);
-  add_method("isView", std::bind(&Table::is_view_, this, _1), NULL);
+             shcore::Array);
+  add_method("isView", std::bind(&Table::is_view_, this, _1));
 }
 
 Table::~Table() {}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -90,13 +90,11 @@ void ClassicSession::init() {
 
   add_method("close", std::bind(&ClassicSession::_close, this, _1), "data");
   add_method("runSql", std::bind(&ClassicSession::run_sql, this, _1),
-    "stmt", shcore::String,
-    NULL);
+    "stmt", shcore::String);
   add_method("query", std::bind(&ClassicSession::query, this, _1),
-    "stmt", shcore::String,
-    NULL);
+    "stmt", shcore::String);
 
-  add_method("isOpen", std::bind(&ClassicSession::_is_open, this, _1), NULL);
+  add_method("isOpen", std::bind(&ClassicSession::_is_open, this, _1));
   add_method("startTransaction", std::bind(&ClassicSession::_start_transaction, this, _1), "data");
   add_method("commit", std::bind(&ClassicSession::_commit, this, _1), "data");
   add_method("rollback", std::bind(&ClassicSession::_rollback, this, _1), "data");

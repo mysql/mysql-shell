@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,7 +166,7 @@ shcore::Value Column::get_member(const std::string &prop) const {
 Row::Row() {
   add_property("length", "getLength");
   add_method("getField", std::bind(&Row::get_field, this, _1), "field",
-             shcore::String, NULL);
+             shcore::String);
   names.reset(new std::vector<std::string>());
 }
 
@@ -175,7 +175,7 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
     : names(names_) {
   add_property("length", "getLength");
   add_method("getField", std::bind(&Row::get_field, this, _1), "field",
-             shcore::String, NULL);
+             shcore::String);
 
   for (uint32_t i = 0, c = row.num_fields(); i < c; i++) {
     const std::string &key = (*names_)[i];

@@ -595,9 +595,37 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
  protected:
   // delme
-  virtual void add_method(const std::string &name, Cpp_function::Function func,
-                          const char *arg1_name,
-                          Value_type arg1_type = Undefined, ...);
+  void add_method_(
+      const std::string &name, Cpp_function::Function func,
+      std::vector<std::pair<std::string, Value_type>> *signature);
+
+  inline void add_method(const std::string &name, Cpp_function::Function func) {
+    std::vector<std::pair<std::string, Value_type>> signature;
+    add_method_(name, func, &signature);
+  }
+
+  inline void add_method(const std::string &name, Cpp_function::Function func,
+                         const char *arg1_name,
+                         Value_type arg1_type = shcore::Undefined) {
+    assert(arg1_name);
+    std::vector<std::pair<std::string, Value_type>> signature;
+    signature.push_back({arg1_name, arg1_type});
+    add_method_(name, func, &signature);
+  }
+
+  inline void add_method(const std::string &name, Cpp_function::Function func,
+                         const char *arg1_name,
+                         Value_type arg1_type,
+                         const char *arg2_name,
+                         Value_type arg2_type = shcore::Undefined) {
+    assert(arg1_name);
+    assert(arg2_name);
+    std::vector<std::pair<std::string, Value_type>> signature;
+    signature.push_back({arg1_name, arg1_type});
+    signature.push_back({arg2_name, arg2_type});
+    add_method_(name, func, &signature);
+  }
+
   // delme - replace varargs with type overloading
   virtual void add_varargs_method(const std::string &name,
                                   Cpp_function::Function func);
