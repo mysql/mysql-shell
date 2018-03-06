@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "16",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -321,7 +321,7 @@
         [
             "default",
             "pm",
-            "377503b7-2144-11e8-887f-080027c42733"
+            "927cf547-22d3-11e8-8d32-5ce0c50b9d66"
         ]
     ]
 },
@@ -329,7 +329,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -367,7 +367,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3336'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3360'"
 },
 {
     "type": "response",
@@ -483,22 +483,22 @@
     ],
     "rows": [
         [
-            "34e707a1-2144-11e8-887f-080027c42733",
-            "localhost:3316",
+            "8c207140-22d3-11e8-8d32-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ],
         [
-            "360bcb5e-2144-11e8-b258-080027c42733",
-            "localhost:3326",
+            "8e015b66-22d3-11e8-af4d-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326"
+            "localhost:3350"
         ],
         [
-            "36c512fb-2144-11e8-9d1c-080027c42733",
-            "localhost:3336",
+            "8fdb98e5-22d3-11e8-821a-5ce0c50b9d66",
+            "localhost:3360",
             "HA",
-            "localhost:3336"
+            "localhost:3360"
         ]
     ]
 },

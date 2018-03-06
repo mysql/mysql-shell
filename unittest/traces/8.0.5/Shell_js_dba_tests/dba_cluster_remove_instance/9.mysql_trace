@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "32",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -535,7 +535,7 @@
     ],
     "rows": [
         [
-            "localhost:33261"
+            "localhost:33501"
         ]
     ]
 },
@@ -543,7 +543,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3316' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3316')"
+    "sql": "SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:3340' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:3340')"
 },
 {
     "type": "response",
@@ -573,7 +573,7 @@
     ],
     "rows": [
         [
-            "localhost:33261"
+            "localhost:33501"
         ]
     ]
 },
@@ -581,7 +581,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33261'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33501'"
 },
 {
     "type": "response",

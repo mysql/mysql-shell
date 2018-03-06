@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "55",
+    "connection_id": "56",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -290,7 +290,7 @@
     ],
     "rows": [
         [
-            "846f800e-2140-11e8-ba10-080027c42733",
+            "28864023-22d1-11e8-b113-5ce0c50b9d66",
             ""
         ]
     ]
@@ -299,7 +299,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '846f800e-2140-11e8-ba10-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '28864023-22d1-11e8-b113-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
         [
             "default",
             "pm",
-            "8728761c-2140-11e8-ba10-080027c42733"
+            "2dc379e9-22d1-11e8-b113-5ce0c50b9d66"
         ]
     ]
 },
@@ -617,7 +617,7 @@
     ],
     "rows": [
         [
-            "8728761c-2140-11e8-ba10-080027c42733"
+            "2dc379e9-22d1-11e8-b113-5ce0c50b9d66"
         ]
     ]
 },
@@ -785,7 +785,7 @@
     ],
     "rows": [
         [
-            "846f800e-2140-11e8-ba10-080027c42733",
+            "28864023-22d1-11e8-b113-5ce0c50b9d66",
             ""
         ]
     ]
@@ -794,7 +794,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '846f800e-2140-11e8-ba10-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '28864023-22d1-11e8-b113-5ce0c50b9d66'"
 },
 {
     "type": "response",

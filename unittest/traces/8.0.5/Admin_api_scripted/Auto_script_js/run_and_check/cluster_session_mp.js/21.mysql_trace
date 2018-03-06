@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "28",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -180,7 +180,7 @@
     ],
     "rows": [
         [
-            "551b060a-2139-11e8-94d8-080027c42733",
+            "909412f0-22cc-11e8-8eec-5ce0c50b9d66",
             ""
         ]
     ]
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '551b060a-2139-11e8-94d8-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '909412f0-22cc-11e8-8eec-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -469,7 +469,7 @@
         [
             "default",
             "mm",
-            "57519c38-2139-11e8-ab55-080027c42733"
+            "93fac41c-22cc-11e8-9e50-5ce0c50b9d66"
         ]
     ]
 },
@@ -507,7 +507,7 @@
     ],
     "rows": [
         [
-            "57519c38-2139-11e8-ab55-080027c42733"
+            "93fac41c-22cc-11e8-9e50-5ce0c50b9d66"
         ]
     ]
 },
@@ -675,7 +675,7 @@
     ],
     "rows": [
         [
-            "551b060a-2139-11e8-94d8-080027c42733",
+            "909412f0-22cc-11e8-8eec-5ce0c50b9d66",
             ""
         ]
     ]
@@ -684,7 +684,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '551b060a-2139-11e8-94d8-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '909412f0-22cc-11e8-8eec-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -947,17 +947,17 @@
     ],
     "rows": [
         [
-            "5463dd56-2139-11e8-ab55-080027c42733",
-            "localhost:3316",
+            "8ea86735-22cc-11e8-9e50-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
+            "localhost:3340",
             "ONLINE"
         ],
         [
-            "551b060a-2139-11e8-94d8-080027c42733",
-            "localhost:3326",
+            "909412f0-22cc-11e8-8eec-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326",
+            "localhost:3350",
             "ONLINE"
         ]
     ]

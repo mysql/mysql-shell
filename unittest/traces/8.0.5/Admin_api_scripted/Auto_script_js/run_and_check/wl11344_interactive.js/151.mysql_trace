@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3336/sandboxdata/"
+            "/home/workspace/git/work/bugs/26754410/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },
@@ -152,7 +152,7 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
+            "pjesus-TECRA-Z40-B-bin.000003",
             151,
             "",
             "",
@@ -321,7 +321,7 @@
     "rows": [
         [
             "server_uuid",
-            "72f9df60-2137-11e8-8932-080027c42733"
+            "fe5b7ab1-22ca-11e8-814a-5ce0c50b9d66"
         ]
     ]
 },
@@ -376,7 +376,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33361"
+            "localhost:33601"
         ]
     ]
 },
@@ -431,7 +431,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33161,localhost:33261"
+            "localhost:33401,localhost:33501"
         ]
     ]
 },
@@ -494,7 +494,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33161,localhost:33261'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33401,localhost:33501'"
 },
 {
     "type": "response",

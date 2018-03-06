@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "28",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -286,7 +286,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:3326"
+            "localhost:3350"
         ],
         [
             "group_replication_member_weight",
@@ -429,7 +429,7 @@
         ],
         [
             "auto_increment_offset",
-            "3"
+            "6"
         ]
     ]
 },

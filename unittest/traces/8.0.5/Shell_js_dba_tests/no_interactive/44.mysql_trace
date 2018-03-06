@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3326",
+    "uri": "mydba:@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -237,16 +237,6 @@
     ],
     "rows": [
         [
-            "INSERT",
-            "YES",
-            "mysql"
-        ],
-        [
-            "DELETE",
-            "YES",
-            "mysql"
-        ],
-        [
             "SELECT",
             "YES",
             "mysql"
@@ -259,47 +249,12 @@
         [
             "INSERT",
             "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "DELETE",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "DROP",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "INDEX",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE TEMPORARY TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "EXECUTE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "SHOW VIEW",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "SELECT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "TRIGGER",
@@ -343,6 +298,51 @@
         ],
         [
             "EVENT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "INSERT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "DELETE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "DROP",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "INDEX",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE TEMPORARY TABLES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "EXECUTE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SHOW VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

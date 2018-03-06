@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "16",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -329,7 +329,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -445,10 +445,10 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733",
-            "localhost:3316",
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -648,10 +648,10 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733",
-            "localhost:3316",
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -737,10 +737,10 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733",
-            "localhost:3316",
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -778,7 +778,7 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733:1-14,\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2"
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66:1-14,\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2"
         ]
     ]
 },
@@ -786,7 +786,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "SELECT GTID_SUBSET('9868d1df-2136-11e8-b765-080027c42733:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2', '9868d1df-2136-11e8-b765-080027c42733:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2')"
+    "sql": "SELECT GTID_SUBSET('1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2', '1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2')"
 },
 {
     "type": "response",
@@ -802,7 +802,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('9868d1df-2136-11e8-b765-080027c42733:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2', '9868d1df-2136-11e8-b765-080027c42733:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2')",
+            "column_label": "GTID_SUBSET('1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2', '1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66:1-14,\\nca94447b-e6fc-11e7-b69d-4485005154dc:1-2')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -900,7 +900,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -1065,7 +1065,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '<Z?}#7c>e+,e#.J*(%9+-@3T*-t~S;.^' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '|{^C$|x_-9z8]~&3|#T<J,;~^n+S_@#-' /*)*/ "
 },
 {
     "type": "response",
@@ -1080,7 +1080,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '<Z?}#7c>e+,e#.J*(%9+-@3T*-t~S;.^' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '|{^C$|x_-9z8]~&3|#T<J,;~^n+S_@#-' /*)*/ "
 },
 {
     "type": "response",
@@ -1218,10 +1218,10 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733",
-            "localhost:3316",
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -1389,8 +1389,8 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733",
-            "9868d1df-2136-11e8-b765-080027c42733"
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66",
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66"
         ]
     ]
 },
@@ -1398,7 +1398,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9868d1df-2136-11e8-b765-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1576,7 +1576,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "9868d1df-2136-11e8-b765-080027c42733"
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66"
         ]
     ]
 },
@@ -1716,10 +1716,10 @@
     ],
     "rows": [
         [
-            "9868d1df-2136-11e8-b765-080027c42733",
-            "localhost:3316",
+            "1e4ace22-22ca-11e8-a5e1-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
+            "localhost:3340",
             "ONLINE"
         ]
     ]

@@ -554,7 +554,7 @@ def create_sandbox(**kwargs):
         # use it and the clone operation needs to recreate those tables
         # on the destination to make sure they are empty before filling them
         # with data (there is no option on mysqldump to truncate tables).
-        "disabled_storage_engines": "BLACKHOLE,FEDERATED,ARCHIVE",
+        "disabled_storage_engines": "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV",
     }, "client": {
         "port": port,
         "user": "root",

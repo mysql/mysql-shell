@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "gr_user:gr_pass@localhost:3326",
+    "uri": "gr_user:gr_pass@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33161"
+            "localhost:33401"
         ]
     ]
 },
@@ -130,7 +130,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33161,localhost:33361'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33401,localhost:33601'"
 },
 {
     "type": "response",

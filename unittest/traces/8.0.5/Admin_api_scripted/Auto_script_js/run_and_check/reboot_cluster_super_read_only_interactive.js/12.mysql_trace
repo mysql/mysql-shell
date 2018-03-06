@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "44",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "ae183b99-2137-11e8-b15c-080027c42733"
+            "363fa1a6-22cb-11e8-8924-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,7 +245,7 @@
     ],
     "rows": [
         [
-            "ae183b99-2137-11e8-b15c-080027c42733"
+            "363fa1a6-22cb-11e8-8924-5ce0c50b9d66"
         ]
     ]
 },
@@ -521,10 +521,10 @@
     ],
     "rows": [
         [
-            "acf2667d-2137-11e8-b15c-080027c42733",
-            "localhost:3316",
+            "33d95c87-22cb-11e8-8924-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -610,10 +610,10 @@
     ],
     "rows": [
         [
-            "acf2667d-2137-11e8-b15c-080027c42733",
-            "localhost:3316",
+            "33d95c87-22cb-11e8-8924-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },

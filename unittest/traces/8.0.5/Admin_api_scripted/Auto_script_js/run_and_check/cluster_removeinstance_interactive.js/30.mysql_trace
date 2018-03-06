@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "61",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -281,11 +281,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            22511,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            22642,
             "",
             "",
-            "86c4e0bc-2139-11e8-9ce0-080027c42733:1-14,\n897d78d3-2139-11e8-9ce0-080027c42733:1-27"
+            "aee2d965-22cc-11e8-bb98-5ce0c50b9d66:1-14,\nb5995e9b-22cc-11e8-bb98-5ce0c50b9d66:1-27"
         ]
     ]
 },
@@ -376,7 +376,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'W%)|(4$L%~c{]={q[I]3.o-w/K(%,5|(' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'A>%/3D*n*x*?_/{_#-O1+p:e/~#|6>)E' /*)*/ "
 },
 {
     "type": "response",
@@ -391,7 +391,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'W%)|(4$L%~c{]={q[I]3.o-w/K(%,5|(' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'A>%/3D*n*x*?_/{_#-O1+p:e/~#|6>)E' /*)*/ "
 },
 {
     "type": "response",
@@ -510,7 +510,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 38,
-    "auto_increment_value": 3,
+    "auto_increment_value": 6,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -519,13 +519,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (3, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (6, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 40,
-    "auto_increment_value": 3,
+    "auto_increment_value": 6,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -534,7 +534,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 3 WHERE cluster_id = 3"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 6 WHERE cluster_id = 6"
 },
 {
     "type": "response",
@@ -549,7 +549,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 6"
 },
 {
     "type": "response",
@@ -587,7 +587,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 6 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -625,7 +625,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",
@@ -779,13 +779,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 3, '86c4e0bc-2139-11e8-9ce0-080027c42733', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 6, 'aee2d965-22cc-11e8-bb98-5ce0c50b9d66', 'localhost:3340', 'HA', json_object('mysqlClassic', 'localhost:3340', 'mysqlX', 'localhost:33400', 'grLocal', 'localhost:33401'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 52,
-    "auto_increment_value": 24,
+    "auto_increment_value": 20,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -794,13 +794,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 53,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 54,
-    "auto_increment_value": 24,
+    "auto_increment_value": 20,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -872,10 +872,10 @@
     ],
     "rows": [
         [
-            "86c4e0bc-2139-11e8-9ce0-080027c42733",
-            "localhost:3316",
+            "aee2d965-22cc-11e8-bb98-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -889,7 +889,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 56,
-    "auto_increment_value": 24,
+    "auto_increment_value": 20,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -913,7 +913,7 @@
     ],
     "rows": [
         [
-            "a5cb9468-2139-11e8-9ce0-080027c42733"
+            "d21c3b22-22cc-11e8-bb98-5ce0c50b9d66"
         ]
     ]
 },
@@ -921,7 +921,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'a5cb9468-2139-11e8-9ce0-080027c42733') WHERE replicaset_id = 3"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'd21c3b22-22cc-11e8-bb98-5ce0c50b9d66') WHERE replicaset_id = 6"
 },
 {
     "type": "response",
@@ -998,7 +998,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "86c4e0bc-2139-11e8-9ce0-080027c42733"
+            "aee2d965-22cc-11e8-bb98-5ce0c50b9d66"
         ]
     ]
 },

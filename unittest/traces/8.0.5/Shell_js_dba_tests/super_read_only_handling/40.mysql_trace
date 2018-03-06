@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "16",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "938b6675-213e-11e8-9b71-080027c42733"
+            "09dfb11b-22d0-11e8-89db-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,7 +245,7 @@
     ],
     "rows": [
         [
-            "938b6675-213e-11e8-9b71-080027c42733"
+            "09dfb11b-22d0-11e8-89db-5ce0c50b9d66"
         ]
     ]
 },
@@ -521,22 +521,22 @@
     ],
     "rows": [
         [
-            "8f1798b4-213e-11e8-9b71-080027c42733",
-            "localhost:3316",
+            "037e6443-22d0-11e8-89db-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ],
         [
-            "902396f6-213e-11e8-855e-080027c42733",
-            "localhost:3326",
+            "054543d0-22d0-11e8-b461-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326"
+            "localhost:3350"
         ],
         [
-            "91acf682-213e-11e8-924f-080027c42733",
-            "localhost:3336",
+            "07679be1-22d0-11e8-bef9-5ce0c50b9d66",
+            "localhost:3360",
             "HA",
-            "localhost:3336"
+            "localhost:3360"
         ]
     ]
 },
@@ -622,22 +622,22 @@
     ],
     "rows": [
         [
-            "8f1798b4-213e-11e8-9b71-080027c42733",
-            "localhost:3316",
+            "037e6443-22d0-11e8-89db-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ],
         [
-            "902396f6-213e-11e8-855e-080027c42733",
-            "localhost:3326",
+            "054543d0-22d0-11e8-b461-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326"
+            "localhost:3350"
         ],
         [
-            "91acf682-213e-11e8-924f-080027c42733",
-            "localhost:3336",
+            "07679be1-22d0-11e8-bef9-5ce0c50b9d66",
+            "localhost:3360",
             "HA",
-            "localhost:3336"
+            "localhost:3360"
         ]
     ]
 },

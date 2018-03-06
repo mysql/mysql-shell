@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "77",
+    "connection_id": "76",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+            "/home/workspace/git/work/bugs/26754410/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            78818,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            78829,
             "",
             "",
-            "1b80fd89-213c-11e8-a0fd-080027c42733:1-97,\n20a506e7-213c-11e8-a0fd-080027c42733:1-3,\n2ab620b0-213c-11e8-a0fd-080027c42733:1-3,\n34a981fb-213c-11e8-a0fd-080027c42733:1-3,\n3e96e96f-213c-11e8-a0fd-080027c42733:1-3,\n48885665-213c-11e8-a0fd-080027c42733:1-3,\n5272ca31-213c-11e8-a0fd-080027c42733:1-3,\n5c6a7dcf-213c-11e8-a0fd-080027c42733:1-3,\n70581277-213c-11e8-a0fd-080027c42733:1-57,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3"
+            "2ae51166-22ce-11e8-9538-5ce0c50b9d66:1-97,\n3435dd26-22ce-11e8-9538-5ce0c50b9d66:1-3,\n3eab199b-22ce-11e8-9538-5ce0c50b9d66:1-3,\n48ff118a-22ce-11e8-9538-5ce0c50b9d66:1-3,\n53507cd9-22ce-11e8-9538-5ce0c50b9d66:1-3,\n5da0ad2a-22ce-11e8-9538-5ce0c50b9d66:1-3,\n67eb57d4-22ce-11e8-9538-5ce0c50b9d66:1-3,\n723cafaa-22ce-11e8-9538-5ce0c50b9d66:1-3,\n86c081bb-22ce-11e8-9538-5ce0c50b9d66:1-57,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     "rows": [
         [
             "server_uuid",
-            "1c4109fa-213c-11e8-8c20-080027c42733"
+            "2d2ce795-22ce-11e8-bdbb-5ce0c50b9d66"
         ]
     ]
 },
@@ -380,7 +380,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33261"
+            "localhost:33501"
         ]
     ]
 },
@@ -435,7 +435,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33161"
+            "localhost:33401"
         ]
     ]
 },
@@ -498,7 +498,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33161'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33401'"
 },
 {
     "type": "response",

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "16",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
+            "/home/workspace/git/work/bugs/26754410/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            10798,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            10793,
             "",
             "",
-            "c63318c9-2145-11e8-a0bf-080027c42733:1-14"
+            "81fecd1c-22d4-11e8-8c04-5ce0c50b9d66:1-14"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     "rows": [
         [
             "server_uuid",
-            "c63318c9-2145-11e8-a0bf-080027c42733"
+            "81fecd1c-22d4-11e8-8c04-5ce0c50b9d66"
         ]
     ]
 },
@@ -380,7 +380,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33161"
+            "localhost:33401"
         ]
     ]
 },

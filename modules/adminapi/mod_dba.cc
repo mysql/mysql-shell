@@ -2360,6 +2360,11 @@ shcore::Value::Map_type_ref Dba::_check_instance_configuration(
                     option_tokens.erase(option_tokens.begin() + 2);
                   }
 
+                  if (option_tokens[2] == "<no") {
+                    option_tokens[2] = "<no value>";
+                    option_tokens.erase(option_tokens.begin() + 3);
+                  }
+
                   if (option_tokens[2] == "<not") {
                     option_tokens[2] = "<not set>";
                     option_tokens.erase(option_tokens.begin() + 3);

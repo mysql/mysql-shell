@@ -2,12 +2,6 @@
 {
     "config_errors": [
         {
-            "action": "config_update", 
-            "current": "BLACKHOLE,FEDERATED,ARCHIVE", 
-            "option": "disabled_storage_engines", 
-            "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"
-        },
-        {
             "action": "config_update+restart", 
             "current": "0", 
             "option": "server_id", 
@@ -60,12 +54,6 @@
 //@<OUT> checkInstanceConfiguration no server_id in my.cnf (error). {VER(>=8.0.3)}
 {
     "config_errors": [
-        {
-            "action": "config_update",
-            "current": "BLACKHOLE,FEDERATED,ARCHIVE",
-            "option": "disabled_storage_engines",
-            "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"
-        },
         {
             "action": "restart",
             "current": "1",

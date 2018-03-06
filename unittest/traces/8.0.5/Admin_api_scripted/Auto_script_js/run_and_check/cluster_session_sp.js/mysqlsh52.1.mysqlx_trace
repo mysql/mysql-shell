@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:33260",
+    "uri": "root:root@localhost:33500",
     "protocol": "x"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "74",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.5-commercial",
+    "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
@@ -169,9 +169,9 @@
     ],
     "rows": [
         [
-            "d5f204ba-2138-11e8-b2a8-080027c42733",
+            "2041e5ce-22cc-11e8-990c-5ce0c50b9d66",
             1,
-            "d389ec22-2138-11e8-a354-080027c42733",
+            "1bc4e25c-22cc-11e8-8a74-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -320,7 +320,7 @@
     ],
     "rows": [
         [
-            3326
+            3350
         ]
     ]
 },

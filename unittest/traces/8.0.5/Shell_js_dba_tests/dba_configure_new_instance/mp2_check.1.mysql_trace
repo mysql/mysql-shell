@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3326?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3350?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -261,12 +261,50 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT @@binlog_checksum"
+    "sql": "SELECT @@disabled_storage_engines"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@disabled_storage_engines",
+            "length": 152,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 17,
+    "sql": "SELECT @@binlog_checksum"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 18,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -298,13 +336,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 17,
+    "index": 19,
     "sql": "SELECT @@enforce_gtid_consistency"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 18,
+    "index": 20,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -336,13 +374,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 19,
+    "index": 21,
     "sql": "SELECT @@gtid_mode"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 20,
+    "index": 22,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -374,13 +412,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 21,
+    "index": 23,
     "sql": "SELECT @@binlog_format"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 22,
+    "index": 24,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -412,13 +450,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 23,
+    "index": 25,
     "sql": "SELECT @@report_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 24,
+    "index": 26,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -443,20 +481,20 @@
     ],
     "rows": [
         [
-            3326
+            3350
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 25,
+    "index": 27,
     "sql": "SELECT @@bind_address"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 26,
+    "index": 28,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -488,13 +526,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 27,
+    "index": 29,
     "sql": "SELECT @@log_bin"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 28,
+    "index": 30,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -526,13 +564,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 29,
+    "index": 31,
     "sql": "SHOW VARIABLES LIKE 'VERSION'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 30,
+    "index": 32,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -574,20 +612,20 @@
     "rows": [
         [
             "version",
-            "8.0.5-commercial"
+            "8.0.5"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 31,
+    "index": 33,
     "sql": "SELECT @@server_id"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 32,
+    "index": 34,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -619,13 +657,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 33,
+    "index": 35,
     "sql": "SELECT variable_source FROM performance_schema.variables_info WHERE variable_name='server_id'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 34,
+    "index": 36,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -657,23 +695,8 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 35,
-    "sql": "SET @@persist_only.server_id=/*(*/2373564674/*)*/"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 36,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
     "index": 37,
-    "sql": "commit"
+    "sql": "SET @@persist_only.server_id=/*(*/532417611/*)*/"
 },
 {
     "type": "response",
@@ -688,12 +711,27 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT @@slave_parallel_workers"
+    "sql": "commit"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 40,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 41,
+    "sql": "SELECT @@slave_parallel_workers"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 42,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -725,13 +763,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 41,
+    "index": 43,
     "sql": "SELECT table_schema, table_name, engine FROM information_schema.tables WHERE engine NOT IN ('InnoDB', 'MEMORY') AND table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 42,
+    "index": 44,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -791,13 +829,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 43,
+    "index": 45,
     "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 44,
+    "index": 46,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -841,11 +879,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 45
+    "index": 47
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 46
+    "index": 48
 },
 null]
