@@ -275,15 +275,15 @@ TEST_F(Command_line_test, retain_schema_after_reconnect) {
 
   char cmd[MAX_PATH];
   std::snprintf(
-      cmd, MAX_PATH,
+    cmd, MAX_PATH,
 #ifdef _WIN32
-      "echo use mysql;\nkill CONNECTION_ID(); show tables; | %s --uri=%s --sql "
-      "--interactive 2> nul",
+    "echo kill CONNECTION_ID(); show tables; | %s --uri=%s/mysql --sql "
+    "--interactive 2> nul",
 #else
-      "echo \"use mysql;\nkill CONNECTION_ID(); show tables;\" | %s --uri=%s "
-      "--sql --interactive 2> /dev/null",
+    "echo \"use mysql;\nkill CONNECTION_ID(); show tables;\" | %s --uri=%s "
+    "--sql --interactive 2> /dev/null",
 #endif
-      _mysqlsh, _uri.c_str());
+    _mysqlsh, _uri.c_str());
 
 #ifdef _WIN32
   FILE *fp = _popen(cmd, "r");
