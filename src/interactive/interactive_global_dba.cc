@@ -64,16 +64,16 @@ void Global_dba::init() {
       std::bind(&Global_dba::reboot_cluster_from_complete_outage, this, _1));
 
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1),
-             "clusterName", shcore::String, NULL);
+             "clusterName", shcore::String);
   add_method("dropMetadataSchema",
              std::bind(&Global_dba::drop_metadata_schema, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
   add_method("checkInstanceConfiguration",
              std::bind(&Global_dba::check_instance_configuration, this, _1),
-             "data", shcore::Map, NULL);
+             "data", shcore::Map);
   add_method("configureLocalInstance",
              std::bind(&Global_dba::configure_local_instance, this, _1), "data",
-             shcore::Map, NULL);
+             shcore::Map);
 }
 
 mysqlsh::dba::Cluster_check_info Global_dba::check_preconditions(

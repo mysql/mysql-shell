@@ -53,15 +53,19 @@ Shell::Shell(Mysql_shell *owner)
 void Shell::init() {
   add_property("options");
 
-  add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri", shcore::String, NULL);
+  add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri",
+             shcore::String);
   add_varargs_method("prompt", std::bind(&Shell::prompt, this, _1));
   add_varargs_method("connect", std::bind(&Shell::connect, this, _1));
-  add_method("setCurrentSchema", std::bind(&Shell::_set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("setSession", std::bind(&Shell::set_session, this, _1), "session", shcore::Object, NULL);
-  add_method("getSession", std::bind(&Shell::get_session, this, _1), NULL);
-  add_method("reconnect", std::bind(&Shell::reconnect, this, _1), NULL);
-  add_method("log", std::bind(&Shell::log, this, _1), NULL);
-  add_method("status", std::bind(&Shell::status, this, _1), NULL);
+  add_method("setCurrentSchema",
+             std::bind(&Shell::_set_current_schema, this, _1), "name",
+             shcore::String);
+  add_method("setSession", std::bind(&Shell::set_session, this, _1), "session",
+             shcore::Object);
+  add_method("getSession", std::bind(&Shell::get_session, this, _1));
+  add_method("reconnect", std::bind(&Shell::reconnect, this, _1));
+  add_method("log", std::bind(&Shell::log, this, _1));
+  add_method("status", std::bind(&Shell::status, this, _1));
 }
 
 Shell::~Shell() {}

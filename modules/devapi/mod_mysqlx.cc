@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,7 +64,7 @@ REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
-  REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
+  REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String);
 
   _type.reset(new Type());
   _lock_contention.reset(new LockContention());

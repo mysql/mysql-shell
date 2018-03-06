@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,28 +160,25 @@ void Session::init() {
   add_method("createSchema", std::bind(&Session::_create_schema, this, _1),
              "data");
   add_method("getSchema", std::bind(&Session::_get_schema, this, _1),
-             "name", shcore::String, NULL);
-  add_method("getSchemas", std::bind(&Session::get_schemas, this, _1),
-             NULL);
-  add_method("dropSchema", std::bind(&Session::_drop_schema, this, _1),
-             "data");
-  add_method("setSavepoint", std::bind(&Session::_set_savepoint, this, _1),
-             NULL);
+             "name", shcore::String);
+  add_method("getSchemas", std::bind(&Session::get_schemas, this, _1));
+  add_method("dropSchema", std::bind(&Session::_drop_schema, this, _1), "data");
+  add_method("setSavepoint", std::bind(&Session::_set_savepoint, this, _1));
   add_method("releaseSavepoint",
-             std::bind(&Session::_release_savepoint, this, _1), NULL);
-  add_method("rollbackTo", std::bind(&Session::_rollback_to, this, _1), NULL);
+             std::bind(&Session::_release_savepoint, this, _1));
+  add_method("rollbackTo", std::bind(&Session::_rollback_to, this, _1));
   add_property("uri", "getUri");
   add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
 
-  add_method("isOpen", std::bind(&Session::_is_open, this, _1), NULL);
+  add_method("isOpen", std::bind(&Session::_is_open, this, _1));
   add_method("sql", std::bind(&Session::sql, this, _1), "sql",
-            shcore::String, NULL);
+            shcore::String);
   add_method("setCurrentSchema",
             std::bind(&Session::_set_current_schema, this, _1), "name",
-            shcore::String, NULL);
+            shcore::String);
   add_method("quoteName", std::bind(&Session::quote_name, this, _1), "name",
-            shcore::String, NULL);
+            shcore::String);
 
   _schemas.reset(new shcore::Value::Map_type);
 

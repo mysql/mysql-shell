@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,7 +112,7 @@ void Dynamic_object::register_dynamic_function(
   int x = __builtin_ctz(name);
 #endif
   // We can't register more functions than enabled_paths_ can store.
-  assert(x < shcore::array_size(enabled_paths_));
+  assert(static_cast<size_t>(x) < shcore::array_size(enabled_paths_));
 
   enabled_paths_[x] = enable_after;
 }

@@ -53,10 +53,9 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   add_method("sort", std::bind(&CollectionFind::sort, this, _1), "data");
   add_method("skip", std::bind(&CollectionFind::skip, this, _1), "data");
   add_method("limit", std::bind(&CollectionFind::limit, this, _1), "data");
-  add_method("lockShared", std::bind(&CollectionFind::lock_shared, this, _1),
-             NULL);
+  add_method("lockShared", std::bind(&CollectionFind::lock_shared, this, _1));
   add_method("lockExclusive",
-             std::bind(&CollectionFind::lock_exclusive, this, _1), NULL);
+             std::bind(&CollectionFind::lock_exclusive, this, _1));
   add_method("bind", std::bind(&CollectionFind::bind_, this, _1), "data");
 
   // Registers the dynamic function behavior

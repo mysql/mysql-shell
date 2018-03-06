@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,7 +61,7 @@ Mod_shell_options::Mod_shell_options(
     add_property(opt + "|" + opt);
   add_method("unset",
              std::bind(&Mod_shell_options::unset, this, std::placeholders::_1),
-             "option_name", shcore::String, NULL);
+             "option_name", shcore::String);
 }
 
 shcore::Value Mod_shell_options::unset(const shcore::Argument_list &args) {

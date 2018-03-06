@@ -102,8 +102,8 @@ void Cluster::init() {
              "data");
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1),
              "data");
-  add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
-  add_method("status", std::bind(&Cluster::status, this, _1), NULL);
+  add_method("describe", std::bind(&Cluster::describe, this, _1));
+  add_method("status", std::bind(&Cluster::status, this, _1));
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
   add_varargs_method("checkInstanceState",
                      std::bind(&Cluster::check_instance_state, this, _1));
@@ -111,7 +111,7 @@ void Cluster::init() {
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
       std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
-  add_method("disconnect", std::bind(&Cluster::disconnect, this, _1), NULL);
+  add_method("disconnect", std::bind(&Cluster::disconnect, this, _1));
 }
 
 // Documentation of the getName function
