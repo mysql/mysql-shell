@@ -86,11 +86,11 @@
 
 #@# TableSelect: Error conditions on lock_shared
 ||Invalid number of arguments in TableSelect.lock_shared, expected 0 to 1 but got 2
-||TableSelect.lock_shared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCK
+||TableSelect.lock_shared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# TableSelect: Error conditions on lock_exclusive
 ||Invalid number of arguments in TableSelect.lock_exclusive, expected 0 to 1 but got 2
-||TableSelect.lock_exclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCK
+||TableSelect.lock_exclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# TableSelect: Error conditions on bind
 ||Invalid number of arguments in TableSelect.bind, expected 2 but got 0

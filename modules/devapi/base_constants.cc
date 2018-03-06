@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -205,8 +205,8 @@ Value Constant::get_constant_value(const std::string &module,
     } else if (group == "LockContention") {
       if (id == "NOWAIT") {
         ret_val = Value("NOWAIT");
-      } else if (id == "SKIP_LOCK") {
-        ret_val = Value("SKIP_LOCK");
+      } else if (id == "SKIP_LOCKED") {
+        ret_val = Value("SKIP_LOCKED");
       } else if (id == "DEFAULT") {
         ret_val = Value("DEFAULT");
       }

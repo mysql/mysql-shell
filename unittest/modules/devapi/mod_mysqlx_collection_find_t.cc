@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -286,7 +286,7 @@ TEST_F(Collection_find, lock_shared_nowait_constant) {
 TEST_F(Collection_find, lock_shared_skip_lock_string) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockShared('skip_lock');");
+  execute("col.find('_id = \"1\"').lockShared('skip_locked');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Collection_find.lock_shared",
@@ -334,7 +334,8 @@ TEST_F(Collection_find, lock_shared_skip_lock_string) {
 TEST_F(Collection_find, lock_shared_skip_lock_constant) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockShared(mysqlx.LockContention.SKIP_LOCK);");
+  execute(
+      "col.find('_id = \"1\"').lockShared(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Collection_find.lock_shared",
@@ -526,7 +527,7 @@ TEST_F(Collection_find, lock_exclusive_nowait_constant) {
 TEST_F(Collection_find, lock_exclusive_skip_lock_string) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockExclusive('skip_lock');");
+  execute("col.find('_id = \"1\"').lockExclusive('skip_locked');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Collection_find.lock_exclusive",
@@ -574,7 +575,9 @@ TEST_F(Collection_find, lock_exclusive_skip_lock_string) {
 TEST_F(Collection_find, lock_exclusive_skip_lock_constant) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCK);");
+  execute(
+      "col.find('_id = "
+      "\"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Collection_find.lock_exclusive",
@@ -618,4 +621,4 @@ TEST_F(Collection_find, lock_exclusive_skip_lock_constant) {
   execute("session.rollback();");
   _cout.str("");
 }
-}
+}  // namespace tests

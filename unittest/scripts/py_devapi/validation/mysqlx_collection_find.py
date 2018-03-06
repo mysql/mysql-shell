@@ -87,11 +87,11 @@
 
 #@# CollectionFind: Error conditions on lock_shared
 ||Invalid number of arguments in CollectionFind.lock_shared, expected 0 to 1 but got 2
-||CollectionFind.lock_shared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCK
+||CollectionFind.lock_shared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# CollectionFind: Error conditions on lock_exclusive
 ||Invalid number of arguments in CollectionFind.lock_exclusive, expected 0 to 1 but got 2
-||CollectionFind.lock_exclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCK
+||CollectionFind.lock_exclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# CollectionFind: Error conditions on bind
 ||Invalid number of arguments in CollectionFind.bind, expected 2 but got 0
