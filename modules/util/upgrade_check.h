@@ -47,6 +47,10 @@ struct Upgrade_issue {
   std::string column;
   std::string description;
   Level level = ERROR;
+
+  bool empty() {
+    return schema.empty();
+  }
 };
 
 std::string to_string(const Upgrade_issue& problem);
@@ -85,6 +89,11 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check();
   static std::unique_ptr<Sql_upgrade_check> get_old_temporal_check();
   static std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check();
+  static std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check();
+  static std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check();
+  static std::unique_ptr<Sql_upgrade_check>
+  get_partitioned_tables_in_shared_tablespaces_check();
+  static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
 
   Sql_upgrade_check(const char* name, std::vector<std::string>&& queries,
                     Upgrade_issue::Level level, const char* advice = "",

@@ -254,6 +254,163 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
   // No way to prepare test data in 5.7
 }
 
+TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("aaa_test_maxdb_sql_mode");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_maxdb_sql_mode_flags_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_TRUE(issues.empty());
+
+  ASSERT_NO_THROW(
+      session->execute("create table Clone(COMPONENT integer, cube int);"));
+
+  std::size_t issues_count = issues.size();
+  ASSERT_NO_THROW(session->execute("SET SESSION sql_mode = 'MAXDB';"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE FUNCTION TEST_MAXDB (s CHAR(20)) RETURNS CHAR(50) "
+      "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_GT(issues.size(), issues_count);
+  issues_count = issues.size();
+  issues.clear();
+  ASSERT_NO_THROW(
+      session->execute("create trigger TR_MAXDB AFTER INSERT on Clone FOR "
+                       "EACH ROW delete from Clone where COMPONENT<0;"));
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_GT(issues.size(), issues_count);
+  issues_count = issues.size();
+  issues.clear();
+  ASSERT_NO_THROW(
+      session->execute("CREATE EVENT EV_MAXDB ON SCHEDULE AT CURRENT_TIMESTAMP "
+                       "+ INTERVAL 1 HOUR "
+                       "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;"));
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_GT(issues.size(), issues_count);
+}
+
+TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("aaa_test_obsolete_sql_modes");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_obsolete_sql_mode_flags_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_TRUE(issues.empty());
+
+  std::vector<std::string> modes = {"DB2",
+                                    "MSSQL",
+                                    "MYSQL323",
+                                    "MYSQL40",
+                                    "NO_FIELD_OPTIONS",
+                                    "NO_KEY_OPTIONS",
+                                    "NO_TABLE_OPTIONS",
+                                    "ORACLE",
+                                    "POSTGRESQL"};
+
+  ASSERT_NO_THROW(
+      session->execute("create table Clone(COMPONENT integer, cube int);"));
+
+  for (const std::string& mode : modes) {
+    std::size_t issues_count = issues.size();
+    issues.clear();
+    ASSERT_NO_THROW(session->execute(
+        shcore::str_format("SET SESSION sql_mode = '%s';", mode.c_str())));
+    ASSERT_NO_THROW(session->execute(shcore::str_format(
+        "CREATE FUNCTION TEST_%s (s CHAR(20)) RETURNS CHAR(50) "
+        "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');",
+        mode.c_str())));
+    ASSERT_NO_THROW(issues = check->run(session));
+    ASSERT_GT(issues.size(), issues_count);
+    issues_count = issues.size();
+    issues.clear();
+    ASSERT_NO_THROW(session->execute(
+        shcore::str_format("create trigger TR_%s AFTER INSERT on Clone FOR "
+                           "EACH ROW delete from Clone where COMPONENT<0;",
+                           mode.c_str())));
+    ASSERT_NO_THROW(issues = check->run(session));
+    ASSERT_GT(issues.size(), issues_count);
+    issues_count = issues.size();
+    issues.clear();
+    ASSERT_NO_THROW(session->execute(
+        shcore::str_format("CREATE EVENT EV_%s ON SCHEDULE AT "
+                           "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
+                           "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;",
+                           mode.c_str())));
+    ASSERT_NO_THROW(issues = check->run(session));
+    ASSERT_GT(issues.size(), issues_count);
+  }
+}
+
+TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("aaa_test_partitioned_in_shared");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_TRUE(issues.empty());
+
+  EXPECT_NO_THROW(session->execute(
+      "CREATE TABLESPACE tpists ADD DATAFILE 'tpists.ibd' ENGINE=INNODB;"));
+  EXPECT_NO_THROW(session->execute(
+      "create table part(i integer) TABLESPACE tpists partition "
+      "by range(i) (partition p0 values less than (1000), "
+      "partition p1 values less than MAXVALUE);"));
+  EXPECT_NO_THROW(issues = check->run(session));
+  EXPECT_EQ(2, issues.size());
+  EXPECT_NO_THROW(session->execute("drop table part"));
+  EXPECT_NO_THROW(session->execute("drop tablespace tpists"));
+}
+
+TEST_F(MySQL_upgrade_check_test, removed_functions) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("aaa_test_removed_functions");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_removed_functions_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session));
+  for (const auto& issue : issues)
+    puts(to_string(issue).c_str());
+  ASSERT_TRUE(issues.empty());
+
+  ASSERT_NO_THROW(session->execute(
+      "create table geotab1 (col1 int ,col2 geometry,col3 geometry, col4 int "
+      "generated always as (contains(col2,col3)));"));
+  ASSERT_NO_THROW(session->execute(
+      "create trigger contr AFTER INSERT on geotab1 FOR EACH ROW delete from \n"
+      "-- This is a test NUMGEOMETRIES ()\n"
+      "# This is a test GLENGTH()\n"
+      "geotab1 where TOUCHES(`col2`,`col3`);"));
+  ASSERT_NO_THROW(session->execute(
+      "create procedure contains_proc(p1 geometry,p2 geometry) begin select "
+      "col1, 'Y()' from tab1 where col2=@p1 and col3=@p2 and contains(p1,p2) "
+      "and TOUCHES(p1, p2);\n"
+      "-- This is a test NUMGEOMETRIES ()\n"
+      "# This is a test GLENGTH()\n"
+      "/* just a comment X() */end;"));
+  ASSERT_NO_THROW(session->execute(
+      "create function test_astext() returns TEXT deterministic return "
+      "AsText('MULTIPOINT(1 1, 2 2, 3 3)');"));
+  // Unable to test generated columns as at least in 5.7.19 they are
+  // automatically converted to supported functions
+  ASSERT_NO_THROW(issues = check->run(session));
+  EXPECT_EQ(3, issues.size());
+  EXPECT_NE(std::string::npos, issues[0].description.find("CONTAINS"));
+  EXPECT_NE(std::string::npos, issues[0].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("TOUCHES"));
+}
+
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
