@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -829,12 +829,12 @@ void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
 
     if (!shcore::str_casecmp(lock_contention.c_str(), "nowait")) {
       message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_NOWAIT);
-    } else if (!shcore::str_casecmp(lock_contention.c_str(), "skip_lock")) {
+    } else if (!shcore::str_casecmp(lock_contention.c_str(), "skip_locked")) {
       message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
     } else if (shcore::str_casecmp(lock_contention.c_str(), "default")) {
         throw shcore::Exception::argument_error(
             "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
-            "SKIP_LOCK");
+            "SKIP_LOCKED");
     }
   }
 }
@@ -869,14 +869,14 @@ REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL4,
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL5,
               "@li mysqlx.LockContention.NOWAIT");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL6,
-              "@li mysqlx.LockContention.SKIP_LOCK");
+              "@li mysqlx.LockContention.SKIP_LOCKED");
 
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL7,
               "The lockContention can also be specified using the following "
               "string literals (no case sensitive):");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL8, "@li 'DEFAULT'");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL9, "@li 'NOWAIT'");
-REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL10, "@li 'SKIP_LOCK'");
+REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL10, "@li 'SKIP_LOCKED'");
 
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL11,
               "If no lockContention or the default is specified, the operation "
@@ -887,7 +887,7 @@ REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL12,
               "already holds an exclusive lock on matching documents, the "
               "operation will not block and an error will be generated.");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL13,
-              "If lockContention is set to SKIP_LOCK and another session "
+              "If lockContention is set to SKIP_LOCKED and another session "
               "already holds an exclusive lock on matching documents, the "
               "operation will not block and will return only those documents "
               "not having an exclusive lock.");
@@ -1002,14 +1002,14 @@ REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL4,
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL5,
               "@li mysqlx.LockContention.NOWAIT");
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL6,
-              "@li mysqlx.LockContention.SKIP_LOCK");
+              "@li mysqlx.LockContention.SKIP_LOCKED");
 
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL7,
               "The lockContention can also be specified using the following "
               "string literals (no case sensitive):");
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL8, "@li 'DEFAULT'");
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL9, "@li 'NOWAIT'");
-REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL10, "@li 'SKIP_LOCK'");
+REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL10, "@li 'SKIP_LOCKED'");
 
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL11,
               "If no lockContention or the default is specified, the operation "
@@ -1020,7 +1020,7 @@ REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL12,
               "already holds a lock on matching documents, the operation will "
               "not block and an error will be generated.");
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL13,
-              "If lockContention is set to SKIP_LOCK and  another session "
+              "If lockContention is set to SKIP_LOCKED and  another session "
               "already holds a lock on matching documents, the operation will "
               "not block and will return only those documents not having a "
               "lock.");

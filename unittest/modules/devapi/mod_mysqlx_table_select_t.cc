@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -279,7 +279,7 @@ TEST_F(Table_select, lock_shared_nowait_constant) {
 TEST_F(Table_select, lock_shared_skip_lock_string) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("table.select().where('_id = \"1\"').lockShared('skip_lock');");
+  execute("table.select().where('_id = \"1\"').lockShared('skip_locked');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Table_select.lock_shared",
@@ -324,7 +324,9 @@ TEST_F(Table_select, lock_shared_skip_lock_string) {
 TEST_F(Table_select, lock_shared_skip_lock_constant) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("table.select().where('_id = \"1\"').lockShared(mysqlx.LockContention.SKIP_LOCK);");
+  execute(
+      "table.select().where('_id = "
+      "\"1\"').lockShared(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Table_select.lock_shared",
@@ -459,7 +461,9 @@ TEST_F(Table_select, lock_exclusive_nowait_string) {
 TEST_F(Table_select, lock_exclusive_nowait_constant) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("table.select().where('_id = \"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCK);");
+  execute(
+      "table.select().where('_id = "
+      "\"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Table_select.lock_exclusive",
@@ -504,7 +508,7 @@ TEST_F(Table_select, lock_exclusive_nowait_constant) {
 TEST_F(Table_select, lock_exclusive_skip_lock_string) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("table.select().where('_id = \"1\"').lockExclusive('skip_lock');");
+  execute("table.select().where('_id = \"1\"').lockExclusive('skip_locked');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Table_select.lock_exclusive",
@@ -549,7 +553,9 @@ TEST_F(Table_select, lock_exclusive_skip_lock_string) {
 TEST_F(Table_select, lock_exclusive_skip_lock_constant) {
   execute("session.startTransaction();");
   _cout.str("");
-  execute("table.select().where('_id = \"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCK);");
+  execute(
+      "table.select().where('_id = "
+      "\"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT(
       "Table_select.lock_exclusive",
@@ -591,4 +597,4 @@ TEST_F(Table_select, lock_exclusive_skip_lock_constant) {
   _cout.str("");
 }
 
-}
+}  // namespace tests

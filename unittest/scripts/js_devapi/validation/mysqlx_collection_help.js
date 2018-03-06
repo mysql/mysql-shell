@@ -301,14 +301,14 @@ Retrieves documents from a collection, matching a specified criteria.
 
      - mysqlx.LockContention.DEFAULT
      - mysqlx.LockContention.NOWAIT
-     - mysqlx.LockContention.SKIP_LOCK
+     - mysqlx.LockContention.SKIP_LOCKED
 
     The lockContention can also be specified using the following string
     literals (no case sensitive):
 
      - 'DEFAULT'
      - 'NOWAIT'
-     - 'SKIP_LOCK'
+     - 'SKIP_LOCKED'
 
     If no lockContention or the default is specified, the operation will block
     if another session already holds an exclusive lock on matching documents
@@ -318,9 +318,9 @@ Retrieves documents from a collection, matching a specified criteria.
     exclusive lock on matching documents, the operation will not block and an
     error will be generated.
 
-    If lockContention is set to SKIP_LOCK and another session already holds an
-    exclusive lock on matching documents, the operation will not block and will
-    return only those documents not having an exclusive lock.
+    If lockContention is set to SKIP_LOCKED and another session already holds
+    an exclusive lock on matching documents, the operation will not block and
+    will return only those documents not having an exclusive lock.
 
     This operation only makes sense within a transaction.
 
@@ -339,14 +339,14 @@ Retrieves documents from a collection, matching a specified criteria.
 
      - mysqlx.LockContention.DEFAULT
      - mysqlx.LockContention.NOWAIT
-     - mysqlx.LockContention.SKIP_LOCK
+     - mysqlx.LockContention.SKIP_LOCKED
 
     The lockContention can also be specified using the following string
     literals (no case sensitive):
 
      - 'DEFAULT'
      - 'NOWAIT'
-     - 'SKIP_LOCK'
+     - 'SKIP_LOCKED'
 
     If no lockContention or the default is specified, the operation will block
     if another session already holds a lock on matching documents.
@@ -355,8 +355,8 @@ Retrieves documents from a collection, matching a specified criteria.
     on matching documents, the operation will not block and an error will be
     generated.
 
-    If lockContention is set to SKIP_LOCK and  another session already holds a
-    lock on matching documents, the operation will not block and will return
+    If lockContention is set to SKIP_LOCKED and  another session already holds
+    a lock on matching documents, the operation will not block and will return
     only those documents not having a lock.
 
     This operation only makes sense within a transaction.
