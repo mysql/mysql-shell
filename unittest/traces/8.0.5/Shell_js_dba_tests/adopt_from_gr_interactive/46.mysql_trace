@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@vm-ubuntu:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "84",
-    "connection_info": "vm-ubuntu via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "root@vm-ubuntu"
+            "root@pjesus-tecra-z40-b"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'vm-ubuntu\\''"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'pjesus-tecra-z40-b\\''"
 },
 {
     "type": "response",
@@ -224,27 +224,7 @@
             "YES"
         ],
         [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
+            "PERSIST_RO_VARIABLES_ADMIN",
             "YES"
         ],
         [
@@ -252,11 +232,11 @@
             "YES"
         ],
         [
-            "BINLOG_ADMIN",
+            "ENCRYPTION_KEY_ADMIN",
             "YES"
         ],
         [
-            "PERSIST_RO_VARIABLES_ADMIN",
+            "REPLICATION_SLAVE_ADMIN",
             "YES"
         ],
         [
@@ -264,11 +244,31 @@
             "YES"
         ],
         [
-            "SET_USER_ID",
+            "GROUP_REPLICATION_ADMIN",
             "YES"
         ],
         [
             "SYSTEM_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "SET_USER_ID",
             "YES"
         ],
         [
@@ -281,7 +281,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'vm-ubuntu\\'' ORDER BY TABLE_SCHEMA"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'pjesus-tecra-z40-b\\'' ORDER BY TABLE_SCHEMA"
 },
 {
     "type": "response",
@@ -347,7 +347,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'vm-ubuntu\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'pjesus-tecra-z40-b\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
 },
 {
     "type": "response",

@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326?ssl-mode=required",
+    "uri": "mysql://root:root@localhost:3350?ssl-mode=required",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "7",
+    "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -71,11 +71,11 @@
         ],
         [
             "group_replication_group_seeds",
-            "localhost:33161"
+            "localhost:33401"
         ],
         [
             "group_replication_local_address",
-            "localhost:33261"
+            "localhost:33501"
         ],
         [
             "group_replication_recovery_use_ssl",

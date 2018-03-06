@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "86",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -290,8 +290,8 @@
     ],
     "rows": [
         [
-            "a27cb1a7-2146-11e8-9100-080027c42733",
-            "a27cb1a7-2146-11e8-9100-080027c42733"
+            "4d903fdd-22d5-11e8-af23-5ce0c50b9d66",
+            "4d903fdd-22d5-11e8-af23-5ce0c50b9d66"
         ]
     ]
 },
@@ -299,7 +299,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a27cb1a7-2146-11e8-9100-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4d903fdd-22d5-11e8-af23-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -502,9 +502,9 @@
     ],
     "rows": [
         [
-            10,
+            13,
             "devCluster",
-            10,
+            13,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -515,7 +515,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 10"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 13"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
         [
             "default",
             "pm",
-            "b9e95362-2146-11e8-9100-080027c42733"
+            "66dc8698-22d5-11e8-af23-5ce0c50b9d66"
         ]
     ]
 },
@@ -617,7 +617,7 @@
     ],
     "rows": [
         [
-            "b9e95362-2146-11e8-9100-080027c42733"
+            "66dc8698-22d5-11e8-af23-5ce0c50b9d66"
         ]
     ]
 },
@@ -785,8 +785,8 @@
     ],
     "rows": [
         [
-            "a27cb1a7-2146-11e8-9100-080027c42733",
-            "a27cb1a7-2146-11e8-9100-080027c42733"
+            "4d903fdd-22d5-11e8-af23-5ce0c50b9d66",
+            "4d903fdd-22d5-11e8-af23-5ce0c50b9d66"
         ]
     ]
 },
@@ -794,7 +794,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a27cb1a7-2146-11e8-9100-080027c42733'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4d903fdd-22d5-11e8-af23-5ce0c50b9d66'"
 },
 {
     "type": "response",

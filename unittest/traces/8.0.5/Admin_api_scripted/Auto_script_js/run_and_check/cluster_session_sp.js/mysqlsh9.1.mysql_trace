@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "42",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "d5f204ba-2138-11e8-b2a8-080027c42733",
+            "2041e5ce-22cc-11e8-990c-5ce0c50b9d66",
             1,
-            "d389ec22-2138-11e8-a354-080027c42733",
+            "1bc4e25c-22cc-11e8-8a74-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -482,7 +482,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 212,
+            "length": 136,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -530,7 +530,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -547,10 +547,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.5-commercial MySQL Enterprise Server - Commercial",
+            "8.0.5 MySQL Community Server - GPL",
             "mysqld.sock",
-            3326,
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+            3350,
+            "/home/workspace/git/work/bugs/26754410/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },

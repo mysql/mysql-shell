@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "60",
+    "connection_id": "61",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.5-commercial",
+    "server_info": "8.0.5",
     "server_version": "8.0.5",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 232,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+            "/home/workspace/git/work/bugs/26754410/ngshell/BUILD/bin/3350/sandboxdata/"
         ]
     ]
 },
@@ -152,11 +152,11 @@
     ],
     "rows": [
         [
-            "vm-ubuntu-bin.000003",
-            30135,
+            "pjesus-TECRA-Z40-B-bin.000003",
+            30141,
             "",
             "",
-            "5cc819d2-213d-11e8-ac20-080027c42733:1-20,\n5f6216d3-213d-11e8-ac20-080027c42733:1-19,\n847127c7-213d-11e8-ac20-080027c42733:1-19"
+            "20e906b0-22cf-11e8-9ff3-5ce0c50b9d66:1-20,\n26e181fa-22cf-11e8-9ff3-5ce0c50b9d66:1-19,\n4c3426fa-22cf-11e8-9ff3-5ce0c50b9d66:1-19"
         ]
     ]
 },
@@ -325,7 +325,7 @@
     "rows": [
         [
             "server_uuid",
-            "5d7f3df4-213d-11e8-96f4-080027c42733"
+            "2295f2b5-22cf-11e8-8207-5ce0c50b9d66"
         ]
     ]
 },
@@ -380,7 +380,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33261"
+            "localhost:33501"
         ]
     ]
 },
@@ -435,7 +435,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33161"
+            "localhost:33401"
         ]
     ]
 },
@@ -498,7 +498,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33161'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33401'"
 },
 {
     "type": "response",
