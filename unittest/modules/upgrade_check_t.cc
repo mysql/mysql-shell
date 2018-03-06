@@ -401,14 +401,25 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   ASSERT_NO_THROW(session->execute(
       "create function test_astext() returns TEXT deterministic return "
       "AsText('MULTIPOINT(1 1, 2 2, 3 3)');"));
+  ASSERT_NO_THROW(
+      session->execute("create function test_enc() returns text deterministic "
+                       "return encrypt('123');"));
   // Unable to test generated columns as at least in 5.7.19 they are
   // automatically converted to supported functions
   ASSERT_NO_THROW(issues = check->run(session));
-  EXPECT_EQ(3, issues.size());
+  EXPECT_EQ(4, issues.size());
   EXPECT_NE(std::string::npos, issues[0].description.find("CONTAINS"));
+  EXPECT_NE(std::string::npos,
+            issues[0].description.find("consider using MBRCONTAINS"));
   EXPECT_NE(std::string::npos, issues[0].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos,
+            issues[0].description.find("ST_TOUCHES instead"));
   EXPECT_NE(std::string::npos, issues[1].description.find("ASTEXT"));
-  EXPECT_NE(std::string::npos, issues[2].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("ST_ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("ENCRYPT"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("SHA2"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("ST_TOUCHES"));
 }
 
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
@@ -480,7 +491,6 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
 }
 
-
 TEST_F(MySQL_upgrade_check_test, password_prompted) {
   Util util(_interactive_shell->shell_context().get(),
             _interactive_shell->get_console_handler(),
@@ -488,8 +498,11 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
-  output_handler.passwords.push_back({"Please provide the password for "
-                            "'" + _mysql_uri_nopasswd + "': ", "WhAtEvEr"});
+  output_handler.passwords.push_back(
+      {"Please provide the password for "
+       "'" +
+           _mysql_uri_nopasswd + "': ",
+       "WhAtEvEr"});
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
 
   // Passwords are consumed if prompted, so verifying this indicates the
@@ -504,8 +517,8 @@ TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
 
-  output_handler.passwords.push_back({"If this was prompted it is an error",
-                                      "WhAtEvEr"});
+  output_handler.passwords.push_back(
+      {"If this was prompted it is an error", "WhAtEvEr"});
 
   try {
     util.check_for_server_upgrade(args);
@@ -529,7 +542,8 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
   EXPECT_THROW_LIKE(util.check_for_server_upgrade(args), shcore::Exception,
-    "Util.checkForServerUpgrade: Missing password for "
-    "'" + _mysql_uri_nopasswd + "'");
+                    "Util.checkForServerUpgrade: Missing password for "
+                    "'" +
+                        _mysql_uri_nopasswd + "'");
 }
 }  // namespace mysqlsh
