@@ -58,7 +58,7 @@ std::string Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
   return "Notice:";
 }
 
-std::vector<std::unique_ptr<Upgrade_check> > Upgrade_check::create_checklist(
+std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
     const std::string& src_ver, const std::string& dst_ver) {
   using mysqlshdk::utils::Version;
   Version src_version(src_ver);
@@ -71,7 +71,7 @@ std::vector<std::unique_ptr<Upgrade_check> > Upgrade_check::create_checklist(
     throw std::invalid_argument(
         "Only Upgrade to MySQL 8.0 from 5.7 is currently supported");
 
-  std::vector<std::unique_ptr<Upgrade_check> > result;
+  std::vector<std::unique_ptr<Upgrade_check>> result;
   result.emplace_back(Sql_upgrade_check::get_reserved_keywords_check());
   result.emplace_back(Sql_upgrade_check::get_utf8mb3_check());
   // TODO(konrad): is it necessary?
@@ -384,72 +384,78 @@ Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
 
 class Removed_functions_check : public Sql_upgrade_check {
  private:
-  const std::array<std::string, 66> functions{{"AREA",
-                                               "ASBINARY",
-                                               "ASTEXT",
-                                               "ASWKB",
-                                               "ASWKT",
-                                               "BUFFER",
-                                               "CENTROID",
-                                               "CONTAINS",
-                                               "CROSSES",
-                                               "DIMENSION",
-                                               "DISJOINT",
-                                               "DISTANCE",
-                                               "ENDPOINT",
-                                               "ENVELOPE",
-                                               "EQUALS",
-                                               "EXTERIORRING",
-                                               "GEOMCOLLFROMTEXT",
-                                               "GEOMCOLLFROMWKB",
-                                               "GEOMETRYCOLLECTIONFROMTEXT",
-                                               "GEOMETRYCOLLECTIONFROMWKB",
-                                               "GEOMETRYFROMTEXT",
-                                               "GEOMETRYFROMWKB",
-                                               "GEOMETRYN",
-                                               "GEOMETRYTYPE",
-                                               "GEOMFROMTEXT",
-                                               "GEOMFROMWKB",
-                                               "GLENGTH",
-                                               "INTERIORRINGN",
-                                               "INTERSECTS",
-                                               "ISCLOSED",
-                                               "ISEMPTY",
-                                               "ISSIMPLE",
-                                               "LINEFROMTEXT",
-                                               "LINEFROMWKB",
-                                               "LINESTRINGFROMTEXT",
-                                               "LINESTRINGFROMWKB",
-                                               "MBREQUAL",
-                                               "MLINEFROMTEXT",
-                                               "MLINEFROMWKB",
-                                               "MPOINTFROMTEXT",
-                                               "MPOINTFROMWKB",
-                                               "MPOLYFROMTEXT",
-                                               "MPOLYFROMWKB",
-                                               "MULTILINESTRINGFROMTEXT",
-                                               "MULTILINESTRINGFROMWKB",
-                                               "MULTIPOINTFROMTEXT",
-                                               "MULTIPOINTFROMWKB",
-                                               "MULTIPOLYGONFROMTEXT",
-                                               "MULTIPOLYGONFROMWKB",
-                                               "NUMGEOMETRIES",
-                                               "NUMINTERIORRINGS",
-                                               "NUMPOINTS",
-                                               "OVERLAPS",
-                                               "POINTFROMTEXT",
-                                               "POINTFROMWKB",
-                                               "POINTN",
-                                               "POLYFROMTEXT",
-                                               "POLYFROMWKB",
-                                               "POLYGONFROMTEXT",
-                                               "POLYGONFROMWKB",
-                                               "SRID",
-                                               "STARTPOINT",
-                                               "TOUCHES",
-                                               "WITHIN",
-                                               "X",
-                                               "Y"}};
+  const std::array<std::pair<std::string, const char*>, 71> functions{
+      {{"ENCODE", "AES_ENCRYPT and AES_DECRYPT"},
+       {"DECODE", "AES_ENCRYPT and AES_DECRYPT"},
+       {"ENCRYPT", "SHA2"},
+       {"DES_ENCRYPT", "AES_ENCRYPT and AES_DECRYPT"},
+       {"DES_DECRYPT", "AES_ENCRYPT and AES_DECRYPT"},
+       {"AREA", "ST_AREA"},
+       {"ASBINARY", "ST_ASBINARY"},
+       {"ASTEXT", "ST_ASTEXT"},
+       {"ASWKB", "ST_ASWKB"},
+       {"ASWKT", "ST_ASWKT"},
+       {"BUFFER", "ST_BUFFER"},
+       {"CENTROID", "ST_CENTROID"},
+       {"CONTAINS", "MBRCONTAINS"},
+       {"CROSSES", "ST_CROSSES"},
+       {"DIMENSION", "ST_DIMENSION"},
+       {"DISJOINT", "MBRDISJOINT"},
+       {"DISTANCE", "ST_DISTANCE"},
+       {"ENDPOINT", "ST_ENDPOINT"},
+       {"ENVELOPE", "ST_ENVELOPE"},
+       {"EQUALS", "MBREQUALS"},
+       {"EXTERIORRING", "ST_EXTERIORRING"},
+       {"GEOMCOLLFROMTEXT", "ST_GEOMCOLLFROMTEXT"},
+       {"GEOMCOLLFROMWKB", "ST_GEOMCOLLFROMWKB"},
+       {"GEOMETRYCOLLECTIONFROMTEXT", "ST_GEOMETRYCOLLECTIONFROMTEXT"},
+       {"GEOMETRYCOLLECTIONFROMWKB", "ST_GEOMETRYCOLLECTIONFROMWKB"},
+       {"GEOMETRYFROMTEXT", "ST_GEOMETRYFROMTEXT"},
+       {"GEOMETRYFROMWKB", "ST_GEOMETRYFROMWKB"},
+       {"GEOMETRYN", "ST_GEOMETRYN"},
+       {"GEOMETRYTYPE", "ST_GEOMETRYTYPE"},
+       {"GEOMFROMTEXT", "ST_GEOMFROMTEXT"},
+       {"GEOMFROMWKB", "ST_GEOMFROMWKB"},
+       {"GLENGTH", "ST_LENGTH"},
+       {"INTERIORRINGN", "ST_INTERIORRINGN"},
+       {"INTERSECTS", "MBRINTERSECTS"},
+       {"ISCLOSED", "ST_ISCLOSED"},
+       {"ISEMPTY", "ST_ISEMPTY"},
+       {"ISSIMPLE", "ST_ISSIMPLE"},
+       {"LINEFROMTEXT", "ST_LINEFROMTEXT"},
+       {"LINEFROMWKB", "ST_LINEFROMWKB"},
+       {"LINESTRINGFROMTEXT", "ST_LINESTRINGFROMTEXT"},
+       {"LINESTRINGFROMWKB", "ST_LINESTRINGFROMWKB"},
+       {"MBREQUAL", "MBREQUALS"},
+       {"MLINEFROMTEXT", "ST_MLINEFROMTEXT"},
+       {"MLINEFROMWKB", "ST_MLINEFROMWKB"},
+       {"MPOINTFROMTEXT", "ST_MPOINTFROMTEXT"},
+       {"MPOINTFROMWKB", "ST_MPOINTFROMWKB"},
+       {"MPOLYFROMTEXT", "ST_MPOLYFROMTEXT"},
+       {"MPOLYFROMWKB", "ST_MPOLYFROMWKB"},
+       {"MULTILINESTRINGFROMTEXT", "ST_MULTILINESTRINGFROMTEXT"},
+       {"MULTILINESTRINGFROMWKB", "ST_MULTILINESTRINGFROMWKB"},
+       {"MULTIPOINTFROMTEXT", "ST_MULTIPOINTFROMTEXT"},
+       {"MULTIPOINTFROMWKB", "ST_MULTIPOINTFROMWKB"},
+       {"MULTIPOLYGONFROMTEXT", "ST_MULTIPOLYGONFROMTEXT"},
+       {"MULTIPOLYGONFROMWKB", "ST_MULTIPOLYGONFROMWKB"},
+       {"NUMGEOMETRIES", "ST_NUMGEOMETRIES"},
+       {"NUMINTERIORRINGS", "ST_NUMINTERIORRINGS"},
+       {"NUMPOINTS", "ST_NUMPOINTS"},
+       {"OVERLAPS", "MBROVERLAPS"},
+       {"POINTFROMTEXT", "ST_POINTFROMTEXT"},
+       {"POINTFROMWKB", "ST_POINTFROMWKB"},
+       {"POINTN", "ST_POINTN"},
+       {"POLYFROMTEXT", "ST_POLYFROMTEXT"},
+       {"POLYFROMWKB", "ST_POLYFROMWKB"},
+       {"POLYGONFROMTEXT", "ST_POLYGONFROMTEXT"},
+       {"POLYGONFROMWKB", "ST_POLYGONFROMWKB"},
+       {"SRID", "ST_SRID"},
+       {"STARTPOINT", "ST_STARTPOINT"},
+       {"TOUCHES", "ST_TOUCHES"},
+       {"WITHIN", "MBRWITHIN"},
+       {"X", "ST_X"},
+       {"Y", "ST_Y"}}};
 
  public:
   Removed_functions_check()
@@ -463,10 +469,9 @@ class Removed_functions_check : public Sql_upgrade_check {
              "select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
              "UPPER(ACTION_STATEMENT) from information_schema.triggers;"},
             Upgrade_issue::ERROR,
-            "Following db object make use of functions that have "
-            "been removed in version 8.0 in favor of the MBR and "
-            "ST_ names. Please make sure to update them to use "
-            "supported alternatives before upgrade.") {
+            "Following DB objects make use of functions that have "
+            "been removed in version 8.0. Please make sure to update them to "
+            "use supported alternatives before upgrade.") {
   }
 
  protected:
@@ -495,10 +500,10 @@ class Removed_functions_check : public Sql_upgrade_check {
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow* row) override {
     Upgrade_issue res;
-    std::vector<std::string> flagged_functions;
+    std::vector<const std::pair<std::string, const char*>*> flagged_functions;
     std::string definition = row->get_as_string(4);
-    for (const std::string& func : functions) {
-      std::size_t pos = find_function(definition, func);
+    for (const auto& func : functions) {
+      std::size_t pos = find_function(definition, func.first);
 
       std::size_t it = 0;
       while (pos != std::string::npos && it < pos) {
@@ -533,11 +538,11 @@ class Removed_functions_check : public Sql_upgrade_check {
             ++it;
         }
         if (it > pos)
-          pos = find_function(definition, func, it);
+          pos = find_function(definition, func.first, it);
       }
 
       if (pos != std::string::npos)
-        flagged_functions.push_back(func);
+        flagged_functions.push_back(&func);
     }
 
     if (flagged_functions.empty())
@@ -547,9 +552,9 @@ class Removed_functions_check : public Sql_upgrade_check {
     ss << row->get_as_string(3) << " uses removed function";
     if (flagged_functions.size() > 1)
       ss << "s";
-    ss << " " << flagged_functions[0];
-    for (std::size_t i = 1; i < flagged_functions.size(); ++i)
-      ss << ", " << flagged_functions[i];
+    for (std::size_t i = 0; i < flagged_functions.size(); ++i)
+      ss << (i > 0 ? ", " : " ") << flagged_functions[i]->first
+         << " (consider using " << flagged_functions[i]->second << " instead)";
 
     res.schema = row->get_as_string(0);
     res.table = row->get_as_string(1);
@@ -574,7 +579,7 @@ std::vector<Upgrade_issue> Check_table_command::run(
   // Needed for warnings related to triggers
   session->execute("FLUSH TABLES;");
 
-  std::vector<std::pair<std::string, std::string> > tables;
+  std::vector<std::pair<std::string, std::string>> tables;
   auto result = session->query(
       "SELECT TABLE_SCHEMA, TABLE_NAME FROM "
       "INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA not in "
