@@ -541,7 +541,7 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password_require_ssl) {
       {Expect::Fail, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
       {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::SRoot, {}},
       {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::SRoot, {}},
-#ifndef _WIN32rooty
+#ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
       {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
