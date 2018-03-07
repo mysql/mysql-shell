@@ -463,7 +463,7 @@ class Removed_functions_check : public Sql_upgrade_check {
             "Usage of removed functions",
             {"select routine_schema, routine_name, '', routine_type, "
              "UPPER(routine_definition) from information_schema.routines;",
-             "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'Column'"
+             "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'COLUMN'"
              ", UPPER(GENERATION_EXPRESSION) from "
              "information_schema.columns where extra regexp 'generated';",
              "select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
