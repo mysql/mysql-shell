@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,7 +45,7 @@ class SHCORE_PUBLIC JScript_context {
   ~JScript_context();
 
   Value execute(const std::string &code, const std::string &source = "",
-                const std::vector<std::string> &argv = {}) throw(Exception);
+                const std::vector<std::string> &argv = {});
   Value execute_interactive(const std::string &code,
                             Input_state &r_state) noexcept;
 
