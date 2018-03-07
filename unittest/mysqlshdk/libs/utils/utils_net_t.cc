@@ -40,7 +40,14 @@ TEST(utils_net, resolve_hostname_ipv4) {
   EXPECT_NO_THROW(Net::resolve_hostname_ipv4("localhost"));
   EXPECT_NO_THROW(Net::resolve_hostname_ipv4("google.pl"));
 
+#ifdef WIN32
+  // On Windows, using an empty string will resolve to any registered
+  // address
+  EXPECT_NO_THROW(Net::resolve_hostname_ipv4(""), net_error);
+#else
   EXPECT_THROW(Net::resolve_hostname_ipv4(""), net_error);
+#endif  // WIN32
+
   EXPECT_THROW(Net::resolve_hostname_ipv4("unknown_host"), net_error);
   EXPECT_THROW(Net::resolve_hostname_ipv4("127.0.0.1.."), net_error);
   EXPECT_THROW(Net::resolve_hostname_ipv4("127.0.0.256"), net_error);

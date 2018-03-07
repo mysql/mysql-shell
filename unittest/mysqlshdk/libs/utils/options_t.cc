@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -417,7 +417,7 @@ TEST_F(Options_test, access_from_code) {
   ASSERT_NO_THROW(test_options.set("sandboxDir", "/dummy"));
   EXPECT_EQ("/dummy", sandbox_dir);
   EXPECT_EQ("/dummy", test_options.get<std::string>("sandboxDir"));
-  ASSERT_THROW(test_options.get<int>("sandboxDir"), std::invalid_argument);
+  EXPECT_THROW(test_options.get<int>("sandboxDir"), std::invalid_argument);
   EXPECT_EQ(11, test_options.get_cmdline_help().size());
   EXPECT_EQ(named_options.size(), get_options_description().size());
 }
