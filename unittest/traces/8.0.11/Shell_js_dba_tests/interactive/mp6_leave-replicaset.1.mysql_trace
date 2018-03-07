@@ -10,9 +10,9 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "49",
+    "connection_id": "45",
     "connection_info": "127.0.0.1 via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-commercial",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "ebfe150c-2701-11e8-892e-4327fb745344"
+            "c2a1df2e-2945-11e8-9f3e-080027c42733"
         ]
     ]
 },

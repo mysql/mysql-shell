@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -176,12 +176,16 @@
     ],
     "rows": [
         [
+            "auto_generate_certs",
+            "ON"
+        ],
+        [
             "auto_increment_increment",
             "1"
         ],
         [
             "auto_increment_offset",
-            "4"
+            "1"
         ],
         [
             "autocommit",
@@ -201,7 +205,7 @@
         ],
         [
             "basedir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/"
         ],
         [
             "big_tables",
@@ -301,7 +305,7 @@
         ],
         [
             "character_sets_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/charsets/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/share/mysql/charsets/"
         ],
         [
             "check_proxy_users",
@@ -337,7 +341,7 @@
         ],
         [
             "datadir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
         ],
         [
             "date_format",
@@ -457,7 +461,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/vm-ubuntu.log"
         ],
         [
             "group_concat_max_len",
@@ -533,7 +537,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-237-174.vpn.oracle.com"
+            "vm-ubuntu"
         ],
         [
             "ignore_builtin_innodb",
@@ -900,6 +904,10 @@
             ""
         ],
         [
+            "innodb_numa_interleave",
+            "OFF"
+        ],
+        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -1073,7 +1081,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "OFF"
+            "ON"
         ],
         [
             "innodb_version",
@@ -1137,7 +1145,7 @@
         ],
         [
             "lc_messages_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/share/mysql/"
         ],
         [
             "lc_time_names",
@@ -1145,7 +1153,7 @@
         ],
         [
             "license",
-            "GPL"
+            "Commercial"
         ],
         [
             "local_infile",
@@ -1165,11 +1173,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/vm-ubuntu-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/vm-ubuntu-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1185,7 +1193,7 @@
         ],
         [
             "log_error",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/error.log"
         ],
         [
             "log_error_verbosity",
@@ -1253,11 +1261,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "master_info_repository",
@@ -1517,7 +1525,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "5000"
         ],
         [
             "optimizer_prune_level",
@@ -1725,11 +1733,11 @@
         ],
         [
             "pid_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/3316.pid"
         ],
         [
             "plugin_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/lib/plugin/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/lib/mysql/plugin/"
         ],
         [
             "port",
@@ -1809,11 +1817,11 @@
         ],
         [
             "relay_log_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-relay-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/vm-ubuntu-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-relay-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/vm-ubuntu-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1865,7 +1873,7 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/mysql-files/"
         ],
         [
             "server_id",
@@ -1877,7 +1885,7 @@
         ],
         [
             "server_uuid",
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ],
         [
             "session_track_gtids",
@@ -1900,8 +1908,20 @@
             "OFF"
         ],
         [
+            "sha256_password_auto_generate_rsa_keys",
+            "ON"
+        ],
+        [
+            "sha256_password_private_key_path",
+            "private_key.pem"
+        ],
+        [
             "sha256_password_proxy_users",
             "OFF"
+        ],
+        [
+            "sha256_password_public_key_path",
+            "public_key.pem"
         ],
         [
             "show_compatibility_56",
@@ -1949,7 +1969,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "slave_max_allowed_packet",
@@ -2005,7 +2025,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-slow.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/vm-ubuntu-slow.log"
         ],
         [
             "socket",
@@ -2117,7 +2137,7 @@
         ],
         [
             "system_time_zone",
-            "PST"
+            "CET"
         ],
         [
             "table_definition_cache",
@@ -2153,7 +2173,7 @@
         ],
         [
             "tls_version",
-            "TLSv1,TLSv1.1"
+            "TLSv1,TLSv1.1,TLSv1.2"
         ],
         [
             "tmp_table_size",
@@ -2161,7 +2181,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "transaction_alloc_block_size",
@@ -2205,7 +2225,7 @@
         ],
         [
             "version_comment",
-            "MySQL Community Server (GPL)"
+            "MySQL Commercial Server (Advanced)"
         ],
         [
             "version_compile_machine",
@@ -2213,7 +2233,7 @@
         ],
         [
             "version_compile_os",
-            "macos10.13"
+            "Linux"
         ],
         [
             "wait_timeout",
@@ -2607,7 +2627,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 66,
+            "length": 58,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -2621,7 +2641,7 @@
     "rows": [
         [
             3316,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
         ]
     ]
 },
@@ -2662,7 +2682,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 66,
+            "length": 58,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -2676,7 +2696,7 @@
     "rows": [
         [
             3316,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3316/sandboxdata/"
         ]
     ]
 },
@@ -2932,7 +2952,7 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-237-174-bin.000003",
+            "vm-ubuntu-bin.000003",
             150,
             "",
             "",
@@ -3158,7 +3178,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'%' IDENTIFIED BY /*(*/ '~w#=}m/5{(1$-7>B<?_@,:+t-J][&},j' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'%' IDENTIFIED BY /*(*/ 'y0(=?D*>#|l{;#9:U_;)f;2K%=]Z?$[;' /*)*/ "
 },
 {
     "type": "response",
@@ -3173,7 +3193,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost' IDENTIFIED BY /*(*/ '~w#=}m/5{(1$-7>B<?_@,:+t-J][&},j' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost' IDENTIFIED BY /*(*/ 'y0(=?D*>#|l{;#9:U_;)f;2K%=]Z?$[;' /*)*/ "
 },
 {
     "type": "response",
@@ -3570,7 +3590,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, 'aeefad04-24fb-11e8-8100-bf420c77308c', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '77efa3c2-25ec-11e8-835c-080027c42733', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
@@ -3663,7 +3683,7 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
+            "77efa3c2-25ec-11e8-835c-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -3704,7 +3724,7 @@
     ],
     "rows": [
         [
-            "b0b13b3a-24fb-11e8-8100-bf420c77308c"
+            "7994a9b7-25ec-11e8-835c-080027c42733"
         ]
     ]
 },
@@ -3712,7 +3732,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'b0b13b3a-24fb-11e8-8100-bf420c77308c') WHERE replicaset_id = 1"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '7994a9b7-25ec-11e8-835c-080027c42733') WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -3902,8 +3922,8 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733",
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ]
     ]
 },
@@ -3911,7 +3931,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 105,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aeefad04-24fb-11e8-8100-bf420c77308c'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '77efa3c2-25ec-11e8-835c-080027c42733'"
 },
 {
     "type": "response",
@@ -4196,7 +4216,7 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
+            "77efa3c2-25ec-11e8-835c-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4252,7 +4272,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 123,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '(>7:2#w:>[q,{;c#v]&T{G?#/W0_.~@^' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '{;(W@;j4d:?:#:g[%*7_$R]r?D_~9<=:' /*)*/ "
 },
 {
     "type": "response",
@@ -4267,7 +4287,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 125,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '(>7:2#w:>[q,{;c#v]&T{G?#/W0_.~@^' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '{;(W@;j4d:?:#:g[%*7_$R]r?D_~9<=:' /*)*/ "
 },
 {
     "type": "response",
@@ -4374,7 +4394,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ]
     ]
 },
@@ -4460,7 +4480,7 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
+            "77efa3c2-25ec-11e8-835c-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4549,7 +4569,7 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
+            "77efa3c2-25ec-11e8-835c-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4647,7 +4667,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 143,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, 'afcf8514-24fb-11e8-b244-0c71161b4301', 'localhost:3326', 'HA', json_object('mysqlClassic', 'localhost:3326', 'mysqlX', 'localhost:33260', 'grLocal', 'localhost:33261'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '7895b712-25ec-11e8-84ca-080027c42733', 'localhost:3326', 'HA', json_object('mysqlClassic', 'localhost:3326', 'mysqlX', 'localhost:33260', 'grLocal', 'localhost:33261'))"
 },
 {
     "type": "response",
@@ -4755,13 +4775,13 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
+            "77efa3c2-25ec-11e8-835c-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "afcf8514-24fb-11e8-b244-0c71161b4301",
+            "7895b712-25ec-11e8-84ca-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326"
@@ -4932,8 +4952,8 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733",
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ]
     ]
 },
@@ -4941,7 +4961,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 157,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aeefad04-24fb-11e8-8100-bf420c77308c'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '77efa3c2-25ec-11e8-835c-080027c42733'"
 },
 {
     "type": "response",
@@ -5119,7 +5139,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ]
     ]
 },
@@ -5259,14 +5279,14 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
+            "77efa3c2-25ec-11e8-835c-080027c42733",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "afcf8514-24fb-11e8-b244-0c71161b4301",
+            "7895b712-25ec-11e8-84ca-080027c42733",
             "localhost:3326",
             "HA",
             "localhost:3326",
@@ -5414,8 +5434,8 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c",
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733",
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ]
     ]
 },
@@ -5423,7 +5443,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 177,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aeefad04-24fb-11e8-8100-bf420c77308c'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '77efa3c2-25ec-11e8-835c-080027c42733'"
 },
 {
     "type": "response",

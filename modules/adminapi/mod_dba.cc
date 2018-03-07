@@ -955,6 +955,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true");
 
+    if (adopt_from_gr && state.source_type != GRInstanceType::GroupReplication)
+      throw Exception::argument_error(
+          "The adoptFromGR option is set to true, but there is no replication "
+          "group to adopt");
+
     mysqlshdk::mysql::Instance target_instance(group_session);
     target_instance.cache_global_sysvars();
 

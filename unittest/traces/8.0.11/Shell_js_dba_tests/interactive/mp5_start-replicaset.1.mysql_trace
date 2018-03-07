@@ -10,9 +10,9 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "37",
+    "connection_id": "33",
     "connection_info": "127.0.0.1 via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-commercial",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -616,7 +616,7 @@
     "rows": [
         [
             "version",
-            "8.0.11"
+            "8.0.11-commercial"
         ]
     ]
 },
@@ -2378,9 +2378,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$Q`8H5Y[\u0007\r\u000B\u0001N\u0001*`y\f6=fZQGUsnt2ZeyHcWP1W8aamV.7boHuhXKMY//ZntdpM5",
+            "$A$005$C%%I\u0018+ggW]\u000F\rJ\u0018?\u0014Z\u0006\u0006hiu.qb3AcLL61QY5N/fEknZD0d5i2j2Q1JMyfoI.PdF/",
             "N",
-            "2018-03-13 14:03:03",
+            "2018-03-16 19:13:42",
             null,
             "N",
             "N",
@@ -2620,308 +2620,308 @@
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "mysql_native_password",
             "ACTIVE",
             "AUTHENTICATION",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "sha256_password",
             "ACTIVE",
             "AUTHENTICATION",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "caching_sha2_password",
             "ACTIVE",
             "AUTHENTICATION",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "sha2_cache_cleaner",
             "ACTIVE",
             "AUDIT",
             null,
-            "GPL"
-        ],
-        [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "InnoDB",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_TRX",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CMP",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CMP_RESET",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CMPMEM",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CMPMEM_RESET",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CMP_PER_INDEX",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CMP_PER_INDEX_RESET",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_BUFFER_PAGE",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_BUFFER_PAGE_LRU",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_BUFFER_POOL_STATS",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_TEMP_TABLE_INFO",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_METRICS",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_FT_DEFAULT_STOPWORD",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_FT_DELETED",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_FT_BEING_DELETED",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_FT_CONFIG",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_FT_INDEX_CACHE",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_FT_INDEX_TABLE",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_TABLES",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_TABLESTATS",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_INDEXES",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_TABLESPACES",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_COLUMNS",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_VIRTUAL",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
-        ],
-        [
-            "INNODB_CACHED_INDEXES",
-            "ACTIVE",
-            "INFORMATION SCHEMA",
-            null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
-            "MRG_MYISAM",
+            "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_TRX",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CMP",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CMP_RESET",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CMPMEM",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CMPMEM_RESET",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CMP_PER_INDEX",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CMP_PER_INDEX_RESET",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_BUFFER_PAGE",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_BUFFER_PAGE_LRU",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_BUFFER_POOL_STATS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_TEMP_TABLE_INFO",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_METRICS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_FT_DEFAULT_STOPWORD",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_FT_DELETED",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_FT_BEING_DELETED",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_FT_CONFIG",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_FT_INDEX_CACHE",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_FT_INDEX_TABLE",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_TABLES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_TABLESTATS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_INDEXES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_TABLESPACES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_COLUMNS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_VIRTUAL",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
+        ],
+        [
+            "INNODB_CACHED_INDEXES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "PROPRIETARY"
         ],
         [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
         ],
         [
             "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
-            "ARCHIVE",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
-            "BLACKHOLE",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
-            "ngram",
+            "BLACKHOLE",
             "ACTIVE",
-            "FTPARSER",
+            "STORAGE ENGINE",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "PROPRIETARY"
         ],
         [
             "mysqlx",
             "ACTIVE",
             "DAEMON",
             null,
-            "GPL"
+            "PROPRIETARY"
         ],
         [
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
             null,
-            "GPL"
+            "PROPRIETARY"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
+            null,
+            "PROPRIETARY"
         ],
         [
             "group_replication",
             "ACTIVE",
             "GROUP REPLICATION",
             "group_replication.so",
-            "GPL"
+            "PROPRIETARY"
         ]
     ]
 },
@@ -3090,7 +3090,7 @@
     ],
     "rows": [
         [
-            "ebfe150c-2701-11e8-892e-4327fb745344"
+            "c2a1df2e-2945-11e8-9f3e-080027c42733"
         ]
     ]
 },
@@ -3218,7 +3218,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "SET PERSIST group_replication_group_name = 'ebfe150c-2701-11e8-892e-4327fb745344'"
+    "sql": "SET PERSIST group_replication_group_name = 'c2a1df2e-2945-11e8-9f3e-080027c42733'"
 },
 {
     "type": "response",
@@ -3848,7 +3848,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 161,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '#F_0,.?=,&8}->o:,w-:;|*U/2(B{=]L' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ 'U[?%[@w#3^@:^1|z*/X=(J]%h-Q&_2@~' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

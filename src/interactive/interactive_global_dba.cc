@@ -353,6 +353,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         opt_map.bool_at("clearReadOnly");
         prompt_read_only = false;
       }
+
+      if (adopt_from_gr && opt_map.has_key("multiMaster")) {
+        throw shcore::Exception::argument_error(
+          "Cannot use multiMaster option if adoptFromGR is set to true."
+          " Using adoptFromGR mode will adopt the primary mode in use by the "
+          "Cluster.");
+      }
     } else {
       options.reset(new shcore::Value::Map_type());
     }
@@ -403,6 +410,12 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
             "adoptFromGR option to be true");
       }
     }
+
+    if (adopt_from_gr &&
+        state.source_type != mysqlsh::dba::GRInstanceType::GroupReplication)
+      throw Exception::argument_error(
+        "The adoptFromGR option is set to true, but there is no replication "
+        "group to adopt");
 
     println(std::string{"A new InnoDB cluster will be created"} +
             (adopt_from_gr

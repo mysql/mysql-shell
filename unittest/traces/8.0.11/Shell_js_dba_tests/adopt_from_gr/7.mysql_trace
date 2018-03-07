@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3327",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-commercial",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -79,7 +79,7 @@
         ],
         [
             "auto_increment_offset",
-            "3"
+            "7"
         ],
         [
             "autocommit",
@@ -99,7 +99,7 @@
         ],
         [
             "basedir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/"
         ],
         [
             "big_tables",
@@ -231,7 +231,7 @@
         ],
         [
             "character_sets_dir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/share/charsets/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/share/mysql/charsets/"
         ],
         [
             "check_proxy_users",
@@ -271,7 +271,7 @@
         ],
         [
             "datadir",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ],
         [
             "default_authentication_plugin",
@@ -387,7 +387,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/dhcp-10-159-159-64.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu.log"
         ],
         [
             "group_concat_max_len",
@@ -463,7 +463,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-159-64.vpn.oracle.com"
+            "vm-ubuntu"
         ],
         [
             "information_schema_stats_expiry",
@@ -822,6 +822,10 @@
             ""
         ],
         [
+            "innodb_numa_interleave",
+            "OFF"
+        ],
+        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -995,7 +999,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "OFF"
+            "ON"
         ],
         [
             "innodb_version",
@@ -1063,7 +1067,7 @@
         ],
         [
             "lc_messages_dir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/share/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/share/mysql/"
         ],
         [
             "lc_time_names",
@@ -1071,7 +1075,7 @@
         ],
         [
             "license",
-            "GPL"
+            "Commercial"
         ],
         [
             "local_infile",
@@ -1091,11 +1095,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/dhcp-10-159-159-64-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/dhcp-10-159-159-64-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1107,7 +1111,7 @@
         ],
         [
             "log_error",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/error.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/error.log"
         ],
         [
             "log_error_services",
@@ -1175,11 +1179,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "mandatory_roles",
@@ -1363,7 +1367,7 @@
         ],
         [
             "mysqlx_port",
-            "33270"
+            "33260"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1451,7 +1455,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "8161"
         ],
         [
             "optimizer_prune_level",
@@ -1679,15 +1683,15 @@
         ],
         [
             "pid_file",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/3327.pid"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/3326.pid"
         ],
         [
             "plugin_dir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/lib/plugin/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/lib/mysql/plugin/"
         ],
         [
             "port",
-            "3327"
+            "3326"
         ],
         [
             "preload_buffer_size",
@@ -1747,15 +1751,15 @@
         ],
         [
             "relay_log",
-            "dhcp-10-159-159-64-relay-bin"
+            "vm-ubuntu-relay-bin"
         ],
         [
             "relay_log_basename",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/dhcp-10-159-159-64-relay-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/dhcp-10-159-159-64-relay-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1787,7 +1791,7 @@
         ],
         [
             "report_port",
-            "3327"
+            "3326"
         ],
         [
             "report_user",
@@ -1811,11 +1815,11 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/mysql-files/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/mysql-files/"
         ],
         [
             "server_id",
-            "15672"
+            "15671"
         ],
         [
             "server_id_bits",
@@ -1823,7 +1827,7 @@
         ],
         [
             "server_uuid",
-            "abe6e2dc-263e-11e8-8e5b-12909b59ec96"
+            "20b000d9-2945-11e8-a7e2-080027c42733"
         ],
         [
             "session_track_gtids",
@@ -1907,7 +1911,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "slave_max_allowed_packet",
@@ -1963,7 +1967,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/dhcp-10-159-159-64-slow.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-slow.log"
         ],
         [
             "socket",
@@ -2079,7 +2083,7 @@
         ],
         [
             "system_time_zone",
-            "CST"
+            "CET"
         ],
         [
             "table_definition_cache",
@@ -2127,7 +2131,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "transaction_alloc_block_size",
@@ -2159,11 +2163,11 @@
         ],
         [
             "version",
-            "8.0.11"
+            "8.0.11-commercial"
         ],
         [
             "version_comment",
-            "MySQL Community Server - GPL"
+            "MySQL Enterprise Server - Commercial"
         ],
         [
             "version_compile_machine",
@@ -2171,7 +2175,7 @@
         ],
         [
             "version_compile_os",
-            "macos10.13"
+            "Linux"
         ],
         [
             "version_compile_zlib",
@@ -2208,7 +2212,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2221,7 +2225,7 @@
     ],
     "rows": [
         [
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },
@@ -2433,47 +2437,7 @@
             "YES"
         ],
         [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
+            "XA_RECOVER_ADMIN",
             "YES"
         ],
         [
@@ -2481,7 +2445,47 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
             "YES"
         ]
     ]
@@ -2671,7 +2675,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2684,8 +2688,8 @@
     ],
     "rows": [
         [
-            3327,
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/"
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },
@@ -2726,7 +2730,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2739,8 +2743,8 @@
     ],
     "rows": [
         [
-            3327,
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3327/sandboxdata/"
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },
@@ -2760,36 +2764,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
             "schema": "",
@@ -2826,36 +2830,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": []
@@ -2958,7 +2962,7 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-159-64-bin.000003",
+            "vm-ubuntu-bin.000003",
             151,
             "",
             "",
@@ -3058,8 +3062,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -3071,7 +3075,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": []
@@ -3127,7 +3131,7 @@
     "rows": [
         [
             "server_uuid",
-            "abe6e2dc-263e-11e8-8e5b-12909b59ec96"
+            "20b000d9-2945-11e8-a7e2-080027c42733"
         ]
     ]
 },
@@ -3182,7 +3186,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33271"
+            "localhost:33261"
         ]
     ]
 },
@@ -3237,7 +3241,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33171"
+            "localhost:33161"
         ]
     ]
 },
@@ -3300,7 +3304,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33171'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33161'"
 },
 {
     "type": "response",

@@ -10,11 +10,11 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "66",
+    "connection_id": "62",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "747e81c8-2518-11e8-8dd9-7035b8fabfcc"
+            "19e1019a-25e8-11e8-81d0-080027c42733"
         ]
     ]
 },
@@ -242,7 +242,7 @@
         ],
         [
             "group_replication_group_name",
-            "747e81c8-2518-11e8-8dd9-7035b8fabfcc"
+            "19e1019a-25e8-11e8-81d0-080027c42733"
         ],
         [
             "group_replication_group_seeds",

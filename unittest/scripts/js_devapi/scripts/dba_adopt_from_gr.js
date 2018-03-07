@@ -4,22 +4,26 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-// Create account with all privileges but remove one of the necessary privileges
-session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
-session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'%' WITH GRANT OPTION");
-session.runSql("SET sql_log_bin = 1");
-
+// by default, root account can connect only via localhost, create 'root'@'%'
+// so it's possible to connect via hostname
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-// Create account with all privileges but remove one of the necessary privileges
+
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'%' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
 
-
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
+session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'%' WITH GRANT OPTION");
+session.runSql("SET sql_log_bin = 1");
+
+//@ it's not possible to adopt from GR without existing group replication
+dba.createCluster('testCluster', {adoptFromGR: true});
+
+// create cluster with two instances and drop metadata schema
 
 //@ Create cluster
 if (__have_ssl)
@@ -55,9 +59,14 @@ var cluster = dba.createCluster('testCluster', {adoptFromGR: true});
 //@<OUT> Check cluster status
 cluster.status();
 
+//@ dissolve the cluster
+cluster.dissolve({force: true});
+
+//@ it's not possible to adopt from GR when cluster was dissolved
+dba.createCluster('testCluster', {adoptFromGR: true});
+
 // Close session
 session.close();
-cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

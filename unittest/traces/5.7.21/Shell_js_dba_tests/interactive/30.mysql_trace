@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "missingprivileges:@localhost:3326",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "12",
+    "connection_id": "15",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -176,12 +176,16 @@
     ],
     "rows": [
         [
+            "auto_generate_certs",
+            "ON"
+        ],
+        [
             "auto_increment_increment",
             "1"
         ],
         [
             "auto_increment_offset",
-            "7"
+            "6"
         ],
         [
             "autocommit",
@@ -201,7 +205,7 @@
         ],
         [
             "basedir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/"
         ],
         [
             "big_tables",
@@ -301,7 +305,7 @@
         ],
         [
             "character_sets_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/charsets/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/share/mysql/charsets/"
         ],
         [
             "check_proxy_users",
@@ -337,7 +341,7 @@
         ],
         [
             "datadir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ],
         [
             "date_format",
@@ -457,7 +461,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/Kenjis-iMac.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu.log"
         ],
         [
             "group_concat_max_len",
@@ -533,7 +537,7 @@
         ],
         [
             "hostname",
-            "Kenjis-iMac.local"
+            "vm-ubuntu"
         ],
         [
             "ignore_builtin_innodb",
@@ -900,6 +904,10 @@
             ""
         ],
         [
+            "innodb_numa_interleave",
+            "OFF"
+        ],
+        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -1073,7 +1081,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "OFF"
+            "ON"
         ],
         [
             "innodb_version",
@@ -1137,7 +1145,7 @@
         ],
         [
             "lc_messages_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/share/mysql/"
         ],
         [
             "lc_time_names",
@@ -1145,7 +1153,7 @@
         ],
         [
             "license",
-            "GPL"
+            "Commercial"
         ],
         [
             "local_infile",
@@ -1165,11 +1173,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/Kenjis-iMac-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/Kenjis-iMac-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1185,7 +1193,7 @@
         ],
         [
             "log_error",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/error.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/error.log"
         ],
         [
             "log_error_verbosity",
@@ -1253,11 +1261,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "master_info_repository",
@@ -1517,7 +1525,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "5000"
         ],
         [
             "optimizer_prune_level",
@@ -1725,11 +1733,11 @@
         ],
         [
             "pid_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/3326.pid"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/3326.pid"
         ],
         [
             "plugin_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/lib/plugin/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/5.7.21/usr/lib/mysql/plugin/"
         ],
         [
             "port",
@@ -1809,11 +1817,11 @@
         ],
         [
             "relay_log_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/Kenjis-iMac-relay-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/Kenjis-iMac-relay-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1865,7 +1873,7 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/mysql-files/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/mysql-files/"
         ],
         [
             "server_id",
@@ -1877,7 +1885,7 @@
         ],
         [
             "server_uuid",
-            "63645c8c-2518-11e8-8232-e0f63113cdc8"
+            "081239ca-25e8-11e8-8282-080027c42733"
         ],
         [
             "session_track_gtids",
@@ -1900,8 +1908,20 @@
             "OFF"
         ],
         [
+            "sha256_password_auto_generate_rsa_keys",
+            "ON"
+        ],
+        [
+            "sha256_password_private_key_path",
+            "private_key.pem"
+        ],
+        [
             "sha256_password_proxy_users",
             "OFF"
+        ],
+        [
+            "sha256_password_public_key_path",
+            "public_key.pem"
         ],
         [
             "show_compatibility_56",
@@ -1949,7 +1969,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "slave_max_allowed_packet",
@@ -2005,7 +2025,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/Kenjis-iMac-slow.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-slow.log"
         ],
         [
             "socket",
@@ -2117,7 +2137,7 @@
         ],
         [
             "system_time_zone",
-            "PDT"
+            "CET"
         ],
         [
             "table_definition_cache",
@@ -2153,7 +2173,7 @@
         ],
         [
             "tls_version",
-            "TLSv1,TLSv1.1"
+            "TLSv1,TLSv1.1,TLSv1.2"
         ],
         [
             "tmp_table_size",
@@ -2161,7 +2181,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "transaction_alloc_block_size",
@@ -2205,7 +2225,7 @@
         ],
         [
             "version_comment",
-            "MySQL Community Server (GPL)"
+            "MySQL Commercial Server (Advanced)"
         ],
         [
             "version_compile_machine",
@@ -2213,7 +2233,7 @@
         ],
         [
             "version_compile_os",
-            "macos10.13"
+            "Linux"
         ],
         [
             "wait_timeout",
@@ -2327,7 +2347,7 @@
     ],
     "rows": [
         [
-            "missingprivileges@localhost"
+            "root@localhost"
         ]
     ]
 },
@@ -2335,7 +2355,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'missingprivileges\\'@\\'localhost\\''"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'localhost\\''"
 },
 {
     "type": "response",
@@ -2381,12 +2401,116 @@
     ],
     "rows": [
         [
+            "SELECT",
+            "YES"
+        ],
+        [
+            "INSERT",
+            "YES"
+        ],
+        [
+            "UPDATE",
+            "YES"
+        ],
+        [
+            "DELETE",
+            "YES"
+        ],
+        [
+            "CREATE",
+            "YES"
+        ],
+        [
+            "DROP",
+            "YES"
+        ],
+        [
+            "RELOAD",
+            "YES"
+        ],
+        [
+            "SHUTDOWN",
+            "YES"
+        ],
+        [
+            "PROCESS",
+            "YES"
+        ],
+        [
+            "FILE",
+            "YES"
+        ],
+        [
+            "REFERENCES",
+            "YES"
+        ],
+        [
+            "INDEX",
+            "YES"
+        ],
+        [
+            "ALTER",
+            "YES"
+        ],
+        [
+            "SHOW DATABASES",
+            "YES"
+        ],
+        [
             "SUPER",
-            "NO"
+            "YES"
+        ],
+        [
+            "CREATE TEMPORARY TABLES",
+            "YES"
+        ],
+        [
+            "LOCK TABLES",
+            "YES"
+        ],
+        [
+            "EXECUTE",
+            "YES"
+        ],
+        [
+            "REPLICATION SLAVE",
+            "YES"
+        ],
+        [
+            "REPLICATION CLIENT",
+            "YES"
+        ],
+        [
+            "CREATE VIEW",
+            "YES"
+        ],
+        [
+            "SHOW VIEW",
+            "YES"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES"
         ],
         [
             "CREATE USER",
-            "NO"
+            "YES"
+        ],
+        [
+            "EVENT",
+            "YES"
+        ],
+        [
+            "TRIGGER",
+            "YES"
+        ],
+        [
+            "CREATE TABLESPACE",
+            "YES"
         ]
     ]
 },
@@ -2394,7 +2518,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'missingprivileges\\'@\\'localhost\\'' ORDER BY TABLE_SCHEMA"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'localhost\\'' ORDER BY TABLE_SCHEMA"
 },
 {
     "type": "response",
@@ -2454,19 +2578,13 @@
             "binary": false
         }
     ],
-    "rows": [
-        [
-            "SELECT",
-            "YES",
-            "performance_schema"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'missingprivileges\\'@\\'localhost\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
+    "sql": "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = '\\'root\\'@\\'localhost\\'' ORDER BY TABLE_SCHEMA, TABLE_NAME"
 },
 {
     "type": "response",
@@ -2543,5 +2661,166 @@
         }
     ],
     "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 23,
+    "sql": "select @@port, @@datadir;"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 24,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": true
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@datadir",
+            "length": 58,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 25,
+    "sql": "select @@port, @@datadir;"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 26,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": true
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@datadir",
+            "length": 58,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 27,
+    "sql": "SELECT DISTINCT grantee FROM information_schema.user_privileges WHERE grantee like '\\'root\\'@%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 28,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "user_privileges",
+            "column_name": "GRANTEE",
+            "column_label": "grantee",
+            "length": 81,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "'root'@'localhost'"
+        ],
+        [
+            "'root'@'%'"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 29
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 30
 },
 null]

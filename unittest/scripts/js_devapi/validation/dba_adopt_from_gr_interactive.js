@@ -1,6 +1,9 @@
 //@ Initialization
 ||
 
+//@ it's not possible to adopt from GR without existing group replication
+||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
+
 //@ Create cluster
 ||
 
@@ -132,6 +135,12 @@ Cluster successfully created based on existing replication group.
     },
     "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
+
+//@ dissolve the cluster
+|The cluster was successfully dissolved.|
+
+//@ it's not possible to adopt from GR when cluster was dissolved
+||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
 
 //@ Finalization
 ||
