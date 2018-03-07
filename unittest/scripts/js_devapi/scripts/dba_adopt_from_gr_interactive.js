@@ -25,6 +25,9 @@ session.runSql("CREATE USER 'root'@'"+hostname_ip+"' IDENTIFIED BY 'root'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname_ip+"' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
 
+//@ it's not possible to adopt from GR without existing group replication
+dba.createCluster('testCluster', {adoptFromGR: true});
+
 //@ Create cluster
 var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED'});
 
@@ -124,9 +127,14 @@ var cluster = dba.createCluster('testCluster', {adoptFromGR: true, force: true})
 //@<OUT> Check cluster status - success - adopt from multi-master
 cluster.status();
 
+//@ dissolve the cluster
+cluster.dissolve({force: true});
+
+//@ it's not possible to adopt from GR when cluster was dissolved
+dba.createCluster('testCluster', {adoptFromGR: true});
+
 // Close session
 session.close();
-cluster.disconnect();
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

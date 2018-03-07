@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-10-159-237-174.vpn.oracle.com:3326?ssl-mode=PREFERRED",
+    "uri": "root:root@vm-ubuntu:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "23",
-    "connection_info": "dhcp-10-159-237-174.vpn.oracle.com via TCP/IP",
+    "connection_info": "vm-ubuntu via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "8ea8d3b8-24fb-11e8-8453-65d4f550b186"
+            "3f5cd634-25ec-11e8-aeb2-080027c42733"
         ]
     ]
 },

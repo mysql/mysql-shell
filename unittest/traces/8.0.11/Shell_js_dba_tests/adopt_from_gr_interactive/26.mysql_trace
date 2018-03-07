@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-10-159-159-64.vpn.oracle.com:3327",
+    "uri": "root:root@vm-ubuntu:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "27",
-    "connection_info": "dhcp-10-159-159-64.vpn.oracle.com via TCP/IP",
-    "server_info": "8.0.11",
+    "connection_id": "48",
+    "connection_info": "vm-ubuntu via TCP/IP",
+    "server_info": "8.0.11-commercial",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "850b69e4-263e-11e8-b794-712b8416e128"
+            "36e5ead0-2945-11e8-a965-080027c42733"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            33270
+            33160
         ]
     ]
 },
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "localhost:33271"
+            "localhost:33161"
         ]
     ]
 },

@@ -14,7 +14,7 @@
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "aeefad04-24fb-11e8-8100-bf420c77308c"
+            "77efa3c2-25ec-11e8-835c-080027c42733"
         ]
     ]
 },

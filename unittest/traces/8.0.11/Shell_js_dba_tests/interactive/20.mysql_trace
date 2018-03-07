@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "54",
+    "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-commercial",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -108,8 +108,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -121,14 +121,10 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
-    "rows": [
-        [
-            "mysql_innodb_cluster_metadata"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
@@ -189,11 +185,11 @@
         ],
         [
             "auto_increment_increment",
-            "7"
+            "1"
         ],
         [
             "auto_increment_offset",
-            "3"
+            "6"
         ],
         [
             "autocommit",
@@ -213,7 +209,7 @@
         ],
         [
             "basedir",
-            "/usr/local/mysql-8.0.5/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/"
         ],
         [
             "big_tables",
@@ -345,7 +341,7 @@
         ],
         [
             "character_sets_dir",
-            "/usr/local/mysql-8.0.5/share/charsets/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/share/mysql/charsets/"
         ],
         [
             "check_proxy_users",
@@ -385,7 +381,7 @@
         ],
         [
             "datadir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ],
         [
             "default_authentication_plugin",
@@ -501,191 +497,15 @@
         ],
         [
             "general_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-148-53.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu.log"
         ],
         [
             "group_concat_max_len",
             "1024"
         ],
         [
-            "group_replication_allow_local_lower_version_join",
-            "OFF"
-        ],
-        [
-            "group_replication_auto_increment_increment",
-            "7"
-        ],
-        [
-            "group_replication_bootstrap_group",
-            "OFF"
-        ],
-        [
-            "group_replication_communication_debug_options",
-            "GCS_DEBUG_NONE"
-        ],
-        [
-            "group_replication_components_stop_timeout",
-            "31536000"
-        ],
-        [
-            "group_replication_compression_threshold",
-            "1000000"
-        ],
-        [
-            "group_replication_enforce_update_everywhere_checks",
-            "OFF"
-        ],
-        [
-            "group_replication_flow_control_applier_threshold",
-            "25000"
-        ],
-        [
-            "group_replication_flow_control_certifier_threshold",
-            "25000"
-        ],
-        [
-            "group_replication_flow_control_hold_percent",
-            "10"
-        ],
-        [
-            "group_replication_flow_control_max_quota",
-            "0"
-        ],
-        [
-            "group_replication_flow_control_member_quota_percent",
-            "0"
-        ],
-        [
-            "group_replication_flow_control_min_quota",
-            "0"
-        ],
-        [
-            "group_replication_flow_control_min_recovery_quota",
-            "0"
-        ],
-        [
-            "group_replication_flow_control_mode",
-            "QUOTA"
-        ],
-        [
-            "group_replication_flow_control_period",
-            "1"
-        ],
-        [
-            "group_replication_flow_control_release_percent",
-            "50"
-        ],
-        [
-            "group_replication_force_members",
-            ""
-        ],
-        [
-            "group_replication_group_name",
-            "ebfe150c-2701-11e8-892e-4327fb745344"
-        ],
-        [
-            "group_replication_group_seeds",
-            ""
-        ],
-        [
-            "group_replication_gtid_assignment_block_size",
-            "1000000"
-        ],
-        [
-            "group_replication_ip_whitelist",
-            "AUTOMATIC"
-        ],
-        [
-            "group_replication_local_address",
-            ""
-        ],
-        [
-            "group_replication_member_weight",
-            "50"
-        ],
-        [
-            "group_replication_poll_spin_loops",
-            "0"
-        ],
-        [
-            "group_replication_recovery_complete_at",
-            "TRANSACTIONS_APPLIED"
-        ],
-        [
-            "group_replication_recovery_get_public_key",
-            "OFF"
-        ],
-        [
-            "group_replication_recovery_public_key_path",
-            ""
-        ],
-        [
-            "group_replication_recovery_reconnect_interval",
-            "60"
-        ],
-        [
-            "group_replication_recovery_retry_count",
-            "10"
-        ],
-        [
-            "group_replication_recovery_ssl_ca",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_capath",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_cert",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_cipher",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_crl",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_crlpath",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_key",
-            ""
-        ],
-        [
-            "group_replication_recovery_ssl_verify_server_cert",
-            "OFF"
-        ],
-        [
-            "group_replication_recovery_use_ssl",
-            "ON"
-        ],
-        [
-            "group_replication_single_primary_mode",
-            "ON"
-        ],
-        [
-            "group_replication_ssl_mode",
-            "REQUIRED"
-        ],
-        [
-            "group_replication_start_on_boot",
-            "OFF"
-        ],
-        [
-            "group_replication_transaction_size_limit",
-            "150000000"
-        ],
-        [
-            "group_replication_unreachable_majority_timeout",
-            "0"
-        ],
-        [
             "gtid_executed",
-            "dfd9813a-2701-11e8-892e-4327fb745344:1-20,\ne1ca9a38-2701-11e8-892e-4327fb745344:1-3,\nebfe150c-2701-11e8-892e-4327fb745344:1-3"
+            ""
         ],
         [
             "gtid_executed_compression_period",
@@ -753,7 +573,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-148-53.vpn.oracle.com"
+            "vm-ubuntu"
         ],
         [
             "information_schema_stats_expiry",
@@ -1112,6 +932,10 @@
             ""
         ],
         [
+            "innodb_numa_interleave",
+            "OFF"
+        ],
+        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -1285,7 +1109,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "OFF"
+            "ON"
         ],
         [
             "innodb_version",
@@ -1353,7 +1177,7 @@
         ],
         [
             "lc_messages_dir",
-            "/usr/local/mysql-8.0.5/share/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/share/mysql/"
         ],
         [
             "lc_time_names",
@@ -1361,7 +1185,7 @@
         ],
         [
             "license",
-            "GPL"
+            "Commercial"
         ],
         [
             "local_infile",
@@ -1381,11 +1205,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-148-53-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-148-53-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1397,7 +1221,7 @@
         ],
         [
             "log_error",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/error.log"
         ],
         [
             "log_error_services",
@@ -1465,11 +1289,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "mandatory_roles",
@@ -1653,7 +1477,7 @@
         ],
         [
             "mysqlx_port",
-            "33160"
+            "33260"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1741,7 +1565,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "8161"
         ],
         [
             "optimizer_prune_level",
@@ -1969,15 +1793,15 @@
         ],
         [
             "pid_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/3326.pid"
         ],
         [
             "plugin_dir",
-            "/usr/local/mysql-8.0.5/lib/plugin/"
+            "/opt/oracle/shell/ngshell-dev-env/sandbox/srv/8.0.11/usr/lib/mysql/plugin/"
         ],
         [
             "port",
-            "3316"
+            "3326"
         ],
         [
             "preload_buffer_size",
@@ -2021,7 +1845,7 @@
         ],
         [
             "read_only",
-            "ON"
+            "OFF"
         ],
         [
             "read_rnd_buffer_size",
@@ -2037,15 +1861,15 @@
         ],
         [
             "relay_log",
-            "dhcp-10-159-148-53-relay-bin"
+            "vm-ubuntu-relay-bin"
         ],
         [
             "relay_log_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-148-53-relay-bin"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-148-53-relay-bin.index"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -2077,7 +1901,7 @@
         ],
         [
             "report_port",
-            "3316"
+            "3326"
         ],
         [
             "report_user",
@@ -2101,11 +1925,11 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/mysql-files/"
         ],
         [
             "server_id",
-            "15661"
+            "15671"
         ],
         [
             "server_id_bits",
@@ -2113,7 +1937,7 @@
         ],
         [
             "server_uuid",
-            "dfd9813a-2701-11e8-892e-4327fb745344"
+            "b655d6cf-2945-11e8-b325-080027c42733"
         ],
         [
             "session_track_gtids",
@@ -2197,7 +2021,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "slave_max_allowed_packet",
@@ -2253,7 +2077,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-148-53-slow.log"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/vm-ubuntu-slow.log"
         ],
         [
             "socket",
@@ -2369,7 +2193,7 @@
         ],
         [
             "system_time_zone",
-            "PDT"
+            "CET"
         ],
         [
             "table_definition_cache",
@@ -2417,7 +2241,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp"
         ],
         [
             "transaction_alloc_block_size",
@@ -2449,11 +2273,11 @@
         ],
         [
             "version",
-            "8.0.11"
+            "8.0.11-commercial"
         ],
         [
             "version_comment",
-            "Source distribution"
+            "MySQL Enterprise Server - Commercial"
         ],
         [
             "version_compile_machine",
@@ -2461,7 +2285,7 @@
         ],
         [
             "version_compile_os",
-            "osx10.13"
+            "Linux"
         ],
         [
             "version_compile_zlib",
@@ -2685,47 +2509,7 @@
             "YES"
         ],
         [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
+            "XA_RECOVER_ADMIN",
             "YES"
         ],
         [
@@ -2733,7 +2517,47 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
             "YES"
         ]
     ]
@@ -2923,7 +2747,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2936,8 +2760,8 @@
     ],
     "rows": [
         [
-            3316,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },
@@ -2978,7 +2802,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 232,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2991,8 +2815,8 @@
     ],
     "rows": [
         [
-            3316,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            3326,
+            "/opt/oracle/shell/ngshell-dev-env/ut/tmp/3326/sandboxdata/"
         ]
     ]
 },
@@ -3012,36 +2836,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
             "schema": "",
@@ -3078,588 +2902,30 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": []
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 27,
-    "sql": "SELECT @@super_read_only"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 28,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 29,
-    "sql": "SHOW MASTER STATUS"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 30,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "File",
-            "length": 2048,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Position",
-            "length": 20,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Do_DB",
-            "length": 1020,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Ignore_DB",
-            "length": 1020,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Executed_Gtid_Set",
-            "length": 500,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "dhcp-10-159-148-53-bin.000001",
-            18791,
-            "",
-            "",
-            "dfd9813a-2701-11e8-892e-4327fb745344:1-20,\ne1ca9a38-2701-11e8-892e-4327fb745344:1-3,\nebfe150c-2701-11e8-892e-4327fb745344:1-3"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 31,
-    "sql": "show databases like 'mysql_innodb_cluster_metadata'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 32,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "SCHEMATA",
-            "column_name": "Database (mysql_innodb_cluster_metadata)",
-            "column_label": "Database (mysql_innodb_cluster_metadata)",
-            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "mysql_innodb_cluster_metadata"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 33,
-    "sql": "start transaction"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 34,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 35,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'%'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 36,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 1,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 37,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 38,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 1,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 39,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '*<w5&{Y*;F%|)_J|[3c/*c=o[$U?*8;}' /*)*/ "
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 40,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 41,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '*<w5&{Y*;F%|)_J|[3c/*c=o[$U?*8;}' /*)*/ "
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 42,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 43,
-    "sql": "GRANT REPLICATION SLAVE ON *.* to /*(*/ 'mysql_innodb_cluster_r0000000003'@'%' /*)*/"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 44,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 45,
-    "sql": "GRANT REPLICATION SLAVE ON *.* to /*(*/ 'mysql_innodb_cluster_r0000000003'@'localhost' /*(*/"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 46,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 47,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 48,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 49,
-    "sql": "start transaction"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 50,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 51,
-    "sql": "show databases like 'mysql_innodb_cluster_metadata'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 52,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "SCHEMATA",
-            "column_name": "Database (mysql_innodb_cluster_metadata)",
-            "column_label": "Database (mysql_innodb_cluster_metadata)",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "mysql_innodb_cluster_metadata"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 53,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.clusters (cluster_name, description, options, attributes) VALUES ('devCluster', 'Default Cluster', 'null', '{\\\"default\\\":true}')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 54,
-    "auto_increment_value": 10,
-    "affected_rows": 1,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 55,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (10, 'gr', 'pm', 'default', 1,JSON_OBJECT('adopted', '0',             'group_replication_group_name', ''))"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 56,
-    "auto_increment_value": 10,
-    "affected_rows": 1,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 57,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 10 WHERE cluster_id = 10"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 58,
-    "auto_increment_value": 0,
-    "affected_rows": 1,
-    "warning_count": 0,
-    "info": "Rows matched: 1  Changed: 1  Warnings: 0"
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 59,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 10"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 60,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 61,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 10 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 62,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 63,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 10 AND g.member_state IN ('ONLINE','RECOVERING')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 64,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "instances",
-            "table_label": "i",
-            "column_name": "mysql_server_uuid",
-            "column_label": "mysql_server_uuid",
-            "length": 160,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "instances",
-            "table_label": "i",
-            "column_name": "instance_name",
-            "column_label": "instance_name",
-            "length": 1024,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "instances",
-            "table_label": "i",
-            "column_name": "role",
-            "column_label": "role",
-            "length": 48,
-            "fractional": 0,
-            "type": "Enum",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "host",
-            "length": 67108864,
-            "fractional": 31,
-            "type": "Bytes",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
@@ -3672,301 +2938,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 65,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'localhost' OR (ip_address <> '' AND ip_address = '')"
+    "subtype": "CLOSE",
+    "index": 27
 },
 {
     "type": "response",
-    "subtype": "RESULT",
-    "index": 66,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "hosts",
-            "table_label": "hosts",
-            "column_name": "host_id",
-            "column_label": "host_id",
-            "length": 10,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "hosts",
-            "table_label": "hosts",
-            "column_name": "host_name",
-            "column_label": "host_name",
-            "length": 1024,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "hosts",
-            "table_label": "hosts",
-            "column_name": "ip_address",
-            "column_label": "ip_address",
-            "length": 180,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            1,
-            "localhost",
-            ""
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 67,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 10, 'dfd9813a-2701-11e8-892e-4327fb745344', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 68,
-    "auto_increment_value": 10,
-    "affected_rows": 1,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 69,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 10 AND g.member_state IN ('ONLINE','RECOVERING')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 70,
-    "auto_increment_value": 10,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "instances",
-            "table_label": "i",
-            "column_name": "mysql_server_uuid",
-            "column_label": "mysql_server_uuid",
-            "length": 160,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "instances",
-            "table_label": "i",
-            "column_name": "instance_name",
-            "column_label": "instance_name",
-            "length": 1024,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "mysql_innodb_cluster_metadata",
-            "table_name": "instances",
-            "table_label": "i",
-            "column_name": "role",
-            "column_label": "role",
-            "length": 48,
-            "fractional": 0,
-            "type": "Enum",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "host",
-            "length": 67108864,
-            "fractional": 31,
-            "type": "Bytes",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            "dfd9813a-2701-11e8-892e-4327fb745344",
-            "localhost:3316",
-            "HA",
-            "localhost:3316"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 71,
-    "sql": "SELECT @@group_replication_group_name"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 72,
-    "auto_increment_value": 10,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_group_name",
-            "length": 144,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "f62388aa-2701-11e8-892e-4327fb745344"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 73,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'f62388aa-2701-11e8-892e-4327fb745344') WHERE replicaset_id = 10"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 74,
-    "auto_increment_value": 0,
-    "affected_rows": 1,
-    "warning_count": 0,
-    "info": "Rows matched: 1  Changed: 1  Warnings: 0"
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 75,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 76,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 77,
-    "sql": "SHOW STATUS LIKE 'group_replication_primary_member'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 78,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "session_status",
-            "table_label": "session_status",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "session_status",
-            "table_label": "session_status",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "group_replication_primary_member",
-            "dfd9813a-2701-11e8-892e-4327fb745344"
-        ]
-    ]
+    "subtype": "OK",
+    "index": 28
 },
 null]

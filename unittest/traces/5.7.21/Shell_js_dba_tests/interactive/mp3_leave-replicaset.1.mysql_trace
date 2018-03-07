@@ -10,11 +10,11 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "24",
+    "connection_id": "20",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "646fa35c-2518-11e8-8dd9-7035b8fabfcc"
+            "09c1a8b1-25e8-11e8-81d0-080027c42733"
         ]
     ]
 },

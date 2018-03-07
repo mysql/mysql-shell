@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-10-159-237-174.vpn.oracle.com:3316",
+    "uri": "mysql://root:root@vm-ubuntu:3316",
     "protocol": "classic"
 },
 {
@@ -11,21 +11,59 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "31",
-    "connection_info": "dhcp-10-159-237-174.vpn.oracle.com via TCP/IP",
+    "connection_info": "vm-ubuntu via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 45,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "5.7.21-log MySQL Commercial Server (Advanced)"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -57,13 +95,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 5,
+    "index": 7,
     "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 6,
+    "index": 8,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -95,27 +133,51 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 7,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "ERROR",
-    "index": 8,
-    "code": "1146",
-    "msg": "Table 'mysql_innodb_cluster_metadata.instances' doesn't exist",
-    "sqlstate": "42S02"
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT @@server_uuid, VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'group_replication_primary_member';"
+    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            1
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT @@server_uuid, VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'group_replication_primary_member';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -156,21 +218,21 @@
     ],
     "rows": [
         [
-            "8ce843b0-24fb-11e8-8453-65d4f550b186",
-            "8ce843b0-24fb-11e8-8453-65d4f550b186"
+            "3d851d8d-25ec-11e8-aeb2-080027c42733",
+            "3d851d8d-25ec-11e8-aeb2-080027c42733"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8ce843b0-24fb-11e8-8453-65d4f550b186'"
+    "index": 13,
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '3d851d8d-25ec-11e8-aeb2-080027c42733'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 12,
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -202,13 +264,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 13,
+    "index": 15,
     "sql": "SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNREACHABLE,  COUNT(*) AS TOTAL FROM performance_schema.replication_group_members"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 14,
+    "index": 16,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -257,13 +319,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 15,
+    "index": 17,
     "sql": "SELECT @@super_read_only"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 16,
+    "index": 18,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -295,11 +357,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 17
+    "index": 19
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 18
+    "index": 20
 },
 null]
