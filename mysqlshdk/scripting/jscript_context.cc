@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -795,7 +795,7 @@ Argument_list JScript_context::convert_args(const v8::FunctionCallbackInfo<v8::V
 }
 
 Value JScript_context::execute(const std::string &code_str, const std::string& source,
-    const std::vector<std::string> &argv) throw (Exception) {
+    const std::vector<std::string> &argv) {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
   // creates a pool for all the handles that are created in this scope
