@@ -57,8 +57,13 @@ class Testutils : public shcore::Cpp_object_bridge {
   Undefined removeFromSandboxConf(Integer port, String option, String section);
   String getSandboxConfPath(Integer port);
   String getSandboxLogPath(Integer port);
+  String getSandboxPath(Integer port, String name);
   String getShellLogPath();
+  Undefined dumpData(String uri, String path, Array schemaList);
+  Undefined importData(String uri, String path, String defaultSchema);
   String waitMemberState(Integer port, String[] states);
+  Undefined waitForDelayedGRStart(Integer port, String rootpass,
+                                  Integer timeout = 60);
   Undefined expectPrompt(String prompt, String answer);
   Undefined expectPassword(String prompt, String password);
   Integer makeFileReadonly(String path);
@@ -66,6 +71,13 @@ class Testutils : public shcore::Cpp_object_bridge {
   Bool isReplying();
   Undefined fail();
   Boolean versionCheck(String v1, String op, String v2);
+  Undefined mkdir(String path, Boolean recursive);
+  Undefined rmdir(String path, Boolean recursive);
+  Integer chmod(String path, Integer mode);
+  Undefined cpfile(String source, String target);
+  Undefined rmfile(String path);
+  List catFile(String path);
+  List wipeFileContents(String path);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
@@ -77,8 +89,13 @@ class Testutils : public shcore::Cpp_object_bridge {
   None remove_from_sandbox_conf(int port, str option, str section);
   str get_sandbox_conf_path(int port);
   str get_sandbox_log_path(int port);
+  str get_sandbox_path(int port, str name);
   str get_shell_log_path();
+  None dump_data(str uri, str path, list schemaList);
+  None import_data(str uri, str path, str defaultSchema);
   str wait_member_state(int port, str[] states);
+  None wait_for_delayed_gr_start(int port, str rootpass,
+                                 int timeout = 60);
   None expect_prompt(str prompt, str answer);
   None expect_password(str prompt, str password);
   int make_file_readonly(str path);
@@ -86,6 +103,13 @@ class Testutils : public shcore::Cpp_object_bridge {
   bool is_replying();
   None fail();
   bool version_check(str v1, str op, str v2);
+  None mkdir(str path, bool recursive);
+  None rmdir(str path, bool recursive);
+  int chmod(str path, int mode);
+  None cpfile(str source, str target);
+  None rmfile(str path);
+  list cat_file(str path);
+  list wipe_file_contents(str path);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -161,6 +185,11 @@ class Testutils : public shcore::Cpp_object_bridge {
  public:
   // Misc utility stuff
   int make_file_readonly(const std::string &path);
+  void mk_dir(const std::string& path, bool recursive = false);
+  void rm_dir(const std::string& path, bool recursive = false);
+  int ch_mod(const std::string& path, int mode);
+  void cp_file(const std::string &source, const std::string& target);
+  void rm_file(const std::string& target);
 
   std::string get_shell_log_path();
 

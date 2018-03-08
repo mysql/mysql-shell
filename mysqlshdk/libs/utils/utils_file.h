@@ -45,7 +45,7 @@ void SHCORE_PUBLIC remove_directory(const std::string& path,
 std::string SHCORE_PUBLIC get_last_error();
 bool SHCORE_PUBLIC load_text_file(const std::string& path, std::string& data);
 std::string SHCORE_PUBLIC get_text_file(const std::string& path);
-void SHCORE_PUBLIC delete_file(const std::string& filename);
+void SHCORE_PUBLIC delete_file(const std::string& filename, bool quiet = true);
 bool SHCORE_PUBLIC create_file(const std::string& name,
                                const std::string& content);
 void SHCORE_PUBLIC copy_file(const std::string& from, const std::string& to,
