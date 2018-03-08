@@ -32,17 +32,6 @@
 #                           unzipping everything ~3 seconds 485M
 # 8,8M boost_headers.tar.gz unzipping everything <1 second
 
-MACRO(CHANGE_MD_2_MT)
-  # Changes Runtime from Multithreaded DLL to Multithreaded static to be compatible with the default build runtime of MySql Server on Windows.
-  foreach(flag_var
-        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-     if(${flag_var} MATCHES "/MD")
-        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-     endif(${flag_var} MATCHES "/MD")
-  endforeach(flag_var)
-ENDMACRO()
-
 MACRO(fix_target_output_directory target path)
   FOREACH(conftype ${CMAKE_CONFIGURATION_TYPES})
     STRING(TOUPPER "${conftype}" conftype_)

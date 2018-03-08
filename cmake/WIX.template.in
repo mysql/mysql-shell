@@ -69,12 +69,18 @@
             Event="DoAction"
             Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
         </UI>
-        <Property Id="CPP_140_RUNTIMES" Secure="yes" Hidden="yes">
-          <DirectorySearch Id="CPP_140_RUNTIMES" Path="[WindowsFolder]" Depth="2">
-            <FileSearch Name="vcruntime140.dll" MinVersion="14.0.0.0" />
-          </DirectorySearch>
+        <?if "1" = "@CPACK_WIX_VS_REDIST_CHECK@" ?>
+            <Property Id="VS14REDIST">
+              <RegistrySearch Id="FindRedistVS14"
+                  Root="HKLM"
+                  Key="SOFTWARE\Microsoft\DevDiv\vc\Servicing\14.0\RuntimeMinimum"
+                  Name="Version"
+                  Type="raw" />
         </Property>
-        <Condition Message="MySQL Shell requires the Visual C++ 2015 Redistributable Package to be installed."><![CDATA[Installed OR CPP_140_RUNTIMES]]></Condition>
+            <Condition Message="This application requires Visual Studio 2015 Redistributable. Please install the Redistributable then run this installer again.">
+              Installed OR VS14REDIST
+            </Condition>
+        <?endif?>
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MySQL Shell" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
         <Property Id="WixShellExecTarget" Value="[#mysqlsh.exe]" />

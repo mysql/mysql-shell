@@ -297,6 +297,17 @@ add_subdirectory(samples)
 CHECK_STAN_OPTIONS()
 
 ###
+### Optionally bundle Visual C++ Redistributable for Visual Studio
+###
+
+if(WIN32)
+  option(BUNDLE_RUNTIME_LIBRARIES "Install Windows runtime libraries" OFF)
+  if(BUNDLE_RUNTIME_LIBRARIES)
+     INSTALL_VS_REDIST(main)
+  endif()
+endif()
+
+###
 ### Packaging and other dependecy copying
 ###
 
