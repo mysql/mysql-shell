@@ -304,14 +304,15 @@ void Shell_script_tester::validate_interactive(const std::string& script) {
   }
 }
 
-void Shell_script_tester::load_source_chunks(const std::string& path,
+bool Shell_script_tester::load_source_chunks(const std::string& path,
                                              std::istream& stream) {
   Chunk_t chunk;
   chunk.def->id = "__global__";
   chunk.def->validation = ValidationType::Optional;
   int linenum = 0;
+  bool ret_val = true;
 
-  while (!stream.eof()) {
+  while (ret_val && !stream.eof()) {
     std::string line;
     std::getline(stream, line);
     linenum++;
@@ -320,12 +321,26 @@ void Shell_script_tester::load_source_chunks(const std::string& path,
 
     std::shared_ptr<Chunk_definition> chunk_def = load_chunk_definition(line);
     if (chunk_def) {
-      chunk_def->linenum = linenum;
-      add_source_chunk(path, chunk);
 
-      // Starts the new chunk
-      chunk = Chunk_t();
-      chunk.def = chunk_def;
+      // Full Script Context Validation is supported by defining context
+      // validation at the __global__ scope.
+      // The way to do it is with an anonymous chunk with the context validation
+      // i.e.
+      // #@ {<context validation>}
+      if (chunk_def->id.empty()) {
+        if (chunk.def->id == "__global__" &&
+          !context_enabled(chunk_def->context)) {
+          ADD_SKIPPED_TEST(line);
+          ret_val = false;
+        }
+      } else {
+        chunk_def->linenum = linenum;
+        add_source_chunk(path, chunk);
+
+        // Starts the new chunk
+        chunk = Chunk_t();
+        chunk.def = chunk_def;
+      }
     } else {
       // Only adds the lines that are NO snippet specifier
       if (line.find("//! [") != 0)
@@ -335,6 +350,8 @@ void Shell_script_tester::load_source_chunks(const std::string& path,
 
   // Inserts the remaining code chunk
   add_source_chunk(path, chunk);
+
+  return ret_val;
 }
 
 void Shell_script_tester::add_source_chunk(const std::string& path,
@@ -613,11 +630,11 @@ void Shell_script_tester::execute_script(const std::string& path,
     // Process the file
     if (in_chunks) {
       _options->interactive = true;
-      load_source_chunks(script, stream);
-
-      // Loads the validations
-      load_validations(_new_format ? VAL_SCRIPT(path)
-                                   : VALIDATION_SCRIPT(path));
+      if (load_source_chunks(script, stream)) {
+        // Loads the validations
+        load_validations(_new_format ? VAL_SCRIPT(path)
+                                    : VALIDATION_SCRIPT(path));
+      }
 
       // Abort the script processing if something went wrong on the validation
       // loading
@@ -828,8 +845,8 @@ void Shell_script_tester::validate_chunks(const std::string& path,
 
       // Process the file
       _options->interactive = true;
-      load_source_chunks(script, stream);
-      load_validations(file_name);
+      if (load_source_chunks(script, stream))
+        load_validations(file_name);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
         // Prints debugging information
         std::string chunk_log = "CHUNK: " + _chunk_order[index];
