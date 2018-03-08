@@ -53,6 +53,15 @@ extern std::vector<std::pair<std::string, std::string>> g_pending_fixes;
     return;                                                                  \
   }
 
+#define ADD_SKIPPED_TEST(note)                                               \
+  {                                                                          \
+    const ::testing::TestInfo *const test_info =                             \
+        ::testing::UnitTest::GetInstance()->current_test_info();             \
+    g_skipped_tests.push_back(                                               \
+        {std::string(test_info->test_case_name()) + "." + test_info->name(), \
+         note});                                                             \
+  }
+
 #define SKIP_CHUNK(note)                                                     \
   {                                                                          \
     const ::testing::TestInfo *const test_info =                             \

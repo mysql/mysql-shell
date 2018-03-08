@@ -161,7 +161,7 @@ private:
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 
   std::shared_ptr<Chunk_definition> load_chunk_definition(const std::string &line);
-  void load_source_chunks(const std::string& path, std::istream & stream);
+  bool load_source_chunks(const std::string& path, std::istream & stream);
   void add_source_chunk(const std::string& path, const Chunk_t& chunk);
   void add_validation(const std::shared_ptr<Chunk_definition> &chunk,
                       const std::vector<std::string>& source);
