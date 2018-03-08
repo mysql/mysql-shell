@@ -132,6 +132,9 @@ for tname in $all_tests; do
       test_filter=$(echo $tname|cut -d# -f1)
     fi
 
+    if test "$REPORT_TEST_STATE" = "1"; then
+      echo "BEGIN TEST: $test_filter"
+    fi
     if [ -d $tracedir/$tcase_tracedir ]; then
       if [ $rebuild_all_tests -a ! -f $tracedir/$tcase_tracedir/FAILED ]; then
         $rut --gtest_filter=$test_filter --replay=$version $rut_args
