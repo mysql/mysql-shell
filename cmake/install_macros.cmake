@@ -344,3 +344,28 @@ FUNCTION(INSTALL_DEBUG_TARGET target)
       OPTIONAL)
   ENDIF()
 ENDFUNCTION()
+
+# Copies and installs runtime libraries
+#
+
+macro(INSTALL_VS_REDIST _component)
+  set(_runtime_libraries
+    msvcp140
+    ucrtbase
+    vcruntime140
+  )
+  foreach(_lib ${_runtime_libraries})
+    set(_lib_path "C:/Windows/System32/${_lib}.dll")
+    set(_lib_d_path "C:/Windows/System32/${_lib}d.dll")
+    foreach(_library_path ${_lib_path} ${_lib_d_path})
+      if(EXISTS "${_library_path}")
+        message(STATUS "Install \"${_library_path}\" to \"${INSTALL_BINDIR}\"")
+        install(FILES "${_library_path}"
+                DESTINATION "${INSTALL_BINDIR}"
+                COMPONENT ${_component})
+      else()
+        message(FATAL_ERROR "-DBUNDLE_RUNTIME_LIBRARIES=ON but \"${_library_path}\" not found")
+      endif()
+    endforeach()
+  endforeach()
+endmacro()
