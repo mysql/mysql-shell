@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -623,11 +623,13 @@ std::string SHCORE_PUBLIC get_text_file(const std::string& path) {
 }
 
 /*
- * Deletes a file in a cross platform manner. If file removal file, an exception is thrown.
- * If file does not exist, fails silently.
+ * Deletes a file in a cross platform manner. If file removal file,
+ * an exception is thrown.
+ *
+ * If file does not exist, and quiet is true, fails silently.
  */
-void SHCORE_PUBLIC delete_file(const std::string& filename) {
-  if (!shcore::file_exists(filename))
+void SHCORE_PUBLIC delete_file(const std::string& filename, bool quiet) {
+  if (quiet && !shcore::file_exists(filename))
     return;
 #ifdef WIN32
   if (!DeleteFile(filename.c_str()))

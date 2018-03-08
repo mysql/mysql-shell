@@ -140,6 +140,11 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
   expose("waitForDelayedGRStart",
          &Testutils::wait_for_delayed_gr_start, "port", "rootpass", "timeout");
+  expose("mkdir", &Testutils::mk_dir, "name", "?recursive");
+  expose("rmdir", &Testutils::rm_dir, "name", "?recursive");
+  expose("chmod", &Testutils::ch_mod, "path", "mode");
+  expose("cpfile", &Testutils::cp_file, "source", "target");
+  expose("rmfile", &Testutils::rm_file, "target");
 
   _delegate.print = print;
   _delegate.print_error = print;
@@ -202,7 +207,7 @@ std::string Testutils::get_sandbox_log_path(int port) {
 /**
  * Gets the path to any file contained on the sandbox datadir.
  * @param port Optional port of the sandbox for which a path will be retrieved.
- * @param port Optional name of the file path to be retrieved.
+ * @param name Optional name of the file path to be retrieved.
  *
  * This function will return path related to the sandboxes.
  *
@@ -262,7 +267,7 @@ std::string Testutils::get_sandbox_path(int port, const std::string &file) {
 #if DOXYGEN_JS
 Undefined Testutils::dumpData(String uri, String path, Array schemaList);
 #elif DOXYGEN_PY
-None Testutils::dump_data(str uri, str path, list schema_list);
+None Testutils::dump_data(str uri, str path, list schemaList);
 #endif
 ///@}
 void Testutils::dump_data(const std::string &uri, const std::string &path,
@@ -330,14 +335,14 @@ void Testutils::dump_data(const std::string &uri, const std::string &path,
  * Loads a MySQL dump script from a file
  * @param uri URI of the instance. Must be classic protocol.
  * @param path filename of the dump file to write to
- * @param default_schema (optional) Default schema name to use during import.
+ * @param defaultSchema (optional) Default schema name to use during import.
  *
  * Loads a SQL script from a file using mysql cli.
  */
 #if DOXYGEN_JS
 Undefined Testutils::importData(String uri, String path, String defaultSchema);
 #elif DOXYGEN_PY
-None Testutils::import_data(str uri, str path, str default_schema);
+None Testutils::import_data(str uri, str path, str defaultSchema);
 #endif
 ///@}
 void Testutils::import_data(const std::string &uri, const std::string &path,
@@ -1216,7 +1221,8 @@ int Testutils::make_file_readonly(const std::string &path) {
 #ifndef _WIN32
   // Set permissions on configuration file to 444 (chmod only works on
   // unix systems).
-  return chmod(path.c_str(), S_IRUSR | S_IRGRP | S_IROTH);
+  int ro = S_IRUSR | S_IRGRP | S_IROTH;
+  return chmod(path.c_str(), ro);
 #else
   auto dwAttrs = GetFileAttributes(path.c_str());
   // set permissions on configuration file to read only
@@ -1224,6 +1230,124 @@ int Testutils::make_file_readonly(const std::string &path) {
     return 0;
   return -1;
 #endif
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Creates a folder with the given name.
+ * @param path The name of the folder to be created.
+ * @param recursive To create the complete directory hierarchy if the given name
+ * contains subdirectories.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::mkdir(String path, Boolean recursive);
+#elif DOXYGEN_PY
+None Testutils::mkdir(str path, bool recursive);
+#endif
+///@}
+void Testutils::mk_dir(const std::string& path, bool recursive ) {
+  shcore::create_directory(path, recursive);
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Deletes a folder with the given name.
+ * @param path The name of the folder to be deleted.
+ * @param recursive To remove the folder and its contents.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::rmdir(String path, Boolean recursive);
+#elif DOXYGEN_PY
+None Testutils::rmdir(str path, bool recursive);
+#endif
+///@}
+void Testutils::rm_dir(const std::string& path, bool recursive ) {
+  shcore::remove_directory(path, recursive);
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Changes the file permissions of the indicated path.
+ * @param path The path of the file/folder which will be updated.
+ * @param mode The User/Group/Other permissions to be set.
+ *
+ * Permissions should be given in binary mask format, this is
+ * as a number in the format of 0UGO
+ *
+ * Where:
+ *  @li U is the binary mask for User's permissions
+ *  @li G is the binary mask for User Group's permissions
+ *  @li O is the binary mask for Other's permissions
+ *
+ * Each binary mask contains the a permission combination that includes:
+ * @li 0x001: Indicates execution permission
+ * @li 0x010: Indicates write permission
+ * @li 0x100: Indicates read permission
+ *
+ * On Windows, only the User permissions are considered:
+ * @li if the user write permission is OFF, the file will be set as
+ * Read Only.
+ * @li if the user write permission is ON, the Read Only flag will be
+ * removed from the file.
+ *
+ * This function does not work with Windows folders.
+ */
+#if DOXYGEN_JS
+Integer Testutils::chmod(String path, Integer mode);
+#elif DOXYGEN_PY
+int Testutils::chmod(str path, int mode);
+#endif
+///@}
+int Testutils::ch_mod(const std::string& path, int mode) {
+#ifndef _WIN32
+  return chmod(path.c_str(), mode);
+#else
+  auto dwAttrs = GetFileAttributes(path.c_str());
+  // If user write permission is off, sets the file read only
+  // otherwise, cleans the file read only
+  int user_write = (2 << 6) & mode;
+  dwAttrs = user_write ? dwAttrs & ~FILE_ATTRIBUTE_READONLY
+                       : dwAttrs | FILE_ATTRIBUTE_READONLY;
+  if (!SetFileAttributes(path.c_str(), dwAttrs))
+    return -1;
+  return 0;
+#endif
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Creates a copy of a file.
+ * @param source The name of the file to be copied
+ * @param target The name of the new file.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::cpfile(String source, String target);
+#elif DOXYGEN_PY
+None Testutils::cpfile(str source, str target);
+#endif
+///@}
+void Testutils::cp_file(const std::string &source, const std::string& target) {
+  shcore::copy_file(source, target, true);
+}
+
+//!<  @name Misc Utilities
+///@{
+/**
+ * Deletes a file
+ * @param path The name of the file to be deleted.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::rmfile(String path);
+#elif DOXYGEN_PY
+None Testutils::rmfile(str path);
+#endif
+///@}
+void Testutils::rm_file(const std::string& target) {
+  shcore::delete_file(target, false);
 }
 
 //!<  @name Misc Utilities
