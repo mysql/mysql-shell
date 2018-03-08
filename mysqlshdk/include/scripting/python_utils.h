@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
@@ -29,7 +30,20 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
+
+#if defined(__clang__) && \
+    ((__clang_major__ == 3 && __clang_minor__ >= 8) || __clang_major__ > 3)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-register"
+#endif
+
 #include <Python.h>
+
+#if defined(__clang__) && \
+    ((__clang_major__ == 3 && __clang_minor__ >= 8) || __clang_major__ > 3)
+#pragma clang diagnostic pop
+#endif
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
