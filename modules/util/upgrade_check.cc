@@ -505,38 +505,9 @@ class Removed_functions_check : public Sql_upgrade_check {
     for (const auto& func : functions) {
       std::size_t pos = find_function(definition, func.first);
 
-      std::size_t it = 0;
+      mysqlshdk::utils::SQL_string_iterator it(definition);
       while (pos != std::string::npos && it < pos) {
-        switch (definition[it]) {
-          case '\'':
-            it = mysqlshdk::utils::span_quoted_string_sq(definition, it);
-            break;
-          case '"':
-            it = mysqlshdk::utils::span_quoted_string_dq(definition, it);
-            break;
-          case '/':
-            if (definition[it + 1] == '*')
-              it = mysqlshdk::utils::span_cstyle_comment(definition, it);
-            else
-              ++it;
-            break;
-          case '#':
-            ++it;
-            while (it < definition.size() && definition[it] != '\n')
-              ++it;
-            break;
-          case '-':
-            ++it;
-            if (it + 1 < definition.size() && definition[it] == '-' &&
-                std::isspace(definition[it + 1])) {
-              ++it;
-              while (it < definition.size() && definition[it] != '\n')
-                ++it;
-            }
-            break;
-          default:
-            ++it;
-        }
+        ++it;
         if (it > pos)
           pos = find_function(definition, func.first, it);
       }

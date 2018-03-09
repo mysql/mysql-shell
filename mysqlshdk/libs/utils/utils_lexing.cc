@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,51 @@
 namespace mysqlshdk {
 namespace utils {
 
+SQL_string_iterator::SQL_string_iterator(const std::string& str,
+                                         std::string::size_type offset)
+    : m_s(str), m_offset(offset - 1) {
+  // Let's make sure we start from valid SQL
+  ++(*this);
+}
+
+SQL_string_iterator& SQL_string_iterator::operator++() {
+  if (++m_offset > m_s.length())
+    throw std::out_of_range("SQL_string_iterator offset out of range");
+
+  bool incremented = false;
+  do {
+    switch (m_s[m_offset]) {
+      case '\'':
+        m_offset = span_quoted_string_sq(m_s, m_offset);
+        break;
+      case '"':
+        m_offset = span_quoted_string_dq(m_s, m_offset);
+        break;
+      case '/':
+        if (m_s[m_offset + 1] == '*')
+          m_offset = span_cstyle_comment(m_s, m_offset);
+        else
+          incremented = true;
+        break;
+      case '#':
+        m_offset = span_to_eol(m_s, m_offset + 1);
+        break;
+      case '-':
+        if (m_offset + 2 < m_s.length() && m_s[m_offset + 1] == '-' &&
+            std::isspace(m_s[m_offset + 2]))
+          m_offset = span_to_eol(m_s, m_offset + 2);
+        else
+          incremented = true;
+        break;
+      default:
+        incremented = true;
+    }
+    if (m_offset == std::string::npos)
+      m_offset = m_s.length();
+  } while (!incremented && m_offset < m_s.length());
+
+  return *this;
+}
 
 }  // namespace utils
 }  // namespace mysqlshdk
