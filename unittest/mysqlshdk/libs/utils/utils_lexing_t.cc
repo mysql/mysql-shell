@@ -65,7 +65,6 @@ TEST(Utils_lexing, span_quoted_string_dq) {
   EXPECT_EQ(std::string::npos, span_quoted_string_dq("\"\\\"", 0));
 }
 
-
 TEST(Utils_lexing, span_quoted_string_sq) {
   EXPECT_EQ(2, span_quoted_string_sq("''", 0));
   EXPECT_EQ(3, span_quoted_string_sq("'a'", 0));
@@ -125,6 +124,29 @@ TEST(Utils_lexing, span_sql_identifier) {
   EXPECT_EQ(4, span_quoted_sql_identifier_bt("```` bar", 0));
 
   EXPECT_EQ(std::string::npos, span_quoted_sql_identifier_bt("`foo", 0));
+}
+
+TEST(Utils_lexing, SQL_string_iterator) {
+  std::string ts("# foo * \ns'* '/* foo*  */s\"* \"s-- * \ns");
+  SQL_string_iterator it(ts);
+  EXPECT_EQ('s', *(it++));
+  EXPECT_EQ('s', *it);
+  EXPECT_EQ('s', *(++it));
+  EXPECT_EQ('s', *(++it));
+  EXPECT_EQ(ts.length(), ++it);
+  EXPECT_THROW(++it, std::out_of_range);
+
+  std::string ts1(
+      "# foo * \nselect '* '/* foo*  */select \"* \" from -- * \n *");
+  SQL_string_iterator it1(ts1);
+  for (std::size_t i = 0; i < 17; ++i)
+    EXPECT_NO_THROW(++it1);
+  EXPECT_THROW(++it, std::out_of_range);
+
+  std::string ts2("# test");
+  SQL_string_iterator it2(ts2);
+  EXPECT_EQ(ts2.length(), it2);
+  EXPECT_THROW(++it2, std::out_of_range);
 }
 
 }  // namespace utils

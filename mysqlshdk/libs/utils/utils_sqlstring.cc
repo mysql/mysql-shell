@@ -21,7 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "utils_sqlstring.h"
+#include "utils/utils_sqlstring.h"
+#include "utils/utils_lexing.h"
 #include "utils/utils_string.h"
 
 // updated as of 5.7
@@ -440,16 +441,15 @@ sqlstring::sqlstring(const sqlstring &copy)
 sqlstring::sqlstring() : _format(0) {}
 
 std::string sqlstring::consume_until_next_escape() {
-  std::string::size_type e = _format_string_left.length(), p = 0;
-  while (p < e) {
-    char ch = _format_string_left[p];
-    if (ch == '?' || ch == '!') break;
-    ++p;
-  }
-  if (p > 0) {
-    std::string s = _format_string_left.substr(0, p);
-    if (p < e)
-      _format_string_left = _format_string_left.substr(p);
+  mysqlshdk::utils::SQL_string_iterator it(_format_string_left);
+  for (; it.valid(); ++it)
+    if (*it == '?' || *it == '!')
+      break;
+
+  if (it.position() > 0) {
+    std::string s = _format_string_left.substr(0, it.position());
+    if (it.position() < _format_string_left.length())
+      _format_string_left = _format_string_left.substr(it.position());
     else
       _format_string_left.clear();
     return s;
@@ -554,8 +554,9 @@ sqlstring &sqlstring::operator<<(const char *v) {
         append("\"").append(escape_sql_string(v)).append("\"");
       else
         append("'").append(escape_sql_string(v)).append("'");
-    } else
+    } else {
       append("NULL");
+    }
   } else {  // shouldn't happen
     throw std::invalid_argument(
         "Error formatting SQL query: internal error, expected ? or ! escape "
