@@ -78,7 +78,7 @@ class Mysql_shell : public mysqlsh::Base_shell,
     return &_shell_command_handler;
   }
 
-  std::shared_ptr<mysqlsh::Shell_console> get_console_handler() {
+  std::shared_ptr<mysqlsh::Shell_console> console() {
     return _console_handler;
   }
 

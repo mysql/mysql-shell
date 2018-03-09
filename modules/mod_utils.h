@@ -30,8 +30,9 @@
 
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 using mysqlshdk::db::Connection_options;
@@ -42,11 +43,10 @@ enum class PasswordFormat {
   OPTIONS,
 };
 
-Connection_options SHCORE_PUBLIC get_connection_options(
-    const shcore::Value& args);
+Connection_options SHCORE_PUBLIC
+get_connection_options(const shcore::Value& args);
 Connection_options SHCORE_PUBLIC get_connection_options(
     const shcore::Argument_list& args, PasswordFormat format);
-
 
 /**
  * Unpack an options dictionary.
@@ -66,26 +66,40 @@ Connection_options SHCORE_PUBLIC get_connection_options(
  *      required("target", &opt_target).
  *      end();
  */
-class Unpack_options : shcore::Option_unpacker {
+class Unpack_options : public shcore::Option_unpacker {
  public:
   explicit Unpack_options(shcore::Dictionary_t options)
       : shcore::Option_unpacker(options) {}
 
-  shcore::Option_unpacker& optional(const char* name,
-                            Connection_options* out_value) {
-    shcore::Value value = get_optional(name, shcore::String);
+  shcore::Option_unpacker& optional_obj(const char* name,
+                                        Connection_options* out_value) {
+    shcore::Value value = get_optional(name, shcore::Undefined);
     if (value) {
-      try {
-        *out_value = Connection_options(value.as_string());
-      } catch (std::exception& e) {
-        throw shcore::Exception::argument_error(
-            std::string("Invalid value for option ") + name + ": " + e.what());
+      if (value.type == shcore::String) {
+        try {
+          *out_value = Connection_options(value.as_string());
+        } catch (std::exception& e) {
+          throw shcore::Exception::argument_error(
+              std::string("Invalid value for option ") + name + ": " +
+              e.what());
+        }
+        // } else if (value.type == shcore::Map) {
+        //   try {
+        //     *out_value = get_connection_options();
+        //   } catch (std::exception& e) {
+        //     throw shcore::Exception::argument_error(
+        //         std::string("Invalid value for option ") + name + ": " +
+        //         e.what());
+        //   }
+      } else {
+        throw shcore::Exception::type_error(shcore::str_format(
+            "Option '%s' is expected to be of type String, but is %s", name,
+            type_name(value.type).c_str()));
       }
     }
     return *this;
   }
 };
-
 
 void SHCORE_PUBLIC set_password_from_map(
     Connection_options* options, const shcore::Value::Map_type_ref& map);

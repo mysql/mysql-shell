@@ -167,25 +167,25 @@ inline std::string bold(const std::string &text) {
 inline std::string error(const std::string &text) {
   if (!has_color())
     return text;
-  return vt100::attr(1, -1, vt100::Bright) + text + vt100::attr();
+  return vt100::attr(1, -1) + text + vt100::attr();
 }
 
 inline std::string alert(const std::string &text) {
   if (!has_color())
     return text;
-  return vt100::attr(1, -1, vt100::Bright) + text + vt100::attr();
+  return vt100::attr(1, -1) + text + vt100::attr();
 }
 
 inline std::string warning(const std::string &text) {
   if (!has_color())
     return text;
-  return vt100::attr(3, -1, vt100::Bright) + text + vt100::attr();
+  return vt100::attr(3, -1) + text + vt100::attr();
 }
 
 inline std::string notice(const std::string &text) {
   if (!has_color())
     return text;
-  return vt100::attr(4, -1, vt100::Bright) + text + vt100::attr();
+  return vt100::attr(4, -1) + text + vt100::attr();
 }
 
 }  // namespace textui

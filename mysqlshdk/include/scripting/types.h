@@ -35,6 +35,7 @@
 #include <memory>
 
 #include "mysqlshdk_export.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace shcore {
@@ -521,6 +522,16 @@ class Option_unpacker {
     return *this;
   }
 
+  template <typename T>
+  Option_unpacker &optional(const char *name,
+                            mysqlshdk::utils::nullable<T> *out_value) {
+    Value value = get_optional(name, value_type_for_native<T>::type);
+    if (value) {
+      *out_value = value_type_for_native<T>::extract(value);
+    }
+    return *this;
+  }
+
   // Case insensitive
   template<typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {
@@ -654,6 +665,7 @@ public:
   static Exception type_error(const std::string &message);
   static Exception logic_error(const std::string &message);
   static Exception metadata_error(const std::string &message);
+  static Exception external_action_required(const std::string &message);
 
   static Exception mysql_error_with_code(const std::string &message, int code) {
     return error_with_code("MySQL Error", message, code);

@@ -47,7 +47,7 @@ class Interactive_object_wrapper_test : public Shell_core_test_wrapper {
 TEST_F(Interactive_object_wrapper_test, prompt_answer) {
   Interactive_object_wrapper_modified wrap(
       *_interactive_shell->shell_context(),
-      _interactive_shell->get_console_handler());
+      _interactive_shell->console());
 
   output_handler.prompts.push_back({"*", ""});
   Prompt_answer ans = wrap.prompt("ques?");

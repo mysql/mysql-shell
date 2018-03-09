@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <cassert>
 #include <string>
 #include <stdexcept>
+#include <cctype>
 
 namespace mysqlshdk {
 namespace utils {
@@ -60,6 +61,9 @@ constexpr char k_quoted_string_span_skips_dq[256] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+constexpr char k_keyword_chars[] =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 }  // namespace internal
 
 /*
@@ -138,6 +142,42 @@ inline size_t span_quoted_string_sq(const std::string &s, size_t offset) {
     return offset + 1;
   }
 }
+
+inline size_t span_quoted_sql_identifier_bt(const std::string &s,
+                                            size_t offset) {
+  assert(!s.empty());
+  assert(offset < s.length());
+  assert(s[offset] == '`');
+  assert(s[s.size()] == '\0');
+
+  // unlike strings, identifiers don't allow escaping with the \ char
+  size_t p = offset + 1;
+  for (;;) {
+    p = s.find('`', p);
+    if (p == std::string::npos) {
+      break;
+    }
+    if (s[p + 1] == '`') {
+      p += 2;
+    } else {
+      ++p;
+      break;
+    }
+  }
+  return p;
+}
+
+inline size_t span_keyword(const std::string &s, size_t offset) {
+  assert(!s.empty());
+  assert(offset < s.length());
+
+  if (std::isalpha(s[offset]) || s[offset] == '_') {
+    return s.find_first_not_of(internal::k_keyword_chars, offset + 1);
+  } else {
+    return offset;
+  }
+}
+
 
 inline size_t span_to_eol(const std::string &s, size_t offset) {
   offset = s.find('\n', offset);

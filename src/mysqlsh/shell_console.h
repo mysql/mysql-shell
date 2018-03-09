@@ -41,6 +41,7 @@ class Shell_console : public IConsole {
   void println(const std::string &text = "") override;
   void print_error(const std::string &text) override;
   void print_warning(const std::string &text) override;
+  void print_note(const std::string &text) override;
   void print_info(const std::string &text) override;
   bool prompt(const std::string &prompt, std::string *out_val) override;
   Prompt_answer confirm(const std::string &prompt,

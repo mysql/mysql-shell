@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -371,6 +371,12 @@ void Base_shell::println_deferred(const std::string &str) {
 
 void Base_shell::print_error(const std::string &error) {
   _shell->print_error(error);
+}
+
+void Base_shell::clear_input() {
+  _input_mode = shcore::Input_state::Ok;
+  _input_buffer.clear();
+  _shell->clear_input();
 }
 
 void Base_shell::process_line(const std::string &line) {

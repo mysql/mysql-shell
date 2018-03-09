@@ -56,6 +56,15 @@ enum class Var_qualifier {
 class IInstance {
  public:
   virtual ~IInstance() {}
+
+  virtual std::string descr() const = 0;
+
+  virtual void cache_global_sysvars(bool force_refresh = false) = 0;
+  virtual utils::nullable<std::string> get_cached_global_sysvar(
+      const std::string &name) const = 0;
+  virtual utils::nullable<bool> get_cached_global_sysvar_as_bool(
+      const std::string &name) const = 0;
+
   virtual utils::nullable<bool> get_sysvar_bool(
       const std::string& name,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
@@ -81,6 +90,7 @@ class IInstance {
   virtual utils::Version get_version() const = 0;
 
   virtual std::shared_ptr<db::ISession> get_session() const = 0;
+  virtual void close_session() const = 0;
   virtual void install_plugin(const std::string &plugin_name) const = 0;
   virtual void uninstall_plugin(const std::string &plugin_name) const = 0;
   virtual utils::nullable<std::string> get_plugin_status(
@@ -92,6 +102,11 @@ class IInstance {
   virtual void drop_user(const std::string &user,
                          const std::string &host) const = 0;
   virtual void drop_users_with_regexp(const std::string &regexp) const = 0;
+  virtual mysqlshdk::db::Connection_options get_connection_options() const = 0;
+  virtual void get_current_user(std::string *current_user,
+                                std::string *current_host) const = 0;
+  virtual bool user_exists(const std::string &username,
+                           const std::string &hostname) const = 0;
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const = 0;
 };
@@ -102,6 +117,14 @@ class IInstance {
 class Instance : public IInstance {
  public:
   explicit Instance(std::shared_ptr<db::ISession> session);
+
+  std::string descr() const override;
+
+  void cache_global_sysvars(bool force_refresh = false) override;
+  utils::nullable<std::string> get_cached_global_sysvar(
+      const std::string &name) const override;
+  utils::nullable<bool> get_cached_global_sysvar_as_bool(
+      const std::string &name) const override;
 
   utils::nullable<bool> get_sysvar_bool(
       const std::string& name,
@@ -126,6 +149,7 @@ class Instance : public IInstance {
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;
   }
+  void close_session() const override { _session->close(); }
   std::map<std::string, utils::nullable<std::string> > get_system_variables(
       const std::vector<std::string>& names,
       const Var_qualifier scope = Var_qualifier::SESSION) const;
@@ -140,15 +164,24 @@ class Instance : public IInstance {
   void drop_user(const std::string &user,
                  const std::string &host) const override;
   void drop_users_with_regexp(const std::string &regexp) const override;
+  mysqlshdk::db::Connection_options get_connection_options() const override {
+    return _session->get_connection_options();
+  }
   std::unique_ptr<User_privileges> get_user_privileges(const std::string &user,
       const std::string &host) const override;
 
   bool is_read_only(bool super) const override;
   utils::Version get_version() const override;
 
+  void get_current_user(std::string *current_user,
+                        std::string *current_host) const override;
+  bool user_exists(const std::string &username,
+                   const std::string &hostname) const override;
+
  private:
   std::shared_ptr<db::ISession> _session;
   mutable mysqlshdk::utils::Version _version;
+  std::map<std::string, utils::nullable<std::string>> _global_sysvars;
 };
 
 }  // namespace mysql

@@ -1154,4 +1154,25 @@ TEST_F(Instance_test, drop_users_with_regexp) {
   _session->close();
 }
 
+TEST_F(Instance_test, cached_sysvars) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  session
+      .expect_query("SHOW GLOBAL VARIABLES")
+      .then_return({{
+          "",
+          {"Variable_name", "Value"},
+          {Type::String, Type::String},
+          {{"autocommit", "ON"}, {"warning_count", "0"}}
+      }});
+
+  instance.cache_global_sysvars();
+  EXPECT_EQ("ON", *instance.get_cached_global_sysvar("autocommit"));
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
 }  // namespace testing

@@ -116,5 +116,16 @@ TEST(Utils_lexing, span_cstyle_comment) {
   EXPECT_EQ(std::string::npos, span_cstyle_comment("/*/", 0));
 }
 
+TEST(Utils_lexing, span_sql_identifier) {
+  EXPECT_EQ(5, span_quoted_sql_identifier_bt("`foo` bar", 0));
+  EXPECT_EQ(2, span_quoted_sql_identifier_bt("`` bar", 0));
+  EXPECT_EQ(6, span_quoted_sql_identifier_bt("`f``o` bar", 0));
+  EXPECT_EQ(5, span_quoted_sql_identifier_bt("`f``` bar", 0));
+  EXPECT_EQ(5, span_quoted_sql_identifier_bt("```f` bar", 0));
+  EXPECT_EQ(4, span_quoted_sql_identifier_bt("```` bar", 0));
+
+  EXPECT_EQ(std::string::npos, span_quoted_sql_identifier_bt("`foo", 0));
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

@@ -1113,6 +1113,63 @@ void sleep_ms(uint32_t ms) {
 #endif
 }
 
+/*
+ * Determines the current Operating System
+ *
+ * @return an enum representing the current operating system
+ * (shcore::OperatingSystem)
+ */
+OperatingSystem get_os() {
+  OperatingSystem os;
+
+#ifdef WIN32
+  os = OperatingSystem::WINDOWS;
+#elif __APPLE__
+  os = OperatingSystem::MACOS;
+#else
+  os = OperatingSystem::LINUX;
+
+  // Detect the distribution
+  std::string distro_buffer, proc_version = "/proc/version";
+
+  if (shcore::file_exists(proc_version)) {
+    // Read the proc_version file
+    std::ifstream s(proc_version.c_str());
+
+    if (!s.fail())
+      std::getline(s, distro_buffer);
+    else
+      log_warning("Failed to read file: %s", proc_version.c_str());
+
+    // Transform all to lowercase
+    std::transform(distro_buffer.begin(), distro_buffer.end(),
+                   distro_buffer.begin(), ::tolower);
+
+    const std::vector<std::string> distros = {"ubuntu", "debian", "red hat"};
+
+    for (const auto &value : distros) {
+      if (distro_buffer.find(value) != std::string::npos) {
+        if (value == "ubuntu" || value == "debian") {
+          os = OperatingSystem::DEBIAN;
+          break;
+        } else if (value == "red hat") {
+          os = OperatingSystem::REDHAT;
+          break;
+        } else {
+          continue;
+        }
+      }
+    }
+  } else {
+    log_warning(
+        "Failed to detect the Linux distribution. '%s' "
+        "does not exist.",
+        proc_version.c_str());
+  }
+#endif
+
+  return os;
+}
 
 static bool _match_glob(const std::string &pat, size_t ppos,
                         const std::string &str, size_t spos) {

@@ -55,6 +55,14 @@ class Error : public std::runtime_error {
 
   const char* sqlstate() const { return sqlstate_.c_str(); }
 
+  std::string format() const {
+    if (sqlstate_.empty())
+      return "MySQL Error " + std::to_string(code()) + ": " + what();
+    else
+      return "MySQL Error " + std::to_string(code()) + " (" + sqlstate() +
+             "): " + what();
+  }
+
  private:
   int code_;
   std::string sqlstate_;

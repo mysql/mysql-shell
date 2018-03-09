@@ -99,6 +99,8 @@ class Net {
   static Net *s_implementation;
 };
 
+bool is_loopback_address(const std::string &name);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 

@@ -856,7 +856,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
         std::string msg;
         if (e.sqlstate() && *e.sqlstate())
           msg = shcore::str_format("MySQL Error %i (%s): %s", e.code(),
-                                   e.what(), e.sqlstate());
+                                   e.sqlstate(), e.what());
         else
           msg = shcore::str_format("MySQL Error %i: %s", e.code(), e.what());
         print_error(msg + "\n");

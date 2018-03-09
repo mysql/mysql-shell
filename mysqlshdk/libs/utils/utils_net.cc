@@ -26,6 +26,7 @@
 #ifdef WIN32
 #include <Ws2tcpip.h>
 #else
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -130,6 +131,22 @@ std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
   } else {
     throw prepare_net_error("Unable to resolve host");
   }
+}
+
+bool is_loopback_address(const std::string &name) {
+  struct hostent *he;
+  // if the host is not local, we try to resolve it and see if it points to
+  // a loopback
+  he = gethostbyname(name.c_str());
+  if (he) {
+    for (struct in_addr **h = (struct in_addr **)he->h_addr_list; *h; ++h) {
+      const char *addr = inet_ntoa(**h);
+      if (strncmp(addr, "127.", 4) == 0) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 }  // namespace utils
