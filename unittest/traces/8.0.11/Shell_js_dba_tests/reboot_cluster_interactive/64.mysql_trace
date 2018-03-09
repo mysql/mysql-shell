@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "16",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "43793a7d-26ec-11e8-91bb-b86b230042b9"
+            "518cc0c1-2979-11e8-a1ad-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,7 +245,7 @@
     ],
     "rows": [
         [
-            "43793a7d-26ec-11e8-91bb-b86b230042b9"
+            "518cc0c1-2979-11e8-a1ad-5ce0c50b9d66"
         ]
     ]
 },
@@ -407,22 +407,22 @@
     ],
     "rows": [
         [
-            "3aba1951-26ec-11e8-91bb-b86b230042b9",
-            "localhost:3316",
+            "4d05966f-2979-11e8-a1ad-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ],
         [
-            "3d8e1a12-26ec-11e8-a00d-b86b230042b9",
-            "localhost:3326",
+            "4e908d98-2979-11e8-8bd4-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326"
+            "localhost:3350"
         ],
         [
-            "3f90f56f-26ec-11e8-b47c-b86b230042b9",
-            "10.172.234.37:3336",
+            "50705474-2979-11e8-bdbd-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3360",
             "HA",
-            "10.172.234.37:3336"
+            "pjesus-TECRA-Z40-B:3360"
         ]
     ]
 },
@@ -508,22 +508,22 @@
     ],
     "rows": [
         [
-            "3aba1951-26ec-11e8-91bb-b86b230042b9",
-            "localhost:3316",
+            "4d05966f-2979-11e8-a1ad-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ],
         [
-            "3d8e1a12-26ec-11e8-a00d-b86b230042b9",
-            "localhost:3326",
+            "4e908d98-2979-11e8-8bd4-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326"
+            "localhost:3350"
         ],
         [
-            "3f90f56f-26ec-11e8-b47c-b86b230042b9",
-            "10.172.234.37:3336",
+            "50705474-2979-11e8-bdbd-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3360",
             "HA",
-            "10.172.234.37:3336"
+            "pjesus-TECRA-Z40-B:3360"
         ]
     ]
 },

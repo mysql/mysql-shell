@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@localhost:3326",
+    "uri": "foo:bar@localhost:3350",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "3",
+    "connection_id": "2",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "bd67930a-24ca-11e8-b540-6cccb93cfd45"
+            "b6782afc-2982-11e8-822e-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-153-226-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000004",
             230,
             "",
             "",
-            "bc76aa94-24ca-11e8-a4d9-abc9ed4aaa75:1-14,\nbf40ee74-24ca-11e8-a4d9-abc9ed4aaa75:1-18"
+            "b5b65e68-2982-11e8-8097-5ce0c50b9d66:1-14,\nba3228e1-2982-11e8-8097-5ce0c50b9d66:1-18"
         ]
     ]
 },

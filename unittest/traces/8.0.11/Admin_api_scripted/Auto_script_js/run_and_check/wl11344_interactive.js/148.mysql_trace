@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33261,localhost:33361"
+            "localhost:33501,localhost:33601"
         ]
     ]
 },
@@ -130,7 +130,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33361'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33601'"
 },
 {
     "type": "response",

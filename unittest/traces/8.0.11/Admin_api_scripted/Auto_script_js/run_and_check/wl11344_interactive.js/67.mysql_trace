@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326?ssl-mode=required",
+    "uri": "mysql://root:root@localhost:3350?ssl-mode=required",
     "protocol": "classic"
 },
 {
@@ -71,7 +71,7 @@
         ],
         [
             "group_replication_group_seeds",
-            "dhcp-10-159-240-73.vpn.oracle.com:33161"
+            "pjesus-TECRA-Z40-B:33401"
         ],
         [
             "group_replication_ip_whitelist",
@@ -79,7 +79,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:3336"
+            "localhost:3360"
         ],
         [
             "group_replication_recovery_use_ssl",
@@ -154,7 +154,7 @@
         ],
         [
             "group_replication_group_seeds",
-            "dhcp-10-159-240-73.vpn.oracle.com:33161"
+            "pjesus-TECRA-Z40-B:33401"
         ],
         [
             "group_replication_ip_whitelist",
@@ -162,7 +162,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:3336"
+            "localhost:3360"
         ],
         [
             "group_replication_recovery_use_ssl",

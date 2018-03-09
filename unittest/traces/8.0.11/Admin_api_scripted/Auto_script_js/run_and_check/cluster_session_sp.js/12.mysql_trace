@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "34",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -317,7 +317,7 @@
         [
             "default",
             "pm",
-            "2b09e6ff-26de-11e8-993e-b86b230042b9"
+            "f5438f68-2972-11e8-94a9-5ce0c50b9d66"
         ]
     ]
 },
@@ -355,7 +355,7 @@
     ],
     "rows": [
         [
-            "2b09e6ff-26de-11e8-993e-b86b230042b9"
+            "f5438f68-2972-11e8-94a9-5ce0c50b9d66"
         ]
     ]
 },
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "23cd4666-26de-11e8-993e-b86b230042b9",
-            "23cd4666-26de-11e8-993e-b86b230042b9"
+            "f1a6c07d-2972-11e8-94a9-5ce0c50b9d66",
+            "f1a6c07d-2972-11e8-94a9-5ce0c50b9d66"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '23cd4666-26de-11e8-993e-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f1a6c07d-2972-11e8-94a9-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -710,7 +710,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "23cd4666-26de-11e8-993e-b86b230042b9"
+            "f1a6c07d-2972-11e8-94a9-5ce0c50b9d66"
         ]
     ]
 },
@@ -850,17 +850,17 @@
     ],
     "rows": [
         [
-            "23cd4666-26de-11e8-993e-b86b230042b9",
-            "localhost:3316",
+            "f1a6c07d-2972-11e8-94a9-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
+            "localhost:3340",
             "ONLINE"
         ],
         [
-            "2657fa07-26de-11e8-8e38-b86b230042b9",
-            "localhost:3326",
+            "f304baa9-2972-11e8-bfb0-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326",
+            "localhost:3350",
             "ONLINE"
         ]
     ]

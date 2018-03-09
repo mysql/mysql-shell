@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://root:root@localhost:33160",
+    "uri": "mysqlx://root:root@localhost:33400",
     "protocol": "x"
 },
 {
@@ -169,9 +169,9 @@
     ],
     "rows": [
         [
-            "4db1e448-24f7-11e8-8cd3-202040e0a597",
+            "defb5f45-297e-11e8-9f0a-5ce0c50b9d66",
             1,
-            "4afc38f2-24f7-11e8-8cd3-202040e0a597",
+            "dab055ba-297e-11e8-9f0a-5ce0c50b9d66",
             "ONLINE"
         ]
     ]
@@ -529,7 +529,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 198,
+            "length": 222,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -548,8 +548,8 @@
             "latin1",
             "5.7.21-log MySQL Community Server (GPL)",
             "mysqlx.sock",
-            33160,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            33400,
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -604,7 +604,7 @@
     "rows": [
         [
             "Uptime",
-            "17"
+            "21"
         ]
     ]
 },

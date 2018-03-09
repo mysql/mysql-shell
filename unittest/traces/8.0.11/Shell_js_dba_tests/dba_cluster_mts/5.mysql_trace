@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -108,8 +108,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -121,7 +121,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": []
@@ -189,7 +189,7 @@
         ],
         [
             "auto_increment_offset",
-            "3"
+            "5"
         ],
         [
             "autocommit",
@@ -209,7 +209,7 @@
         ],
         [
             "basedir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/"
         ],
         [
             "big_tables",
@@ -341,7 +341,7 @@
         ],
         [
             "character_sets_dir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/share/charsets/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -381,7 +381,7 @@
         ],
         [
             "datadir",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
         ],
         [
             "default_authentication_plugin",
@@ -497,7 +497,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/dhcp-10-159-159-64.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B.log"
         ],
         [
             "group_concat_max_len",
@@ -573,7 +573,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-159-64.vpn.oracle.com"
+            "pjesus-TECRA-Z40-B"
         ],
         [
             "information_schema_stats_expiry",
@@ -932,6 +932,10 @@
             ""
         ],
         [
+            "innodb_numa_interleave",
+            "OFF"
+        ],
+        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -1105,7 +1109,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "OFF"
+            "ON"
         ],
         [
             "innodb_version",
@@ -1173,7 +1177,7 @@
         ],
         [
             "lc_messages_dir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/share/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/share/"
         ],
         [
             "lc_time_names",
@@ -1201,11 +1205,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/dhcp-10-159-159-64-bin"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/dhcp-10-159-159-64-bin.index"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1217,7 +1221,7 @@
         ],
         [
             "log_error",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/error.log"
         ],
         [
             "log_error_services",
@@ -1285,11 +1289,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "mandatory_roles",
@@ -1473,7 +1477,7 @@
         ],
         [
             "mysqlx_port",
-            "33170"
+            "33400"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1561,7 +1565,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "8161"
         ],
         [
             "optimizer_prune_level",
@@ -1789,15 +1793,15 @@
         ],
         [
             "pid_file",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/3317.pid"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/3340.pid"
         ],
         [
             "plugin_dir",
-            "/Users/rennox/dev/deps/mysql-8.0.11-macos10.13-x86_64/lib/plugin/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/lib/plugin/"
         ],
         [
             "port",
-            "3317"
+            "3340"
         ],
         [
             "preload_buffer_size",
@@ -1857,15 +1861,15 @@
         ],
         [
             "relay_log",
-            "dhcp-10-159-159-64-relay-bin"
+            "pjesus-TECRA-Z40-B-relay-bin"
         ],
         [
             "relay_log_basename",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/dhcp-10-159-159-64-relay-bin"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/dhcp-10-159-159-64-relay-bin.index"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1897,7 +1901,7 @@
         ],
         [
             "report_port",
-            "3317"
+            "3340"
         ],
         [
             "report_user",
@@ -1921,11 +1925,11 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/mysql-files/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/mysql-files/"
         ],
         [
             "server_id",
-            "15662"
+            "15685"
         ],
         [
             "server_id_bits",
@@ -1933,7 +1937,7 @@
         ],
         [
             "server_uuid",
-            "74ab874c-2647-11e8-ae97-5dfcdb530d47"
+            "c3b59ecb-2977-11e8-b9c5-5ce0c50b9d66"
         ],
         [
             "session_track_gtids",
@@ -2017,7 +2021,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
         ],
         [
             "slave_max_allowed_packet",
@@ -2073,7 +2077,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/dhcp-10-159-159-64-slow.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-slow.log"
         ],
         [
             "socket",
@@ -2189,7 +2193,7 @@
         ],
         [
             "system_time_zone",
-            "CST"
+            "WET"
         ],
         [
             "table_definition_cache",
@@ -2237,7 +2241,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
         ],
         [
             "transaction_alloc_block_size",
@@ -2281,7 +2285,7 @@
         ],
         [
             "version_compile_os",
-            "macos10.13"
+            "linux-glibc2.12"
         ],
         [
             "version_compile_zlib",
@@ -2505,47 +2509,7 @@
             "YES"
         ],
         [
-            "BACKUP_ADMIN",
-            "YES"
-        ],
-        [
-            "BINLOG_ADMIN",
-            "YES"
-        ],
-        [
-            "CONNECTION_ADMIN",
-            "YES"
-        ],
-        [
-            "ENCRYPTION_KEY_ADMIN",
-            "YES"
-        ],
-        [
-            "GROUP_REPLICATION_ADMIN",
-            "YES"
-        ],
-        [
-            "PERSIST_RO_VARIABLES_ADMIN",
-            "YES"
-        ],
-        [
-            "REPLICATION_SLAVE_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_ADMIN",
-            "YES"
-        ],
-        [
-            "RESOURCE_GROUP_USER",
-            "YES"
-        ],
-        [
-            "ROLE_ADMIN",
-            "YES"
-        ],
-        [
-            "SET_USER_ID",
+            "XA_RECOVER_ADMIN",
             "YES"
         ],
         [
@@ -2553,7 +2517,47 @@
             "YES"
         ],
         [
-            "XA_RECOVER_ADMIN",
+            "SET_USER_ID",
+            "YES"
+        ],
+        [
+            "ROLE_ADMIN",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_USER",
+            "YES"
+        ],
+        [
+            "RESOURCE_GROUP_ADMIN",
+            "YES"
+        ],
+        [
+            "REPLICATION_SLAVE_ADMIN",
+            "YES"
+        ],
+        [
+            "PERSIST_RO_VARIABLES_ADMIN",
+            "YES"
+        ],
+        [
+            "GROUP_REPLICATION_ADMIN",
+            "YES"
+        ],
+        [
+            "ENCRYPTION_KEY_ADMIN",
+            "YES"
+        ],
+        [
+            "CONNECTION_ADMIN",
+            "YES"
+        ],
+        [
+            "BINLOG_ADMIN",
+            "YES"
+        ],
+        [
+            "BACKUP_ADMIN",
             "YES"
         ]
     ]
@@ -2743,7 +2747,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2756,8 +2760,8 @@
     ],
     "rows": [
         [
-            3317,
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
+            3340,
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -2798,7 +2802,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2811,8 +2815,8 @@
     ],
     "rows": [
         [
-            3317,
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
+            3340,
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },
@@ -2832,36 +2836,36 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "tables",
             "column_name": "TABLE_NAME",
             "column_label": "TABLE_NAME",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         },
         {
             "schema": "",
@@ -2898,13 +2902,63 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
+            "schema": "mysql",
             "table_name": "TABLES",
             "table_label": "t",
             "column_name": "TABLE_SCHEMA",
             "column_label": "TABLE_SCHEMA",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        },
+        {
+            "schema": "mysql",
+            "table_name": "TABLES",
+            "table_label": "t",
+            "column_name": "TABLE_NAME",
+            "column_label": "TABLE_NAME",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 27,
+    "sql": "show GLOBAL variables where `variable_name` in ('innodb_page_size')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 28,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 256,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -2915,12 +2969,12 @@
         },
         {
             "schema": "",
-            "table_name": "TABLES",
-            "table_label": "t",
-            "column_name": "TABLE_NAME",
-            "column_label": "TABLE_NAME",
-            "length": 256,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 4096,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -2930,16 +2984,21 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "innodb_page_size",
+            "16384"
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 27
+    "index": 29
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 28
+    "index": 30
 },
 null]

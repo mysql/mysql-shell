@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3360?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3336
+            3360
         ]
     ]
 },
@@ -692,7 +692,7 @@
     ],
     "rows": [
         [
-            15681
+            15705
         ]
     ]
 },
@@ -905,20 +905,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1115,6 +1101,20 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1129,14 +1129,14 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "BLACKHOLE",
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1146,13 +1146,6 @@
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
             null,
             "GPL"
         ],
@@ -1167,6 +1160,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ],
@@ -1255,7 +1255,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@log_error",
-            "length": 300,
+            "length": 332,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1268,7 +1268,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3336/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3360/sandboxdata/error.log"
         ]
     ]
 },
@@ -1293,7 +1293,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -1306,7 +1306,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3336/sandboxdata/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },
@@ -1382,7 +1382,7 @@
     ],
     "rows": [
         [
-            15681
+            15705
         ]
     ]
 },
@@ -1420,7 +1420,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "SET PERSIST group_replication_group_seeds = 'localhost:33161,localhost:33261'"
+    "sql": "SET PERSIST group_replication_group_seeds = 'localhost:33401,localhost:33501'"
 },
 {
     "type": "response",
@@ -1600,7 +1600,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET PERSIST group_replication_group_name = 'a06b1a94-2702-11e8-ab09-932a19fdac67'"
+    "sql": "SET PERSIST group_replication_group_name = '43b147ce-297b-11e8-a7be-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1780,7 +1780,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 105,
-    "sql": "SET PERSIST auto_increment_offset = 2"
+    "sql": "SET PERSIST auto_increment_offset = 5"
 },
 {
     "type": "response",
@@ -2050,7 +2050,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 141,
-    "sql": "SET PERSIST group_replication_local_address = 'localhost:33361'"
+    "sql": "SET PERSIST group_replication_local_address = 'localhost:33601'"
 },
 {
     "type": "response",
@@ -2230,7 +2230,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 165,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ ']%^a[9H@5<%[#&,G#$_t;|8$,=^p*?+k' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ '$U_7e}?]1:7*#u)$#i>;?{[<z-:]?L{%' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

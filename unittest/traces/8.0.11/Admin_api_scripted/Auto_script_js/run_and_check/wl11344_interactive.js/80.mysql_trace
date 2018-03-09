@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316?ssl-mode=required",
+    "uri": "mysql://root:root@localhost:3340?ssl-mode=required",
     "protocol": "classic"
 },
 {
@@ -75,11 +75,11 @@
         ],
         [
             "group_replication_group_seeds",
-            "localhost:33261"
+            "localhost:33501"
         ],
         [
             "group_replication_local_address",
-            "localhost:33161"
+            "localhost:33401"
         ],
         [
             "group_replication_recovery_use_ssl",

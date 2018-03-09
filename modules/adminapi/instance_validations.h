@@ -43,6 +43,9 @@ bool validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose,
 bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session,
                       std::shared_ptr<IConsole> console);
 
+void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
+                               std::shared_ptr<IConsole> console);
+
 bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
                             const std::string &mycnf_path,
                             std::shared_ptr<IConsole> console,

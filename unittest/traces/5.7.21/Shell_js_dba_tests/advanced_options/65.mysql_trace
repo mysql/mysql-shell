@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:23326"
+            "localhost:23350"
         ]
     ]
 },
@@ -190,19 +190,34 @@
     ],
     "rows": [
         [
+            "'mysql_innodb_cluster_r0000000019'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000018'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000017'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000016'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000015'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000014'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000013'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000012'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000011'@'localhost'"
+        ],
+        [
             "'mysql_innodb_cluster_r0000000001'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000002'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000003'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000004'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000005'@'localhost'"
         ],
         [
             "'mysql_innodb_cluster_r0000000006'@'localhost'"
@@ -220,73 +235,58 @@
             "'mysql_innodb_cluster_r0000000010'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000011'@'localhost'"
+            "'mysql_innodb_cluster_r0000000005'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000012'@'localhost'"
+            "'mysql_innodb_cluster_r0000000002'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000013'@'localhost'"
+            "'mysql_innodb_cluster_r0000000003'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000014'@'localhost'"
+            "'mysql_innodb_cluster_r0000000004'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000015'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000016'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000017'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000018'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000019'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000006'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000007'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000008'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000009'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000010'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000011'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000012'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000013'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000014'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000015'@'%'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000016'@'%'"
+            "'mysql_innodb_cluster_r0000000019'@'%'"
         ],
         [
             "'mysql_innodb_cluster_r0000000017'@'%'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000018'@'%'"
+            "'mysql_innodb_cluster_r0000000015'@'%'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000019'@'%'"
+            "'mysql_innodb_cluster_r0000000014'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000013'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000012'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000011'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000010'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000009'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000008'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000007'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000006'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000016'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000018'@'%'"
         ]
     ]
 },
@@ -294,7 +294,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000019'@'localhost'"
 },
 {
     "type": "response",
@@ -309,7 +309,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000018'@'localhost'"
 },
 {
     "type": "response",
@@ -324,7 +324,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000017'@'localhost'"
 },
 {
     "type": "response",
@@ -339,7 +339,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000016'@'localhost'"
 },
 {
     "type": "response",
@@ -354,7 +354,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000015'@'localhost'"
 },
 {
     "type": "response",
@@ -369,7 +369,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000014'@'localhost'"
 },
 {
     "type": "response",
@@ -384,7 +384,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000013'@'localhost'"
 },
 {
     "type": "response",
@@ -399,7 +399,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000012'@'localhost'"
 },
 {
     "type": "response",
@@ -414,7 +414,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000009'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000011'@'localhost'"
 },
 {
     "type": "response",
@@ -429,7 +429,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000010'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost'"
 },
 {
     "type": "response",
@@ -444,7 +444,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000011'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'localhost'"
 },
 {
     "type": "response",
@@ -459,7 +459,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000012'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'localhost'"
 },
 {
     "type": "response",
@@ -474,7 +474,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000013'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'localhost'"
 },
 {
     "type": "response",
@@ -489,7 +489,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000014'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000009'@'localhost'"
 },
 {
     "type": "response",
@@ -504,7 +504,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000015'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000010'@'localhost'"
 },
 {
     "type": "response",
@@ -519,7 +519,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000016'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost'"
 },
 {
     "type": "response",
@@ -534,7 +534,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000017'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
 },
 {
     "type": "response",
@@ -549,7 +549,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000018'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
 },
 {
     "type": "response",
@@ -564,7 +564,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000019'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost'"
 },
 {
     "type": "response",
@@ -579,7 +579,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000019'@'%'"
 },
 {
     "type": "response",
@@ -594,7 +594,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 53,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000017'@'%'"
 },
 {
     "type": "response",
@@ -609,7 +609,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000015'@'%'"
 },
 {
     "type": "response",
@@ -624,7 +624,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000009'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000014'@'%'"
 },
 {
     "type": "response",
@@ -639,7 +639,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000010'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000013'@'%'"
 },
 {
     "type": "response",
@@ -654,7 +654,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 61,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000011'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000012'@'%'"
 },
 {
     "type": "response",
@@ -669,7 +669,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 63,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000012'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000011'@'%'"
 },
 {
     "type": "response",
@@ -684,7 +684,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000013'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000010'@'%'"
 },
 {
     "type": "response",
@@ -699,7 +699,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 67,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000014'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000009'@'%'"
 },
 {
     "type": "response",
@@ -714,7 +714,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000015'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'%'"
 },
 {
     "type": "response",
@@ -729,7 +729,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000016'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'%'"
 },
 {
     "type": "response",
@@ -744,7 +744,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000017'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'%'"
 },
 {
     "type": "response",
@@ -759,7 +759,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000018'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000016'@'%'"
 },
 {
     "type": "response",
@@ -774,7 +774,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000019'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000018'@'%'"
 },
 {
     "type": "response",

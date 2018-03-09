@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "1f56a742-2677-11e8-a789-b1ec8e0363e6"
+            "ba798f3e-298e-11e8-b99a-5ce0c50b9d66"
         ]
     ]
 },
@@ -122,7 +122,7 @@
     "rows": [
         [
             "group_replication_group_name",
-            "2428ce12-2677-11e8-a789-b1ec8e0363e6"
+            "bec4a213-298e-11e8-b99a-5ce0c50b9d66"
         ]
     ]
 },

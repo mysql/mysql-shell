@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336",
+    "uri": "root:root@localhost:3360",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "3",
+    "connection_id": "2",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "765fef98-25a1-11e8-a103-b5517456539b"
+            "cfa301f1-2984-11e8-89c2-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "Kenjis-iMac-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000004",
             270,
             "",
             "",
-            "7484428c-25a1-11e8-984d-54cc04ad5bbc:1-20,\n77439108-25a1-11e8-984d-54cc04ad5bbc:1-25,\n91c6c3d8-25a1-11e8-984d-54cc04ad5bbc:1-18"
+            "cbae59b0-2984-11e8-8425-5ce0c50b9d66:1-20,\nd093a70a-2984-11e8-8425-5ce0c50b9d66:1-25,\nebef1e30-2984-11e8-8425-5ce0c50b9d66:1-18"
         ]
     ]
 },

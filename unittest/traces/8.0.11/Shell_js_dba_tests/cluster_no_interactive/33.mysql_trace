@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3327",
+    "uri": "root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "b2115894-2644-11e8-a0db-efc7171b4506"
+            "6cc21711-297c-11e8-875f-5ce0c50b9d66"
         ]
     ]
 },
@@ -153,10 +153,10 @@
     ],
     "rows": [
         [
-            "b2115894-2644-11e8-a0db-efc7171b4506",
-            "localhost:3327",
+            "6cc21711-297c-11e8-875f-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3327"
+            "localhost:3350"
         ]
     ]
 },

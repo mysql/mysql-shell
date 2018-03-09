@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "29019e08-24f8-11e8-a984-45d55a464eb5"
+            "10fdaf1f-297f-11e8-9341-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,7 +245,7 @@
     ],
     "rows": [
         [
-            "29019e08-24f8-11e8-a984-45d55a464eb5"
+            "10fdaf1f-297f-11e8-9341-5ce0c50b9d66"
         ]
     ]
 },
@@ -413,8 +413,8 @@
     ],
     "rows": [
         [
-            "2734a674-24f8-11e8-a984-45d55a464eb5",
-            "2734a674-24f8-11e8-a984-45d55a464eb5"
+            "0dd4f597-297f-11e8-9341-5ce0c50b9d66",
+            "0dd4f597-297f-11e8-9341-5ce0c50b9d66"
         ]
     ]
 },
@@ -422,7 +422,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2734a674-24f8-11e8-a984-45d55a464eb5'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '0dd4f597-297f-11e8-9341-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -600,7 +600,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "2734a674-24f8-11e8-a984-45d55a464eb5"
+            "0dd4f597-297f-11e8-9341-5ce0c50b9d66"
         ]
     ]
 },
@@ -740,17 +740,17 @@
     ],
     "rows": [
         [
-            "2734a674-24f8-11e8-a984-45d55a464eb5",
-            "localhost:3316",
+            "0dd4f597-297f-11e8-9341-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
+            "localhost:3340",
             "ONLINE"
         ],
         [
-            "28288d98-24f8-11e8-a7fc-307ee915ab1c",
-            "localhost:3326",
+            "0ebdea26-297f-11e8-9404-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326",
+            "localhost:3350",
             "UNREACHABLE"
         ]
     ]

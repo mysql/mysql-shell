@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@[::1]:3316",
+    "uri": "root:root@[::1]:3340",
     "protocol": "classic"
 },
 {

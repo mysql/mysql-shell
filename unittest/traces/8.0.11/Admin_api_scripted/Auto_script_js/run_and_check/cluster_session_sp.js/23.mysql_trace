@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "41",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.11-debug Source distribution"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },
@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "23cd4666-26de-11e8-993e-b86b230042b9",
-            "23cd4666-26de-11e8-993e-b86b230042b9"
+            "f1a6c07d-2972-11e8-94a9-5ce0c50b9d66",
+            "f1a6c07d-2972-11e8-94a9-5ce0c50b9d66"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '23cd4666-26de-11e8-993e-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f1a6c07d-2972-11e8-94a9-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -511,7 +511,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 128,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -559,7 +559,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 116,
+            "length": 296,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -576,10 +576,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.11-debug Source distribution",
+            "8.0.11 MySQL Community Server - GPL",
             "mysqld.sock",
-            3316,
-            "/tmp/miguel/3316/sandboxdata/"
+            3340,
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
         ]
     ]
 },

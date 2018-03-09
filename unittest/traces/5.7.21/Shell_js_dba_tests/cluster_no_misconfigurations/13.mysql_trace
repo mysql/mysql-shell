@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3326",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "22",
+    "connection_id": "48",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33261"
+            "localhost:33401"
         ]
     ]
 },
@@ -190,16 +190,10 @@
     ],
     "rows": [
         [
-            "'mysql_innodb_cluster_r0000000001'@'localhost'"
-        ],
-        [
             "'mysql_innodb_cluster_r0000000002'@'localhost'"
         ],
         [
             "'mysql_innodb_cluster_r0000000003'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000001'@'%'"
         ],
         [
             "'mysql_innodb_cluster_r0000000002'@'%'"
@@ -213,7 +207,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
 },
 {
     "type": "response",
@@ -228,7 +222,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
 },
 {
     "type": "response",
@@ -243,7 +237,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'%'"
 },
 {
     "type": "response",
@@ -258,7 +252,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000001'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'%'"
 },
 {
     "type": "response",
@@ -273,7 +267,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'%'"
+    "sql": "SET SESSION `sql_log_bin` = 1"
 },
 {
     "type": "response",
@@ -288,7 +282,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'%'"
+    "sql": "SET GLOBAL `super_read_only` = 'ON'"
 },
 {
     "type": "response",
@@ -301,42 +295,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 25,
-    "sql": "SET SESSION `sql_log_bin` = 1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 26,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 27,
-    "sql": "SET GLOBAL `super_read_only` = 'ON'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 28,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 29
+    "index": 25
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 30
+    "index": 26
 },
 null]

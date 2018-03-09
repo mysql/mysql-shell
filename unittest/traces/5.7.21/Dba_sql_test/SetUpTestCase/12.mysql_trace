@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3337",
+    "uri": "root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "0885a1e8-2678-11e8-ad66-bbc6ae155f9d"
+            "fa016295-2994-11e8-902a-5ce0c50b9d66"
         ]
     ]
 },

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://foo:bar@localhost:3316",
+    "uri": "mysql://foo:bar@localhost:3340",
     "protocol": "classic"
 },
 {

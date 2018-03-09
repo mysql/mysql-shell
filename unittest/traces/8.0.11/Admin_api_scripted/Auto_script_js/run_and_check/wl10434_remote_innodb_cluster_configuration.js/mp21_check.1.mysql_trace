@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -481,7 +481,7 @@
     ],
     "rows": [
         [
-            3316
+            3340
         ]
     ]
 },
@@ -786,7 +786,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "SET @@persist_only.server_id=/*(*/3429597580/*)*/"
+    "sql": "SET @@persist_only.server_id=/*(*/1236068956/*)*/"
 },
 {
     "type": "response",

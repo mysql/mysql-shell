@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@Kenjis-iMac.local:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@pjesus-TECRA-Z40-B:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "63",
-    "connection_info": "Kenjis-iMac.local via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },

@@ -1,0 +1,33 @@
+[client]
+port = 3340
+protocol = TCP
+user = root
+[mysqld]
+report_host = pjesus-TECRA-Z40-B
+general_log = 1
+report_port = 3340
+loose_mysqlx_port = 33400
+secure_file_priv = /home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/mysql-files
+pid_file = /home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/3340.pid
+log_error = /home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/error.log
+datadir = /home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata
+server_id = 15685
+port = 3340
+transaction_write_set_extraction = XXHASH64
+disabled_storage_engines = BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV
+binlog_checksum = NONE
+gtid_mode = ON
+auto_increment_offset = 5
+basedir = /home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64
+log_bin
+loose_mysqlx_socket = mysqlx.sock
+log_slave_updates = ON
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+binlog_format = ROW
+innodb_log_buffer_size = 1M
+enforce_gtid_consistency = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+log_syslog = OFF

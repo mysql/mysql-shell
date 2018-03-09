@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3326",
+    "uri": "mysql://root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "35",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -317,7 +317,7 @@
         [
             "default",
             "mm",
-            "9aaddc40-26de-11e8-85b2-b86b230042b9"
+            "57dbebb7-2973-11e8-a47d-5ce0c50b9d66"
         ]
     ]
 },
@@ -355,7 +355,7 @@
     ],
     "rows": [
         [
-            "9aaddc40-26de-11e8-85b2-b86b230042b9"
+            "57dbebb7-2973-11e8-a47d-5ce0c50b9d66"
         ]
     ]
 },
@@ -523,7 +523,7 @@
     ],
     "rows": [
         [
-            "95676667-26de-11e8-923c-b86b230042b9",
+            "54633dbf-2973-11e8-87f3-5ce0c50b9d66",
             ""
         ]
     ]
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '95676667-26de-11e8-923c-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '54633dbf-2973-11e8-87f3-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -795,17 +795,17 @@
     ],
     "rows": [
         [
-            "9323de84-26de-11e8-85b2-b86b230042b9",
-            "localhost:3316",
+            "529a6b25-2973-11e8-a47d-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316",
+            "localhost:3340",
             "ONLINE"
         ],
         [
-            "95676667-26de-11e8-923c-b86b230042b9",
-            "localhost:3326",
+            "54633dbf-2973-11e8-87f3-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326",
+            "localhost:3350",
             "ONLINE"
         ]
     ]

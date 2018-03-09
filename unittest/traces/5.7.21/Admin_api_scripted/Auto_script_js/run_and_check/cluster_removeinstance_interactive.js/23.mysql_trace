@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -75,7 +75,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET GLOBAL `group_replication_group_seeds` = 'localhost:33261'"
+    "sql": "SET GLOBAL `group_replication_group_seeds` = 'localhost:33501'"
 },
 {
     "type": "response",

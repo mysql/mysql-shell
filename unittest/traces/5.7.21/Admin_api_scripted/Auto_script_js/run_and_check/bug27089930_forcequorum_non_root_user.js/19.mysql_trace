@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "gr_user:gr_pass@localhost:3316",
+    "uri": "gr_user:gr_pass@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "cf8555a8-24f8-11e8-8225-952e273aafbc"
+            "97a431c0-297f-11e8-b394-5ce0c50b9d66"
         ]
     ]
 },
@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "cc4d4350-24f8-11e8-8225-952e273aafbc",
-            "cc4d4350-24f8-11e8-8225-952e273aafbc"
+            "925101fe-297f-11e8-b394-5ce0c50b9d66",
+            "925101fe-297f-11e8-b394-5ce0c50b9d66"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'cc4d4350-24f8-11e8-8225-952e273aafbc'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '925101fe-297f-11e8-b394-5ce0c50b9d66'"
 },
 {
     "type": "response",
