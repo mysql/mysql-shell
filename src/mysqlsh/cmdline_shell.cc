@@ -474,12 +474,6 @@ void Command_line_shell::command_loop() {
   std::cout << "Bye!\n";
 }
 
-void Command_line_shell::clear_input() {
-  _input_mode = shcore::Input_state::Ok;
-  _input_buffer.clear();
-  _shell->clear_input();
-}
-
 void Command_line_shell::print_banner() {
   std::string welcome_msg("MySQL Shell ");
   welcome_msg += MYSH_VERSION;

@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -264,6 +265,9 @@ void Shell_test_env::SetUp() {
 }
 
 void Shell_test_env::TearDown() {
+  // ensure colors don't leak into other tests
+  mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
+
   if (_recording_enabled) {
     // TODO(.) this getenv should be removed once all issues are fixed, so
     // the check is always executed

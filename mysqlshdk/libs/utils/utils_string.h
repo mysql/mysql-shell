@@ -157,6 +157,33 @@ inline std::pair<std::string, std::string> str_partition(
     return std::make_pair(s.substr(0, p), s.substr(p + sep.length()));
 }
 
+/** Partition a string in 2 after separator, in place, if present */
+inline std::pair<std::string, std::string> str_partition_after(
+    const std::string &s, const std::string &sep) {
+  auto p = s.find(sep);
+  if (p == std::string::npos) {
+    return std::make_pair(s, "");
+  } else {
+    p += sep.length();
+    return std::make_pair(s.substr(0, p), s.substr(p));
+  }
+}
+
+/** Partition a string in 2 after separator, in place, if present */
+inline std::string str_partition_after_inpl(std::string *s,
+                                            const std::string &sep) {
+  auto p = s->find(sep);
+  if (p == std::string::npos) {
+    std::string tmp = *s;
+    s->clear();
+    return tmp;
+  } else {
+    std::string tmp = s->substr(0, p + sep.length());
+    s->erase(0, p + sep.length());
+    return tmp;
+  }
+}
+
 /**
  * Splits string based on each of the individual characters of the separator
  * string

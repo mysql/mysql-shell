@@ -75,59 +75,59 @@ TEST(Shell_console, prompt) {
   data->input.push_back("");
   answer = console.confirm("Really?");
   EXPECT_EQ(Prompt_answer::NO, answer);
-  EXPECT_EQ("Really? [y/N]", data->output);
+  EXPECT_EQ("Really? [y/N]: ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer = console.confirm("Really?", Prompt_answer::YES);
   EXPECT_EQ(Prompt_answer::YES, answer);
-  EXPECT_EQ("Really? [Y/n]", data->output);
+  EXPECT_EQ("Really? [Y/n]: ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   data->input.push_back("y");
   answer = console.confirm("Really?", Prompt_answer::NONE);
   EXPECT_EQ(Prompt_answer::YES, answer);
-  EXPECT_EQ("Really? [y/n]||Really? [y/n]", data->output);
+  EXPECT_EQ("Really? [y/n]: ||Really? [y/n]: ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer = console.confirm("Really?", Prompt_answer::YES, "&Yes", "&No");
   EXPECT_EQ(Prompt_answer::YES, answer);
-  EXPECT_EQ("Really? [Y/n]", data->output);
+  EXPECT_EQ("Really? [Y/n]: ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer = console.confirm("Really?", Prompt_answer::NO, "&Yes", "&No");
   EXPECT_EQ(Prompt_answer::NO, answer);
-  EXPECT_EQ("Really? [y/N]", data->output);
+  EXPECT_EQ("Really? [y/N]: ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer = console.confirm("Really?", Prompt_answer::NO, "Yes", "No");
   EXPECT_EQ(Prompt_answer::NO, answer);
-  EXPECT_EQ("Really? Yes/No (default No)", data->output);
+  EXPECT_EQ("Really? Yes/No (default No): ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer =
       console.confirm("Really?", Prompt_answer::YES, "&Yes", "&No", "&Cancel");
   EXPECT_EQ(Prompt_answer::YES, answer);
-  EXPECT_EQ("Really? [Y]es/[N]o/[C]ancel (default Yes)", data->output);
+  EXPECT_EQ("Really? [Y]es/[N]o/[C]ancel (default Yes): ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer =
       console.confirm("Really?", Prompt_answer::ALT, "&Yes", "&No", "&Cancel");
   EXPECT_EQ(Prompt_answer::ALT, answer);
-  EXPECT_EQ("Really? [Y]es/[N]o/[C]ancel (default Cancel)", data->output);
+  EXPECT_EQ("Really? [Y]es/[N]o/[C]ancel (default Cancel): ", data->output);
   data->output.clear();
 
   data->input.push_back("");
   answer = console.confirm("Really?", Prompt_answer::YES, "&Continue", "&Edit",
                            "C&ancel");
   EXPECT_EQ(Prompt_answer::YES, answer);
-  EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue)",
+  EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ",
             data->output);
   data->output.clear();
 
@@ -137,9 +137,9 @@ TEST(Shell_console, prompt) {
                            "C&ancel");
   EXPECT_EQ(Prompt_answer::NO, answer);
   EXPECT_EQ(
-      "Really? [C]ontinue/[E]dit/C[a]ncel (default Continue)||\nPlease pick an "
-      "option out of [C]ontinue/[E]dit/C[a]ncel (default Continue)\n||Really? "
-      "[C]ontinue/[E]dit/C[a]ncel (default Continue)",
+      "Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ||\nPlease pick an "
+      "option out of [C]ontinue/[E]dit/C[a]ncel (default Continue): \n||Really? "
+      "[C]ontinue/[E]dit/C[a]ncel (default Continue): ",
       data->output);
   data->output.clear();
 }

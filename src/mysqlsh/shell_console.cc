@@ -23,9 +23,10 @@
 
 #include "src/mysqlsh/shell_console.h"
 #include <string>
-
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "scripting/shexcept.h"
 
 namespace mysqlsh {
 
@@ -39,31 +40,39 @@ void Shell_console::print(const std::string &text) {
 
 void Shell_console::println(const std::string &text) {
   m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
-  log_debug("%s", text.c_str());
+  if (!text.empty()) log_debug("%s", text.c_str());
 }
 
 void Shell_console::print_error(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data, "ERROR: ");
-  m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+  m_ideleg->print(m_ideleg->user_data,
+                  (mysqlshdk::textui::error("ERROR: ") + text + "\n").c_str());
   log_error("%s", text.c_str());
 }
 
 void Shell_console::print_warning(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data, "WARNING: ");
-  m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+  m_ideleg->print(
+      m_ideleg->user_data,
+      (mysqlshdk::textui::warning("WARNING: ") + text + "\n").c_str());
   log_warning("%s", text.c_str());
 }
 
+void Shell_console::print_note(const std::string &text) {
+  m_ideleg->print(m_ideleg->user_data,
+                  mysqlshdk::textui::notice(text + "\n").c_str());
+  log_info("%s", text.c_str());
+}
+
 void Shell_console::print_info(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data, "INFO: ");
   m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
   log_info("%s", text.c_str());
 }
 
 bool Shell_console::prompt(const std::string &prompt, std::string *ret_val) {
-  if (m_ideleg->prompt(m_ideleg->user_data, prompt.c_str(), ret_val) ==
-      shcore::Prompt_result::Ok)
-    return true;
+  shcore::Prompt_result result = m_ideleg->prompt(
+      m_ideleg->user_data, mysqlshdk::textui::bold(prompt).c_str(), ret_val);
+  if (result == shcore::Prompt_result::Cancel)
+    throw shcore::cancelled("Cancelled");
+  if (result == shcore::Prompt_result::Ok) return true;
   return false;
 }
 
@@ -111,11 +120,11 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
     no_letter = process_label(no_label, &display_text, &clean_no_text);
 
     if (def == Prompt_answer::YES)
-      def_str = "[Y/n]";
+      def_str = "[Y/n]: ";
     else if (def == Prompt_answer::NO)
-      def_str = "[y/N]";
+      def_str = "[y/N]: ";
     else
-      def_str = "[y/n]";
+      def_str = "[y/n]: ";
   } else {
     std::string display_text;
     yes_letter = process_label(yes_label, &display_text, &clean_yes_text);
@@ -131,15 +140,15 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
 
     switch (def) {
       case Prompt_answer::YES:
-        def_str.append(" (default ").append(clean_yes_text).append(")");
+        def_str.append(" (default ").append(clean_yes_text).append("): ");
         break;
 
       case Prompt_answer::NO:
-        def_str.append(" (default ").append(clean_no_text).append(")");
+        def_str.append(" (default ").append(clean_no_text).append("): ");
         break;
 
       case Prompt_answer::ALT:
-        def_str.append(" (default ").append(clean_alt_text).append(")");
+        def_str.append(" (default ").append(clean_alt_text).append("): ");
         break;
 
       default:

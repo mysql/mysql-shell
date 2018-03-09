@@ -25,7 +25,7 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
-namespace testing {
+namespace mysqlsh {
 
 TEST(modules_mod_utils, get_connection_data_uri) {
   shcore::Argument_list args;
@@ -428,4 +428,220 @@ TEST(modules_mod_utils, resolve_connection_credentials_resolve_password) {
   EXPECT_EQ("resolved_password", connection_options.get_password());
 }
 
-}  // namespace testing
+TEST(modules_mod_utils, unpack_options_validation) {
+  shcore::Dictionary_t options = shcore::make_dict();
+  (*options)["opt1"] = shcore::Value(2);
+  (*options)["opt2"] = shcore::Value(2);
+  (*options)["opt3"] = shcore::Value(2);
+
+  {
+    int64_t o1 = 0, o2 = 1, o3 = 3;
+    Unpack_options(options)
+        .required("opt1", &o1)
+        .required("opt2", &o2)
+        .required("opt3", &o3)
+        .end();
+    EXPECT_EQ(2, o1);
+    EXPECT_EQ(2, o2);
+    EXPECT_EQ(2, o3);
+  }
+  {
+    int64_t o1 = 0, o2 = 1, o3 = 3;
+    Unpack_options(options)
+        .required("opt1", &o1)
+        .optional("opt2", &o2)
+        .optional("opt3", &o3)
+        .end();
+    EXPECT_EQ(2, o1);
+    EXPECT_EQ(2, o2);
+    EXPECT_EQ(2, o3);
+  }
+  {
+    int64_t o1 = 0, o2 = 1, o3 = 3, o4 = 42;
+    Unpack_options(options)
+        .required("opt1", &o1)
+        .required("opt2", &o2)
+        .optional("opt3", &o3)
+        .optional("opt4", &o4)
+        .end();
+    EXPECT_EQ(2, o1);
+    EXPECT_EQ(2, o2);
+    EXPECT_EQ(2, o3);
+    EXPECT_EQ(42, o4);
+  }
+  {  // missing option
+    int64_t o1 = 0, o2 = 1, o3 = 3, o4 = 42;
+    EXPECT_THROW_LIKE(Unpack_options(options)
+                          .required("opt1", &o1)
+                          .required("opt2", &o2)
+                          .optional("opt3", &o3)
+                          .required("opt4", &o4)
+                          .end(),
+                      shcore::Exception, "Missing required options: opt4");
+  }
+  {  // unexpected option
+    int64_t o1 = 0, o2 = 1;
+    EXPECT_THROW_LIKE(Unpack_options(options)
+                          .required("opt1", &o1)
+                          .required("opt2", &o2)
+                          .end(),
+                      shcore::Exception, "Invalid options: opt3");
+  }
+  {  // missing and unexpected option
+    int64_t o1 = 0, o2 = 1, o5 = 1;
+    EXPECT_THROW_LIKE(
+        Unpack_options(options)
+            .required("opt1", &o1)
+            .required("opt2", &o2)
+            .required("opt5", &o5)
+            .end(),
+        shcore::Exception,
+        "Invalid and missing options (invalid: opt3), (missing: opt5)");
+  }
+  {
+    shcore::Dictionary_t options = shcore::make_dict();
+    (*options)["opt1"] = shcore::Value(2);
+    (*options)["str"] = shcore::Value("foo");
+    (*options)["b"] = shcore::Value::False();
+
+    int64_t o1 = 0;
+    std::string str;
+    bool b = false;
+    Unpack_options(options)
+        .required("opt1", &o1)
+        .optional_ci("str", &str)
+        .optional("b", &b)
+        .end();
+    EXPECT_EQ(2, o1);
+    EXPECT_EQ("foo", str);
+    EXPECT_FALSE(b);
+  }
+}
+
+TEST(modules_mod_utils, unpack_options_types) {
+  auto maked = [](const std::string& name, shcore::Value value) {
+    shcore::Dictionary_t options = shcore::make_dict();
+    (*options)[name] = value;
+    return options;
+  };
+
+  bool b;
+  uint64_t ui;
+  int64_t i;
+  double d;
+  std::string str;
+  mysqlsh::Connection_options copts;
+
+  b = true;
+  Unpack_options(maked("bool", shcore::Value::False()))
+      .required("bool", &b)
+      .end();
+  EXPECT_FALSE(b);
+
+  bool bb;
+  b = true;
+  Unpack_options(maked("bool", shcore::Value::False()))
+      .optional("boolx", &b)
+      .optional("bool", &bb)
+      .end();
+  EXPECT_TRUE(b);
+
+  b = false;
+  Unpack_options(maked("int", shcore::Value(123))).optional("int", &b).end();
+  EXPECT_TRUE(b);
+
+  ui = 0;
+  Unpack_options(maked("uint", shcore::Value(123))).optional("uint", &ui).end();
+  EXPECT_EQ(123, ui);
+
+  i = 0;
+  Unpack_options(maked("int", shcore::Value(-123))).optional("int", &i).end();
+  EXPECT_EQ(-123, i);
+
+  d = 0;
+  Unpack_options(maked("double", shcore::Value(123.456)))
+      .optional("double", &d)
+      .end();
+  EXPECT_EQ(123.456, d);
+
+  str = "";
+  Unpack_options(maked("str", shcore::Value("string")))
+      .optional("str", &str)
+      .end();
+  EXPECT_EQ("string", str);
+
+  str = "xxx";
+  Unpack_options(maked("STRIng", shcore::Value("qq")))
+      .optional_ci("string", &str)
+      .end();
+  EXPECT_EQ("qq", str);
+
+  Unpack_options(maked("uri", shcore::Value("root@localhost:3456")))
+      .optional_obj("uri", &copts)
+      .end();
+  EXPECT_EQ("root@localhost:3456", copts.as_uri());
+
+  Unpack_options(maked("uri", shcore::Value("root@localhost:3456")))
+      .optional("uri", &str)
+      .end();
+  EXPECT_EQ("root@localhost:3456", str);
+
+  // conversions
+  Unpack_options(maked("num", shcore::Value(555U))).optional("num", &i).end();
+  EXPECT_EQ(555, i);
+
+  Unpack_options(maked("num", shcore::Value(555))).optional("num", &ui).end();
+  EXPECT_EQ(555, ui);
+
+  b = false;
+  Unpack_options(maked("n", shcore::Value(1))).optional("n", &b).end();
+  EXPECT_TRUE(b);
+
+  b = true;
+  Unpack_options(maked("n", shcore::Value(0))).optional("n", &b).end();
+  EXPECT_FALSE(b);
+
+  d = 0;
+  Unpack_options(maked("n", shcore::Value(32))).optional("n", &d).end();
+  EXPECT_EQ(32.0, d);
+
+  // invalid type
+  EXPECT_THROW_LIKE(
+      Unpack_options(maked("neg", shcore::Value("-555")))
+          .optional("neg", &ui)
+          .end(),
+      shcore::Exception,
+      "Option 'neg' is expected to be of type UInteger, but is String");
+
+  str = "xxx";
+  EXPECT_THROW_LIKE(
+      Unpack_options(maked("int", shcore::Value(1234)))
+          .optional("int", &str)
+          .end(),
+      shcore::Exception,
+      "Option 'int' is expected to be of type String, but is Integer");
+  EXPECT_EQ("xxx", str);
+
+  i = 0;
+  EXPECT_THROW_LIKE(
+      Unpack_options(maked("str", shcore::Value(""))).optional("str", &i).end(),
+      shcore::Exception,
+      "Option 'str' is expected to be of type Integer, but is String");
+  EXPECT_EQ(0, i);
+
+  EXPECT_THROW_LIKE(
+      Unpack_options(maked("bool", shcore::Value::False()))
+          .optional_obj("bool", &copts)
+          .end(),
+      shcore::Exception,
+      "Option 'bool' is expected to be of type String, but is Bool");
+
+  EXPECT_THROW_LIKE(
+      Unpack_options(maked("int", shcore::Value(123)))
+          .optional_obj("int", &copts)
+          .end(),
+      shcore::Exception,
+      "Option 'int' is expected to be of type String, but is Integer");
+}
+
+}  // namespace mysqlsh

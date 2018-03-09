@@ -65,6 +65,7 @@ class Scoped_callback {
 
 using on_leave_scope = Scoped_callback;
 
+enum class OperatingSystem { DEBIAN, REDHAT, LINUX, WINDOWS, MACOS };
 
 bool SHCORE_PUBLIC is_valid_identifier(const std::string &name);
 mysqlshdk::db::Connection_options SHCORE_PUBLIC
@@ -129,6 +130,8 @@ std::string get_my_hostname();
 bool is_local_host(const std::string &host, bool check_hostname);
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
+
+OperatingSystem SHCORE_PUBLIC get_os();
 
 #ifdef _WIN32
 // We inline these functions to avoid trouble with memory and DLL boundaries

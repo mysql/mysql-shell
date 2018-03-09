@@ -75,6 +75,7 @@ class SHCORE_PUBLIC Connection_options
     return _ssl_options;
   }
 
+  bool has_data() const;
   bool has_scheme() const { return has_value(kScheme); }
   bool has_user() const { return has_value(kUser); }
   bool has_password() const { return has_value(kPassword); }

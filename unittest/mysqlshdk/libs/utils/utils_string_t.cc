@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -254,6 +254,41 @@ TEST(UtilsString, partition) {
   EXPECT_EQ("ab", right);
   std::tie(left, right) = str_partition("#/ab/#ab", "/#");
   EXPECT_EQ("#/ab", left);
+  EXPECT_EQ("ab", right);
+}
+
+TEST(UtilsString, partition_after) {
+  std::string left, right;
+
+  std::tie(left, right) = str_partition_after("", "");
+  EXPECT_EQ("", left);
+  EXPECT_EQ("", right);
+  std::tie(left, right) = str_partition_after("", "/");
+  EXPECT_EQ("", left);
+  EXPECT_EQ("", right);
+  std::tie(left, right) = str_partition_after("ab", "/");
+  EXPECT_EQ("ab", left);
+  EXPECT_EQ("", right);
+  std::tie(left, right) = str_partition_after("ab/", "/");
+  EXPECT_EQ("ab/", left);
+  EXPECT_EQ("", right);
+  std::tie(left, right) = str_partition_after("ab//", "/");
+  EXPECT_EQ("ab/", left);
+  EXPECT_EQ("/", right);
+  std::tie(left, right) = str_partition_after("ab/ab", "/");
+  EXPECT_EQ("ab/", left);
+  EXPECT_EQ("ab", right);
+  std::tie(left, right) = str_partition_after("ab/ab/ab", "/");
+  EXPECT_EQ("ab/", left);
+  EXPECT_EQ("ab/ab", right);
+  std::tie(left, right) = str_partition_after("/ab", "/");
+  EXPECT_EQ("/", left);
+  EXPECT_EQ("ab", right);
+  std::tie(left, right) = str_partition_after("/ab/#ab", "/#");
+  EXPECT_EQ("/ab/#", left);
+  EXPECT_EQ("ab", right);
+  std::tie(left, right) = str_partition_after("#/ab/#ab", "/#");
+  EXPECT_EQ("#/ab/#", left);
   EXPECT_EQ("ab", right);
 }
 

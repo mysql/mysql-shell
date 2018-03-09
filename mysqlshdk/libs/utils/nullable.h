@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License, version 2.0,
@@ -31,10 +31,9 @@ namespace utils {
 template<class C>
 class nullable {
 public:
-  nullable() : _is_null(true) {}
+  nullable() : _value(C()), _is_null(true) {}
 
-  nullable(std::nullptr_t) {
-    _is_null = true;
+  explicit nullable(std::nullptr_t) : _value(C()), _is_null(true) {
   }
 
   nullable(const nullable<C>& other) {
@@ -45,6 +44,10 @@ public:
   nullable(const C& value) {
     _value = value;
     _is_null = false;
+  }
+
+  void operator=(std::nullptr_t) {
+    _is_null = true;
   }
 
   C& operator=(const C &value) {
@@ -82,6 +85,19 @@ public:
       throw std::logic_error("Attempt to read null value");
 
     return &_value;
+  }
+
+  bool operator == (const C &value) const {
+    return !_is_null && _value == value;
+  }
+
+  bool operator == (std::nullptr_t) const {
+    return _is_null;
+  }
+
+  bool operator == (const nullable<C> &value) const {
+    return is_null() == value.is_null() &&
+      (is_null() || _value == value._value);
   }
 
   bool is_null() const { return _is_null; }

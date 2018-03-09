@@ -1733,7 +1733,7 @@ Value Option_unpacker::get_required(const char *name, Value_type type) {
   } else {
     m_unknown.erase(name);
 
-    if (!is_compatible_type(opt->second.type, type)) {
+    if (type != Undefined && !is_compatible_type(opt->second.type, type)) {
       throw Exception::type_error(str_format(
           "Option '%s' is expected to be of type %s, but is %s", name,
           type_name(type).c_str(), type_name(opt->second.type).c_str()));
@@ -1752,7 +1752,7 @@ Value Option_unpacker::get_optional(const char *name, Value_type type,
 
   if (case_insensitive && opt == m_options->end()) {
     for (auto it = m_options->begin(); it != m_options->end(); ++it) {
-      if (str_caseeq(it->first.c_str(), name) == 0) {
+      if (str_caseeq(it->first.c_str(), name)) {
         name = it->first.c_str();
         opt = it;
         break;
@@ -1762,7 +1762,7 @@ Value Option_unpacker::get_optional(const char *name, Value_type type,
   if (opt != m_options->end()) {
     m_unknown.erase(name);
 
-    if (!is_compatible_type(opt->second.type, type)) {
+    if (type != Undefined && !is_compatible_type(opt->second.type, type)) {
       throw Exception::type_error(str_format(
           "Option '%s' is expected to be of type %s, but is %s", name,
           type_name(type).c_str(), type_name(opt->second.type).c_str()));

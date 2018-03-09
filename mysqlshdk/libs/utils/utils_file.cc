@@ -218,6 +218,24 @@ std::string get_binary_folder() {
   return ret_val;
 }
 
+std::string SHCORE_PUBLIC get_mp_path() {
+  // Determine provisioning path
+  std::string path;
+  const char *tmp;
+
+#ifdef _WIN32
+  tmp = "\\share\\mysqlsh\\mysqlprovision.zip";
+#else
+  tmp = "/share/mysqlsh/mysqlprovision.zip";
+#endif
+  path = shcore::path::join_path(get_mysqlx_home_path(), tmp);
+  if (!shcore::file_exists(path))
+    throw std::runtime_error(
+        path + ": mysqlprovision not found, shell installation likely invalid");
+
+  return path;
+}
+
 /*
 * Returns what should be considered the HOME folder for the shell.
 * If MYSQLSH_HOME is defined, returns its value.
@@ -763,6 +781,42 @@ void copy_dir(const std::string& from, const std::string& to) {
     }
     return true;
   });
+}
+
+/*
+ * Check if the file has write permissions. If the file does not exist,
+ * checks if it can be created.
+ *
+ * @param filename the full path of the file to be checked
+ *
+ * Throws an exception with the reason if the file cannot be written to or
+ * created.
+ */
+void check_file_writable_or_throw(const std::string &filename) {
+  std::ofstream ofs;
+
+  if (file_exists(filename)) {
+    // Use openmode 'out' to open the file for writing
+    ofs.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
+    std::string error = shcore::errno_to_string(errno);
+    // If it could open the file, it's writable
+    if (ofs.is_open()) {
+      ofs.close();
+    } else {
+      throw std::runtime_error(error);
+    }
+  } else {
+    // Use openmode 'out' to open the file for writing
+    ofs.open(filename.c_str(), std::ofstream::out | std::ofstream::app);
+    std::string error = shcore::errno_to_string(errno);
+    // If it could open the file, it's writable
+    if (ofs.is_open()) {
+      ofs.close();
+      delete_file(filename);
+    } else {
+      throw std::runtime_error(error);
+    }
+  }
 }
 
 }  // namespace shcore

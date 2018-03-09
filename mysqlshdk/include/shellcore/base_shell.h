@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,8 +20,8 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _INTERACTIVE_SHELL_
-#define _INTERACTIVE_SHELL_
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SHELL_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SHELL_H_
 
 #include "shellcore/shell_options.h"
 #include "scripting/types.h"
@@ -74,6 +74,7 @@ class SHCORE_PUBLIC Base_shell {
 
   virtual void process_line(const std::string &line);
   shcore::Input_state input_state() const { return _input_mode; }
+  void clear_input();
 
   void notify_executed_statement(const std::string& line);
   virtual std::string prompt();
@@ -131,4 +132,4 @@ class SHCORE_PUBLIC Base_shell {
 #endif
 };
 }  // namespace mysqlsh
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SHELL_H_

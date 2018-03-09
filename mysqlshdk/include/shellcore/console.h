@@ -39,7 +39,10 @@ class IConsole {
   virtual void println(const std::string &text = "") = 0;
   virtual void print_error(const std::string &text) = 0;
   virtual void print_warning(const std::string &text) = 0;
+  virtual void print_note(const std::string &text) = 0;
   virtual void print_info(const std::string &text) = 0;
+
+  // Throws shcore::cancelled() on ^C
   virtual bool prompt(const std::string &prompt, std::string *out_val) = 0;
 
   /**
@@ -53,6 +56,8 @@ class IConsole {
    *
    * no_label and alt_label can be "", in which case they will be skipped.
    * label text can precede the shortcut letter with &.
+   *
+   * Throws shcore::cancelled() on ^C
    */
   virtual Prompt_answer confirm(const std::string &prompt,
                                 Prompt_answer def = Prompt_answer::NO,

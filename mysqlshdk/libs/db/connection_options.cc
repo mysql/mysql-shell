@@ -120,6 +120,13 @@ void Connection_options::set_ssl_options(const Ssl_options &options) {
   _ssl_options = options;
 }
 
+bool Connection_options::has_data() const {
+  for (auto o : fixed_str_list) {
+    if (has_value(o)) return true;
+  }
+  return false;
+}
+
 void Connection_options::_set_fixed(const std::string& key,
                                     const std::string& val) {
   Nullable_options::set(key, val, Set_mode::UPDATE_NULL);

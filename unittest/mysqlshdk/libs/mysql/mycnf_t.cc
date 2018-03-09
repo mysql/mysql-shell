@@ -44,7 +44,7 @@ log_general=1
 )*");
 
   update_options(TEST_FILE, "[mysqld]",
-                 std::vector<Option>{{"user", {nullptr}},
+                 std::vector<Option>{{"user", {}},
                                      {"log_general", {"2"}},
                                      {"bin_log", {"/var/lib/mysql/binlog"}}});
 
@@ -76,7 +76,7 @@ user=bla
 
   update_options(
       TEST_FILE, "[mysqld]",
-      std::vector<Option>{{"user", {nullptr}}, {"password", {nullptr}}});
+      std::vector<Option>{{"user", {}}, {"password", {}}});
 
   std::string file;
   shcore::load_text_file(TEST_FILE, file);

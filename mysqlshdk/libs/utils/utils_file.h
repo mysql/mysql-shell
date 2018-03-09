@@ -35,6 +35,8 @@ std::string SHCORE_PUBLIC get_global_config_path();
 std::string SHCORE_PUBLIC get_user_config_path();
 std::string SHCORE_PUBLIC get_mysqlx_home_path();
 std::string SHCORE_PUBLIC get_binary_folder();
+std::string SHCORE_PUBLIC get_binary_folder();
+std::string SHCORE_PUBLIC get_mp_path();
 bool SHCORE_PUBLIC is_folder(const std::string& filename);
 bool SHCORE_PUBLIC file_exists(const std::string& filename);
 void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);  // delme
@@ -57,6 +59,8 @@ std::vector<std::string> SHCORE_PUBLIC listdir(const std::string &path);
 
 bool SHCORE_PUBLIC iterdir(const std::string& path,
                            const std::function<bool(const std::string&)>& fun);
+
+void SHCORE_PUBLIC check_file_writable_or_throw(const std::string &filename);
 
 }  // namespace shcore
 

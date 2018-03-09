@@ -445,7 +445,7 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
       _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->get_console_handler(),
+            _interactive_shell->console(),
             _interactive_shell->options().wizards);
   shcore::Argument_list args;
 
@@ -484,7 +484,7 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
   if (_target_server_version < Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 8.0");
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->get_console_handler(),
+            _interactive_shell->console(),
             _interactive_shell->options().wizards);
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
@@ -493,7 +493,7 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
 
 TEST_F(MySQL_upgrade_check_test, password_prompted) {
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->get_console_handler(),
+            _interactive_shell->console(),
             _interactive_shell->options().wizards);
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri_nopasswd));
@@ -512,7 +512,7 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
 
 TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->get_console_handler(),
+            _interactive_shell->console(),
             _interactive_shell->options().wizards);
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
@@ -536,7 +536,7 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   _options->wizards = false;
   reset_shell();
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->get_console_handler(),
+            _interactive_shell->console(),
             _interactive_shell->options().wizards);
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri_nopasswd));

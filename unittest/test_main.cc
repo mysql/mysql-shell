@@ -39,6 +39,7 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "shellcore/interrupt_handler.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
@@ -389,6 +390,8 @@ int main(int argc, char **argv) {
 #endif
   // init the ^C handler, so it knows what's the main thread
   shcore::Interrupts::init(nullptr);
+  // Disable colors for tests
+  mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
 
   // Check TMPDIR environment variable for windows and other platforms without
   // TMPDIR defined.

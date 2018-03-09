@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <mysqld_error.h>
 #include <algorithm>
 #include <map>
 #include <utility>
@@ -36,7 +37,52 @@
 namespace mysqlshdk {
 namespace mysql {
 
-Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {
+Instance::Instance(std::shared_ptr<db::ISession> session) : _session(session) {}
+
+std::string Instance::descr() const {
+  return _session->get_connection_options().as_uri(
+      db::uri::formats::only_transport());
+}
+
+void Instance::cache_global_sysvars(bool force_refresh) {
+  if (force_refresh || _global_sysvars.empty())
+    _global_sysvars = get_system_variables({}, Var_qualifier::GLOBAL);
+}
+
+utils::nullable<std::string> Instance::get_cached_global_sysvar(
+    const std::string &name) const {
+  if (_global_sysvars.empty()) {
+    throw std::logic_error("cache_global_sysvars() not called yet");
+  }
+  const auto it = _global_sysvars.find(name);
+  if (it != _global_sysvars.end()) {
+    return it->second;
+  }
+  return {};
+}
+
+namespace {
+bool sysvar_to_bool(const std::string &name, const std::string &str_value) {
+  const char *value = str_value.c_str();
+  bool ret_val = false;
+  if (shcore::str_caseeq(value, "YES") || shcore::str_caseeq(value, "TRUE") ||
+      shcore::str_caseeq(value, "1") || shcore::str_caseeq(value, "ON"))
+    ret_val = true;
+  else if (shcore::str_caseeq(value, "NO") ||
+           shcore::str_caseeq(value, "FALSE") ||
+           shcore::str_caseeq(value, "0") || shcore::str_caseeq(value, "OFF"))
+    ret_val = false;
+  else
+    throw std::runtime_error("The variable " + name + "is not boolean.");
+  return ret_val;
+}
+}  // namespace
+
+utils::nullable<bool> Instance::get_cached_global_sysvar_as_bool(
+    const std::string &name) const {
+  auto value = get_cached_global_sysvar(name);
+  if (value) return sysvar_to_bool(name, *value);
+  return {};
 }
 
 utils::nullable<bool> Instance::get_sysvar_bool(
@@ -47,30 +93,19 @@ utils::nullable<bool> Instance::get_sysvar_bool(
       get_system_variables({name}, scope);
 
   if (variables[name]) {
-    std::string str_value = variables[name];
-    const char *value = str_value.c_str();
-
-    if (shcore::str_caseeq(value, "YES") || shcore::str_caseeq(value, "TRUE") ||
-        shcore::str_caseeq(value, "1") || shcore::str_caseeq(value, "ON"))
-      ret_val = true;
-    else if (shcore::str_caseeq(value, "NO") ||
-             shcore::str_caseeq(value, "FALSE") ||
-             shcore::str_caseeq(value, "0") || shcore::str_caseeq(value, "OFF"))
-      ret_val = false;
-    else
-      throw std::runtime_error("The variable " + name + "is not boolean.");
+    ret_val = sysvar_to_bool(name, variables[name]);
   }
 
   return ret_val;
 }
 
 utils::nullable<std::string> Instance::get_sysvar_string(
-    const std::string& name, const Var_qualifier scope) const {
+    const std::string &name, const Var_qualifier scope) const {
   return get_system_variables({name}, scope)[name];
 }
 
 utils::nullable<int64_t> Instance::get_sysvar_int(
-    const std::string& name, const Var_qualifier scope) const {
+    const std::string &name, const Var_qualifier scope) const {
   utils::nullable<int64_t> ret_val;
 
   auto variables = get_system_variables({name}, scope);
@@ -100,8 +135,7 @@ utils::nullable<int64_t> Instance::get_sysvar_int(
  * @param value string with the value to set for the variable.
  * @param qualifier Var_qualifier with the qualifier to set the system variable.
  */
-void Instance::set_sysvar(const std::string &name,
-                          const std::string &value,
+void Instance::set_sysvar(const std::string &name, const std::string &value,
                           const Var_qualifier qualifier) const {
   std::string set_stmt_fmt;
   if (qualifier == Var_qualifier::GLOBAL)
@@ -151,8 +185,7 @@ void Instance::set_sysvar_default(const std::string &name,
  * @param value integer value to set for the variable.
  * @param qualifier Var_qualifier with the qualifier to set the system variable.
  */
-void Instance::set_sysvar(const std::string &name,
-                          const int64_t value,
+void Instance::set_sysvar(const std::string &name, const int64_t value,
                           const Var_qualifier qualifier) const {
   std::string set_stmt_fmt;
   if (qualifier == Var_qualifier::GLOBAL)
@@ -178,8 +211,7 @@ void Instance::set_sysvar(const std::string &name,
  * @param value boolean value to set for the variable.
  * @param qualifier Var_qualifier with the qualifier to set the system variable.
  */
-void Instance::set_sysvar(const std::string &name,
-                          const bool value,
+void Instance::set_sysvar(const std::string &name, const bool value,
                           const Var_qualifier qualifier) const {
   std::string str_value = value ? "ON" : "OFF";
   std::string set_stmt_fmt;
@@ -199,11 +231,12 @@ void Instance::set_sysvar(const std::string &name,
   _session->execute(set_stmt);
 }
 
-std::map<std::string, utils::nullable<std::string> >
-Instance::get_system_variables(const std::vector<std::string>& names,
+std::map<std::string, utils::nullable<std::string>>
+Instance::get_system_variables(const std::vector<std::string> &names,
                                const Var_qualifier scope) const {
-  std::map<std::string, utils::nullable<std::string> > ret_val;
+  std::map<std::string, utils::nullable<std::string>> ret_val;
 
+  std::shared_ptr<db::IResult> result;
   if (!names.empty()) {
     std::string query_format;
     if (scope == Var_qualifier::GLOBAL)
@@ -211,8 +244,9 @@ Instance::get_system_variables(const std::vector<std::string>& names,
     else if (scope == Var_qualifier::SESSION)
       query_format = "show SESSION variables where ! in (?";
     else
-      throw std::runtime_error("Invalid variable scope to get variables value, "
-                               "only GLOBAL and SESSION is supported.");
+      throw std::runtime_error(
+          "Invalid variable scope to get variables value, "
+          "only GLOBAL and SESSION is supported.");
 
     ret_val[names[0]] = utils::nullable<std::string>();
 
@@ -227,18 +261,29 @@ Instance::get_system_variables(const std::vector<std::string>& names,
 
     query << "variable_name";
 
-    for (const auto &name : names)
-      query << name;
+    for (const auto &name : names) query << name;
 
     query.done();
 
-    auto result = _session->query(query);
-    auto row = result->fetch_one();
+    result = _session->query(query);
+  } else {
+    if (scope == Var_qualifier::GLOBAL)
+      result = _session->query("SHOW GLOBAL VARIABLES");
+    else if (scope == Var_qualifier::SESSION)
+      result = _session->query("SHOW SESSION VARIABLES");
+    else
+      throw std::runtime_error(
+          "Invalid variable scope to get variables value, "
+          "only GLOBAL and SESSION is supported.");
+  }
 
-    while (row) {
+  auto row = result->fetch_one();
+  while (row) {
+    if (row->is_null(1))
+      ret_val[row->get_string(0)] = nullptr;
+    else
       ret_val[row->get_string(0)] = row->get_string(1);
-      row = result->fetch_one();
-    }
+    row = result->fetch_one();
   }
 
   return ret_val;
@@ -456,9 +501,72 @@ bool Instance::is_read_only(bool super) const {
 }
 
 utils::Version Instance::get_version() const {
-  if (_version == utils::Version())
-    _version = _session->get_server_version();
+  if (_version == utils::Version()) _version = _session->get_server_version();
   return _version;
+}
+
+/**
+ * Gets the current account of a session
+ *
+ * @param session object which represents the session to the instance
+ * @param current_user output value for the current username
+ * @param current_host output value for the current hostname
+ *
+ * @return nothing
+ */
+void Instance::get_current_user(std::string *current_user,
+                                std::string *current_host) const {
+  auto result = _session->query("SELECT CURRENT_USER()");
+  auto row = result->fetch_one();
+  std::string current_account = row->get_string(0);
+  shcore::split_account(current_account, current_user, current_host, true);
+}
+
+/**
+ * Check if an user exists
+ *
+ * @param session object which represents the session to the instance
+ * @param username account username to check
+ * @param hostname account hostname to check
+ *
+ * @return a boolean value which is true if the account exists or false
+ * otherwise
+ */
+bool Instance::user_exists(const std::string &username,
+                           const std::string &hostname) const {
+  std::string host = hostname;
+  // Host '%' is used by default if not provided in the user account.
+  if (host.empty()) host = "%";
+
+  // Query to check if the user exists
+  try {
+    _session->queryf("SHOW GRANTS FOR ?@?", username, host);
+  } catch (mysqlshdk::db::Error &err) {
+    log_debug("=> %s", err.what());
+    // the current_account doesn't have enough privileges to execute the query
+    if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
+      // Get the current username and hostname
+      // https://dev.mysql.com/doc/refman/5.7/en/information-functions.html
+      // #function_current-user
+      std::string current_user, current_host;
+      get_current_user(&current_user, &current_host);
+
+      std::string error_msg =
+          "Session account '" + current_user + "'@'" + current_host +
+          "' does not have all the required privileges to execute this "
+          "operation. For more information, see the online documentation.";
+
+      log_warning("%s", error_msg.c_str());
+      throw std::runtime_error(error_msg);
+    } else if (err.code() == ER_NONEXISTING_GRANT) {
+      return false;
+    } else {
+      log_error("Unexpected error while checking if user exists: %s",
+                err.what());
+      throw;
+    }
+  }
+  return true;
 }
 
 }  // namespace mysql
