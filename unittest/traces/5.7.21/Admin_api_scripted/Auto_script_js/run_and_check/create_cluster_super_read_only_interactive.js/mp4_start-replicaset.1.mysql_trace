@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3316
+            3340
         ]
     ]
 },
@@ -654,7 +654,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -1476,7 +1476,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2018-03-10 23:09:04",
+            "2018-03-17 00:56:04",
             null,
             "N"
         ]
@@ -2591,9 +2591,9 @@
             0,
             0,
             "mysql_native_password",
-            "*3109086266EE05EB5DB5C963548D7F0C5348B8C5",
+            "*3CA4EB0435C7BEA6C335D38DAF58785A0F938068",
             "N",
-            "2018-03-10 23:09:12",
+            "2018-03-17 01:01:34",
             null,
             "N"
         ]
@@ -2832,7 +2832,14 @@
             "GPL"
         ],
         [
-            "CSV",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3063,6 +3070,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3070,21 +3084,14 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "partition",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3100,13 +3107,6 @@
         [
             "FEDERATED",
             "DISABLED",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "partition",
-            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3284,7 +3284,14 @@
             "GPL"
         ],
         [
-            "CSV",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3515,6 +3522,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3522,21 +3536,14 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "partition",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3552,13 +3559,6 @@
         [
             "FEDERATED",
             "DISABLED",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "partition",
-            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3600,7 +3600,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@version_compile_os",
-            "length": 10,
+            "length": 15,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -3613,7 +3613,7 @@
     ],
     "rows": [
         [
-            "macos10.13"
+            "linux-glibc2.12"
         ]
     ]
 },
@@ -3770,7 +3770,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -3808,7 +3808,7 @@
     ],
     "rows": [
         [
-            "19f31ad8-24fb-11e8-959b-c74c26d9cd79"
+            "bcdc8baf-297e-11e8-b574-5ce0c50b9d66"
         ]
     ]
 },
@@ -3936,7 +3936,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 105,
-    "sql": "SET GLOBAL group_replication_group_name = '19f31ad8-24fb-11e8-959b-c74c26d9cd79'"
+    "sql": "SET GLOBAL group_replication_group_name = 'bcdc8baf-297e-11e8-b574-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -4116,7 +4116,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 129,
-    "sql": "SET GLOBAL auto_increment_offset = 3"
+    "sql": "SET GLOBAL auto_increment_offset = 6"
 },
 {
     "type": "response",
@@ -4386,7 +4386,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 165,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33161'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -4566,7 +4566,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 189,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ ';@)P0n?$%(d,^a1*{*b}*$E~N+=2*(T*' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ 'O|*$2%v./&|d{p}4T<H=.6?([%u:,.]W' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

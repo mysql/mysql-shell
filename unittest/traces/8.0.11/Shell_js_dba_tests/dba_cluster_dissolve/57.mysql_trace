@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "69",
+    "connection_id": "70",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 104,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.11 Source distribution"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },
@@ -96,50 +96,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3336'"
+    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3360'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 9,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3336'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 10,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -171,11 +133,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 11
+    "index": 9
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 12
+    "index": 10
 },
 null]

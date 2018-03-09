@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "a3f8a03e-26df-11e8-8936-b86b230042b9"
+            "41762c99-2974-11e8-928f-5ce0c50b9d66"
         ]
     ]
 },
@@ -273,8 +273,8 @@
     ],
     "rows": [
         [
-            "tecra",
-            3316
+            "pjesus-TECRA-Z40-B",
+            3340
         ]
     ]
 },
@@ -449,34 +449,6 @@
             "GPL"
         ],
         [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -659,6 +631,20 @@
             "GPL"
         ],
         [
+            "MyISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -673,8 +659,15 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -689,6 +682,13 @@
         [
             "ARCHIVE",
             "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -757,7 +757,7 @@
     ],
     "rows": [
         [
-            "localhost:33161"
+            "localhost:33401"
         ]
     ]
 },
@@ -932,34 +932,6 @@
             "GPL"
         ],
         [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1142,6 +1114,20 @@
             "GPL"
         ],
         [
+            "MyISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1156,8 +1142,15 @@
             "GPL"
         ],
         [
-            "FEDERATED",
-            "DISABLED",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1172,6 +1165,13 @@
         [
             "ARCHIVE",
             "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1240,7 +1240,7 @@
     ],
     "rows": [
         [
-            "a3f8a03e-26df-11e8-8936-b86b230042b9"
+            "41762c99-2974-11e8-928f-5ce0c50b9d66"
         ]
     ]
 },

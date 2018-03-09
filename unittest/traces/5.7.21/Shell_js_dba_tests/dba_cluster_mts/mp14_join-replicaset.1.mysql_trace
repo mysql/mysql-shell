@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3360?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3336
+            3360
         ]
     ]
 },
@@ -692,7 +692,7 @@
     ],
     "rows": [
         [
-            15681
+            15705
         ]
     ]
 },
@@ -929,7 +929,14 @@
             "GPL"
         ],
         [
-            "CSV",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1160,6 +1167,13 @@
             "GPL"
         ],
         [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1167,21 +1181,14 @@
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "partition",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1197,13 +1204,6 @@
         [
             "FEDERATED",
             "DISABLED",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "partition",
-            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1307,7 +1307,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@log_error",
-            "length": 75,
+            "length": 83,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -1320,7 +1320,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3336/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3360/sandboxdata/error.log"
         ]
     ]
 },
@@ -1345,7 +1345,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 66,
+            "length": 74,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -1358,7 +1358,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3336/sandboxdata/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3360/sandboxdata/"
         ]
     ]
 },
@@ -1430,7 +1430,7 @@
     ],
     "rows": [
         [
-            15681
+            15705
         ]
     ]
 },
@@ -1468,7 +1468,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33161'"
+    "sql": "SET GLOBAL group_replication_group_seeds = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -1648,7 +1648,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 83,
-    "sql": "SET GLOBAL group_replication_group_name = 'f618d2f0-24fb-11e8-8915-fd445d04fdeb'"
+    "sql": "SET GLOBAL group_replication_group_name = '41292192-2982-11e8-aac2-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -2098,7 +2098,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 143,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33361'"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33601'"
 },
 {
     "type": "response",
@@ -2278,7 +2278,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 167,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ '[*3P>&:e#6]b/+]e#/h$^<U>_${F3$=J' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000002' /*)*/, MASTER_PASSWORD = /*(*/ 'K/y)+(})/8/o5(p$#.C=7*{b.=$K/<#~' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

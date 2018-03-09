@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "36",
+    "connection_id": "35",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
@@ -20,13 +20,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '11111111-2222-3333-4444-555555555555', 'localhost:3336', 'HA', NULL, '{\"mysqlX\": \"localhost:33360\", \"grLocal\": \"localhost:13336\", \"mysqlClassic\": \"localhost:3336\"}', NULL, NULL, NULL)"
+    "sql": "insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '11111111-2222-3333-4444-555555555555', 'localhost:3360', 'HA', NULL, '{\"mysqlX\": \"localhost:33600\", \"grLocal\": \"localhost:13360\", \"mysqlClassic\": \"localhost:3360\"}', NULL, NULL, NULL)"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 4,
-    "auto_increment_value": 10,
+    "auto_increment_value": 13,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -41,7 +41,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
-    "auto_increment_value": 10,
+    "auto_increment_value": 13,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -65,10 +65,10 @@
     ],
     "rows": [
         [
-            "8bd28180-2608-11e8-8af1-f86e40f3053e"
+            "41330914-2994-11e8-a793-5ce0c50b9d66"
         ],
         [
-            "8cc426f2-2608-11e8-8748-c9b11c790bcc"
+            "43fc2615-2994-11e8-a7b5-5ce0c50b9d66"
         ]
     ]
 },
@@ -82,7 +82,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
-    "auto_increment_value": 10,
+    "auto_increment_value": 13,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -106,10 +106,10 @@
     ],
     "rows": [
         [
-            "8bd28180-2608-11e8-8af1-f86e40f3053e"
+            "41330914-2994-11e8-a793-5ce0c50b9d66"
         ],
         [
-            "8cc426f2-2608-11e8-8748-c9b11c790bcc"
+            "43fc2615-2994-11e8-a7b5-5ce0c50b9d66"
         ],
         [
             "11111111-2222-3333-4444-555555555555"
@@ -126,7 +126,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 10,
-    "auto_increment_value": 10,
+    "auto_increment_value": 13,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -183,8 +183,8 @@
     "rows": [
         [
             "11111111-2222-3333-4444-555555555555",
-            "localhost:3336",
-            "localhost:3336"
+            "localhost:3360",
+            "localhost:3360"
         ]
     ]
 },

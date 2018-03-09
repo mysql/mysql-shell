@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "288",
+    "connection_id": "285",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 104,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.11 Source distribution"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },
@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "8a338b9a-27e2-11e8-9978-d473c274fe9e",
-            "8a338b9a-27e2-11e8-9978-d473c274fe9e"
+            "c99f8e81-2974-11e8-a150-5ce0c50b9d66",
+            "c99f8e81-2974-11e8-a150-5ce0c50b9d66"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8a338b9a-27e2-11e8-9978-d473c274fe9e'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c99f8e81-2974-11e8-a150-5ce0c50b9d66'"
 },
 {
     "type": "response",

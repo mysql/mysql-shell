@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "18bf5778-27e7-11e8-ae01-45d2501a928c",
-            "18bf5778-27e7-11e8-ae01-45d2501a928c"
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66",
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '18bf5778-27e7-11e8-ae01-45d2501a928c'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c1205e5d-2971-11e8-98a7-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -785,8 +785,8 @@
     ],
     "rows": [
         [
-            "18bf5778-27e7-11e8-ae01-45d2501a928c",
-            "18bf5778-27e7-11e8-ae01-45d2501a928c"
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66",
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66"
         ]
     ]
 },
@@ -794,7 +794,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '18bf5778-27e7-11e8-ae01-45d2501a928c'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c1205e5d-2971-11e8-98a7-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1047,8 +1047,8 @@
     ],
     "rows": [
         [
-            "18bf5778-27e7-11e8-ae01-45d2501a928c",
-            "18bf5778-27e7-11e8-ae01-45d2501a928c"
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66",
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66"
         ]
     ]
 },
@@ -1056,7 +1056,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '18bf5778-27e7-11e8-ae01-45d2501a928c'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c1205e5d-2971-11e8-98a7-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1280,10 +1280,10 @@
     ],
     "rows": [
         [
-            "18bf5778-27e7-11e8-ae01-45d2501a928c",
-            "localhost:3316",
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -1303,8 +1303,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -1316,7 +1316,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
@@ -1379,8 +1379,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -1392,7 +1392,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
@@ -1500,8 +1500,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -1513,7 +1513,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
@@ -1538,8 +1538,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -1551,7 +1551,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
@@ -1614,8 +1614,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -1627,7 +1627,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
@@ -1916,7 +1916,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "18bf5778-27e7-11e8-ae01-45d2501a928c"
+            "c1205e5d-2971-11e8-98a7-5ce0c50b9d66"
         ]
     ]
 },

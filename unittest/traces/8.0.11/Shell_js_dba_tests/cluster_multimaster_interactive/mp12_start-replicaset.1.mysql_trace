@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3316
+            3340
         ]
     ]
 },
@@ -654,7 +654,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -1576,9 +1576,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$S\u0005K5n\r\"%\u00042H.2tfa=\u0013r[a6k36h8Pp4pPThIjz6SK44kDM6JeedScMb6upLfxadC",
+            "$A$005$\rw6AIh4\u00137kO\u001AfpgJt\n,3y9qpZXLPHre66xvP.cTpY2YDO0yNHiXsxbC2rwFjot/",
             "N",
-            "2018-03-13 14:08:06",
+            "2018-03-17 00:36:42",
             null,
             "N",
             "N",
@@ -2558,9 +2558,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$p\f\u001AG\u0001O>[\u000B_LUT/`q\u000B4E\u001AGLtbQPYggOWycumb1Y21c0wRI/QUTLFgIII0QqiPNoA",
+            "$A$005$MC=v\"!^=\bGF\u0012W\u0016\u000F9Z0?eHploxUEdMK1yyhaUO/utV1xI5QqxCyxQFYrHEekq3B",
             "N",
-            "2018-03-13 01:21:36",
+            "2018-03-16 20:02:29",
             null,
             "N",
             "Y",
@@ -3029,20 +3029,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3239,6 +3225,20 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3253,14 +3253,14 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "BLACKHOLE",
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3270,13 +3270,6 @@
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
             null,
             "GPL"
         ],
@@ -3291,6 +3284,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ],
@@ -3430,7 +3430,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
@@ -3468,7 +3468,7 @@
     ],
     "rows": [
         [
-            "a06b1a94-2702-11e8-ab09-932a19fdac67"
+            "43b147ce-297b-11e8-a7be-5ce0c50b9d66"
         ]
     ]
 },
@@ -3596,7 +3596,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET PERSIST group_replication_group_name = 'a06b1a94-2702-11e8-ab09-932a19fdac67'"
+    "sql": "SET PERSIST group_replication_group_name = '43b147ce-297b-11e8-a7be-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3776,7 +3776,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET PERSIST auto_increment_offset = 3"
+    "sql": "SET PERSIST auto_increment_offset = 6"
 },
 {
     "type": "response",
@@ -4046,7 +4046,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 157,
-    "sql": "SET PERSIST group_replication_local_address = 'localhost:33161'"
+    "sql": "SET PERSIST group_replication_local_address = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -4226,7 +4226,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 181,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ ')_E<,:W}8m();K.];_9n^I_~;1v=~&q|' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '(3-~M/1;*(r]+$m._].D]@2~#_+q;$L*' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",

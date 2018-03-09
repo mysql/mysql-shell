@@ -147,6 +147,34 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session,
 }
 
 /**
+ * Validate if a supported InnoDB page size value is used.
+ *
+ * Currently, innodb_page_size > 4k is required due to the size of some
+ * required information in the Metadata.
+ *
+ * @param instance target instance to check.
+ * @param console console to send output to.
+ */
+void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
+                               std::shared_ptr<IConsole> console) {
+  log_info("Validating InnoDB page size of instance '%s'.",
+           instance->descr().c_str());
+  std::string page_size = instance->get_sysvar_string(
+      "innodb_page_size", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  int page_size_value = std::stoul(page_size);
+  if (page_size_value <= 4096) {
+    console->print_error(
+        "Instance '" + instance->descr() + "' is using a non-supported InnoDB "
+        "page size (innodb_page_size=" + page_size + "). Only instances with "
+        "innodb_page_size greater than 4k (4096) can be used with InnoDB "
+        "Cluster.");
+    throw shcore::Exception::runtime_error(
+        "Unsupported innodb_page_size value: " + page_size);
+  }
+}
+
+/**
  * Validate that the target instances host is correctly configured in MySQL.
  * The check will be based on the @@hostname and @@report_host sysvars,
  * where @@report_host takes precedence if it's not NULL.
@@ -273,6 +301,9 @@ bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
                             bool *restart_needed, bool *mycnf_change_needed,
                             bool *sysvar_change_needed, bool *fatal_errors,
                             shcore::Value *ret_val) {
+  // Check supported innodb_page_size (must be > 4k). See: BUG#27329079
+  validate_innodb_page_size(instance, console);
+
   log_info("Validating configuration of %s (mycnf = %s)",
            instance->descr().c_str(), mycnf_path.c_str());
   // Perform check with no update

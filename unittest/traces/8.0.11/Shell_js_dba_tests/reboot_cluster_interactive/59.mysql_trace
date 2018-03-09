@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@10.172.234.37:3336",
+    "uri": "root:root@pjesus-TECRA-Z40-B:3360",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "18",
-    "connection_info": "10.172.234.37 via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "3f90f56f-26ec-11e8-b47c-b86b230042b9"
+            "50705474-2979-11e8-bdbd-5ce0c50b9d66"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            33360
+            33600
         ]
     ]
 },
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "localhost:33361"
+            "localhost:33601"
         ]
     ]
 },

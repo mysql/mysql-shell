@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3316",
+    "uri": "root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "8a338b9a-27e2-11e8-9978-d473c274fe9e",
-            "8a338b9a-27e2-11e8-9978-d473c274fe9e"
+            "c99f8e81-2974-11e8-a150-5ce0c50b9d66",
+            "c99f8e81-2974-11e8-a150-5ce0c50b9d66"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8a338b9a-27e2-11e8-9978-d473c274fe9e'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c99f8e81-2974-11e8-a150-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -341,7 +341,7 @@
         ],
         [
             "auto_increment_offset",
-            "3"
+            "6"
         ],
         [
             "autocommit",
@@ -361,7 +361,7 @@
         ],
         [
             "basedir",
-            "/usr/local/mysql-8.0.11/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/"
         ],
         [
             "big_tables",
@@ -493,7 +493,7 @@
         ],
         [
             "character_sets_dir",
-            "/usr/local/mysql-8.0.11/share/charsets/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -533,7 +533,7 @@
         ],
         [
             "datadir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
         ],
         [
             "default_authentication_plugin",
@@ -649,7 +649,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-240-73.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B.log"
         ],
         [
             "group_concat_max_len",
@@ -733,7 +733,7 @@
         ],
         [
             "group_replication_group_seeds",
-            "localhost:23316,localhost:23326,localhost:23336"
+            "localhost:23340,localhost:23350,localhost:23360"
         ],
         [
             "group_replication_gtid_assignment_block_size",
@@ -745,7 +745,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:23316"
+            "localhost:23340"
         ],
         [
             "group_replication_member_weight",
@@ -833,7 +833,7 @@
         ],
         [
             "gtid_executed",
-            "8a338b9a-27e2-11e8-9978-d473c274fe9e:1-103,\n8fe88b30-27e2-11e8-9978-d473c274fe9e:1-3,\n9a07b0d2-27e2-11e8-9978-d473c274fe9e:1-3,\na41e6a3e-27e2-11e8-9978-d473c274fe9e:1-3,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3,\nae3c7d76-27e2-11e8-9978-d473c274fe9e:1-3,\nb86b50e2-27e2-11e8-9978-d473c274fe9e:1-3,\nbbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-18,\nc292a336-27e2-11e8-9978-d473c274fe9e:1-3,\nccb050a2-27e2-11e8-9978-d473c274fe9e:1-3,\ne0df9e7a-27e2-11e8-9978-d473c274fe9e:1-104"
+            "05a2b3fc-2975-11e8-a150-5ce0c50b9d66:1-3,\n10091767-2975-11e8-a150-5ce0c50b9d66:1-3,\n24c17ee9-2975-11e8-a150-5ce0c50b9d66:1-104,\naaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-3,\nbbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-18,\nc99f8e81-2974-11e8-a150-5ce0c50b9d66:1-103,\nd19bb3b7-2974-11e8-a150-5ce0c50b9d66:1-3,\ndc1f7ea5-2974-11e8-a150-5ce0c50b9d66:1-3,\ne686ae72-2974-11e8-a150-5ce0c50b9d66:1-3,\nf0ebe848-2974-11e8-a150-5ce0c50b9d66:1-3,\nfb50c8a6-2974-11e8-a150-5ce0c50b9d66:1-3"
         ],
         [
             "gtid_executed_compression_period",
@@ -901,7 +901,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-240-73.vpn.oracle.com"
+            "pjesus-TECRA-Z40-B"
         ],
         [
             "information_schema_stats_expiry",
@@ -1260,6 +1260,10 @@
             ""
         ],
         [
+            "innodb_numa_interleave",
+            "OFF"
+        ],
+        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -1433,7 +1437,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "OFF"
+            "ON"
         ],
         [
             "innodb_version",
@@ -1501,7 +1505,7 @@
         ],
         [
             "lc_messages_dir",
-            "/usr/local/mysql-8.0.11/share/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/share/"
         ],
         [
             "lc_time_names",
@@ -1529,11 +1533,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-240-73-bin"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-240-73-bin.index"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1545,7 +1549,7 @@
         ],
         [
             "log_error",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/error.log"
         ],
         [
             "log_error_services",
@@ -1613,11 +1617,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "mandatory_roles",
@@ -1801,7 +1805,7 @@
         ],
         [
             "mysqlx_port",
-            "33160"
+            "33400"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1889,7 +1893,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "8161"
         ],
         [
             "optimizer_prune_level",
@@ -2117,15 +2121,15 @@
         ],
         [
             "pid_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/3340.pid"
         ],
         [
             "plugin_dir",
-            "/usr/local/mysql-8.0.11/lib/plugin/"
+            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/lib/plugin/"
         ],
         [
             "port",
-            "3316"
+            "3340"
         ],
         [
             "preload_buffer_size",
@@ -2185,15 +2189,15 @@
         ],
         [
             "relay_log",
-            "dhcp-10-159-240-73-relay-bin"
+            "pjesus-TECRA-Z40-B-relay-bin"
         ],
         [
             "relay_log_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-240-73-relay-bin"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-240-73-relay-bin.index"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -2225,7 +2229,7 @@
         ],
         [
             "report_port",
-            "3316"
+            "3340"
         ],
         [
             "report_user",
@@ -2249,11 +2253,11 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/mysql-files/"
         ],
         [
             "server_id",
-            "15661"
+            "15685"
         ],
         [
             "server_id_bits",
@@ -2261,7 +2265,7 @@
         ],
         [
             "server_uuid",
-            "8a338b9a-27e2-11e8-9978-d473c274fe9e"
+            "c99f8e81-2974-11e8-a150-5ce0c50b9d66"
         ],
         [
             "session_track_gtids",
@@ -2345,7 +2349,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
         ],
         [
             "slave_max_allowed_packet",
@@ -2401,7 +2405,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-240-73-slow.log"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-slow.log"
         ],
         [
             "socket",
@@ -2517,7 +2521,7 @@
         ],
         [
             "system_time_zone",
-            "PDT"
+            "WET"
         ],
         [
             "table_definition_cache",
@@ -2565,7 +2569,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
         ],
         [
             "transaction_alloc_block_size",
@@ -2601,7 +2605,7 @@
         ],
         [
             "version_comment",
-            "Source distribution"
+            "MySQL Community Server - GPL"
         ],
         [
             "version_compile_machine",
@@ -2609,7 +2613,7 @@
         ],
         [
             "version_compile_os",
-            "osx10.13"
+            "linux-glibc2.12"
         ],
         [
             "version_compile_zlib",

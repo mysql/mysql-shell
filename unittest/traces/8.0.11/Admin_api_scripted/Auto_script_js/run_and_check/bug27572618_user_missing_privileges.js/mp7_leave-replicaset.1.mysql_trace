@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "gr_user:gr_pass@localhost:3326?ssl-mode=PREFERRED",
+    "uri": "gr_user:gr_pass@localhost:3350?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "27",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "0aa9bab6-26df-11e8-8742-b86b230042b9"
+            "bd0d15df-2973-11e8-aa6c-5ce0c50b9d66"
         ]
     ]
 },

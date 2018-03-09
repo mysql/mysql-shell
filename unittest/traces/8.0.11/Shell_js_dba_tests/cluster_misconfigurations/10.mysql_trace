@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://ca:ca@localhost:3317",
+    "uri": "mysql://ca:ca@localhost:3340",
     "protocol": "classic"
 },
 {

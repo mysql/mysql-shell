@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3336",
+    "uri": "mysql://root:root@localhost:3360",
     "protocol": "classic"
 },
 {
@@ -240,9 +240,9 @@
     ],
     "rows": [
         [
-            94,
+            97,
             "test",
-            94,
+            97,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -253,7 +253,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 94"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 97"
 },
 {
     "type": "response",
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "c5a4626e-280d-11e8-85ee-4e58d00ccacf",
-            "c5a4626e-280d-11e8-85ee-4e58d00ccacf"
+            "71a51292-2980-11e8-9b57-5ce0c50b9d66",
+            "71a51292-2980-11e8-9b57-5ce0c50b9d66"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c5a4626e-280d-11e8-85ee-4e58d00ccacf'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '71a51292-2980-11e8-9b57-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -640,7 +640,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 94"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 97"
 },
 {
     "type": "response",
@@ -678,7 +678,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 94 AND g.member_state IN ('ONLINE')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 97 AND g.member_state IN ('ONLINE')"
 },
 {
     "type": "response",
@@ -756,10 +756,10 @@
     ],
     "rows": [
         [
-            "c5a4626e-280d-11e8-85ee-4e58d00ccacf",
-            "localhost:3336",
+            "71a51292-2980-11e8-9b57-5ce0c50b9d66",
+            "localhost:3360",
             "HA",
-            "localhost:3336"
+            "localhost:3360"
         ]
     ]
 },
@@ -805,7 +805,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 94"
+    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 97"
 },
 {
     "type": "response",
@@ -881,7 +881,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 94"
+    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 97"
 },
 {
     "type": "response",
@@ -911,7 +911,7 @@
     ],
     "rows": [
         [
-            94
+            97
         ]
     ]
 },
@@ -919,7 +919,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 94"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 97"
 },
 {
     "type": "response",
@@ -934,7 +934,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 94"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 97"
 },
 {
     "type": "response",
@@ -949,7 +949,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 94"
+    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 97"
 },
 {
     "type": "response",
@@ -1070,7 +1070,7 @@
     ],
     "rows": [
         [
-            94
+            97
         ]
     ]
 },
@@ -1146,7 +1146,7 @@
     ],
     "rows": [
         [
-            94
+            97
         ]
     ]
 },
@@ -1154,7 +1154,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 94"
+    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 97"
 },
 {
     "type": "response",
@@ -1300,7 +1300,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 57,
-    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 94"
+    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 97"
 },
 {
     "type": "response",
@@ -1392,7 +1392,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "c5a4626e-280d-11e8-85ee-4e58d00ccacf"
+            "71a51292-2980-11e8-9b57-5ce0c50b9d66"
         ]
     ]
 },
@@ -1400,7 +1400,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 94 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 97 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",

@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "41",
+    "connection_id": "42",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
@@ -317,7 +317,7 @@
         [
             "default",
             "pm",
-            "56e325ac-24f9-11e8-b68b-d84f01197a18"
+            "01dbaa35-2980-11e8-bc97-5ce0c50b9d66"
         ]
     ]
 },
@@ -355,7 +355,7 @@
     ],
     "rows": [
         [
-            "56e325ac-24f9-11e8-b68b-d84f01197a18"
+            "01dbaa35-2980-11e8-bc97-5ce0c50b9d66"
         ]
     ]
 },
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "5420df6c-24f9-11e8-b68b-d84f01197a18",
-            "5420df6c-24f9-11e8-b68b-d84f01197a18"
+            "febae15b-297f-11e8-bc97-5ce0c50b9d66",
+            "febae15b-297f-11e8-bc97-5ce0c50b9d66"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5420df6c-24f9-11e8-b68b-d84f01197a18'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'febae15b-297f-11e8-bc97-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -756,16 +756,16 @@
     ],
     "rows": [
         [
-            "5420df6c-24f9-11e8-b68b-d84f01197a18",
-            "localhost:3316",
+            "febae15b-297f-11e8-bc97-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ],
         [
-            "55152bb2-24f9-11e8-9ff9-c503bdac25b4",
-            "localhost:3326",
+            "ff9ab2d1-297f-11e8-bedb-5ce0c50b9d66",
+            "localhost:3350",
             "HA",
-            "localhost:3326"
+            "localhost:3350"
         ]
     ]
 },
@@ -1398,7 +1398,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "5420df6c-24f9-11e8-b68b-d84f01197a18"
+            "febae15b-297f-11e8-bc97-5ce0c50b9d66"
         ]
     ]
 },

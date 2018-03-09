@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-10-159-240-73.vpn.oracle.com:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "26",
-    "connection_info": "dhcp-10-159-240-73.vpn.oracle.com via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "94f11062-27e6-11e8-a24c-707c202b76d1"
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '94f11062-27e6-11e8-a24c-707c202b76d1'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2fcdb619-2971-11e8-9e10-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -785,8 +785,8 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "94f11062-27e6-11e8-a24c-707c202b76d1"
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66"
         ]
     ]
 },
@@ -794,7 +794,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '94f11062-27e6-11e8-a24c-707c202b76d1'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2fcdb619-2971-11e8-9e10-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1047,8 +1047,8 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "94f11062-27e6-11e8-a24c-707c202b76d1"
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66"
         ]
     ]
 },
@@ -1056,7 +1056,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '94f11062-27e6-11e8-a24c-707c202b76d1'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '2fcdb619-2971-11e8-9e10-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -1187,7 +1187,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'dhcp-10-159-240-73.vpn.oracle.com:3326'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'pjesus-TECRA-Z40-B:3350'"
 },
 {
     "type": "response",
@@ -1341,10 +1341,10 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3340",
             "HA",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316"
+            "pjesus-TECRA-Z40-B:3340"
         ]
     ]
 },
@@ -1397,7 +1397,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 63,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000014'@'%' IDENTIFIED BY /*(*/ '[5{$=e3%|M~^|1B?j)+@w|@C~%)}~-{J' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000014'@'%' IDENTIFIED BY /*(*/ '[#X}_2|V>%l_]Q]|#)4<{)#x->n9#O~%' /*)*/ "
 },
 {
     "type": "response",
@@ -1412,7 +1412,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000014'@'localhost' IDENTIFIED BY /*(*/ '[5{$=e3%|M~^|1B?j)+@w|@C~%)}~-{J' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000014'@'localhost' IDENTIFIED BY /*(*/ '[#X}_2|V>%l_]Q]|#)4<{)#x->n9#O~%' /*)*/ "
 },
 {
     "type": "response",
@@ -1519,7 +1519,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "94f11062-27e6-11e8-a24c-707c202b76d1"
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66"
         ]
     ]
 },
@@ -1605,10 +1605,10 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3340",
             "HA",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316"
+            "pjesus-TECRA-Z40-B:3340"
         ]
     ]
 },
@@ -1694,10 +1694,10 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3340",
             "HA",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316"
+            "pjesus-TECRA-Z40-B:3340"
         ]
     ]
 },
@@ -1720,7 +1720,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'dhcp-10-159-240-73.vpn.oracle.com' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'pjesus-TECRA-Z40-B' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -1783,7 +1783,7 @@
     "rows": [
         [
             1,
-            "dhcp-10-159-240-73.vpn.oracle.com",
+            "pjesus-TECRA-Z40-B",
             ""
         ]
     ]
@@ -1792,13 +1792,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 83,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '982ff27a-27e6-11e8-b807-33cf76e1077c', 'dhcp-10-159-240-73.vpn.oracle.com:3326', 'HA', json_object('mysqlClassic', 'dhcp-10-159-240-73.vpn.oracle.com:3326', 'mysqlX', 'dhcp-10-159-240-73.vpn.oracle.com:33260', 'grLocal', 'localhost:3336'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '351afbb4-2971-11e8-a6c7-5ce0c50b9d66', 'pjesus-TECRA-Z40-B:3350', 'HA', json_object('mysqlClassic', 'pjesus-TECRA-Z40-B:3350', 'mysqlX', 'pjesus-TECRA-Z40-B:33500', 'grLocal', 'localhost:3360'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 84,
-    "auto_increment_value": 6,
+    "auto_increment_value": 4,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -1900,16 +1900,16 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316",
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3340",
             "HA",
-            "dhcp-10-159-240-73.vpn.oracle.com:3316"
+            "pjesus-TECRA-Z40-B:3340"
         ],
         [
-            "982ff27a-27e6-11e8-b807-33cf76e1077c",
-            "dhcp-10-159-240-73.vpn.oracle.com:3326",
+            "351afbb4-2971-11e8-a6c7-5ce0c50b9d66",
+            "pjesus-TECRA-Z40-B:3350",
             "HA",
-            "dhcp-10-159-240-73.vpn.oracle.com:3326"
+            "pjesus-TECRA-Z40-B:3350"
         ]
     ]
 },

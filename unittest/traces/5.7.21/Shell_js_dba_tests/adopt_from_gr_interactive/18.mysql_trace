@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@vm-ubuntu:3326",
+    "uri": "root:root@pjesus-TECRA-Z40-B:3350",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "21",
-    "connection_info": "vm-ubuntu via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "3e487ed8-25ec-11e8-b0cb-080027c42733"
+            "9acb4784-2981-11e8-8a91-5ce0c50b9d66"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            33260
+            33500
         ]
     ]
 },
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "localhost:33261"
+            "localhost:33501"
         ]
     ]
 },

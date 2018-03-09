@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "27",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "1900a741-26dd-11e8-8ea1-b86b230042b9"
+            "1a884ed7-2972-11e8-ac30-5ce0c50b9d66"
         ]
     ]
 },
@@ -215,7 +215,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -331,10 +331,10 @@
     ],
     "rows": [
         [
-            "17077c9c-26dd-11e8-8ea1-b86b230042b9",
-            "localhost:3316",
+            "18cdcc0e-2972-11e8-ac30-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -534,10 +534,10 @@
     ],
     "rows": [
         [
-            "17077c9c-26dd-11e8-8ea1-b86b230042b9",
-            "localhost:3316",
+            "18cdcc0e-2972-11e8-ac30-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -623,10 +623,10 @@
     ],
     "rows": [
         [
-            "17077c9c-26dd-11e8-8ea1-b86b230042b9",
-            "localhost:3316",
+            "18cdcc0e-2972-11e8-ac30-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },
@@ -664,7 +664,7 @@
     ],
     "rows": [
         [
-            "17077c9c-26dd-11e8-8ea1-b86b230042b9:1-14,\n1900a741-26dd-11e8-8ea1-b86b230042b9:1-2"
+            "18cdcc0e-2972-11e8-ac30-5ce0c50b9d66:1-14,\n1a884ed7-2972-11e8-ac30-5ce0c50b9d66:1-2"
         ]
     ]
 },
@@ -672,7 +672,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT GTID_SUBSET('17077c9c-26dd-11e8-8ea1-b86b230042b9:1-14,\\n1900a741-26dd-11e8-8ea1-b86b230042b9:1-2', '17077c9c-26dd-11e8-8ea1-b86b230042b9:1-14,\\n1900a741-26dd-11e8-8ea1-b86b230042b9:1-2')"
+    "sql": "SELECT GTID_SUBSET('18cdcc0e-2972-11e8-ac30-5ce0c50b9d66:1-14,\\n1a884ed7-2972-11e8-ac30-5ce0c50b9d66:1-2', '18cdcc0e-2972-11e8-ac30-5ce0c50b9d66:1-14,\\n1a884ed7-2972-11e8-ac30-5ce0c50b9d66:1-2')"
 },
 {
     "type": "response",
@@ -688,7 +688,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('17077c9c-26dd-11e8-8ea1-b86b230042b9:1-14,\\n1900a741-26dd-11e8-8ea1-b86b230042b9:1-2', '17077c9c-26dd-11e8-8ea1-b86b230042b9:1-14,\\n1900a741-26dd-11e8-8ea1-b86b230042b9:1-2')",
+            "column_label": "GTID_SUBSET('18cdcc0e-2972-11e8-ac30-5ce0c50b9d66:1-14,\\n1a884ed7-2972-11e8-ac30-5ce0c50b9d66:1-2', '18cdcc0e-2972-11e8-ac30-5ce0c50b9d66:1-14,\\n1a884ed7-2972-11e8-ac30-5ce0c50b9d66:1-2')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -801,7 +801,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 31,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
 },
 {
     "type": "response",
@@ -966,7 +966,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '_H:,{7b<@[3,7+?$^?#E-@R{@<i(}]C@' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ 'Q_>+}h*7+;<+1=-#B)&/],$4?n(?}<K=' /*)*/ "
 },
 {
     "type": "response",
@@ -981,7 +981,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '_H:,{7b<@[3,7+?$^?#E-@R{@<i(}]C@' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ 'Q_>+}h*7+;<+1=-#B)&/],$4?n(?}<K=' /*)*/ "
 },
 {
     "type": "response",
@@ -1119,10 +1119,10 @@
     ],
     "rows": [
         [
-            "17077c9c-26dd-11e8-8ea1-b86b230042b9",
-            "localhost:3316",
+            "18cdcc0e-2972-11e8-ac30-5ce0c50b9d66",
+            "localhost:3340",
             "HA",
-            "localhost:3316"
+            "localhost:3340"
         ]
     ]
 },

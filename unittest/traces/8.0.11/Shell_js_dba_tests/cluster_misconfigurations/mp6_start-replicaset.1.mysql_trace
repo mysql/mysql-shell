@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "ca:ca@localhost:3317?ssl-mode=PREFERRED",
+    "uri": "ca:ca@localhost:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3317
+            3340
         ]
     ]
 },
@@ -654,7 +654,7 @@
     ],
     "rows": [
         [
-            15662
+            15685
         ]
     ]
 },
@@ -2378,9 +2378,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$b3\u001C\u0002y\u001B[\beac\u000EKO,%\u0010\u001C^KfxsP.fovGNjA1bOalJo1kaaO5Gvky6yfDaHB1DgxgA",
+            "$A$005$.F*9?c_xl1p0\u0016Lim7Ea\u0012pioWPI9c3JFLZjEYkHdiRFg/ee6/VAeqZ99ZUpXgKB5",
             "N",
-            "2018-03-12 16:04:23",
+            "2018-03-17 00:22:18",
             null,
             "N",
             "N",
@@ -2651,20 +2651,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -2861,6 +2847,20 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -2875,14 +2875,14 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "BLACKHOLE",
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -2892,13 +2892,6 @@
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
             null,
             "GPL"
         ],
@@ -2913,6 +2906,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ]
@@ -3089,20 +3089,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3299,6 +3285,20 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3313,14 +3313,14 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "BLACKHOLE",
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3330,13 +3330,6 @@
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
             null,
             "GPL"
         ],
@@ -3351,6 +3344,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ]
@@ -3377,7 +3377,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@version_compile_os",
-            "length": 40,
+            "length": 60,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -3390,7 +3390,7 @@
     ],
     "rows": [
         [
-            "macos10.13"
+            "linux-glibc2.12"
         ]
     ]
 },
@@ -3547,7 +3547,7 @@
     ],
     "rows": [
         [
-            15662
+            15685
         ]
     ]
 },
@@ -3585,7 +3585,7 @@
     ],
     "rows": [
         [
-            "52edaff0-2641-11e8-8d85-240fe0377296"
+            "406d8f70-2979-11e8-bb26-5ce0c50b9d66"
         ]
     ]
 },
@@ -3713,7 +3713,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "SET PERSIST group_replication_group_name = '52edaff0-2641-11e8-8d85-240fe0377296'"
+    "sql": "SET PERSIST group_replication_group_name = '406d8f70-2979-11e8-bb26-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -3893,7 +3893,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SET PERSIST auto_increment_offset = 4"
+    "sql": "SET PERSIST auto_increment_offset = 6"
 },
 {
     "type": "response",
@@ -4163,7 +4163,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 147,
-    "sql": "SET PERSIST group_replication_local_address = 'localhost:33171'"
+    "sql": "SET PERSIST group_replication_local_address = 'localhost:33401'"
 },
 {
     "type": "response",
@@ -4343,7 +4343,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 171,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ '*r%~-%l:?8*R9&%D$X/|@=y.|(+N)3l}' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000001' /*)*/, MASTER_PASSWORD = /*(*/ 'a)$3%:?i4;^a#-Q)/m.%]|Z3#H~<_})(' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4531,44 +4531,6 @@
     ],
     "rows": [
         [
-            1
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 191,
-    "sql": "SELECT @@global.super_read_only"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 192,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@global.super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             0
         ]
     ]
@@ -4576,8 +4538,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 193,
+    "index": 191,
     "sql": "SET PERSIST group_replication_bootstrap_group = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 192,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 193,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4590,27 +4567,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 195,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 196,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 197
+    "index": 195
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 198
+    "index": 196
 },
 null]

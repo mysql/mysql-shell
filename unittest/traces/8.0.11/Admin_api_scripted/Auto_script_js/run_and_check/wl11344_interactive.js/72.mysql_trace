@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@dhcp-10-159-240-73.vpn.oracle.com:3316",
+    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "25",
-    "connection_info": "dhcp-10-159-240-73.vpn.oracle.com via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "94f11062-27e6-11e8-a24c-707c202b76d1"
+            "2fcdb619-2971-11e8-9e10-5ce0c50b9d66"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            33160
+            33400
         ]
     ]
 },
@@ -113,7 +113,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@group_replication_local_address",
-            "length": 156,
+            "length": 96,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-240-73.vpn.oracle.com:33161"
+            "pjesus-TECRA-Z40-B:33401"
         ]
     ]
 },

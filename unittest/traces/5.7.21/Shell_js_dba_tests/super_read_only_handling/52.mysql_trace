@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3326",
+    "uri": "root:root@localhost:3350",
     "protocol": "classic"
 },
 {
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "bf179c0a-24fb-11e8-bf2d-5db8846c9090"
+            "dd7bfde0-2981-11e8-a946-5ce0c50b9d66"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-237-174-bin.000004",
+            "pjesus-TECRA-Z40-B-bin.000004",
             230,
             "",
             "",
-            "be4a641a-24fb-11e8-994b-9aae9afa157b:1-14,\nc167f888-24fb-11e8-994b-9aae9afa157b:1-19"
+            "dc93d8c1-2981-11e8-a7ad-5ce0c50b9d66:1-14,\ne17fc9fc-2981-11e8-a7ad-5ce0c50b9d66:1-19"
         ]
     ]
 },

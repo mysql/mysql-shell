@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 128,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.11-debug Source distribution"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },
@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "b4af866a-26de-11e8-9543-b86b230042b9",
-            "b4af866a-26de-11e8-9543-b86b230042b9"
+            "715bc174-2973-11e8-8cae-5ce0c50b9d66",
+            "715bc174-2973-11e8-8cae-5ce0c50b9d66"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b4af866a-26de-11e8-9543-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '715bc174-2973-11e8-8cae-5ce0c50b9d66'"
 },
 {
     "type": "response",
@@ -320,7 +320,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",
@@ -358,7 +358,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 19,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",
@@ -396,7 +396,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",
@@ -434,7 +434,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",
@@ -472,7 +472,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",
@@ -510,7 +510,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",

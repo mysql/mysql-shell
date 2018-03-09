@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@dhcp-10-159-240-73.vpn.oracle.com:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@pjesus-TECRA-Z40-B:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "14",
-    "connection_info": "dhcp-10-159-240-73.vpn.oracle.com via TCP/IP",
+    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3316
+            3340
         ]
     ]
 },
@@ -654,7 +654,7 @@
     ],
     "rows": [
         [
-            3335050220
+            210272443
         ]
     ]
 },
@@ -1576,9 +1576,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$,+\f\u001C;o\u000B|\u0006AUmTDm5/UU#LDDPhmOr84RUL9ZqfATafDQSfxuKyZMzq.irczhop39",
+            "$A$005$otx5i\u0003\tqI\fx/9\u0002ya\u0013\u001A\"\u001EI9Vj18DWZJ0KDokwHHHrGsNajklTdSIIonCq2iRxtS4",
             "N",
-            "2018-03-14 17:20:03",
+            "2018-03-16 23:24:50",
             null,
             "N",
             "N",
@@ -1720,7 +1720,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "SELECT * FROM mysql.user WHERE user = 'root' and host = 'dhcp-10-159-240-73.vpn.oracle.com'"
+    "sql": "SELECT * FROM mysql.user WHERE user = 'root' and host = 'pjesus-TECRA-Z40-B'"
 },
 {
     "type": "response",
@@ -2651,20 +2651,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -2861,6 +2847,20 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -2875,14 +2875,14 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "BLACKHOLE",
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -2892,13 +2892,6 @@
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
             null,
             "GPL"
         ],
@@ -2913,6 +2906,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ]
@@ -3089,20 +3089,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "InnoDB",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3299,6 +3285,20 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "PERFORMANCE_SCHEMA",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3313,14 +3313,14 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "BLACKHOLE",
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3330,13 +3330,6 @@
             "FEDERATED",
             "DISABLED",
             "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ngram",
-            "ACTIVE",
-            "FTPARSER",
             null,
             "GPL"
         ],
@@ -3351,6 +3344,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ]
@@ -3377,7 +3377,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@version_compile_os",
-            "length": 32,
+            "length": 60,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -3390,7 +3390,7 @@
     ],
     "rows": [
         [
-            "osx10.13"
+            "linux-glibc2.12"
         ]
     ]
 },
@@ -3547,7 +3547,7 @@
     ],
     "rows": [
         [
-            3335050220
+            210272443
         ]
     ]
 },
@@ -3855,7 +3855,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 109,
-    "sql": "SET PERSIST auto_increment_offset = 6"
+    "sql": "SET PERSIST auto_increment_offset = 4"
 },
 {
     "type": "response",
@@ -4125,7 +4125,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "SET PERSIST group_replication_local_address = 'dhcp-10-159-240-73.vpn.oracle.com:33161'"
+    "sql": "SET PERSIST group_replication_local_address = 'pjesus-TECRA-Z40-B:33401'"
 },
 {
     "type": "response",
@@ -4305,7 +4305,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000013' /*)*/, MASTER_PASSWORD = /*(*/ '@9i*}O+)@}/J~v5:.0w+~W>{G%}&|<|y' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000013' /*)*/, MASTER_PASSWORD = /*(*/ '~2$F=u.|=@0%/(Q#%5q}V$)n.+_;|^>B' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4493,44 +4493,6 @@
     ],
     "rows": [
         [
-            1
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 189,
-    "sql": "SELECT @@global.super_read_only"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 190,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@global.super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             0
         ]
     ]
@@ -4538,8 +4500,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 191,
+    "index": 189,
     "sql": "SET PERSIST group_replication_bootstrap_group = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 190,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 191,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4552,27 +4529,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 193,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 194,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 195
+    "index": 193
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 196
+    "index": 194
 },
 null]
