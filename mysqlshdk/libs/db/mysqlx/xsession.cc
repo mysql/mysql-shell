@@ -240,6 +240,34 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
         return xcl::Handler_result::Continue;
       });
 
+  auto unregister_handler_id = shcore::Scoped_callback([this, &handler_id]() {
+    if (_mysql)
+      _mysql->get_protocol().remove_notice_handler(handler_id);
+  });
+
+  std::vector<Mysqlx::Error> xproto_errors;
+
+  auto xproto_errors_handler_id =
+      _mysql->get_protocol().add_received_message_handler(
+          [&xproto_errors](
+              xcl::XProtocol *,
+              const xcl::XProtocol::Server_message_type_id type_id,
+              const xcl::XProtocol::Message &msg) -> xcl::Handler_result {
+            if (type_id == Mysqlx::ServerMessages::ERROR) {
+              const Mysqlx::Error e = *static_cast<const Mysqlx::Error *>(&msg);
+              xproto_errors.push_back(e);
+            }
+
+            return xcl::Handler_result::Continue;
+          });
+
+  auto unregister_xproto_errors_handler_id =
+      shcore::Scoped_callback([this, &xproto_errors_handler_id]() {
+        if (_mysql)
+          _mysql->get_protocol().remove_received_message_handler(
+              xproto_errors_handler_id);
+      });
+
   xcl::XError err;
 
   std::string host = data.has_host() ? data.get_host() : "localhost";
@@ -274,10 +302,13 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       message.append(" (").append(err.what()).append(")");
       throw mysqlshdk::db::Error(message.c_str(), CR_MALFORMED_PACKET);
     } else {
+      if (!xproto_errors.empty()) {
+        auto e = xproto_errors.back();
+        throw mysqlshdk::db::Error(e.msg().c_str(), e.code());
+      }
       throw mysqlshdk::db::Error(err.what(), err.error());
     }
   }
-  _mysql->get_protocol().remove_notice_handler(handler_id);
 
   // If the account is not expired, retrieves additional session information
   if (!_expired_account)
