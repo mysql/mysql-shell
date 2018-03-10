@@ -114,12 +114,12 @@ function ensure_relatives_collection() {
     print("Creating relatives collection...\n");
     var test_coll = db.createCollection('relatives');
 
-    var result = test_coll.add({name: 'jack', age: 17, alias: 'jack'}).execute();
-    var result = test_coll.add({name: 'adam', age: 15, alias: 'jr'}).execute();
-    var result = test_coll.add({name: 'brian', age: 14, alias: 'brian'}).execute();
-    var result = test_coll.add({name: 'charles', age: 13, alias: 'jr'}).execute();
-    var result = test_coll.add({name: 'clare', age: 14, alias: 'cla'}).execute();
-    var result = test_coll.add({name: 'donna', age: 16, alias: 'donna'}).execute();
+    var result = test_coll.add({_id: 'KNOWN001', name: 'jack', age: 17, alias: 'jack'}).execute();
+    var result = test_coll.add({_id: 'KNOWN002', name: 'adam', age: 15, alias: 'jr'}).execute();
+    var result = test_coll.add({_id: 'KNOWN003', name: 'brian', age: 14, alias: 'brian'}).execute();
+    var result = test_coll.add({_id: 'KNOWN004', name: 'charles', age: 13, alias: 'jr'}).execute();
+    var result = test_coll.add({_id: 'KNOWN005', name: 'clare', age: 14, alias: 'cla'}).execute();
+    var result = test_coll.add({_id: 'KNOWN006', name: 'donna', age: 16, alias: 'donna'}).execute();
   }
 }
 
@@ -159,18 +159,18 @@ function ensure_my_collection_collection() {
     print("Creating my_collection collection...\n");
     var test_coll = db.createCollection('my_collection');
 
-    var result = test_coll.add({name: 'jack', age: 17, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'adam', age: 15, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'brian', age: 14, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'alma', age: 13, gender: 'female'}).execute();
-    var result = test_coll.add({name: 'clare', age: 14, gender: 'female'}).execute();
-    var result = test_coll.add({name: 'donna', age: 16, gender: 'female'}).execute();
-    var result = test_coll.add({name: 'angel', age: 14, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'mike', age: 39, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'John', age: 20, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'johannes', age: 28, gender: 'male'}).execute();
-    var result = test_coll.add({name: 'Sally', age: 19, gender: 'female'}).execute();
-    var result = test_coll.add({name: 'Molly', age: 25, gender: 'female'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD6F', name: 'jack', age: 17, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD70', name: 'adam', age: 15, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD71', name: 'brian', age: 14, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD72', name: 'alma', age: 13, gender: 'female'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD73', name: 'clare', age: 14, gender: 'female'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD74', name: 'donna', age: 16, gender: 'female'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD75', name: 'angel', age: 14, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD76', name: 'mike', age: 39, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD77', name: 'John', age: 20, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD78', name: 'johannes', age: 28, gender: 'male'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD79', name: 'Sally', age: 19, gender: 'female'}).execute();
+    var result = test_coll.add({_id: '201F130A44EDB700668D5DCE32D9DD7A', name: 'Molly', age: 25, gender: 'female'}).execute();
   }
 }
 
