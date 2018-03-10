@@ -3,8 +3,8 @@
 var myColl = db.createCollection('my_collection');
 
 // Insert JSON data directly
-myColl.add({name: 'Sakila', age: 15});
+myColl.add({_id: '8901', name: 'Sakila', age: 15});
 
 // Inserting several docs at once
-myColl.add([ {name: 'Susanne', age: 24},
-  {name: 'Mike', age: 39} ]);
+myColl.add([ {_id: '8902', name: 'Susanne', age: 24},
+  {_id: '8903', name: 'Mike', age: 39} ]);

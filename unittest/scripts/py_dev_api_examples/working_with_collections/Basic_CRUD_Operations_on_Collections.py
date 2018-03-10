@@ -13,9 +13,9 @@ myDb = mySession.get_schema('test')
 myColl = myDb.create_collection('my_collection')
 
 # Insert documents
-myColl.add({'name': 'Sakila', 'age': 15}).execute()
-myColl.add({'name': 'Susanne', 'age': 24}).execute()
-myColl.add({'name': 'Mike', 'age': 39}).execute()
+myColl.add({'_id': '1', 'name': 'Sakila', 'age': 15}).execute()
+myColl.add({'_id': '2', 'name': 'Susanne', 'age': 24}).execute()
+myColl.add({'_id': '3', 'name': 'Mike', 'age': 39}).execute()
 
 # Find a document
 docs = myColl.find('name like :param1 AND age < :param2') \
