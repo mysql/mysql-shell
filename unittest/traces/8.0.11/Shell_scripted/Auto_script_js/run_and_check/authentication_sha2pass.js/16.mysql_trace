@@ -1,0 +1,28 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "remo_pass:pass@localhost:3311?ssl-mode=DISABLED",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "29",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "8.0.11-debug-log",
+    "server_version": "8.0.11"
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 3
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 4
+},
+null]
