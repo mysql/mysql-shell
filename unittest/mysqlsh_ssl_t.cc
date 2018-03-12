@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,6 +82,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
   };
 
   struct Combination {
+    int version;
     Expect expected;
 
     Ssl ssl_mode;
@@ -195,13 +196,11 @@ class Mysqlsh_ssl : public tests::Command_line_test {
 
     bool test_debug = getenv("TEST_DEBUG") != nullptr;
 
-    if (test_debug)
-      std::cout << "execute: " << *out_cmd << "\n";
+    if (test_debug) std::cout << "execute: " << *out_cmd << "\n";
 
     // check if connection succeeds and whether SSL gets enabled
     int rc = execute(argv);
-    if (test_debug)
-      std::cout << _output << "\n\n";
+    if (test_debug) std::cout << _output << "\n\n";
 
     *out_output = _output;
 
@@ -220,8 +219,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
         argv[cmd_index] = "select 'hello'";
         _output.clear();
         rc = execute(argv);
-        if (test_debug)
-          std::cout << _output << "\n\n";
+        if (test_debug) std::cout << _output << "\n\n";
         if (rc != 0) {
           std::cout << "Small result test fail (rc):" << rc << "\t" << _output
                     << "\n";
@@ -240,8 +238,7 @@ class Mysqlsh_ssl : public tests::Command_line_test {
         argv[cmd_index] = "select * from performance_schema.setup_instruments";
         _output.clear();
         rc = execute(argv);
-        if (test_debug)
-          std::cout << _output << "\n\n";
+        if (test_debug) std::cout << _output << "\n\n";
         if (rc != 0) {
           std::cout << "Big result test fail (rc):" << rc << "\t" << _output
                     << "\n";
@@ -392,6 +389,7 @@ void PrintTo(Mysqlsh_ssl::Usr r, ::std::ostream *os) {
       std::string cmd;                                                        \
       std::string output;                                                     \
       std::stringstream ss;                                                   \
+      if (combo.version != 0 && combo.version != target_version) continue;    \
       PrintTo(combo.ssl_mode, &ss);                                           \
       ss << ", ";                                                             \
       PrintTo(combo.protocol, &ss);                                           \
@@ -434,66 +432,70 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
        "CREATE USER rooty@localhost IDENTIFIED WITH 'mysql_native_password'",
        "GRANT ALL ON *.* TO rooty@localhost"});
 
+  int target_version = _target_server_version.get_major() * 10 +
+                       _target_server_version.get_minor();
+
   // Note: tests to the default localhost are via default (compiled-in)
   // socket path, which will not work in CI environments, so they're disabled
 
   std::vector<Combination> combos{
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
-      {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      {80, Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {57, Expect::Sok, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// default connection method when port is not given is socket
-      {Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      // default connection method when port is not given is socket
+      {0, Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
 
-      {Expect::Tcp, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Tcp, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Tcp, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Tcp, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Sok, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-     {Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Tcp, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Tcp, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Tcp, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Tcp, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
-      {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      // Also, doesn't work in 5.7
+      {80, Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      // SSL + sock not supported in 5.7
+      {80, Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-     {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
   TRY_COMBINATIONS(combos);
 
-  run_script_classic(
-      {"DROP USER rooty@localhost"});
+  run_script_classic({"DROP USER rooty@localhost"});
 }
-
 
 TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password_require_ssl) {
   // Test basic SSL support using mysql_native_password auth require ssl
@@ -509,64 +511,68 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password_require_ssl) {
        "require ssl",
        "GRANT ALL ON *.* TO rootssl@localhost"});
 
+  int target_version = _target_server_version.get_major() * 10 +
+                       _target_server_version.get_minor();
+
   // Note: tests to the default localhost are via default (compiled-in)
   // socket path, which will not work in CI environments, so they're disabled
 
   std::vector<Combination> combos{
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::SRoot, {}},
 #ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
-      {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
-      {Expect::Fail, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+      {80, Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
 
-// {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-// default connection method when port is not given is socket
-      {Expect::Fail, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      // {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      // default connection method when port is not given is socket
+      {0, Expect::Fail, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
 #endif
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
 
-      {Expect::Fail, Ssl::Disab, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Fail, Ssl::Disab, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::C, Srv::Main, Usr::SRoot, {}},
 #ifndef _WIN32
-      {Expect::Fail, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
-      {Expect::Fail, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
 
-// {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-     {Expect::Fail, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      // {0, Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
 #endif
-      {Expect::Fail, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Fail, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::SRoot, {}},
 #ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
-      {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
-      {Expect::Fail, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+      // Doesn't work in 5.7
+      {80, Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
 
-// {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Fail, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      // {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Fail, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
 #endif
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::SRoot, {}},
 #ifndef _WIN32
-      {Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
+      // Doesn't work in 5.7
+      {80, Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::SRoot, {}},
 
-// {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-     {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      // {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
 #endif
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::SRoot, {}}};
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::SRoot, {}}};
   TRY_COMBINATIONS(combos);
 
-  run_script_classic(
-      {"DROP USER rootssl@localhost"});
+  run_script_classic({"DROP USER rootssl@localhost"});
 }
 
 TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
@@ -585,70 +591,74 @@ TEST_F(Mysqlsh_ssl, ssl_basic_caching_sha2_password) {
     SKIP_TEST("Target server version doesn't support auth_plugin being tested");
   }
 
+  int target_version = _target_server_version.get_major() * 10 +
+                       _target_server_version.get_minor();
+
   run_script_classic(
       {"DROP USER IF EXISTS rooty@localhost",
-        "CREATE USER rooty@localhost IDENTIFIED WITH 'caching_sha2_password'",
-        "GRANT ALL ON *.* TO rooty@localhost"});
+       "CREATE USER rooty@localhost IDENTIFIED WITH 'caching_sha2_password'",
+       "GRANT ALL ON *.* TO rooty@localhost"});
 
   std::vector<Combination> combos{
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
-      {Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Dflt, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-// default connection method when port is not given is socket
-     {Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      // default connection method when port is not given is socket
+      {0, Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
 
       // As of 8.0.4, X plugin doesn't support caching_sha256_password
       // without SSL
-      // {Expect::Tcp, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Tcp, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Tcp, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Tcp, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Sok, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Disab, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Disab, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Tcp, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
       // As of 8.0.4, X plugin doesn't support caching_sha256_password
       // without SSL
-      // {Expect::Tcp, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Tcp, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Tcp, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Tcp, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
       // FIXME(rennox): X connection bug introduced at BUG27192091
       // SSL is being enabled by default, in classic it must be required
-      {Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      // SSL + sock not supported in 5.7
+      {80, Expect::Ssl, Ssl::Pref, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Pref, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-     {Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
 #ifndef _WIN32
-      {Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
+      // SSL + sock not supported in 5.7
+      {80, Expect::Ssl, Ssl::Req, Proto::X_sock, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_sock, Srv::Main, Usr::Root, {}},
 
-// {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      // {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
 #endif
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}}};
   TRY_COMBINATIONS(combos);
 
-  run_script_classic(
-      {"DROP USER rooty@localhost"});
+  run_script_classic({"DROP USER rooty@localhost"});
 }
 
 TEST_F(Mysqlsh_ssl, DISABLED_ssl_default_params_classic) {
@@ -656,21 +666,24 @@ TEST_F(Mysqlsh_ssl, DISABLED_ssl_default_params_classic) {
   // - Default Unix socket path in Linux
   // - 3306 TCP in Windows
 
+  int target_version = _target_server_version.get_major() * 10 +
+                       _target_server_version.get_minor();
+
   // Note: default port or socket connection tests will only work if the test
   // server is listening on default (compiled-in) port/socket
   if (_mysql_port.empty() || _mysql_port == "3306") {
 #ifdef _WIN32
     std::vector<Combination> combos{
-        {Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-        {Expect::Tcp, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-        {Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-        {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}}};
+        {0, Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+        {0, Expect::Tcp, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+        {0, Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+        {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}}};
 #else
     std::vector<Combination> combos{
-        {Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-        {Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-        {Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-        {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}}};
+        {0, Expect::Sok, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+        {0, Expect::Sok, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+        {0, Expect::Sok, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+        {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}}};
 #endif
     TRY_COMBINATIONS(combos);
   }
@@ -678,149 +691,149 @@ TEST_F(Mysqlsh_ssl, DISABLED_ssl_default_params_classic) {
 #if 0
 TEST_F(Mysqlsh_ssl, all_combos) {
   const std::vector<Combination> combos{
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Main, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Alt, Usr::Root, {}},
-      {Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Alt, Usr::SRoot, {}}};
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Dflt, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Disab, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Pref, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Req, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_ca, Proto::C_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_dflt, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::X_auto, Srv::Alt, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Main, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Main, Usr::SRoot, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Alt, Usr::Root, {}},
+      {0, Expect::Ssl, Ssl::Ver_id, Proto::C_auto, Srv::Alt, Usr::SRoot, {}}};
 }
 #endif
