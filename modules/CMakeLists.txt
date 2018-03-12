@@ -57,7 +57,9 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/check_instance.cc"
       "adminapi/dba/configure_local_instance.cc"
       "adminapi/dba/configure_instance.cc"
-      "adminapi/dba/preconditions.cc")
+      "adminapi/dba/preconditions.cc"
+      "adminapi/dba/provision.cc"
+      "adminapi/dba/remove_instance.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)

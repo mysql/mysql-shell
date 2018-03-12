@@ -1,8 +1,8 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2158","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2258","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"20","connection_info":"localhost via TCP/IP","server_info":"8.0.11-commercial","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT @@GLOBAL.GTID_EXECUTED"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@GLOBAL.GTID_EXECUTED","length":336,"fractional":31,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["cb68d5cf-3d28-11e8-a00d-0010e08a7b78:1-14,\ncff91996-3d28-11e8-a00d-0010e08a7b78:1-18"]]},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@GLOBAL.GTID_EXECUTED","length":336,"fractional":31,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["e27e3738-47dd-11e8-83eb-0010e08a7b78:1-14,\ne8a922c6-47dd-11e8-83eb-0010e08a7b78:1-18"]]},
 {"type":"request","subtype":"CLOSE","index":5},
 {"type":"response","subtype":"OK","index":6},
 null]

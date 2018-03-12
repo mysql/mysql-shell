@@ -31,10 +31,9 @@
 #define SHCORE_SHOW_WARNINGS "showWarnings"
 #define SHCORE_BATCH_CONTINUE_ON_ERROR "batchContinueOnError"
 #define SHCORE_USE_WIZARDS "useWizards"
-// AdminAPI: Gadgets path
-// TODO(Miguel): which will be the path? How do we get it?
-#define SHCORE_GADGETS_PATH "gadgetsPath"
+
 #define SHCORE_SANDBOX_DIR "sandboxDir"
+#define SHCORE_DBA_GTID_WAIT_TIMEOUT "dba.gtidWaitTimeout"
 
 #define SHCORE_HISTORY_MAX_SIZE "history.maxSize"
 #define SHCORE_HISTIGNORE "history.sql.ignorePattern"
@@ -95,6 +94,7 @@ class Shell_options : public shcore::Options {
     std::string execute_statement;
     std::string execute_dba_statement;
     std::string sandbox_directory;
+    int dba_gtid_wait_timeout;
     std::string gadgets_path;
     ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_INFO;
     bool wizards = true;

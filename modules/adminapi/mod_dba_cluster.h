@@ -28,6 +28,7 @@
 
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
+#include "shellcore/shell_options.h"
 
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
@@ -80,7 +81,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Cluster(const std::string &name,
           std::shared_ptr<mysqlshdk::db::ISession> group_session,
           std::shared_ptr<MetadataStorage> metadata_storage,
-          std::shared_ptr<IConsole> console_handler);
+          std::shared_ptr<IConsole> console_handler,
+          const Shell_options::Storage &options);
   virtual ~Cluster();
 
   virtual std::string class_name() const { return "Cluster"; }
@@ -162,9 +164,33 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Cluster_check_info check_preconditions(
       const std::string &function_name) const;
 
- protected:
-  Cluster() : _dissolved(false) { init(); }  // To support basic mocking
+  std::shared_ptr<MetadataStorage> get_metadata_storage() const {
+    return _metadata_storage;
+  }
 
+  /**
+   * Returns a boolean value indicating if the interactive mode is enabled in
+   * the shell options (wizards).
+   *
+   * @return Boolean value indicative if the interactive mode is enabled.
+   */
+  bool is_interactive() const { return m_shell_options.wizards; }
+
+  /**
+   * Synchronize transactions on target instance.
+   *
+   * Wait for all current cluster transactions to be applied on the specified
+   * target instance.
+   *
+   * @param target_instance instance to wait for transaction to be applied.
+   *
+   * @throw RuntimeError if the timeout is reached when waiting for
+   * transactions to be applied.
+   */
+  void sync_transactions(
+      const mysqlshdk::mysql::IInstance &target_instance) const;
+
+ protected:
   uint64_t _id;
   std::string _name;
   std::shared_ptr<ReplicaSet> _default_replica_set;
@@ -178,6 +204,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<IConsole> m_console;
+  // Used shell options
+  const Shell_options::Storage &m_shell_options;
   void init();
 
  private:

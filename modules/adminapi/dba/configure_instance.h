@@ -61,7 +61,6 @@ class Configure_instance : public Command_interface {
   void ensure_instance_address_usable();
   bool check_config_path_for_update();
   bool check_persisted_globals_load();
-  void ensure_user_privileges();
   void check_create_admin_user();
   void create_admin_user();
   bool check_configuration_updates(bool *restart, bool *dynamic_sysvar_change,

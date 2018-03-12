@@ -568,6 +568,5 @@ bool Instance::user_exists(const std::string &username,
   }
   return true;
 }
-
 }  // namespace mysql
 }  // namespace mysqlshdk

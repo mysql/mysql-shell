@@ -98,6 +98,13 @@
 ||
 |none|
 
+//@ dba.gtidWaitTimeout update and set back to default using shell.options
+||
+|180|
+|"dba.gtidWaitTimeout": "180"|
+||
+|60|
+
 //@ autocomplete.nameCache update and set back to default using \option
 ||
 |false|
@@ -189,9 +196,17 @@
 ||
 |none|
 
+//@ dba.gtidWaitTimeout update and set back to default using \option
+||
+|120|
+|"dba.gtidWaitTimeout": "120"|
+||
+|60|
+
 //@<OUT> List all the options using \option
  autocomplete.nameCache     true
  batchContinueOnError       false
+ dba.gtidWaitTimeout        60
  defaultMode                none
  devapi.dbObjectHandles     true
  history.autoSave           false
@@ -208,6 +223,7 @@
 //@<OUT> List all the options using \option and show-origin
  autocomplete.nameCache     true (Compiled default)
  batchContinueOnError       false (Compiled default)
+ dba.gtidWaitTimeout        60 (Compiled default)
  defaultMode                none (Compiled default)
  devapi.dbObjectHandles     true (Compiled default)
  history.autoSave           false (Compiled default)
@@ -236,6 +252,14 @@
 ||No help found for filter: InvalidOption
 ||No help found for filter: InvalidOption
 
+//@ Verify option dba.gtidWaitTimeout
+||Malformed option value.
+||value out of range
+||Incorrect option value.
+||
+||
+||
+
 //@ Configuration operation available in SQL mode
 |Switching to SQL mode... Commands end with ;|
 |8|
@@ -247,6 +271,7 @@
 //@<OUT> List all the options using \option for SQL mode
  autocomplete.nameCache     true
  batchContinueOnError       false
+ dba.gtidWaitTimeout        60
  defaultMode                none
  devapi.dbObjectHandles     true
  history.autoSave           false
@@ -264,6 +289,7 @@
  Switching to SQL mode... Commands end with ;
  autocomplete.nameCache     true (Compiled default)
  batchContinueOnError       false (Compiled default)
+ dba.gtidWaitTimeout        60 (Compiled default)
  defaultMode                none (Compiled default)
  devapi.dbObjectHandles     true (Compiled default)
  history.autoSave           false (Compiled default)

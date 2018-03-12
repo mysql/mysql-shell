@@ -147,6 +147,21 @@ std::map<std::string, std::string> check_server_variables(
 bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance);
 
+/**
+ * Wait until the given GTID set is applied on the target instance.
+ *
+ * @param instance target instance to wait for GTIDs to be applied.
+ * @param gtid_set string with the GTID set to wait to be applied.
+ * @param timeout positive integer with the maximum time in seconds to wait for
+ *                all GTIDs to be applied on the instance.
+ * @return Return true if the operation succeeded and false if the timeout was
+ *         reached.
+ * @throws an error if some issue occured when waiting for transaction to be
+ *         applied.
+ */
+bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
+                       const std::string gtid_set, int timeout);
+
 }  // namespace gr
 }  // namespace mysqlshdk
 

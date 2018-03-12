@@ -123,7 +123,7 @@
 ||
 
 //@ Cluster: Error cannot remove last instance
-||Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster. (LogicError)
+||Cluster.removeInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is the last member of the ReplicaSet (LogicError)
 
 //@ Dissolve cluster with success
 ||

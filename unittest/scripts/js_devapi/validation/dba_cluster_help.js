@@ -502,6 +502,9 @@ The options dictionary may contain the following attributes:
  - password: the instance connection password
  - force: boolean, indicating if the instance must be removed (even if only
    from metadata) in case it cannot be reached. By default, set to false.
+ - interactive: boolean value used to disable the wizards in the command
+   execution, i.e. prompts are not provided to the user and confirmation
+   prompts are not shown.
 
 The password may be contained in the instance definition, however, it can be
 overwritten if it is specified on the options.

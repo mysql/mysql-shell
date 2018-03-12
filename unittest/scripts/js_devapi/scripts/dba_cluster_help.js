@@ -44,7 +44,8 @@ cluster.help("help")
 cluster.help("rejoinInstance")
 
 //@<OUT> Remove Instance
-cluster.help("removeInstance")
+// WL#11862 - FR3_5
+cluster.help("removeInstance");
 
 //@<OUT> Rescan
 cluster.help("rescan")

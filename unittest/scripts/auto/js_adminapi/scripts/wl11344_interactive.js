@@ -87,7 +87,7 @@ shell.connect(__sandbox_uri1);
 
 //@ FR1-TS-06 {VER(<8.0.5)}
 WIPE_SHELL_LOG();
-var msg = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
+var msg = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
 cluster = dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 EXPECT_SHELL_LOG_CONTAINS(msg);
 
@@ -268,8 +268,8 @@ cluster = dba.getCluster("ClusterName");
 // A warning about server version not supporting set persist syntax and asking
 // to use ConfigureLocalInstance should be displaying in both the seed instance
 // and the added instance.
-var expected_msg1 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
-var expected_msg2 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port2 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
+var expected_msg1 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
+var expected_msg2 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port2 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
 cluster.addInstance(__sandbox_uri2);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg2);
@@ -431,10 +431,10 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 WIPE_SHELL_LOG();
 cluster.removeInstance(__sandbox_uri2);
 // there should be a warning message for each of the members staying in the group
-var expected_msg1 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
-var expected_msg2 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port3 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
+var expected_msg1 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port1 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
+var expected_msg2 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port3 + "' membership change cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.";
 // and a warning for the member that was removed
-var expected_msg3 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port2 + "' configuration cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.";
+var expected_msg3 = "Warning: On instance '" + localhost + ":" + __mysql_sandbox_port2 + "' configuration cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.";
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg2);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg3);

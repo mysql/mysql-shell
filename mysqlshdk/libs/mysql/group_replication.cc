@@ -736,5 +736,19 @@ bool is_group_replication_delayed_starting(
   }
 }
 
+bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
+                       const std::string gtid_set, int timeout) {
+  // NOTE: According to the GR team the max supported timeout value for
+  //       WAIT_FOR_EXECUTED_GTID_SET() is 18446744073.7096 seconds
+  //       (2^64/1000000000). Therefore, a type with a max value that include
+  //       that range should be used.
+  auto result = instance.get_session()->queryf(
+      "SELECT WAIT_FOR_EXECUTED_GTID_SET(?, ?)", gtid_set, timeout);
+  auto row = result->fetch_one();
+  // WAIT_FOR_EXECUTED_GTID_SET() returns 0 for success, 1 for timeout,
+  // otherwise an error is generated.
+  return row->get_int(0) == 0;
+}
+
 }  // namespace gr
 }  // namespace mysqlshdk

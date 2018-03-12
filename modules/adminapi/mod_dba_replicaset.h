@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
+#include "shellcore/shell_options.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -59,7 +60,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   virtual ~ReplicaSet();
 
   static std::set<std::string> _add_instance_opts;
-  static std::set<std::string> _remove_instance_opts;
 
   virtual std::string class_name() const { return "ReplicaSet"; }
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
@@ -144,7 +144,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(mysqlshdk::db::Connection_options *instance_def,
                                 const shcore::Value::Map_type_ref &options);
-  shcore::Value remove_instance_(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value disable(const shcore::Argument_list &args);
@@ -166,6 +165,28 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
+
+  /**
+   * Update the replicaset members according to the removed instance.
+   *
+   * More specifically, remove the specified local address from the
+   * group_replication_group_seeds variable of all alive members of the
+   * replicaset and remove the replication user on the target instance and
+   * other members (if remove_rpl_user_on_group = true).
+   *
+   * @param local_gr_address string with the local GR address (XCom) to remove.
+   * @param instance target instance that was removed from the replicaset.
+   * @param remove_rpl_user_on_group boolean indicating if the replication
+   *        (recovery) user used by the instance should be removed on the
+   *        remaining members of the GR group (replicaset). If true then remove
+   *        the recovery user used by the instance on the other members through
+   *        a primary instance, otherwise skip it (just remove replication users
+   *        on the target instance).
+   */
+  void update_group_members_for_removed_member(
+      const std::string &local_gr_address,
+      const mysqlshdk::mysql::Instance &instance,
+      bool remove_rpl_user_on_group);
 
  private:
   // TODO(miguel) these should go to a GroupReplication file
@@ -207,6 +228,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::string get_cluster_group_seeds(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);
 
+  void remove_replication_users(const mysqlshdk::mysql::Instance &instance,
+                                bool remove_rpl_user_on_group);
+
   void finalize_instance_removal(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
       bool remove_rpl_user_on_group);
@@ -215,6 +239,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
   std::shared_ptr<IConsole> m_console;
+
   std::shared_ptr<mysqlshdk::db::ISession> get_session(
       const mysqlshdk::db::Connection_options &args);
 };
