@@ -57,12 +57,13 @@ class Environment {
   std::shared_ptr<Shell_sql> shell_sql;
 };
 
-class Shell_sql_test : public ::testing::Test {
+class Shell_sql_test : public Shell_core_test_wrapper {
  protected:
   Environment env;
   shcore::Value _returned_value;
 
   virtual void SetUp() {
+    Shell_core_test_wrapper::SetUp();
     connect();
     _returned_value = shcore::Value();
   }

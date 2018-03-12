@@ -47,13 +47,13 @@ print('schema:', collection.schema);
 //@<OUT> Testing help of dropIndex
 collection.help("dropIndex")
 
-//@ Testing dropping index
+//@ Testing dropping index {VER(>=8.0.5)}
 collection.createIndex('_name', {fields: [{field: '$.myField', type: 'TEXT(10)'}]});
 print (collection.dropIndex('_name'));
 print (collection.dropIndex('_name'));
 print (collection.dropIndex('not_an_index'));
 
-//@ Testing dropping index using execute
+//@ Testing dropping index using execute {VER(>=8.0.5)}
 collection.dropIndex('_name').execute()
 
 //@ Testing existence
@@ -97,7 +97,7 @@ col.addOrReplaceOne('document_001', {_id:'ignored_id', name:'medium'});
 col.find();
 
 // WL10849-FR6.2.1
-//@ addOrReplaceOne: adding with key
+//@ addOrReplaceOne: adding with key {VER(>=8.0.3)}
 col.createIndex('_name', {fields: [{field: '$.name', type: 'TEXT(50)'}], unique:true});
 col.addOrReplaceOne('document_003', {name:'high'});
 
@@ -201,7 +201,7 @@ col.replaceOne('document_001', {_id:'ignored_id', name:'medium'});
 //@<OUT> replaceOne: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
-//@ replaceOne: error replacing with key
+//@ replaceOne: error replacing with key {VER(>=8.0.3)}
 col.createIndex('_name', {fields: [{field: '$.name', type: 'TEXT(50)'}], unique:true});
 col.replaceOne('document_001', {name:'simple'});
 

@@ -1,0 +1,350 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "mysqlx://local_blank:@localhost:33170?ssl-mode=REQUIRED",
+    "protocol": "x"
+},
+{
+    "type": "response",
+    "subtype": "CONNECT_OK",
+    "index": 2,
+    "connection_id": "81",
+    "connection_info": "localhost via TCP/IP",
+    "server_version": "5.7.21-log",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 3,
+    "sql": "select DATABASE(), USER() limit 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 4,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "DATABASE()",
+            "length": 102,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "USER()",
+            "length": 279,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            null,
+            "local_blank@localhost"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "show session status like 'mysqlx_ssl_version';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "session_status",
+            "table_label": "session_status",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "session_status",
+            "table_label": "session_status",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 3072,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "Mysqlx_ssl_version",
+            "TLSv1.1"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, concat(@@version, \" \", @@version_comment) as version, @@mysqlx_socket, @@mysqlx_port, @@datadir limit 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@character_set_client",
+            "length": 21,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@character_set_connection",
+            "length": 21,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@character_set_server",
+            "length": 18,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@character_set_database",
+            "length": 18,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "version",
+            "length": 117,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_socket",
+            "length": 33,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@datadir",
+            "length": 198,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "utf8mb4",
+            "utf8mb4",
+            "latin1",
+            "latin1",
+            "5.7.21-log MySQL Community Server (GPL)",
+            "mysqlx.sock",
+            33170,
+            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SHOW GLOBAL STATUS LIKE 'Uptime';"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "global_status",
+            "table_label": "global_status",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_status",
+            "table_label": "global_status",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 3072,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_general_ci",
+            "charset": "utf8",
+            "collation_id": 33,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "Uptime",
+            "8"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 11
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 12
+},
+null]

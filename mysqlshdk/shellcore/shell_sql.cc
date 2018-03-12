@@ -88,6 +88,8 @@ Value Shell_sql::process_sql(const std::string &query_str,
             session->class_name() + ") can't be used for SQL execution.");
       }
       // If reached this point, processes the returned result object
+      // FIXME: This handling of \\G added a dependency with Base_shell that
+      // should NOT be here.
       auto old_format = mysqlsh::Base_shell::get_options()->get(SHCORE_OUTPUT_FORMAT);
       if (delimiter == "\\G")
         mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT, Value("vertical"));

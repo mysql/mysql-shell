@@ -280,13 +280,15 @@ class Completer_frontend : public Shell_core_test_wrapper {
       method_args.erase(
           remove_if(method_args.begin(), method_args.end(),
                     [](const decltype(method_args)::value_type &other) {
-                      return other.first.compare("replaceOne") == 0;
+                      return other.first.compare("replaceOne") == 0 ||
+                             other.first.compare("createIndex") == 0;
                     }),
           method_args.end());
       completions.erase(
           remove_if(completions.begin(), completions.end(),
                     [](const decltype(completions)::value_type &other) {
-                      return other.compare("replaceOne()") == 0;
+                      return other.compare("replaceOne()") == 0 ||
+                             other.compare("createIndex()") == 0;
                     }),
           completions.end());
     }
@@ -840,8 +842,8 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   CHECK_OBJECT_COMPLETIONS("people.remove(':x').bind('x',1)");
   CHECK_OBJECT_COMPLETIONS("people.remove('1').execute()");
 
-  CHECK_OBJECT_COMPLETIONS("people.add({})");
-  CHECK_OBJECT_COMPLETIONS("people.add({}).execute()");
+  CHECK_OBJECT_COMPLETIONS("people.add({_id: '0001'})");
+  CHECK_OBJECT_COMPLETIONS("people.add({_id: '0002'}).execute()");
 
   execute("session.rollback()");
 }
@@ -1310,8 +1312,8 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   CHECK_OBJECT_COMPLETIONS("people.remove(':x').bind('x',1)");
   CHECK_OBJECT_COMPLETIONS("people.remove('1').execute()");
 
-  CHECK_OBJECT_COMPLETIONS("people.add({})");
-  CHECK_OBJECT_COMPLETIONS("people.add({}).execute()");
+  CHECK_OBJECT_COMPLETIONS("people.add({'_id': '0001'})");
+  CHECK_OBJECT_COMPLETIONS("people.add({'_id': '0002'}).execute()");
 
   execute("session.rollback()");
 }

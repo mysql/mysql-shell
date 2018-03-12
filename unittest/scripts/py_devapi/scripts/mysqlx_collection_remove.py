@@ -11,13 +11,13 @@ schema = mySession.create_schema('js_shell_test')
 # Creates a test collection and inserts data into it
 collection = schema.create_collection('collection1')
 
-result = collection.add({"name": 'jack', "age": 17, "gender": 'male'}).execute()
-result = collection.add({"name": 'adam', "age": 15, "gender": 'male'}).execute()
-result = collection.add({"name": 'brian', "age": 14, "gender": 'male'}).execute()
-result = collection.add({"name": 'alma', "age": 13, "gender": 'female'}).execute()
-result = collection.add({"name": 'carol', "age": 14, "gender": 'female'}).execute()
-result = collection.add({"name": 'donna', "age": 16, "gender": 'female'}).execute()
-result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA01", "name": 'jack', "age": 17, "gender": 'male'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA02", "name": 'adam', "age": 15, "gender": 'male'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA03", "name": 'brian', "age": 14, "gender": 'male'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA04", "name": 'alma', "age": 13, "gender": 'female'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA05", "name": 'carol', "age": 14, "gender": 'female'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA06", "name": 'donna', "age": 16, "gender": 'female'}).execute()
+result = collection.add({"_id": "3C514FF38144B714E7119BCF48B4CA07", "name": 'angel', "age": 14, "gender": 'male'}).execute()
 
 # ------------------------------------------------
 # collection.remove Unit Testing: Dynamic Behavior

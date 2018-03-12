@@ -378,7 +378,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
     if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "Invalid authentication method: PLAIN over unsecure channel");
+          "Invalid authentication method PLAIN");
     } else {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
           "MySQL Error 1045: Secure transport required. To log in you must use "
