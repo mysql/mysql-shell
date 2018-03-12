@@ -129,7 +129,7 @@ class Shell_options : public shcore::Options {
   void set_and_notify(const std::string& option, const shcore::Value& value,
                       bool save_to_file = false);
 
-  void unset(const std::string& option);
+  void unset(const std::string& option, bool save_to_file = false);
 
   shcore::Value get(const std::string& option);
 

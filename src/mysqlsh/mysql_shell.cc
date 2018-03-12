@@ -119,9 +119,10 @@ const char* cmd_help_option =
   "   \\option -h, --help [<filter>]: print help for options matching filter.\n"
   "   \\option -l, --list [--show-origin]: list all the options.\n"
   "   \\option <option_name>: print value of he option.\n"
-  "   \\option <option_name> <value> or <name>=<value>: set value of the option.\n"
-  "   \\option --unset <option_name>: remove option from configuration file and\n"
-  "                                  reset its value to the default.\n";
+  "   \\option [--persist] <option_name> [=] <value>: set value of the option,\n"
+  "           if --persist is specified save it to the configuration file.\n"
+  "   \\option --unset [--persist] <option_name>: reset option's value to default,\n"
+  "           if --persist is specified remove option from configuration file.\n";
 // clang-format on
 
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
@@ -1169,7 +1170,7 @@ void Mysql_shell::refresh_completion(bool force) {
 
 bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
   try {
-    if (args.size() < 2 || args.size() > 4) {
+    if (args.size() < 2 || args.size() > 5) {
       print_error(cmd_help_option);
     } else if (args[1] == "-h" || args[1] == "--help") {
       std::string filter = args.size() > 2 ? args[2] : "";
@@ -1177,28 +1178,53 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
       if (help.empty())
         print_error("No help found for filter: " + filter);
       else
-        println(help.substr(0, help.size()-1));
+        println(help.substr(0, help.size() - 1));
     } else if (args[1] == "-l" || args[1] == "--list") {
       bool show_origin =
           args.size() > 2 && args[2] == "--show-origin" ? true : false;
       for (const auto &line :
            shell_options->get_options_description(show_origin))
         println(" " + line);
-    } else if (args.size() == 2) {
-      std::size_t offset = args[1].find('=');
-      if (offset == std::string::npos) {
-        println(shell_options->get_value_as_string(args[1]));
-      } else {
-        std::string opt = args[1].substr(0, offset);
-        std::string val = args[1].substr(offset + 1);
-        shell_options->set_and_notify(opt, val, true);
-      }
+    } else if (args.size() == 2 && args[1].find('=') == std::string::npos) {
+      println(shell_options->get_value_as_string(args[1]));
     } else if (args[1] == "--unset") {
-      shell_options->unset(args[2]);
+      if (args[2] == "--persist") {
+        if (args.size() > 3)
+          shell_options->unset(args[3], true);
+        else
+          print_error("Unset requires option to be specified");
+      } else {
+        shell_options->unset(args[2], false);
+      }
     } else {
-      shell_options->set_and_notify(
-          args[1], args[2] == "=" && args.size() == 4 ? args[3] : args[2],
-          true);
+      std::size_t args_start = 1;
+      bool persist = false;
+      if (args[args_start] == "--persist") {
+        args_start++;
+        persist = true;
+      }
+
+      if (args.size() - args_start > 1) {
+        std::string optname = args[args_start];
+        std::string value =
+            args[args_start + 1] == "=" && args.size() == args_start + 3
+                ? args[args_start + 2]
+                : args[args_start + 1];
+        if (optname.back() == '=')
+          optname = optname.substr(0, optname.length() - 1);
+        if (value[0] == '=')
+          value = value.substr(1);
+        shell_options->set_and_notify(optname, value, persist);
+      } else {
+        std::size_t offset = args[args_start].find('=');
+        if (offset == std::string::npos) {
+          print_error("Setting an option requires value to be specified");
+        } else {
+          std::string opt = args[args_start].substr(0, offset);
+          std::string val = args[args_start].substr(offset + 1);
+          shell_options->set_and_notify(opt, val, persist);
+        }
+      }
     }
   } catch (const std::exception &e) {
     print_error(e.what());
