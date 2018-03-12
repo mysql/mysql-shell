@@ -1840,12 +1840,32 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_FALSE(_options->show_warnings);
 
+  execute("shell.options.set(\"showWarnings\", true)");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_TRUE(_options->show_warnings);
+
+  reset_options(0, nullptr, false);
+  reset_shell();
+  EXPECT_TRUE(_options->show_warnings);
+  wipe_all();
+
+  execute("shell.options.set_persist(\"showWarnings\", false)");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->show_warnings);
+
   reset_options(0, nullptr, false);
   reset_shell();
   EXPECT_FALSE(_options->show_warnings);
   wipe_all();
 
   execute("shell.options.unset(\"showWarnings\");");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_TRUE(_options->show_warnings);
+  reset_options(0, nullptr, false);
+  reset_shell();
+  EXPECT_FALSE(_options->show_warnings);
+
+  execute("shell.options.unset_persist(\"showWarnings\");");
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_TRUE(_options->show_warnings);
   reset_options(0, nullptr, false);
@@ -1923,7 +1943,7 @@ TEST_F(Interactive_shell_test, option_command) {
   MY_EXPECT_STDOUT_CONTAINS(to_string(shcore::opts::Source::User));
   wipe_all();
 
-  execute("\\option " SHCORE_USE_WIZARDS "=true");
+  execute("\\option --persist " SHCORE_USE_WIZARDS "=true");
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_TRUE(_options->wizards);
   wipe_all();
@@ -1939,7 +1959,12 @@ TEST_F(Interactive_shell_test, option_command) {
       to_string(shcore::opts::Source::Command_line));
   wipe_all();
 
-  execute("\\option " SHCORE_USE_WIZARDS " = false");
+  execute("\\option " SHCORE_USE_WIZARDS " =false");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->wizards);
+  wipe_all();
+
+  execute("\\option " SHCORE_USE_WIZARDS "= false");
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_FALSE(_options->wizards);
   wipe_all();
@@ -1949,9 +1974,14 @@ TEST_F(Interactive_shell_test, option_command) {
   EXPECT_FALSE(_options->wizards);
   wipe_all();
 
-  execute("\\option --unset " SHCORE_USE_WIZARDS);
+  execute("\\option --unset --persist " SHCORE_USE_WIZARDS);
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_TRUE(_options->wizards);
+  wipe_all();
+
+  execute("\\option " SHCORE_USE_WIZARDS " = false");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->wizards);
   wipe_all();
 
   reset_options(0, nullptr, false);

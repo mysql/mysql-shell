@@ -51,7 +51,7 @@ Value Mod_shell_options::get_member(const std::string &prop) const {
 void Mod_shell_options::set_member(const std::string &prop, Value value) {
   if (!options->has_key(prop))
     return Cpp_object_bridge::set_member(prop, value);
-  options->set_and_notify(prop, value, true);
+  options->set_and_notify(prop, value, false);
 }
 
 Mod_shell_options::Mod_shell_options(
@@ -59,19 +59,56 @@ Mod_shell_options::Mod_shell_options(
     : options(options) {
   for (const auto &opt : options->get_named_options())
     add_property(opt + "|" + opt);
+
+  add_method("set",
+             std::bind(&Mod_shell_options::set, this, std::placeholders::_1));
+  add_method("set_persist", std::bind(&Mod_shell_options::set_persist, this,
+                                      std::placeholders::_1));
   add_method("unset",
-             std::bind(&Mod_shell_options::unset, this, std::placeholders::_1),
-             "option_name", shcore::String);
+             std::bind(&Mod_shell_options::unset, this, std::placeholders::_1));
+  add_method("unset_persist", std::bind(&Mod_shell_options::unset_persist, this,
+                                        std::placeholders::_1));
+}
+
+shcore::Value Mod_shell_options::set(const shcore::Argument_list &args) {
+  args.ensure_count(2, get_function_name("set").c_str());
+
+  try {
+    options->set_and_notify(args.string_at(0), args.at(1), false);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("set"));
+  return Value();
+}
+
+shcore::Value Mod_shell_options::set_persist(
+    const shcore::Argument_list &args) {
+  args.ensure_count(2, get_function_name("set_persist").c_str());
+
+  try {
+    options->set_and_notify(args.string_at(0), args.at(1), true);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("set_persist"));
+  return Value();
 }
 
 shcore::Value Mod_shell_options::unset(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("unset").c_str());
 
   try {
-    std::string option_name = args.string_at(0);
-    options->unset(option_name);
+    options->unset(args.string_at(0), false);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset"));
+  return Value();
+}
+
+shcore::Value Mod_shell_options::unset_persist(
+    const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("unset_persist").c_str());
+
+  try {
+    options->unset(args.string_at(0), true);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset_persist"));
   return Value();
 }
 

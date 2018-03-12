@@ -57,7 +57,10 @@ class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
   std::string &append_descr(std::string &s_out, int indent = -1,
                             int quote_strings = 0) const override;
 
+  shcore::Value set(const shcore::Argument_list &args);
+  shcore::Value set_persist(const shcore::Argument_list &args);
   shcore::Value unset(const shcore::Argument_list &args);
+  shcore::Value unset_persist(const shcore::Argument_list &args);
 
  private:
   std::shared_ptr<mysqlsh::Shell_options> options;

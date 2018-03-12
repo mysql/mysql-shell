@@ -470,8 +470,9 @@ void Shell_options::set_and_notify(const std::string& option,
   set_and_notify(option, value_to_string(value), save_to_file);
 }
 
-void Shell_options::unset(const std::string& option) {
-  unsave(option);
+void Shell_options::unset(const std::string& option, bool save_to_file) {
+  if (save_to_file)
+    unsave(option);
   find_option(option)->second->reset_to_default_value();
 }
 

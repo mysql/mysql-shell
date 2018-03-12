@@ -161,8 +161,10 @@ class Concrete_option : public Generic_option {
   }
 
   void reset_to_default_value() override {
-    *landing_spot = default_value;
-    source = Source::Compiled_default;
+    if (source != Source::Compiled_default) {
+      *landing_spot = default_value;
+      source = Source::Compiled_default;
+    }
   }
 
   void handle_command_line_input(const std::string &option,

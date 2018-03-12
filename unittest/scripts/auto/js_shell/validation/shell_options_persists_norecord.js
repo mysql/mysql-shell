@@ -2,7 +2,7 @@
 |ClassicSession:<<<__mysql_uri>>>|
 
 //@ autocomplete.nameCache update and set back to default using shell.options
-|false|
+||
 |false|
 |"autocomplete.nameCache": "false"|
 ||
@@ -16,28 +16,28 @@
 |false|
 
 //@ devapi.dbObjectHandles update and set back to default using shell.options
-|false|
+||
 |false|
 |"devapi.dbObjectHandles": "false"|
 ||
 |true|
 
 //@ history.autoSave update and set back to default using shell.options
-|true|
+||
 |true|
 |"history.autoSave": "true"|
 ||
 |false|
 
 //@ history.maxSize update and set back to default using shell.options
-|10|
+||
 |10|
 |"history.maxSize": "10"|
 ||
 |1000|
 
 //@ history.sql.ignorePattern update and set back to default using shell.options
-|*PATTERN*|
+||
 |*PATTERN*|
 |"history.sql.ignorePattern": "*PATTERN*"|
 ||
@@ -50,49 +50,49 @@
 |true|
 
 //@ logLevel update and set back to default using shell.options
-|8|
+||
 |8|
 |"logLevel": "8"|
 ||
 |5|
 
 //@ outputFormat update and set back to default using shell.options
-|{"value":"json/raw"}|
+||
 |{"value":"json/raw"}|
 |\"outputFormat\": \"json/raw\"|
 ||
 |table|
 
 //@ passwordsFromStdin update and set back to default using shell.options
-|true|
+||
 |true|
 |"passwordsFromStdin": "true"|
 ||
 |false|
 
 //@ sandboxDir update and set back to default using shell.options
-|\sandboxDir|
+||
 |\sandboxDir|
 |"sandboxDir": "\\sandboxDir"|
 ||
 |mysql-sandboxes|
 
 //@ showWarnings update and set back to default using shell.options
-|false|
+||
 |false|
 |"showWarnings": "false"|
 ||
 |true|
 
 //@ useWizards update and set back to default using shell.options
-|false|
+||
 |false|
 |"useWizards": "false"|
 ||
 |true|
 
 //@ defaultMode update and set back to default using shell.options
-|py|
+||
 |py|
 |"defaultMode": "py"|
 ||
