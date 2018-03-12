@@ -1,0 +1,17 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "root:root@dhcp-10-159-159-88.vpn.oracle.com:3317?ssl-mode=PREFERRED",
+    "protocol": "classic"
+},
+{
+    "type": "response",
+    "subtype": "ERROR",
+    "index": 2,
+    "code": "1045",
+    "msg": "Access denied for user 'root'@'dhcp-10-159-159-88.vpn.oracle.com' (using password: YES)",
+    "sqlstate": "28000"
+},
+null]

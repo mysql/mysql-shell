@@ -1,0 +1,17 @@
+[
+{
+    "type": "request",
+    "subtype": "CONNECT",
+    "index": 1,
+    "uri": "remo_blank:pass@localhost:33170?ssl-mode=DISABLED",
+    "protocol": "x"
+},
+{
+    "type": "response",
+    "subtype": "ERROR",
+    "index": 2,
+    "code": "1045",
+    "msg": "Invalid user or password",
+    "sqlstate": ""
+},
+null]

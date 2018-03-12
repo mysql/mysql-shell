@@ -168,10 +168,14 @@ TEST_F(Shell_py_dev_api_sample_tester, Working_with_Data_Sets_1) {
 }
 
 TEST_F(Shell_py_dev_api_sample_tester, Working_with_Results) {
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 5))
+    SKIP_TEST("DevAPI samples require the lastest version of the DevAPI");
   validate_interactive("results/Working_with_Results");
 }
 
 TEST_F(Shell_py_dev_api_sample_tester, Working_with_Results_1) {
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 5))
+    SKIP_TEST("DevAPI samples require the lastest version of the DevAPI");
   validate_interactive("results/Working_with_Results_1");
 }
 

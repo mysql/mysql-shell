@@ -56,13 +56,13 @@ print 'schema:', collection.schema
 #@<OUT> Testing help of drop_index
 collection.help("drop_index")
 
-#@ Testing dropping index
+#@ Testing dropping index {VER(>=8.0.5)}
 collection.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}]});
 print collection.drop_index('_name')
 print collection.drop_index('_name')
 print collection.drop_index('not_an_index')
 
-#@ Testing dropping index using execute
+#@ Testing dropping index using execute {VER(>=8.0.5)}
 collection.drop_index('_name').execute()
 
 #@ Testing existence
@@ -106,7 +106,7 @@ col.add_or_replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
 col.find();
 
 # WL10849-FR6.2.1
-#@ add_or_replace_one: adding with key
+#@ add_or_replace_one: adding with key {VER(>=8.0.3)}
 result = col.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}], 'unique':True});
 col.add_or_replace_one('document_003', {'name':'high'});
 
@@ -210,7 +210,7 @@ col.replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
 #@<OUT> replace_one: Verify replaced document with ignored _id {VER(>=8.0.3)}
 col.find();
 
-#@ replace_one: error replacing with key
+#@ replace_one: error replacing with key {VER(>=8.0.3)}
 result = col.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}], 'unique':True});
 col.replace_one('document_001', {'name':'simple'});
 

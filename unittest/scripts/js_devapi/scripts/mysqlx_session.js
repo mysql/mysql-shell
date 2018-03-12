@@ -58,9 +58,9 @@ var sf = mySession.createSchema('node_session_schema');
 //@ Session: Transaction handling: rollback
 var collection = ss.createCollection('sample');
 mySession.startTransaction();
-var res1 = collection.add({ name: 'john', age: 15 }).execute();
-var res2 = collection.add({ name: 'carol', age: 16 }).execute();
-var res3 = collection.add({ name: 'alma', age: 17 }).execute();
+var res1 = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA01', name: 'john', age: 15 }).execute();
+var res2 = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA02', name: 'carol', age: 16 }).execute();
+var res3 = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA03', name: 'alma', age: 17 }).execute();
 mySession.rollback();
 
 var result = collection.find().execute();
@@ -68,9 +68,9 @@ print('Inserted Documents:', result.fetchAll().length);
 
 //@ Session: Transaction handling: commit
 mySession.startTransaction();
-var res1 = collection.add({ name: 'john', age: 15 }).execute();
-var res2 = collection.add({ name: 'carol', age: 16 }).execute();
-var res3 = collection.add({ name: 'alma', age: 17 }).execute();
+var res1 = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA04', name: 'john', age: 15 }).execute();
+var res2 = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA05', name: 'carol', age: 16 }).execute();
+var res3 = collection.add({ _id: '4C514FF38144B714E7119BCF48B4CA06', name: 'alma', age: 17 }).execute();
 mySession.commit();
 
 var result = collection.find().execute();

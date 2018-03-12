@@ -90,7 +90,7 @@ rootsess.runSql('flush privileges');
 
 var rc = testutil.callMysqlsh([x_uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
 
 var rc = testutil.callMysqlsh([x_uri_nossl, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
