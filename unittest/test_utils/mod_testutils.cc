@@ -1332,23 +1332,23 @@ bool Testutils::wait_member_transactions(int dest_port, int source_port) {
   } else {
     source = connect_to_sandbox(source_port);
   }
-  std::string gtid_set =
-      source->query("select @@gtid_executed")->fetch_one()->get_string(0);
+  // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
+  // the GTID of ALL transactions, otherwise only a set of transactions written
+  // to the cache in the current session might be returned.
+  std::string gtid_set = source->query("select @@global.gtid_executed")
+                             ->fetch_one()
+                             ->get_string(0);
 
   std::shared_ptr<mysqlshdk::db::ISession> dest;
   dest = connect_to_sandbox(dest_port);
 
-  auto result = dest->queryf(
-      "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(?, ?, "
-      "'group_replication_applier')",
-      gtid_set, k_wait_member_timeout);
+  auto result = dest->queryf("select WAIT_FOR_EXECUTED_GTID_SET(?, ?)",
+                             gtid_set, k_wait_member_timeout);
   auto row = result->fetch_one();
-  if (row->is_null(0))
-    throw std::logic_error(
-        "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS() returned NULL, which means GR is "
-        "not started?");
-
-  return row->get_int(0) != 0;
+  // NOTE: WAIT_FOR_EXECUTED_GTID_SET() does not return NULL like
+  // WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(), instead an error is generated.
+  // 0 is returned for success and 1 for timeout.
+  return row->get_int(0) == 0;
 }
 
 //!<  @name Misc Utilities

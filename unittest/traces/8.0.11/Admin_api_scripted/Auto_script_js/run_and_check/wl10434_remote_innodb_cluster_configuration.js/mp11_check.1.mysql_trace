@@ -43,7 +43,7 @@
 {"type":"response","subtype":"RESULT","index":42,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@server_id","length":21,"fractional":0,"type":"UInteger","collation":"binary","charset":"binary","collation_id":63,"unsigned":true,"zerofill":false,"binary":true}],"rows":[[1]]},
 {"type":"request","subtype":"QUERY","index":43,"sql":"SELECT variable_source FROM performance_schema.variables_info WHERE variable_name='server_id'"},
 {"type":"response","subtype":"RESULT","index":44,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"performance_schema","table_name":"variables_info","table_label":"variables_info","column_name":"VARIABLE_SOURCE","column_label":"variable_source","length":48,"fractional":0,"type":"Enum","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["COMPILED"]]},
-{"type":"request","subtype":"QUERY","index":45,"sql":"SET @@persist_only.server_id=/*(*/2983234750/*)*/"},
+{"type":"request","subtype":"QUERY","index":45,"sql":"SET @@persist_only.server_id=/*(*/4086356478/*)*/"},
 {"type":"response","subtype":"RESULT","index":46,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":47,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":48,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},

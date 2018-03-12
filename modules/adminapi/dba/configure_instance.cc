@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "modules/adminapi/dba/configure_instance.h"
+#include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/instance_validations.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
@@ -66,6 +67,9 @@ Configure_instance::Configure_instance(
 
   m_local_target = mysqlshdk::utils::Net::is_local_address(
       m_target_instance->get_connection_options().get_host());
+
+  // Set the current user/host
+  m_target_instance->get_current_user(&m_current_user, &m_current_host);
 }
 
 Configure_instance::~Configure_instance() {}
@@ -205,29 +209,6 @@ bool Configure_instance::check_persisted_globals_load() {
     return false;
   }
   return true;
-}
-
-/*
- * Validates the permissions of the user running the operation.
- *
- * NOTE: Even if a clusterAdmin account is meant to be created, it won't be if
- * the current user is missing privileges, so the check must
- * always be done.
- */
-void Configure_instance::ensure_user_privileges() {
-  // Get the current user/host
-  m_target_instance->get_current_user(&m_current_user, &m_current_host);
-
-  std::string error_info;
-  if (!validate_cluster_admin_user_privileges(m_target_instance->get_session(),
-                                              m_current_user, m_current_host,
-                                              &error_info)) {
-    m_console->print_error(error_info);
-    m_console->println("For more information, see the online documentation.");
-    throw shcore::Exception::runtime_error(
-        "The account " + shcore::make_account(m_current_user, m_current_host) +
-        " is missing privileges required to manage an InnoDB cluster.");
-  }
 }
 
 /*
@@ -536,7 +517,7 @@ void Configure_instance::prepare() {
   m_can_update_mycnf = !m_mycnf_path.empty() && m_local_target;
 
   // Ensure the user has privs to do all these checks
-  ensure_user_privileges();
+  ensure_user_privileges(*m_target_instance, m_console);
 
   ensure_instance_address_usable();
 

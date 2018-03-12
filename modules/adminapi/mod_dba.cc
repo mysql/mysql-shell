@@ -556,7 +556,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
     std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
   std::shared_ptr<mysqlsh::dba::Cluster> cluster(
-      new Cluster("", group_session, metadata, m_console));
+      new Cluster("", group_session, metadata, m_console, m_options));
 
   if (!name) {
     // Reloads the cluster (to avoid losing _default_cluster in case of error)
@@ -995,8 +995,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     MetadataStorage::Transaction tx(metadata);
 
-    std::shared_ptr<Cluster> cluster(
-        new Cluster(cluster_name, group_session, metadata, m_console));
+    std::shared_ptr<Cluster> cluster(new Cluster(
+        cluster_name, group_session, metadata, m_console, m_options));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -2638,8 +2638,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
-    cluster.reset(
-        new Cluster(cluster_name, group_session, metadata, m_console));
+    cluster.reset(new Cluster(cluster_name, group_session, metadata, m_console,
+                              m_options));
 
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.

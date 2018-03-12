@@ -22,17 +22,21 @@
  */
 
 #include "modules/adminapi/mod_dba_cluster.h"
+
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "modules/adminapi/dba/remove_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
@@ -66,12 +70,14 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 Cluster::Cluster(const std::string &name,
                  std::shared_ptr<mysqlshdk::db::ISession> group_session,
                  std::shared_ptr<MetadataStorage> metadata_storage,
-                 std::shared_ptr<IConsole> console_handler)
+                 std::shared_ptr<IConsole> console_handler,
+                 const Shell_options::Storage &options)
     : _name(name),
       _dissolved(false),
       _group_session(group_session),
       _metadata_storage(metadata_storage),
-      m_console(console_handler) {
+      m_console(console_handler),
+      m_shell_options(options) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
@@ -773,10 +779,15 @@ REGISTER_HELP(
     "false.");
 REGISTER_HELP(
     CLUSTER_REMOVEINSTANCE_DETAIL6,
+    "@li interactive: boolean value used to disable the wizards in the command "
+    "execution, i.e. prompts are not provided to the user and confirmation "
+    "prompts are not shown.");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL7,
     "The password may be contained in the instance definition, however, it can "
     "be overwritten if it is specified on the options.");
 REGISTER_HELP(
-    CLUSTER_REMOVEINSTANCE_DETAIL7,
+    CLUSTER_REMOVEINSTANCE_DETAIL8,
     "The force option (set to true) must only be used to remove instances that "
     "are permanently not available (no longer reachable) or never to be reused "
     "again in a cluster. This allows to remove from the metadata an instance "
@@ -816,10 +827,11 @@ REGISTER_HELP(
  * $(CLUSTER_REMOVEINSTANCE_DETAIL3)
  * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
  * $(CLUSTER_REMOVEINSTANCE_DETAIL5)
- *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL6)
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL7)
+ *
+ * $(CLUSTER_REMOVEINSTANCE_DETAIL8)
  */
 #if DOXYGEN_JS
 Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
@@ -828,10 +840,16 @@ None Cluster::remove_instance(InstanceDef instance, dict options) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  // Check arguments count.
+  // NOTE: check for arguments need to be performed here for the correct
+  // context "Cluster.removeInstance" to be used in the error message
+  // (not ReplicaSet.removeInstance).
+  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
+
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
-
-  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   check_preconditions("removeInstance");
 
@@ -841,11 +859,11 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-    _default_replica_set->remove_instance(args);
+    ret_val = _default_replica_set->remove_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
-  return shcore::Value();
+  return ret_val;
 }
 
 #if 0  // Hidden for now
@@ -1712,6 +1730,28 @@ Cluster_check_info Cluster::check_preconditions(
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
   return Cluster_check_info{};
+}
+
+void Cluster::sync_transactions(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
+  // the GTID of ALL transactions, otherwise only a set of transactions written
+  // to the cache in the current session might be returned.
+  std::string gtid_set = _group_session->query("SELECT @@GLOBAL.GTID_EXECUTED")
+                             ->fetch_one()
+                             ->get_string(0);
+
+  bool sync_res = mysqlshdk::gr::wait_for_gtid_set(
+      target_instance, gtid_set, m_shell_options.dba_gtid_wait_timeout);
+  if (!sync_res) {
+    std::string instance_address =
+        target_instance.get_connection_options().as_uri(
+            mysqlshdk::db::uri::formats::only_transport());
+    throw shcore::Exception::runtime_error(
+        "Timeout reached waiting for cluster transactions to be applied on "
+        "instance '" +
+        instance_address + "'");
+  }
 }
 
 }  // namespace dba

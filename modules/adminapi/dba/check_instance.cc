@@ -24,6 +24,7 @@
 #include <memory>
 
 #include "modules/adminapi/dba/check_instance.h"
+#include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/instance_validations.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -52,23 +53,6 @@ Check_instance::Check_instance(
 }
 
 Check_instance::~Check_instance() {}
-
-void Check_instance::ensure_user_privileges() {
-  std::string current_user, current_host;
-  // Get the current user/host
-  m_target_instance->get_current_user(&current_user, &current_host);
-
-  std::string error_info;
-  if (!validate_cluster_admin_user_privileges(m_target_instance->get_session(),
-                                              current_user, current_host,
-                                              &error_info)) {
-    m_console->print_error(error_info);
-    m_console->println("For more information, see the online documentation.");
-    throw shcore::Exception::runtime_error(
-        "The account " + shcore::make_account(current_user, current_host) +
-        " is missing privileges required to manage an InnoDB cluster.");
-  }
-}
 
 bool Check_instance::check_instance_address() {
   // Sanity check for the instance address
@@ -183,7 +167,7 @@ void Check_instance::prepare() {
   bool bad_schema = false;
 
   try {
-    ensure_user_privileges();
+    ensure_user_privileges(*m_target_instance, m_console);
 
     if (!check_instance_address()) m_is_valid = false;
 

@@ -51,6 +51,18 @@ void ensure_instance_configuration_valid(
     std::shared_ptr<ProvisioningInterface> mp,
     std::shared_ptr<mysqlsh::IConsole> console);
 
+/**
+ * Validates the permissions of the user running the operation.
+ *
+ * NOTE: Even if a clusterAdmin account is meant to be created, it won't be if
+ * the current user is missing privileges, so the check must always be done.
+ *
+ * @param instance the target instance to verify used user privileges.
+ * @param console console object to send output to.
+ */
+void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance,
+                            std::shared_ptr<mysqlsh::IConsole> console);
+
 }  // namespace dba
 }  // namespace mysqlsh
 

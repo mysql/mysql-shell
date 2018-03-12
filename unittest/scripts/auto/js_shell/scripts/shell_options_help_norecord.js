@@ -40,5 +40,9 @@
 //@ useWizards option help text
 \option --help useWizards
 
+//@ dba.gtidWaitTimeout option help text
+// WL#11862 - FR6_5
+\option -h dba.gtidWaitTimeout
+
 //@ Verify the help text when using filter
 \option --help history

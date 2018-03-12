@@ -22,7 +22,12 @@
  */
 
 #include "modules/adminapi/dba/validations.h"
+
+#include <string>
+
 #include "modules/adminapi/dba/check_instance.h"
+#include "modules/adminapi/mod_dba_common.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -47,6 +52,24 @@ void ensure_instance_configuration_valid(
         "dba.checkInstanceConfiguration() and dba.configureInstance() "
         "before it can be used in an InnoDB cluster.");
     throw shcore::Exception::runtime_error("Instance check failed");
+  }
+}
+
+void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance,
+                            std::shared_ptr<mysqlsh::IConsole> console) {
+  std::string current_user, current_host;
+  log_debug("Checking user privileges");
+  // Get the current user/host
+  instance.get_current_user(&current_user, &current_host);
+
+  std::string error_info;
+  if (!validate_cluster_admin_user_privileges(
+          instance.get_session(), current_user, current_host, &error_info)) {
+    console->print_error(error_info);
+    console->println("For more information, see the online documentation.");
+    throw shcore::Exception::runtime_error(
+        "The account " + shcore::make_account(current_user, current_host) +
+        " is missing privileges required to manage an InnoDB cluster.");
   }
 }
 

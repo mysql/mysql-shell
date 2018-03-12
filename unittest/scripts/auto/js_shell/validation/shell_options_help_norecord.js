@@ -45,6 +45,10 @@
 //@<OUT> useWizards option help text
  useWizards  Enables wizard mode.
 
+//@<OUT> dba.gtidWaitTimeout option help text
+ dba.gtidWaitTimeout  Timeout value in seconds to wait for GTIDs to be
+                      synchronized.
+
 //@ Verify the help text when using filter
 |history.autoSave           Shell's history autosave.|
 |history.maxSize            Shell's history maximum size|

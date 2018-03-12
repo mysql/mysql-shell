@@ -99,6 +99,14 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 shell.options.unsetPersist("defaultMode");
 shell.options["defaultMode"]
 
+//@ dba.gtidWaitTimeout update and set back to default using shell.options
+// WL#11862 - FR6_4
+shell.options.setPersist("dba.gtidWaitTimeout", "180");
+shell.options["dba.gtidWaitTimeout"]
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+shell.options.unsetPersist("dba.gtidWaitTimeout");
+shell.options["dba.gtidWaitTimeout"]
+
 //@ autocomplete.nameCache update and set back to default using \option
 \option --persist autocomplete.nameCache = false
 \option autocomplete.nameCache
@@ -195,6 +203,14 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option --unset --persist defaultMode
 \option defaultMode
 
+//@ dba.gtidWaitTimeout update and set back to default using \option
+// WL#11862 - FR6_3
+\option --persist dba.gtidWaitTimeout = 120
+\option dba.gtidWaitTimeout
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist dba.gtidWaitTimeout
+\option dba.gtidWaitTimeout
+
 //@ List all the options using \option
 \option -l
 
@@ -215,6 +231,15 @@ shell.options.unset(InvalidOption)
 \option --unset InvalidOption
 \option -h InvalidOption
 \option --help InvalidOption
+
+//@ Verify option dba.gtidWaitTimeout
+// WL#11862 - FR6_2
+\option dba.gtidWaitTimeout = 0.2
+\option dba.gtidWaitTimeout = -1
+\option dba.gtidWaitTimeout = "Hello world"
+\option dba.gtidWaitTimeout = 0
+\option dba.gtidWaitTimeout = 1
+\option --unset dba.gtidWaitTimeout
 
 //@ Configuration operation available in SQL mode
 \sql

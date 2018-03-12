@@ -47,9 +47,6 @@ void Interactive_dba_cluster::init() {
   add_method("rejoinInstance",
              std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1),
              "data");
-  add_method("removeInstance",
-             std::bind(&Interactive_dba_cluster::remove_instance, this, _1),
-             "data");
   add_varargs_method("dissolve",
                      std::bind(&Interactive_dba_cluster::dissolve, this, _1));
   add_varargs_method(
@@ -260,97 +257,6 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
           ""
           "' was successfully rejoined on the cluster.");
   println();
-
-  return ret_val;
-}
-
-shcore::Value Interactive_dba_cluster::remove_instance(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  shcore::Value::Map_type_ref instance_map;  // Map with the connection data
-  mysqlshdk::db::Connection_options instance_def;
-
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("removeInstance");
-
-  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
-
-  check_preconditions("removeInstance");
-
-  // Retrieve the 'force' option value (if used).
-  bool force = false;  // force is false by default.
-  try {
-    if (args.size() == 2) {
-      auto remove_options = args.map_at(1);
-      shcore::Argument_map remove_options_map(*remove_options);
-      if (remove_options->has_key("force"))
-        force = remove_options->get_bool("force");
-    }
-
-    std::string message =
-        "The instance will be removed from the InnoDB cluster. "
-        "Depending on the \n"
-        "instance being the Seed or not, the Metadata session might become "
-        "invalid. \n"
-        "If so, please start a new session to the Metadata Storage R/W "
-        "instance.\n\n";
-
-    print(message);
-
-    instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
-
-  ret_val = call_target("removeInstance", args);
-
-  try {
-    println("The instance '" +
-            instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
-            ""
-            "' was successfully removed from the cluster.");
-
-    println();
-
-    // User and pass might not be specified in args and in that case we need to
-    // get them from the metadata session.
-    if (!instance_def.has_user() || !instance_def.has_password()) {
-      auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-      auto cluster_session = cluster->get_group_session();
-      auto cluster_cnx_opts = cluster_session->get_connection_options();
-
-      if (!instance_def.has_user() && cluster_cnx_opts.has_user())
-        instance_def.set_user(cluster_cnx_opts.get_user());
-
-      if (!instance_def.has_password() && cluster_cnx_opts.has_password())
-        instance_def.set_password(cluster_cnx_opts.get_password());
-    }
-    // Issue a warning for user to manually disable GR in the configuration file
-    // for servers that do not support the SET PERSIST feature (< 8.0.4).
-    // NOTE: Supported version to use SET PERSIST must be >= 8.0.4 due to
-    //       BUG#26495619.
-    try {
-      std::shared_ptr<mysqlshdk::db::ISession> _session =
-          mysqlshdk::db::mysql::Session::create();
-      _session->connect(instance_def);
-      mysqlshdk::mysql::Instance *instance =
-          new mysqlshdk::mysql::Instance(_session);
-      if (instance->get_version() < mysqlshdk::utils::Version(8, 0, 5)) {
-        println(
-            "WARNING: The 'group_replication_start_on_boot' variable must "
-            "be set to 'OFF' in the server configuration file, otherwise "
-            "it might silently rejoin the cluster upon restart.");
-        println();
-      }
-      _session->close();
-    } catch (std::exception &) {
-      // If the force option was used then the instance is most likely not
-      // available, therefore an error is expected when trying to connect and in
-      // that case the error should be ignored (not reported).
-      if (!force) throw;
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
   return ret_val;
 }

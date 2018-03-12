@@ -121,7 +121,7 @@ This instance reports its own address as <<<real_hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'ClusterName' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -406,8 +406,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<real_hostname>>>
 
 Instance configuration is suitable.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@ FR2-TS-6 TEARDOWN {VER(<8.0.5)}
@@ -651,11 +651,13 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
-The instance will be removed from the InnoDB cluster. Depending on the
-instance being the Seed or not, the Metadata session might become invalid.
-If so, please start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB cluster. Depending on the instance
+being the Seed or not, the Metadata session might become invalid. If so, please
+start a new session to the Metadata Storage R/W instance.
 
-The instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
+Attempting to leave from the Group Replication group...
+
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -691,16 +693,16 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> FR5-Extra Check that warning is shown when removeInstance is called {VER(<8.0.5)}
-The instance will be removed from the InnoDB cluster. Depending on the
-instance being the Seed or not, the Metadata session might become invalid.
-If so, please start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB cluster. Depending on the instance
+being the Seed or not, the Metadata session might become invalid. If so, please
+start a new session to the Metadata Storage R/W instance.
 
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
-WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
-The instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
+Attempting to leave from the Group Replication group...
+WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
+WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 
-WARNING: The 'group_replication_start_on_boot' variable must be set to 'OFF' in the server configuration file, otherwise it might silently rejoin the cluster upon restart.
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 {
     "clusterName": "ClusterName",

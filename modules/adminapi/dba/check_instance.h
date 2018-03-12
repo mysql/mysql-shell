@@ -52,7 +52,6 @@ class Check_instance : public Command_interface {
   void finish() override;
 
  private:
-  void ensure_user_privileges();
   bool check_instance_address();
   bool check_schema_compatibility();
   bool check_configuration();
