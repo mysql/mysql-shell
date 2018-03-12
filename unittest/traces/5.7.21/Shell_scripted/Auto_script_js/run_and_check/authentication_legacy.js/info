@@ -1,7 +1,7 @@
 {
-    "hostname": "dhcp-10-159-159-88.vpn.oracle.com",
-    "hostname_ip": "10.159.159.88",
-    "sandbox_port1": "3317",
-    "sandbox_port2": "3327",
-    "sandbox_port3": "3337"
+    "hostname": "dhcp-10-159-254-78.vpn.oracle.com",
+    "hostname_ip": "10.159.254.78",
+    "sandbox_port1": "3316",
+    "sandbox_port2": "3326",
+    "sandbox_port3": "3336"
 }

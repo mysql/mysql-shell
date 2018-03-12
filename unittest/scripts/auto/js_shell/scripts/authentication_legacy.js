@@ -24,6 +24,12 @@ rootsess.runSql("CREATE USER local_pass@localhost IDENTIFIED WITH mysql_native_p
 rootsess.runSql("CREATE USER remo_blank@'%' IDENTIFIED WITH mysql_native_password BY ''");
 rootsess.runSql("CREATE USER remo_pass@'%' IDENTIFIED WITH mysql_native_password BY 'pass'");
 
+// error returned for invalid password in 5.7 over xproto is different from 8.0
+if (testutil.versionCheck(__version, ">=", "8.0.4"))
+  var auth_fail_exc = "Invalid authentication method: PLAIN over unsecure channel";
+else
+  var auth_fail_exc = "Invalid user or password";
+
 // Try all combinations using mysql_native_password
 // ================================================
 // These are for the legacy/old/traditional authentication plugin, which has no special
@@ -35,13 +41,13 @@ rootsess.runSql('flush privileges');
 EXPECT_THROWS(function() { mysql.getClassicSession('local_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'local_blank'@'localhost'");
 
 //@ session x -- user:local_blank / password:pass / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession('local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { mysqlx.getSession('local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell connect classic -- user:local_blank / password:pass / ssl:DISABLED (FAIL)
 EXPECT_THROWS(function() { shell.connect('mysql://local_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'local_blank'@'localhost'");
 
 //@ shell connect x -- user:local_blank / password:pass / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { shell.connect('mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { shell.connect('mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell classic -- user:local_blank / password:pass / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
@@ -51,7 +57,7 @@ EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 //@ shell x -- user:local_blank / password:pass / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
 // ==== user:local_pass / password:pass / ssl:DISABLED (SUCCESS)
 rootsess.runSql('flush privileges');
@@ -89,13 +95,13 @@ rootsess.runSql('flush privileges');
 EXPECT_THROWS(function() { mysql.getClassicSession('remo_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'remo_blank'@'localhost'");
 
 //@ session x -- user:remo_blank / password:pass / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession('remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { mysqlx.getSession('remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell connect classic -- user:remo_blank / password:pass / ssl:DISABLED (FAIL)
 EXPECT_THROWS(function() { shell.connect('mysql://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'remo_blank'@'localhost'");
 
 //@ shell connect x -- user:remo_blank / password:pass / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { shell.connect('mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { shell.connect('mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell classic -- user:remo_blank / password:pass / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
@@ -105,7 +111,7 @@ EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 //@ shell x -- user:remo_blank / password:pass / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
 // ==== user:remo_pass / password:pass / ssl:DISABLED (SUCCESS)
 rootsess.runSql('flush privileges');
@@ -173,13 +179,13 @@ rootsess.runSql('flush privileges');
 EXPECT_THROWS(function() { mysql.getClassicSession('local_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'local_pass'@'localhost'");
 
 //@ session x -- user:local_pass / password: / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession('local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { mysqlx.getSession('local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell connect classic -- user:local_pass / password: / ssl:DISABLED (FAIL)
 EXPECT_THROWS(function() { shell.connect('mysql://local_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'local_pass'@'localhost'");
 
 //@ shell connect x -- user:local_pass / password: / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { shell.connect('mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { shell.connect('mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell classic -- user:local_pass / password: / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
@@ -189,7 +195,7 @@ EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 //@ shell x -- user:local_pass / password: / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
 // ==== user:remo_blank / password: / ssl:DISABLED (SUCCESS)
 rootsess.runSql('flush privileges');
@@ -227,13 +233,13 @@ rootsess.runSql('flush privileges');
 EXPECT_THROWS(function() { mysql.getClassicSession('remo_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'remo_pass'@'localhost'");
 
 //@ session x -- user:remo_pass / password: / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession('remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { mysqlx.getSession('remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell connect classic -- user:remo_pass / password: / ssl:DISABLED (FAIL)
 EXPECT_THROWS(function() { shell.connect('mysql://remo_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED')}, "Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell connect x -- user:remo_pass / password: / ssl:DISABLED (FAIL)
-EXPECT_THROWS(function() { shell.connect('mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, "Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_THROWS(function() { shell.connect('mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell classic -- user:remo_pass / password: / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
@@ -243,7 +249,7 @@ EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 //@ shell x -- user:remo_pass / password: / ssl:DISABLED (FAIL)
 var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method: PLAIN over unsecure channel");
+EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
 // ==== user:local_blank / password:pass / ssl:REQUIRED (FAIL)
 rootsess.runSql('flush privileges');

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3317?ssl-mode=required",
+    "uri": "mysql://root:root@localhost:3316?ssl-mode=required",
     "protocol": "classic"
 },
 {

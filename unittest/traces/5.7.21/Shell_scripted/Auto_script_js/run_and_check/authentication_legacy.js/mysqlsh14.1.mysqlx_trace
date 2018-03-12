@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://remo_blank:@localhost:33170?ssl-mode=DISABLED",
+    "uri": "mysqlx://remo_blank:@localhost:33160?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {
@@ -221,8 +221,8 @@
             "latin1",
             "5.7.21-log MySQL Community Server (GPL)",
             "mysqlx.sock",
-            33170,
-            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
+            33160,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -277,7 +277,7 @@
     "rows": [
         [
             "Uptime",
-            "5"
+            "2"
         ]
     ]
 },
