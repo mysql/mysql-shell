@@ -168,45 +168,50 @@ class Auto_script_js : public Shell_js_script_tester,
       code = "var __recording = false;";
     exec_and_out_equals(code);
   }
+
+  void run_and_check() {
+    // Enable interactive/wizard mode if the test file ends with _interactive.js
+    _options->wizards =
+        strstr(GetParam().c_str(), "_interactive.") ? true : false;
+
+    std::string folder;
+    std::string name;
+    std::tie(folder, name) = shcore::str_partition(GetParam(), "/");
+
+    // Does not enable recording engine for the devapi tests
+    // Recording for CRUD is not available
+    if (folder != "js_devapi" &&
+        GetParam().find("_norecord") == std::string::npos) {
+      reset_replayable_shell(name.c_str());
+    } else {
+      execute_setup();
+    }
+
+    // todo(kg): _norecord files haven't defined functions from script.js, e.g.
+    // `EXPECT_NE`. reset_replayable_shell call reset_shell therefore we lost
+    // those previously defined and called in constructor functions.
+    // I run setup.js script here once again, but this should be done somewhere
+    // else, but I don't know where.
+    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js",
+                                             "setup.js"));
+    const std::vector<std::string> argv;
+    _interactive_shell->process_file(_setup_script, argv);
+
+    fprintf(stdout, "Test script: %s\n", GetParam().c_str());
+    exec_and_out_equals("const __script_file = '" + GetParam() + "'");
+
+    set_config_folder("auto/" + folder);
+    validate_interactive(name);
+
+    // ensure nothing left in expected prompts
+    EXPECT_EQ(0, output_handler.prompts.size());
+    EXPECT_EQ(0, output_handler.passwords.size());
+  }
 };
 
 TEST_P(Auto_script_js, run_and_check) {
-  // Enable interactive/wizard mode if the test file ends with _interactive.js
-  _options->wizards =
-      strstr(GetParam().c_str(), "_interactive.") ? true : false;
-
-  std::string folder;
-  std::string name;
-  std::tie(folder, name) = shcore::str_partition(GetParam(), "/");
-
-  // Does not enable recording engine for the devapi tests
-  // Recording for CRUD is not available
-  if (folder != "js_devapi" &&
-      GetParam().find("_norecord") == std::string::npos) {
-    reset_replayable_shell(name.c_str());
-  } else {
-    execute_setup();
-  }
-
-  // todo(kg): _norecord files haven't defined functions from script.js, e.g.
-  // `EXPECT_NE`. reset_replayable_shell call reset_shell therefore we lost
-  // those previously defined and called in constructor functions.
-  // I run setup.js script here once again, but this should be done somewhere
-  // else, but I don't know where.
-  set_setup_script(
-      shcore::path::join_path(g_test_home, "scripts", "setup_js", "setup.js"));
-  const std::vector<std::string> argv;
-  _interactive_shell->process_file(_setup_script, argv);
-
-  fprintf(stdout, "Test script: %s\n", GetParam().c_str());
-  exec_and_out_equals("const __script_file = '" + GetParam() + "'");
-
-  set_config_folder("auto/" + folder);
-  validate_interactive(name);
-
-  // ensure nothing left in expected prompts
-  EXPECT_EQ(0, output_handler.prompts.size());
-  EXPECT_EQ(0, output_handler.passwords.size());
+  SCOPED_TRACE("Auto_script_js::run_and_check()");
+  run_and_check();
 }
 
 std::vector<std::string> find_js_tests(const std::string &subdir,
@@ -241,5 +246,131 @@ INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_js,
                         testing::ValuesIn(find_js_tests("js_devapi", ".js")));
+
+namespace {
+
+constexpr auto k_first_user = "cluster_admin";
+constexpr auto k_first_password = "P4ssW0rd";
+
+constexpr auto k_second_user = "default_user";
+constexpr auto k_second_password = "secret";
+
+constexpr auto k_third_user = "reporter";
+constexpr auto k_third_password = "retroper";
+
+}  // namespace
+
+class Credential_store_test : public Auto_script_js {
+ protected:
+  void SetUp() override {
+    prepare_session();
+    Auto_script_js::SetUp();
+
+    execute("shell.options.unset(\"credentialStore.helper\");");
+    execute("shell.options.unset(\"credentialStore.savePasswords\");");
+    execute("shell.options.unset(\"credentialStore.excludeFilters\");");
+  }
+
+  void TearDown() override {
+    execute(
+        "(function(){var a = shell.listCredentialHelpers();"
+        "for (var i = 0; i < a.length; ++i) {"
+        "shell.options[\"credentialStore.helper\"] = a[i];"
+        "shell.deleteAllCredentials();}})();");
+    execute("shell.options[\"credentialStore.helper\"] = \"<disabled>\";");
+
+    Auto_script_js::TearDown();
+    terminate_session();
+  }
+
+  void set_defaults() override {
+    Auto_script_js::set_defaults();
+
+    std::string user = std::string(k_first_user);
+    std::string password = std::string(k_first_password);
+    std::string code = "var __cred = {x:{}, mysql:{}, second:{}, third:{}};";
+    exec_and_out_equals(code);
+    code = "__cred.user = '" + user + "';";
+    exec_and_out_equals(code);
+    code = "__cred.pwd = '" + password + "';";
+    exec_and_out_equals(code);
+    code = "__cred.host = '" + m_host + "';";
+    exec_and_out_equals(code);
+    code = "__cred.x.port = " + _port + ";";
+    exec_and_out_equals(code);
+    code = "__cred.mysql.port = " + _mysql_port + ";";
+    exec_and_out_equals(code);
+    code = "__cred.x.uri = '" + user + "@" + m_host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code =
+        "__cred.mysql.uri = '" + user + "@" + m_host + ":" + _mysql_port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.x.uri_pwd = '" + user + ":" + password + "@" + m_host + ":" +
+           _port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.mysql.uri_pwd = '" + user + ":" + password + "@" + m_host +
+           ":" + _mysql_port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.x.host_port = '" + m_host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.mysql.host_port = '" + m_host + ":" + _mysql_port + "';";
+    exec_and_out_equals(code);
+
+    user = std::string(k_second_user);
+    password = std::string(k_second_password);
+
+    code = "__cred.second.uri_pwd = '" + user + ":" + password + "@" + m_host +
+           ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.second.uri = '" + user + "@" + m_host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.second.pwd = '" + password + "';";
+    exec_and_out_equals(code);
+
+    user = std::string(k_third_user);
+    password = std::string(k_third_password);
+
+    code = "__cred.third.uri_pwd = '" + user + ":" + password + "@" + m_host +
+           ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.third.uri = '" + user + "@" + m_host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__cred.third.pwd = '" + password + "';";
+    exec_and_out_equals(code);
+  }
+
+ private:
+  void prepare_session() {
+    m_session = mysqlshdk::db::mysql::Session::create();
+    m_session->connect(shcore::get_connection_options(_mysql_uri));
+    const auto &connection_options = m_session->get_connection_options();
+    if (connection_options.has_host()) m_host = connection_options.get_host();
+    m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_first_user, m_host,
+                        k_first_password);
+    m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_second_user,
+                        m_host, k_second_password);
+    m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_third_user, m_host,
+                        k_third_password);
+  }
+
+  void terminate_session() {
+    m_session->executef("DROP USER ?@?", k_first_user, m_host);
+    m_session->executef("DROP USER ?@?", k_second_user, m_host);
+    m_session->executef("DROP USER ?@?", k_third_user, m_host);
+    m_session->close();
+  }
+
+  std::shared_ptr<mysqlshdk::db::ISession> m_session;
+  std::string m_host;
+};
+
+TEST_P(Credential_store_test, run_and_check) {
+  SCOPED_TRACE("Credential_store_test::run_and_check()");
+  run_and_check();
+}
+
+INSTANTIATE_TEST_CASE_P(Credential_store_scripted, Credential_store_test,
+                        testing::ValuesIn(find_js_tests("js_credential",
+                                                        ".js")));
 
 }  // namespace tests

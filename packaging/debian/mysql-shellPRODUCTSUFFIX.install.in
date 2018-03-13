@@ -1,4 +1,5 @@
 usr/bin/mysqlsh
+usr/bin/mysql-secret-store-login-path
 usr/share/mysqlsh/mysqlprovision.zip
 usr/share/mysqlsh/LICENSE    usr/share/doc/mysqlsh
 usr/share/mysqlsh/README     usr/share/doc/mysqlsh

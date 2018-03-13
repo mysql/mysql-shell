@@ -48,6 +48,7 @@
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/shellcore/credential_manager.h"
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_resultset_dumper.h"
@@ -483,6 +484,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_SHELL_COMMAND("\\status|\\s", "CMD_STATUS", Mysql_shell::cmd_status);
   SET_SHELL_COMMAND("\\use|\\u", "CMD_USE", Mysql_shell::cmd_use);
   SET_SHELL_COMMAND("\\rehash", "CMD_REHASH", Mysql_shell::cmd_rehash);
+
+  shcore::Credential_manager::get().initialize();
 }
 
 Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }

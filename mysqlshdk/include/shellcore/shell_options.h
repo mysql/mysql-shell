@@ -180,6 +180,9 @@ class Shell_options : public shcore::Options {
   bool print_cmd_line_helper = false;
   bool print_cmd_line_version = false;
   bool print_cmd_line_version_extra = false;
+
+ private:
+  void notify(const std::string &option);
 };
 
 std::shared_ptr<Shell_options> current_shell_options();

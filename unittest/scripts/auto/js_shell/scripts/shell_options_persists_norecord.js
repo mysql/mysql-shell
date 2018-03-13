@@ -211,6 +211,27 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option --unset --persist dba.gtidWaitTimeout
 \option dba.gtidWaitTimeout
 
+//@ credentialStore.helper update and set back to default using \option
+\option --persist credentialStore.helper = plaintext
+\option credentialStore.helper
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist credentialStore.helper
+\option credentialStore.helper
+
+//@ credentialStore.savePasswords update and set back to default using \option
+\option --persist credentialStore.savePasswords = always
+\option credentialStore.savePasswords
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist credentialStore.savePasswords
+\option credentialStore.savePasswords
+
+//@ credentialStore.excludeFilters update and set back to default using \option
+\option --persist credentialStore.excludeFilters = ["user@*"]
+\option credentialStore.excludeFilters
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist credentialStore.excludeFilters
+\option credentialStore.excludeFilters
+
 //@ List all the options using \option
 \option -l
 

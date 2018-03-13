@@ -60,3 +60,5 @@ ENDIF()
 
 add_convenience_library(db ${db_SOURCE})
 ADD_STAN_TARGET(db ${db_SOURCE})
+
+target_link_libraries(db utils)

@@ -9,21 +9,40 @@ DESCRIPTION
       The options object acts as a dictionary, it may contain the following
       attributes:
 
+      - autocomplete.nameCache: true if auto-refresh of DB object name cache is
+        enabled. The \rehash command can be used for manual refresh
       - batchContinueOnError: read-only, boolean value to indicate if the
         execution of an SQL script in batch mode shall continue if errors occur
+      - credentialStore.excludeFilters: array of URLs for which automatic
+        password storage is disabled, supports glob characters '*' and '?'
+      - credentialStore.helper: name of the credential helper to use to
+        fetch/store passwords; a special value "default" is supported to use
+        platform default helper; a special value "<disabled>" is supported to
+        disable the credential store
+      - credentialStore.savePasswords: controls automatic password storage,
+        allowed values: "always", "prompt" or "never"
+      - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
+        synchronized
+      - defaultMode: shell mode to use when shell is started, allowed values:
+        "js", "py", "sql" or "none"
+      - devapi.dbObjectHandles: true to enable schema collection and table name
+        aliases in the db object, for DevAPI operations.
+      - history.autoSave: true to save command history when exiting the shell
+      - history.maxSize: number of entries to keep in command history
+      - history.sql.ignorePattern: colon separated list of glob patterns to
+        filter out of the command history in SQL mode
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
+      - logLevel: current log level
       - outputFormat: controls the type of output produced for SQL results.
+      - passwordsFromStdin: boolean value that indicates if the shell should
+        read passwords from stdin instead of the tty
       - sandboxDir: default path where the new sandbox instances for InnoDB
         cluster will be deployed
       - showWarnings: boolean value to indicate whether warnings shall be
         included when printing an SQL result
       - useWizards: read-only, boolean value to indicate if the Shell is using
         the interactive wrappers (wizard mode)
-      - history.maxSize: number of entries to keep in command history
-      - history.autoSave: true to save command history when exiting the shell
-      - history.sql.ignorePattern: colon separated list of glob patterns to
-        filter out of the command history in SQL mode
 
       The outputFormat option supports the following values:
 
@@ -31,8 +50,6 @@ DESCRIPTION
       - json: displays the output in JSON format
       - json/raw: displays the output in a JSON format but in a single line
       - vertical: displays the outputs vertically, one line per column value
-      - autocomplete.nameCache: true if auto-refresh of DB object name cache is
-        enabled. The \rehash command can be used for manual refresh
 
 FUNCTIONS
       help([member])

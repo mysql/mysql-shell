@@ -236,7 +236,8 @@ REMOTEHOST.port = str(config["remote"]["port"])
 
 # Force default theme
 os.environ['MYSQLSH_PROMPT_THEME'] = Exec_files_location+"/../prompt_classic.json"
-
+# disable credential store
+os.environ['MYSQLSH_CREDENTIAL_STORE_HELPER'] = '<disabled>'
 
 class globalvar:
     last_found=""

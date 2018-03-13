@@ -462,6 +462,26 @@ void setup_test_environment() {
 
   tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
                                          g_target_server_version.get_full());
+
+  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
+
+  if (!getenv("MYSQL_TEST_LOGIN_FILE")) {
+    static std::string env =
+        "MYSQL_TEST_LOGIN_FILE=" +
+        shcore::path::join_path(getenv("TMPDIR"), ".mylogin.cnf");
+    putenv(&env[0]);
+  }
+
+#ifdef __APPLE__
+#define MACOS_TEST_KEYCHAIN "mysqlsh-test-keychain"
+  system("security delete-keychain " MACOS_TEST_KEYCHAIN " >/dev/null 2>&1");
+  system("security create-keychain -p pass " MACOS_TEST_KEYCHAIN
+         " >/dev/null 2>&1");
+  system("security set-keychain-settings " MACOS_TEST_KEYCHAIN
+         " >/dev/null 2>&1");
+  putenv(const_cast<char *>(
+      "MYSQLSH_CREDENTIAL_STORE_KEYCHAIN=" MACOS_TEST_KEYCHAIN));
+#endif  // __APPLE__
 }
 
 int main(int argc, char **argv) {
@@ -749,6 +769,10 @@ int main(int argc, char **argv) {
 #endif
 
   mysqlsh::global_end();
+
+#ifdef __APPLE__
+  system("security delete-keychain " MACOS_TEST_KEYCHAIN " >/dev/null 2>&1");
+#endif  // __APPLE__
 
   return ret_val;
 }

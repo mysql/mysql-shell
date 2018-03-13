@@ -203,39 +203,68 @@
 ||
 |60|
 
+//@ credentialStore.helper update and set back to default using \option
+||
+|plaintext|
+|"credentialStore.helper": "plaintext"|
+||
+|default|
+
+//@ credentialStore.savePasswords update and set back to default using \option
+||
+|always|
+|"credentialStore.savePasswords": "always"|
+||
+|prompt|
+
+//@ credentialStore.excludeFilters update and set back to default using \option
+||
+|["user@*"]|
+|"credentialStore.excludeFilters": "[\"user@*\"]"|
+||
+|[]|
+
+
 //@<OUT> List all the options using \option
- autocomplete.nameCache     true
- batchContinueOnError       false
- dba.gtidWaitTimeout        60
- defaultMode                none
- devapi.dbObjectHandles     true
- history.autoSave           false
- history.maxSize            1000
- history.sql.ignorePattern  *IDENTIFIED*:*PASSWORD*
- interactive                true
- logLevel                   5
- outputFormat               table
- passwordsFromStdin         false
- sandboxDir                 <<<_defaultSandboxDir>>>
- showWarnings               true
- useWizards                 true
+ autocomplete.nameCache          true
+ batchContinueOnError            false
+ credentialStore.excludeFilters  []
+ credentialStore.helper          default
+ credentialStore.savePasswords   prompt
+ dba.gtidWaitTimeout             60
+ defaultMode                     none
+ devapi.dbObjectHandles          true
+ history.autoSave                false
+ history.maxSize                 1000
+ history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
+ interactive                     true
+ logLevel                        5
+ outputFormat                    table
+ passwordsFromStdin              false
+ sandboxDir                      <<<_defaultSandboxDir>>>
+ showWarnings                    true
+ useWizards                      true
 
 //@<OUT> List all the options using \option and show-origin
- autocomplete.nameCache     true (Compiled default)
- batchContinueOnError       false (Compiled default)
- dba.gtidWaitTimeout        60 (Compiled default)
- defaultMode                none (Compiled default)
- devapi.dbObjectHandles     true (Compiled default)
- history.autoSave           false (Compiled default)
- history.maxSize            1000 (Compiled default)
- history.sql.ignorePattern  *IDENTIFIED*:*PASSWORD* (Compiled default)
- interactive                true (Compiled default)
- logLevel                   5 (Compiled default)
- outputFormat               table (Compiled default)
- passwordsFromStdin         false (Compiled default)
- sandboxDir                 <<<_defaultSandboxDir>>> (Compiled default)
- showWarnings               true (Compiled default)
- useWizards                 true (Compiled default)
+ autocomplete.nameCache          true (Compiled default)
+ batchContinueOnError            false (Compiled default)
+ credentialStore.excludeFilters  [] (Compiled default)
+ credentialStore.helper          default (Compiled default)
+ credentialStore.savePasswords   prompt (Compiled default)
+ dba.gtidWaitTimeout             60 (Compiled default)
+ defaultMode                     none (Compiled default)
+ devapi.dbObjectHandles          true (Compiled default)
+ history.autoSave                false (Compiled default)
+ history.maxSize                 1000 (Compiled default)
+ history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
+ interactive                     true (Compiled default)
+ logLevel                        5 (Compiled default)
+ outputFormat                    table (Compiled default)
+ passwordsFromStdin              false (Compiled default)
+ sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
+ showWarnings                    true (Compiled default)
+ useWizards                      true (Compiled default)
+
 
 //@ List an option which origin is Compiled default
 |(Compiled default)|
@@ -269,38 +298,42 @@
 |5|
 
 //@<OUT> List all the options using \option for SQL mode
- autocomplete.nameCache     true
- batchContinueOnError       false
- dba.gtidWaitTimeout        60
- defaultMode                none
- devapi.dbObjectHandles     true
- history.autoSave           false
- history.maxSize            1000
- history.sql.ignorePattern  *IDENTIFIED*:*PASSWORD*
- interactive                true
- logLevel                   5
- outputFormat               table
- passwordsFromStdin         false
- sandboxDir                 <<<_defaultSandboxDir>>>
- showWarnings               true
- useWizards                 true
+ autocomplete.nameCache          true
+ batchContinueOnError            false
+ credentialStore.excludeFilters  []
+ credentialStore.helper          default
+ credentialStore.savePasswords   prompt
+ dba.gtidWaitTimeout             60
+ defaultMode                     none
+ devapi.dbObjectHandles          true
+ history.autoSave                false
+ history.maxSize                 1000
+ history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
+ interactive                     true
+ logLevel                        5
+ outputFormat                    table
+ passwordsFromStdin              false
+ sandboxDir                      <<<_defaultSandboxDir>>>
+ showWarnings                    true
+ useWizards                      true
 
 //@<OUT> List all the options using \option and show-origin for SQL mode
  Switching to SQL mode... Commands end with ;
- autocomplete.nameCache     true (Compiled default)
- batchContinueOnError       false (Compiled default)
- dba.gtidWaitTimeout        60 (Compiled default)
- defaultMode                none (Compiled default)
- devapi.dbObjectHandles     true (Compiled default)
- history.autoSave           false (Compiled default)
- history.maxSize            1000 (Compiled default)
- history.sql.ignorePattern  *IDENTIFIED*:*PASSWORD* (Compiled default)
- interactive                true (Compiled default)
- logLevel                   5 (Compiled default)
- outputFormat               table (Compiled default)
- passwordsFromStdin         false (Compiled default)
- sandboxDir                 <<<_defaultSandboxDir>>> (Compiled default)
- showWarnings               true (Compiled default)
- useWizards                 true (Compiled default)
-
-
+ autocomplete.nameCache          true (Compiled default)
+ batchContinueOnError            false (Compiled default)
+ credentialStore.excludeFilters  [] (Compiled default)
+ credentialStore.helper          default (Compiled default)
+ credentialStore.savePasswords   prompt (Compiled default)
+ dba.gtidWaitTimeout             60 (Compiled default)
+ defaultMode                     none (Compiled default)
+ devapi.dbObjectHandles          true (Compiled default)
+ history.autoSave                false (Compiled default)
+ history.maxSize                 1000 (Compiled default)
+ history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
+ interactive                     true (Compiled default)
+ logLevel                        5 (Compiled default)
+ outputFormat                    table (Compiled default)
+ passwordsFromStdin              false (Compiled default)
+ sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
+ showWarnings                    true (Compiled default)
+ useWizards                      true (Compiled default)

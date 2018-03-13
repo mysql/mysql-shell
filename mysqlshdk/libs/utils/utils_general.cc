@@ -903,67 +903,85 @@ std::string to_string(OperatingSystem os_type) {
   }
 }
 
-static bool _match_glob(const std::string &pat, size_t ppos,
-                        const std::string &str, size_t spos) {
+namespace {
+
+/**
+ * https://research.swtch.com/glob
+ */
+bool _match_glob(const std::string &pat, const std::string &str) {
   size_t pend = pat.length();
   size_t send = str.length();
-  // we allow the string to be matched up to the \0
-  while (ppos < pend && spos <= send) {
-    int sc = str[spos];
-    int pc = pat[ppos];
-    int next = 0;
-    switch (pc) {
-      case '*':
-        // skip multiple consecutive *
-        while (ppos < pend && pat[ppos + 1] == '*') ++ppos;
+  size_t px = 0;
+  size_t sx = 0;
+  size_t ppx = 0;
+  size_t psx = 0;
 
-        // match * by trying every substring of str with the rest of the pattern
-        for (size_t sp = spos; sp <= send; ++sp) {
-          // if something matched, we're fine
-          if (_match_glob(pat, ppos + 1, str, sp)) return true;
-        }
-        // if there were no matches, then give up
-        return false;
-      case '\\':
-        if (ppos + 1 >= pend)  // can't have an escape at the end of the pattern
-          throw std::logic_error("Invalid pattern " + pat);
+  while (px < pend || sx < send) {
+    if (px < pend) {
+      char c = pat[px];
 
-        next = pat[ppos + 1];
-        if (next == '\\' || next == '?' || next == '*') {
-          ++ppos;
-          pc = next;
-        }
-        if (sc != pc) return false;
-        ++ppos;
-        ++spos;
-        break;
-      case '?':
-        ++ppos;
-        ++spos;
-        break;
-      default:
-        if (sc != pc) return false;
-        ++ppos;
-        ++spos;
-        break;
+      switch (c) {
+        case '?':
+          if (sx < send) {
+            ++px;
+            ++sx;
+            continue;
+          }
+          break;
+
+        case '*':
+          ppx = px;
+          psx = sx + 1;
+          ++px;
+          continue;
+
+        case '\\':
+          // if '\' is followed by * or ?, it's an escape sequence, skip '\'
+          if ((px + 1) < pend && (pat[px + 1] == '*' || pat[px + 1] == '?')) {
+            ++px;
+            c = pat[px];
+          }
+
+          // fall through
+
+        default:
+          if (sx < send && str[sx] == c) {
+            ++px;
+            ++sx;
+            continue;
+          }
+          break;
+      }
     }
+
+    if (0 < psx && psx <= send) {
+      px = ppx + 1;
+      sx = psx;
+      ++psx;
+      continue;
+    }
+
+    return false;
   }
-  return ppos == pend && spos == send;
+
+  return true;
 }
 
-/** Match a string against a glob-like pattern using backtracking.
-    Not very efficient, but easier than implementing a regex-like matcher
-    and good enough for our use cases atm.
+}  // namespace
 
-    Also <regex> doesn't work in gcc 4.8
-
-    Note: works with ASCII only, no utf8 support
-  */
+/**
+ * Match a string against a glob-like pattern.
+ *
+ * Allowed wildcard characters: '*', '?'.
+ * Supports escaping wildcards via '\\' character.
+ *
+ * Note: works with ASCII only, no UTF8 support
+ */
 bool match_glob(const std::string &pattern, const std::string &s,
                 bool case_sensitive) {
   std::string str = case_sensitive ? s : str_lower(s);
   std::string pat = case_sensitive ? pattern : str_lower(pattern);
-  return _match_glob(pat, 0, str, 0);
+  return _match_glob(pat, str);
 }
 
 std::string fmttime(const char *fmt) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,6 +77,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined log(String level, String message);
   Undefined reconnect();
   Undefined status();
+  List listCredentialHelpers();
+  Undefined storeCredential(String url, String password);
+  Undefined deleteCredential(String url);
+  Undefined deleteAllCredentials();
+  List listCredentials();
 #elif DOXYGEN_PY
   Options options;
   dict parse_uri(str uri);
@@ -88,7 +93,18 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None log(str level, str message);
   None reconnect();
   None status();
+  list list_credential_helpers();
+  None store_credential(str url, str password);
+  None delete_credential(str url);
+  None delete_all_credentials();
+  list list_credentials();
 #endif
+
+  shcore::Value list_credential_helpers(const shcore::Argument_list &args);
+  shcore::Value store_credential(const shcore::Argument_list &args);
+  shcore::Value delete_credential(const shcore::Argument_list &args);
+  shcore::Value delete_all_credentials(const shcore::Argument_list &args);
+  shcore::Value list_credentials(const shcore::Argument_list &args);
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(
       const std::shared_ptr<mysqlsh::ShellBaseSession> &session);

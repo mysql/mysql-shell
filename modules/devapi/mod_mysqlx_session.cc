@@ -274,7 +274,7 @@ void Session::close() {
     // automatic destruction because if shared across different objects
     // it may remain open
 
-    log_warning(
+    log_debug(
         "Closing session: %s",
         uri(mysqlshdk::db::uri::formats::scheme_user_transport()).c_str());
 

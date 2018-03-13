@@ -16,6 +16,18 @@ shell.help("connect")
 //@ Help on Connect, \? [USE:Help on Connect]
 \? connect
 
+//@ Help on deleteAllCredentials
+shell.help("deleteAllCredentials")
+
+//@ Help on deleteAllCredentials, \? [USE:Help on deleteAllCredentials]
+\? deleteAllCredentials
+
+//@ Help on deleteCredential
+shell.help("deleteCredential")
+
+//@ Help on deleteCredential, \? [USE:Help on deleteCredential]
+\? deleteCredential
+
 //@ Help on getSession
 shell.help("getSession")
 
@@ -27,6 +39,18 @@ shell.help("help")
 
 //@ Help on Help, \? [USE:Help on Help]
 \? shell.help
+
+//@ Help on listCredentialHelpers
+shell.help("listCredentialHelpers")
+
+//@ Help on listCredentialHelpers, \? [USE:Help on listCredentialHelpers]
+\? listCredentialHelpers
+
+//@ Help on listCredentials
+shell.help("listCredentials")
+
+//@ Help on listCredentials, \? [USE:Help on listCredentials]
+\? listCredentials
 
 //@ Help on Log
 shell.help("log")
@@ -69,3 +93,9 @@ shell.help("status")
 
 //@ Help on status, \? [USE:Help on status]
 \? shell.status
+
+//@ Help on storeCredential
+shell.help("storeCredential")
+
+//@ Help on storeCredential, \? [USE:Help on storeCredential]
+\? storeCredential

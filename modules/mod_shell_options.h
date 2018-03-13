@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,6 @@ namespace mysqlsh {
 /**
  * \ingroup ShellAPI
  * @brief $(OPTIONS_BRIEF)
- * $(OPTIONS_BRIEF)
  *
  * $(OPTIONS_DETAIL)
  * $(OPTIONS_DETAIL1)
@@ -54,6 +53,14 @@ namespace mysqlsh {
  * $(OPTIONS_DETAIL14)
  * $(OPTIONS_DETAIL15)
  * $(OPTIONS_DETAIL16)
+ * $(OPTIONS_DETAIL17)
+ * $(OPTIONS_DETAIL18)
+ *
+ * $(OPTIONS_DETAIL19)
+ * $(OPTIONS_DETAIL20)
+ * $(OPTIONS_DETAIL21)
+ * $(OPTIONS_DETAIL22)
+ * $(OPTIONS_DETAIL23)
  */
 class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
  public:

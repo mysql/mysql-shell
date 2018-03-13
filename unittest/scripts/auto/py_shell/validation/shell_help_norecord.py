@@ -12,11 +12,24 @@ FUNCTIONS
       connect(connectionData[, password])
             Establishes the shell global session.
 
+      delete_all_credentials()
+            Deletes all credentials managed by the configured helper.
+
+      delete_credential(url)
+            Deletes credential for the given URL using the configured helper.
+
       get_session()
             Returns the global session.
 
       help([member])
             Provides help about this object and it's members
+
+      list_credential_helpers()
+            Returns a list of strings, where each string is a name of a helper
+            available on the current platform.
+
+      list_credentials()
+            Retrieves a list of all URLs stored by the configured helper.
 
       log(level, message)
             Logs an entry to the shell's log file.
@@ -38,6 +51,9 @@ FUNCTIONS
 
       status()
             Shows connection status info for the shell.
+
+      store_credential(url[, password])
+            Stores given credential using the configured helper.
 
 #@<OUT> shell.connect
 NAME
@@ -124,6 +140,42 @@ DESCRIPTION
       already. If both are specified the password parameter will override the
       password defined on the connectionData.
 
+#@<OUT> shell.delete_all_credentials
+NAME
+      delete_all_credentials - Deletes all credentials managed by the
+                               configured helper.
+
+SYNTAX
+      shell.delete_all_credentials()
+
+EXCEPTIONS
+      Throws RuntimeError in the following scenarios:
+
+      - if configured credential helper is invalid.
+      - if deleting the credentials fails.
+
+#@<OUT> shell.delete_credential
+NAME
+      delete_credential - Deletes credential for the given URL using the
+                          configured helper.
+
+SYNTAX
+      shell.delete_credential(url)
+
+WHERE
+      url: URL of the server to delete.
+
+DESCRIPTION
+      URL needs to be in the following form: user@(host[:port]|socket).
+
+EXCEPTIONS
+      Throws ArgumentError if URL has invalid form.
+
+      Throws RuntimeError in the following scenarios:
+
+      - if configured credential helper is invalid.
+      - if deleting the credential fails.
+
 #@<OUT> shell.get_session
 NAME
       get_session - Returns the global session.
@@ -144,6 +196,41 @@ SYNTAX
 
 WHERE
       member: If specified, provides detailed information on the given member.
+
+#@<OUT> shell.list_credential_helpers
+NAME
+      list_credential_helpers - Returns a list of strings, where each string is
+                                a name of a helper available on the current
+                                platform.
+
+SYNTAX
+      shell.list_credential_helpers()
+
+RETURNS
+       A list of string with names of available credential helpers.
+
+DESCRIPTION
+      The special values "default" and "<disabled>" are not on the list.
+
+      Only values on this list (plus "default" and "<disabled>") can be used to
+      set the "credentialStore.helper" option.
+
+#@<OUT> shell.list_credentials
+NAME
+      list_credentials - Retrieves a list of all URLs stored by the configured
+                         helper.
+
+SYNTAX
+      shell.list_credentials()
+
+RETURNS
+       A list of URLs stored by the configured credential helper.
+
+EXCEPTIONS
+      Throws RuntimeError in the following scenarios:
+
+      - if configured credential helper is invalid.
+      - if listing the URLs fails.
 
 #@<OUT> shell.log
 NAME
@@ -171,21 +258,40 @@ DESCRIPTION
       The options object acts as a dictionary, it may contain the following
       attributes:
 
+      - autocomplete.nameCache: true if auto-refresh of DB object name cache is
+        enabled. The \rehash command can be used for manual refresh
       - batchContinueOnError: read-only, boolean value to indicate if the
         execution of an SQL script in batch mode shall continue if errors occur
+      - credentialStore.excludeFilters: array of URLs for which automatic
+        password storage is disabled, supports glob characters '*' and '?'
+      - credentialStore.helper: name of the credential helper to use to
+        fetch/store passwords; a special value "default" is supported to use
+        platform default helper; a special value "<disabled>" is supported to
+        disable the credential store
+      - credentialStore.savePasswords: controls automatic password storage,
+        allowed values: "always", "prompt" or "never"
+      - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
+        synchronized
+      - defaultMode: shell mode to use when shell is started, allowed values:
+        "js", "py", "sql" or "none"
+      - devapi.dbObjectHandles: true to enable schema collection and table name
+        aliases in the db object, for DevAPI operations.
+      - history.autoSave: true to save command history when exiting the shell
+      - history.maxSize: number of entries to keep in command history
+      - history.sql.ignorePattern: colon separated list of glob patterns to
+        filter out of the command history in SQL mode
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
+      - logLevel: current log level
       - outputFormat: controls the type of output produced for SQL results.
+      - passwordsFromStdin: boolean value that indicates if the shell should
+        read passwords from stdin instead of the tty
       - sandboxDir: default path where the new sandbox instances for InnoDB
         cluster will be deployed
       - showWarnings: boolean value to indicate whether warnings shall be
         included when printing an SQL result
       - useWizards: read-only, boolean value to indicate if the Shell is using
         the interactive wrappers (wizard mode)
-      - history.maxSize: number of entries to keep in command history
-      - history.autoSave: true to save command history when exiting the shell
-      - history.sql.ignorePattern: colon separated list of glob patterns to
-        filter out of the command history in SQL mode
 
       The outputFormat option supports the following values:
 
@@ -193,8 +299,6 @@ DESCRIPTION
       - json: displays the output in JSON format
       - json/raw: displays the output in a JSON format but in a single line
       - vertical: displays the outputs vertically, one line per column value
-      - autocomplete.nameCache: true if auto-refresh of DB object name cache is
-        enabled. The \rehash command can be used for manual refresh
 
 FUNCTIONS
       help([member])
@@ -313,3 +417,28 @@ SYNTAX
 DESCRIPTION
       This shows the same information shown by the \status command.
 
+#@<OUT> shell.store_credential
+NAME
+      store_credential - Stores given credential using the configured helper.
+
+SYNTAX
+      shell.store_credential(url[, password])
+
+WHERE
+      url: URL of the server for the password to be stored.
+      password: Password for the given URL.
+
+DESCRIPTION
+      If password is not provided, displays password prompt.
+
+      If URL is already in storage, it's value is overwritten.
+
+      URL needs to be in the following form: user@(host[:port]|socket).
+
+EXCEPTIONS
+      Throws ArgumentError if URL has invalid form.
+
+      Throws RuntimeError in the following scenarios:
+
+      - if configured credential helper is invalid.
+      - if storing the credential fails.

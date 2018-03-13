@@ -639,9 +639,12 @@ TEST_F(Completer_frontend, js_shell) {
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.con", "shell.connect()");
   EXPECT_AFTER_TAB_TAB(
-      "shell.", strv({"connect()", "getSession()", "help()", "log()", "options",
-                      "parseUri()", "prompt()", "reconnect()",
-                      "setCurrentSchema()", "setSession()", "status()"}));
+      "shell.",
+      strv({"connect()", "deleteAllCredentials()", "deleteCredential()",
+            "getSession()", "help()", "listCredentialHelpers()",
+            "listCredentials()", "log()", "options", "parseUri()", "prompt()",
+            "reconnect()", "setCurrentSchema()", "setSession()", "status()",
+            "storeCredential()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -1111,9 +1114,12 @@ TEST_F(Completer_frontend, py_shell) {
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.con", "shell.connect()");
   EXPECT_AFTER_TAB_TAB(
-      "shell.", strv({"connect()", "get_session()", "help()", "log()",
-                      "options", "parse_uri()", "prompt()", "reconnect()",
-                      "set_current_schema()", "set_session()", "status()"}));
+      "shell.",
+      strv({"connect()", "delete_all_credentials()", "delete_credential()",
+            "get_session()", "help()", "list_credential_helpers()",
+            "list_credentials()", "log()", "options", "parse_uri()", "prompt()",
+            "reconnect()", "set_current_schema()", "set_session()", "status()",
+            "store_credential()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 

@@ -27,6 +27,7 @@
 #include <iostream>
 #include <limits>
 #include "mysqlshdk/libs/db/uri_common.h"
+#include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
 #include "utils/utils_file.h"
@@ -398,6 +399,8 @@ Shell_options::Shell_options(int argc, char **argv,
             &Shell_options::override_session_type, this, _1, _2)));
   // clang-format on
 
+  shcore::Credential_manager::get().register_options(this);
+
   try {
     handle_environment_options();
     if (!configuration_file.empty()) handle_persisted_options();
@@ -432,16 +435,20 @@ void Shell_options::set(const std::string &option, const shcore::Value &value) {
   }
 }
 
+void Shell_options::notify(const std::string &option) {
+  shcore::Value::Map_type_ref info = shcore::Value::new_map().as_map();
+  (*info)["option"] = shcore::Value(option);
+  (*info)["value"] = get(option);
+  shcore::ShellNotifications::get()->notify(SN_SHELL_OPTION_CHANGED, nullptr,
+                                            info);
+}
+
 void Shell_options::set_and_notify(const std::string &option,
                                    const std::string &value,
                                    bool save_to_file) {
   try {
     Options::set(option, value);
-    shcore::Value::Map_type_ref info = shcore::Value::new_map().as_map();
-    (*info)["option"] = shcore::Value(option);
-    (*info)["value"] = get(option);
-    shcore::ShellNotifications::get()->notify(SN_SHELL_OPTION_CHANGED, nullptr,
-                                              info);
+    notify(option);
     if (save_to_file) save(option);
   } catch (const std::exception &e) {
     throw shcore::Exception::argument_error(e.what());
@@ -457,6 +464,7 @@ void Shell_options::set_and_notify(const std::string &option,
 void Shell_options::unset(const std::string &option, bool save_to_file) {
   if (save_to_file) unsave(option);
   find_option(option)->second->reset_to_default_value();
+  notify(option);
 }
 
 shcore::Value Shell_options::get(const std::string &option) {
@@ -471,6 +479,20 @@ shcore::Value Shell_options::get(const std::string &option) {
   Concrete_option<int> *opt_int =
       dynamic_cast<Concrete_option<int> *>(it->second);
   if (opt_int != nullptr) return shcore::Value(opt_int->get());
+
+  auto opt_set_string =
+      dynamic_cast<Concrete_option<std::vector<std::string>> *>(it->second);
+
+  if (opt_set_string != nullptr) {
+    auto value = shcore::Value::new_array();
+    auto array = value.as_array();
+
+    for (const auto &val : opt_set_string->get()) {
+      array->emplace_back(val);
+    }
+
+    return value;
+  }
 
   return shcore::Value(get_value_as_string(option));
 }
