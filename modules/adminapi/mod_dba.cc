@@ -48,6 +48,7 @@
 #include "modules/mod_utils.h"
 
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -2058,7 +2059,7 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
       options = args.map_at(1);
 
     if (instance_def.has_host()) {
-      if (shcore::is_local_host(instance_def.get_host(), true)) {
+      if (mysqlshdk::utils::Net::is_local_address(instance_def.get_host())) {
         ret_val = shcore::Value(
             _check_instance_configuration(instance_def, options, true));
       } else {

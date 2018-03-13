@@ -21,9 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <gtest/gtest.h>
-
+#include <gtest/gtest_prod.h>
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "unittest/gtest_clean.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -89,6 +89,35 @@ TEST(utils_net, is_ipv6) {
   EXPECT_FALSE(Net::is_ipv6("127.0.0.1"));
   EXPECT_FALSE(Net::is_ipv6("FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:"));
   EXPECT_FALSE(Net::is_ipv6("FEDC:BA98:7654:3210:GEDC:BA98:7654:3210"));
+}
+
+TEST(utils_net, is_loopback) {
+  EXPECT_TRUE(Net::is_loopback("127.0.1.1"));
+  EXPECT_TRUE(Net::is_loopback("127.0.0.1"));
+  EXPECT_TRUE(Net::is_loopback("::1"));
+  EXPECT_TRUE(Net::is_loopback("localhost"));
+
+  EXPECT_FALSE(Net::is_loopback("192.168.1.1"));
+}
+
+TEST(utils_net, is_local_address) {
+  EXPECT_TRUE(Net::is_local_address(Net::get_hostname()));
+  EXPECT_TRUE(Net::is_local_address("localhost"));
+  EXPECT_TRUE(Net::is_local_address("127.0.0.1"));
+  EXPECT_TRUE(
+      Net::is_local_address(Net::resolve_hostname_ipv4(Net::get_hostname())));
+
+  EXPECT_FALSE(Net::is_local_address("oracle.com"));
+}
+
+TEST(utils_net, get_local_addresses) {
+  // Not really a unit-test, just get whatever get_local_addresses() returns
+  // and print out, so we can inspect visually...
+  std::vector<std::string> addrs;
+  Net::get_local_addresses(&addrs);
+  for (const auto &a : addrs) {
+    std::cout << a << "\n";
+  }
 }
 
 }  // namespace utils

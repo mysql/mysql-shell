@@ -25,15 +25,11 @@
 #include "mysh_config.h"
 
 #ifdef WIN32
-#include <WinSock2.h>
 #include <windows.h>
 #include <Lmcons.h>
 #define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
 #include <unistd.h>
-#include <ifaddrs.h>
-#include <net/if.h>
-#include <netdb.h>
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
 #endif
@@ -693,83 +689,6 @@ std::string replace_text(const std::string &source, const std::string &from,
   ret_val += source.substr(start);
 
   return ret_val;
-}
-
-std::string get_my_hostname() {
-  char hostname[1024] = {'\0'};
-
-#if defined(_WIN32) || defined(__APPLE__)
-  if (gethostname(hostname, sizeof(hostname)) < 0) {
-    char msg[1024];
-    (void)strerror_r(errno, msg, sizeof(msg));
-    log_error("Could not get hostname: %s", msg);
-    throw std::runtime_error("Could not get local hostname");
-  }
-#else
-  struct ifaddrs *ifa, *ifap;
-  int ret = EAI_NONAME, family, addrlen;
-
-  if (getifaddrs(&ifa) != 0)
-    throw std::runtime_error("Could not get local host address: " +
-                             std::string(strerror(errno)));
-  for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
-    /* Skip interfaces that are not UP, do not have configured addresses, and
-     * loopback interface */
-    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) ||
-        (!(ifap->ifa_flags & IFF_UP)))
-      continue;
-
-    /* Only handle IPv4 and IPv6 addresses */
-    family = ifap->ifa_addr->sa_family;
-    if (family != AF_INET && family != AF_INET6)
-      continue;
-
-    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in)
-                                  : sizeof(struct sockaddr_in6);
-
-    /* Skip IPv6 link-local addresses */
-    if (family == AF_INET6) {
-      struct sockaddr_in6 *sin6;
-
-      sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
-      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) ||
-          IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
-        continue;
-    }
-
-    ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname), NULL,
-                      0, NI_NAMEREQD);
-
-    if (ret == 0)
-      break;
-
-#ifdef __linux__
-    if (ret == EAI_NONAME) {
-      if ((ret = gethostname(hostname, sizeof(hostname))) < 0)
-        continue;
-      else
-        break;
-#endif
-    }
-  }
-
-  if (ret != 0) {
-    if (ret != EAI_NONAME)
-      throw std::runtime_error("Could not get local host address: " +
-                               std::string(gai_strerror(ret)));
-  }
-#endif
-
-  return hostname;
-}  // namespace shcore
-
-bool is_local_host(const std::string &host, bool check_hostname) {
-  // TODO(any): Simple implementation for now, we may improve this to analyze
-  // a given IP address or hostname against the local interfaces
-  return (host == "127.0.0.1" ||
-          host == "localhost" ||
-          host == "::1" ||
-          (check_hostname && host == get_my_hostname()));
 }
 
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,

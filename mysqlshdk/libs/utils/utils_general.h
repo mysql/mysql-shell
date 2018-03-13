@@ -126,8 +126,6 @@ std::string SHCORE_PUBLIC format_markup_text(
 std::string SHCORE_PUBLIC replace_text(const std::string &source,
                                        const std::string &from,
                                        const std::string &to);
-std::string get_my_hostname();
-bool is_local_host(const std::string &host, bool check_hostname);
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 
