@@ -314,6 +314,15 @@ bool Net::is_loopback_impl(const std::string &name) const {
     return false;
   }
 
+  // todo(kg): loopback interface isn't limited to 127.0.0.0/8. We should list
+  // IPs assigned to lo interface, iterate over them, and check if resolved name
+  // belong to lo interface.
+  for (const auto &a : addresses) {
+    if (a.compare(0, 4, "127.") == 0) {
+      return true;
+    }
+  }
+
   return (name.compare(0, 4, "127.") == 0);
 }
 

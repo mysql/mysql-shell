@@ -101,6 +101,7 @@ TEST(utils_net, is_loopback) {
 }
 
 TEST(utils_net, is_local_address) {
+  std::cout << "Net::get_hostname() = " << Net::get_hostname() << std::endl;
   EXPECT_TRUE(Net::is_local_address(Net::get_hostname()));
   EXPECT_TRUE(Net::is_local_address("localhost"));
   EXPECT_TRUE(Net::is_local_address("127.0.0.1"));
