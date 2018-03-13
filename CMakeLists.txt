@@ -293,6 +293,7 @@ ADD_SUBDIRECTORY(modules)
 ADD_SUBDIRECTORY(res)
 ADD_SUBDIRECTORY(src)
 add_subdirectory(samples)
+add_subdirectory(mysql-secret-store)
 
 CHECK_STAN_OPTIONS()
 

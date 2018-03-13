@@ -60,6 +60,7 @@
 
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace {
 
@@ -432,6 +433,15 @@ int Process::write(const char *buf, size_t count) {
   return 0;  // so the compiler does not cry
 }
 
+void Process::finish_writing() {
+  ensure_write_is_allowed();
+
+  if (child_in_wr) {
+    CloseHandle(child_in_wr);
+    child_in_wr = nullptr;
+  }
+}
+
 void Process::enable_child_terminal() {
   throw std::runtime_error("This method is not available on Windows.");
 }
@@ -535,13 +545,7 @@ void Process::start() {
 #ifdef __APPLE__
       // need to drain output from controlling terminal, otherwise launched
       // process will hang on exit
-      int master_fd = m_master_device;
-      std::thread{[master_fd]() {
-        char c;
-        while (::read(master_fd, &c, 1) > 0)
-          ;
-      }}
-          .detach();
+      start_reader_thread();
 #endif  // __APPLE__
     }
 
@@ -581,6 +585,15 @@ int Process::write(const char *buf, size_t count) {
   return write_fd(fd_in[1], buf, count);
 }
 
+void Process::finish_writing() {
+  ensure_write_is_allowed();
+
+  if (fd_in[1] >= 0) {
+    ::close(fd_in[1]);
+    fd_in[1] = -1;
+  }
+}
+
 void Process::enable_child_terminal() {
   if (is_alive) {
     throw std::logic_error(
@@ -607,11 +620,34 @@ std::string Process::read_from_terminal() {
         "Call enable_child_terminal() before calling this "
         "method.");
   }
+#ifdef __APPLE__
+  bool has_output = false;
 
+  while (!has_output) {
+    {
+      std::lock_guard<std::mutex> lock{m_read_buffer_mutex};
+      has_output = !m_read_buffer.empty();
+    }
+
+    if (!has_output) {
+      shcore::sleep_ms(10);
+    }
+  }
+
+  std::string output;
+
+  {
+    std::lock_guard<std::mutex> lock{m_read_buffer_mutex};
+    output = {m_read_buffer.begin(), m_read_buffer.end()};
+    m_read_buffer.clear();
+  }
+
+  return output;
+#else   // ! __APPLE__
   fd_set fd_in;
   char buffer[512];
   struct timeval timeout;
-  long retry_count = 0;
+  int64_t retry_count = 0;
 
   do {
     timeout.tv_sec = 0;
@@ -648,6 +684,7 @@ std::string Process::read_from_terminal() {
   } while (true);
 
   return "";
+#endif  // ! __APPLE__
 }
 
 pid_t Process::get_pid() { return childpid; }
@@ -701,6 +738,19 @@ std::string Process::read_line(bool *eof) {
     s.push_back(buf[0]);
   }
   if (c <= 0 && eof) *eof = true;
+  return s;
+}
+
+std::string Process::read_all() {
+  static constexpr size_t k_buffer_size = 512;
+  std::string s;
+  char buffer[k_buffer_size];
+  int c = 0;
+
+  while ((c = read(buffer, k_buffer_size)) > 0) {
+    s += std::string(buffer, c);
+  }
+
   return s;
 }
 

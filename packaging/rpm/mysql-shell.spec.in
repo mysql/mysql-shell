@@ -111,11 +111,15 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %doc LICENSE
 %doc README
 %{_bindir}/mysqlsh
+%{_bindir}/mysql-secret-store-login-path
 %{_datadir}/mysqlsh/mysqlprovision.zip
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/upgrade_checker.msg
 
 %changelog
+* Fri May 18 2018 Pawel Andruszkiewicz <pawel.andruszkiewicz@oracle.com> - 8.0.12
+- Add login-path helper.
+
 * Sun Dec 17 2017 Kent Boortz <kent.boortz@oracle.com> - 8.0.4-1
 - License file is now always named "LICENSE"
 

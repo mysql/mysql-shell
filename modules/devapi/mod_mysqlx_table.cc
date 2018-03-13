@@ -247,8 +247,8 @@ REGISTER_HELP_FUNCTION(select, Table);
 REGISTER_HELP(
     TABLE_SELECT_CHAINED,
     "TableSelect.select.[where].[<<<groupBy>>>->[having]].[<<<orderBy>>>]."
-    "[limit->[offset]].[<<<lockShared>>>].[<<<lockExclusive>>>].[bind].["
-    "execute]");
+    "[limit->[offset]].[<<<lockShared>>>].[<<<lockExclusive>>>].[bind]."
+    "[execute]");
 
 REGISTER_HELP(
     TABLE_SELECT_BRIEF,

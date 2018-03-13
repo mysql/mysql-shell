@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -52,7 +52,7 @@ foreach(file ${docs_SRC})
   foreach(line ${contents})
     IF ("${continued}" STREQUAL "0")
       if("${line}" MATCHES "^REGISTER_HELP\\(")
-        string(FIND "${line}" "\")" register_end)
+        string(FIND "${line}" "\");" register_end REVERSE)
         IF ("${register_end}" STREQUAL "-1")
           SET(ready_line "${line}")
           SET(continued "1")
@@ -62,7 +62,7 @@ foreach(file ${docs_SRC})
         ENDIF()
       endif()
     ELSE()
-      string(FIND "${line}" "\")" register_end)
+      string(FIND "${line}" "\");" register_end REVERSE)
       IF ("${register_end}" STREQUAL "-1")
         string(STRIP "${line}" stripped_line)
         SET(ready_line "${ready_line}${stripped_line}")
@@ -95,7 +95,7 @@ foreach(file ${docs_SRC})
 
       # Now retrieves the value to be assigned
       string(FIND "${ready_line}" "\"" start)
-      string(FIND "${ready_line}" "\")" end)
+      string(FIND "${ready_line}" "\");" end REVERSE)
       MATH(EXPR start "${start}+1")
 
       IF ("${end}" STREQUAL "-1")

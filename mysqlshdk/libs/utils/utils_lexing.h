@@ -88,11 +88,12 @@ inline size_t span_quoted_string_dq(const std::string &s, size_t offset) {
   // skip opening quote
   ++offset;
 
-  int last_ch = 0;
+  unsigned char last_ch = 0;
   for (;;) {
     // Tight-loop to span until terminating 0 or closing quote
     while (offset < s.length() &&
-           internal::k_quoted_string_span_skips_dq[last_ch = s[offset]] > 0) {
+           internal::k_quoted_string_span_skips_dq
+                   [last_ch = static_cast<unsigned char>(s[offset])] > 0) {
       offset += internal::k_quoted_string_span_skips_dq[last_ch];
     }
     // Now check why we exited the loop
@@ -121,11 +122,12 @@ inline size_t span_quoted_string_sq(const std::string &s, size_t offset) {
   // skip opening quote
   ++offset;
 
-  int last_ch = 0;
+  unsigned char last_ch = 0;
   for (;;) {
     // Tight-loop to span until terminating 0 or closing quote
     while (offset < s.length() &&
-           internal::k_quoted_string_span_skips_sq[last_ch = s[offset]] > 0) {
+           internal::k_quoted_string_span_skips_sq
+                   [last_ch = static_cast<unsigned char>(s[offset])] > 0) {
       offset += internal::k_quoted_string_span_skips_sq[last_ch];
     }
     // Now check why we exited the loop

@@ -30,6 +30,7 @@ set(SHELLCORE_SOURCES
   base_shell.cc
   base_session.cc
   completer.cc
+  credential_manager.cc
   provider_script.cc
   interrupt_handler.cc
   ishell_core.cc

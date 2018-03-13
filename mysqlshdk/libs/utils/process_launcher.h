@@ -69,6 +69,12 @@ class Process {
     if (is_alive) {
       close();
     }
+
+#ifdef __APPLE__
+    if (m_use_pseudo_tty) {
+      stop_reader_thread();
+    }
+#endif  // __APPLE__
   }
 
 #ifdef _WIN32
@@ -82,6 +88,11 @@ class Process {
    * Reads a single line from stdout
    */
   std::string read_line(bool *eof = nullptr);
+
+  /**
+   * Reads the whole remaining output.
+   */
+  std::string read_all();
 
   /**
    * Read up to a 'count' bytes from the stdout of the child process.
@@ -98,6 +109,12 @@ class Process {
    * Returns an shcore::Exception in case of error when writing.
    */
   int write(const char *buf, size_t count);
+
+  /**
+   * Closes handle to the output stream, effectively sending an EOF to the
+   * child process.
+   */
+  void finish_writing();
 
   /**
    * Writes bytes into terminal of the child process.
@@ -213,6 +230,33 @@ class Process {
   bool redirect_stderr;
 
   std::string m_input_file;
+
+#ifdef __APPLE__
+  void start_reader_thread() {
+    if (!m_reader_thread) {
+      m_reader_thread.reset(new std::thread{[this]() {
+        static constexpr size_t k_buffer_size = 512;
+        char buffer[k_buffer_size];
+        int n = 0;
+        while ((n = ::read(m_master_device, buffer, k_buffer_size)) > 0) {
+          std::lock_guard<std::mutex> lock{m_read_buffer_mutex};
+          m_read_buffer.insert(m_read_buffer.end(), buffer, buffer + n);
+        }
+      }});
+    }
+  }
+
+  void stop_reader_thread() {
+    if (m_reader_thread) {
+      m_reader_thread->join();
+      m_reader_thread.reset(nullptr);
+    }
+  }
+
+  std::unique_ptr<std::thread> m_reader_thread;
+  std::mutex m_read_buffer_mutex;
+  std::deque<char> m_read_buffer;
+#endif  // __APPLE__
 };
 
 using Process_launcher = Process;

@@ -26,19 +26,8 @@
 #include <iostream>
 
 #include "mysqlshdk/libs/textui/textui.h"
-// The document.h file is generating warnings of type
-// class-memaccess
-// When built with GCC >= 8
-// For that reason we have decided to disable that warning
-#if defined __GNUC__ && __GNUC__ >= 8
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wclass-memaccess"
-#endif
 
 #include "rapidjson/document.h"
-#if defined __GNUC__ && __GNUC__ >= 8
-#pragma GCC diagnostic pop
-#endif
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 

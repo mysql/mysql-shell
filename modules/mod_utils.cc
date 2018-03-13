@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/shellcore/credential_manager.h"
 
 namespace mysqlsh {
 /**
@@ -408,11 +409,25 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
   copy.set_default_connection_data();
 
   if (!copy.has_password()) {
-    // TODO: query the helper for password
-    // TODO: if password was found, create_session()
-    // TODO: if create_session() throws, check if error was caused by wrong
-    //       username/password
-    // TODO: if it was, continue (password prompt), otherwise rethrow
+    if (shcore::Credential_manager::get().get_password(&copy)) {
+      try {
+        return create_session(copy);
+      } catch (const mysqlshdk::db::Error &e) {
+        if (e.code() != ER_ACCESS_DENIED_ERROR) {
+          throw;
+        } else {
+          copy.clear_password();
+          shcore::Credential_manager::get().remove_password(copy);
+          log_info(
+              "Connection to \"%s\" could not be established using the stored "
+              "password: %s. "
+              "Invalid password has been erased.",
+              copy.as_uri(mysqlshdk::db::uri::formats::user_transport())
+                  .c_str(),
+              e.format().c_str());
+        }
+      }
+    }
   }
 
   if (prompt_for_password) {
@@ -422,7 +437,12 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
       }
 
       try {
-        return create_session(copy);
+        auto session = create_session(copy);
+
+        shcore::Credential_manager::get().save_password(
+            session->get_connection_options());
+
+        return session;
       } catch (const mysqlshdk::db::Error &e) {
         if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
           throw;
@@ -431,7 +451,6 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
           current_console()->print_error(e.format());
         }
       }
-      // TODO: password was provided by the user, if it's correct store it
     } while (prompt_in_loop);
   }
 

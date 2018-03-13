@@ -41,6 +41,15 @@ function EXPECT_CONTAINS(expected, actual) {
   }
 }
 
+function EXPECT_ARRAY_CONTAINS(expected, actual) {
+  for (var i = 0; i < actual.length; ++i) {
+    if (expected === actual[i]) return;
+  }
+
+  var context = "<red>Tested array doesn't contain expected value:</red>\n\t<yellow>Actual:</yellow> " + JSON.stringify(actual) + "\n\t<yellow>Expected:</yellow> " + expected;
+  testutil.fail(context);
+}
+
 function EXPECT_NE(expected, actual) {
   if (expected == actual) {
     var context = "<red>Tested values don't differ as expected:</red>\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
@@ -52,6 +61,15 @@ function EXPECT_NOT_CONTAINS(expected, actual) {
   if (actual.indexOf(expected) >= 0) {
     var context = "<red>Tested text contains checked text, but it shouldn't:</red>\n\t<yellow>Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
     testutil.fail(context);
+  }
+}
+
+function EXPECT_ARRAY_NOT_CONTAINS(expected, actual) {
+  for (var i = 0; i < actual.length; ++i) {
+    if (expected === actual[i]) {
+      var context = "<red>Tested array contains checked value, but it shouldn't:</red>\n\t<yellow>Array:</yellow> " + JSON.stringify(actual) + "\n\t<yellow>Checked Value:</yellow> " + expected;
+      testutil.fail(context);
+    }
   }
 }
 

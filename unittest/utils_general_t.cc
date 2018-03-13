@@ -257,8 +257,11 @@ TEST(utils_general, match_glob) {
   EXPECT_FALSE(match_glob("?\\?", "xx"));
   EXPECT_FALSE(match_glob("\\?", "\\"));
   EXPECT_FALSE(match_glob("\\?", "x"));
-  EXPECT_TRUE(match_glob("\\\\", "\\"));
-  EXPECT_FALSE(match_glob("\\\\", "x"));
+  EXPECT_TRUE(match_glob("\\", "\\"));
+  EXPECT_FALSE(match_glob("\\", "x"));
+  EXPECT_TRUE(match_glob("\\opti*", "\\option"));
+  EXPECT_FALSE(match_glob("\\opti\\*", "\\option"));
+  EXPECT_TRUE(match_glob("*\\*", "abcdefgh*"));
 
   EXPECT_TRUE(match_glob("a*b", "ab"));
   EXPECT_TRUE(match_glob("a*b", "abb"));
@@ -276,6 +279,27 @@ TEST(utils_general, match_glob) {
   EXPECT_TRUE(match_glob("a*b*c*", "abc"));
   EXPECT_TRUE(match_glob("a*b*c*", "abcd"));
   EXPECT_TRUE(match_glob("a*b*c*", "abdcd"));
-  EXPECT_THROW(match_glob("\\", "x"), std::logic_error);
+  EXPECT_TRUE(match_glob("a**b*c*", "abdcd"));
+  EXPECT_TRUE(match_glob("a**b**c*", "abdcd"));
+  EXPECT_TRUE(match_glob("a**b**c**", "abdcd"));
+
+  EXPECT_TRUE(match_glob("", ""));
+  EXPECT_FALSE(match_glob("x", ""));
+  EXPECT_FALSE(match_glob("", "x"));
+  EXPECT_TRUE(match_glob("abc", "abc"));
+  EXPECT_TRUE(match_glob("*", "abc"));
+  EXPECT_TRUE(match_glob("*c", "abc"));
+  EXPECT_FALSE(match_glob("*b", "abc"));
+  EXPECT_TRUE(match_glob("a*", "abc"));
+  EXPECT_FALSE(match_glob("b*", "abc"));
+  EXPECT_TRUE(match_glob("a*", "a"));
+  EXPECT_TRUE(match_glob("*a", "a"));
+  EXPECT_TRUE(match_glob("a*b*c*d*e*", "axbxcxdxe"));
+  EXPECT_TRUE(match_glob("a*b*c*d*e*", "axbxcxdxexxx"));
+  EXPECT_TRUE(match_glob("a*b?c*x", "abxbbxdbxebxczzx"));
+  EXPECT_FALSE(match_glob("a*b?c*x", "abxbbxdbxebxczzy"));
+  EXPECT_FALSE(match_glob("a*a*a*a*b", std::string(100, 'a')));
+  EXPECT_TRUE(match_glob("a*a*a*a*a", std::string(100, 'a')));
+  EXPECT_TRUE(match_glob("*x", "xxx"));
 }
 }  // namespace shcore

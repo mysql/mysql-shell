@@ -31,6 +31,7 @@
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/utils_help.h"
@@ -68,6 +69,15 @@ void Shell::init() {
   add_method("reconnect", std::bind(&Shell::reconnect, this, _1));
   add_method("log", std::bind(&Shell::log, this, _1));
   add_method("status", std::bind(&Shell::status, this, _1));
+  add_method("listCredentialHelpers",
+             std::bind(&Shell::list_credential_helpers, this, _1));
+  add_method("storeCredential", std::bind(&Shell::store_credential, this, _1),
+             "url", shcore::String, "password", shcore::String);
+  add_method("deleteCredential", std::bind(&Shell::delete_credential, this, _1),
+             "url", shcore::String);
+  add_method("deleteAllCredentials",
+             std::bind(&Shell::delete_all_credentials, this, _1));
+  add_method("listCredentials", std::bind(&Shell::list_credentials, this, _1));
 }
 
 Shell::~Shell() {}
@@ -290,8 +300,8 @@ REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1,
 
 REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
 REGISTER_HELP(TOPIC_URI1,
-              "[scheme://][user[:password]@]<host[:port]|socket>[/"
-              "schema][?option=value&option=value...]");
+              "[scheme://][user[:password]@]<host[:port]|socket>[/schema]"
+              "[?option=value&option=value...]");
 
 // These lines group the description of ALL the available connection options
 REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "<b>SSL Connection Options</b>");
@@ -763,4 +773,253 @@ shcore::Value Shell::status(const shcore::Argument_list &args) {
 
   return shcore::Value();
 }
+
+REGISTER_HELP_FUNCTION(listCredentialHelpers, shell);
+REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_BRIEF,
+              "Returns a list of strings, where each string is a name of a "
+              "helper available on the current platform.");
+REGISTER_HELP(
+    SHELL_LISTCREDENTIALHELPERS_RETURNS,
+    "@returns A list of string with names of available credential helpers.");
+REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_DETAIL,
+              "The special values \"default\" and \"@<disabled>\" "
+              "are not on the list.");
+REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_DETAIL1,
+              "Only values on this list (plus \"default\" and "
+              "\"@<disabled>\") can be used to set the "
+              "\"credentialStore.helper\" option.");
+
+/**
+ * $(SHELL_LISTCREDENTIALHELPERS_BRIEF)
+ *
+ * $(SHELL_LISTCREDENTIALHELPERS_RETURNS)
+ *
+ * $(SHELL_LISTCREDENTIALHELPERS_DETAIL)
+ * $(SHELL_LISTCREDENTIALHELPERS_DETAIL1)
+ */
+#if DOXYGEN_JS
+List Shell::listCredentialHelpers() {}
+#elif DOXYGEN_PY
+list Shell::list_credential_helpers() {}
+#endif
+shcore::Value Shell::list_credential_helpers(
+    const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("listCredentialHelpers").c_str());
+
+  shcore::Value ret_val;
+
+  try {
+    shcore::Value::Array_type_ref values =
+        std::make_shared<shcore::Value::Array_type>();
+
+    for (const auto &helper :
+         shcore::Credential_manager::get().list_credential_helpers()) {
+      values->emplace_back(helper);
+    }
+
+    ret_val = shcore::Value(values);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("listCredentialHelpers"));
+
+  return ret_val;
+}
+
+REGISTER_HELP_FUNCTION(storeCredential, shell);
+REGISTER_HELP(SHELL_STORECREDENTIAL_BRIEF,
+              "Stores given credential using the configured helper.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_PARAM,
+              "@param url URL of the server for the password to be stored.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_PARAM1,
+              "@param password Optional Password for the given URL.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS,
+              "Throws ArgumentError if URL has invalid form.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS1,
+              "Throws RuntimeError in the following scenarios:");
+REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS2,
+              "@li if configured credential helper is invalid.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS3,
+              "@li if storing the credential fails.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL,
+              "If password is not provided, displays password prompt.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL1,
+              "If URL is already in storage, it's value is overwritten.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL2,
+              "URL needs to be in the following form: "
+              "<b>user@(host[:port]|socket)</b>.");
+
+/**
+ * $(SHELL_STORECREDENTIAL_BRIEF)
+ *
+ * $(SHELL_STORECREDENTIAL_PARAM)
+ * $(SHELL_STORECREDENTIAL_PARAM1)
+ *
+ * $(SHELL_STORECREDENTIAL_THROWS)
+ *
+ * $(SHELL_STORECREDENTIAL_THROWS1)
+ * $(SHELL_STORECREDENTIAL_THROWS2)
+ * $(SHELL_STORECREDENTIAL_THROWS3)
+ *
+ * $(SHELL_STORECREDENTIAL_DETAIL)
+ * $(SHELL_STORECREDENTIAL_DETAIL1)
+ * $(SHELL_STORECREDENTIAL_DETAIL2)
+ */
+#if DOXYGEN_JS
+Undefined Shell::storeCredential(String url, String password) {}
+#elif DOXYGEN_PY
+None Shell::store_credential(str url, str password) {}
+#endif
+shcore::Value Shell::store_credential(const shcore::Argument_list &args) {
+  args.ensure_count(1, 2, get_function_name("storeCredential").c_str());
+
+  try {
+    auto url = args.string_at(0);
+    std::string password;
+
+    if (args.size() == 1) {
+      const std::string prompt =
+          "Please provide the password for '" + url + "': ";
+      const auto result = current_console()->prompt_password(prompt, &password);
+      if (result != shcore::Prompt_result::Ok) {
+        throw shcore::cancelled("Cancelled");
+      }
+    } else {
+      password = args.string_at(1);
+    }
+
+    shcore::Credential_manager::get().store_credential(url, password);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("storeCredential"));
+
+  return shcore::Value();
+}
+
+REGISTER_HELP_FUNCTION(deleteCredential, shell);
+REGISTER_HELP(
+    SHELL_DELETECREDENTIAL_BRIEF,
+    "Deletes credential for the given URL using the configured helper.");
+REGISTER_HELP(SHELL_DELETECREDENTIAL_PARAM,
+              "@param url URL of the server to delete.");
+REGISTER_HELP(SHELL_DELETECREDENTIAL_THROWS,
+              "Throws ArgumentError if URL has invalid form.");
+REGISTER_HELP(SHELL_DELETECREDENTIAL_THROWS1,
+              "Throws RuntimeError in the following scenarios:");
+REGISTER_HELP(SHELL_DELETECREDENTIAL_THROWS2,
+              "@li if configured credential helper is invalid.");
+REGISTER_HELP(SHELL_DELETECREDENTIAL_THROWS3,
+              "@li if deleting the credential fails.");
+REGISTER_HELP(SHELL_DELETECREDENTIAL_DETAIL,
+              "URL needs to be in the following form: "
+              "<b>user@(host[:port]|socket)</b>.");
+
+/**
+ * $(SHELL_DELETECREDENTIAL_BRIEF)
+ *
+ * $(SHELL_DELETECREDENTIAL_PARAM)
+ *
+ * $(SHELL_DELETECREDENTIAL_THROWS)
+ *
+ * $(SHELL_DELETECREDENTIAL_THROWS1)
+ * $(SHELL_DELETECREDENTIAL_THROWS2)
+ * $(SHELL_DELETECREDENTIAL_THROWS3)
+ *
+ * $(SHELL_DELETECREDENTIAL_DETAIL)
+ */
+#if DOXYGEN_JS
+Undefined Shell::deleteCredential(String url) {}
+#elif DOXYGEN_PY
+None Shell::delete_credential(str url) {}
+#endif
+shcore::Value Shell::delete_credential(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("deleteCredential").c_str());
+
+  try {
+    shcore::Credential_manager::get().delete_credential(args.string_at(0));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deleteCredential"));
+
+  return shcore::Value();
+}
+
+REGISTER_HELP_FUNCTION(deleteAllCredentials, shell);
+REGISTER_HELP(SHELL_DELETEALLCREDENTIALS_BRIEF,
+              "Deletes all credentials managed by the configured helper.");
+REGISTER_HELP(SHELL_DELETEALLCREDENTIALS_THROWS,
+              "Throws RuntimeError in the following scenarios:");
+REGISTER_HELP(SHELL_DELETEALLCREDENTIALS_THROWS1,
+              "@li if configured credential helper is invalid.");
+REGISTER_HELP(SHELL_DELETEALLCREDENTIALS_THROWS2,
+              "@li if deleting the credentials fails.");
+
+/**
+ * $(SHELL_DELETEALLCREDENTIALS_BRIEF)
+ *
+ * $(SHELL_DELETEALLCREDENTIALS_THROWS)
+ * $(SHELL_DELETEALLCREDENTIALS_THROWS1)
+ * $(SHELL_DELETEALLCREDENTIALS_THROWS2)
+ */
+#if DOXYGEN_JS
+Undefined Shell::deleteAllCredentials() {}
+#elif DOXYGEN_PY
+None Shell::delete_all_credentials() {}
+#endif
+shcore::Value Shell::delete_all_credentials(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("deleteAllCredentials").c_str());
+
+  try {
+    shcore::Credential_manager::get().delete_all_credentials();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("deleteAllCredentials"));
+
+  return shcore::Value();
+}
+
+REGISTER_HELP_FUNCTION(listCredentials, shell);
+REGISTER_HELP(SHELL_LISTCREDENTIALS_BRIEF,
+              "Retrieves a list of all URLs stored by the configured helper.");
+REGISTER_HELP(SHELL_LISTCREDENTIALS_THROWS,
+              "Throws RuntimeError in the following scenarios:");
+REGISTER_HELP(SHELL_LISTCREDENTIALS_THROWS1,
+              "@li if configured credential helper is invalid.");
+REGISTER_HELP(SHELL_LISTCREDENTIALS_THROWS2, "@li if listing the URLs fails.");
+REGISTER_HELP(
+    SHELL_LISTCREDENTIALS_RETURNS,
+    "@returns A list of URLs stored by the configured credential helper.");
+
+/**
+ * $(SHELL_LISTCREDENTIALS_BRIEF)
+ *
+ * $(SHELL_LISTCREDENTIALS_THROWS)
+ * $(SHELL_LISTCREDENTIALS_THROWS1)
+ * $(SHELL_LISTCREDENTIALS_THROWS2)
+ *
+ * $(SHELL_LISTCREDENTIALS_RETURNS)
+ */
+#if DOXYGEN_JS
+List Shell::listCredentials() {}
+#elif DOXYGEN_PY
+list Shell::list_credentials() {}
+#endif
+shcore::Value Shell::list_credentials(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("listCredentials").c_str());
+
+  shcore::Value ret_val;
+
+  try {
+    shcore::Value::Array_type_ref values =
+        std::make_shared<shcore::Value::Array_type>();
+
+    for (const auto &credential :
+         shcore::Credential_manager::get().list_credentials()) {
+      values->emplace_back(credential);
+    }
+
+    ret_val = shcore::Value(values);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("listCredentials"));
+
+  return ret_val;
+}
+
 }  // namespace mysqlsh

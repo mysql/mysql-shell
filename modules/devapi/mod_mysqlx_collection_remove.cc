@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -198,8 +198,8 @@ REGISTER_HELP(COLLECTIONREMOVE_SORT_RETURNS,
 REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL,
               "The elements of sortExprStr list are strings defining the "
               "column name on which "
-              "the sorting will be based in the form of 'columnIdentifier [ "
-              "ASC | DESC ]'.");
+              "the sorting will be based in the form of 'columnIdentifier "
+              "[ ASC | DESC ]'.");
 REGISTER_HELP(
     COLLECTIONREMOVE_SORT_DETAIL1,
     "If no order criteria is specified, ascending will be used by default.");

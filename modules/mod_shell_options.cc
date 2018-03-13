@@ -40,59 +40,81 @@ REGISTER_HELP(OPTIONS_DETAIL,
               "The options object acts as a dictionary, it may contain "
               "the following attributes:");
 REGISTER_HELP(OPTIONS_DETAIL1,
+              "@li autocomplete.nameCache: true if auto-refresh of DB object "
+              "name cache is "
+              "enabled. The \\rehash command can be used for manual refresh");
+REGISTER_HELP(OPTIONS_DETAIL2,
               "@li batchContinueOnError: read-only, "
               "boolean value to indicate if the "
               "execution of an SQL script in batch "
               "mode shall continue if errors occur");
-REGISTER_HELP(OPTIONS_DETAIL2,
-              "@li interactive: read-only, boolean "
-              "value that indicates if the shell is "
-              "running in interactive mode");
 REGISTER_HELP(OPTIONS_DETAIL3,
-              "@li outputFormat: controls the type of "
-              "output produced for SQL results.");
+              "@li credentialStore.excludeFilters: array of URLs for which "
+              "automatic password storage is disabled, supports glob "
+              "characters '*' and '?'");
 REGISTER_HELP(OPTIONS_DETAIL4,
-              "@li sandboxDir: default path where the "
-              "new sandbox instances for InnoDB "
-              "cluster will be deployed");
+              "@li credentialStore.helper: name of the credential helper to "
+              "use to fetch/store passwords; a special value \"default\" is "
+              "supported to use platform default helper; a special value "
+              "\"@<disabled>\" is supported to disable the credential store");
 REGISTER_HELP(OPTIONS_DETAIL5,
-              "@li showWarnings: boolean value to "
-              "indicate whether warnings shall be "
-              "included when printing an SQL result");
+              "@li credentialStore.savePasswords: controls automatic password "
+              "storage, allowed values: \"always\", \"prompt\" or \"never\" ");
 REGISTER_HELP(OPTIONS_DETAIL6,
-              "@li useWizards: read-only, boolean value "
-              "to indicate if the Shell is using the "
-              "interactive wrappers (wizard mode)");
+              "@li dba.gtidWaitTimeout: timeout value in seconds to wait for "
+              "GTIDs to be synchronized");
 REGISTER_HELP(OPTIONS_DETAIL7,
-              "@li history.maxSize: number "
-              "of entries to keep in command history");
+              "@li defaultMode: shell mode to use when shell is started, "
+              "allowed values: \"js\", \"py\", \"sql\" or \"none\" ");
 REGISTER_HELP(OPTIONS_DETAIL8,
-              "@li history.autoSave: true "
-              "to save command history when exiting the shell");
-REGISTER_HELP(OPTIONS_DETAIL9,
-              "@li history.sql.ignorePattern: colon separated list of glob "
-              "patterns to filter"
-              " out of the command history in SQL mode");
-
-REGISTER_HELP(OPTIONS_DETAIL10,
-              "The outputFormat option supports the following values:");
-REGISTER_HELP(OPTIONS_DETAIL11,
-              "@li table: displays the output in table format (default)");
-REGISTER_HELP(OPTIONS_DETAIL12, "@li json: displays the output in JSON format");
-REGISTER_HELP(
-    OPTIONS_DETAIL13,
-    "@li json/raw: displays the output in a JSON format but in a single line");
-REGISTER_HELP(
-    OPTIONS_DETAIL14,
-    "@li vertical: displays the outputs vertically, one line per column value");
-REGISTER_HELP(OPTIONS_DETAIL15,
-              "@li autocomplete.nameCache: true if auto-refresh of DB object "
-              "name cache is "
-              "enabled. The \\rehash command can be used for manual refresh");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL16,
               "@li devapi.dbObjectHandles: true to enable schema collection "
               "and table name aliases in the db "
               "object, for DevAPI operations.");
+REGISTER_HELP(OPTIONS_DETAIL9,
+              "@li history.autoSave: true "
+              "to save command history when exiting the shell");
+REGISTER_HELP(OPTIONS_DETAIL10,
+              "@li history.maxSize: number "
+              "of entries to keep in command history");
+REGISTER_HELP(OPTIONS_DETAIL11,
+              "@li history.sql.ignorePattern: colon separated list of glob "
+              "patterns to filter"
+              " out of the command history in SQL mode");
+REGISTER_HELP(OPTIONS_DETAIL12,
+              "@li interactive: read-only, boolean "
+              "value that indicates if the shell is "
+              "running in interactive mode");
+REGISTER_HELP(OPTIONS_DETAIL13, "@li logLevel: current log level");
+REGISTER_HELP(OPTIONS_DETAIL14,
+              "@li outputFormat: controls the type of "
+              "output produced for SQL results.");
+REGISTER_HELP(OPTIONS_DETAIL15,
+              "@li passwordsFromStdin: boolean value that indicates if the "
+              "shell should read passwords from stdin instead of the tty");
+REGISTER_HELP(OPTIONS_DETAIL16,
+              "@li sandboxDir: default path where the "
+              "new sandbox instances for InnoDB "
+              "cluster will be deployed");
+REGISTER_HELP(OPTIONS_DETAIL17,
+              "@li showWarnings: boolean value to "
+              "indicate whether warnings shall be "
+              "included when printing an SQL result");
+REGISTER_HELP(OPTIONS_DETAIL18,
+              "@li useWizards: read-only, boolean value "
+              "to indicate if the Shell is using the "
+              "interactive wrappers (wizard mode)");
+
+REGISTER_HELP(OPTIONS_DETAIL19,
+              "The outputFormat option supports the following values:");
+REGISTER_HELP(OPTIONS_DETAIL20,
+              "@li table: displays the output in table format (default)");
+REGISTER_HELP(OPTIONS_DETAIL21, "@li json: displays the output in JSON format");
+REGISTER_HELP(
+    OPTIONS_DETAIL22,
+    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(
+    OPTIONS_DETAIL23,
+    "@li vertical: displays the outputs vertically, one line per column value");
 
 std::string &Options::append_descr(std::string &s_out, int indent,
                                    int quote_strings) const {

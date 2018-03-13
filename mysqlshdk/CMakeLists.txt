@@ -19,13 +19,15 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+include_directories(SYSTEM
+    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
+
 include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
-    ${CMAKE_BINARY_DIR}/mysqlshdk/include
-    ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
+    ${CMAKE_BINARY_DIR}/mysqlshdk/include)
 
 
 # Enable full warnings for new libraries only for now
@@ -38,6 +40,7 @@ ADD_SUBDIRECTORY(libs/db)
 ADD_SUBDIRECTORY(libs/mysql)
 ADD_SUBDIRECTORY(libs/textui)
 ADD_SUBDIRECTORY(libs/innodbcluster)
+ADD_SUBDIRECTORY(libs/secret-store-api)
 SET(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
 
 add_subdirectory(scripting)
@@ -55,6 +58,7 @@ merge_libraries(mysqlshdk-static STATIC
     db
     mysql
     innodbcluster
+    mysql-secret-store-api
     textui
     scripting
     shellcore NOINSTALL)
@@ -73,7 +77,3 @@ target_link_libraries(mysqlshdk-static
           ${MYSQLX_LIBRARIES}
           ${PROTOBUF_LIBRARIES}
           ${SSL_LIBRARIES})
-
-if (NOT WIN32)
-  target_link_libraries(mysqlshdk-static util)
-endif()

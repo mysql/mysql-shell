@@ -34,9 +34,11 @@ if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
 
+    include_directories(SYSTEM
+                ${CMAKE_SOURCE_DIR}/ext/rapidjson/include)
+
     include_directories(BEFORE
                 ${CMAKE_SOURCE_DIR}/unittest
-                ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
                 ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include
                 ${CMAKE_SOURCE_DIR}/mysqlshdk/libs
                 ${CMAKE_SOURCE_DIR}/mysqlshdk/include
@@ -47,6 +49,8 @@ if(WITH_TESTS)
                 ${GMOCK_INCLUDE_DIRS}
                 ${PYTHON_INCLUDE_DIR}
                 ${V8_INCLUDE_DIR})
+
+    add_subdirectory(mysql-secret-store-plaintext)
 
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/shellcore/*.cc"
