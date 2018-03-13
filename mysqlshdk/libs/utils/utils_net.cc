@@ -24,16 +24,30 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 #ifdef WIN32
+// clang-format off
+#include <WinSock2.h>
 #include <Ws2tcpip.h>
+#include <Iphlpapi.h>
+#include <windows.h>
+// clang-format on
+// for GetIpAddrTable()
+#pragma comment(lib, "IPHLPAPI.lib")
 #else
 #include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
-
+#include <errno.h>
+#include <algorithm>
 #include <cstring>
 #include <memory>
+#include <vector>
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -67,6 +81,152 @@ int get_protocol_family(const std::string &address) {
   return family;
 }
 
+void get_host_ip_addresses(const std::string &host,
+                           std::vector<std::string> *out_addrs) {
+  assert(out_addrs);
+
+  auto prepare_net_error = [&host](const char *error) -> net_error {
+    return net_error{"Could not resolve " + host + ": " + error + "."};
+  };
+
+  addrinfo hints;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;  // IPv4
+
+  addrinfo *info = nullptr;
+  int result = getaddrinfo(host.c_str(), nullptr, &hints, &info);
+
+  if (result != 0) throw prepare_net_error(gai_strerror(result));
+
+  if (info != nullptr) {
+    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+
+    // return first IP address
+    char ip[NI_MAXHOST];
+
+    result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
+                         nullptr, 0, NI_NUMERICHOST);
+
+    if (result != 0) throw prepare_net_error(gai_strerror(result));
+
+    out_addrs->push_back(ip);
+  } else {
+    throw prepare_net_error("Unable to resolve host");
+  }
+}
+
+std::string get_this_hostname() {
+  char hostname[1024] = {'\0'};
+  if (gethostname(hostname, sizeof(hostname)) < 0)
+    throw net_error("Could not get local host address: " +
+                    shcore::errno_to_string(errno));
+  return hostname;
+}
+
+#ifdef _WIN32
+void get_this_host_addresses(bool prefer_name,
+                             std::vector<std::string> *out_addrs) {
+  assert(out_addrs);
+
+  MIB_IPADDRTABLE *addr_table;
+  DWORD size = 0;
+  DWORD ret = 0;
+  std::vector<char> buffer;
+
+  buffer.resize(sizeof(MIB_IPADDRTABLE));
+  addr_table = reinterpret_cast<MIB_IPADDRTABLE *>(&buffer[0]);
+  // Note: unlike getifaddrs() this will include loopback interfaces
+  if (GetIpAddrTable(addr_table, &size, 0) == ERROR_INSUFFICIENT_BUFFER) {
+    buffer.resize(size);
+    addr_table = reinterpret_cast<MIB_IPADDRTABLE *>(&buffer[0]);
+  }
+
+  if ((ret = GetIpAddrTable(addr_table, &size, 0)) != NO_ERROR) {
+    LPVOID msgbuf;
+
+    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                          FORMAT_MESSAGE_FROM_SYSTEM |
+                          FORMAT_MESSAGE_IGNORE_INSERTS,
+                      NULL, ret, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      (LPTSTR)&msgbuf, 0, NULL)) {
+      std::string tmp(static_cast<char *>(msgbuf));
+      LocalFree(msgbuf);
+      throw std::runtime_error(tmp);
+    }
+    throw std::runtime_error("Error on call to GetIpAddrTable()");
+  }
+
+  for (DWORD i = 0; i < addr_table->dwNumEntries; i++) {
+    IN_ADDR addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.S_un.S_addr = (u_long)addr_table->table[i].dwAddr;
+    out_addrs->push_back(inet_ntoa(addr));
+  }
+  if (out_addrs->empty()) out_addrs->push_back(get_this_hostname());
+}
+
+#elif defined(__APPLE__) || defined(__linux__)
+
+void get_this_host_addresses(bool prefer_name,
+                             std::vector<std::string> *out_addrs) {
+  assert(out_addrs);
+
+  struct ifaddrs *ifa, *ifap;
+  int ret = EAI_NONAME, family, addrlen;
+
+  if (getifaddrs(&ifa) != 0)
+    throw net_error("Could not get local host address: " +
+                    shcore::errno_to_string(errno));
+
+  for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
+    /* Skip interfaces that are not UP, do not have configured addresses, and
+     * loopback interface */
+    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) ||
+        (!(ifap->ifa_flags & IFF_UP)))
+      continue;
+
+    /* Only handle IPv4 and IPv6 addresses */
+    family = ifap->ifa_addr->sa_family;
+    if (family != AF_INET && family != AF_INET6) continue;
+
+    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in)
+                                  : sizeof(struct sockaddr_in6);
+
+    /* Skip IPv6 link-local addresses */
+    if (family == AF_INET6) {
+      struct sockaddr_in6 *sin6;
+
+      sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
+      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) ||
+          IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
+        continue;
+    }
+
+    char hostname[1024] = {'\0'};
+    ret = -1;
+    if (prefer_name)
+      ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname),
+                        NULL, 0, NI_NAMEREQD);
+    if (ret != 0)
+      ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname),
+                        NULL, 0, NI_NUMERICHOST);
+    if (ret == 0) out_addrs->push_back(hostname);
+  }
+  if (out_addrs->empty()) {
+    out_addrs->push_back(get_this_hostname());
+  }
+}
+
+#else
+
+void get_this_host_addresses(std::vector<std::string> *out_addrs,
+                             bool /*prefer_name*/) {
+  assert(out_addrs);
+  out_addrs->push_back(get_this_hostname());
+}
+#endif
+
 }  // namespace
 
 Net *Net::s_implementation = nullptr;
@@ -83,6 +243,21 @@ bool Net::is_ipv6(const std::string &host) {
   return get_protocol_family(host) == AF_INET6;
 }
 
+bool Net::is_loopback(const std::string &address) {
+  return get()->is_loopback_impl(address);
+}
+
+bool Net::is_local_address(const std::string &address) {
+  return get()->is_local_address_impl(address);
+}
+
+std::string Net::get_hostname() { return get()->get_hostname_impl(); }
+
+void Net::get_local_addresses(std::vector<std::string> *out_addrs) {
+  assert(out_addrs);
+  get_this_host_addresses(false, out_addrs);
+}
+
 Net *Net::get() {
   static Net instance;
 
@@ -92,17 +267,14 @@ Net *Net::get() {
     return &instance;
 }
 
-void Net::set(Net *implementation) {
-  s_implementation = implementation;
-}
+void Net::set(Net *implementation) { s_implementation = implementation; }
 
 std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
   auto prepare_net_error = [&name](const char *error) -> net_error {
     return net_error{"Could not resolve " + name + ": " + error + "."};
   };
 
-  if (is_ipv4(name))
-    return name;
+  if (is_ipv4(name)) return name;
 
   addrinfo hints;
 
@@ -112,8 +284,7 @@ std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
   addrinfo *info = nullptr;
   int result = getaddrinfo(name.c_str(), nullptr, &hints, &info);
 
-  if (result != 0)
-    throw prepare_net_error(gai_strerror(result));
+  if (result != 0) throw prepare_net_error(gai_strerror(result));
 
   if (info != nullptr) {
     std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
@@ -122,10 +293,9 @@ std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
     char ip[NI_MAXHOST];
 
     result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
-                          nullptr, 0, NI_NUMERICHOST);
+                         nullptr, 0, NI_NUMERICHOST);
 
-    if (result != 0)
-      throw prepare_net_error(gai_strerror(result));
+    if (result != 0) throw prepare_net_error(gai_strerror(result));
 
     return ip;
   } else {
@@ -133,21 +303,46 @@ std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
   }
 }
 
-bool is_loopback_address(const std::string &name) {
-  struct hostent *he;
-  // if the host is not local, we try to resolve it and see if it points to
-  // a loopback
-  he = gethostbyname(name.c_str());
-  if (he) {
-    for (struct in_addr **h = (struct in_addr **)he->h_addr_list; *h; ++h) {
-      const char *addr = inet_ntoa(**h);
-      if (strncmp(addr, "127.", 4) == 0) {
-        return true;
-      }
-    }
+bool Net::is_loopback_impl(const std::string &name) const {
+  if (name == "localhost" || name == "::1") return true;
+
+  std::vector<std::string> addresses;
+  try {
+    get_host_ip_addresses(name, &addresses);
+  } catch (std::exception &e) {
+    log_info("%s", e.what());
+    return false;
   }
+
+  return (name.compare(0, 4, "127.") == 0);
+}
+
+bool Net::is_local_address_impl(const std::string &name) const {
+  if (is_loopback_impl(name)) return true;
+
+  std::vector<std::string> addresses;
+  get_this_host_addresses(false, &addresses);
+
+  if (std::find(addresses.begin(), addresses.end(), name) != addresses.end())
+    return true;
+
+  try {
+    std::vector<std::string> name_addr;
+    get_host_ip_addresses(name, &name_addr);
+
+    for (const std::string &n : name_addr) {
+      if (n == name ||
+          std::find(addresses.begin(), addresses.end(), n) != addresses.end())
+        return true;
+    }
+  } catch (std::exception &e) {
+    log_info("%s", e.what());
+  }
+
   return false;
 }
+
+std::string Net::get_hostname_impl() const { return get_this_hostname(); }
 
 }  // namespace utils
 }  // namespace mysqlshdk

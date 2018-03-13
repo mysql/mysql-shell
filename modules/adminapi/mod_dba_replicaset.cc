@@ -43,17 +43,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
-#ifdef _WIN32
-#define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
-#else
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-
-#include <netdb.h>
-#include <unistd.h>
-#endif
+#include "utils/utils_net.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -357,38 +347,10 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-/**
- * Validate whether the hostname cannot be used for setting up a cluster.
- * Basically, a local address can only be used if it's a sandbox.
- */
-static bool check_if_local_host(const std::string &hostname) {
-  if (is_local_host(hostname, false)) {
-    return true;
-  } else {
-    struct hostent *he;
-    // if the host is not local, we try to resolve it and see if it points to
-    // a loopback
-    he = gethostbyname(hostname.c_str());
-    if (he) {
-      for (struct in_addr **h = (struct in_addr **)he->h_addr_list; *h; ++h) {
-        const char *addr = inet_ntoa(**h);
-        if (strncmp(addr, "127.", 4) == 0) {
-          log_info("'%s' is a loopback address '%s'", hostname.c_str(), addr);
-          return true;
-        }
-      }
-    }
-    // we can't be sure that the address is actually valid here (unless we
-    // traverse DNS explicitly), but we'll assume it is and check if the
-    // server has something different configured
-    return false;
-  }
-}
-
 void ReplicaSet::validate_instance_address(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &hostname, int port) {
-  if (check_if_local_host(hostname)) {
+  if (mysqlshdk::utils::Net::is_loopback(hostname)) {
     // if the address is local (localhost or 127.0.0.1), we know it's local and
     // so can be used with sandboxes only
     std::string datadir = session->query("SELECT @@datadir")
@@ -419,7 +381,7 @@ void ReplicaSet::validate_instance_address(
     // host is not set explicitly by the user, so GR will pick hostname by
     // default now we check if this is a loopback address
     if (row->is_null(0)) {
-      if (check_if_local_host(row->get_as_string(1))) {
+      if (mysqlshdk::utils::Net::is_loopback(row->get_as_string(1))) {
         std::string msg = "MySQL server reports hostname as being '" +
                           row->get_as_string(1) +
                           "', which may cause the cluster to be inaccessible "

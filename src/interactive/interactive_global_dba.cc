@@ -40,6 +40,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 #include "utils/utils_path.h"
+#include "utils/utils_net.h"
 
 using std::placeholders::_1;
 using namespace shcore;
@@ -1535,7 +1536,7 @@ shcore::Value Global_dba::configure_local_instance(
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
-    if (!shcore::is_local_host(instance_def.get_host(), true))
+    if (!mysqlshdk::utils::Net::is_local_address(instance_def.get_host()))
       throw shcore::Exception::runtime_error(
           "This function only works with local instances");
 

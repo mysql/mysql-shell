@@ -459,19 +459,18 @@ TEST(Connection_options, set_socket) {
                     data.set_socket("/Path/To/Socket"));
   }
 
-  // Using socket is allowed for 127.0.0.1
+  // Using socket is not allowed for 127.0.0.1
   {
     mysqlshdk::db::Connection_options data;
     data.set_host("127.0.0.1");
-    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
+    EXPECT_THROW(data.set_socket("/Path/To/Socket"), std::invalid_argument);
 
     EXPECT_TRUE(data.has_host());
-    EXPECT_TRUE(data.has_socket());
+    EXPECT_FALSE(data.has_socket());
     EXPECT_TRUE(data.has_transport_type());
 
     EXPECT_STREQ("127.0.0.1", data.get_host().c_str());
-    EXPECT_STREQ("/Path/To/Socket", data.get_socket().c_str());
-    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
+    EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
   }
 
   // Using socket is not allowed for 127.0.0.1 is port was defined

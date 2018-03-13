@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::utils::nullable;
@@ -141,7 +142,7 @@ void Connection_options::set_pipe(const std::string& pipe) {
   if ((!_transport_type.is_null() && *_transport_type == Socket) ||
       !_port.is_null() ||
       (Nullable_options::has_value(kHost) &&
-       (!shcore::is_local_host(get_value(kHost), false) &&
+       (get_value(kHost) != "localhost" &&  // only localhost means "use socket"
         !(get_value(kHost) == "." && win32))))
     raise_connection_type_error("pipe connection to '" + pipe + "'");
 
@@ -153,7 +154,7 @@ void Connection_options::set_socket(const std::string& socket) {
   if ((!_transport_type.is_null() && *_transport_type == Pipe) ||
       !_port.is_null() ||
       (Nullable_options::has_value(kHost) &&
-       !shcore::is_local_host(get_value(kHost), false)))
+       get_value(kHost) != "localhost"))  // only localhost means "use socket"
     raise_connection_type_error("socket connection to '" + socket + "'");
 
   Nullable_options::set(kSocket, socket, Set_mode::UPDATE_NULL);

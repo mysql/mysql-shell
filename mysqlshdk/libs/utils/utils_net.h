@@ -26,6 +26,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace mysqlshdk {
 namespace utils {
@@ -74,6 +75,30 @@ class Net {
    */
   static bool is_ipv6(const std::string &host);
 
+  /**
+   * Checks whether the given address is a loopback
+   * (localhost, 127.*, ::1)
+   *
+   * @param  address IP or hostname to check
+   * @return         true if the address is a loopback
+   */
+  static bool is_loopback(const std::string &address);
+
+  /**
+   * Checks whether the given address belongs to a network interface of this
+   * host.
+   *
+   * @param  address IP or hostname to check
+   * @return         true if the address is local.
+   */
+  static bool is_local_address(const std::string &address);
+
+  /**
+   * Returns the name of this host.
+   * @return hostname
+   */
+  static std::string get_hostname();
+
  protected:
   /**
    * Provides the singleton instance of this class.
@@ -95,11 +120,20 @@ class Net {
    */
   virtual std::string resolve_hostname_ipv4_impl(const std::string &name) const;
 
+  virtual bool is_loopback_impl(const std::string &address) const;
+
+  virtual bool is_local_address_impl(const std::string &address) const;
+
+  virtual std::string get_hostname_impl() const;
  private:
   static Net *s_implementation;
-};
 
-bool is_loopback_address(const std::string &name);
+  static void get_local_addresses(std::vector<std::string> *out_addrs);
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(utils_net, get_local_addresses);
+#endif
+};
 
 }  // namespace utils
 }  // namespace mysqlshdk
