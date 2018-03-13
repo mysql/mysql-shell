@@ -574,7 +574,7 @@ int main(int argc, char **argv) {
 
     // Disabling Admin API tests, this has to be removed once WL10434 is merged
     if (g_target_server_version < mysqlshdk::utils::Version(8, 0, 11))
-      new_filter.append(":Shell_js_dba_tests.*:Admin_api_scripted.*");
+      new_filter.append(":Shell_js_dba_tests.*:Group_replication_Test.*:Admin_api_scripted*");
   }
   if (new_filter != filter) {
     std::cout << "Executing defined filter: " << new_filter.c_str()
