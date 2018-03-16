@@ -31,21 +31,13 @@ cluster.addInstance(__sandbox_uri2);
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-// Answer the prompt to continue without creating root@% (option 3).
-testutil.expectPrompt("*", "3");
-
-//@ Configure instance on port1.
+//@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.5)}
 var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root'});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {interactive: true, mycnfPath: cnfPath1, password:'root'});
 
-// Answer the prompt to continue without creating root@% (option 3).
-testutil.expectPrompt("*", "3");
-// Answer the prompt to disable super_read_only (y)
-testutil.expectPrompt("*", "y");
-
-//@ Configure instance on port2.
+//@ Configure instance on port2 to persist auto-rejoin settings {VER(<8.0.5)}
 var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, dbPassword:'root'});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {interactive: true, mycnfPath: cnfPath2, password:'root'});
 
 //@<OUT> Number of instance according to GR.
 print_instances_count_for_gr();
@@ -65,6 +57,10 @@ cluster.status();
 //@ Removing instance
 cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2);
 
+//@<> Remove instance post actions {VER(<8.0.5)}
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {interactive: false, mycnfPath: cnfPath2, password:'root'});
+testutil.changeSandboxConf(__mysql_sandbox_port2, 'group_replication_start_on_boot', 'OFF')
+
 //@<OUT> Cluster status after removal
 cluster.status();
 
@@ -74,7 +70,7 @@ print_instances_count_for_gr();
 
 //@ Stop instance on port2.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
-testutil.stopSandbox(__mysql_sandbox_port2, "root");
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 //@ Restart instance on port2.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
@@ -85,10 +81,9 @@ session.close();
 cluster.disconnect();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
-//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.4)}.
+//@<OUT> Confirm that GR start on boot is disabled
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
 // NOTE: Cannot count instance for GR due to a SET PERSIST bug (BUG#26495619).
-// This test check is only valid for server version >= 8.0.4.
 print_gr_start_on_boot();
 
 //@ Connect back to seed instance and get cluster.
@@ -106,7 +101,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Stop instance on port2
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-testutil.stopSandbox(__mysql_sandbox_port2, "root");
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Waiting for the instance on port2 to be found missing
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER

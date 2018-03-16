@@ -3,17 +3,17 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://local_blank:@localhost:33160?ssl-mode=REQUIRED",
+    "uri": "mysqlx://local_blank:@localhost:33400?ssl-mode=REQUIRED",
     "protocol": "x"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "81",
+    "connection_id": "82",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "5.7.21-log",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "server_version": "5.7.21-enterprise-commercial-advanced-log",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -121,7 +121,7 @@
     "rows": [
         [
             "Mysqlx_ssl_version",
-            "TLSv1.1"
+            "TLSv1.2"
         ]
     ]
 },
@@ -210,7 +210,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 117,
+            "length": 291,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -258,7 +258,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 198,
+            "length": 174,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -275,10 +275,10 @@
             "utf8mb4",
             "latin1",
             "latin1",
-            "5.7.21-log MySQL Community Server (GPL)",
+            "5.7.21-enterprise-commercial-advanced-log MySQL Enterprise Server - Advanced Edition (Commercial)",
             "mysqlx.sock",
-            33160,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            33400,
+            "/home/kg/repo/traces-5.7/ngshell/bld/bin/3340/sandboxdata/"
         ]
     ]
 },

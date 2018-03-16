@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://local_pass:pass@localhost:33110?ssl-mode=DISABLED",
+    "uri": "mysqlx://local_pass:pass@localhost:33170?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "20",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11-debug-log"
+    "server_version": "8.0.11"
 },
 {
     "type": "request",
@@ -48,7 +48,7 @@
     ],
     "rows": [
         [
-            "8.0.11-debug-log Source distribution"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },

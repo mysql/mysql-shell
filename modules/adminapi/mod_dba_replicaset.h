@@ -139,7 +139,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const shcore::Argument_list &args,
       const std::string &existing_replication_user = "",
       const std::string &existing_replication_password = "",
-      bool overwrite_seed = false, const std::string &group_name = "");
+      bool overwrite_seed = false, const std::string &group_name = "",
+      bool skip_instance_check = false);
 
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
@@ -217,7 +218,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::weak_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
-  std::shared_ptr<IConsole> m_console_handler;
+  std::shared_ptr<IConsole> m_console;
   std::shared_ptr<mysqlshdk::db::ISession> get_session(
     const mysqlshdk::db::Connection_options &args);
 };

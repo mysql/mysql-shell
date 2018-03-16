@@ -38,7 +38,7 @@ enum class ValidationType {
 // file have different needs: the validation type and stream are only needed for
 // validation, those things will start being ignored on the test scripts until
 // they are cleaned up
-struct Chunk_definition{
+struct Chunk_definition {
   std::string line;           // The line as read from the file
   std::string id;             // The ID of the chunk.
   std::string context;        // The context if defined.
@@ -117,6 +117,9 @@ public:
   void execute(const std::string& code);
 
  protected:
+  virtual void reset_shell();
+
+ protected:
   std::string _setup_script; // Name of the active script
   std::string _scripts_home; // Path to the scripts to be tested
   std::string _shell_scripts_home; // Id of the folder containing the setup and validation scripts
@@ -156,7 +159,12 @@ private:
   bool validate(const std::string& context,
                 const std::string &chunk_id = "__global__",
                 bool optional = false);
-  bool validate_line_by_line(const std::string& context, const std::string &chunk_id, const std::string &stream, const std::string& expected, const std::string &actual);
+  bool validate_line_by_line(const std::string& context,
+                             const std::string& chunk_id,
+                             const std::string& stream,
+                             const std::string& expected,
+                             const std::string& actual, int srcline,
+                             int valline);
   std::string resolve_string(const std::string& source);
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 

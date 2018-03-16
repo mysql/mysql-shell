@@ -39,16 +39,20 @@ setupInstance(connection2, true);
 setupInstance(connection3, false);
 
 //@<OUT> Configures the instance, answers 'yes' on the read only prompt
-var res = dba.configureLocalInstance(connection1);
+//NOTE: super-read-only is only required to be disable if we create the clusterAdmin user
+var res = dba.configureInstance(connection1, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"});
 
 //@<OUT> Configures the instance, read only set, no prompt
-var res = dba.configureLocalInstance(connection2, {clearReadOnly: true});
+var res = dba.configureInstance(connection2, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd", clearReadOnly: true});
 
 //@<OUT> Configures the instance, no prompt
-var res = dba.configureLocalInstance(connection3);
+var res = dba.configureInstance(connection3, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"});
+
+
+//@<> Connect
+shell.connect(connection1);
 
 //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
-shell.connect(connection1);
 var cluster = dba.createCluster('sample');
 
 //@<OUT> Adds a read only instance
@@ -66,7 +70,7 @@ wait_slave_state(cluster, uri3, "ONLINE");
 wait_sandbox_in_metadata(__mysql_sandbox_port3);
 
 // Rejoin instance
-testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+testutil.stopSandbox(__mysql_sandbox_port3);
 wait_slave_state(cluster, uri3, "(MISSING)");
 testutil.startSandbox(__mysql_sandbox_port3);
 ensureSuperReadOnly(connection3);
@@ -83,25 +87,25 @@ session.close();
 // testutil.startSandbox() to make sure the instance is restarted.
 
 //@ Stop sandbox 1
-testutil.stopSandbox(__mysql_sandbox_port1, 'root');
+testutil.stopSandbox(__mysql_sandbox_port1);
 
 //@ Stop sandbox 2
-testutil.stopSandbox(__mysql_sandbox_port2, 'root');
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 //@ Stop sandbox 3
-testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 //@ Start sandbox 1
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 //@ Start sandbox 2
 testutil.startSandbox(__mysql_sandbox_port2);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 //@ Start sandbox 3
 testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 //@<OUT> Reboot the cluster
 shell.connect(connection1);
@@ -110,7 +114,7 @@ var cluster = dba.rebootClusterFromCompleteOutage("sample");
 wait_slave_state(cluster, uri2, "ONLINE");
 wait_slave_state(cluster, uri3, "ONLINE");
 
-// Close session
+//@ Cleanup
 session.close();
 cluster.disconnect();
 

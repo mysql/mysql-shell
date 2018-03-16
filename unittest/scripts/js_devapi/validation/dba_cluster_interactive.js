@@ -32,20 +32,69 @@
 //@ Cluster: addInstance with interaction, error
 ||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
-//@<OUT> Cluster: addInstance with interaction, ok
+//@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.5)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Adding instance to the cluster ...
 
+Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance 3 with interaction, ok
+//@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.5)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Adding instance to the cluster ...
 
+Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+
+//@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.5)}
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster ...
+
+Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+
+//@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.5)}
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster ...
+
+Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: describe1
@@ -204,20 +253,69 @@ The following replicasets are currently registered:
 //@ Cluster: remove_instance 3
 ||
 
-//@<OUT> Cluster: addInstance with interaction, ok 3
+//@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.5)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Adding instance to the cluster ...
 
+Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance with interaction, ok 4
+//@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.5)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Adding instance to the cluster ...
 
+Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+
+//@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.5)}
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster ...
+
+Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+
+//@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.5)}
+A new instance will be added to the InnoDB cluster. Depending on the amount of
+data on the cluster this might take from a few seconds to several hours.
+
+Adding instance to the cluster ...
+
+Validating instance at localhost:<<<__mysql_sandbox_port3>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port3>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: status: success

@@ -144,7 +144,9 @@ function wait_slave_state(cluster, slave_uri, states) {
 
   println ("WAITING for " + slave_uri + " to be in one of these states: " + states);
 
-  wait(60, 1, _check_slave_state);
+  if (!wait(60, 1, _check_slave_state)) {
+    testutil.fail("Timeout while waiting for " + slave_uri + " to become " + repr(state));
+  }
 
   recov_cluster = null;
 }
@@ -609,4 +611,3 @@ function check_server_version(major, minor, patch) {
         (srv_major == major &&
             (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
 }
-

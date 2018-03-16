@@ -35,7 +35,7 @@ VERSION = (2, 1, 0, '', 0)
 
 VERSION_STRING = "%s.%s.%s" % VERSION[0:3]
 
-COPYRIGHT_YEAR = "2016, 2017, "
+COPYRIGHT_YEAR = "2016, 2018, "
 
 COPYRIGHT_FULL = (
     "Copyright (c) %s Oracle and/or its affiliates. All rights reserved.\n\n"
@@ -57,7 +57,7 @@ CONNECTOR_MIN_VERSION = (2, 1, 7)
 # follows: [MIN_MYSQL_VERSION, MAX_MYSQL_VERSION [
 MIN_MYSQL_VERSION = (5, 7, 17)  # minimum required version (supported)
 MAX_MYSQL_VERSION = (9, )       # maximum mysql version (not supported)
-MIN_PERSIST_MYSQL_VERSION = (8, 0, 4)  # minimum mysql version that supports
+MIN_PERSIST_MYSQL_VERSION = (8, 0, 5)  # minimum mysql version that supports
                                        # set persist syntax.
 
 

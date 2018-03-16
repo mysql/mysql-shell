@@ -346,6 +346,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance) {
         member.state = to_member_state(row->get_string(1));
         member.host = row->get_string(2);
         member.gr_port = row->get_int(3);
+        member.role = to_member_role(row->get_string(4));
         members.push_back(member);
 
         row = result->fetch_one();
@@ -727,10 +728,15 @@ std::map<std::string, std::string> check_server_variables(
 
 bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance) {
-  return instance.get_session()->query(
-      "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
-      "'thread/group_rpl/THD_delayed_initialization'")->fetch_one()
-          ->get_uint(0) != 0;
+  try {
+    return instance.get_session()->query(
+        "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+        "'thread/group_rpl/THD_delayed_initialization'")->fetch_one()
+            ->get_uint(0) != 0;
+  } catch (std::exception &e) {
+    log_warning("Error checking GR state: %s", e.what());
+    return false;
+  }
 }
 
 }  // namespace gr

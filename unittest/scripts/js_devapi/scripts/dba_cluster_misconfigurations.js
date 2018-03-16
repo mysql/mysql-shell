@@ -15,30 +15,19 @@ testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 // TODO(.) - changing the binlog_format will cause the createCluster to fail because of bug #27112727
 // testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "MIXED");
 
-testutil.restartSandbox(__mysql_sandbox_port1, "root");
+testutil.restartSandbox(__mysql_sandbox_port1);
 
 // connect as cluster admin
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
 
-//@ Dba.createCluster
+//@ Dba.createCluster (fail because of bad configuration)
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED'});
 else
   var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
-//@ Dissolve cluster (to re-create again)
-// Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
-cluster.dissolve({force: true});
-cluster.disconnect();
-
-session.close();
-
-// switch to root account to create database and tables
+//@ Setup next test
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-
-// Disable super-read-only (BUG#26422638)
-session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
-
 // Create test schema and tables PK, PKE, and UK
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
 session.runSql('SET sql_log_bin=0');
@@ -92,6 +81,9 @@ session.close();
 
 // switch back to cluster admin
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
+
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "binlog_checksum");
+session.runSql("SET GLOBAL binlog_checksum='NONE'");
 
 //@ Create cluster succeeds (no incompatible table)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION

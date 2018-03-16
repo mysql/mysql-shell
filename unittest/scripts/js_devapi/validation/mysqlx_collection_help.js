@@ -98,7 +98,7 @@ WHERE
 
 RETURNS
 
- A Result object containing the number of affected rows.
+  A Result object containing the number of affected rows.
 
 DESCRIPTION
 
@@ -133,7 +133,7 @@ WHERE
 
 RETURNS
 
- a Result object.
+  a Result object.
 
 DESCRIPTION
 
@@ -191,7 +191,7 @@ SYNTAX
 
 RETURNS
 
- A boolean indicating if the object still exists on the database.
+  A boolean indicating if the object still exists on the database.
 
 //@<OUT> Collection.help('find')
 Retrieves documents from a collection, matching a specified criteria.
@@ -395,7 +395,7 @@ WHERE
 
 RETURNS
 
- The Document object matching the given id or NULL if no match is found.
+  The Document object matching the given id or NULL if no match is found.
 
 //@<OUT> Collection.help('getSchema')
 Returns the Schema object of this database object.
@@ -406,7 +406,7 @@ SYNTAX
 
 RETURNS
 
- The Schema object used to get to this object.
+  The Schema object used to get to this object.
 
 DESCRIPTION
 
@@ -426,7 +426,7 @@ SYNTAX
 
 RETURNS
 
- The Session object used to get to this object.
+  The Session object used to get to this object.
 
 DESCRIPTION
 
@@ -665,7 +665,7 @@ WHERE
 
 RETURNS
 
- A Result object containing the number of affected rows.
+  A Result object containing the number of affected rows.
 
 DESCRIPTION
 
@@ -686,7 +686,7 @@ WHERE
 
 RETURNS
 
- A Result object containing the number of affected rows.
+  A Result object containing the number of affected rows.
 
 DESCRIPTION
 

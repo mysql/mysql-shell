@@ -101,16 +101,19 @@ void get_host_ip_addresses(const std::string &host,
 
   if (info != nullptr) {
     std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+    for (; info != nullptr; info = info->ai_next) {
+      // return first IP address
+      char ip[NI_MAXHOST];
 
-    // return first IP address
-    char ip[NI_MAXHOST];
+      result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
+                           nullptr, 0, NI_NUMERICHOST);
 
-    result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
-                         nullptr, 0, NI_NUMERICHOST);
+      if (result != 0) throw prepare_net_error(gai_strerror(result));
 
-    if (result != 0) throw prepare_net_error(gai_strerror(result));
-
-    out_addrs->push_back(ip);
+      if (std::find(out_addrs->begin(), out_addrs->end(), ip) ==
+          out_addrs->end())
+        out_addrs->push_back(ip);
+    }
   } else {
     throw prepare_net_error("Unable to resolve host");
   }
@@ -235,6 +238,11 @@ std::string Net::resolve_hostname_ipv4(const std::string &name) {
   return get()->resolve_hostname_ipv4_impl(name);
 }
 
+std::vector<std::string> Net::resolve_hostname_ipv4_all(
+    const std::string &name) {
+  return get()->resolve_hostname_ipv4_all_impl(name);
+}
+
 bool Net::is_ipv4(const std::string &host) {
   return get_protocol_family(host) == AF_INET;
 }
@@ -303,6 +311,13 @@ std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
   }
 }
 
+std::vector<std::string> Net::resolve_hostname_ipv4_all_impl(
+    const std::string &name) const {
+  std::vector<std::string> addrs;
+  get_host_ip_addresses(name, &addrs);
+  return addrs;
+}
+
 bool Net::is_loopback_impl(const std::string &name) const {
   if (name == "localhost" || name == "::1") return true;
 
@@ -335,17 +350,19 @@ bool Net::is_local_address_impl(const std::string &name) const {
   if (std::find(addresses.begin(), addresses.end(), name) != addresses.end())
     return true;
 
-  try {
-    std::vector<std::string> name_addr;
-    get_host_ip_addresses(name, &name_addr);
+  if (!is_ipv4(name) && !is_ipv6(name)) {
+    try {
+      std::vector<std::string> name_addr;
+      get_host_ip_addresses(name, &name_addr);
 
-    for (const std::string &n : name_addr) {
-      if (n == name ||
-          std::find(addresses.begin(), addresses.end(), n) != addresses.end())
-        return true;
+      for (const std::string &n : name_addr) {
+        if (n == name ||
+            std::find(addresses.begin(), addresses.end(), n) != addresses.end())
+          return true;
+      }
+    } catch (std::exception &e) {
+      log_info("%s", e.what());
     }
-  } catch (std::exception &e) {
-    log_info("%s", e.what());
   }
 
   return false;

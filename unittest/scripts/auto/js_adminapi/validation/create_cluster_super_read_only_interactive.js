@@ -7,7 +7,24 @@
 //@<OUT> create_cluster.read_only_no_prompts
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+
+//@<OUT> create_cluster.read_only_no_prompts {VER(>=8.0.5)}
+Adding Seed Instance...
+
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+//@<OUT> create_cluster.read_only_no_prompts {VER(<8.0.5)}
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -30,7 +47,7 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 1 open session(s) of 'root@localhost'.
 
-Do you want to disable super_read_only and continue? [y|N]:
+Do you want to disable super_read_only and continue? [y/N]:
 
 
 //@ prepare create_cluster.read_only_no_flag_prompt_no
@@ -49,7 +66,7 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 1 open session(s) of 'root@localhost'.
 
-Do you want to disable super_read_only and continue? [y|N]:
+Do you want to disable super_read_only and continue? [y/N]:
 Cancelled
 
 //@ prepare create_cluster.read_only_invalid_flag_value
@@ -64,7 +81,24 @@ Cancelled
 //@<OUT> create_cluster.read_only_flag_true
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+
+//@<OUT> create_cluster.read_only_flag_true {VER(>=8.0.5)}
+Adding Seed Instance...
+
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+//@<OUT> create_cluster.read_only_flag_true {VER(<8.0.5)}
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -75,7 +109,7 @@ one server failure.
 ||
 
 //@# create_cluster.read_only_flag_false
-||The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect
+||Server in SUPER_READ_ONLY mode
 
 
 //@ Cleanup

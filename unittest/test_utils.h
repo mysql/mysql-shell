@@ -68,6 +68,10 @@
                   << " but got something\n";                      \
   }
 
+namespace mysqlsh {
+class Test_debugger;
+}  // namespace mysqlsh
+
 namespace testing {
 // Fake deleter for shared pointers to avoid they attempt deleting the passed
 // object
@@ -159,11 +163,14 @@ class Shell_test_output_handler {
   std::list<std::pair<std::string, std::string>> prompts;
   std::list<std::pair<std::string, std::string>> passwords;
 
+  void set_internal(bool value) { m_internal = value; }
+
  protected:
   static ngcommon::Logger *_logger;
 
   static void log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level,
                        const char *domain);
+  bool m_internal;
 };
 
 #define MY_EXPECT_STDOUT_CONTAINS(x, ...)                               \
@@ -222,6 +229,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   // void process_result(shcore::Value result);
   void execute(int location, const std::string &code);
   void execute(const std::string &code);
+  void execute_internal(const std::string &code);
   void execute_noerr(const std::string &code);
   void exec_and_out_equals(const std::string &code, const std::string &out = "",
                            const std::string &err = "");
@@ -312,6 +320,10 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
     return _opts;
   }
+
+  unsigned int m_start_time = 0;
+
+  friend class mysqlsh::Test_debugger;
 };
 
 /**

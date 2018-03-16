@@ -54,9 +54,6 @@ class Auto_script_py : public Shell_py_script_tester,
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (getenv("TEST_DEBUG"))
-      output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
-
     if (connection_options.has_user())
       user = connection_options.get_user();
 
@@ -76,9 +73,19 @@ class Auto_script_py : public Shell_py_script_tester,
       _mysql_port = "3306";
     }
 
-    std::string code = "hostname = '" + _hostname + "';";
+    std::string code = "hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
-    code = "hostname_ip = '" + _hostname_ip + "';";
+
+    code = "real_hostname = '" + real_hostname() + "';";
+    exec_and_out_equals(code);
+
+    if (real_host_is_loopback())
+      code = "real_host_is_loopback = True;";
+    else
+      code = "real_host_is_loopback = False;";
+    exec_and_out_equals(code);
+
+    code = "hostname_ip = '" + hostname_ip() + "';";
     exec_and_out_equals(code);
     code = "__user = '" + user + "';";
     exec_and_out_equals(code);

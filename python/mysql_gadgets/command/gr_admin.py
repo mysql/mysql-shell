@@ -25,6 +25,7 @@
 This module contains the Group Replication Admin operation methods
 """
 
+import os
 import logging
 import random
 import textwrap
@@ -73,6 +74,7 @@ from mysql_gadgets.common.group_replication import (
     is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
     stop_gr_plugin, unset_bootstrap, validate_group_name)
 from mysql_gadgets.common.tools import is_listening
+from mysql_gadgets.common.config_parser import create_option_file
 
 logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
@@ -288,8 +290,10 @@ def check(**kwargs):
                                      file when modifying the options file.
                         server:     Connection information (dict | Server |
                                     str)
-                        remote: True if we are using configureInstance and
-                        False if we are using ConfigureLocalInstance
+                        output_cnf_path: Provided by the shell if the
+                                         option_file is non-writable, this
+                                         file is where we persist the
+                                         configuration settings.
     :type kwargs:     dict
 
     :raise GadgetError:  If the file cannot be updated.
@@ -304,7 +308,7 @@ def check(**kwargs):
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
     server_info = kwargs.get("server", None)
-    remote = kwargs.get("remote", False)
+    output_cnf_file = kwargs.get("output_cnf_path", None)
     # Get the server instance
     server = get_server(server_info=server_info)
 
@@ -318,6 +322,11 @@ def check(**kwargs):
     else:
         msg = "Running {0} command.".format(CHECK)
     _LOGGER.step(msg)
+    # if this is an update operation and a configuration file path was provided
+    # but doesn't exist, create that configuration file
+    if update and option_file is not None and not os.path.exists(option_file):
+        prefix, filename = os.path.split(option_file)
+        create_option_file(None, filename, prefix, replace=True)
     try:
         # if server already belongs to a group and the update option
         # was provided, dump its GR configurations to the option file
@@ -346,11 +355,14 @@ def check(**kwargs):
             # The dictionary with the requirements to be verified.
             if server is not None:
                 req_dict = get_req_dict(server, None, peer_server=None,
-                                        option_file=option_file)
+                                        option_file=option_file,
+                                        output_cnf_file=output_cnf_file)
                 skip_schema_checks = False
             else:
-                req_dict = get_req_dict_for_opt_file(option_file)
+                req_dict = get_req_dict_for_opt_file(
+                    option_file, output_cnf_file=output_cnf_file)
                 skip_schema_checks = True
+
             _LOGGER.step("Checking Group Replication prerequisites.")
 
             # set dry_run to avoid changes on server as replication user
@@ -358,7 +370,7 @@ def check(**kwargs):
             result = check_server_requirements(
                 server, req_dict, None, verbose=verbose, dry_run=True,
                 skip_schema_checks=skip_schema_checks, update=update,
-                skip_backup=skip_backup, remote=remote)
+                skip_backup=skip_backup)
 
             # verify the group replication is installed and not disabled.
             if server is not None:
@@ -739,6 +751,7 @@ def join(server_info, peer_server_info, **kwargs):
                                   thrown).
                         skip_rpl_user: If True, skip the creation of the
                                        replication user.
+                        target_is_local: Target is running in the same host
     :type kwargs:   dict
 
     :raise GadgetError:         If server_info or peer_server_info is None.
@@ -760,6 +773,7 @@ def join(server_info, peer_server_info, **kwargs):
     # Default is value for ssl_mode is REQUIRED
     ssl_mode = kwargs.get("ssl_mode", GR_SSL_REQUIRED)
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
+    target_is_local = kwargs.get("target_is_local", False)
 
     # Connect to the server
     server = get_server(server_info=server_info)
@@ -828,7 +842,9 @@ def join(server_info, peer_server_info, **kwargs):
 
         # Initialize log error access and get current position in it
         error_log_size = None
-        if server.is_alias("127.0.0.1"):
+        # is_alias(127.0.0.1) != is_alias(gethostname()), but they should
+        # match. also is_alias() can't be made to work nicely with recording
+        if target_is_local: # server.is_alias("127.0.0.1"):
             error_log = LocalErrorLog(server)
             try:
                 error_log_size = error_log.get_size()

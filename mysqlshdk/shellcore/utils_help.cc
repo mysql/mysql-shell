@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -173,50 +173,12 @@ std::string get_function_help(shcore::NamingStyle style,
     ret_val.append("()\n\n");
   }
 
-  // Describes the exceptions
-  auto throws = get_help_text(class_name + "_" + bfname + "_THROWS");
-
-  if (!throws.empty()) {
-    std::vector<std::string> enames;  // Exception names for the THROWS section
-    std::vector<std::string>
-        edescs;  // Exception descriptions as they are defined
-
-    for (auto exceptiondef : throws) {
-      // 8 is the length of: "\throws " or "@throws "
-      size_t start_index = 8;
-      auto ename = exceptiondef.substr(
-          start_index, exceptiondef.find(" ", start_index) - start_index);
-      enames.push_back(ename);
-
-      start_index += ename.size() + 1;
-      auto desc = exceptiondef.substr(start_index);
-      auto first_word = desc.substr(0, desc.find(" "));
-
-      edescs.push_back(desc);
-    }
-
-    ret_val.append("EXCEPTIONS\n\n");
-
-    size_t index;
-    for (index = 0; index < throws.size(); index++) {
-      ret_val.append("  " + enames[index] + ": ");
-
-      size_t exception_length = enames[index].size() + 4;
-
-      ret_val.append(
-          shcore::format_text({edescs[index]}, 80, exception_length, true) +
-          "\n");
-    }
-
-    ret_val.append("\n");
-  }
-
   auto returns = resolve_help_text(help_prefixes, "_" + bfname + "_RETURNS");
   if (!returns.empty()) {
     ret_val.append("RETURNS\n\n");
     // Removes the @returns tag
     returns[0] = returns[0].substr(8);
-    ret_val.append(shcore::format_markup_text(returns, 80, 0) + "\n\n");
+    ret_val.append(shcore::format_markup_text(returns, 80, 1) + "\n\n");
   }
 
   auto details = resolve_help_text(help_prefixes, "_" + bfname + "_DETAIL");
@@ -224,6 +186,13 @@ std::string get_function_help(shcore::NamingStyle style,
   if (!details.empty()) {
     ret_val.append("DESCRIPTION\n\n");
     ret_val.append(shcore::format_markup_text(details, 80, 0));
+  }
+
+  auto exceptions = resolve_help_text(help_prefixes, "_" + bfname + "_THROWS");
+
+  if (!exceptions.empty()) {
+    ret_val.append("\n\nEXCEPTIONS\n\n");
+    ret_val.append(shcore::format_markup_text(exceptions, 80, 2));
   }
 
   ret_val += "\n";

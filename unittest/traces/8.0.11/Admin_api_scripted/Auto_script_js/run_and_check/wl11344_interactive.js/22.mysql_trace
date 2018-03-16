@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3317",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "25",
+    "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@server_uuid"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -36,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 104,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "6e9a68e0-2634-11e8-9c8e-86068aa28fe3"
+            "8.0.11 Source distribution"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@mysqlx_port"
+    "sql": "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'"
 },
 {
     "type": "response",
@@ -70,51 +70,29 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@mysqlx_port",
-            "length": 21,
+            "schema": "performance_schema",
+            "table_name": "persisted_variables",
+            "table_label": "persisted_variables",
+            "column_name": "VARIABLE_NAME",
+            "column_label": "VARIABLE_NAME",
+            "length": 256,
             "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
             "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            33170
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
+            "binary": false
+        },
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 56,
-            "fractional": 31,
+            "schema": "performance_schema",
+            "table_name": "persisted_variables",
+            "table_label": "persisted_variables",
+            "column_name": "VARIABLE_VALUE",
+            "column_label": "VARIABLE_VALUE",
+            "length": 4096,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -126,8 +104,47 @@
     ],
     "rows": [
         [
-            "localhost:3327"
+            "group_replication_bootstrap_group",
+            "OFF"
+        ],
+        [
+            "group_replication_group_name",
+            "ca94447b-e6fc-11e7-b69d-4485005154dc"
+        ],
+        [
+            "group_replication_group_seeds",
+            ""
+        ],
+        [
+            "group_replication_local_address",
+            "localhost:33161"
+        ],
+        [
+            "group_replication_recovery_use_ssl",
+            "ON"
+        ],
+        [
+            "group_replication_single_primary_mode",
+            "OFF"
+        ],
+        [
+            "group_replication_ssl_mode",
+            "REQUIRED"
+        ],
+        [
+            "group_replication_start_on_boot",
+            "ON"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 7
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 8
 },
 null]

@@ -619,7 +619,7 @@ def create_sandbox(**kwargs):
 
     # Fake PID to avoid the server starting the monitoring process
     if os.name == "nt":
-        os.environ['MYSQLD_PARENT_PID'] = '0'
+        os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
 
     init_proc = tools.run_subprocess(create_cmd, shell=False, close_fds=True)
     init_proc.wait()
@@ -699,7 +699,7 @@ def create_sandbox(**kwargs):
 
         # Fake PID to avoid the server starting the monitoring process
         if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = '0';
+            os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
 
         _LOGGER.debug("Launching mysqld")
         server_proc = tools.run_subprocess(start_cmd, close_fds=True)
@@ -761,7 +761,7 @@ def create_sandbox(**kwargs):
 
         # Fake PID to avoid the server starting the monitoring process
         if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = '0';
+            os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
 
         _LOGGER.debug("Launching mysqld to change the root password")
         server_proc = tools.run_subprocess(start_cmd, close_fds=True)
@@ -1033,16 +1033,16 @@ def start_sandbox(**kwargs):
             # Find out last position of error log, before starting the process
             # since the error log persists several sessions.
             error_log_end_pos = os.path.getsize(enc_error_log_path)
-            error_log_mtime = os.stat(enc_error_log_path).st_mtime
+            error_log_size = os.stat(enc_error_log_path).st_size
         else:
             # if error_log didn't exist, start reading at the beginning of the
             # file
             error_log_end_pos = 0
-            error_log_mtime = 0
+            error_log_size = 0
 
         # Fake PID to avoid the server starting the monitoring process
         if os.name == "nt":
-            os.environ['MYSQLD_PARENT_PID'] = '0'
+            os.environ['MYSQLD_PARENT_PID'] = "{0}".format(port)
 
         server_proc = tools.run_subprocess(start_cmd, shell=False,
                                            close_fds=True)
@@ -1059,7 +1059,7 @@ def start_sandbox(**kwargs):
                 # Wait for the log file to be created by the server.
                 time.sleep(1)
                 i += 1
-            elif os.stat(enc_error_log_path).st_mtime > error_log_mtime:
+            elif os.stat(enc_error_log_path).st_size > error_log_size:
                 # Log file created or updated by the server and available.
                 break
             else:
@@ -1259,7 +1259,7 @@ def stop_sandbox(**kwargs):
             # there is a process listening on the specified port, but there is
             # no pid file so emmit a warning and do nothing
             _LOGGER.warning("There is no MySQL sandbox listening on port %i, "
-                            "but a pid file was still found. Removing it.")
+                            "but a pid file was still found. Removing it.", port)
             try:
                 # On Windows os.unlink() issues an error if the encoded PID
                 # file path is used (despite actually removing the file). Not

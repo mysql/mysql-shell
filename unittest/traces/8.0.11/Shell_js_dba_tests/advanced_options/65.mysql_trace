@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "36",
+    "connection_id": "42",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:23350"
+            "localhost:23326"
         ]
     ]
 },
@@ -320,43 +320,103 @@
     ],
     "rows": [
         [
-            "'mysql_innodb_cluster_r0000000003'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000007'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000005'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_r0000000004'@'localhost'"
-        ],
-        [
             "'mysql_innodb_cluster_r0000000001'@'localhost'"
         ],
         [
             "'mysql_innodb_cluster_r0000000002'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000008'@'localhost'"
+            "'mysql_innodb_cluster_r0000000003'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000004'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000005'@'localhost'"
         ],
         [
             "'mysql_innodb_cluster_r0000000006'@'localhost'"
         ],
         [
+            "'mysql_innodb_cluster_r0000000007'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000008'@'localhost'"
+        ],
+        [
             "'mysql_innodb_cluster_r0000000009'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000009'@'%'"
+            "'mysql_innodb_cluster_r0000000010'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000008'@'%'"
+            "'mysql_innodb_cluster_r0000000011'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000012'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000013'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000014'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000015'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000016'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000017'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000018'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000019'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000006'@'%'"
         ],
         [
             "'mysql_innodb_cluster_r0000000007'@'%'"
         ],
         [
-            "'mysql_innodb_cluster_r0000000006'@'%'"
+            "'mysql_innodb_cluster_r0000000008'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000009'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000010'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000011'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000012'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000013'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000014'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000015'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000016'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000017'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000018'@'%'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000019'@'%'"
         ]
     ]
 },
@@ -364,7 +424,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost'"
 },
 {
     "type": "response",
@@ -379,7 +439,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
 },
 {
     "type": "response",
@@ -394,7 +454,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost'"
 },
 {
     "type": "response",
@@ -424,7 +484,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost'"
 },
 {
     "type": "response",
@@ -439,7 +499,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 35,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'localhost'"
 },
 {
     "type": "response",
@@ -454,7 +514,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'localhost'"
 },
 {
     "type": "response",
@@ -469,7 +529,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'localhost'"
 },
 {
     "type": "response",
@@ -499,7 +559,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000009'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000010'@'localhost'"
 },
 {
     "type": "response",
@@ -514,7 +574,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000011'@'localhost'"
 },
 {
     "type": "response",
@@ -529,7 +589,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000012'@'localhost'"
 },
 {
     "type": "response",
@@ -544,7 +604,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000013'@'localhost'"
 },
 {
     "type": "response",
@@ -559,7 +619,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 51,
-    "sql": "SET SESSION `sql_log_bin` = 1"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000014'@'localhost'"
 },
 {
     "type": "response",
@@ -574,7 +634,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 53,
-    "sql": "SET GLOBAL `super_read_only` = 'ON'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000015'@'localhost'"
 },
 {
     "type": "response",
@@ -589,12 +649,312 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = 'group_replication_recovery'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000016'@'localhost'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 56,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 57,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000017'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 58,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 59,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000018'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 60,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 61,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000019'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 62,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 63,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000006'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 64,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 65,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000007'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 66,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 67,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 68,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 69,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000009'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 70,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 71,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000010'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 72,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 73,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000011'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 74,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 75,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000012'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 76,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 77,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000013'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 78,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 79,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000014'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 80,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 81,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000015'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 82,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 83,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000016'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 84,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 85,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000017'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 86,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 87,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000018'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 88,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 89,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000019'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 90,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 91,
+    "sql": "SET SESSION `sql_log_bin` = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 92,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 93,
+    "sql": "SET GLOBAL `super_read_only` = 'ON'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 94,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 95,
+    "sql": "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = 'group_replication_recovery'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 96,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -619,18 +979,18 @@
     ],
     "rows": [
         [
-            "mysql_innodb_cluster_00000000019"
+            "mysql_innodb_cluster_r0000000019"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 57
+    "index": 97
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 58
+    "index": 98
 },
 null]

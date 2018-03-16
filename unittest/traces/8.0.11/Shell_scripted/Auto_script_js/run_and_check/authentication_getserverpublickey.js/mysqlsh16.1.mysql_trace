@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://remo_blank:@localhost:4010?ssl-mode=DISABLED&get-server-public-key=true",
+    "uri": "mysql://remo_blank:@localhost:3316?ssl-mode=DISABLED&get-server-public-key=true",
     "protocol": "classic"
 },
 {

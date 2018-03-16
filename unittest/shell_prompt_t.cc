@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,7 +38,14 @@
 
 namespace mysqlsh {
 
-TEST(Shell_prompt, prompt) {
+class Shell_prompt : public ::testing::Test {
+ public:
+  static void TearDownTestCase() {
+    mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
+  }
+};
+
+TEST_F(Shell_prompt, prompt) {
   Prompt_renderer prompt;
 
   prompt.set_prompt("> ", "-> ", mysqlshdk::textui::Style());
@@ -49,7 +56,7 @@ TEST(Shell_prompt, prompt) {
   EXPECT_EQ("-> ", prompt.render());
 }
 
-TEST(Shell_prompt, prompt_static) {
+TEST_F(Shell_prompt, prompt_static) {
   {
     Prompt_renderer prompt;
     prompt.set_width(100);
@@ -81,16 +88,14 @@ TEST(Shell_prompt, prompt_static) {
 
 static mysqlshdk::textui::Style mkstyle(int fg, int bg) {
   mysqlshdk::textui::Style style1;
-  if (fg >= 0)
-    style1.field_mask |= mysqlshdk::textui::Style::Color_16_fg_set;
-  if (bg >= 0)
-    style1.field_mask |= mysqlshdk::textui::Style::Color_16_bg_set;
+  if (fg >= 0) style1.field_mask |= mysqlshdk::textui::Style::Color_16_fg_set;
+  if (bg >= 0) style1.field_mask |= mysqlshdk::textui::Style::Color_16_bg_set;
   style1.fg.color_16 = fg;
   style1.bg.color_16 = bg;
   return style1;
 }
 
-TEST(Shell_prompt, separator_styling) {
+TEST_F(Shell_prompt, separator_styling) {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::Color_256);
 
   {
@@ -199,7 +204,7 @@ TEST(Shell_prompt, separator_styling) {
   }
 }
 
-TEST(Shell_prompt, prompt_line_shrink) {
+TEST_F(Shell_prompt, prompt_line_shrink) {
   // Truncate_on_dot
   {
     Prompt_renderer prompt(5);
@@ -412,19 +417,19 @@ TEST(Shell_prompt, prompt_line_shrink) {
   }
 }
 
-TEST(Shell_prompt, color_16) {
+TEST_F(Shell_prompt, color_16) {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::Color_256);
 }
 
-TEST(Shell_prompt, color_24bit) {
+TEST_F(Shell_prompt, color_24bit) {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::Color_256);
 }
 
-TEST(Shell_prompt, color_i256) {
+TEST_F(Shell_prompt, color_i256) {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::Color_256);
 }
 
-TEST(Shell_prompt, color_i256_unicode) {
+TEST_F(Shell_prompt, color_i256_unicode) {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::Color_256);
   Prompt_renderer prompt;
   uint8_t rgb0[3] = {0, 0, 0};
@@ -1045,8 +1050,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                   "-e", "set autocommit=0;", nullptr});
     EXPECT_EQ(0, rc);
     EXPECT_PROMPT(
-        "host=" + _host + "  port=" + "  mode=sql" +
-        "  Mode=SQL  uri=" + uri +
+        "host=" + _host + "  port=" + "  mode=sql" + "  Mode=SQL  uri=" + uri +
         "  user=root  schema=  ssl=  date=" + fmttime("%F") +
         "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
         "sessvar:autocommit=OFF  "

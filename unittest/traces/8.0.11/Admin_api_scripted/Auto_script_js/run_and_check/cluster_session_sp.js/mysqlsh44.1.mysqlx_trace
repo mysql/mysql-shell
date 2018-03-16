@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://root:root@localhost:33500",
+    "uri": "mysqlx://root:root@localhost:33260",
     "protocol": "x"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "65",
+    "connection_id": "64",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11",
+    "server_version": "8.0.11-debug",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
@@ -169,9 +169,9 @@
     ],
     "rows": [
         [
-            "2041e5ce-22cc-11e8-990c-5ce0c50b9d66",
+            "2b09e6ff-26de-11e8-993e-b86b230042b9",
             1,
-            "1bc4e25c-22cc-11e8-8a74-5ce0c50b9d66",
+            "2657fa07-26de-11e8-8e38-b86b230042b9",
             "ONLINE"
         ]
     ]
@@ -290,7 +290,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "select @@port"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '2b09e6ff-26de-11e8-993e-b86b230042b9'"
 },
 {
     "type": "response",
@@ -302,36 +302,224 @@
     "info": "",
     "columns": [
         {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "instances",
+            "table_label": "i",
+            "column_name": "mysql_server_uuid",
+            "column_label": "mysql_server_uuid",
+            "length": 160,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "instances",
+            "table_label": "i",
+            "column_name": "instance_name",
+            "column_label": "instance_name",
+            "length": 1024,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "instances",
+            "table_label": "i",
+            "column_name": "role",
+            "column_label": "role",
+            "length": 0,
+            "fractional": 0,
+            "type": "Enum",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
             "schema": "",
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@port",
-            "length": 21,
+            "column_label": "endpoint",
+            "length": 16777216,
             "fractional": 0,
-            "type": "UInteger",
-            "collation": "?",
-            "charset": "?",
-            "collation_id": 0,
-            "unsigned": true,
+            "type": "String",
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "xendpoint",
+            "length": 16777216,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
+            "unsigned": false,
             "zerofill": false,
             "binary": false
         }
     ],
     "rows": [
         [
-            3350
+            "23cd4666-26de-11e8-993e-b86b230042b9",
+            "localhost:3316",
+            "HA",
+            "localhost:3316",
+            "localhost:33160"
+        ],
+        [
+            "2657fa07-26de-11e8-8e38-b86b230042b9",
+            "localhost:3326",
+            "HA",
+            "localhost:3326",
+            "localhost:33260"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "SELECT member_id, member_state, member_host, member_port, member_role FROM performance_schema.replication_group_members"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_ID",
+            "column_label": "member_id",
+            "length": 108,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_HOST",
+            "column_label": "member_host",
+            "length": 180,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_PORT",
+            "column_label": "member_port",
+            "length": 11,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "?",
+            "charset": "?",
+            "collation_id": 0,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_ROLE",
+            "column_label": "member_role",
+            "length": 192,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8_bin",
+            "charset": "utf8",
+            "collation_id": 83,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "23cd4666-26de-11e8-993e-b86b230042b9",
+            "ONLINE",
+            "tecra",
+            3316,
+            "PRIMARY"
+        ],
+        [
+            "2657fa07-26de-11e8-8e38-b86b230042b9",
+            "ONLINE",
+            "tecra",
+            3326,
+            "SECONDARY"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 16
 },
 null]

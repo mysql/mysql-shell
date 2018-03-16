@@ -46,7 +46,6 @@ class Global_dba : public Interactive_object_wrapper {
     _delegate(console_handler) { init(); }
 
   void init();
-  // virtual void resolve() const;
 
   // create and start
   shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args,
@@ -84,9 +83,6 @@ class Global_dba : public Interactive_object_wrapper {
   shcore::Value perform_instance_operation(
         const shcore::Argument_list &args, const std::string &fname,
         const std::string& progressive, const std::string& past);
-  void dump_table(const std::vector<std::string> &column_names,
-                  const std::vector<std::string> &column_labels,
-                  shcore::Value::Array_type_ref documents);
   void print_validation_results(const shcore::Value::Map_type_ref& result);
   bool resolve_cnf_path(
       const mysqlshdk::db::Connection_options &connection_args,

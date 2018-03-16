@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://remo_blank:@localhost:3311?ssl-mode=REQUIRED",
+    "uri": "mysql://remo_blank:@localhost:3317?ssl-mode=REQUIRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "97",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug-log",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -259,7 +259,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 88,
+            "length": 264,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -276,10 +276,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.11-debug-log Source distribution",
+            "8.0.11 MySQL Community Server - GPL",
             "mysqld.sock",
-            3311,
-            "/tmp/3311/sandboxdata/"
+            3317,
+            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
         ]
     ]
 },

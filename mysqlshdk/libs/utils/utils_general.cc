@@ -1038,14 +1038,14 @@ void sleep_ms(uint32_t ms) {
  * @return an enum representing the current operating system
  * (shcore::OperatingSystem)
  */
-OperatingSystem get_os() {
+OperatingSystem get_os_type() {
   OperatingSystem os;
 
 #ifdef WIN32
   os = OperatingSystem::WINDOWS;
 #elif __APPLE__
   os = OperatingSystem::MACOS;
-#else
+#elif __linux__
   os = OperatingSystem::LINUX;
 
   // Detect the distribution
@@ -1085,9 +1085,32 @@ OperatingSystem get_os() {
         "does not exist.",
         proc_version.c_str());
   }
+#else
+#error Unsupported platform
+  os = OperatingSystem::UNKNOWN;
 #endif
 
   return os;
+}
+
+std::string to_string(OperatingSystem os_type) {
+  switch (os_type) {
+    case OperatingSystem::UNKNOWN:
+      return "unknown";
+    case OperatingSystem::DEBIAN:
+      return "debian";
+    case OperatingSystem::REDHAT:
+      return "redhat";
+    case OperatingSystem::LINUX:
+      return "linux";
+    case OperatingSystem::WINDOWS:
+      return "windows";
+    case OperatingSystem::MACOS:
+      return "macos";
+    default:
+      assert(0);
+      return "unknown";
+  }
 }
 
 static bool _match_glob(const std::string &pat, size_t ppos,

@@ -19,29 +19,32 @@ testutil.removeFromSandboxConf(__mysql_sandbox_port2, "log_bin");
 testutil.removeFromSandboxConf(__mysql_sandbox_port3, "log_bin");
 
 // Restart sandbox instances.
-testutil.stopSandbox(__mysql_sandbox_port1, "root");
-testutil.stopSandbox(__mysql_sandbox_port2, "root");
-testutil.stopSandbox(__mysql_sandbox_port3, "root");
+testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Configure instance on port 1.
+//TODO: The test should check for BUG#26836230
 var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root'});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root'});
 
 //@ Configure instance on port 2.
+//TODO: The test should check for BUG#26836230
 var cnfPath2 = __sandbox_dir + __mysql_sandbox_port2 + "/my.cnf";
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, dbPassword:'root'});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, password:'root'});
 
 //@ Configure instance on port 3.
+//TODO: The test should check for BUG#26836230
 var cnfPath3 = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port3, {mycnfPath: cnfPath3, dbPassword:'root'});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port3, {mycnfPath: cnfPath3, password:'root'});
 
-testutil.stopSandbox(__mysql_sandbox_port1, 'root');
-testutil.stopSandbox(__mysql_sandbox_port2, 'root');
-testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 //@ Restart instance on port 1 to apply new server id settings.
 testutil.startSandbox(__mysql_sandbox_port1);

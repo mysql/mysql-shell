@@ -40,24 +40,42 @@ std::string replace_grantee(const std::string &grant,
   // GRANT .... TO `user`@`host` KEYWORD*
   std::string s = grant;
   std::reverse(s.begin(), s.end());
-  std::string::size_type p = 0;
-  while (s[p] != '`' && p < s.length()) {
-    ++p;
+  std::string::size_type p = s.find('`');
+  if (p != std::string::npos) {
+    std::string::size_type e =
+        mysqlshdk::utils::span_quoted_sql_identifier_bt(s, p);
+    if (e == std::string::npos || s[e] != '@')
+      throw std::logic_error("Could not parse GRANT string: " + grant);
+    e = mysqlshdk::utils::span_quoted_sql_identifier_bt(s, e + 1);
+    if (e == std::string::npos)
+      throw std::logic_error("Could not parse GRANT string: " + grant);
+    e++;
+
+    e = s.length() - e;
+    p = s.length() - p;
+
+    return grant.substr(0, e) + replacement + grant.substr(p);
+  } else {
+    // 5.7 syntax with 'user'@'host'
+    p = s.find('\'');
+    if (p != std::string::npos) {
+      std::string::size_type e =
+          mysqlshdk::utils::span_quoted_string_sq(s, p);
+      if (e == std::string::npos || s[e] != '@')
+        throw std::logic_error("Could not parse GRANT string: " + grant);
+      e = mysqlshdk::utils::span_quoted_string_sq(s, e + 1);
+      if (e == std::string::npos)
+        throw std::logic_error("Could not parse GRANT string: " + grant);
+      e++;
+
+      e = s.length() - e;
+      p = s.length() - p;
+
+      return grant.substr(0, e) + replacement + grant.substr(p);
+    } else {
+      throw std::logic_error("Could not parse GRANT string: " + grant);
+    }
   }
-
-  std::string::size_type e =
-      mysqlshdk::utils::span_quoted_sql_identifier_bt(s, p);
-  if (e == std::string::npos || s[e] != '@')
-    throw std::logic_error("Could not parse GRANT string: " + grant);
-  e = mysqlshdk::utils::span_quoted_sql_identifier_bt(s, e + 1);
-  if (e == std::string::npos)
-    throw std::logic_error("Could not parse GRANT string: " + grant);
-  e++;
-
-  e = s.length() - e;
-  p = s.length() - p;
-
-  return grant.substr(0, e) + replacement + grant.substr(p);
 }
 }  // namespace
 

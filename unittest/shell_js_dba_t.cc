@@ -89,9 +89,18 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       _mysql_port = "3306";
     }
 
-    std::string code = "var hostname = '" + _hostname + "';";
+    std::string code = "var hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
-    code = "var hostname_ip = '" + _hostname_ip + "';";
+    code = "var real_hostname = '" + real_hostname() + "';";
+    exec_and_out_equals(code);
+
+    if (real_host_is_loopback())
+      code = "var real_host_is_loopback = true;";
+    else
+      code = "var real_host_is_loopback = false;";
+    exec_and_out_equals(code);
+
+    code = "var hostname_ip = '" + hostname_ip() + "';";
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
@@ -222,8 +231,7 @@ TEST_F(Shell_js_dba_tests, no_active_session_error) {
 
   execute("var c = dba.getCluster()");
   MY_EXPECT_STDERR_CONTAINS(
-      "The shell must be connected to a member of the InnoDB cluster being "
-      "managed");
+      "An open session is required to perform this operation.");
 
   wipe_all();
   execute("dba.verbose = true;");
@@ -234,8 +242,7 @@ TEST_F(Shell_js_dba_tests, no_active_session_error) {
 
   execute("var c = dba.getCluster()");
   MY_EXPECT_STDERR_CONTAINS(
-      "The shell must be connected to a member of the InnoDB cluster being "
-      "managed");
+      "An open session is required to perform this operation.");
 
   wipe_all();
   execute("dba.verbose = true;");
@@ -359,74 +366,6 @@ TEST_F(Shell_js_dba_tests, interactive) {
 
   _options->interactive = true;
   reset_replayable_shell();
-
-  //@# Dba: checkInstanceConfiguration error
-  output_handler.passwords.push_back({"*", "root"});
-
-  //@<OUT> Dba: checkInstanceConfiguration ok 1
-  output_handler.passwords.push_back({"*", "root"});
-
-  //@<OUT> Dba: checkInstanceConfiguration report with errors
-  output_handler.passwords.push_back({"*", "root"});
-
-  // TODO(rennox): This test case is not reliable since requires
-  // that no my.cnf exist on the default paths
-  //@<OUT> Dba: configureLocalInstance error 2
-  // output_handler.passwords.push_back(_pwd);
-  // output_handler.prompts.push_back({"*", ""});
-
-  //@<OUT> Dba: configureLocalInstance error 3
-  output_handler.passwords.push_back({"*", "root"});
-
-  //@ Dba: configureLocalInstance not enough privileges 1
-  output_handler.passwords.push_back(
-      {"*", ""});  // Please provide the password for missingprivileges@...
-  output_handler.prompts.push_back({"*", "1"});   // Please select an option [1]: 1
-  output_handler.passwords.push_back({"*", ""});  // Password for new account:
-  output_handler.passwords.push_back({"*", ""});  // confirm password
-
-  //@ Dba: configureLocalInstance not enough privileges 2
-  output_handler.passwords.push_back(
-      {"*", ""});  // Please provide the password for missingprivileges@...
-
-  //@ Dba: configureLocalInstance not enough privileges 3
-  output_handler.passwords.push_back(
-      {"*", ""});  // Please provide the password for missingprivileges@...
-  output_handler.prompts.push_back({"*", "2"});  // Please select an option [1]: 2
-  output_handler.prompts.push_back(
-      {"*", "missingprivileges@'%'"});  // Please provide an account name (e.g:
-                                 // icroot@%) to have it created with the
-                                 // necessary privileges or leave empty and
-                                 // press Enter to cancel.
-  output_handler.passwords.push_back({"*", ""});  // Password for new account:
-  output_handler.passwords.push_back({"*", ""});  // confirm password
-
-  //@<OUT> Dba: configureLocalInstance updating config file
-  output_handler.passwords.push_back({"*", "root"});
-
-  //@<OUT> Dba: configureLocalInstance create different admin user
-  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
-  output_handler.prompts.push_back({"*", "2"});   // Option (account with diff name)
-  output_handler.prompts.push_back({"*", "dba_test"});  // account name
-  output_handler.passwords.push_back({"*", ""});        // account pass
-  output_handler.passwords.push_back({"*", ""});        // account pass confirmation
-
-  //@<OUT> Dba: configureLocalInstance create existing valid admin user
-  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
-  output_handler.prompts.push_back({"*", "2"});   // Option (account with diff name)
-  output_handler.prompts.push_back({"*", "dba_test"});  // account name
-  output_handler.passwords.push_back({"*", ""});        // account pass
-  output_handler.passwords.push_back({"*", ""});        // account pass confirmation
-
-  //@<OUT> Dba: configureLocalInstance create existing invalid admin user
-  output_handler.passwords.push_back({"*", ""});  // Pass for mydba
-  output_handler.prompts.push_back({"*", "2"});   // Option (account with diff name)
-  output_handler.prompts.push_back({"*", "dba_test"});  // account name
-  output_handler.passwords.push_back({"*", ""});        // account pass
-  output_handler.passwords.push_back({"*", ""});        // account pass confirmation
-
-  //@ Check if all missing privileges are reported for user with no privileges
-  output_handler.prompts.push_back({"*", ""});  // press Enter to cancel
 
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
@@ -600,41 +539,11 @@ TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
 
   validate_interactive("dba_cluster_misconfigurations.js");
 
-  std::vector<std::string> log = {
-      "DBA: ca@localhost:" + std::to_string(_mysql_sandbox_port1) +
-          " : Server variable binlog_checksum was changed from 'CRC32' to "
-          "'NONE'"};
-
-  MY_EXPECT_LOG_CONTAINS(log);
   // Validate output for chunk: Create cluster fails
   // (one table is not compatible) - verbose mode
   // Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES
   // NOT EXIST
   MY_EXPECT_STDOUT_NOT_CONTAINS("the --allow-non-compatible-tables option");
-}
-
-TEST_F(Shell_js_dba_tests, cluster_misconfigurations_interactive) {
-  _options->interactive = true;
-  reset_replayable_shell();
-
-  output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
-
-  //@<OUT> Dba.createCluster: cancel
-  output_handler.prompts.push_back({"*", "n"});
-
-  //@<OUT> Dba.createCluster: ok
-  output_handler.prompts.push_back({"*", "y"});
-
-  validate_interactive("dba_cluster_misconfigurations_interactive.js");
-
-  std::vector<std::string> log = {
-    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
-    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
-      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
-          " : Server variable binlog_checksum was changed from 'CRC32' to "
-          "'NONE'"};
-
-  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
@@ -685,17 +594,6 @@ TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
   output_handler.set_log_level(ngcommon::Logger::LOG_WARNING);
 
   validate_interactive("dba_cluster_add_instance.js");
-
-  // BUG#26393614
-  std::string sandbox_path = shcore::path::join_path(
-      {_sandbox_dir, std::to_string(_mysql_sandbox_port2), "sandboxdata"});
-  std::vector<std::string> log{
-      "'localhost' (" + sandbox_path +
-      ") detected as local sandbox. "
-      "Sandbox instances are only suitable for deploying and "
-      "running on your local machine for testing purposes and are not "
-      "accessible from external networks."};
-  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_remove_instance) {
@@ -822,21 +720,21 @@ TEST_F(Shell_js_dba_tests, adopt_from_gr) {
 
 TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
   reset_replayable_shell();
-  // Are you sure you want to remove the Metadata? [y|N]:
+  // Are you sure you want to remove the Metadata? [y/N]:
   output_handler.prompts.push_back({"*", "y"});
 
   // Do you want to setup an InnoDB cluster based on this replication
-  // group? [Y|n]:
+  // group? [Y/n]:
   output_handler.prompts.push_back({"*", "y"});
 
-  // Are you sure you want to remove the Metadata? [y|N]:
+  // Are you sure you want to remove the Metadata? [y/N]:
   output_handler.prompts.push_back({"*", "y"});
 
   // Do you want to setup an InnoDB cluster based on this replication
-  // group? [Y|n]:
+  // group? [Y/n]:
   output_handler.prompts.push_back({"*", "n"});
 
-  // Are you sure you want to remove the Metadata? [y|N]:
+  // Are you sure you want to remove the Metadata? [y/N]:
   output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_adopt_from_gr_interactive.js");

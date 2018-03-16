@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "shellcore/base_session.h"
@@ -82,8 +83,10 @@ shcore::Value value_from_argmap(const shcore::Argument_map &argmap) {
 }  // namespace
 
 ProvisioningInterface::ProvisioningInterface(
-    shcore::Interpreter_delegate *deleg)
-    : _verbose(0), _delegate(deleg) {}
+    shcore::Interpreter_delegate *deleg,
+    const std::string &provision_path)
+    : _verbose(0), _delegate(deleg),
+    _local_mysqlprovision_path(provision_path) {}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
@@ -103,35 +106,6 @@ int ProvisioningInterface::execute_mysqlprovision(
     // don't propagate up the ^C
     return false;
   });
-
-  // set _local_mysqlprovision_path if empty
-  if (_local_mysqlprovision_path.empty()) {
-    // 1st try from global options (programmatically set by main program)
-    // 2nd check if the binary is in the same dir as ourselves
-    // 3rd set it to mysqlprovision and hope that it will be in $PATH
-
-    if (!mysqlsh::Base_shell::options().gadgets_path.empty())
-      _local_mysqlprovision_path = mysqlsh::Base_shell::options().gadgets_path;
-
-    if (_local_mysqlprovision_path.empty()) {
-      std::string tmp(get_mysqlx_home_path());
-
-      // If MYSQLX_HOME is unknown we try to get the binary dir
-      if (tmp.empty())
-        tmp = get_binary_folder();
-
-#ifdef _WIN32
-      tmp.append("\\share\\mysqlsh\\mysqlprovision.zip");
-#else
-      tmp.append("/share/mysqlsh/mysqlprovision.zip");
-#endif
-      if (file_exists(tmp))
-        _local_mysqlprovision_path = tmp;
-      log_debug("Using mysqlprovision package at %s",
-                _local_mysqlprovision_path.c_str());
-    }
-    assert(!_local_mysqlprovision_path.empty());
-  }
 
   std::string log_level = "--log-level=";
   if (mysqlsh::Base_shell::options().log_to_stderr)
@@ -420,8 +394,8 @@ void ProvisioningInterface::set_ssl_args(
 
 int ProvisioningInterface::check(
     const mysqlshdk::db::Connection_options &connection_options,
-    const std::string &cnfpath, bool update,
-    shcore::Value::Array_type_ref *errors) {
+    const std::string &cnfpath, const std::string &output_cnfpath, bool update,
+    bool remote, shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
 
   {
@@ -433,12 +407,211 @@ int ProvisioningInterface::check(
   if (!cnfpath.empty()) {
     kwargs["option_file"] = shcore::Value(cnfpath);
   }
+  if (!output_cnfpath.empty()) {
+    kwargs["output_cnf_path"] = shcore::Value(output_cnfpath);
+  }
   if (update) {
     kwargs["update"] = shcore::Value::True();
+  }
+  if (remote) {
+    kwargs["remote"] = shcore::Value::True();
   }
 
   return execute_mysqlprovision("check", shcore::Argument_list(), kwargs,
                                 errors, _verbose);
+}
+
+/*
+ * Handles the execution for the MP "check" command
+ *
+ * @param connection_options the target instance connection options
+ * @param mycnf_path the my.cnf file path
+ * @param output_mycnf_path the output my.cnf file path
+ * @param update boolean value to indicate whether configuration updates are to
+ * be done or not
+ * @param remote boolean value to indicate whether the operation is to be
+ * executed remotely or locally
+ *
+ * @return a Map containing the information of the command result output
+ */
+shcore::Value ProvisioningInterface::exec_check_ret_handler(
+    const mysqlshdk::db::Connection_options &connection_options,
+    const std::string &mycnf_path, const std::string &output_mycnf_path,
+    bool update, bool remote) {
+  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+  shcore::Value::Array_type_ref mp_errors;
+  shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
+
+  if ((check(connection_options, mycnf_path, output_mycnf_path, update, remote,
+             &mp_errors) == 0)) {
+    (*ret_val)["status"] = shcore::Value("ok");
+  } else {
+    (*ret_val)["status"] = shcore::Value("error");
+
+    if (mp_errors) {
+      for (auto error_object : *mp_errors) {
+        auto map = error_object.as_map();
+
+        std::string error_str;
+        if (map->get_string("type") == "ERROR") {
+          error_str = map->get_string("msg");
+
+          if (error_str.find("The operation could not continue due to the "
+                             "following requirements not being met") !=
+              std::string::npos) {
+            auto lines = shcore::split_string(error_str, "\n");
+
+            bool loading_options = false;
+
+            shcore::Value::Map_type_ref server_options(
+                new shcore::Value::Map_type());
+            std::string option_type;
+
+            for (size_t index = 1; index < lines.size(); index++) {
+              if (loading_options) {
+                auto option_tokens =
+                    shcore::split_string(lines[index], " ", true);
+
+                if (option_tokens[1] == "<no") {
+                  option_tokens[1] = "<no value>";
+                  option_tokens.erase(option_tokens.begin() + 2);
+                }
+
+                if (option_tokens[2] == "<no") {
+                  option_tokens[2] = "<no value>";
+                  option_tokens.erase(option_tokens.begin() + 3);
+                }
+
+                if (option_tokens[2] == "<not") {
+                  option_tokens[2] = "<not set>";
+                  option_tokens.erase(option_tokens.begin() + 3);
+                }
+
+                if (option_tokens[1] == "<unique") {
+                  option_tokens[1] = "<unique ID>";
+                  option_tokens.erase(option_tokens.begin() + 2);
+                }
+
+                // The tokens describing each option have length of 5
+                if (option_tokens.size() > 5) {
+                  index--;
+                  loading_options = false;
+                } else {
+                  shcore::Value::Map_type_ref option;
+                  if (!server_options->has_key(option_tokens[0])) {
+                    option.reset(new shcore::Value::Map_type());
+                    (*server_options)[option_tokens[0]] =
+                        shcore::Value(option);
+                  } else {
+                    option = (*server_options)[option_tokens[0]].as_map();
+                  }
+
+                  (*option)["required"] =
+                      shcore::Value(option_tokens[1]);  // The required value
+                  (*option)[option_type] =
+                      shcore::Value(option_tokens[2]);  // The current value
+                }
+              } else {
+                if (lines[index].find("Some active options on server") !=
+                    std::string::npos) {
+                  option_type = "server";
+                  loading_options = true;
+                  // Skips to the actual option table
+                  do {
+                    index++;
+                  } while (
+                      lines[index].find("-------------------------------") ==
+                      std::string::npos);
+                } else if (lines[index].find("Some of the configuration "
+                                             "values on your options file") !=
+                           std::string::npos) {
+                  option_type = "config";
+                  loading_options = true;
+                  // Skips to the actual option table
+                  do {
+                    index++;
+                  } while (
+                      lines[index].find("-------------------------------") ==
+                      std::string::npos);
+                }
+              }
+            }
+
+            if (server_options->size()) {
+              shcore::Value::Array_type_ref config_errors(
+                  new shcore::Value::Array_type());
+              for (auto option : *server_options) {
+                auto state = option.second.as_map();
+
+                std::string required_value = state->get_string("required");
+                std::string server_value = state->get_string("server", "");
+                std::string config_value = state->get_string("config", "");
+
+                // Taken from MP, reading docs made me think all variables
+                // should require restart Even several of them are dynamic, it
+                // seems changing values may lead to problems An
+                // extransaction_write_set_extraction which apparently is
+                // reserved for future use So I just took what I saw on the MP
+                // code Source:
+                // http://dev.mysql.com/doc/refman/5.7/en/dynamic-system-variables.html
+                std::vector<std::string> dynamic_variables = {
+                    "binlog_format", "binlog_checksum", "slave_parallel_type",
+                    "slave_preserve_commit_order"};
+
+                bool dynamic =
+                    std::find(dynamic_variables.begin(),
+                              dynamic_variables.end(),
+                              option.first) != dynamic_variables.end();
+
+                std::string action;
+                std::string current;
+                if (!server_value.empty() &&
+                    !config_value.empty()) {  // Both server and configuration
+                                              // are wrong
+                  if (dynamic) {
+                    action = "server_update+config_update";
+                  } else {
+                    action = "config_update+restart";
+                  }
+
+                  current = server_value;
+                } else if (!config_value.empty()) {  // Configuration is
+                                                     // wrong, server is OK
+                  action = "config_update";
+                  current = config_value;
+                } else if (!server_value.empty()) {  // Server is wrong,
+                                                     // configuration is OK
+                  if (dynamic) {
+                    action = "server_update";
+                  } else {
+                    action = "restart";
+                  }
+                  current = server_value;
+                }
+
+                shcore::Value::Map_type_ref error(
+                    new shcore::Value::Map_type());
+
+                (*error)["option"] = shcore::Value(option.first);
+                (*error)["current"] = shcore::Value(current);
+                (*error)["required"] = shcore::Value(required_value);
+                (*error)["action"] = shcore::Value(action);
+
+                config_errors->push_back(shcore::Value(error));
+              }
+
+              (*ret_val)["config_errors"] = shcore::Value(config_errors);
+            }
+          } else {
+            errors->push_back(shcore::Value(error_str));
+          }
+        }
+      }
+    }
+    (*ret_val)["errors"] = shcore::Value(errors);
+  }
+
+  return shcore::Value(ret_val);
 }
 
 int ProvisioningInterface::exec_sandbox_op(
@@ -504,8 +677,8 @@ int ProvisioningInterface::delete_sandbox(
 int ProvisioningInterface::kill_sandbox(int port,
                                         const std::string &sandbox_dir,
                                         shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("kill", port, 0, sandbox_dir,
-                         shcore::Argument_map(), errors);
+  return exec_sandbox_op("kill", port, 0, sandbox_dir, shcore::Argument_map(),
+                         errors);
 }
 
 int ProvisioningInterface::stop_sandbox(int port,
@@ -513,8 +686,7 @@ int ProvisioningInterface::stop_sandbox(int port,
                                         const std::string &password,
                                         shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
-  if (!password.empty())
-    kwargs["passwd"] = shcore::Value(password);
+  if (!password.empty()) kwargs["passwd"] = shcore::Value(password);
   return exec_sandbox_op("stop", port, 0, sandbox_dir, kwargs, errors);
 }
 
@@ -611,6 +783,10 @@ int ProvisioningInterface::join_replicaset(
   }
   if (skip_rpl_user) {
     kwargs["skip_rpl_user"] = shcore::Value::True();
+  }
+  if (instance.has_host() &&
+      mysqlshdk::utils::Net::is_local_address(instance.get_host())) {
+    kwargs["target_is_local"] = shcore::Value::True();
   }
 
   return execute_mysqlprovision("join-replicaset", args, kwargs, errors,

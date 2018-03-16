@@ -23,11 +23,11 @@
     "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
 
-//@# status after stop GR - error
+//@ status after stop GR - error
 ||Cluster.status: This function is not available through a session to a standalone instance
 
-//@# getCluster() - error
-||Target member is OFFLINE in group_replication
+//@ getCluster() - error
+||Dba.getCluster: This function is not available through a session to a standalone instance (metadata exists, but GR is not active)
 
 //@<OUT> No flag, yes on prompt
 Reconfiguring the cluster 'dev' from complete outage...
@@ -42,7 +42,13 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 1 open session(s) of 'root@localhost'.
 
-Do you want to disable super_read_only and continue? [y|N]:
+Do you want to disable super_read_only and continue? [y/N]:
+
+//@<OUT> No flag, yes on prompt {VER(>=8.0.5)}
+The cluster was successfully rebooted.
+
+//@<OUT> No flag, yes on prompt {VER(<8.0.5)}
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 
 The cluster was successfully rebooted.
 
@@ -59,17 +65,20 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 1 open session(s) of 'root@localhost'.
 
-Do you want to disable super_read_only and continue? [y|N]:
+Do you want to disable super_read_only and continue? [y/N]:
 Cancelled
 
-//@# Invalid flag value
+//@ Invalid flag value
 ||Dba.rebootClusterFromCompleteOutage: Argument 'clearReadOnly' is expected to be a bool
 
-//@# Flag false
-||Dba.rebootClusterFromCompleteOutage: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
-
-//@<OUT> Flag true
+//@<OUT> Flag false
 Reconfiguring the cluster 'dev' from complete outage...
 
+ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
-The cluster was successfully rebooted.
+//@<ERR> Flag false
+Dba.rebootClusterFromCompleteOutage: Server in SUPER_READ_ONLY mode (RuntimeError)
+
+//@ Flag true
+|Reconfiguring the cluster 'dev' from complete outage...|
+|The cluster was successfully rebooted.|

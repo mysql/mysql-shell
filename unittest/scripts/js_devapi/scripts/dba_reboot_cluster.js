@@ -28,7 +28,7 @@ cluster.status();
 
 //@ Add instance 2
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
-
+                                                                                                                                       3
 // Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
 
@@ -69,13 +69,13 @@ testutil.killSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 //the timeout for GR plugin to install a new view is 60s, so it should be at
 // least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
 //the timeout for GR plugin to install a new view is 60s, so it should be at
 // least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 session.close();
 

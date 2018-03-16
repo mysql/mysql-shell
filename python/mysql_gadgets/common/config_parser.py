@@ -29,6 +29,7 @@ import codecs
 import logging
 import os
 import re
+import shutil
 import sys
 import stat
 # Use backported OrderedDict if not available (for Python 2.6)
@@ -113,7 +114,8 @@ def option_list_to_dictionary(opt_list):
         res[opt_name] = val
     return res
 
-def create_option_file(section_dict, name, prefix_dir=None):
+
+def create_option_file(section_dict, name, prefix_dir=None, replace=False):
     """ Create an option file from a dictionary of dictionaries.
 
     :param section_dict: dictionary of dictionaries. The keys in the top level
@@ -129,6 +131,9 @@ def create_option_file(section_dict, name, prefix_dir=None):
                        file to be created. By default it uses the $HOME of the
                        user.
     :type prefix_dir: str
+    :param replace: if True, try to replace the file, if it already exists,
+                    otherwise throw an error saying the file already exists
+    :type replace: bool
     :return: string with full path to the created config file.
     :rtype: str
     """
@@ -146,33 +151,34 @@ def create_option_file(section_dict, name, prefix_dir=None):
 
     f_path = os.path.join(prefix_dir, name)
     enc_f_path = fs_encode(f_path)
-    if os.path.exists(enc_f_path):
+
+    # throw error if file exists and you don't want to replace it
+    if os.path.exists(enc_f_path) and not replace:
         raise GadgetError(u"Unable to create option file '{0}' since a "
-                          u"file of the same already exists."
-                          u"".format(f_path))
+                          u"file of the same already exists.".format(f_path))
     try:
-        f_handler = os.open(enc_f_path, os.O_CREAT | os.O_WRONLY | os.O_EXCL,
-                            0o600)
+        f_handler = os.open(enc_f_path, os.O_CREAT | os.O_WRONLY, 0o600)
     except (OSError, IOError) as err:
-        raise GadgetError(u"Unable to create named configuration "
-                          u"file '{0}': {1}.".format(f_path, unicode(err)))
+        raise GadgetError(u"Unable to create option file '{0}': {1}."
+                          u"".format(f_path, unicode(err)))
     if f_handler:
         os.close(f_handler)
 
     _LOGGER.debug("Config file %s created successfully ", f_path)
     # Create configuration file
-    config = MySQLOptionsParser(f_path)
+    if section_dict is not None:
+        config = MySQLOptionsParser(f_path)
 
-    _LOGGER.debug("Filling config parser object...")
-    # Fill it with contents from options
-    for section, section_d in section_dict.items():
-        config.add_section(section)
-        for key, val in section_d.items():
-            config.set(section, key, val)
-    _LOGGER.debug("Config parser object created.")
-    _LOGGER.debug("Writing contents of the configuration file")
-    config.write()
-    _LOGGER.debug("Config file %s successfully written.", f_path)
+        _LOGGER.debug("Filling config parser object...")
+        # Fill it with contents from options
+        for section, section_d in section_dict.items():
+            config.add_section(section)
+            for key, val in section_d.items():
+                config.set(section, key, val)
+        _LOGGER.debug("Config parser object created.")
+        _LOGGER.debug("Writing contents of the configuration file")
+        config.write()
+        _LOGGER.debug("Config file %s successfully written.", f_path)
     return f_path
 
 
@@ -489,7 +495,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                     new_proxies[new_k] = v
                 self._proxies = new_proxies
 
-    def __init__(self, filename):  # pylint: disable=W0231
+    def __init__(self, filename, output_cnf_file=None):  # pylint: disable=W0231
         """Constructor.
 
         :param filename: filename of the option file to read
@@ -522,6 +528,10 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
         self.default_extension = DEFAULT_EXTENSIONS[os.name]
         # get the absolute path for the provided filename
         self.filename = os.path.normpath(get_abs_path(filename, os.getcwd()))
+        self.output_option_filename = output_cnf_file
+        if output_cnf_file is not None:
+            self.output_option_filename = os.path.normpath(
+                get_abs_path(output_cnf_file, os.getcwd()))
         self._parse_option_file(self.filename)
 
         # Convert all section names to lower case.
@@ -584,9 +594,8 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                             files.insert(len(files), filename)
             except (IOError, OSError) as err:
                 raise GadgetConfigParserError(
-                    "Option file '{0}' is not readable."
-                    "".format(self.filename),
-                    cause=err)
+                    u"Unable to open option file '{0}': {1}"
+                    u"".format(self.filename, unicode(err)), cause=err)
 
         # Read configurations from option files.
         parse_err = u"File '{0}' could not be parsed: {1}"
@@ -954,6 +963,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
         drop_section = False
         cursect = None
         line = ""
+        output_file = self.filename
 
         def optval_tostr(opt, val):
             """Auxiliary function used to obtain a formatted string with
@@ -963,7 +973,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                 return u"{0} = {1}".format(opt, val)
             return opt
 
-        if not self.modified:
+        if not self.modified and self.output_option_filename is None:
             # if we did not do any modifications to what was read from file,
             # we can simply exit.
             return
@@ -975,8 +985,10 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                 u"Option file '{0}' is not readable."
                 u"".format(self.filename),
                 cause=err)
-        # Create a backup file if provided
-        if backup_file_path:
+        # Create a backup file if provided but no output_option file was
+        # specified and if original file was not empty
+        if (backup_file_path and os.stat(self.filename).st_size != 0 and
+                not self.output_option_filename):
             if not os.path.isabs(backup_file_path):
                 raise GadgetConfigParserError(
                     u"'{0}' is not an absolute path. Please provide an "
@@ -987,7 +999,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                 # ensure that permissions are at most 640 but respect
                 # original ones if they are tighter
                 backup_perms = orig_perms & (
-                stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP)
+                    stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP)
                 # set flag to create file in write only mode
                 flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
                 try:
@@ -1000,8 +1012,15 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                         "".format(backup_file_path),
                         cause=err)
         f = None
+        if self.output_option_filename:
+            # if output_file was provided create it if not exists
+            prefix, fname = os.path.split(self.output_option_filename)
+            create_option_file(None, fname, prefix, replace=True)
+            # create a copy of the configuration file to output_file
+            shutil.copyfile(self.filename, self.output_option_filename)
+            output_file = self.output_option_filename
         try:
-            f = open(fs_encode(self.filename), 'w')
+            f = open(fs_encode(output_file), 'w')
             for line in lines:
                 line = fs_decode(line)
                 # empty lines or comment lines are returned unmodified
@@ -1098,7 +1117,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                             raise GadgetConfigParserError(
                                 u"Write operation failed.  File '{0}' could "
                                 u"not be parsed correctly, parsing error at "
-                                u"line '{1}'.".format(self.filename, line))
+                                u"line '{1}'.".format(output_file, line))
             # add missing options for last section (if a section was read)
             if not drop_section and cursect is not None:
                 parser_items = self._main_opt_parser.items(cursect)
@@ -1130,7 +1149,7 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
         except IOError as err:
             raise GadgetConfigParserError(
                 u"Option file '{0}' is not writable."
-                u"".format(self.filename),
+                u"".format(output_file),
                 cause=err)
         else:
             # we've written changes to file, reset modified flag

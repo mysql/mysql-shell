@@ -1,4 +1,5 @@
 //@<OUT> Object Help
+
 The global variable 'dba' is used to access the AdminAPI functionality and
 perform DBA operations. It is used for managing MySQL InnoDB clusters.
 
@@ -9,9 +10,12 @@ The following properties are currently supported.
 
 The following functions are currently supported.
 
- - checkInstanceConfiguration      Validates an instance for cluster usage.
- - configureLocalInstance          Validates and configures an instance for
-                                   cluster usage.
+ - checkInstanceConfiguration      Validates an instance for MySQL InnoDB
+                                   Cluster usage.
+ - configureInstance               Validates and configures an instance for
+                                   MySQL InnoDB Cluster usage.
+ - configureLocalInstance          Validates and configures a local instance
+                                   for MySQL InnoDB Cluster usage.
  - createCluster                   Creates a MySQL InnoDB cluster.
  - deleteSandboxInstance           Deletes an existing MySQL Server instance on
                                    localhost.
@@ -36,6 +40,7 @@ e.g. dba.help('deploySandboxInstance')
 
 
 //@<OUT> Create Cluster
+
 Creates a MySQL InnoDB cluster.
 
 SYNTAX
@@ -47,26 +52,9 @@ WHERE
   name: The name of the cluster object to be created.
   options: Dictionary with options that modify the behavior of this function.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-  ArgumentError: if the Cluster name is empty.
-  ArgumentError: if the Cluster name is not valid.
-  ArgumentError: if the options contain an invalid attribute.
-  ArgumentError: if adoptFromGR is true and the memberSslMode option is used.
-  ArgumentError: if the value for the memberSslMode option is not one of the
-                 allowed.
-  ArgumentError: if adoptFromGR is true and the multiMaster option is used.
-  ArgumentError: if the value for the ipWhitelist, groupName, localAddress, or
-                 groupSeeds options is empty.
-  RuntimeError: if the value for the groupName, localAddress, or groupSeeds
-                options is not valid for Group Replication.
-  RuntimeError: if the current connection cannot be used for Group Replication.
-
 RETURNS
 
- The created cluster object.
+  The created cluster object.
 
 DESCRIPTION
 
@@ -140,8 +128,33 @@ The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a
 comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+  ArgumentError in the following scenarios:
+
+   - If the Cluster name is empty.
+   - If the Cluster name is not valid.
+   - If the options contain an invalid attribute.
+   - If adoptFromGR is true and the memberSslMode option is used.
+   - If the value for the memberSslMode option is not one of the allowed.
+   - If adoptFromGR is true and the multiMaster option is used.
+   - If the value for the ipWhitelist, groupName, localAddress, or groupSeeds
+     options is empty.
+
+  RuntimeError in the following scenarios:
+
+   - If the value for the groupName, localAddress, or groupSeeds options is not
+     valid for Group Replication.
+   - If the current connection cannot be used for Group Replication.
+
 
 //@<OUT> Delete Sandbox
+
 Deletes an existing MySQL Server instance on localhost.
 
 SYNTAX
@@ -154,14 +167,9 @@ WHERE
   options: Dictionary with options that modify the way this function is
            executed.
 
-EXCEPTIONS
-
-  ArgumentError: if the options contain an invalid attribute.
-  ArgumentError: if the port value is < 1024 or > 65535.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -178,8 +186,16 @@ on Windows systems.
 
 If the instance is not located on the used path an error will occur.
 
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the options contain an invalid attribute.
+   - If the port value is < 1024 or > 65535.
+
 
 //@<OUT> Deploy Sandbox
+
 Creates a new MySQL Server instance on localhost.
 
 SYNTAX
@@ -191,21 +207,14 @@ WHERE
   port: The port where the new instance will listen for connections.
   options: Dictionary with options affecting the new deployed instance.
 
-EXCEPTIONS
-
-  ArgumentError: if the options contain an invalid attribute.
-  ArgumentError: if the root password is missing on the options.
-  ArgumentError: if the port value is < 1024 or > 65535.
-  RuntimeError: if SSL support can be provided and ignoreSslError: false.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
 This function will deploy a new MySQL Server instance, the result may be
-affected by the provided options:
+affected by the provided options: 
 
  - portx: port where the new instance will listen for X Protocol connections.
  - sandboxDir: path where the new instance will be deployed.
@@ -218,8 +227,7 @@ affected by the provided options:
 If the portx option is not specified, it will be automatically calculated as 10
 times the value of the provided MySQL port.
 
-The password or dbPassword options specify the MySQL root password on the new
-instance.
+The password option specifies the MySQL root password on the new instance.
 
 The sandboxDir must be an existing folder where the new instance will be
 deployed. If not specified the new instance will be deployed at:
@@ -231,8 +239,21 @@ SSL support is added by default if not already available for the new instance,
 but if it fails to be added then the error is ignored. Set the ignoreSslError
 option to false to ensure the new instance is deployed with SSL support.
 
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the options contain an invalid attribute.
+   - If the root password is missing on the options.
+   - AIf the port value is < 1024 or > 65535.
+
+  RuntimeError in the following scenarios:
+
+   - If SSL support can be provided and ignoreSslError: false.
+
 
 //@<OUT> Drop Metadata
+
 Drops the Metadata Schema.
 
 SYNTAX
@@ -243,14 +264,9 @@ WHERE
 
   options: Dictionary containing an option to confirm the drop operation.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  RuntimeError: if the current connection cannot be used for Group Replication.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -260,8 +276,19 @@ The options dictionary may contain the following options:
  - clearReadOnly: boolean value used to confirm that super_read_only must be
    disabled
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+
+  RuntimeError in the following scenarios:
+
+   - If the current connection cannot be used for Group Replication.
+
 
 //@<OUT> Get Cluster
+
 Retrieves a cluster from the Metadata Store.
 
 SYNTAX
@@ -273,18 +300,9 @@ WHERE
   name: Parameter to specify the name of the cluster to be returned.
   options: Dictionary with additional options.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-  ArgumentError: if the Cluster name is empty.
-  ArgumentError: if the Cluster name is invalid.
-  ArgumentError: if the Cluster does not exist.
-  RuntimeError: if the current connection cannot be used for Group Replication.
-
 RETURNS
 
- The cluster object identified by the given name or the default cluster.
+  The cluster object identified by the given name or the default cluster.
 
 DESCRIPTION
 
@@ -297,7 +315,26 @@ The options dictionary accepts the connectToPrimary option,which defaults to
 true and indicates the shell to automatically connect to the primary member of
 the cluster.
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+  ArgumentError in the following scenarios:
+
+   - If the Cluster name is empty.
+   - If the Cluster name is invalid.
+   - If the Cluster does not exist.
+
+  RuntimeError in the following scenarios:
+
+   - If the current connection cannot be used for Group Replication.
+
+
 //@<OUT> Kill Sandbox
+
 Kills a running MySQL Server instance on localhost.
 
 SYNTAX
@@ -309,14 +346,9 @@ WHERE
   port: The port of the instance to be killed.
   options: Dictionary with options affecting the result.
 
-EXCEPTIONS
-
-  ArgumentError: if the options contain an invalid attribute.
-  ArgumentError: if the port value is < 1024 or > 65535.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -333,8 +365,16 @@ on Windows systems.
 
 If the instance is not located on the used path an error will occur.
 
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the options contain an invalid attribute.
+   - If the port value is < 1024 or > 65535.
+
 
 //@<OUT> Start Sandbox
+
 Starts an existing MySQL Server instance on localhost.
 
 SYNTAX
@@ -346,14 +386,9 @@ WHERE
   port: The port where the instance listens for MySQL connections.
   options: Dictionary with options affecting the result.
 
-EXCEPTIONS
-
-  ArgumentError: if the options contain an invalid attribute.
-  ArgumentError: if the port value is < 1024 or > 65535.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -370,8 +405,17 @@ on Windows systems.
 
 If the instance is not located on the used path an error will occur.
 
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the options contain an invalid attribute.
+   - If the port value is < 1024 or > 65535.
+
+
 //@<OUT> Check Instance Configuration
-Validates an instance for cluster usage.
+
+Validates an instance for MySQL InnoDB Cluster usage.
 
 SYNTAX
 
@@ -382,27 +426,16 @@ WHERE
   instance: An instance definition.
   options: Data for the operation.
 
-EXCEPTIONS
-
-  ArgumentError: if the instance parameter is empty.
-  ArgumentError: if the instance definition is invalid.
-  ArgumentError: if the instance definition is a connection dictionary but
-                 empty.
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if the instance is offline.
-  RuntimeError: if the instance is already part of a Replication Group.
-  RuntimeError: if the instance is already part of an InnoDB Cluster.
-
 RETURNS
 
- A JSON object with the status.
+  A descriptive text of the operation result.
 
 DESCRIPTION
 
 This function reviews the instance configuration to identify if it is valid for
-usage in group replication.
+usage with group replication. Use this to check for possible configuration
+issues on MySQL instances before creating a cluster with them or adding them to
+an existing cluster.
 
 The instance definition is the connection data for the instance.
 
@@ -412,38 +445,55 @@ Only TCP/IP connections are allowed for this function.
 
 The options dictionary may contain the following options:
 
- - mycnfPath: The path of the MySQL configuration file for the instance.
+ - mycnfPath: Optional path to the MySQL configuration file for the instance.
+   Alias for verifyMyCnf
+ - verifyMyCnf: Optional path to the MySQL configuration file for the instance.
+   If this option is given, the configuration file will be verified for the
+   expected option values, in addition to the global MySQL system variables.
  - password: The password to get connected to the instance.
+ - interactive: boolean value used to disable the wizards in the command
+   execution, i.e. prompts are not provided to the user and confirmation
+   prompts are not shown.
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
 
-The returned JSON object contains the following attributes:
+The returned descriptive text of the operation result indicates whether the
+instance is valid for InnoDB Cluster usage or not. If not, a table containing
+the following information is presented:
 
- - status: the final status of the command, either "ok" or "error".
- - config_errors: a list of dictionaries containing the failed requirements
- - errors: a list of errors of the operation
- - restart_required: a boolean value indicating whether a restart is required
+ - Variable: the invalid configuration variable.
+ - Current Value: the current value for the invalid configuration variable.
+ - Required Value: the required value for the configuration variable.
+ - Note: the action to be taken.
 
-Each dictionary of the list of config_errors includes the following attributes:
+The note can be one of the following:
 
- - option: The configuration option for which the requirement wasn't met
- - current: The current value of the configuration option
- - required: The configuration option required value
- - action: The action to be taken in order to meet the requirement
+ - Update the config file and update or restart the server variable.
+ - Update the config file and restart the server.
+ - Update the config file.
+ - Update the server variable.
+ - Restart the server.
 
-The action can be one of the following:
+EXCEPTIONS
 
- - server_update+config_update: Both the server and the configuration need to
-   be updated
- - config_update+restart: The configuration needs to be updated and the server
-   restarted
- - config_update: The configuration needs to be updated
- - server_update: The server needs to be updated
- - restart: The server needs to be restarted
+  ArgumentError in the following scenarios:
+
+   - If the instance parameter is empty.
+   - If the instance definition is invalid.
+   - If the instance definition is a connection dictionary but empty.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance accounts are invalid.
+   - If the instance is offline.
+   - If the instance is already part of a Replication Group.
+   - If the instance is already part of an InnoDB Cluster.
+   - If the given the instance cannot be used for Group Replication.
 
 
 //@<OUT> Stop Sandbox
+
 Stops a running MySQL Server instance on localhost.
 
 SYNTAX
@@ -455,15 +505,9 @@ WHERE
   port: The port of the instance to be stopped.
   options: Dictionary with options affecting the result.
 
-EXCEPTIONS
-
-  ArgumentError: if the options contain an invalid attribute.
-  ArgumentError: if the root password is missing on the options.
-  ArgumentError: if the port value is < 1024 or > 65535.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -481,41 +525,36 @@ on Windows systems.
 
 If the instance is not located on the used path an error will occur.
 
+EXCEPTIONS
 
-//@<OUT> Configure Local Instance
-Validates and configures an instance for cluster usage.
+  ArgumentError in the following scenarios:
+
+   - If the options contain an invalid attribute.
+   - If the root password is missing on the options.
+   - If the port value is < 1024 or > 65535.
+
+
+//@<OUT> Configure Instance
+
+Validates and configures an instance for MySQL InnoDB Cluster usage.
 
 SYNTAX
 
-  <Dba>.configureLocalInstance(instance[, options])
+  <Dba>.configureInstance([instance][, options])
 
 WHERE
 
   instance: An instance definition.
   options: Additional options for the operation.
 
-EXCEPTIONS
-
-  ArgumentError: if the instance parameter is empty.
-  ArgumentError: if the instance definition is invalid.
-  ArgumentError: if the instance definition is a connection dictionary but
-                 empty.
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if the instance is offline.
-  RuntimeError: if the instance is already part of a Replication Group.
-  RuntimeError: if the instance is already part of an InnoDB Cluster.
-
 RETURNS
 
- resultset A JSON object with the status.
+  A descriptive text of the operation result.
 
 DESCRIPTION
 
-This function reviews the instance configuration to identify if it is valid for
-usage in group replication and cluster. A JSON object is returned containing
-the result of the operation.
+This function auto-configures the instance for InnoDB Cluster usage.If the
+target instance already belongs to an InnoDB Cluster it errors out.
 
 The instance definition is the connection data for the instance.
 
@@ -526,6 +565,8 @@ Only TCP/IP connections are allowed for this function.
 The options dictionary may contain the following options:
 
  - mycnfPath: The path to the MySQL configuration file of the instance.
+ - outputMycnfPath: Alternative output path to write the MySQL configuration
+   file of the instance.
  - password: The password to be used on the connection.
  - clusterAdmin: The name of the InnoDB cluster administrator user to be
    created. The supported format is the standard MySQL account name format.
@@ -533,36 +574,128 @@ The options dictionary may contain the following options:
    account.
  - clearReadOnly: boolean value used to confirm that super_read_only must be
    disabled.
+ - interactive: boolean value used to disable the wizards in the command
+   execution, i.e. prompts are not provided to the user and confirmation
+   prompts are not shown.
+ - restart: boolean value used to indicate that a remote restart of the target
+   instance should be performed to finalize the operation.
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
 
-The returned JSON object contains the following attributes:
+This function reviews the instance configuration to identify if it is valid for
+usage in group replication and cluster. An exception is thrown if not.
 
- - status: the final status of the command, either "ok" or "error".
- - config_errors: a list of dictionaries containing the failed requirements
- - errors: a list of errors of the operation
- - restart_required: a boolean value indicating whether a restart is required
+If the instance was not valid for InnoDB Cluster and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
 
-Each dictionary of the list of config_errors includes the following attributes:
+ - Variable: the invalid configuration variable.
+ - Current Value: the current value for the invalid configuration variable.
+ - Required Value: the required value for the configuration variable.
+ - Required Value: the required value for the configuration variable.
 
- - option: The configuration option for which the requirement wasn't met
- - current: The current value of the configuration option
- - required: The configuration option required value
- - action: The action to be taken in order to meet the requirement
+EXCEPTIONS
 
-The action can be one of the following:
+  ArgumentError in the following scenarios:
 
- - server_update+config_update: Both the server and the configuration need to
-   be updated
- - config_update+restart: The configuration needs to be updated and the server
-   restarted
- - config_update: The configuration needs to be updated
- - server_update: The server needs to be updated
- - restart: The server needs to be restarted
+   - If 'interactive' is disabled and the instance parameter is empty.
+   - If the instance definition is invalid.
+   - If the instance definition is a connection dictionary but empty.
+   - If the instance definition is a connection dictionary but any option is
+     invalid.
+   - If 'interactive' mode is disabled and the instance definition is missing
+     the password.
+   - If 'interactive' mode is enabled and the provided password is empty.
+
+  RuntimeError in the following scenarios:
+
+   - If the configuration file path is required but not provided or wrong.
+   - If the instance accounts are invalid.
+   - If the instance is offline.
+   - If the instance is already part of a Replication Group.
+   - If the instance is already part of an InnoDB Cluster.
+   - If the given instance cannot be used for Group Replication.
+
+
+//@<OUT> Configure Local Instance
+
+Validates and configures a local instance for MySQL InnoDB Cluster usage.
+
+SYNTAX
+
+  <Dba>.configureLocalInstance(instance[, options])
+
+WHERE
+
+  instance: An instance definition.
+  options: Additional options for the operation.
+
+DESCRIPTION
+
+This function reviews the instance configuration to identify if it is valid for
+usage in group replication and cluster. An exception is thrown if not.
+
+The instance definition is the connection data for the instance.
+
+For additional information on connection data use \? connection.
+
+Only TCP/IP connections are allowed for this function.
+
+The options dictionary may contain the following options:
+
+ - mycnfPath: The path to the MySQL configuration file of the instance.
+ - outputMycnfPath: Alternative output path to write the MySQL configuration
+   file of the instance.
+ - password: The password to be used on the connection.
+ - clusterAdmin: The name of the InnoDB cluster administrator user to be
+   created. The supported format is the standard MySQL account name format.
+ - clusterAdminPassword: The password for the InnoDB cluster administrator
+   account.
+ - clearReadOnly: boolean value used to confirm that super_read_only must be
+   disabled.
+ - interactive: boolean value used to disable the wizards in the command
+   execution, i.e. prompts are not provided to the user and confirmation
+   prompts are not shown.
+
+The connection password may be contained on the instance definition, however,
+it can be overwritten if it is specified on the options.
+
+The returned descriptive text of the operation result indicates whether the
+instance was successfully configured for InnoDB Cluster usage or if it was
+already valid for InnoDB Cluster usage.
+
+If the instance was not valid for InnoDB Cluster and interaction is enabled,
+before configuring the instance a prompt to confirm the changes is presented
+and a table with the following information:
+
+ - Variable: the invalid configuration variable.
+ - Current Value: the current value for the invalid configuration variable.
+ - Required Value: the required value for the configuration variable.
+
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the instance parameter is empty.
+   - If the instance definition is invalid.
+   - If the instance definition is a connection dictionary but empty.
+   - If the instance definition is a connection dictionary but any option is
+     invalid.
+   - If the instance definition is missing the password.
+   - If the provided password is empty.
+   - If the configuration file path is required but not provided or wrong.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance accounts are invalid.
+   - If the instance is offline.
+   - If the instance is already part of a Replication Group.
+   - If the given instance cannot be used for Group Replication.
 
 
 //@<OUT> Verbose
+
 Enables verbose mode on the Dba operations.
 
 DESCRIPTION
@@ -577,6 +710,7 @@ assigned value:
 
 
 //@<OUT> Reboot Cluster
+
 Brings a cluster back ONLINE when all members are OFFLINE.
 
 SYNTAX
@@ -588,19 +722,9 @@ WHERE
   clusterName: The name of the cluster to be rebooted.
   options: Dictionary with options that modify the behavior of this function.
 
-EXCEPTIONS
-
-  MetadataError:  if the Metadata is inaccessible.
-  ArgumentError: if the Cluster name is empty.
-  ArgumentError: if the Cluster name is not valid.
-  ArgumentError: if the options contain an invalid attribute.
-  RuntimeError: if the Cluster does not exist on the Metadata.
-  RuntimeError: if some instance of the Cluster belongs to a Replication Group.
-  RuntimeError: if the current connection cannot be used for Group Replication.
-
 RETURNS
 
- The rebooted cluster object.
+  The rebooted cluster object.
 
 DESCRIPTION
 
@@ -622,3 +746,22 @@ On success, the restored cluster object is returned by the function.
 The current session must be connected to a former instance of the cluster.
 
 If name is not specified, the default cluster will be returned.
+
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+
+  ArgumentError in the following scenarios:
+
+   - If the Cluster name is empty.
+   - If the Cluster name is not valid.
+   - If the options contain an invalid attribute.
+
+  RuntimeError in the following scenarios:
+
+   - If the Cluster does not exist on the Metadata.
+   - If some instance of the Cluster belongs to a Replication Group.
+
+

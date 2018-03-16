@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "local_blank:@localhost:33160?ssl-mode=DISABLED",
+    "uri": "local_blank:@localhost:33400?ssl-mode=DISABLED",
     "protocol": "x"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "29",
+    "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "5.7.21-log"
+    "server_version": "5.7.21-enterprise-commercial-advanced-log"
 },
 {
     "type": "request",

@@ -963,6 +963,13 @@ void MetadataStorage::create_repl_account(std::string &username,
   password = generate_password(password_length);
 
   std::string tstamp = mysqlshdk::utils::Random::get()->get_time_string();
+  // make sure the tstamp size is always 10 digits
+  if (tstamp.size() <= 10) {
+    tstamp = str_rjust(tstamp, 10, '0');
+  } else {
+    tstamp = tstamp.substr(tstamp.size() - 10);
+  }
+
   std::string base_user = "mysql_innodb_cluster_rplusr";
   username = base_user.substr(0, 32 - tstamp.size()) + tstamp;
 

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://local_blank:@localhost:33110?ssl-mode=REQUIRED",
+    "uri": "mysqlx://local_blank:@localhost:33170?ssl-mode=REQUIRED",
     "protocol": "x"
 },
 {
@@ -12,8 +12,8 @@
     "index": 2,
     "connection_id": "86",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11-debug-log",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "server_version": "8.0.11",
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -258,7 +258,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 66,
+            "length": 198,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -275,10 +275,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.11-debug-log Source distribution",
+            "8.0.11 MySQL Community Server - GPL",
             "mysqlx.sock",
-            33110,
-            "/tmp/3311/sandboxdata/"
+            33170,
+            "/var/folders/df/t0dbjvt1495bt0r9mmn_p2jh0000gn/T/3317/sandboxdata/"
         ]
     ]
 },
@@ -333,7 +333,7 @@
     "rows": [
         [
             "Uptime",
-            "14"
+            "7"
         ]
     ]
 },

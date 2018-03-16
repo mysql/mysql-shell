@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "132",
+    "connection_id": "147",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_local_address",
-            "localhost:33501"
+            "localhost:33261"
         ]
     ]
 },
@@ -318,13 +318,20 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "'mysql_innodb_cluster_r0000000024'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000024'@'%'"
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SET SESSION `sql_log_bin` = 1"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000024'@'localhost'"
 },
 {
     "type": "response",
@@ -339,7 +346,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 27,
-    "sql": "SET GLOBAL `super_read_only` = 'ON'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000024'@'%'"
 },
 {
     "type": "response",
@@ -354,12 +361,42 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = 'group_replication_recovery'"
+    "sql": "SET SESSION `sql_log_bin` = 1"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 30,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 31,
+    "sql": "SET GLOBAL `super_read_only` = 'ON'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 32,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 33,
+    "sql": "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = 'group_replication_recovery'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 34,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -384,18 +421,18 @@
     ],
     "rows": [
         [
-            "mysql_innodb_cluster_00000000024"
+            "mysql_innodb_cluster_r0000000024"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 31
+    "index": 35
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 32
+    "index": 36
 },
 null]

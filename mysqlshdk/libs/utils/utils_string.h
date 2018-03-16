@@ -231,13 +231,15 @@ std::string SHCORE_PUBLIC str_lstrip(const std::string &s,
 std::string SHCORE_PUBLIC str_rstrip(const std::string &s,
                                      const std::string &chars = " \r\n\t");
 
-inline std::string str_ljust(const std::string &s, size_t width) {
-  if (s.size() < width) return s + std::string(width - s.size(), ' ');
+inline std::string str_ljust(const std::string &s, size_t width,
+                             char pad = ' ') {
+  if (s.size() < width) return s + std::string(width - s.size(), pad);
   return s;
 }
 
-inline std::string str_rjust(const std::string &s, size_t width) {
-  if (s.size() < width) return std::string(width - s.size(), ' ').append(s);
+inline std::string str_rjust(const std::string &s, size_t width,
+                             char pad = ' ') {
+  if (s.size() < width) return std::string(width - s.size(), pad).append(s);
   return s;
 }
 

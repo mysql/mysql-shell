@@ -23,6 +23,7 @@ validateMember(members, 'killSandboxInstance');
 validateMember(members, 'startSandboxInstance');
 validateMember(members, 'checkInstanceConfiguration');
 validateMember(members, 'stopSandboxInstance');
+validateMember(members, 'configureInstance');
 validateMember(members, 'configureLocalInstance');
 validateMember(members, 'verbose');
 validateMember(members, 'rebootClusterFromCompleteOutage');
@@ -92,46 +93,48 @@ var c1 = dba.createCluster('devCluster');
 // TODO: add multi-master unit-tests
 
 //@# Dba: checkInstanceConfiguration errors
-dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port1);
+dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port1);
 dba.checkInstanceConfiguration('sample@localhost:' + __mysql_sandbox_port1);
-var result = dba.checkInstanceConfiguration('root:root@localhost:' + __mysql_sandbox_port1);
+dba.checkInstanceConfiguration('root:root@localhost:' + __mysql_sandbox_port1);
 
 //@ Dba: checkInstanceConfiguration ok1
 var uri2 = 'root:root@localhost:' + __mysql_sandbox_port2;
-var result = dba.checkInstanceConfiguration(uri2);
-print (result.status)
+dba.checkInstanceConfiguration(uri2);
 
 //@ Dba: checkInstanceConfiguration ok2
-var result = dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {PASSWORD:'root'});
-print (result.status)
-
-//@ Dba: checkInstanceConfiguration ok3
-var result = dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {DBPassword:'root'});
-print (result.status)
+dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {PASSWORD:'root'});
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
 dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
+// Delete the config file so that configureLocal doesn't detect it as a sandbox and auto-picks the config file
+// This test should actually be rewritten to use raw sandboxes, but no time for that at this moment
+var mycnf1_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+testutil.cpfile(mycnf1_path, mycnf1_path+".bak");
+testutil.rmfile(mycnf1_path);
+
 //@# Dba: configureLocalInstance errors
-dba.configureLocalInstance('sample:@someotherhost:' + __mysql_sandbox_port1);
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
+// TODO: This test needs an actual remote instance
+//dba.configureLocalInstance('sample:@someotherhost:' + __mysql_sandbox_port1);
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('sample@localhost:' + __mysql_sandbox_port1);
+//@# Dba: configureLocalInstance errors 5.7 {VER(<8.0.5)}
 dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
+//@# Dba: configureLocalInstance errors 8.0 {VER(>=8.0.5)}
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
+
+// Restore config file
+testutil.cpfile(mycnf1_path + ".bak", mycnf1_path);
+testutil.rmfile(mycnf1_path + ".bak");
 
 //@<OUT> Dba: configureLocalInstance updating config file
 dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
 
 //@ Dba: configureLocalInstance report fixed 1
-var result = dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
-print (result.status)
+dba.configureLocalInstance(uri2, {mycnfPath:'mybad.cnf'});
 
 //@ Dba: configureLocalInstance report fixed 2
-var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', password:'root'});
-print (result.status)
-
-//@ Dba: configureLocalInstance report fixed 3
-var result = dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', dbPassword:'root'});
-print (result.status)
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf', password:'root'});
 
 //@ Dba: Create user without all necessary privileges
 // create user that has all permissions to admin a cluster but doesn't have
@@ -150,7 +153,7 @@ var row = result.fetchOne();
 print("Number of accounts: "+ row[0] + "\n");
 session.close();
 
-//@ Dba: configureLocalInstance not enough privileges
+//@# Dba: configureLocalInstance not enough privileges
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
 dba.configureLocalInstance('missingprivileges:@localhost:' + __mysql_sandbox_port2,
@@ -207,7 +210,7 @@ session.runSql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'");
 session.runSql("SET SQL_LOG_BIN=1");
 session.close();
 
-//@ Dba: configureLocalInstance create existing invalid admin user
+//@# Dba: configureLocalInstance create existing invalid admin user
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test", clusterAdminPassword:"",

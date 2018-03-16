@@ -71,7 +71,7 @@ Cluster::Cluster(const std::string &name,
       _dissolved(false),
       _group_session(group_session),
       _metadata_storage(metadata_storage),
-      m_console_handler(console_handler) {
+      m_console(console_handler) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
@@ -246,8 +246,7 @@ shcore::Value Cluster::add_seed_instance(
   // replication user and the group_name (if provided)
   ret_val = _default_replica_set->add_instance(
       connection_options, args, replication_user, replication_pwd, true,
-      group_name);
-
+      group_name, true);
 
   std::string group_replication_group_name =
       get_gr_replicaset_group_name(_group_session);
@@ -267,46 +266,53 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1,
               "with options for the operation.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS,
-              "@throws MetadataError if the "
-              "Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS1,
-              "@throws MetadataError if the "
-              "Metadata update operation failed.");
+              "@li If the "
+              "Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS2,
-              "@throws ArgumentError if the "
-              "instance parameter is empty.");
+              "@li If the "
+              "Metadata update operation failed.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS3,
-              "@throws ArgumentError if the "
-              "instance definition is invalid.");
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS4,
-              "@throws ArgumentError if the "
+              "@li If the "
+              "instance parameter is empty.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS5,
+              "@li If the "
+              "instance definition is invalid.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS6,
+              "@li If the "
               "instance definition is a "
               "connection dictionary but empty.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS5,
-              "@throws ArgumentError if the instance definition cannot be used "
-              "for Group Replication.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS6,
-              "@throws ArgumentError if the "
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7,
+              "@li If the "
               "value for the memberSslMode "
               "option is not one of the "
               "allowed: \"AUTO\", \"DISABLED\", "
               "\"REQUIRED\".");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS7,
-              "@throws ArgumentError if the value for the ipWhitelist, "\
-              "localAddress, or groupSeeds options is empty.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS8,
-              "@throws RuntimeError if the "
-              "instance accounts are invalid.");
+              "@li If the value for the ipWhitelist, "
+              "localAddress, or groupSeeds options is empty.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS9,
-              "@throws RuntimeError if the "
+              "@li If the instance definition cannot be used "
+              "for Group Replication.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS10,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS11,
+              "@li If the "
+              "instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS12,
+              "@li If the "
               "instance is not in bootstrapped "
               "state.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS10,
-              "@throws RuntimeError if the SSL "
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS13,
+              "@li If the SSL "
               "mode specified is not compatible "
               "with the one used in the cluster.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS11,
-              "@throws RuntimeError if the value for the localAddress or "\
+REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS14,
+              "@li If the value for the localAddress or "
               "groupSeeds options is not valid for Group Replication.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_RETURNS, "@returns nothing");
@@ -429,6 +435,9 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
  * $(CLUSTER_ADDINSTANCE_THROWS9)
  * $(CLUSTER_ADDINSTANCE_THROWS10)
  * $(CLUSTER_ADDINSTANCE_THROWS11)
+ * $(CLUSTER_ADDINSTANCE_THROWS12)
+ * $(CLUSTER_ADDINSTANCE_THROWS13)
+ * $(CLUSTER_ADDINSTANCE_THROWS14)
  *
  * $(CLUSTER_ADDINSTANCE_RETURNS)
  *
@@ -513,35 +522,44 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1,
               "with options for the operation.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS,
-              "@throws MetadataError if the "
-              "Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS1,
-              "@throws MetadataError if the "
-              "Metadata update operation failed.");
+              "@li If the "
+              "Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS2,
-              "@throws ArgumentError if the "
+              "@li If the "
+              "Metadata update operation failed.");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4,
+              "@li If the "
               "value for the memberSslMode "
               "option is not one of the allowed: "
               "\"AUTO\", \"DISABLED\", \"REQUIRED\".");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS3,
-              "@throws ArgumentError if the instance definition cannot be used "
-              "for Group Replication.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS4,
-              "@throws RuntimeError if the "
-              "instance does not exist.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS5,
-              "@throws RuntimeError if the "
-              "instance accounts are invalid.");
+              "@li If the instance definition cannot be used "
+              "for Group Replication.");
+
 REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS6,
-              "@throws RuntimeError if the "
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS7,
+              "@li If the "
+              "instance does not exist.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS8,
+              "@li If the "
+              "instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS9,
+              "@li If the "
               "instance is not in bootstrapped "
               "state.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS7,
-              "@throws RuntimeError if the SSL "
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS10,
+              "@li If the SSL "
               "mode specified is not compatible "
               "with the one used in the cluster.");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS8,
-              "@throws RuntimeError if the "
+REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS11,
+              "@li If the "
               "instance is an active member "
               "of the ReplicaSet.");
 
@@ -625,6 +643,9 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
 * $(CLUSTER_REJOININSTANCE_THROWS6)
 * $(CLUSTER_REJOININSTANCE_THROWS7)
 * $(CLUSTER_REJOININSTANCE_THROWS8)
+* $(CLUSTER_REJOININSTANCE_THROWS9)
+* $(CLUSTER_REJOININSTANCE_THROWS10)
+* $(CLUSTER_REJOININSTANCE_THROWS11)
 *
 * $(CLUSTER_REJOININSTANCE_RETURNS)
 *
@@ -700,25 +721,31 @@ REGISTER_HELP(
     "@param options Optional dictionary with options for the operation.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS,
-              "@throws MetadataError if the "
-              "Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS1,
-              "@throws MetadataError if the "
-              "Metadata update operation failed.");
+              "@li If the "
+              "Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS2,
-              "@throws ArgumentError if the instance parameter is empty.");
+              "@li If the "
+              "Metadata update operation failed.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS3,
-              "@throws ArgumentError if the instance definition is invalid.");
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS4,
-              "@throws ArgumentError if the instance definition is a "
-              "connection dictionary but empty.");
+              "@li If the instance parameter is empty.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS5,
-              "@throws ArgumentError if the instance definition cannot be used "
-              "for Group Replication.");
+              "@li If the instance definition is invalid.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS6,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@li If the instance definition is a "
+              "connection dictionary but empty.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS7,
-              "@throws RuntimeError if an error occurs when trying to remove "
+              "@li If the instance definition cannot be used "
+              "for Group Replication.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS8,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS9,
+              "@li If the instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS10,
+              "@li If an error occurs when trying to remove "
               "the instance "
               "(e.g., instance is not reachable).");
 
@@ -738,7 +765,7 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2,
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3,
               "The options dictionary may contain the following attributes:");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4,
-              "@li password/dbPassword: the instance connection password");
+              "@li password: the instance connection password");
 REGISTER_HELP(
     CLUSTER_REMOVEINSTANCE_DETAIL5,
     "@li force: boolean, indicating if the instance must be removed (even if "
@@ -771,6 +798,9 @@ REGISTER_HELP(
  * $(CLUSTER_REMOVEINSTANCE_THROWS5)
  * $(CLUSTER_REMOVEINSTANCE_THROWS6)
  * $(CLUSTER_REMOVEINSTANCE_THROWS7)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS8)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS9)
+ * $(CLUSTER_REMOVEINSTANCE_THROWS10)
  *
  * $(CLUSTER_REMOVEINSTANCE_RETURNS)
  *
@@ -867,7 +897,7 @@ void Cluster::set_default_replicaset(const std::string &name,
                                      const std::string &topology_type,
                                      const std::string &group_name) {
   _default_replica_set = std::make_shared<ReplicaSet>(
-      name, topology_type, group_name, _metadata_storage, m_console_handler);
+      name, topology_type, group_name, _metadata_storage, m_console);
 
   if (_default_replica_set)
     _default_replica_set->set_cluster(shared_from_this());
@@ -875,9 +905,11 @@ void Cluster::set_default_replicaset(const std::string &name,
 
 REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
 REGISTER_HELP(CLUSTER_DESCRIBE_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_DESCRIBE_THROWS1,
-              "@throws MetadataError if the Metadata update operation failed.");
+              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_DESCRIBE_THROWS2,
+              "@li If the Metadata update operation failed.");
 REGISTER_HELP(
     CLUSTER_DESCRIBE_RETURNS,
     "@returns A JSON object describing the structure of the cluster.");
@@ -911,6 +943,7 @@ REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL10, "@li role: the instance role");
  *
  * $(CLUSTER_DESCRIBE_THROWS)
  * $(CLUSTER_DESCRIBE_THROWS1)
+ * $(CLUSTER_DESCRIBE_THROWS2)
  *
  * $(CLUSTER_DESCRIBE_RETURNS)
  *
@@ -982,9 +1015,11 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
 REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
 
 REGISTER_HELP(CLUSTER_STATUS_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_STATUS_THROWS1,
-              "@throws MetadataError if the Metadata update operation failed.");
+              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_STATUS_THROWS2,
+              "@li If the Metadata update operation failed.");
 
 REGISTER_HELP(CLUSTER_STATUS_RETURNS,
               "@returns A JSON object describing the status of the cluster.");
@@ -1042,6 +1077,7 @@ REGISTER_HELP(CLUSTER_STATUS_DETAIL19, "@li status: the instance status");
  *
  * $(CLUSTER_STATUS_THROWS)
  * $(CLUSTER_STATUS_THROWS1)
+ * $(CLUSTER_STATUS_THROWS2)
  *
  * $(CLUSTER_STATUS_RETURNS)
  *
@@ -1126,9 +1162,11 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
 
 REGISTER_HELP(CLUSTER_DISSOLVE_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1,
-              "@throws MetadataError if the Metadata update operation failed.");
+              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_DISSOLVE_THROWS2,
+              "@li If the Metadata update operation failed.");
 
 REGISTER_HELP(CLUSTER_DISSOLVE_RETURNS, "@returns nothing.");
 
@@ -1153,6 +1191,7 @@ REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3,
  *
  * $(CLUSTER_DISSOLVE_THROWS)
  * $(CLUSTER_DISSOLVE_THROWS1)
+ * $(CLUSTER_DISSOLVE_THROWS2)
  *
  * $(CLUSTER_DISSOLVE_RETURNS)
  *
@@ -1247,13 +1286,19 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
 
 REGISTER_HELP(CLUSTER_RESCAN_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS1,
-              "@throws MetadataError if the Metadata update operation failed.");
+              "@li If the Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS2,
-              "@throws LogicError if the cluster does not exist.");
+              "@li If the Metadata update operation failed.");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS3,
-              "@throws RuntimeError if all the "
+              "LogicError in the following scenarios:");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS4,
+              "@li If the cluster does not exist.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS5,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS6,
+              "@li If all the "
               "ReplicaSet instances of any ReplicaSet "
               "are offline.");
 
@@ -1271,6 +1316,9 @@ REGISTER_HELP(CLUSTER_RESCAN_DETAIL,
  * $(CLUSTER_RESCAN_THROWS1)
  * $(CLUSTER_RESCAN_THROWS2)
  * $(CLUSTER_RESCAN_THROWS3)
+ * $(CLUSTER_RESCAN_THROWS4)
+ * $(CLUSTER_RESCAN_THROWS5)
+ * $(CLUSTER_RESCAN_THROWS6)
  *
  * $(CLUSTER_RESCAN_RETURNS)
  *
@@ -1365,24 +1413,30 @@ REGISTER_HELP(
     "@param password Optional string with the password for the connection.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS,
-              "@throws ArgumentError if the instance parameter is empty.");
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS1,
-              "@throws ArgumentError if the instance definition cannot be used "
+              "@li If the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2,
+              "@li If the instance definition cannot be used "
               "for Group Replication.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3,
+              "RuntimeError in the following scenarios:");
 REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2,
-    "@throws RuntimeError if the instance does not exist on the Metadata.");
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4,
+    "@li If the instance does not exist on the Metadata.");
 REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3,
-    "@throws RuntimeError if the instance is not on the ONLINE state.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4,
-              "@throws RuntimeError if the instance does is not an active "
-              "member of a replication group.");
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5,
-              "@throws RuntimeError if there are no ONLINE instances visible "
-              "from the given one.");
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5,
+    "@li If the instance is not on the ONLINE state.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6,
-              "@throws LogicError if the cluster does not exist.");
+              "@li If the instance does is not an active "
+              "member of a replication group.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS7,
+              "@li If there are no ONLINE instances visible "
+              "from the given one.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS8,
+              "LogicError in the following scenarios:");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS9,
+              "@li If the cluster does not exist.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS, "@returns nothing.");
 
@@ -1443,6 +1497,9 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5)
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS7)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS8)
+ * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS9)
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS)
  *
@@ -1523,19 +1580,24 @@ REGISTER_HELP(
     "@param password Optional string with the password for the connection.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS,
-              "@throws ArgumentError if the instance parameter is empty.");
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS1,
-              "@throws ArgumentError if the instance definition is invalid.");
+              "@li If the instance parameter is empty.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS2,
-              "@throws ArgumentError if the instance definition is a "
-              "connection dictionary but empty.");
+              "@li If the instance definition is invalid.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS3,
-              "@throws ArgumentError if the instance definition cannot be used "
-              "for Group Replication.");
+              "@li If the instance definition is a "
+              "connection dictionary but empty.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS4,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@li If the instance definition cannot be used "
+              "for Group Replication.");
+
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS5,
-              "@throws RuntimeError if the instance is offline.");
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS6,
+              "@li If the instance accounts are invalid.");
+REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_THROWS7,
+              "@li If the instance is offline.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_RETURNS,
               "@returns resultset A JSON object with the status.");
@@ -1598,6 +1660,8 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS3)
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS4)
  * $(CLUSTER_CHECKINSTANCESTATE_THROWS5)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS6)
+ * $(CLUSTER_CHECKINSTANCESTATE_THROWS7)
  *
  * $(CLUSTER_CHECKINSTANCESTATE_RETURNS)
  *

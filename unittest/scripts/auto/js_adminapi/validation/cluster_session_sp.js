@@ -238,15 +238,15 @@
 
 //@ SP - Connect with --cluster on a non-cluster member + cmd (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
-|Dba.getCluster: Group replication not started (MySQL error 1193: Unknown system variable 'group_replication_single_primary_mode')|
+|ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member interactive (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
-|Dba.getCluster: Group replication not started (MySQL error 1193: Unknown system variable 'group_replication_single_primary_mode')|
+|ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
-|RuntimeError: Dba.getCluster: Group replication not started (MySQL error 1193: Unknown system variable 'group_replication_single_primary_mode')|
+|ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
@@ -275,7 +275,7 @@
 
 //@ SPX - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
-|RuntimeError: Dba.getCluster: Group replication not started (MySQL error 1193: Unknown system variable 'group_replication_single_primary_mode')|
+|ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SPX - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
@@ -304,7 +304,7 @@
 
 //@ SPX implicit - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of a InnoDB cluster.|
-|RuntimeError: Dba.getCluster: Group replication not started (MySQL error 1193: Unknown system variable 'group_replication_single_primary_mode')|
+|ERROR: RuntimeError: Dba.getCluster: This function is not available through a session to a standalone instance|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|

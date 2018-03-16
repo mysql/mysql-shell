@@ -3,14 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "9",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
@@ -33,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 97,
+            "length": 39,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -46,7 +50,7 @@
     ],
     "rows": [
         [
-            "5.7.21-enterprise-commercial-advanced-log MySQL Enterprise Server - Advanced Edition (Commercial)"
+            "5.7.21-log MySQL Community Server (GPL)"
         ]
     ]
 },

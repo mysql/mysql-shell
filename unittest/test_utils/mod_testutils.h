@@ -124,7 +124,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   using Input_fn =
       std::function<void(const std::string &, const std::string &)>;
 
-  using Output_fn = std::function<std::string()>;
+  using Output_fn = std::function<std::string(bool)>;
 
   void set_test_callbacks(Input_fn feed_prompt, Input_fn feed_password,
                           Output_fn fetch_stdout, Output_fn fetch_stderr) {
@@ -151,13 +151,15 @@ class Testutils : public shcore::Cpp_object_bridge {
   // Sandbox routines
   void deploy_sandbox(int port, const std::string &rootpass,
                       const shcore::Dictionary_t &opts = {});
+  void deploy_raw_sandbox(int port, const std::string &rootpass,
+                      const shcore::Dictionary_t &opts = {});
   void destroy_sandbox(int port, bool quiet_kill = false);
 
   void start_sandbox(int port);
-  void stop_sandbox(int port, const std::string &rootpass);
+  void stop_sandbox(int port, const std::string &pass = "");
   void kill_sandbox(int port, bool quiet = false);
 
-  void restart_sandbox(int port, const std::string &rootpass);
+  void restart_sandbox(int port);
 
   void snapshot_sandbox_conf(int port);
   void begin_snapshot_sandbox_error_log(int port);
@@ -180,7 +182,8 @@ class Testutils : public shcore::Cpp_object_bridge {
                                  int timeout = 100);
  public:
   // InnoDB cluster routines
-  std::string wait_member_state(int member_port, const std::string &states);
+  std::string wait_member_state(int member_port, const std::string &states,
+                                bool direct_connection);
 
  public:
   // Misc utility stuff
@@ -222,21 +225,22 @@ class Testutils : public shcore::Cpp_object_bridge {
   void skip(const std::string &reason);
   void fail(const std::string &context);
 
-  std::string fetch_captured_stdout();
-  std::string fetch_captured_stderr();
+  std::string fetch_captured_stdout(bool eat_one);
+  std::string fetch_captured_stderr(bool eat_one);
 
  private:
   std::weak_ptr<mysqlsh::Mysql_shell> _shell;
   std::string _mysqlsh_path;
   shcore::Interpreter_delegate _delegate;
   std::unique_ptr<mysqlsh::dba::ProvisioningInterface> _mp;
+  std::map<int, std::string> _passwords;
   std::string _sandbox_dir;
   std::string _sandbox_snapshot_dir;
   bool _dummy_sandboxes = false;
   bool _use_boilerplate = false;
   std::string _test_skipped;
-  std::string _boilerplate_rootpass;
   int _snapshot_log_index = 0;
+  int _snapshot_conf_serial = 0;
   Input_fn _feed_prompt;
   Input_fn _feed_password;
   Output_fn _fetch_stdout;
@@ -248,8 +252,11 @@ class Testutils : public shcore::Cpp_object_bridge {
 
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
   bool deploy_sandbox_from_boilerplate(int port,
-                                       const shcore::Dictionary_t &opts);
+                                       const shcore::Dictionary_t &opts,
+                                       bool raw = false);
   void change_sandbox_uuid(int port, const std::string &server_uuid);
+  std::string get_sandbox_datadir(int port);
+  void try_rename(const std::string& source, const std::string& target);
 };
 
 }  // namespace tests

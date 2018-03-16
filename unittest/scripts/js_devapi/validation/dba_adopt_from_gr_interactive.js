@@ -8,18 +8,18 @@
 ||
 
 //@<OUT> Drop Metadata
-Are you sure you want to remove the Metadata? [y|N]: Metadata Schema successfully removed.
+Are you sure you want to remove the Metadata? [y/N]: Metadata Schema successfully removed.
 
 //@ Check cluster status after drop metadata schema
 ||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
 
 //@<OUT> Create cluster adopting from GR - answer 'yes' to prompt
 You are connected to an instance that belongs to an unmanaged replication group.
-Do you want to setup an InnoDB cluster based on this replication group? [Y|n]: A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
+Do you want to setup an InnoDB cluster based on this replication group? [Y/n]: A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-Creating InnoDB cluster 'testCluster' on 'root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'testCluster' on 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
-Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...
+Adding Instance '<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>'...
 
 Cluster successfully created based on existing replication group.
 
@@ -28,20 +28,20 @@ Cluster successfully created based on existing replication group.
     "clusterName": "testCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -49,7 +49,7 @@ Cluster successfully created based on existing replication group.
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Create cluster adopting from GR - answer 'no' to prompt
@@ -59,11 +59,11 @@ Cluster successfully created based on existing replication group.
 ||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
 
 //@<OUT> Create cluster adopting from GR - use 'adoptFromGR' option
-A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-Creating InnoDB cluster 'testCluster' on 'root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB cluster 'testCluster' on 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
-Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...
+Adding Instance '<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>'...
 
 Cluster successfully created based on existing replication group.
 
@@ -72,20 +72,20 @@ Cluster successfully created based on existing replication group.
     "clusterName": "testCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -93,15 +93,15 @@ Cluster successfully created based on existing replication group.
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Create cluster adopting from multi-master GR - use 'adoptFromGR' option
-A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-Creating InnoDB cluster 'testCluster' on 'root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
-Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
-Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...
+Creating InnoDB cluster 'testCluster' on 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Adding Instance '<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Adding Instance '<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>'...
 
 Cluster successfully created based on existing replication group.
 
@@ -114,15 +114,15 @@ Cluster successfully created based on existing replication group.
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
@@ -130,7 +130,7 @@ Cluster successfully created based on existing replication group.
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Finalization

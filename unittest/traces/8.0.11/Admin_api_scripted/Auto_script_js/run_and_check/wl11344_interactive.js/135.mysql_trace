@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "40",
+    "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP 'mysql_innodb_cluster_00000000021.*'"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -32,13 +32,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "USER_PRIVILEGES",
-            "column_name": "GRANTEE",
-            "column_label": "GRANTEE",
-            "length": 324,
-            "fractional": 0,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@server_uuid",
+            "length": 144,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -50,10 +50,7 @@
     ],
     "rows": [
         [
-            "'mysql_innodb_cluster_00000000021'@'localhost'"
-        ],
-        [
-            "'mysql_innodb_cluster_00000000021'@'%'"
+            "07194f6a-27e7-11e8-9da6-ac4e81a09c2c"
         ]
     ]
 },
@@ -61,40 +58,76 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_00000000021'@'localhost'"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_port",
+            "length": 21,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            33160
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_00000000021'@'%'"
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 9
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 10
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_local_address",
+            "length": 60,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "localhost:33161"
+        ]
+    ]
 },
 null]

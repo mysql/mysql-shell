@@ -54,7 +54,7 @@ wait_slave_state(cluster, uri3, "ONLINE");
 
 // stop instance 2
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-testutil.stopSandbox(__mysql_sandbox_port2, 'root');
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Waiting for instance 2 to become missing
 wait_slave_state(cluster, uri2, "(MISSING)");

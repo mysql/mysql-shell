@@ -1,10 +1,10 @@
 // Deploy instances (with invalid server_id).
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {"server_id": "0"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"server_id": "0", "report_host": hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname});
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "server_id");
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.restartSandbox(__mysql_sandbox_port2, "root");
+testutil.restartSandbox(__mysql_sandbox_port2);
 
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
@@ -19,7 +19,7 @@ dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 
 //@ Restart sandbox 1.
-testutil.restartSandbox(__mysql_sandbox_port1, "root");
+testutil.restartSandbox(__mysql_sandbox_port1);
 
 //@<OUT> configureLocalInstance no issues after restart for sandobox 1.
 dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
@@ -35,7 +35,7 @@ dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: mycnf2});
 dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: mycnf2});
 
 //@ Restart sandbox 2. {VER(>=8.0.3)}
-testutil.restartSandbox(__mysql_sandbox_port2, "root");
+testutil.restartSandbox(__mysql_sandbox_port2);
 
 //@<OUT> configureLocalInstance no issues after restart for sandbox 2. {VER(>=8.0.3)}
 dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: mycnf2});

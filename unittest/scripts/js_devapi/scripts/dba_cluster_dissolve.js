@@ -99,7 +99,7 @@ wait_sandbox_in_metadata(__mysql_sandbox_port3);
 
 // stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 wait_slave_state(single2, uri3, ["(MISSING)"]);
 
@@ -111,7 +111,7 @@ single2.dissolve({force: true});
 testutil.startSandbox(__mysql_sandbox_port3);
 //the timeout for GR plugin to install a new view is 60s, so it should be at
 // least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 //@ Create multi-primary cluster 2
 shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -142,7 +142,7 @@ wait_sandbox_in_metadata(__mysql_sandbox_port3);
 
 // stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 wait_slave_state(multi2, uri3, ["(MISSING)"]);
 

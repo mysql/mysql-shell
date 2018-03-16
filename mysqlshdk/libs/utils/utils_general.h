@@ -65,7 +65,8 @@ class Scoped_callback {
 
 using on_leave_scope = Scoped_callback;
 
-enum class OperatingSystem { DEBIAN, REDHAT, LINUX, WINDOWS, MACOS };
+enum class OperatingSystem { UNKNOWN, DEBIAN, REDHAT, LINUX, WINDOWS, MACOS };
+std::string SHCORE_PUBLIC to_string(OperatingSystem os_type);
 
 bool SHCORE_PUBLIC is_valid_identifier(const std::string &name);
 mysqlshdk::db::Connection_options SHCORE_PUBLIC
@@ -129,7 +130,7 @@ std::string SHCORE_PUBLIC replace_text(const std::string &source,
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 
-OperatingSystem SHCORE_PUBLIC get_os();
+OperatingSystem SHCORE_PUBLIC get_os_type();
 
 #ifdef _WIN32
 // We inline these functions to avoid trouble with memory and DLL boundaries

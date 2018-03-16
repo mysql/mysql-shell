@@ -1,7 +1,9 @@
 {
-    "hostname": "T460",
-    "hostname_ip": "192.168.1.66",
-    "sandbox_port1": "3311",
-    "sandbox_port2": "3321",
-    "sandbox_port3": "3331"
+    "hostname": "dhcp-10-159-159-64.vpn.oracle.com",
+    "hostname_ip": "10.159.159.64",
+    "real_host_is_loopback": "0",
+    "real_hostname": "dhcp-10-159-159-64.vpn.oracle.com",
+    "sandbox_port1": "3317",
+    "sandbox_port2": "3327",
+    "sandbox_port3": "3337"
 }

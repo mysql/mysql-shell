@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "264",
+    "connection_id": "279",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP 'mysql_innodb_cluster_00000000023.*'"
+    "sql": "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP 'mysql_innodb_cluster_r0000000023.*'"
 },
 {
     "type": "response",
@@ -50,10 +50,10 @@
     ],
     "rows": [
         [
-            "'mysql_innodb_cluster_00000000023'@'localhost'"
+            "'mysql_innodb_cluster_r0000000023'@'localhost'"
         ],
         [
-            "'mysql_innodb_cluster_00000000023'@'%'"
+            "'mysql_innodb_cluster_r0000000023'@'%'"
         ]
     ]
 },
@@ -61,7 +61,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_00000000023'@'localhost'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000023'@'localhost'"
 },
 {
     "type": "response",
@@ -76,7 +76,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_00000000023'@'%'"
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000023'@'%'"
 },
 {
     "type": "response",

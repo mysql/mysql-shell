@@ -2,7 +2,7 @@
 ||
 
 //@ Session: validating members
-|Session Members: 13|
+|Session Members: 14|
 |createCluster: OK|
 |deleteSandboxInstance: OK|
 |deploySandboxInstance: OK|
@@ -13,6 +13,7 @@
 |startSandboxInstance: OK|
 |checkInstanceConfiguration: OK|
 |stopSandboxInstance: OK|
+|configureInstance: OK|
 |configureLocalInstance: OK|
 |verbose: OK|
 |rebootClusterFromCompleteOutage: OK|
@@ -48,9 +49,16 @@
 //@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375)
 ||
 
-//@<OUT> Dba: createCluster with interaction
+//@<OUT> Dba: createCluster with interaction {VER(>=8.0.5)}
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<real_hostname>>>
+
+Instance configuration is suitable.
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
@@ -58,35 +66,72 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
+//@<OUT> Dba: createCluster with interaction {VER(<8.0.5)}
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>
+
+Instance configuration is suitable.
+Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.21 does not support the SET PERSIST command (MySQL version >= 8.0.5 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+Adding Seed Instance...
+
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
 //@ Dba: checkInstanceConfiguration error
-|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already part of an InnoDB Cluster
-
+|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (RuntimeError)
 //@<OUT> Dba: checkInstanceConfiguration ok 1
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-{
-    "status": "ok"
-}
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+<<<if(__version_num<80005){"Checking instance configuration...\nNote: verifyMyCnf option was not given so only dynamic configuration will be verified.\nInstance configuration is compatible with InnoDB cluster"} else {"Checking instance configuration...\nInstance configuration is compatible with InnoDB cluster"}>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
 //@<OUT> Dba: checkInstanceConfiguration ok 2
-Validating instance...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-{
-    "status": "ok"
-}
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+<<<if(__version_num<80005){"Checking instance configuration...\nNote: verifyMyCnf option was not given so only dynamic configuration will be verified.\nInstance configuration is compatible with InnoDB cluster"} else {"Checking instance configuration...\nInstance configuration is compatible with InnoDB cluster"}>>>
+
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is not valid for Cluster usage.
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
 
-The following issues were encountered:
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
 
- - Some configuration options need to be fixed.
+Checking instance configuration...
+Configuration file mybad.cnf will also be checked.
 
+Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------------------------------+------------------------+
 | Variable                         | Current Value | Required Value                         | Note                   |
 +----------------------------------+---------------+----------------------------------------+------------------------+
@@ -103,39 +148,52 @@ The following issues were encountered:
 | transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file |
 +----------------------------------+---------------+----------------------------------------+------------------------+
 
+The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
+Please use the dba.configureInstance() command to repair these issues.
 
-Please fix these issues and try again.
+//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.5)}
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
+Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
+Persisting the cluster settings...
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
 
-//@ Dba: configureLocalInstance error 1
-||Dba.configureLocalInstance: This function only works with local instances
+The instance cluster settings were successfully persisted.
 
-// TODO(rennox): This test case is not reliable since requires
-// that no my.cnf exist on the default paths
-//--@<OUT> Dba: configureLocalInstance error 2
-// Please provide the password for 'root@localhost:<<<__mysql_port>>>':
-// Detecting the configuration file...
-// Default file not found at the standard locations.
-// Please specify the path to the MySQL configuration file:
-// The path to the MySQL Configuration is required to verify and fix the InnoDB Cluster settings
-
-//@<OUT> Dba: configureLocalInstance error 3
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':
-Detected as sandbox instance.
-
-Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
-Validating instance...
+//@ Dba: configureLocalInstance error 3 bad call {VER(>=8.0.5)}
+|The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
+|Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.|
 
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
 
-//@ Dba: configureLocalInstance not enough privileges 1
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
+//@# Dba: configureLocalInstance not enough privileges 1
+|ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
+|Missing privileges on schema 'sys': SELECT.|
+|For more information, see the online documentation.|
+||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
-//@ Dba: configureLocalInstance not enough privileges 2
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
 
-//@ Dba: configureLocalInstance not enough privileges 3
-||Dba.configureLocalInstance: Session account 'missingprivileges'@'localhost' does not have all the required privileges to execute this operation. Missing privilege on schema 'mysql': SELECT. For more information, see the online documentation.
+//@# Dba: configureLocalInstance not enough privileges 2
+|ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
+|Missing privileges on schema 'sys': SELECT.|
+|For more information, see the online documentation.|
+||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+
+
+//@# Dba: configureLocalInstance not enough privileges 3
+|ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
+|Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
+|Missing privileges on schema 'sys': SELECT.|
+|For more information, see the online documentation.|
+||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -144,69 +202,109 @@ Validating instance...
 |Number of accounts: 0|
 
 //@<OUT> Dba: configureLocalInstance updating config file
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating instance...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-You can now use it in an InnoDB Cluster.
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Some configuration options need to be fixed:
++----------------------------------+---------------+----------------------------------------+------------------------+
+| Variable                         | Current Value | Required Value                         | Note                   |
++----------------------------------+---------------+----------------------------------------+------------------------+
+| binlog_checksum                  | <not set>     | NONE                                   | Update the config file |
+| binlog_format                    | <not set>     | ROW                                    | Update the config file |
+| disabled_storage_engines         | <not set>     | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file |
+| enforce_gtid_consistency         | <not set>     | ON                                     | Update the config file |
+| gtid_mode                        | OFF           | ON                                     | Update the config file |
+| log_bin                          | <not set>     | <no value>                             | Update the config file |
+| log_slave_updates                | <not set>     | ON                                     | Update the config file |
+| master_info_repository           | <not set>     | TABLE                                  | Update the config file |
+| relay_log_info_repository        | <not set>     | TABLE                                  | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>                                   | Update the config file |
+| transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file |
++----------------------------------+---------------+----------------------------------------+------------------------+
+
+The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
+Do you want to perform the required configuration changes? [y/n]: Configuring instance...
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for use in an InnoDB cluster.
+
 
 //@ Dba: create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 1|
 
 //@<OUT> Dba: configureLocalInstance create different admin user
-Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>':
-Detected as sandbox instance.
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port2>>><<<__path_splitter>>>my.cnf
-MySQL user 'mydba' cannot be verified to have access to other hosts in the network.
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
 
-1) Create mydba@% with necessary grants
-2) Create account with different name
-3) Continue without creating account
+WARNING: User 'mydba' can only connect from localhost.
+If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+
+1) Create remotely usable account for 'mydba' with same grants and password
+2) Create a new admin account for InnoDB cluster with minimal required grants
+3) Ignore and continue
 4) Cancel
+
 Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
 privileges or leave empty and press Enter to cancel.
-Account Name: Password for new account: Confirm password: Validating instance...
+Account Name:
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-You can now use it in an InnoDB Cluster.
-
-{
-    "status": "ok"
-}
+Cluster admin user 'dba_test'@'%' created.
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
-Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>':
-Detected as sandbox instance.
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-Validating MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port2>>><<<__path_splitter>>>my.cnf
-MySQL user 'mydba' cannot be verified to have access to other hosts in the network.
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
 
-1) Create mydba@% with necessary grants
-2) Create account with different name
-3) Continue without creating account
+WARNING: User 'mydba' can only connect from localhost.
+If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
+
+1) Create remotely usable account for 'mydba' with same grants and password
+2) Create a new admin account for InnoDB cluster with minimal required grants
+3) Ignore and continue
 4) Cancel
+
 Please select an option [1]: Please provide an account name (e.g: icroot@%) to have it created with the necessary
 privileges or leave empty and press Enter to cancel.
-Account Name: Password for new account: Confirm password: Validating instance...
+Account Name: User 'dba_test'@'%' already exists and will not be created.
 
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for Cluster usage
-You can now use it in an InnoDB Cluster.
-
-{
-    "status": "ok"
-}
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 ||
 
 //@ Dba: configureLocalInstance create existing invalid admin user
-||Dba.configureLocalInstance: Cluster Admin account 'dba_test'@'%' does not have all the required privileges to execute this operation. Missing global privileges: REPLICATION SLAVE. For more information, see the online documentation.
+||Dba.configureLocalInstance: The account 'mydba'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|
 
-//@ Check if all missing privileges are reported for user with no privileges
-|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER. Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE. Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE. Missing privileges on schema 'sys': SELECT. Missing privileges on table 'performance_schema.replication_applier_configuration': SELECT. Missing privileges on table 'performance_schema.replication_applier_status': SELECT. Missing privileges on table 'performance_schema.replication_applier_status_by_coordinator': SELECT. Missing privileges on table 'performance_schema.replication_applier_status_by_worker': SELECT. Missing privileges on table 'performance_schema.replication_connection_configuration': SELECT. Missing privileges on table 'performance_schema.replication_connection_status': SELECT. Missing privileges on table 'performance_schema.replication_group_member_stats': SELECT. Missing privileges on table 'performance_schema.replication_group_members': SELECT. Missing privileges on table 'performance_schema.threads': SELECT.|
+//@# Check if all missing privileges are reported for user with no privileges
+|ERROR: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster:|
+|Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER.|
+|Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
+|Missing privileges on schema 'mysql_innodb_cluster_metadata': ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE.|
+|Missing privileges on schema 'sys': SELECT.|
+|Missing privileges on table 'performance_schema.replication_applier_configuration': SELECT.|
+|Missing privileges on table 'performance_schema.replication_applier_status': SELECT.|
+|Missing privileges on table 'performance_schema.replication_applier_status_by_coordinator': SELECT.|
+|Missing privileges on table 'performance_schema.replication_applier_status_by_worker': SELECT.|
+|Missing privileges on table 'performance_schema.replication_connection_configuration': SELECT.|
+|Missing privileges on table 'performance_schema.replication_connection_status': SELECT.|
+|Missing privileges on table 'performance_schema.replication_group_member_stats': SELECT.|
+|Missing privileges on table 'performance_schema.replication_group_members': SELECT.|
+|Missing privileges on table 'performance_schema.threads': SELECT.|
+|For more information, see the online documentation.|
+||Dba.configureLocalInstance: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string

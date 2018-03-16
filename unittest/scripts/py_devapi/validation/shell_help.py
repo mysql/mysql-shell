@@ -149,7 +149,7 @@ WHERE
 
 RETURNS
 
- A dictionary containing all the elements contained on the given URI string.
+  A dictionary containing all the elements contained on the given URI string.
 
 DESCRIPTION
 
@@ -177,7 +177,7 @@ WHERE
 
 RETURNS
 
- A string value containing the input from the user.
+  A string value containing the input from the user.
 
 DESCRIPTION
 

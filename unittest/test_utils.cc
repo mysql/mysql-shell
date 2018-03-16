@@ -23,14 +23,15 @@
 #include <memory>
 #include <random>
 #include <string>
-#include "db/uri_encoder.h"
 #include "db/replay/setup.h"
+#include "db/uri_encoder.h"
+#include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 
 using namespace shcore;
 
@@ -38,6 +39,7 @@ std::vector<std::string> Shell_test_output_handler::log;
 ngcommon::Logger *Shell_test_output_handler::_logger;
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
+extern bool g_profile_test_scripts;
 
 static int find_column_in_select_stmt(const std::string &sql,
   const std::string &column) {
@@ -84,7 +86,7 @@ static int find_column_in_select_stmt(const std::string &sql,
   return -1;
 }
 
-Shell_test_output_handler::Shell_test_output_handler() {
+Shell_test_output_handler::Shell_test_output_handler() : m_internal(false) {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
@@ -123,11 +125,13 @@ void Shell_test_output_handler::log_hook(const char *message,
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
-  target->full_output << text << std::endl;
+  if (!target->m_internal) {
+    target->full_output << text << std::endl;
 
-  if (target->debug || g_test_trace_scripts ||
-      shcore::str_beginswith(text, "**"))
-    std::cout << text << std::flush;
+    if (target->debug || g_test_trace_scripts ||
+        shcore::str_beginswith(text, "**"))
+      std::cout << text << std::flush;
+  }
 
   std::lock_guard<std::mutex> lock(target->stdout_mutex);
   target->std_out.append(text);
@@ -162,14 +166,15 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
     std::tie(expected_prompt, answer) = target->prompts.front();
     target->prompts.pop_front();
 
-    if (expected_prompt == "*" || expected_prompt.compare(prompt) == 0) {
+    if (expected_prompt == "*" ||
+        shcore::str_beginswith(prompt, expected_prompt)) {
       target->debug_print(makegreen(
           shcore::str_format("\n--> prompt %s %s", prompt, answer.c_str())));
       target->full_output << answer << std::endl;
     } else {
-      ADD_FAILURE() << "Mismatched prompts. Expected: " << expected_prompt
-                    << "\n"
-                    << "actual: " << prompt;
+      ADD_FAILURE() << "Mismatched prompts. Expected: '" << expected_prompt
+                    << "'\n"
+                    << "actual: '" << prompt << "'";
       target->debug_print(
           makered(shcore::str_format("\n--> mismatched prompt '%s'", prompt)));
     }
@@ -202,14 +207,15 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
     std::tie(expected_prompt, answer) = target->passwords.front();
     target->passwords.pop_front();
 
-    if (expected_prompt == "*" || expected_prompt.compare(prompt) == 0) {
+    if (expected_prompt == "*" ||
+        shcore::str_beginswith(prompt, expected_prompt)) {
       target->debug_print(makegreen(
           shcore::str_format("\n--> password %s %s", prompt, answer.c_str())));
       target->full_output << answer << std::endl;
     } else {
-      ADD_FAILURE() << "Mismatched pwd prompts. Expected: " << expected_prompt
-                    << "\n"
-                    << "actual: " << prompt;
+      ADD_FAILURE() << "Mismatched pwd prompts. Expected: '" << expected_prompt
+                    << "'\n"
+                    << "actual: '" << prompt << "'";
       target->debug_print(makered(
           shcore::str_format("\n--> mismatched pwd prompt '%s'", prompt)));
     }
@@ -384,6 +390,8 @@ std::string Shell_core_test_wrapper::get_options_file_name(const char *name) {
 void Shell_core_test_wrapper::SetUp() {
   Shell_base_test::SetUp();
 
+  m_start_time = static_cast<unsigned int>(time(NULL));
+
   output_handler.debug_print_header(context_identifier());
 
   debug = false;
@@ -391,6 +399,11 @@ void Shell_core_test_wrapper::SetUp() {
 
   // Initializes the interactive shell
   reset_shell();
+
+  if (getenv("TEST_DEBUG")) {
+    output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
+    enable_debug();
+  }
 }
 
 void Shell_core_test_wrapper::TearDown() {
@@ -417,11 +430,21 @@ void Shell_core_test_wrapper::enable_testutil() {
       [this](const std::string &prompt, const std::string &pass) {
         output_handler.passwords.push_back({prompt, pass});
       },
-      [this]() -> std::string {
-        return output_handler.std_out;
+      [this](bool one) -> std::string {
+        if (one) {
+          return shcore::str_partition_after_inpl(&output_handler.std_out,
+                                                  "\n");
+        } else {
+          return output_handler.std_out;
+        }
       },
-      [this]() -> std::string {
-        return output_handler.std_err;
+      [this](bool one) -> std::string {
+        if (one) {
+          return shcore::str_partition_after_inpl(&output_handler.std_err,
+                                                  "\n");
+        } else {
+          return output_handler.std_err;
+        }
       });
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
@@ -487,9 +510,19 @@ void Shell_core_test_wrapper::reset_replayable_shell(
 void Shell_core_test_wrapper::execute(int location,
                                       const std::string &code) {
   std::string _code(code);
-  std::string executed_input =
-      makeblue(shcore::str_format("%4d> %s", location, _code.c_str()));
-  output_handler.debug_print(executed_input);
+
+  unsigned int elapsed = static_cast<unsigned int>(time(NULL)) - m_start_time;
+
+  if (g_profile_test_scripts) {
+    std::string executed_input =
+        makeblue(shcore::str_format("[%2u:%02u] %4d> %s", elapsed / 60,
+                                    elapsed % 60, location, _code.c_str()));
+    output_handler.debug_print(executed_input);
+  } else {
+    std::string executed_input =
+        makeblue(shcore::str_format("%4d> %s", location, _code.c_str()));
+    output_handler.debug_print(executed_input);
+  }
 
   _interactive_shell->process_line(_code);
 }
@@ -501,6 +534,14 @@ void Shell_core_test_wrapper::execute(const std::string& code) {
   output_handler.debug_print(executed_input);
 
   _interactive_shell->process_line(_code);
+}
+
+void Shell_core_test_wrapper::execute_internal(const std::string& code) {
+  std::string _code(code);
+
+  output_handler.set_internal(true);
+  _interactive_shell->process_line(_code);
+  output_handler.set_internal(false);
 }
 
 void Shell_core_test_wrapper::execute_noerr(const std::string& code) {

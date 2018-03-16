@@ -36,6 +36,7 @@ validateMember(members, 'killSandboxInstance');
 validateMember(members, 'startSandboxInstance');
 validateMember(members, 'checkInstanceConfiguration');
 validateMember(members, 'stopSandboxInstance');
+validateMember(members, 'configureInstance');
 validateMember(members, 'configureLocalInstance');
 validateMember(members, 'verbose');
 validateMember(members, 'rebootClusterFromCompleteOutage');
@@ -118,27 +119,36 @@ else
 // TODO: add multi-master unit-tests
 
 //@ Dba: checkInstanceConfiguration error
+testutil.expectPassword("*", "root");
 dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port1);
 
 //@<OUT> Dba: checkInstanceConfiguration ok 1
+testutil.expectPassword("*", "root");
 dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port2);
 
 //@<OUT> Dba: checkInstanceConfiguration ok 2
+testutil.expectPassword("*", "root");
 dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port2, {password:'root'});
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
 var uri2 = 'localhost:' + __mysql_sandbox_port2;
 var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
-//@ Dba: configureLocalInstance error 1
-dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
+// TODO: This test needs an actual remote instance
+//  Dba: configureLocalInstance error 1
+//dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
 
 // TODO(rennox): This test case is not reliable since requires
 // that no my.cnf exist on the default paths
 //--@<OUT> Dba: configureLocalInstance error 2
 //dba.configureLocalInstance('localhost:' + __mysql_port);
 
-//@<OUT> Dba: configureLocalInstance error 3
+//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.5)}
+testutil.expectPassword("*", "root");
+dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
+
+//@<OUT> Dba: configureLocalInstance error 3 bad call {VER(>=8.0.5)}
+testutil.expectPassword("*", "root");
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 
 session.close();
@@ -161,18 +171,21 @@ var row = result.fetchOne();
 print("Number of accounts: "+ row[0] + "\n");
 session.close();
 
-//@ Dba: configureLocalInstance not enough privileges 1
+//@# Dba: configureLocalInstance not enough privileges 1
+testutil.expectPassword("*", "");
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
 dba.configureLocalInstance('missingprivileges@localhost:' + __mysql_sandbox_port2);
 
-//@ Dba: configureLocalInstance not enough privileges 2
+//@# Dba: configureLocalInstance not enough privileges 2
+testutil.expectPassword("*", "");
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
 dba.configureLocalInstance('missingprivileges@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "missingprivileges", clusterAdminPassword:""});
 
-//@ Dba: configureLocalInstance not enough privileges 3
+//@# Dba: configureLocalInstance not enough privileges 3
+testutil.expectPassword("*", "");
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
 
@@ -197,6 +210,8 @@ session.close();
 connect_to_sandbox([__mysql_sandbox_port1]);
 
 //@<OUT> Dba: configureLocalInstance updating config file
+testutil.expectPassword("*", "root");
+testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
 
 //@ Dba: create an admin user with all needed privileges
@@ -212,10 +227,20 @@ print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
 session.close();
 
 //@<OUT> Dba: configureLocalInstance create different admin user
+testutil.expectPassword("*", "");  // Pass for mydba
+testutil.expectPrompt("*", "2");   // Option (account with diff name)
+testutil.expectPrompt("*", "dba_test");  // account name
+testutil.expectPassword("*", "");        // account pass
+testutil.expectPassword("*", "");        // account pass confirmation
+
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
+testutil.expectPassword("*", "");  // Pass for mydba
+testutil.expectPrompt("*", "2");   // Option (account with diff name)
+testutil.expectPrompt("*", "dba_test");  // account name
+
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
 
@@ -227,6 +252,12 @@ session.runSql("SET SQL_LOG_BIN=1");
 session.close();
 
 //@ Dba: configureLocalInstance create existing invalid admin user
+testutil.expectPassword("*", "");  // Pass for mydba
+testutil.expectPrompt("*", "2");   // Option (account with diff name)
+testutil.expectPrompt("*", "dba_test");  // account name
+testutil.expectPassword("*", "");        // account pass
+testutil.expectPassword("*", "");        // account pass confirmation
+
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
 
@@ -242,7 +273,7 @@ var row = result.fetchOne();
 print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
 session.close();
 
-//@ Check if all missing privileges are reported for user with no privileges
+//@# Check if all missing privileges are reported for user with no privileges
 connect_to_sandbox([__mysql_sandbox_port2]);
 // Create account with no privileges
 session.runSql("SET sql_log_bin = 0");
@@ -251,6 +282,7 @@ session.runSql("SET sql_log_bin = 1");
 session.close();
 
 // Test
+testutil.expectPrompt("*", "");  // press Enter to cancel
 dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, user: 'no_privileges', password:''});
 
 connect_to_sandbox([__mysql_sandbox_port2]);

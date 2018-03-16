@@ -21,20 +21,20 @@
     "clusterName": "testCluster",
     "defaultReplicaSet": {
         "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+        "primary": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "<<<__ssl_mode>>>",
         "status": "OK_NO_TOLERANCE",
         "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>",
                 "mode": "R/W",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+            "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
@@ -42,7 +42,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Finalization

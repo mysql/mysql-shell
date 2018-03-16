@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3350?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "36",
+    "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "441f1cb4-22cd-11e8-abf9-5ce0c50b9d66"
+            "58812521-26df-11e8-8377-b86b230042b9"
         ]
     ]
 },
@@ -273,12 +273,8 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B",
-            3350
-        ],
-        [
-            "pjesus-TECRA-Z40-B",
-            3360
+            "tecra",
+            3316
         ]
     ]
 },
@@ -453,6 +449,13 @@
             "GPL"
         ],
         [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -467,14 +470,7 @@
             "GPL"
         ],
         [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -663,14 +659,14 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MyISAM",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -761,7 +757,7 @@
     ],
     "rows": [
         [
-            "localhost:33501"
+            "localhost:33161"
         ]
     ]
 },
@@ -936,6 +932,13 @@
             "GPL"
         ],
         [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -950,14 +953,7 @@
             "GPL"
         ],
         [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1146,14 +1142,14 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MyISAM",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1244,7 +1240,7 @@
     ],
     "rows": [
         [
-            "441f1cb4-22cd-11e8-abf9-5ce0c50b9d66"
+            "58812521-26df-11e8-8377-b86b230042b9"
         ]
     ]
 },

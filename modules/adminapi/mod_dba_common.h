@@ -36,7 +36,7 @@
 #include "scripting/types.h"
 #include "scripting/lang_base.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "modules/adminapi/preconditions.h"
+#include "modules/adminapi/dba/preconditions.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -87,6 +87,16 @@ enum Status {
 std::string describe(Status state);
 };  // namespace ReplicaSetStatus
 
+enum class ConfigureInstanceAction {
+  UPDATE_SERVER_AND_CONFIG_DYNAMIC,  // "server_update+config_update" - no
+                                     // restart
+  UPDATE_SERVER_AND_CONFIG_STATIC,   // "config_update+restart" - restart
+  UPDATE_CONFIG,                     // "config_update" - no restart
+  UPDATE_SERVER_DYNAMIC,             // "server_update" - no restart
+  UPDATE_SERVER_STATIC,              // "restart" - restart
+  UNDEFINED
+};
+
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors);
 
@@ -133,11 +143,49 @@ bool SHCORE_PUBLIC validate_replicaset_group_name(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &group_name);
 bool validate_super_read_only(
-    std::shared_ptr<mysqlshdk::db::ISession> session, bool clear_read_only);
+    std::shared_ptr<mysqlshdk::db::ISession> session, bool clear_read_only,
+    std::shared_ptr<mysqlsh::IConsole> console);
 bool validate_instance_rejoinable(
     std::shared_ptr<mysqlshdk::db::ISession> instance_session,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 void validate_host_ip(const std::string &hostname);
+bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
+                std::string *cnfPath = nullptr);
+std::string get_canonical_instance_address(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
+
+// AdminAPI interactive handling specific methods
+std::string prompt_cnf_path(
+    const mysqlshdk::mysql::IInstance &instance,
+    std::shared_ptr<mysqlsh::IConsole> console_handler = nullptr);
+std::string prompt_new_account_password(
+    std::shared_ptr<mysqlsh::IConsole> console_handler);
+int prompt_menu(
+    const std::vector<std::string> &options, int defopt,
+    std::shared_ptr<mysqlsh::IConsole> console_handler);
+bool check_admin_account_access_restrictions(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
+    const std::string &host,
+    std::shared_ptr<mysqlsh::IConsole> console_handler);
+bool prompt_create_usable_admin_account(
+    const std::string &user, const std::string &host,
+    std::string *out_create_account,
+    std::shared_ptr<mysqlsh::IConsole> console_handler);
+bool prompt_super_read_only(
+    const mysqlshdk::mysql::IInstance &instance,
+    std::shared_ptr<mysqlsh::IConsole> console_handler,
+    bool throw_on_error = false);
+void dump_table(
+    const std::vector<std::string> &column_names,
+    const std::vector<std::string> &column_labels,
+    shcore::Value::Array_type_ref documents,
+    std::shared_ptr<mysqlsh::IConsole> console_handler);
+ConfigureInstanceAction get_configure_instance_action(
+    const shcore::Value::Map_type &opt_map);
+void print_validation_results(
+    const shcore::Value::Map_type_ref &result,
+    std::shared_ptr<mysqlsh::IConsole> console_handler,
+    bool print_note = false);
 
 /**
  * Validates the connection options.

@@ -48,8 +48,6 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/*/*.cc"
-        "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/modules/adminapi/*.h"
-        "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/modules/adminapi/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*/*_t.cc")
 
     set(mysqlsh_tests_SRC

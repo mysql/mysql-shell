@@ -1,5 +1,5 @@
 //@ create cluster admin
-|"status": "ok"|
+|Cluster admin user 'ca'@'%' created.|
 
 //@<OUT> check global privileges of cluster admin
 +--------------------+--------------+
@@ -60,4 +60,4 @@
 +----------------+--------------+--------------------+-------------------------------------------+
 
 //@ cluster admin should be able to create another cluster admin
-|"status": "ok"|
+|Cluster admin user 'ca2'@'%' created.|

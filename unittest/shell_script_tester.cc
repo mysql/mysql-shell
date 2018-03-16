@@ -24,18 +24,241 @@
 #include <string>
 #include <utility>
 #include "shellcore/ishell_core.h"
+#include "src/mysqlsh/cmdline_shell.h"
 #include "utils/process_launcher.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
+#include "mysqlshdk/libs/textui/textui.h"
 
 using namespace shcore;
 extern "C" const char* g_test_home;
 extern bool g_generate_validation_file;
 
+//-----------------------------------------------------------------------------
+
+static void do_print(void *udata, const char *s) {
+  printf("%s", s);
+  fflush(stdout);
+}
+
+static shcore::Prompt_result do_prompt(void* udata, const char* prompt,
+                                       std::string* ret_input) {
+  printf("%s", prompt);
+  fflush(stdout);
+  std::cin >> *ret_input;
+  return shcore::Prompt_result::Ok;
+}
+
+namespace mysqlsh {
+class Test_debugger {
+ public:
+  enum class Action { Skip_execute, Continue, Abort };
+
+  Test_debugger() {
+    m_deleg.user_data = this;
+    m_deleg.print = do_print;
+    m_deleg.prompt = do_prompt;
+    m_console.reset(new mysqlsh::Shell_console(&m_deleg));
+  }
+
+  void enable() {
+    println("Enabling...");
+    m_enabled = true;
+  }
+
+  void on_test_begin(Shell_core_test_wrapper *test) {
+    m_test = test;
+  }
+
+  void on_reset_shell(std::shared_ptr<mysqlsh::Mysql_shell> shell) {
+    m_shell = shell;
+  }
+
+  Action will_execute(int lnum, const std::string &code) {
+    // Line containing //BREAK in the script will enter cmd loop
+    if (m_enabled) {
+      if (m_stepping) {
+       m_stepping = false;
+       return interact();
+      } else if (shcore::str_strip(code) == "//BREAK") {
+        println("//BREAK hit");
+        return interact();
+      }
+      return Action::Continue;
+    }
+    return Action::Continue;
+  }
+
+  Action on_validate_fail(const std::string &chunk_id) {
+    if (m_exit_on_test_error)
+      exit(1);
+    if (m_enabled) {
+      println("Validation '"+chunk_id+"' failed");
+      return interact(true);
+    } else if (g_test_fail_early) {
+      return Action::Abort;
+    }
+    return Action::Continue;
+  }
+
+  void did_execute(int lnum, const std::string &code) {
+  }
+
+  Action did_execute_test_failure() {
+    if (m_exit_on_test_error)
+      exit(1);
+    if (m_enabled) {
+      println("Test failures found");
+      return interact();
+    } else if (g_test_fail_early) {
+      return Action::Abort;
+    }
+    return Action::Continue;
+  }
+
+  void did_throw(int lnum, const std::string &code) {
+    if (m_enabled && m_break_on_throw)
+      interact();
+  }
+
+ private:
+  void println(const std::string &s) {
+    puts(mysqlshdk::textui::bold("TDB: "+s).c_str());
+  }
+
+  bool debug() {
+    return true;
+  }
+
+  bool handle_command(const std::string &cmd, bool *exit_interactive) {
+    if (cmd == "\\next") {
+      println("Execute until next...");
+      m_stepping = true;
+      *exit_interactive = true;
+      return true;
+    } else if (cmd == "\\dhelp") {
+        std::cout
+            << "TDB Help\n"
+            << "--------\n"
+            << "\\next execute next\n"
+            << "\\cont continue execution\n"
+            << "\\abort let test fail (when handling validation failures)\n"
+            << "\\quit exit\n"
+            << "\n";
+      return true;
+    }
+    return false;
+  }
+
+  Action interact(bool abortable = false) {
+    if (abortable)
+      println(
+          "Entering interactive loop... \\cont to continue, ^D or \\abort to "
+          "exit. \\dhelp for debugger help");
+    else
+      println(
+          "Entering interactive loop... \\cont or ^D to continue. \\dhelp for "
+          "debugger help");
+
+    // save stdout and stderr contents
+    std::string std_err = m_test->output_handler.std_err;
+    std::string std_out = m_test->output_handler.std_out;
+
+    Action result = do_interact(abortable);
+    if (result == Action::Continue)
+      println("Continuing...");
+    else
+      println("Aborting...");
+
+    m_test->output_handler.std_err = std_err;
+    m_test->output_handler.std_out = std_out;
+
+    return result;
+  }
+
+#define CTRL_C_STR "\003"
+  Action do_interact(bool abortable = false) {
+    Action result = abortable ? Action::Abort : Action::Continue;
+    bool interrupted = false;
+    bool exit_interactive = false;
+    std::string cmd;
+    while (!exit_interactive) {
+      char* tmp = mysqlsh::Command_line_shell::readline(
+          makebold(shell()->prompt()).c_str());
+      if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
+        cmd = tmp;
+        free(tmp);
+      } else {
+        if (tmp) {
+          if (strcmp(tmp, CTRL_C_STR) == 0) interrupted = true;
+          free(tmp);
+        }
+        if (interrupted) {
+          shell()->clear_input();
+          interrupted = false;
+          continue;
+        }
+        break;
+      }
+
+      if (cmd == "\\cont") {
+        result = Action::Continue;
+        break;
+      } else if (cmd == "\\abort" && abortable) {
+        result = Action::Abort;
+        break;
+      } else if (cmd == "\\quit") {
+        exit(1);
+      }
+
+      if (!handle_command(cmd, &exit_interactive))
+        shell()->process_line(cmd);
+    }
+    return result;
+  }
+
+ private:
+  bool m_enabled = false;
+  bool m_break_on_throw = false;
+  bool m_stepping = false;
+  bool m_exit_on_test_error = false;
+  Shell_core_test_wrapper *m_test = nullptr;
+
+  std::unique_ptr<mysqlsh::Shell_console> m_console;
+  shcore::Interpreter_delegate m_deleg;
+  std::weak_ptr<mysqlsh::Mysql_shell> m_shell;
+
+  std::shared_ptr<mysqlsh::Mysql_shell> shell() {
+    return m_shell.lock();
+  }
+};
+}  // namespace mysqlsh
+
+mysqlsh::Test_debugger *g_tdb = nullptr;
+
+void init_tdb() {
+  if (!g_tdb)
+    g_tdb = new mysqlsh::Test_debugger();
+}
+
+void enable_tdb() {
+  init_tdb();
+  g_tdb->enable();
+}
+
+void fini_tdb() {
+  delete g_tdb;
+  g_tdb = nullptr;
+}
+
+//-----------------------------------------------------------------------------
+
 
 Shell_script_tester::Shell_script_tester() {
+  init_tdb();
+
   // Default home folder for scripts
   _shell_scripts_home = shcore::path::join_path(g_test_home, "scripts");
   _new_format = false;
@@ -43,6 +266,13 @@ Shell_script_tester::Shell_script_tester() {
 
 void Shell_script_tester::SetUp() {
   Crud_test_wrapper::SetUp();
+
+  g_tdb->on_test_begin(this);
+}
+
+void Shell_script_tester::reset_shell() {
+  Crud_test_wrapper::reset_shell();
+  g_tdb->on_reset_shell(_interactive_shell);
 }
 
 void Shell_script_tester::set_config_folder(const std::string& name) {
@@ -69,8 +299,16 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
 
   start = updated.find("<<<");
   while (start != std::string::npos) {
-    end = updated.find(">>>", start);
+    bool strip_trailing_newline = false;
 
+    end = updated.find(">>>", start);
+    if (end == std::string::npos)
+      throw std::logic_error("Unterminated <<< in test");
+    //<<<"fooo"\>>>\n is stripped into fooo (without the trailing newline)
+    if (updated.compare(end - 1, 5, "\\>>>\n") == 0) {
+      strip_trailing_newline = true;
+      --end;
+    }
     std::string token = updated.substr(start + 3, end - start - 3);
 
     // This will make the variable to be printed on the stdout
@@ -82,14 +320,17 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
       value = _output_tokens[token];
     } else {
       // If not, we use whatever is defined on the scripting language
-      execute(token);
+      execute_internal(token);
       value = output_handler.std_out;
     }
-
-    value = str_strip(value);
-
-    updated.replace(start, end - start + 3, value);
-
+    // strip the trailing newline added by execute, but not all whitespace
+    if (str_endswith(value, "\n"))
+      value = value.substr(0, value.size()-1);
+    if (strip_trailing_newline) {
+      updated.replace(start, end - start + 5, value);
+    } else {
+      updated.replace(start, end - start + 3, value);
+    }
     start = updated.find("<<<");
   }
 
@@ -102,9 +343,10 @@ bool Shell_script_tester::validate_line_by_line(const std::string& context,
                                                 const std::string& chunk_id,
                                                 const std::string& stream,
                                                 const std::string& expected,
-                                                const std::string& actual) {
+                                                const std::string& actual,
+                                                int srcline, int valline) {
   return check_multiline_expect(context + "@" + chunk_id, stream, expected,
-                                actual);
+                                actual, srcline, valline);
 }
 
 bool Shell_script_tester::validate(const std::string& context,
@@ -190,15 +432,30 @@ bool Shell_script_tester::validate(const std::string& context,
               ValidationType::Simple) {
             auto pos = original_std_out.find(out, out_position);
             if (pos == std::string::npos) {
-              ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-                  << "while executing chunk: " + _chunks[chunk_id].def->line
-                  << "\n"
-                  << makeyellow("\tSTDOUT missing: ") << out << "\n"
-                  << makeyellow("\tSTDOUT actual: ") +
-                         original_std_out.substr(out_position)
-                  << "\n"
-                  << makeyellow("\tSTDOUT original: ") + original_std_out
-                  << "\n";
+              if (out_position == 0) {
+                ADD_FAILURE_AT(_filename.c_str(),
+                               _chunks[chunk_id].code[0].first)
+                    << "while executing chunk: " + _chunks[chunk_id].def->line
+                    << "\nwith validation at "
+                    << validations[valindex]->def->linenum
+                    << "\n"
+                    << makeyellow("\tSTDOUT missing: ") << out << "\n"
+                    << makeyellow("\tSTDOUT actual: ") + original_std_out
+                    << "\n";
+              } else {
+                ADD_FAILURE_AT(_filename.c_str(),
+                               _chunks[chunk_id].code[0].first)
+                    << "while executing chunk: " + _chunks[chunk_id].def->line
+                    << "\nwith validation at "
+                    << validations[valindex]->def->linenum
+                    << "\n"
+                    << makeyellow("\tSTDOUT missing: ") << out << "\n"
+                    << makeyellow("\tSTDOUT actual: ") +
+                           original_std_out.substr(out_position)
+                    << "\n"
+                    << makeyellow("\tSTDOUT original: ") + original_std_out
+                    << "\n";
+              }
               return false;
             } else {
               // Consumes the already found output
@@ -206,7 +463,9 @@ bool Shell_script_tester::validate(const std::string& context,
             }
           } else {
             if (!validate_line_by_line(context, chunk_id, "STDOUT", out,
-                                       original_std_out))
+                                       original_std_out,
+                                      _chunks[chunk_id].code[0].first,
+                                      validations[valindex]->def->linenum))
               return false;
           }
         }
@@ -221,8 +480,11 @@ bool Shell_script_tester::validate(const std::string& context,
         if (original_std_out.find(out) != std::string::npos) {
           ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
               << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
+              << "with validation at "
+              << validations[valindex]->def->linenum << "\n"
               << makeyellow("\tSTDOUT unexpected: ") << out << "\n"
-              << makeyellow("\tSTDOUT actual: ") << original_std_out << "\n";
+              << makeyellow("\tSTDOUT actual: ") << original_std_out
+              << "\n";
           return false;
         }
       }
@@ -238,15 +500,32 @@ bool Shell_script_tester::validate(const std::string& context,
               ValidationType::Simple) {
             auto pos = original_std_err.find(error, err_position);
             if (pos == std::string::npos) {
-              ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
-                  << "while executing chunk: " + _chunks[chunk_id].def->line
-                  << "\n"
-                  << makeyellow("\tSTDERR missing: ") + error << "\n"
-                  << makeyellow("\tSTDERR actual: ") +
-                         original_std_err.substr(err_position)
-                  << "\n"
-                  << makeyellow("\tSTDERR original: ") + original_std_err
-                  << "\n";
+              if (err_position == 0) {
+                ADD_FAILURE_AT(_filename.c_str(),
+                               _chunks[chunk_id].code[0].first)
+                    << "while executing chunk: " + _chunks[chunk_id].def->line
+                    << "\n"
+                    << "with validation at "
+                    << validations[valindex]->def->linenum
+                    << "\n"
+                    << makeyellow("\tSTDERR missing: ") + error << "\n"
+                    << makeyellow("\tSTDERR actual: ") + original_std_err
+                    << "\n";
+              } else {
+                ADD_FAILURE_AT(_filename.c_str(),
+                               _chunks[chunk_id].code[0].first)
+                    << "while executing chunk: " + _chunks[chunk_id].def->line
+                    << "\n"
+                    << "with validation at "
+                    << validations[valindex]->def->linenum
+                    << "\n"
+                    << makeyellow("\tSTDERR missing: ") + error << "\n"
+                    << makeyellow("\tSTDERR actual: ") +
+                           original_std_err.substr(err_position)
+                    << "\n"
+                    << makeyellow("\tSTDERR original: ") + original_std_err
+                    << "\n";
+              }
               return false;
             } else {
               // Consumes the already found error
@@ -254,7 +533,9 @@ bool Shell_script_tester::validate(const std::string& context,
             }
           } else {
             if (!validate_line_by_line(context, chunk_id, "STDERR", error,
-                                       original_std_err))
+                                       original_std_err,
+                                       _chunks[chunk_id].code[0].first,
+                                       validations[valindex]->def->linenum))
               return false;
           }
         }
@@ -293,6 +574,11 @@ bool Shell_script_tester::validate(const std::string& context,
 void Shell_script_tester::validate_interactive(const std::string& script) {
   _filename = script;
   try {
+    if (output_handler.passwords.size() || output_handler.prompts.size()) {
+      std::cerr << "Starting with " << output_handler.passwords.size()
+                << " password prompts and "
+                << output_handler.prompts.size() << " regular prompts queued\n";
+    }
     execute_script(script, true);
     if (testutil->test_skipped()) {
       SKIP_TEST(testutil->test_skip_reason());
@@ -638,7 +924,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
       // Abort the script processing if something went wrong on the validation
       // loading
-      if (::testing::Test::HasFailure() || testutil->test_skipped())
+      if (testutil->test_skipped() && ::testing::Test::HasFailure())
         return;
 
       std::ofstream ofile;
@@ -692,8 +978,18 @@ void Shell_script_tester::execute_script(const std::string& path,
             if (testutil)
               testutil->set_test_execution_context(_filename,
                                                    code[chunk_item].first);
-            execute(chunk.code[chunk_item].first, line);
 
+            if (g_tdb->will_execute(chunk.code[chunk_item].first, line) ==
+                mysqlsh::Test_debugger::Action::Skip_execute) {
+              continue;
+            }
+
+            try {
+              execute(chunk.code[chunk_item].first, line);
+            } catch (...) {
+              g_tdb->did_throw(chunk.code[chunk_item].first, line);
+              throw;
+            }
             if (testutil->test_skipped())
               return;
 
@@ -701,6 +997,14 @@ void Shell_script_tester::execute_script(const std::string& path,
               full_statement.clear();
             else
               full_statement.append("\n");
+
+            g_tdb->did_execute(chunk.code[chunk_item].first, line);
+
+            if (::testing::Test::HasFailure()) {
+              if (g_tdb->did_execute_test_failure() ==
+                  mysqlsh::Test_debugger::Action::Abort)
+                FAIL();
+            }
           }
 
           execute("");
@@ -726,19 +1030,22 @@ void Shell_script_tester::execute_script(const std::string& path,
                 path + "@[" + _chunk_order[index] + " validation]";
             if (!validate(path, _chunk_order[index],
                 chunk.is_validation_optional())) {
-              if (g_test_trace_scripts > 1) {
-                // Failure logs are printed on the fly in debug mode
+              if (g_tdb->on_validate_fail(_chunk_order[index]) ==
+                  mysqlsh::Test_debugger::Action::Abort) {
                 FAIL();
               }
-              std::cerr
-                  << makeredbg(
-                         "----------vvvv Failure Log Begin vvvv----------")
-                  << std::endl;
-              output_handler.flush_debug_log();
-              std::cerr
-                  << makeredbg(
-                         "----------^^^^ Failure Log End ^^^^------------")
-                  << std::endl;
+
+              if (!g_test_trace_scripts) {
+                std::cerr
+                    << makeredbg(
+                           "----------vvvv Failure Log Begin vvvv----------")
+                    << std::endl;
+                output_handler.flush_debug_log();
+                std::cerr
+                    << makeredbg(
+                           "----------^^^^ Failure Log End ^^^^------------")
+                    << std::endl;
+              }
             } else {
               output_handler.whipe_debug_log();
             }
@@ -763,7 +1070,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
       // Abort the script processing if something went wrong on the validation
       // loading
-      if (::testing::Test::HasFailure() || testutil->test_skipped())
+      if (testutil->test_skipped() && ::testing::Test::HasFailure())
         return;
 
       // Processes the script
@@ -784,7 +1091,7 @@ void Shell_script_tester::execute_script(const std::string& path,
         // If processing a tets script, performs the validations over it
         _options->interactive = true;
         if (!validate(script)) {
-          if (g_test_trace_scripts > 1) {
+          if (g_test_fail_early) {
             // Failure logs are printed on the fly in debug mode
             FAIL();
           }
@@ -882,7 +1189,19 @@ void Shell_script_tester::validate_chunks(const std::string& path,
             if (testutil)
               testutil->set_test_execution_context(_filename,
                                                    (code[chunk_item].first));
-            execute(chunk.code[chunk_item].first, line);
+
+            if (g_tdb->will_execute(chunk.code[chunk_item].first, line) ==
+                mysqlsh::Test_debugger::Action::Skip_execute) {
+              continue;
+            }
+            try {
+              execute(chunk.code[chunk_item].first, line);
+            } catch (...) {
+              g_tdb->did_throw(chunk.code[chunk_item].first, line);
+              throw;
+            }
+
+            g_tdb->did_execute(chunk.code[chunk_item].first, line);
 
             if (testutil->test_skipped())
               return;
@@ -895,17 +1214,21 @@ void Shell_script_tester::validate_chunks(const std::string& path,
           _custom_context = path + "@[" + _chunk_order[index] + " validation]";
           if (!validate(path, _chunk_order[index],
             chunk.is_validation_optional())) {
-            if (g_test_trace_scripts > 1) {
-              // Failure logs are printed on the fly in debug mode
+            if (g_tdb->on_validate_fail(_chunk_order[index]) ==
+                mysqlsh::Test_debugger::Action::Abort) {
               FAIL();
             }
-            std::cerr << makeredbg(
-                             "----------vvvv Failure Log Begin vvvv----------")
-                      << std::endl;
-            output_handler.flush_debug_log();
-            std::cerr << makeredbg(
-                             "----------^^^^ Failure Log End ^^^^------------")
-                      << std::endl;
+            if (!g_test_trace_scripts) {
+              std::cerr
+                  << makeredbg(
+                         "----------vvvv Failure Log Begin vvvv----------")
+                  << std::endl;
+              output_handler.flush_debug_log();
+              std::cerr
+                  << makeredbg(
+                         "----------^^^^ Failure Log End ^^^^------------")
+                  << std::endl;
+            }
           } else {
             output_handler.whipe_debug_log();
           }
@@ -982,6 +1305,13 @@ void Shell_js_script_tester::set_defaults() {
 
   std::string code = "var __version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
+
+  code = "var __version_num = " +
+         std::to_string(_target_server_version.get_major() * 10000 +
+                        _target_server_version.get_minor() * 100 +
+                        _target_server_version.get_patch()) +
+         ";";
+  exec_and_out_equals(code);
 }
 
 void Shell_py_script_tester::set_defaults() {
@@ -992,6 +1322,12 @@ void Shell_py_script_tester::set_defaults() {
   output_handler.wipe_all();
 
   std::string code = "__version = '" + _target_server_version.get_base() + "'";
+  exec_and_out_equals(code);
+
+  code = "__version_num = " +
+         std::to_string(_target_server_version.get_major() * 10000 +
+                        _target_server_version.get_minor() * 100 +
+                        _target_server_version.get_patch());
   exec_and_out_equals(code);
 }
 
@@ -1067,13 +1403,12 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
     output_handler.wipe_out();
 
     std::string value;
-    execute(code);
+    execute_internal(code);
     value = output_handler.std_out;
     value = str_strip(value);
-
-    if (value == "true") {
+    if (value == "true" || value == "True") {
       ret_val = true;
-    } else if (value == "false") {
+    } else if (value == "false" || value == "False") {
       ret_val = false;
     } else {
       if (!output_handler.std_err.empty()) {

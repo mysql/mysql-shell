@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3327",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "27",
+    "connection_id": "21",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 136,
+            "length": 140,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -73,7 +73,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "DROP USER missingprivileges@localhost"
+    "sql": "CREATE USER missingprivileges@localhost"
 },
 {
     "type": "response",
@@ -88,12 +88,27 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 1,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
     "auto_increment_value": 0,
     "affected_rows": 0,
     "warning_count": 0,
@@ -102,13 +117,28 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 11,
+    "index": 13,
+    "sql": "SET SQL_LOG_BIN=1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
     "sql": "select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 12,
+    "index": 16,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -133,18 +163,18 @@
     ],
     "rows": [
         [
-            0
+            1
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 13
+    "index": 17
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 14
+    "index": 18
 },
 null]

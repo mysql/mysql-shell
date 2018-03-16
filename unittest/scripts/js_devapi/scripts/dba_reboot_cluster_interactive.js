@@ -4,9 +4,9 @@
 testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, 'root', {'report_host': hostname});
 
 // Update __have_ssl and other with the real instance SSL support.
 // NOTE: Workaround BUG#25503817 to display the right ssl info for status()
@@ -68,11 +68,11 @@ testutil.killSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 //the timeout for GR plugin to install a new view is 60s, so it should be at
 // least that value the parameter for the timeout for the waitForDelayedGRStart
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 session.close();
 cluster.disconnect();
@@ -91,8 +91,8 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 
 //@ Dba.rebootClusterFromCompleteOutage success
 // The answers to the prompts of the rebootCluster command
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y|N]: ", "y");
-testutil.expectPrompt("Would you like to remove it from the cluster's metadata? [y|N]: ", "y");
+testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
+testutil.expectPrompt("Would you like to remove it from the cluster's metadata? [y/N]: ", "y");
 
 cluster = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: true});
 
@@ -104,13 +104,15 @@ cluster.status();
 
 // Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
 
-//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.4)}
-// if server version is greater than 8.0.4 then the GR settings will be
+// Add instance 3 back to the cluster
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
+
+//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.5)}
+// if server version is greater than 8.0.5 then the GR settings will be
 // persisted on instance 3 and it will rejoin the cluster that has been
 // rebooted. We just need to add it back to the metadata.
-testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y|n]: ", "y");
+testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
 testutil.expectPassword("Please provide the password for 'root@" + hostname + ":" + __mysql_sandbox_port3 + "': ", "root");
 // TODO Remove this user creation as soon as issue with cluster.rescan is fixed
 // Create root@% user since the rescan wizard will try to authenticate using the
@@ -122,8 +124,8 @@ s3.close();
 uri3 = hostname + ":"  + __mysql_sandbox_port3;
 cluster.rescan();
 
-//@ Add instance 3 back to the cluster {VER(<8.0.4)}
-// if server version is smaller than 8.0.4 then no GR settings will be persisted
+//@ Add instance 3 back to the cluster {VER(<8.0.5)}
+// if server version is smaller than 8.0.5 then no GR settings will be persisted
 // on instance 3, such as gr_start_on_boot and gr_group_seeds so it will not
 // automatically rejoin the cluster. We need to manually add it back.
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
@@ -157,15 +159,15 @@ testutil.killSandbox(__mysql_sandbox_port1);
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, 'root', 0);
 
 // Start instance 1
 testutil.startSandbox(__mysql_sandbox_port1);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 
 // Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 100);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 // Re-establish the connection to instance 1
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

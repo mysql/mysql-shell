@@ -185,7 +185,7 @@ inline std::string warning(const std::string &text) {
 inline std::string notice(const std::string &text) {
   if (!has_color())
     return text;
-  return vt100::attr(4, -1) + text + vt100::attr();
+  return vt100::attr(6, -1) + text + vt100::attr();
 }
 
 }  // namespace textui

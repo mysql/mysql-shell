@@ -10,7 +10,7 @@ session.runSql("GRANT SELECT, INSERT, UPDATE, DELETE ON `mysql`.* TO 'ic'@'local
 // log in as created user
 shell.connect({user: 'ic', password: 'icpass', host: 'localhost', port: __mysql_sandbox_port1});
 
-//@ creation should fail without segmentation fault
+//@# creation should fail without segmentation fault
 var cluster = dba.createCluster('Cluster_R');
 
 // Smart deployment cleanup

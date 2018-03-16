@@ -1,7 +1,9 @@
 {
-    "hostname": "vm-ubuntu",
-    "hostname_ip": "10.0.2.15",
-    "sandbox_port1": "3316",
-    "sandbox_port2": "3326",
-    "sandbox_port3": "3336"
+    "hostname": "dhcp-10-159-159-64.vpn.oracle.com",
+    "hostname_ip": "10.159.159.64",
+    "real_host_is_loopback": "0",
+    "real_hostname": "dhcp-10-159-159-64.vpn.oracle.com",
+    "sandbox_port1": "3317",
+    "sandbox_port2": "3327",
+    "sandbox_port3": "3337"
 }

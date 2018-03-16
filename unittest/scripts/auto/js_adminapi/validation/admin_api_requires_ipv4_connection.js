@@ -11,7 +11,7 @@
 |"status": "ok"|
 
 //@ dba.configureLocalInstance() using host that resolves to IPv4 (no error)
-|"status": "ok"|
+||
 
 //@ dba.createCluster() requires IPv4 connection
 ||Dba.createCluster: Connection 'root@[::1]:<<<__mysql_sandbox_port1>>>' is not valid: ::1 is an IPv6 address, which is not supported by the Group Replication. Please ensure an IPv4 address is used when setting up an InnoDB cluster. (RuntimeError)

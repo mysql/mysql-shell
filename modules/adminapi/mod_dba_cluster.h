@@ -144,7 +144,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   }
 
   std::shared_ptr<mysqlsh::IConsole> get_console_handler() const {
-    return m_console_handler;
+    return m_console;
   }
 
  public:
@@ -179,7 +179,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   // stuff from pfs
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;
   std::shared_ptr<MetadataStorage> _metadata_storage;
-  std::shared_ptr<IConsole> m_console_handler;
+  std::shared_ptr<IConsole> m_console;
   void init();
 
  private:

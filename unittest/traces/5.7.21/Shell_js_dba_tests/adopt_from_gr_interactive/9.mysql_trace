@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@parasol:3340",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "20",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT CURRENT_USER()"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -32,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "CURRENT_USER()",
-            "length": 93,
+            "column_label": "@@server_uuid",
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -46,7 +50,7 @@
     ],
     "rows": [
         [
-            "root@localhost"
+            "8dbc0952-24fb-11e8-8cad-c65760dd356e"
         ]
     ]
 },
@@ -54,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'localhost\\''"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
@@ -66,150 +70,25 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "privilege_type",
-            "length": 64,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_port",
+            "length": 21,
             "fractional": 0,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
             "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "is_grantable",
-            "length": 3,
-            "fractional": 0,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "SELECT",
-            "YES"
-        ],
-        [
-            "INSERT",
-            "YES"
-        ],
-        [
-            "UPDATE",
-            "YES"
-        ],
-        [
-            "DELETE",
-            "YES"
-        ],
-        [
-            "CREATE",
-            "YES"
-        ],
-        [
-            "DROP",
-            "YES"
-        ],
-        [
-            "RELOAD",
-            "YES"
-        ],
-        [
-            "SHUTDOWN",
-            "YES"
-        ],
-        [
-            "PROCESS",
-            "YES"
-        ],
-        [
-            "FILE",
-            "YES"
-        ],
-        [
-            "REFERENCES",
-            "YES"
-        ],
-        [
-            "INDEX",
-            "YES"
-        ],
-        [
-            "ALTER",
-            "YES"
-        ],
-        [
-            "SHOW DATABASES",
-            "YES"
-        ],
-        [
-            "SUPER",
-            "YES"
-        ],
-        [
-            "CREATE TEMPORARY TABLES",
-            "YES"
-        ],
-        [
-            "LOCK TABLES",
-            "YES"
-        ],
-        [
-            "EXECUTE",
-            "YES"
-        ],
-        [
-            "REPLICATION SLAVE",
-            "YES"
-        ],
-        [
-            "REPLICATION CLIENT",
-            "YES"
-        ],
-        [
-            "CREATE VIEW",
-            "YES"
-        ],
-        [
-            "SHOW VIEW",
-            "YES"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES"
-        ],
-        [
-            "CREATE USER",
-            "YES"
-        ],
-        [
-            "EVENT",
-            "YES"
-        ],
-        [
-            "TRIGGER",
-            "YES"
-        ],
-        [
-            "CREATE TABLESPACE",
-            "YES"
+            33260
         ]
     ]
 },
@@ -217,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
@@ -233,46 +112,22 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
+            "column_label": "@@group_replication_local_address",
+            "length": 15,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
         }
     ],
     "rows": [
         [
-            1
+            "localhost:33261"
         ]
     ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 9,
-    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "ERROR",
-    "index": 10,
-    "code": "1146",
-    "msg": "Table 'mysql_innodb_cluster_metadata.instances' doesn't exist",
-    "sqlstate": "42S02"
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 11
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 12
 },
 null]

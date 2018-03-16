@@ -456,6 +456,10 @@ TEST(UtilsString, ljust) {
   EXPECT_EQ("xxxxxxxy", str_ljust("xxxxxxxy", 8));
   EXPECT_EQ("xxxxxxxxy", str_ljust("xxxxxxxxy", 8));
   EXPECT_EQ("xxxy", str_ljust("xxxy", 0));
+
+  EXPECT_EQ("........", str_ljust("", 8, '.'));
+  EXPECT_EQ("x.......", str_ljust("x", 8, '.'));
+  EXPECT_EQ("xxxy....", str_ljust("xxxy", 8, '.'));
 }
 
 TEST(UtilsString, rjust) {
@@ -465,6 +469,10 @@ TEST(UtilsString, rjust) {
   EXPECT_EQ("xxxxxxxy", str_rjust("xxxxxxxy", 8));
   EXPECT_EQ("xxxxxxxxy", str_rjust("xxxxxxxxy", 8));
   EXPECT_EQ("xxxy", str_rjust("xxxy", 0));
+
+  EXPECT_EQ("........", str_rjust("", 8, '.'));
+  EXPECT_EQ(".......x", str_rjust("x", 8, '.'));
+  EXPECT_EQ("....xxxy", str_rjust("xxxy", 8, '.'));
 }
 
 

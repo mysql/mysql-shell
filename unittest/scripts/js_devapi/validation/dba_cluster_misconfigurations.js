@@ -2,23 +2,24 @@
 ||
 
 //@ create cluster admin
-|"status": "ok"|
+|Cluster admin user 'ca'@'%' created.|
 
-//@ Dba.createCluster
-||
+//@ Dba.createCluster (fail because of bad configuration)
+||Instance check failed
 
-//@ Dissolve cluster (to re-create again)
+//@ Setup next test
 ||
 
 //@ Create cluster fails (one table is not compatible)
-||Dba.createCluster: ERROR: 1 table(s) do not have a Primary Key or Primary Key Equivalent (non-null unique key).
+|WARNING: The following tables do not have a Primary Key or equivalent column:|
+||Dba.createCluster: Instance check failed (RuntimeError)
 
 //@ Enable verbose
 ||
 
 //@Create cluster fails (one table is not compatible) - verbose mode
-||ERROR: Error starting cluster: The operation could not continue due to the following requirements not being met:
-||Non-compatible tables found in database.
+|WARNING: The following tables do not have a Primary Key or equivalent column:|
+||Dba.createCluster: Instance check failed
 //@ Disable verbose
 ||
 

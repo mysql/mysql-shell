@@ -47,13 +47,31 @@ GRInstanceType get_gr_instance_type(
     auto row = result->fetch_one();
 
     if (row) {
-      if (row->get_int(0) != 0)
+      if (row->get_int(0) != 0) {
+        log_debug("Instance type check: %s: GR is active",
+                  connection->get_connection_options().as_uri().c_str());
         ret_val = GRInstanceType::GroupReplication;
+      } else {
+        log_debug("Instance type check: %s: GR is not active",
+                  connection->get_connection_options().as_uri().c_str());
+      }
     }
   } catch (mysqlshdk::db::Error &error) {
-    if (error.code() != ER_NO_SUCH_TABLE)  // Tables doesn't exist
+    auto e = shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
+
+    log_debug("Error querying GR member state: %s: %i %s",
+              connection->get_connection_options().as_uri().c_str(),
+              error.code(), error.what());
+
+    // SELECT command denied to user 'test_user'@'localhost' for table
+    // 'replication_group_members' (MySQL Error 1142)
+    if (e.code() == 1142) {
+      ret_val = GRInstanceType::Unknown;
+    } else if (error.code() != ER_NO_SUCH_TABLE) {  // Tables doesn't exists
       throw shcore::Exception::mysql_error_with_code_and_state(
           error.what(), error.code(), error.sqlstate());
+    }
   }
 
   // The server is part of a Replication Group
@@ -67,10 +85,20 @@ GRInstanceType get_gr_instance_type(
       auto row = result->fetch_one();
 
       if (row) {
-        if (row->get_int(0) != 0)
+        if (row->get_int(0) != 0) {
+          log_debug("Instance type check: %s: Metadata record found",
+                    connection->get_connection_options().as_uri().c_str());
           ret_val = GRInstanceType::InnoDBCluster;
+        } else {
+          log_debug("Instance type check: %s: Metadata record not found",
+                    connection->get_connection_options().as_uri().c_str());
+        }
       }
     } catch (mysqlshdk::db::Error &error) {
+      log_debug("Error querying metadata: %s: %i %s",
+                connection->get_connection_options().as_uri().c_str(),
+                error.code(), error.what());
+
       // Ignore error table does not exist (error 1146) for 5.7 or database
       // does not exist (error 1049) for 8.0, when metadata is not available.
       if (error.code() != ER_NO_SUCH_TABLE && error.code() != ER_BAD_DB_ERROR)
@@ -86,8 +114,11 @@ GRInstanceType get_gr_instance_type(
     auto result = connection->query(query);
     auto row = result->fetch_one();
 
-    if (row && row->get_string(0) == schema)
+    if (row && row->get_string(0) == schema) {
+      log_debug("Instance type check: %s: Metadata found",
+                connection->get_connection_options().as_uri().c_str());
       ret_val = GRInstanceType::StandaloneWithMetadata;
+    }
   }
 
   return ret_val;
@@ -191,6 +222,13 @@ Cluster_check_info get_replication_group_state(
 
   auto result = connection->query(uuid_query);
   auto row = result->fetch_one();
+  if (!row) {
+    log_warning(
+        "Query on performance_schema.global_status returned no rows. Probably "
+        "missing privileges");
+    throw std::runtime_error(
+        "Error querying GR state. Probably insufficient privileges.");
+  }
   ret_val.source = row->get_string(0);
   ret_val.master = row->get_string(1);
 
@@ -200,6 +238,14 @@ Cluster_check_info get_replication_group_state(
       "WHERE MEMBER_ID = '" + ret_val.source + "'");
   result = connection->query(instance_state_query);
   row = result->fetch_one();
+  if (!row) {
+    log_warning(
+        "Query on performance_schema.replication_group_members returned no "
+        "rows. Probably missing privileges");
+    throw std::runtime_error(
+        "Error querying GR state. Probably insufficient privileges.");
+  }
+
   std::string state = row->get_string(0);
 
   if (state == "ONLINE") {

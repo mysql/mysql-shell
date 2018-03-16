@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3317",
     "protocol": "classic"
 },
 {
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "463758d0-22d4-11e8-bdc2-5ce0c50b9d66"
+            "08941a82-2643-11e8-b976-939e5cf4b3a1"
         ]
     ]
 },
@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "3fd4f4a2-22d4-11e8-bdc2-5ce0c50b9d66",
-            "3fd4f4a2-22d4-11e8-bdc2-5ce0c50b9d66"
+            "03c57a78-2643-11e8-b976-939e5cf4b3a1",
+            "03c57a78-2643-11e8-b976-939e5cf4b3a1"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '3fd4f4a2-22d4-11e8-bdc2-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '03c57a78-2643-11e8-b976-939e5cf4b3a1'"
 },
 {
     "type": "response",

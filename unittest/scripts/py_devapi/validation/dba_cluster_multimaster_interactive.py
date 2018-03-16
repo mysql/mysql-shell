@@ -10,7 +10,7 @@ before proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
-Confirm [y|N]:
+Confirm [y/N]:
 Cancelled
 
 #@<OUT> Dba: create_cluster multiMaster with interaction, ok
@@ -25,7 +25,7 @@ before proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
-Confirm [y|N]:
+Confirm [y/N]:
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
@@ -184,7 +184,7 @@ before proceeding.
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
 and limitations of advanced Multi-Master Mode.
-Confirm [y|N]:
+Confirm [y/N]:
 Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 Adding Seed Instance...
 
