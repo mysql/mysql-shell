@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "missingprivileges:@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "21",
+    "connection_id": "31",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT CURRENT_USER()"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -36,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "CURRENT_USER()",
-            "length": 372,
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 104,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "missingprivileges@localhost"
+            "8.0.11 Source distribution"
         ]
     ]
 },
@@ -58,14 +58,55 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT COUNT(*) from mysql.user WHERE User = 'missingprivileges' AND Host = '%'"
+    "sql": "SET sql_log_bin = 0"
 },
 {
     "type": "response",
-    "subtype": "ERROR",
+    "subtype": "RESULT",
     "index": 6,
-    "code": "1142",
-    "msg": "SELECT command denied to user 'missingprivileges'@'localhost' for table 'user'",
-    "sqlstate": "42000"
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "CREATE USER 'no_privileges'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SET sql_log_bin = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 11
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 12
 },
 null]

@@ -1,10 +1,11 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
-//@<OUT> create cluster
+//@<> create cluster
 if (__have_ssl)
   var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED'});
 else

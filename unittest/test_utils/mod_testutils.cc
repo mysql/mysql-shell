@@ -59,9 +59,9 @@
 #endif
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/mod_utils.h"
 
 // TODO(anyone)
-// - make deploySandbox() reuse sandboxes
 // - make destroySandbox() expect that the final state of the sandbox is the
 //   same as in the beginning
 // - make a deployCluster() with reusable cluster
@@ -77,15 +77,12 @@ constexpr int k_wait_member_timeout = 60;
 constexpr int k_max_start_sandbox_retries = 5;
 const char *k_boilerplate_root_password = "root";
 
-static void print(void *, const char *s) {
-  std::cout << s << "\n";
-}
+static void print(void *, const char *s) { std::cout << s << "\n"; }
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
                      std::shared_ptr<mysqlsh::Mysql_shell> shell,
                      const std::string &mysqlsh_path)
-    : _shell(shell),
-      _mysqlsh_path(mysqlsh_path) {
+    : _shell(shell), _mysqlsh_path(mysqlsh_path) {
   _use_boilerplate = true;
   _sandbox_dir = sandbox_dir;
   _dummy_sandboxes = dummy_mode;
@@ -94,12 +91,14 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("deploySandbox", &Testutils::deploy_sandbox, "port", "rootpass",
          "?options");
+  expose("deployRawSandbox", &Testutils::deploy_raw_sandbox, "port", "rootpass",
+         "?options");
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
   expose("startSandbox", &Testutils::start_sandbox, "port");
-  expose("stopSandbox", &Testutils::stop_sandbox, "port", "rootpass");
+  expose("stopSandbox", &Testutils::stop_sandbox, "port", "?password");
   expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
-  expose("restartSandbox", &Testutils::restart_sandbox, "port", "rootpass");
+  expose("restartSandbox", &Testutils::restart_sandbox, "port");
 
   expose("snapshotSandboxConf", &Testutils::snapshot_sandbox_conf, "port");
   expose("beginSnapshotSandboxErrorLog",
@@ -120,12 +119,13 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("getShellLogPath", &Testutils::get_shell_log_path);
 
-  expose("waitMemberState", &Testutils::wait_member_state, "port", "states");
+  expose("waitMemberState", &Testutils::wait_member_state, "port", "states",
+         "?direct");
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
-  expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout);
-  expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr);
+  expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
+  expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
 
   expose("callMysqlsh", &Testutils::call_mysqlsh, "args");
 
@@ -148,7 +148,12 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   _delegate.print = print;
   _delegate.print_error = print;
-  _mp.reset(new mysqlsh::dba::ProvisioningInterface(&_delegate));
+
+  std::string local_mp_path = mysqlsh::Base_shell::options().gadgets_path;
+
+  if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
+
+  _mp.reset(new mysqlsh::dba::ProvisioningInterface(&_delegate, local_mp_path));
 }
 
 void Testutils::set_sandbox_snapshot_dir(const std::string &dir) {
@@ -181,6 +186,15 @@ std::string Testutils::get_sandbox_conf_path(int port) {
       {_sandbox_dir, std::to_string(port), "my.cnf"});
 }
 
+std::string Testutils::get_sandbox_datadir(int port) {
+  std::string path =
+      shcore::path::join_path(_sandbox_dir, std::to_string(port), "data");
+  if (!shcore::file_exists(path))
+    path = shcore::path::join_path(_sandbox_dir, std::to_string(port),
+                                   "sandboxdata");
+  return path;
+}
+
 //!<  @name Sandbox Operations
 ///@{
 /**
@@ -198,8 +212,7 @@ str Testutils::get_sandbox_log_path(int port);
 #endif
 ///@}
 std::string Testutils::get_sandbox_log_path(int port) {
-  return shcore::path::join_path(
-      {_sandbox_dir, std::to_string(port), "sandboxdata", "error.log"});
+  return shcore::path::join_path(get_sandbox_datadir(port), "error.log");
 }
 
 //!<  @name Sandbox Operations
@@ -242,14 +255,12 @@ std::string Testutils::get_sandbox_path(int port, const std::string &file) {
         path = shcore::path::join_path(
             {_sandbox_dir, std::to_string(port), "my.cnf"});
       } else {
-        path = shcore::path::join_path(
-            {_sandbox_dir, std::to_string(port), "sandboxdata", file});
+        path = shcore::path::join_path(get_sandbox_datadir(port), file);
       }
     }
   }
 
-  if (!shcore::path::exists(path))
-    path.clear();
+  if (!shcore::path::exists(path)) path.clear();
 
   return path;
 }
@@ -304,8 +315,7 @@ void Testutils::dump_data(const std::string &uri, const std::string &path,
   argv.push_back(path.c_str());
   argv.push_back("--set-gtid-purged=OFF");
   argv.push_back("--databases");
-  for (const auto &s : schemas)
-    argv.push_back(s.c_str());
+  for (const auto &s : schemas) argv.push_back(s.c_str());
   if (g_test_trace_scripts > 0) {
     std::cerr << shcore::str_join(argv, " ") << "\n";
   }
@@ -317,10 +327,8 @@ void Testutils::dump_data(const std::string &uri, const std::string &path,
   for (;;) {
     std::string line = dump.read_line(&eof);
     std::cerr << line;
-    if (!line.empty())
-      output = line;
-    if (eof)
-      break;
+    if (!line.empty()) output = line;
+    if (eof) break;
   }
   int rc = dump.wait();
   if (rc != 0) {
@@ -346,7 +354,7 @@ None Testutils::import_data(str uri, str path, str defaultSchema);
 #endif
 ///@}
 void Testutils::import_data(const std::string &uri, const std::string &path,
-                               const std::string &default_schema) {
+                            const std::string &default_schema) {
   // use mysql for now, until we support efficient import internally
   std::string mysql = shcore::path::search_stdpath("mysql");
   if (mysql.empty()) {
@@ -374,8 +382,7 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
     argv.push_back("-P");
     argv.push_back(sport.c_str());
   }
-  if (!default_schema.empty())
-    argv.push_back(default_schema.c_str());
+  if (!default_schema.empty()) argv.push_back(default_schema.c_str());
   if (g_test_trace_scripts > 0) {
     std::cerr << shcore::str_join(argv, " ") << "\n";
   }
@@ -392,8 +399,7 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
   std::string output;
   char buffer[4098];
   while (!dump.check() && !ifile.eof()) {
-    while (dump.has_output(true))
-      output.append(dump.read_line());
+    while (dump.has_output(true)) output.append(dump.read_line());
 
     ifile.read(buffer, sizeof(buffer));
     if (dump.write(buffer, ifile.gcount()) < ifile.gcount()) {
@@ -402,8 +408,7 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
   }
   dump.close_write_fd();
   int rc = dump.wait();
-  while (dump.has_output(false))
-    output.append(dump.read_line());
+  while (dump.has_output(false)) output.append(dump.read_line());
   if (rc != 0) {
     throw std::runtime_error("mysql exited with code " + std::to_string(rc) +
                              ": " + output);
@@ -551,10 +556,22 @@ Undefined Testutils::skip();
 None Testutils::skip();
 #endif
 ///@}
-void Testutils::skip(const std::string &reason) {
-  _test_skipped = reason;
-}
+void Testutils::skip(const std::string &reason) { _test_skipped = reason; }
 
+///@{
+/**
+ * Saves a snapshot of the my.cnf file for a sandbox. On replay mode, the
+ * snapshot that was saved will be restored.
+ *
+ * If multiple snapshots are taken, they will be all stored, then restored
+ * in the same order.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::snapshotSandboxConf(Integer port);
+#elif DOXYGEN_PY
+None Testutils::snapshot_sandbox_conf(int port);
+#endif
+///@}
 void Testutils::snapshot_sandbox_conf(int port) {
   if (mysqlshdk::db::replay::g_replay_mode !=
       mysqlshdk::db::replay::Mode::Direct) {
@@ -563,7 +580,8 @@ void Testutils::snapshot_sandbox_conf(int port) {
     }
     std::string sandbox_cnf_path = get_sandbox_conf_path(port);
     std::string sandbox_cnf_bkpath =
-        _sandbox_snapshot_dir + "/sandbox_" + std::to_string(port) + "_my.cnf";
+        _sandbox_snapshot_dir + "/sandbox_" + std::to_string(port) + "_" +
+        std::to_string(_snapshot_conf_serial++) + "_my.cnf";
     if (!_dummy_sandboxes) {
       // copy the config file from the sandbox dir to the snapshot dir
       shcore::copy_file(sandbox_cnf_path, sandbox_cnf_bkpath);
@@ -642,6 +660,10 @@ void Testutils::end_snapshot_sandbox_error_log(int port) {
  * It creates a new sandbox by copying the data on the boilerplate sandbox.
  *
  * When using --replay mode, the function does nothing.
+ *
+ * Sandboxes are pre-configured for group replication and thus are not good
+ * for testing AdminAPI. For testing AdminAPI features, specially those that
+ * check or configure MySQL instances, use deployRawSandbox() instead.
  */
 #if DOXYGEN_JS
 Undefined Testutils::deploySandbox(Integer port, String pwd,
@@ -652,6 +674,7 @@ None Testutils::deploy_sandbox(int port, str pwd, Dictionary options);
 ///@}
 void Testutils::deploy_sandbox(int port, const std::string &rootpass,
                                const shcore::Dictionary_t &opts) {
+  _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     // Sandbox from a boilerplate
@@ -663,9 +686,45 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
       }
     } else {
       prepare_sandbox_boilerplate(rootpass, port);
-      _boilerplate_rootpass = rootpass;
 
       deploy_sandbox_from_boilerplate(port, opts);
+    }
+  }
+}
+
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Deploys a raw sandbox using the indicated password and port
+ *
+ * Basically the same as deploySandbox, except:
+ * - configurations are closer to default (all replication options are removed)
+ * - datadir is called "data" instead of "sandboxdata", which makes it look like
+ * an ordinary instance to the AdminAPI.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::deployRawSandbox(Integer port, String pwd,
+                                      Dictionary options);
+#elif DOXYGEN_PY
+None Testutils::deploy_raw_sandbox(int port, str pwd, Dictionary options);
+#endif
+///@}
+void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
+                                   const shcore::Dictionary_t &opts) {
+  _passwords[port] = rootpass;
+  mysqlshdk::db::replay::No_replay dont_record;
+  if (!_dummy_sandboxes) {
+    // Sandbox from a boilerplate
+    if (k_boilerplate_root_password == rootpass) {
+      prepare_sandbox_boilerplate(rootpass, port);
+      if (!deploy_sandbox_from_boilerplate(port, opts, true)) {
+        std::cerr << "Unable to deploy boilerplate sandbox\n";
+        abort();
+      }
+    } else {
+      prepare_sandbox_boilerplate(rootpass, port);
+
+      deploy_sandbox_from_boilerplate(port, opts, true);
     }
   }
 }
@@ -807,11 +866,12 @@ Undefined Testutils::stopSandbox(Integer port);
 None Testutils::stop_sandbox(int port);
 #endif
 ///@}
-void Testutils::stop_sandbox(int port, const std::string &rootpass) {
+void Testutils::stop_sandbox(int port, const std::string &pass) {
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
     shcore::Value::Array_type_ref errors;
-    _mp->stop_sandbox(port, _sandbox_dir, rootpass, &errors);
+    _mp->stop_sandbox(port, _sandbox_dir,
+                      pass.empty() ? _passwords[port] : pass, &errors);
     if (errors && !errors->empty())
       std::cerr << "During stop of " << port << ": "
                 << shcore::Value(errors).descr() << "\n";
@@ -839,8 +899,9 @@ Undefined Testutils::restartSandbox(Integer port);
 None Testutils::restart_sandbox(int port);
 #endif
 ///@}
-void Testutils::restart_sandbox(int port, const std::string &rootpass) {
-  stop_sandbox(port, rootpass);
+void Testutils::restart_sandbox(int port) {
+  stop_sandbox(port);
+  wait_sandbox_dead(port);
   start_sandbox(port);
 }
 
@@ -896,31 +957,67 @@ static int os_file_lock(int fd) {
 #endif
 
 void Testutils::wait_sandbox_dead(int port) {
+  // wait until ports are free
+  {
+    mysqlshdk::db::replay::No_replay dont_record;
+    auto options = mysqlshdk::db::Connection_options("root@localhost");
+    auto session = mysqlshdk::db::mysql::Session::create();
+    for (;;) {
+      options.set_port(port);
+      options.set_password(_passwords[port]);
+      try {
+        session->connect(options);
+        session->close();
+        shcore::sleep_ms(500);
+      } catch (
+          mysqlshdk::db::Error &e) {  // Client errors = can't connect anymore
+        if (e.code() >= CR_UNKNOWN_ERROR && e.code() <= CR_ERROR_LAST)
+          break;
+        throw;
+      }
+    }
+  }
+  {
+    mysqlshdk::db::replay::No_replay dont_record;
+    auto options = mysqlshdk::db::Connection_options("root@localhost");
+    auto session = mysqlshdk::db::mysqlx::Session::create();
+    for (;;) {
+      options.set_port(port * 10);
+      options.set_password(_passwords[port]);
+      try {
+        session->connect(options);
+        session->close();
+        shcore::sleep_ms(500);
+      } catch (mysqlshdk::db::Error &e) {
+        // Client errors = can't connect anymore
+        if (e.code() >= CR_UNKNOWN_ERROR && e.code() <= CR_ERROR_LAST)
+          break;
+        throw;
+      }
+    }
+  }
+
 #ifdef _WIN32
   // In Windows, it should be enough to see if the ibdata file is locked
   std::string ibdata =
-      _sandbox_dir + "/" + std::to_string(port) + "/sandboxdata/ibdata1";
+      shcore::path::join_path(get_sandbox_datadir(port), "ibdata1");
   while (true) {
     FILE *f = fopen(ibdata.c_str(), "a");
     if (f) {
       fclose(f);
       break;
     }
-    if (errno == ENOENT)
-      break;
+    if (errno == ENOENT) break;
     shcore::sleep_ms(500);
   }
 #else
-  while (mysqlshdk::utils::check_lock_file(_sandbox_dir + "/" +
-                                           std::to_string(port) +
-                                           "/sandboxdata/mysqld.sock.lock")) {
+  while (mysqlshdk::utils::check_lock_file(get_sandbox_datadir(port) +
+                                           "/mysqld.sock.lock")) {
     shcore::sleep_ms(500);
   }
   // wait for innodb to release lock from ibdata file
   int ibdata_fd =
-      open((_sandbox_dir + "/" + std::to_string(port) + "/sandboxdata/ibdata1")
-               .c_str(),
-           O_RDONLY);
+      open((get_sandbox_datadir(port) + "/ibdata1").c_str(), O_RDONLY);
   if (ibdata_fd > 0) {
     while (os_file_lock(ibdata_fd) > 0) {
       shcore::sleep_ms(1000);
@@ -944,8 +1041,7 @@ bool is_section_line(const std::string &line, const std::string &section = "") {
     if (normalized[0] == '[' && normalized[normalized.length() - 1] == ']') {
       ret_val = true;
 
-      if (!section.empty())
-        ret_val = normalized == "[" + section + "]";
+      if (!section.empty()) ret_val = normalized == "[" + section + "]";
     }
   }
 
@@ -976,14 +1072,13 @@ None Testutils::remove_from_sandbox_conf(int port, str option, str section);
 ///@}
 void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
                                          const std::string &section) {
-  if (_dummy_sandboxes)
-    return;
-
   std::string cfgfile_path = get_sandbox_conf_path(port);
   std::string new_cfgfile_path = cfgfile_path + ".new";
   std::ofstream new_cfgfile(new_cfgfile_path);
   std::ifstream cfgfile(cfgfile_path);
   std::string line;
+
+  if (!shcore::file_exists(cfgfile_path) && _dummy_sandboxes) return;
 
   bool in_section = false;
   while (std::getline(cfgfile, line)) {
@@ -995,8 +1090,7 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
     // If we are in the right section and the option is found, the line is
     // removed from the cfg file
     if (in_section) {
-      if (is_configuration_option(option, line))
-        continue;
+      if (is_configuration_option(option, line)) continue;
     }
 
     new_cfgfile << line << std::endl;
@@ -1004,7 +1098,7 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
   cfgfile.close();
   new_cfgfile.close();
   shcore::delete_file(cfgfile_path);
-  shcore::rename_file(new_cfgfile_path, cfgfile_path);
+  try_rename(new_cfgfile_path, cfgfile_path);
 }
 
 //!<  @name Sandbox Operations
@@ -1021,8 +1115,8 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
  *
  * If the option does not exist it will be added.
  *
- * If the section is not indicated, the operation will be done on every section
- * of the configuration file.
+ * If the section is not indicated, mysqld is assumed.
+ * * will change all sections.
  */
 #if DOXYGEN_JS
 Undefined Testutils::changeSandboxConf(Integer port, String option,
@@ -1034,11 +1128,14 @@ None Testutils::change_sandbox_conf(int port, str option, str value,
 ///@}
 void Testutils::change_sandbox_conf(int port, const std::string &option,
                                     const std::string &value,
-                                    const std::string &section) {
-  if (_dummy_sandboxes)
-    return;
+                                    const std::string &section_) {
+  std::string section = section_.empty() ? "mysqld" : section_;
+  if (section == "*")
+    section = "";
 
   std::string cfgfile_path = get_sandbox_conf_path(port);
+  if (!shcore::file_exists(cfgfile_path) && _dummy_sandboxes) return;
+
   std::string new_cfgfile_path = cfgfile_path + ".new";
   std::ofstream new_cfgfile(new_cfgfile_path);
   std::ifstream cfgfile(cfgfile_path);
@@ -1059,8 +1156,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
     // If we are in the right section and the option is found, it is
     // removed since it will be the old value
     if (in_section) {
-      if (is_configuration_option(option, line))
-        continue;
+      if (is_configuration_option(option, line)) continue;
     }
 
     new_cfgfile << line << std::endl;
@@ -1069,7 +1165,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
   cfgfile.close();
   new_cfgfile.close();
   shcore::delete_file(cfgfile_path);
-  shcore::rename_file(new_cfgfile_path, cfgfile_path);
+  try_rename(new_cfgfile_path, cfgfile_path);
 }
 
 /**
@@ -1086,12 +1182,11 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
  * @param server_uuid A string with the server UUID value to set.
  */
 void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
-  if (_dummy_sandboxes)
-    return;
-
   // Get path of the auto.cnf file (containing the server_uuid information).
-  std::string autocnf_path = shcore::path::join_path(
-      {_sandbox_dir, std::to_string(port), "sandboxdata", "auto.cnf"});
+  std::string autocnf_path =
+      shcore::path::join_path(get_sandbox_datadir(port), "auto.cnf");
+
+  if (!shcore::file_exists(autocnf_path) && _dummy_sandboxes) return;
 
   // Check if the auto.cnf file exists (only created on the first server start).
   if (shcore::file_exists(autocnf_path)) {
@@ -1104,7 +1199,8 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
 
     while (std::getline(autocnf_file, line)) {
       if (is_section_line(line, "auto")) {
-        // As soon as the "auto" section is found adds the new server-uuid value.
+        // As soon as the "auto" section is found adds the new server-uuid
+        // value.
         in_section = true;
         new_autocnf_file << line << std::endl;
         new_autocnf_file << "server-uuid=" << server_uuid << std::endl;
@@ -1116,15 +1212,14 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
       // If we are in the "auto" section and the server-uuid option is found,
       // it is removed since it will be the old value.
       if (in_section) {
-        if (is_configuration_option("server-uuid", line))
-          continue;
+        if (is_configuration_option("server-uuid", line)) continue;
       }
       new_autocnf_file << line << std::endl;
     }
     autocnf_file.close();
     new_autocnf_file.close();
     shcore::delete_file(autocnf_path);
-    shcore::rename_file(new_autocnf_path, autocnf_path);
+    try_rename(new_autocnf_path, autocnf_path);
   } else {
     // File does not exist, create a new one with the desired server UUID.
     std::string file_contents = "[auto]\nserver-uuid=" + server_uuid + "\n";
@@ -1140,6 +1235,7 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
  * connections.
  * @param states An array containing the states that would cause the poll cycle
  * to finish.
+ * @param direct If true, opens a direct session to the member to be observed.
  * @returns The state of the member.
  *
  * This function is to be used with the members of a cluster.
@@ -1149,59 +1245,77 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
  * occurs.
  */
 #if DOXYGEN_JS
-String Testutils::waitMemberState(Integer port, String[] states);
+String Testutils::waitMemberState(Integer port, String[] states,
+                                  bool direct = false);
 #elif DOXYGEN_PY
-str Testutils::wait_member_state(int port, str[] states);
+str Testutils::wait_member_state(int port, str[] states, bool direct = False);
 #endif
 ///@}
 std::string Testutils::wait_member_state(int member_port,
-                                         const std::string &states) {
+                                         const std::string &states,
+                                         bool direct) {
   if (states.empty())
     throw std::invalid_argument(
         "states argument for wait_member_state() can't be empty");
 
-  // Use the shell's active session
-  if (auto shell = _shell.lock()) {
-    if (!shell->shell_context()->get_dev_session())
-      throw std::runtime_error("No active shell session");
-    auto session =
-        shell->shell_context()->get_dev_session()->get_core_session();
-
-    int curtime = 0;
-    std::string current_state;
-    if (!session || !session->is_open()) {
-      throw std::logic_error(
-          "The testutil.waitMemberState method uses the active shell "
-          "session and requires it to be open.");
-    }
-    while (curtime < k_wait_member_timeout) {
-      auto result = session->query(
-          "SELECT member_state FROM "
-          "performance_schema.replication_group_members "
-          "WHERE member_port = " +
-          std::to_string(member_port));
-      current_state = "(MISSING)";
-      if (auto row = result->fetch_one()) {
-        current_state = row->get_string(0);
-      }
-      if (states.find(current_state) != std::string::npos)
-        return current_state;
-
-      if (mysqlshdk::db::replay::g_replay_mode ==
-          mysqlshdk::db::replay::Mode::Replay) {
-        // in replay mode we can wait much less (or not at all)
-        shcore::sleep_ms(1);
-      } else {
-        shcore::sleep_ms(1000);
-      }
-      curtime++;
-    }
-    throw std::runtime_error(
-        "Timeout while waiting for cluster member to become one of " + states +
-        ": seems to be stuck as " + current_state);
+  std::string current_state;
+  int curtime = 0;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  if (direct) {
+    mysqlshdk::db::Connection_options cnx_opt;
+    cnx_opt.set_user("root");
+    cnx_opt.set_password(_passwords[member_port]);
+    cnx_opt.set_host("localhost");
+    cnx_opt.set_port(member_port);
+    session = mysqlshdk::db::mysql::Session::create();
+    session->connect(cnx_opt);
   } else {
-    throw std::logic_error("Lost reference to shell object");
+    // Use the shell's active session
+    if (auto shell = _shell.lock()) {
+      if (!shell->shell_context()->get_dev_session())
+        throw std::runtime_error("No active shell session");
+      session = shell->shell_context()->get_dev_session()->get_core_session();
+      std::string current_state;
+      if (!session || !session->is_open()) {
+        throw std::logic_error(
+            "The testutil.waitMemberState method uses the active shell "
+            "session and requires it to be open.");
+      }
+    } else {
+      throw std::logic_error("Lost reference to shell object");
+    }
   }
+
+  while (curtime < k_wait_member_timeout) {
+    auto result = session->query(
+        "SELECT member_state FROM "
+        "performance_schema.replication_group_members "
+        "WHERE member_port = " +
+        std::to_string(member_port));
+    current_state = "(MISSING)";
+    if (auto row = result->fetch_one()) {
+      current_state = row->get_string(0);
+    }
+    if (states.find(current_state) != std::string::npos) {
+      if (direct)
+        session->close();
+      return current_state;
+    }
+
+    if (mysqlshdk::db::replay::g_replay_mode ==
+        mysqlshdk::db::replay::Mode::Replay) {
+      // in replay mode we can wait much less (or not at all)
+      shcore::sleep_ms(1);
+    } else {
+      shcore::sleep_ms(1000);
+    }
+    curtime++;
+  }
+  if (direct)
+    session->close();
+  throw std::runtime_error(
+      "Timeout while waiting for cluster member to become one of " + states +
+      ": seems to be stuck as " + current_state);
 }
 
 //!<  @name Misc Utilities
@@ -1416,7 +1530,7 @@ std::string Testutils::cat_file(const std::string &path) {
     in.seekg(0, std::ios::beg);
     in.read(&contents[0], contents.size());
     in.close();
-    return(contents);
+    return (contents);
   }
 }
 
@@ -1512,18 +1626,17 @@ void Testutils::expect_password(const std::string &prompt,
   _feed_password(prompt, text);
 }
 
-std::string Testutils::fetch_captured_stdout() {
-  return _fetch_stdout();
+std::string Testutils::fetch_captured_stdout(bool eat_one) {
+  return _fetch_stdout(eat_one);
 }
 
-std::string Testutils::fetch_captured_stderr() {
-  return _fetch_stderr();
+std::string Testutils::fetch_captured_stderr(bool eat_one) {
+  return _fetch_stderr(eat_one);
 }
 
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
                                             int port) {
-  if (g_test_trace_scripts)
-    std::cerr << "Preparing sandbox boilerplate...\n";
+  if (g_test_trace_scripts) std::cerr << "Preparing sandbox boilerplate...\n";
 
   std::string boilerplate =
       shcore::path::join_path(_sandbox_dir, "myboilerplate");
@@ -1550,8 +1663,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
                       true, true, &errors);
   if (errors && !errors->empty()) {
     std::cerr << "Error deploying sandbox:\n";
-    for (auto &v : *errors)
-      std::cerr << v.descr() << "\n";
+    for (auto &v : *errors) std::cerr << v.descr() << "\n";
     throw std::runtime_error("Error deploying sandbox");
   }
 
@@ -1569,11 +1681,11 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
                         mysqlshdk::utils::Version(version).get_full());
   }
 
-  stop_sandbox(port, rootpass);
+  stop_sandbox(port);
 
   wait_sandbox_dead(port);
 
-  change_sandbox_conf(port, "port", "<PLACEHOLDER>");
+  change_sandbox_conf(port, "port", "<PLACEHOLDER>", "*");
   remove_from_sandbox_conf(port, "server_id", "mysqld");
   remove_from_sandbox_conf(port, "datadir", "mysqld");
   remove_from_sandbox_conf(port, "log_error", "mysqld");
@@ -1643,8 +1755,8 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
         if (name == "mysqld") {
           if (symlink(item_from.c_str(), item_to.c_str()) != 0) {
             throw std::runtime_error(shcore::str_format(
-                "Unable to create symlink %s to %s: %s", item_to.c_str(),
-                item_from.c_str(), strerror(errno)));
+                "Unable to create symlink %s to %s: %s", item_from.c_str(),
+                item_to.c_str(), strerror(errno)));
           }
           return true;
         }
@@ -1652,8 +1764,7 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
         shcore::copy_file(item_from, item_to);
       }
     } catch (std::runtime_error &e) {
-      if (errno != ENOENT)
-        throw;
+      if (errno != ENOENT) throw;
     }
     return true;
   });
@@ -1664,10 +1775,11 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
   std::string basedir = shcore::path::join_path(sandbox_dir, "myboilerplate");
   bool expired = false;
   if (shcore::is_folder(basedir)) {
+    std::string bversion = shcore::get_text_file(
+        shcore::path::join_path(basedir, "version.txt"));
     try {
-      std::string bversion = shcore::get_text_file(
-          shcore::path::join_path(basedir, "version.txt"));
-      if (bversion != version) {
+      if (mysqlshdk::utils::Version(bversion) !=
+          mysqlshdk::utils::Version(version)) {
         std::cerr << "Sandbox boilerplate was created for " << bversion
                   << " but available mysqld is " << version << "\n";
         expired = true;
@@ -1676,19 +1788,23 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
       expired = true;
     }
     if (expired) {
-      std::cout << "Deleting expired boilerplate at " << basedir << "...\n";
+      std::cerr << "Deleting expired boilerplate at " << basedir << "...\n";
       shcore::remove_directory(basedir);
     } else {
       std::cerr << "Found apparently valid sandbox boilerplate at " << basedir
-                << "\n";
+                << " for version " << bversion << "\n";
     }
   }
 }
 
 bool Testutils::deploy_sandbox_from_boilerplate(
-    int port, const shcore::Dictionary_t &opts) {
-  if (g_test_trace_scripts)
-    std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
+    int port, const shcore::Dictionary_t &opts, bool raw) {
+  if (g_test_trace_scripts) {
+    if (raw)
+      std::cerr << "Deploying raw sandbox " << port << " from boilerplate\n";
+    else
+      std::cerr << "Deploying sandbox " << port << " from boilerplate\n";
+  }
   std::string boilerplate =
       shcore::path::join_path(_sandbox_dir, "myboilerplate");
 
@@ -1705,19 +1821,21 @@ bool Testutils::deploy_sandbox_from_boilerplate(
                            std::to_string(port) + ": " + e.what());
   }
   // Customize
-  change_sandbox_conf(port, "port", std::to_string(port));
+  change_sandbox_conf(port, "port", std::to_string(port), "*");
   change_sandbox_conf(port, "server_id", std::to_string(port + 12345),
                       "mysqld");
   change_sandbox_conf(
       port, "datadir",
-      shcore::str_replace(shcore::path::join_path(basedir, "sandboxdata"), "\\",
-                          "/"),
+      shcore::str_replace(
+          shcore::path::join_path(basedir, raw ? "data" : "sandboxdata"), "\\",
+          "/"),
       "mysqld");
   change_sandbox_conf(
       port, "log_error",
       shcore::str_replace(
-          shcore::path::join_path(basedir, "sandboxdata", "error.log"), "\\",
-          "/"),
+          shcore::path::join_path(basedir, raw ? "data" : "sandboxdata",
+                                  "error.log"),
+          "\\", "/"),
       "mysqld");
   change_sandbox_conf(
       port, "pid_file",
@@ -1732,6 +1850,30 @@ bool Testutils::deploy_sandbox_from_boilerplate(
                       "mysqld");
   change_sandbox_conf(port, "report_port", std::to_string(port), "mysqld");
   change_sandbox_conf(port, "general_log", "1", "mysqld");
+
+  if (raw) {
+    try_rename(shcore::path::join_path(basedir, "sandboxdata"),
+               shcore::path::join_path(basedir, "data"));
+
+    // remove all pre-configured options related to replication
+    static const char *options[] = {"transaction_write_set_extraction",
+                                    "disabled_storage_engines",
+                                    "binlog_checksum",
+                                    "gtid_mode",
+                                    "server_id",
+                                    "auto_increment_offset",
+                                    "log_bin",
+                                    "log_slave_updates",
+                                    "relay_log_info_repository",
+                                    "master_info_repository",
+                                    "binlog_format",
+                                    "enforce_gtid_consistency",
+                                    "report_port",
+                                    NULL};
+    for (const char **opt = options; *opt; ++opt) {
+      remove_from_sandbox_conf(port, *opt);
+    }
+  }
 
   if (opts && !opts->empty()) {
     // Handle server-uuid (or server_uuid) option.
@@ -1879,8 +2021,7 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
   if (mysqlshdk::db::replay::g_replay_mode !=
       mysqlshdk::db::replay::Mode::Direct) {
     // use mysqlshrec unless in direct mode
-    path = shcore::path::join_path(shcore::get_binary_folder(),
-                                   "mysqlshrec");
+    path = shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
     full_argv.push_back(path.c_str());
   } else {
     full_argv.push_back(_mysqlsh_path.c_str());
@@ -1918,31 +2059,52 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
 
     // Reads all produced output, until stdout is closed
     while (process.read(&c, 1) > 0) {
-      if (g_test_trace_scripts && !shell)
-        std::cout << c << std::flush;
-      if (c == '\r')
-        continue;
+      if (g_test_trace_scripts && !shell) std::cout << c << std::flush;
+      if (c == '\r') continue;
       if (c == '\n') {
-        if (shell)
-          shell->println(output);
+        if (shell) shell->println(output);
         output.clear();
       } else {
         output += c;
       }
     }
     if (!output.empty()) {
-      if (shell)
-        shell->println(output);
+      if (shell) shell->println(output);
     }
     // Wait until it finishes
     exit_code = process.wait();
   } catch (const std::system_error &e) {
     output = e.what();
-    if (shell)
-      shell->println(("Exception calling mysqlsh: " + output).c_str());
+    if (shell) shell->println(("Exception calling mysqlsh: " + output).c_str());
     exit_code = 256;  // This error code will indicate an error happened
                       // launching the process
   }
   return exit_code;
+}
+
+void Testutils::try_rename(const std::string& source, const std::string& target) {
+#ifdef _WIN32
+  // rename datadir
+  // Sometimes windows delays releasing the file handles used on
+  // the operations above, causig a Permission Denied error
+  // We introduce this loop to give it some time
+  int attempts = 10;
+  while(attempts) {
+    try {
+      shcore::rename_file(source, target);
+      break;
+    } catch (const std::exception& err) {
+      if (attempts) {
+        std::cout << "Failed renaming " << source.c_str() << " to " << target.c_str() << err.what() << std::endl;
+        attempts--;
+        shcore::sleep_ms(500);
+      } else {
+        throw;
+      }
+    }
+  }
+#else
+  shcore::rename_file(source, target);
+#endif
 }
 }  // namespace tests

@@ -1,0 +1,20 @@
+[client]
+port = 3326
+protocol = TCP
+user = root
+[mysqld]
+report_host = dhcp-10-159-240-73.vpn.oracle.com
+general_log = 1
+loose_mysqlx_port = 33260
+secure_file_priv = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/mysql-files
+pid_file = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/3326.pid
+log_error = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/data/error.log
+datadir = /var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/data
+port = 3326
+basedir = /usr/local/mysql-8.0.11
+loose_mysqlx_socket = mysqlx.sock
+innodb_log_file_size = 1M
+innodb_log_buffer_size = 1M
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+log_syslog = OFF

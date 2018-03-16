@@ -2,75 +2,112 @@
 ||
 
 //@<OUT> check instance with invalid parallel type.
-{
-    "config_errors": [
-        {
-            "action": "server_update",
-            "current": "DATABASE",
-            "option": "slave_parallel_type",
-            "required": "LOGICAL_CLOCK"
-        }
-    ],
-    "errors": [],
-    "restart_required": false,
-    "status": "error"
-}
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-//@ Create cluster (succeed: parallel type updated).
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+Checking instance configuration...
+<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
+
+Some configuration options need to be fixed:
++---------------------+---------------+----------------+----------------------------+
+| Variable            | Current Value | Required Value | Note                       |
++---------------------+---------------+----------------+----------------------------+
+| slave_parallel_type | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
++---------------------+---------------+----------------+----------------------------+
+
+Please use the dba.configureInstance() command to repair these issues.
+
+//@ Create cluster (fail: parallel type check fail).
+||Dba.createCluster: Instance check failed (RuntimeError)
+
+//@ fix config including parallel type
+|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.|
+
+//@ Create cluster (succeed this time).
 ||
 
 //@<OUT> check instance with invalid commit order.
-{
-    "config_errors": [
-        {
-            "action": "server_update",
-            "current": "OFF",
-            "option": "slave_preserve_commit_order",
-            "required": "ON"
-        }
-    ],
-    "errors": [],
-    "restart_required": false,
-    "status": "error"
-}
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-//@ Adding instance to cluster (succeed: commit order updated).
-||
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+Checking instance configuration...
+<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
+
+Some configuration options need to be fixed:
++-----------------------------+---------------+----------------+----------------------------+
+| Variable                    | Current Value | Required Value | Note                       |
++-----------------------------+---------------+----------------+----------------------------+
+| slave_preserve_commit_order | OFF           | ON             | Update the server variable |
++-----------------------------+---------------+----------------+----------------------------+
+
+Please use the dba.configureInstance() command to repair these issues.
+
+//@ Adding instance to cluster (fail: commit order wrong).
+|Please use the dba.configureInstance() command to repair these issues.|
+||Cluster.addInstance: Instance check failed (RuntimeError)
 
 //@<OUT> check instance with invalid type and commit order.
-{
-    "config_errors": [
-        {
-            "action": "server_update",
-            "current": "DATABASE",
-            "option": "slave_parallel_type",
-            "required": "LOGICAL_CLOCK"
-        },
-        {
-            "action": "server_update",
-            "current": "OFF",
-            "option": "slave_preserve_commit_order",
-            "required": "ON"
-        }
-    ],
-    "errors": [],
-    "restart_required": false,
-    "status": "error"
-}
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-//@<OUT> configure instance and update type and commit order with valid values.
-{
-    "status": "ok"
-}
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+Checking instance configuration...
+<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
+
+Some configuration options need to be fixed:
++-----------------------------+---------------+----------------+----------------------------+
+| Variable                    | Current Value | Required Value | Note                       |
++-----------------------------+---------------+----------------+----------------------------+
+| slave_parallel_type         | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
+| slave_preserve_commit_order | OFF           | ON             | Update the server variable |
++-----------------------------+---------------+----------------+----------------------------+
+
+Please use the dba.configureInstance() command to repair these issues.
+
+
+//@ configure instance and update type and commit order with valid values.
+|WARNING: User 'root' can only connect from localhost.|
+|The instance 'localhost:<<<__mysql_sandbox_port3>>>' was configured for use in an InnoDB cluster.|
 
 //@<OUT> check instance, no invalid values after configure.
-{
-    "status": "ok"
-}
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+Checking instance configuration...
+<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
+Instance configuration is compatible with InnoDB cluster
+
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.
 
 //@ Adding instance to cluster (succeed: nothing to update).
 ||
 
 //@ Finalization
 ||
-

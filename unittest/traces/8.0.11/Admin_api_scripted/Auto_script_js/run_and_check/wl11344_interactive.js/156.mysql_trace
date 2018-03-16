@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3327",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "30",
+    "connection_id": "24",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -33,28 +33,12 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@server_uuid",
+            "length": 144,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -66,8 +50,7 @@
     ],
     "rows": [
         [
-            "group_replication_group_seeds",
-            "localhost:33171"
+            "18bf5778-27e7-11e8-ae01-45d2501a928c"
         ]
     ]
 },
@@ -75,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "show GLOBAL variables where `variable_name` in ('persisted_globals_load')"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
@@ -88,28 +71,50 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@mysqlx_port",
+            "length": 21,
             "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
             "zerofill": false,
-            "binary": false
-        },
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            33160
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT @@group_replication_local_address"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_local_address",
+            "length": 60,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -121,34 +126,8 @@
     ],
     "rows": [
         [
-            "persisted_globals_load",
-            "ON"
+            "localhost:33161"
         ]
     ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33171,localhost:33371'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 9
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 10
 },
 null]

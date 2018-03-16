@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "foo:bar@localhost:3350",
+    "uri": "foo:bar@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "29",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@group_replication_group_name"
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_local_address')"
 },
 {
     "type": "response",
@@ -29,86 +33,10 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_group_name",
-            "length": 36,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "22730d12-dc1b-11e7-bd2e-f83441274313"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 5,
-    "sql": "SELECT @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 36,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "20ee7cd6-dc1b-11e7-bfee-f83441274313"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members AS m JOIN performance_schema.replication_group_member_stats AS s ON m.member_id = s.member_id AND m.member_id = @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "performance_schema",
-            "table_name": "replication_group_members",
-            "table_label": "m",
-            "column_name": "MEMBER_STATE",
-            "column_label": "member_state",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
             "length": 64,
             "fractional": 0,
             "type": "String",
@@ -117,23 +45,40 @@
             "collation_id": 8,
             "unsigned": false,
             "zerofill": false,
-            "binary": true
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 1024,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
         }
     ],
     "rows": [
         [
-            "ONLINE"
+            "group_replication_local_address",
+            "localhost:33161"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 9
+    "index": 5
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 10
+    "index": 6
 },
 null]

@@ -38,14 +38,48 @@
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
 namespace tests {
+
+class Test_console : public mysqlsh::IConsole {
+ public:
+  virtual void print(const std::string &text) {}
+
+  virtual void println(const std::string &text = "") {}
+
+  virtual void print_error(const std::string &text) {}
+  virtual void print_warning(const std::string &text) {}
+  virtual void print_note(const std::string &text) {}
+  virtual void print_info(const std::string &text) {}
+
+  virtual bool prompt(const std::string &prompt, std::string *out_val) {
+    return false;
+  }
+
+  virtual mysqlsh::Prompt_answer confirm(
+      const std::string &prompt,
+      mysqlsh::Prompt_answer def = mysqlsh::Prompt_answer::NO,
+      const std::string &yes_label = "&Yes",
+      const std::string &no_label = "&No", const std::string &alt_label = "") {
+    return def;
+  }
+
+  virtual shcore::Prompt_result prompt_password(const std::string &prompt,
+                                                std::string *out_val) {
+    return shcore::Prompt_result::Ok;
+  }
+};
+
 class Dba_common_test : public Admin_api_test {
  public:
   virtual void SetUp() {
     Admin_api_test::SetUp();
     reset_replayable_shell();
+
+    m_console.reset(new Test_console());
   }
 
  protected:
+  std::shared_ptr<Test_console> m_console;
+
   static std::shared_ptr<mysqlshdk::db::ISession>
     create_session(int port, std::string user = "root") {
     auto session = mysqlshdk::db::mysql::Session::create();
@@ -76,7 +110,7 @@ class Dba_common_test : public Admin_api_test {
                    "mysql_native_password by 'root'");
     session->close();
 
-    testutil->stop_sandbox(port, "root");
+    testutil->stop_sandbox(port);
     testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
     testutil->change_sandbox_conf(port, "default_authentication_plugin",
                                         "mysql_native_password", "mysqld");
@@ -290,7 +324,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   execute("shell.connect('root:root@localhost:" + std::to_string(_mysql_sandbox_port1) + "')");
 
   testutil->expect_prompt(
-      "Should the configuration be changed accordingly? [y|N]: ", "y");
+      "Should the configuration be changed accordingly? [y/N]: ", "y");
   execute("var c = dba.createCluster('sample', {memberSslMode:'REQUIRED'})");
   execute("c.disconnect()");
 
@@ -416,7 +450,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   testutil->deploy_sandbox(_mysql_sandbox_port2, "root");
   execute("shell.connect('root:root@localhost:" + std::to_string(_mysql_sandbox_port1) + "')");
 
-  testutil->expect_prompt("Should the configuration be changed accordingly? [y|N]: ", "y");
+  testutil->expect_prompt("Should the configuration be changed accordingly? [y/N]: ", "y");
   execute("var c = dba.createCluster('sample', {memberSslMode:'DISABLED'})");
   execute("c.disconnect()");
 
@@ -775,7 +809,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
 
   try {
     auto read_only =
-        mysqlsh::dba::validate_super_read_only(session, true);
+        mysqlsh::dba::validate_super_read_only(session, true, m_console);
     EXPECT_TRUE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -802,23 +836,11 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
   session->query("set global super_read_only = 1");
 
   try {
-    mysqlsh::dba::validate_super_read_only(session, false);
+    mysqlsh::dba::validate_super_read_only(session, false, m_console);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    std::string uri = "localhost:" + std::to_string(_mysql_sandbox_port1);
-    std::string error_msg =
-        "The MySQL instance at '" + uri +
-        "' currently has "
-        "the super_read_only system variable set to protect it from "
-        "inadvertent updates from applications. You must first unset it to be "
-        "able to perform any changes to this instance. "
-        "For more information see: https://dev.mysql.com/doc/refman/en/"
-        "server-system-variables.html#sysvar_super_read_only. "
-        "If you unset super_read_only you should consider closing the "
-        "following: "
-        "1 open session(s) of 'root@localhost'. ";
-    EXPECT_STREQ(error_msg.c_str(), e.what());
+    EXPECT_STREQ("Server in SUPER_READ_ONLY mode", e.what());
   }
 
   session->close();
@@ -836,20 +858,11 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   // super_read_only is ON, no active sessions
   session->query("set global super_read_only = 1");
   try {
-    mysqlsh::dba::validate_super_read_only(session, false);
+    mysqlsh::dba::validate_super_read_only(session, false, m_console);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    std::string uri = "localhost:" + std::to_string(_mysql_sandbox_port1);
-    std::string error_msg =
-        "The MySQL instance at '" + uri +
-        "' currently has "
-        "the super_read_only system variable set to protect it from "
-        "inadvertent updates from applications. You must first unset it to be "
-        "able to perform any changes to this instance. "
-        "For more information see: https://dev.mysql.com/doc/refman/en/"
-        "server-system-variables.html#sysvar_super_read_only. ";
-    EXPECT_STREQ(error_msg.c_str(), e.what());
+    EXPECT_STREQ("Server in SUPER_READ_ONLY mode", e.what());
   }
 
   session->close();
@@ -868,7 +881,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
 
   try {
     auto read_only =
-        mysqlsh::dba::validate_super_read_only(session, true);
+        mysqlsh::dba::validate_super_read_only(session, true, m_console);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -892,7 +905,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 
   try {
     auto read_only =
-        mysqlsh::dba::validate_super_read_only(session, false);
+        mysqlsh::dba::validate_super_read_only(session, false, m_console);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());

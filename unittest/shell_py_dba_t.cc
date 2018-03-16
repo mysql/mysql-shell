@@ -81,7 +81,19 @@ protected:
       _mysql_port = "3306";
     }
 
-    std::string code = "__user = '" + user + "';";
+    std::string code = "hostname = '" + hostname() + "';";
+    exec_and_out_equals(code);
+
+    code = "real_hostname = '" + real_hostname() + "';";
+    exec_and_out_equals(code);
+
+    if (real_host_is_loopback())
+      code = "real_host_is_loopback = True;";
+    else
+      code = "real_host_is_loopback = False;";
+    exec_and_out_equals(code);
+
+    code = "__user = '" + user + "';";
     exec_and_out_equals(code);
     code = "__pwd = '" + password + "';";
     exec_and_out_equals(code);

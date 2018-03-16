@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "80",
+    "connection_id": "50",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
+    "sql": "SHOW STATUS LIKE 'group_replication_primary_member'"
 },
 {
     "type": "response",
@@ -33,8 +33,8 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
+            "table_name": "session_status",
+            "table_label": "session_status",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
             "length": 256,
@@ -49,8 +49,8 @@
         },
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
+            "table_name": "session_status",
+            "table_label": "session_status",
             "column_name": "Value",
             "column_label": "Value",
             "length": 4096,
@@ -66,89 +66,19 @@
     ],
     "rows": [
         [
-            "group_replication_group_seeds",
+            "group_replication_primary_member",
             ""
         ]
     ]
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 5,
-    "sql": "show GLOBAL variables where `variable_name` in ('persisted_globals_load')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "persisted_globals_load",
-            "ON"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33501'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 9
+    "index": 5
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 10
+    "index": 6
 },
 null]

@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3327",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "36",
+    "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -33,28 +33,12 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 140,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -66,8 +50,7 @@
     ],
     "rows": [
         [
-            "group_replication_group_seeds",
-            "localhost:33501"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },
@@ -75,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "show GLOBAL variables where `variable_name` in ('persisted_globals_load')"
+    "sql": "SHOW VARIABLES LIKE 'group_replication_start_on_boot';"
 },
 {
     "type": "response",
@@ -88,8 +71,8 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
+            "table_name": "session_variables",
+            "table_label": "session_variables",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
             "length": 256,
@@ -104,8 +87,8 @@
         },
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
+            "table_name": "session_variables",
+            "table_label": "session_variables",
             "column_name": "Value",
             "column_label": "Value",
             "length": 4096,
@@ -121,34 +104,19 @@
     ],
     "rows": [
         [
-            "persisted_globals_load",
-            "ON"
+            "group_replication_start_on_boot",
+            "OFF"
         ]
     ]
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = ''"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 9
+    "index": 7
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 10
+    "index": 8
 },
 null]

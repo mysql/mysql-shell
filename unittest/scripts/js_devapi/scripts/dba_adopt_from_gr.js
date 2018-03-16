@@ -43,11 +43,11 @@ cluster.status();
 session.close();
 cluster.disconnect();
 
-// Establish a session using the hostname
+// Establish a session using the real hostname
 // because when adopting from GR, the information in the
-// performance_schema.replication_group_members will have the hostname
+// performance_schema.replication_group_members will have the real hostname
 // and not 'localhost'
-shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Create cluster adopting from GR
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true});

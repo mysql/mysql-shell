@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3317",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "23",
+    "connection_id": "24",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "e008af15-22cd-11e8-a542-5ce0c50b9d66"
+            "f43fecd0-2676-11e8-b84c-7fd0967cadf0"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            33400
+            33170
         ]
     ]
 },
@@ -126,7 +126,7 @@
     ],
     "rows": [
         [
-            "localhost:33401"
+            "localhost:33171"
         ]
     ]
 },

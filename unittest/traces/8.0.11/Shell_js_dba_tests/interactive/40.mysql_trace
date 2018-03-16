@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "missingprivileges:@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "20",
+    "connection_id": "30",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@super_read_only"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -36,8 +36,106 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@super_read_only",
-            "length": 1,
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 104,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "8.0.11 Source distribution"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SET SQL_LOG_BIN=0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "DROP USER 'mydba'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "DROP USER 'dba_test'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SET SQL_LOG_BIN=1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "COUNT(*)",
+            "length": 21,
             "fractional": 0,
             "type": "Integer",
             "collation": "binary",
@@ -57,11 +155,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 5
+    "index": 15
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 6
+    "index": 16
 },
 null]

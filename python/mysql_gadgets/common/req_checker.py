@@ -51,10 +51,6 @@ NOT_IN = "NOT IN"
 ONE_OF = "ONE OF"
 ALL_OF = "ALL OF"
 
-GR_COMPLIANCE_SKIP_SCHEMAS = ("('mysql', 'sys', 'performance_schema', "
-                              "'information_schema')")
-GR_COMPLIANCE_SKIP_ENGINES = "('InnoDB', 'MEMORY')"
-
 
 def check_option(var_name, value, cur_val, results):
     """Check the option value against the current value.
@@ -608,68 +604,6 @@ class RequirementChecker(object):
         if "pass" not in results.keys():
             results["pass"] = True
             results["server_id"] = (True, this_server_id, this_server_id)
-
-        return results
-
-    def validate_schemas_gr_compliance(self, alt_server=None):
-        """Validates the preexisting tables in the MySQL server, generating
-        a report of the tables with engine than 'InnoDB', or not listed in
-        GR_COMPLIANCE_SKIP_ENGINES. In addition the tables with 'InnoDB' engine
-        that does not have a primary key as included in the report.
-
-        :param alt_server:  An alternative server instance to use.
-        :type alt_server:   Server instance.
-
-        :return: A dictionary with key as 'reason' and lists of the
-                 tables out of compliance as values, with reasons:
-                     'engine_type'    unsupported engine
-                     'primary_key'    lacking of primary key.
-        :rtype: dict
-        """
-        _LOGGER.debug("checking whether existing tables comply to GR "
-                      "requirements")
-
-        server = self._get_server(alt_server)
-        res = server.exec_query("SELECT table_schema, table_name, engine "
-                                "FROM information_schema.tables "
-                                "WHERE engine NOT IN {0} AND table_schema "
-                                "NOT IN {1}"
-                                "".format(GR_COMPLIANCE_SKIP_ENGINES,
-                                          GR_COMPLIANCE_SKIP_SCHEMAS))
-
-        # Store Result
-        results = {
-            "engine_type": [],
-            "primary_key": []
-        }
-        if res:
-            results["engine_type"] = res
-            results["pass"] = False
-
-        compliance_qry = (
-            "SELECT t.table_schema, t.table_name "
-            "FROM information_schema.tables t "
-            "    LEFT JOIN (SELECT table_schema, table_name "
-            "               FROM information_schema.statistics "
-            "               GROUP BY table_schema, table_name, index_name "
-            "               HAVING SUM(CASE "
-            "                   WHEN non_unique = 0 AND nullable != 'YES' "
-            "                   THEN 1 ELSE 0 END) = COUNT(*) "
-            "              ) puks "
-            "    ON t.table_schema = puks.table_schema "
-            "        AND t.table_name = puks.table_name "
-            "WHERE puks.table_name IS NULL "
-            "    AND t.table_type = 'BASE TABLE' "
-            "    AND t.table_schema NOT IN {0}"
-            "".format(GR_COMPLIANCE_SKIP_SCHEMAS)
-        )
-        res = server.exec_query(compliance_qry)
-        if res:
-            results["primary_key"] = res
-            results["pass"] = False
-
-        if "pass" not in results.keys():
-            results["pass"] = True
 
         return results
 

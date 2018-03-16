@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -675,9 +675,10 @@ TEST_F(Completer_frontend, js_adminapi) {
   // TS_FR5.2_C02, TS_FR5.2_X02
   EXPECT_AFTER_TAB_TAB(
       "dba.",
-      strv({"checkInstanceConfiguration()", "configureLocalInstance()",
-            "createCluster()", "deleteSandboxInstance()",
-            "deploySandboxInstance()", "dropMetadataSchema()", "getCluster()",
+      strv({"checkInstanceConfiguration()", "configureInstance()",
+            "configureLocalInstance()", "createCluster()",
+            "deleteSandboxInstance()", "deploySandboxInstance()",
+            "dropMetadataSchema()", "getCluster()",
             "help()", "killSandboxInstance()",
             "rebootClusterFromCompleteOutage()",
             "startSandboxInstance()", "stopSandboxInstance()", "verbose"}));
@@ -1151,12 +1152,13 @@ TEST_F(Completer_frontend, py_adminapi) {
   // TS_FR5.2_C02, TS_FR5.2_X02
   EXPECT_AFTER_TAB_TAB(
       "dba.",
-      strv({"check_instance_configuration()", "configure_local_instance()",
-            "create_cluster()", "delete_sandbox_instance()",
-            "deploy_sandbox_instance()", "drop_metadata_schema()",
-            "get_cluster()", "help()", "kill_sandbox_instance()",
-            "reboot_cluster_from_complete_outage()",
-            "start_sandbox_instance()", "stop_sandbox_instance()", "verbose"}));
+      strv({"check_instance_configuration()", "configure_instance()",
+            "configure_local_instance()", "create_cluster()",
+            "delete_sandbox_instance()",  "deploy_sandbox_instance()",
+            "drop_metadata_schema()", "get_cluster()", "help()",
+            "kill_sandbox_instance()", "reboot_cluster_from_complete_outage()",
+            "start_sandbox_instance()", "stop_sandbox_instance()",
+            "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploy_sandbox_instance()");
 }
 

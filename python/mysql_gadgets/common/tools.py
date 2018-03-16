@@ -44,6 +44,8 @@ from mysql_gadgets.common.constants import QUOTE_CHAR
 from mysql_gadgets.common.logger import CustomLevelLogger
 from mysql_gadgets.exceptions import GadgetError
 
+LISTENING_PORT_CHECK_TIMEOUT=5
+
 logging.setLoggerClass(CustomLevelLogger)
 _LOGGER = logging.getLogger(__name__)
 
@@ -259,6 +261,7 @@ def is_listening(host, port):
     # Socket Initialization
     port = port
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(LISTENING_PORT_CHECK_TIMEOUT)
     try:
         s.connect((host, port))
         return True

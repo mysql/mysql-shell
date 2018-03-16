@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://local_pass:pass@localhost:3311?ssl-mode=REQUIRED",
+    "uri": "mysql://local_pass:pass@localhost:3317?ssl-mode=REQUIRED",
     "protocol": "classic"
 },
 {
@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "22",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug-log",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",

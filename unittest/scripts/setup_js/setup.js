@@ -20,11 +20,25 @@ function get_sysvar(session, variable) {
   return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
 }
 
+function wait_session_sync(session, session2) {
+  // block until session finishes executing all transactions that happened in session2
+  var gtid = session2.runSql("select @@gtid_executed").fetchOne()[0];
+  var r = session.runSql("select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(?)", [gtid]).fetchOne()[0];
+  if (r == null) {
+    println("** GR not active!?");
+  }
+}
+
+
+var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
+var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
+var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
+
 // -------- Test Expectations
 
 function EXPECT_EQ(expected, actual) {
-  if (expected != actual) {
-    var context = "<red>Tested values don't match as expected:</red>\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
+  if (repr(expected) != repr(actual)) {
+    var context = "<red>Tested values don't match as expected:</red>\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
     testutil.fail(context);
   }
 }
@@ -76,8 +90,8 @@ function EXPECT_THROWS(func, etext) {
 }
 
 function EXPECT_OUTPUT_CONTAINS(text) {
-  var out = testutil.fetchCapturedStdout();
-  var err = testutil.fetchCapturedStderr();
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) < 0 && err.indexOf(text) < 0) {
     var context = "<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
@@ -85,8 +99,8 @@ function EXPECT_OUTPUT_CONTAINS(text) {
 }
 
 function EXPECT_STDOUT_CONTAINS(text) {
-  var out = testutil.fetchCapturedStdout();
-  var err = testutil.fetchCapturedStderr();
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) < 0) {
     var context = "<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
@@ -94,8 +108,8 @@ function EXPECT_STDOUT_CONTAINS(text) {
 }
 
 function EXPECT_STDERR_CONTAINS(text) {
-  var out = testutil.fetchCapturedStdout();
-  var err = testutil.fetchCapturedStderr();
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
   if (err.indexOf(text) < 0) {
     var context = "<red>Missing error output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
@@ -116,26 +130,38 @@ function WIPE_SHELL_LOG() {
 }
 
 function EXPECT_STDOUT_EMPTY() {
-  var out = testutil.fetchCapturedStdout();
+  var out = testutil.fetchCapturedStdout(false);
   if (out != "") {
     testutil.fail("<red>Stdout expected to be empty but contains</red>: " + out);
   }
 }
 
 function EXPECT_STDERR_EMPTY() {
-  var err = testutil.fetchCapturedStderr();
+  var err = testutil.fetchCapturedStderr(false);
   if (err != "") {
     testutil.fail("<red>Stderr expected to be empty but contains</red>: " + err);
   }
 }
 
 function EXPECT_OUTPUT_NOT_CONTAINS(text) {
-  var out = testutil.fetchCapturedStdout();
-  var err = testutil.fetchCapturedStderr();
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) >= 0 || err.indexOf(text) >= 0) {
     var context = "<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
+}
+
+function EXPECT_NEXT_OUTPUT_EXACT(text) {
+  var line = testutil.fetchCapturedStdout(true);
+  EXPECT_CONTAINS(text, line);
+}
+
+function EXPECT_NEXT_OUTPUT(text) {
+  var line = testutil.fetchCapturedStdout(true);
+  // allow empty lines before the expected text
+  while (line == "\n") line = testutil.fetchCapturedStdout(true);
+  EXPECT_CONTAINS(text, line);
 }
 
 

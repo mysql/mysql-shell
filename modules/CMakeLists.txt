@@ -44,6 +44,7 @@ file(GLOB api_module_SOURCES
       "mod_utils.cc"
       "mod_mysql_constants.cc"
       "interactive_object_wrapper.cc"
+      "adminapi/instance_validations.cc"
       "adminapi/password_hasher.cc"
       "adminapi/mod_dba.cc"
       "adminapi/mod_dba_cluster.cc"
@@ -51,8 +52,12 @@ file(GLOB api_module_SOURCES
       "adminapi/mod_dba_provisioning_interface.cc"
       "adminapi/mod_dba_replicaset.cc"
       "adminapi/mod_dba_common.cc"
-      "adminapi/preconditions.cc"
-      "adminapi/mod_dba_sql.cc")
+      "adminapi/mod_dba_sql.cc"
+      "adminapi/dba/validations.cc"
+      "adminapi/dba/check_instance.cc"
+      "adminapi/dba/configure_local_instance.cc"
+      "adminapi/dba/configure_instance.cc"
+      "adminapi/dba/preconditions.cc")
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)

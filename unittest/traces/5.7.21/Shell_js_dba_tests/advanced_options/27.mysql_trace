@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "83",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@datadir"
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_local_address')"
 },
 {
     "type": "response",
@@ -29,12 +33,28 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@datadir",
-            "length": 63,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 64,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 1024,
+            "fractional": 0,
             "type": "String",
             "collation": "latin1_swedish_ci",
             "charset": "latin1",
@@ -46,7 +66,8 @@
     ],
     "rows": [
         [
-            "/home/kg/repo/ngshell/bld-clang_head/unittest/3350/sandboxdata/"
+            "group_replication_local_address",
+            "localhost:12345"
         ]
     ]
 },
@@ -54,7 +75,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SHOW MASTER STATUS"
+    "sql": "show GLOBAL variables where `variable_name` in ('super_read_only')"
 },
 {
     "type": "response",
@@ -67,44 +88,12 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "File",
-            "length": 512,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Position",
-            "length": 20,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 64,
             "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Do_DB",
-            "length": 255,
-            "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
             "charset": "latin1",
@@ -115,28 +104,12 @@
         },
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Binlog_Ignore_DB",
-            "length": 255,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "Executed_Gtid_Set",
-            "length": 0,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 1024,
+            "fractional": 0,
             "type": "String",
             "collation": "latin1_swedish_ci",
             "charset": "latin1",
@@ -148,11 +121,8 @@
     ],
     "rows": [
         [
-            "parasol-bin.000003",
-            150,
-            "",
-            "",
-            ""
+            "super_read_only",
+            "ON"
         ]
     ]
 },
@@ -160,25 +130,55 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@global.have_ssl"
+    "sql": "SET GLOBAL `super_read_only` = 'OFF'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
     "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SET SESSION `sql_log_bin` = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP '\\'mysql_innodb_cluster_r[0-9]{10}.*'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@global.have_ssl",
-            "length": 3,
-            "fractional": 31,
+            "schema": "information_schema",
+            "table_name": "USER_PRIVILEGES",
+            "table_label": "USER_PRIVILEGES",
+            "column_name": "GRANTEE",
+            "column_label": "GRANTEE",
+            "length": 81,
+            "fractional": 0,
             "type": "String",
             "collation": "latin1_swedish_ci",
             "charset": "latin1",
@@ -190,56 +190,81 @@
     ],
     "rows": [
         [
-            "YES"
+            "'mysql_innodb_cluster_r0000000008'@'localhost'"
+        ],
+        [
+            "'mysql_innodb_cluster_r0000000008'@'%'"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 9,
-    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
+    "index": 13,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'localhost'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 10,
+    "index": 14,
     "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
+    "affected_rows": 0,
     "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "count(*)",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "DROP USER IF EXISTS 'mysql_innodb_cluster_r0000000008'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 17,
+    "sql": "SET SESSION `sql_log_bin` = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 18,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 19,
+    "sql": "SET GLOBAL `super_read_only` = 'ON'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 20,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 11
+    "index": 21
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 12
+    "index": 22
 },
 null]

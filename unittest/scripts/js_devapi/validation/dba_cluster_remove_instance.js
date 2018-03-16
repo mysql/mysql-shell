@@ -10,12 +10,6 @@
 //@ Adding instance
 ||
 
-//@ Configure instance on port1.
-||
-
-//@ Configure instance on port2.
-||
-
 //@<OUT> Number of instance according to GR.
 2
 
@@ -120,7 +114,7 @@
 //@ Connect to restarted instance.
 ||
 
-//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.4)}.
+//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.5)}.
 OFF
 
 //@ Connect back to seed instance and get cluster.

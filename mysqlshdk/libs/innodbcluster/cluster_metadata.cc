@@ -58,7 +58,7 @@ bool Metadata_mysql::exists() {
       return true;
     }
   } catch (mysqlshdk::db::Error &e) {
-    if (e.code() == ER_BAD_DB_ERROR) {
+    if (e.code() == ER_BAD_DB_ERROR || e.code() == ER_NO_SUCH_TABLE) {
       return false;
     }
     throw;

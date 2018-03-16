@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://test_user:@127.0.0.1:3316",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "33",
-    "connection_info": "localhost via TCP/IP",
+    "connection_info": "127.0.0.1 via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@server_uuid"
+    "sql": "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"
 },
 {
     "type": "response",
@@ -36,21 +36,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 144,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "column_label": "COUNT(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "4d903fdd-22d5-11e8-af23-5ce0c50b9d66"
+            0
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@mysqlx_port"
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
@@ -74,21 +74,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@mysqlx_port",
+            "column_label": "count(*)",
             "length": 21,
             "fractional": 0,
-            "type": "UInteger",
+            "type": "Integer",
             "collation": "binary",
             "charset": "binary",
             "collation_id": 63,
-            "unsigned": true,
+            "unsigned": false,
             "zerofill": false,
             "binary": true
         }
     ],
     "rows": [
         [
-            33400
+            0
         ]
     ]
 },
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
+    "sql": "show databases like 'mysql_innodb_cluster_metadata'"
 },
 {
     "type": "response",
@@ -110,11 +110,11 @@
         {
             "schema": "",
             "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 60,
-            "fractional": 31,
+            "table_label": "SCHEMATA",
+            "column_name": "Database (mysql_innodb_cluster_metadata)",
+            "column_label": "Database (mysql_innodb_cluster_metadata)",
+            "length": 256,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -126,8 +126,18 @@
     ],
     "rows": [
         [
-            "localhost:33401"
+            "mysql_innodb_cluster_metadata"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 9
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 10
 },
 null]

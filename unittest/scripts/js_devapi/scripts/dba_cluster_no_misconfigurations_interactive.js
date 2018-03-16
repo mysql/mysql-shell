@@ -1,6 +1,7 @@
 // Assumptions: smart deployment routines available
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 //@ connect
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -14,5 +15,4 @@ else
 session.close();
 
 //@ Finalization
-// Will delete the sandboxes ONLY if this test was executed standalone
 testutil.destroySandbox(__mysql_sandbox_port1);

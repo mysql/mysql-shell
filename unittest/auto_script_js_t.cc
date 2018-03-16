@@ -55,9 +55,6 @@ class Auto_script_js : public Shell_js_script_tester,
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (getenv("TEST_DEBUG"))
-      output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
-
     if (connection_options.has_user())
       user = connection_options.get_user();
 
@@ -77,9 +74,18 @@ class Auto_script_js : public Shell_js_script_tester,
       _mysql_port = "3306";
     }
 
-    std::string code = "var hostname = '" + _hostname + "';";
+    std::string code = "var hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
-    code = "var hostname_ip = '" + _hostname_ip + "';";
+    code = "var real_hostname = '" + real_hostname() + "';";
+    exec_and_out_equals(code);
+
+    if (real_host_is_loopback())
+      code = "var real_host_is_loopback = true;";
+    else
+      code = "var real_host_is_loopback = false;";
+    exec_and_out_equals(code);
+
+    code = "var hostname_ip = '" + hostname_ip() + "';";
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
@@ -128,6 +134,15 @@ class Auto_script_js : public Shell_js_script_tester,
     code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
            std::to_string(_mysql_sandbox_port3) + "';";
     exec_and_out_equals(code);
+    code = "var __hostname_uri1 = 'mysql://root:root@" + hostname() + ":" +
+        std::to_string(_mysql_sandbox_port1) + "';";
+    exec_and_out_equals(code);
+    code = "var __hostname_uri2 = 'mysql://root:root@" + hostname() + ":" +
+        std::to_string(_mysql_sandbox_port2) + "';";
+    exec_and_out_equals(code);
+    code = "var __hostname_uri3 = 'mysql://root:root@" + hostname() + ":" +
+        std::to_string(_mysql_sandbox_port3) + "';";
+    exec_and_out_equals(code);
 
     code = "var localhost = 'localhost'";
     exec_and_out_equals(code);
@@ -137,6 +152,10 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            _mysql_port + "';";
+    exec_and_out_equals(code);
+
+    code = "var __os_type = '" + shcore::to_string(shcore::get_os_type()) +
+           "'";
     exec_and_out_equals(code);
 
     code = "var __system_user = '" + shcore::get_system_user() + "';";

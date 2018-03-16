@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317",
+    "uri": "mysql://root:root@localhost:3326?ssl-mode=required",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "28",
+    "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_local_address')"
+    "sql": "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'"
 },
 {
     "type": "response",
@@ -32,11 +32,11 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
+            "schema": "performance_schema",
+            "table_name": "persisted_variables",
+            "table_label": "persisted_variables",
+            "column_name": "VARIABLE_NAME",
+            "column_label": "VARIABLE_NAME",
             "length": 256,
             "fractional": 0,
             "type": "String",
@@ -48,11 +48,11 @@
             "binary": false
         },
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
+            "schema": "performance_schema",
+            "table_name": "persisted_variables",
+            "table_label": "persisted_variables",
+            "column_name": "VARIABLE_VALUE",
+            "column_label": "VARIABLE_VALUE",
             "length": 4096,
             "fractional": 0,
             "type": "String",
@@ -66,8 +66,32 @@
     ],
     "rows": [
         [
+            "group_replication_group_name",
+            "ca94447b-e6fc-11e7-b69d-4485005154dc"
+        ],
+        [
+            "group_replication_group_seeds",
+            "localhost:33161"
+        ],
+        [
             "group_replication_local_address",
-            "localhost:33171"
+            "localhost:33261"
+        ],
+        [
+            "group_replication_recovery_use_ssl",
+            "ON"
+        ],
+        [
+            "group_replication_single_primary_mode",
+            "OFF"
+        ],
+        [
+            "group_replication_ssl_mode",
+            "REQUIRED"
+        ],
+        [
+            "group_replication_start_on_boot",
+            "ON"
         ]
     ]
 },

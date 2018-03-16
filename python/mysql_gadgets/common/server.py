@@ -1363,7 +1363,7 @@ class Server(object):
                 if len(cmd) > 1:
                     if cmd[0] != '#':
                         if verbose:
-                            _LOGGER.debug(cmd)
+                            _LOGGER.debug("%s", cmd)
                         query_options = {
                             'fetch': False
                         }

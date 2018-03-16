@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "14",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT CURRENT_USER()"
+    "sql": "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"
 },
 {
     "type": "response",
@@ -32,21 +36,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "CURRENT_USER()",
-            "length": 93,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
+            "column_label": "COUNT(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "root@localhost"
+            0
         ]
     ]
 },
@@ -54,175 +58,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT privilege_type, is_grantable FROM information_schema.user_privileges WHERE grantee = '\\'root\\'@\\'localhost\\''"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "PRIVILEGE_TYPE",
-            "column_label": "privilege_type",
-            "length": 64,
-            "fractional": 0,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "IS_GRANTABLE",
-            "column_label": "is_grantable",
-            "length": 3,
-            "fractional": 0,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "SELECT",
-            "YES"
-        ],
-        [
-            "INSERT",
-            "YES"
-        ],
-        [
-            "UPDATE",
-            "YES"
-        ],
-        [
-            "DELETE",
-            "YES"
-        ],
-        [
-            "CREATE",
-            "YES"
-        ],
-        [
-            "DROP",
-            "YES"
-        ],
-        [
-            "RELOAD",
-            "YES"
-        ],
-        [
-            "SHUTDOWN",
-            "YES"
-        ],
-        [
-            "PROCESS",
-            "YES"
-        ],
-        [
-            "FILE",
-            "YES"
-        ],
-        [
-            "REFERENCES",
-            "YES"
-        ],
-        [
-            "INDEX",
-            "YES"
-        ],
-        [
-            "ALTER",
-            "YES"
-        ],
-        [
-            "SHOW DATABASES",
-            "YES"
-        ],
-        [
-            "SUPER",
-            "YES"
-        ],
-        [
-            "CREATE TEMPORARY TABLES",
-            "YES"
-        ],
-        [
-            "LOCK TABLES",
-            "YES"
-        ],
-        [
-            "EXECUTE",
-            "YES"
-        ],
-        [
-            "REPLICATION SLAVE",
-            "YES"
-        ],
-        [
-            "REPLICATION CLIENT",
-            "YES"
-        ],
-        [
-            "CREATE VIEW",
-            "YES"
-        ],
-        [
-            "SHOW VIEW",
-            "YES"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES"
-        ],
-        [
-            "CREATE USER",
-            "YES"
-        ],
-        [
-            "EVENT",
-            "YES"
-        ],
-        [
-            "TRIGGER",
-            "YES"
-        ],
-        [
-            "CREATE TABLESPACE",
-            "YES"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
     "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 8,
+    "index": 6,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -250,5 +91,39 @@
             0
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "show databases like 'mysql_innodb_cluster_metadata'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "information_schema",
+            "table_name": "SCHEMATA",
+            "table_label": "SCHEMATA",
+            "column_name": "SCHEMA_NAME",
+            "column_label": "Database (mysql_innodb_cluster_metadata)",
+            "length": 64,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": []
 },
 null]

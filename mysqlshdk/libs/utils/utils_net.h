@@ -99,6 +99,9 @@ class Net {
    */
   static std::string get_hostname();
 
+  static std::vector<std::string> resolve_hostname_ipv4_all(
+      const std::string &name);
+
  protected:
   /**
    * Provides the singleton instance of this class.
@@ -119,6 +122,9 @@ class Net {
    * Implementation of resolve_hostname_ipv4() method.
    */
   virtual std::string resolve_hostname_ipv4_impl(const std::string &name) const;
+
+  virtual std::vector<std::string> resolve_hostname_ipv4_all_impl(
+      const std::string &name) const;
 
   virtual bool is_loopback_impl(const std::string &address) const;
 

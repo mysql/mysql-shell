@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "8",
+    "connection_id": "9",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"
 },
 {
     "type": "response",
@@ -36,21 +36,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 136,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "column_label": "COUNT(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "8.0.11 MySQL Community Server - GPL"
+            0
         ]
     ]
 },
@@ -58,22 +58,45 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET GLOBAL super_read_only = 1"
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            0
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SHOW GLOBAL VARIABLES LIKE 'super_read_only'"
+    "sql": "show databases like 'mysql_innodb_cluster_metadata'"
 },
 {
     "type": "response",
@@ -86,11 +109,83 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
+            "table_name": "",
+            "table_label": "SCHEMATA",
+            "column_name": "Database (mysql_innodb_cluster_metadata)",
+            "column_label": "Database (mysql_innodb_cluster_metadata)",
             "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": []
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SELECT @@super_read_only"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@super_read_only",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            1
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, COUNT(*) FROM performance_schema.threads WHERE type = 'foreground'  AND name in ('thread/mysqlx/worker', 'thread/sql/one_connection') AND processlist_id <> connection_id()GROUP BY acct;"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "acct",
+            "length": 372,
             "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -102,16 +197,16 @@
         },
         {
             "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "COUNT(*)",
+            "length": 21,
             "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -119,19 +214,19 @@
     ],
     "rows": [
         [
-            "super_read_only",
-            "OFF"
+            "root@localhost",
+            1
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 9
+    "index": 13
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 10
+    "index": 14
 },
 null]

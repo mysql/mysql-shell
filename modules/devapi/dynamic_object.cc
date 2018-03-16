@@ -109,7 +109,7 @@ void Dynamic_object::register_dynamic_function(
   DWORD x = 0;
   (void)_BitScanForward(&x, name);
 #else
-  int x = __builtin_ctz(name);
+  size_t x = __builtin_ctz(name);
 #endif
   // We can't register more functions than enabled_paths_ can store.
   assert(static_cast<size_t>(x) < shcore::array_size(enabled_paths_));

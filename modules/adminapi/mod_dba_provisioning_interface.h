@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,12 +41,19 @@ namespace dba {
 #endif
 class ProvisioningInterface {
  public:
-  explicit ProvisioningInterface(shcore::Interpreter_delegate *deleg);
+  explicit ProvisioningInterface(
+      shcore::Interpreter_delegate *deleg,
+      const std::string &provision_path);
   ~ProvisioningInterface();
 
   int check(const mysqlshdk::db::Connection_options &connection_options,
-            const std::string &cnfpath, bool update,
-            shcore::Value::Array_type_ref *errors);
+            const std::string &cnfpath, const std::string &output_cnfpath,
+            bool update, bool remote, shcore::Value::Array_type_ref *errors);
+
+  shcore::Value exec_check_ret_handler(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const std::string &mycnf_path, const std::string &output_mycnf_path,
+      bool update, bool remote);
 
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
@@ -88,11 +95,7 @@ class ProvisioningInterface {
       shcore::Value::Array_type_ref *errors);
 
   void set_verbose(int verbose) { _verbose = verbose; }
-  int get_verbose() { return _verbose; }
-
-  void set_mysqlprovision_path(const std::string &path) {
-    _local_mysqlprovision_path = path;
-  }
+  int get_verbose() const { return _verbose; }
 
   // Added for basic mock support
  protected:
@@ -101,7 +104,8 @@ class ProvisioningInterface {
  private:
   int _verbose;
   shcore::Interpreter_delegate *_delegate;
-  std::string _local_mysqlprovision_path;
+  const std::string _local_mysqlprovision_path;
+
 
   int execute_mysqlprovision(const std::string &cmd,
                              const shcore::Argument_list &args,

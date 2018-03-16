@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326?ssl-mode=required",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "24",
+    "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('23cd4666-26de-11e8-993e-b86b230042b9:1-14,\\n2b09e6ff-26de-11e8-993e-b86b230042b9:1-10')"
 },
 {
     "type": "response",
@@ -36,21 +36,21 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 136,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('23cd4666-26de-11e8-993e-b86b230042b9:1-14,\\n2b09e6ff-26de-11e8-993e-b86b230042b9:1-10')",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "8.0.11 MySQL Community Server - GPL"
+            null
         ]
     ]
 },

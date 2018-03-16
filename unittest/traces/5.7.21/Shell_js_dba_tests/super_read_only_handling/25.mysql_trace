@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3336",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "4",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'group_replication'"
+    "sql": "SELECT @@group_replication_group_name"
 },
 {
     "type": "response",
@@ -28,13 +32,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "PLUGINS",
-            "table_label": "PLUGINS",
-            "column_name": "PLUGIN_STATUS",
-            "column_label": "PLUGIN_STATUS",
-            "length": 10,
-            "fractional": 0,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_group_name",
+            "length": 0,
+            "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
             "charset": "latin1",
@@ -46,7 +50,7 @@
     ],
     "rows": [
         [
-            "ACTIVE"
+            null
         ]
     ]
 },
@@ -54,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@global.group_replication_ssl_mode"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -70,8 +74,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@global.group_replication_ssl_mode",
-            "length": 8,
+            "column_label": "@@server_uuid",
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -84,8 +88,222 @@
     ],
     "rows": [
         [
-            "REQUIRED"
+            "c011d8c8-24fb-11e8-9d55-c14d3c45a56c"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 64,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 1024,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "group_replication_group_seeds",
+            ""
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SHOW MASTER STATUS"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "File",
+            "length": 512,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Position",
+            "length": 20,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": true
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Binlog_Do_DB",
+            "length": 255,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Binlog_Ignore_DB",
+            "length": 255,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Executed_Gtid_Set",
+            "length": 84,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "dhcp-10-159-237-174-bin.000004",
+            230,
+            "",
+            "",
+            "be4a641a-24fb-11e8-994b-9aae9afa157b:1-14,\nc167f888-24fb-11e8-994b-9aae9afa157b:1-18"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT @@global.have_ssl"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@global.have_ssl",
+            "length": 3,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "YES"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 13,
+    "sql": "STOP GROUP_REPLICATION"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 14,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
 },
 null]

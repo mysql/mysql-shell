@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3360",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "59",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT @@server_uuid"
+    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_local_address')"
 },
 {
     "type": "response",
@@ -29,88 +33,28 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@server_uuid",
-            "length": 36,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "5b9747b1-dc1c-11e7-bd62-f83441274313"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 5,
-    "sql": "SELECT @@mysqlx_port"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@mysqlx_port",
-            "length": 21,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Variable_name",
+            "column_label": "Variable_name",
+            "length": 64,
             "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
             "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            33600
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "SELECT @@group_replication_local_address"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
+            "binary": false
+        },
         {
             "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@group_replication_local_address",
-            "length": 15,
-            "fractional": 31,
+            "table_name": "global_variables",
+            "table_label": "global_variables",
+            "column_name": "Value",
+            "column_label": "Value",
+            "length": 1024,
+            "fractional": 0,
             "type": "String",
             "collation": "latin1_swedish_ci",
             "charset": "latin1",
@@ -122,8 +66,19 @@
     ],
     "rows": [
         [
-            "localhost:13360"
+            "group_replication_local_address",
+            "localhost:33161"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 5
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 6
 },
 null]

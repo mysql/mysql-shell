@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Parallel trace rebuilder
+
+workers=$1
+
+mkfifo tracequeue
+
+# make list of all jobs
+tracelist=
+
+# launch workers
+
+
+# feed jobs
+for trace in $tracelist; do
+  echo $trace
+  echo $trace > tracequeue
+done
+
+echo "$finished"

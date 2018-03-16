@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "missingprivileges:@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "23",
+    "connection_id": "33",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT DISTINCT grantee FROM information_schema.user_privileges WHERE grantee like '\\'missingprivileges\\'@%'"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -32,13 +32,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "information_schema",
-            "table_name": "USER_PRIVILEGES",
-            "table_label": "user_privileges",
-            "column_name": "GRANTEE",
-            "column_label": "grantee",
-            "length": 324,
-            "fractional": 0,
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 104,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "'missingprivileges'@'localhost'"
+            "8.0.11 Source distribution"
         ]
     ]
 },
@@ -58,48 +58,55 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT @@super_read_only"
+    "sql": "SET sql_log_bin = 0"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
     "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
+    "affected_rows": 0,
     "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@super_read_only",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0
-        ]
-    ]
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "DROP user 'no_privileges'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SET sql_log_bin = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 7
+    "index": 11
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 8
+    "index": 12
 },
 null]

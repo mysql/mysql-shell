@@ -21,11 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <mysqld_error.h>
 #include <algorithm>
 #include <memory>
 #include <random>
 #include <string>
-#include <mysqld_error.h>
 
 #ifndef WIN32
 #include <sys/un.h>
@@ -36,27 +36,32 @@
 #include <utility>
 #include <vector>
 
-#include "utils/utils_sqlstring.h"
-#include "modules/mysqlxtest_utils.h"
+#include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
+#include "modules/mod_utils.h"
+#include "modules/mysqlxtest_utils.h"
 #include "scripting/object_factory.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
-#include "modules/mod_utils.h"
+#include "utils/utils_sqlstring.h"
 
-#include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
+
+#include "modules/adminapi/dba/check_instance.h"
+#include "modules/adminapi/dba/configure_instance.h"
+#include "modules/adminapi/dba/configure_local_instance.h"
 
 /*
   Sessions used by AdminAPI
@@ -151,19 +156,17 @@ using namespace shcore;
 #define PASSWORD_LENGHT 16
 using mysqlshdk::db::uri::formats::only_transport;
 std::set<std::string> Dba::_deploy_instance_opts = {
-    "portx",      "sandboxDir",    "password",
-    "dbPassword", "allowRootFrom", "ignoreSslError",
-    "mysqldOptions"};
-std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password",
-                                                  "dbPassword"};
+    "portx",         "sandboxDir",     "password",
+    "allowRootFrom", "ignoreSslError", "mysqldOptions"};
+std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 
 std::set<std::string> Dba::_create_cluster_opts = {
-    "multiMaster", "adoptFromGR", "force", "memberSslMode", "ipWhitelist",
-    "clearReadOnly", "groupName", "localAddress", "groupSeeds"};
+    "multiMaster",   "adoptFromGR",  "force",
+    "memberSslMode", "ipWhitelist",  "clearReadOnly",
+    "groupName",     "localAddress", "groupSeeds"};
 std::set<std::string> Dba::_reboot_cluster_opts = {
-    "user",       "dbUser",          "password",
-    "dbPassword", "removeInstances", "rejoinInstances",
+    "user",         "dbUser", "password", "removeInstances", "rejoinInstances",
     "clearReadOnly"};
 
 // Documentation of the DBA Class
@@ -191,15 +194,14 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
 Dba::Dba(shcore::IShell_core *owner,
-    std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode)
+         std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode)
     : _shell_core(owner),
-      m_console_handler(console_handler),
+      m_console(console_handler),
       m_wizards_mode(wizards_mode) {
   init();
 }
 
-Dba::~Dba() {
-}
+Dba::~Dba() {}
 
 bool Dba::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
@@ -238,12 +240,18 @@ void Dba::init() {
   add_method("configureLocalInstance",
              std::bind(&Dba::configure_local_instance, this, _1), "data",
              shcore::Map);
+  add_method("configureInstance", std::bind(&Dba::configure_instance, this, _1),
+             "data", shcore::Map);
   add_varargs_method(
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
 
+  std::string local_mp_path = mysqlsh::Base_shell::options().gadgets_path;
+
+  if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
+
   _provisioning_interface.reset(
-      new ProvisioningInterface(_shell_core->get_delegate()));
+      new ProvisioningInterface(_shell_core->get_delegate(), local_mp_path));
 }
 
 void Dba::set_member(const std::string &prop, Value value) {
@@ -327,7 +335,6 @@ void Dba::connect_to_target_group(
     std::shared_ptr<MetadataStorage> *out_metadata,
     std::shared_ptr<mysqlshdk::db::ISession> *out_group_session,
     bool connect_to_primary) const {
-
   bool owns_target_member_session = false;
   if (!target_member_session) {
     target_member_session = connect_to_target_member();
@@ -368,15 +375,14 @@ void Dba::connect_to_target_group(
             target_member_session->get_connection_options().get_ssl_options());
 
         log_info("Opening session to primary of InnoDB cluster at %s...",
-                coptions.as_uri().c_str());
+                 coptions.as_uri().c_str());
 
         std::shared_ptr<mysqlshdk::db::mysql::Session> session;
         session = mysqlshdk::db::mysql::Session::create();
         session->connect(coptions);
         log_info(
             "Metadata and group sessions are now using the primary member");
-        if (owns_target_member_session)
-          target_member_session->close();
+        if (owns_target_member_session) target_member_session->close();
         target_member_session = session;
         group_session = session;
       } catch (std::exception &e) {
@@ -403,7 +409,6 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
   return {};
 }
 
-
 // Documentation of the getCluster function
 REGISTER_HELP(DBA_GETCLUSTER_BRIEF,
               "Retrieves a cluster from the Metadata Store.");
@@ -414,18 +419,21 @@ REGISTER_HELP(DBA_GETCLUSTER_PARAM1,
               "@param options Optional dictionary with additional options.");
 
 REGISTER_HELP(DBA_GETCLUSTER_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS1,
-              "@throws MetadataError if the Metadata update operation failed.");
+              "MetadataError in the following scenarios:");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS1, "@li If the Metadata is inaccessible.");
 REGISTER_HELP(DBA_GETCLUSTER_THROWS2,
-              "@throws ArgumentError if the Cluster name is empty.");
+              "@li If the Metadata update operation failed.");
+
 REGISTER_HELP(DBA_GETCLUSTER_THROWS3,
-              "@throws ArgumentError if the Cluster name is invalid.");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS4,
-              "@throws ArgumentError if the Cluster does not exist.");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS5,
-              "@throws RuntimeError if the current connection cannot be used "
-              "for Group Replication.");
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS4, "@li If the Cluster name is empty.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS5, "@li If the Cluster name is invalid.");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS6, "@li If the Cluster does not exist.");
+
+REGISTER_HELP(DBA_GETCLUSTER_THROWS7,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(DBA_GETCLUSTER_THROWS8, "@li If the current connection cannot be "
+              "used for Group Replication.");
 
 REGISTER_HELP(DBA_GETCLUSTER_RETURNS,
               "@returns The cluster object identified "
@@ -454,6 +462,9 @@ REGISTER_HELP(DBA_GETCLUSTER_DETAIL2,
  * $(DBA_GETCLUSTER_THROWS3)
  * $(DBA_GETCLUSTER_THROWS4)
  * $(DBA_GETCLUSTER_THROWS5)
+ * $(DBA_GETCLUSTER_THROWS6)
+ * $(DBA_GETCLUSTER_THROWS7)
+ * $(DBA_GETCLUSTER_THROWS8)
  *
  * $(DBA_GETCLUSTER_RETURNS)
  *
@@ -477,13 +488,14 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
   std::string cluster_name;
 
   try {
+    check_function_preconditions("Dba.getCluster", get_active_shell_session());
+
     if (args.size() > 1) {
       shcore::Argument_map options(*args[1].as_map());
 
       options.ensure_keys({}, {"connectToPrimary"}, "the options");
 
-      if (options.has_key("connectToPrimary"))
-        fallback_to_anything = false;
+      if (options.has_key("connectToPrimary")) fallback_to_anything = false;
 
       if (options.has_key("connectToPrimary") &&
           !options.bool_at("connectToPrimary"))
@@ -521,11 +533,9 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       }
     }
 
-    check_function_preconditions("Dba.getCluster", group_session);
-
     return shcore::Value(
-        get_cluster(default_cluster ? nullptr : cluster_name.c_str(),
-                    metadata, group_session));
+        get_cluster(default_cluster ? nullptr : cluster_name.c_str(), metadata,
+                    group_session));
   } catch (mysqlshdk::innodbcluster::cluster_error &e) {
     if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum)
       throw shcore::Exception::runtime_error(
@@ -542,13 +552,11 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
   CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(get_function_name("getCluster"));
 }
 
-
 std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
     std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
-
   std::shared_ptr<mysqlsh::dba::Cluster> cluster(
-      new Cluster("", group_session, metadata, m_console_handler));
+      new Cluster("", group_session, metadata, m_console));
 
   if (!name) {
     // Reloads the cluster (to avoid losing _default_cluster in case of error)
@@ -559,8 +567,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   // Verify if the current session instance group_replication_group_name
   // value differs from the one registered in the Metadata
   if (!validate_replicaset_group_name(
-          group_session,
-          cluster->get_default_replicaset()->get_group_name())) {
+          group_session, cluster->get_default_replicaset()->get_group_name())) {
     std::string nice_error =
         "Unable to get a InnoDB cluster handle. "
         "The instance '" +
@@ -583,6 +590,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   return cluster;
 }
 
+
 REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM,
               "@param name The name of the cluster object to be created.");
@@ -592,38 +600,45 @@ REGISTER_HELP(DBA_CREATECLUSTER_PARAM1,
               "of this function.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS1,
-              "@throws MetadataError if the Metadata update operation failed.");
+              "@li If the Metadata is inaccessible.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS2,
-              "@throws ArgumentError if the Cluster name is empty.");
+              "@li If the Metadata update operation failed.");
+
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS3,
-              "@throws ArgumentError if the Cluster name is not valid.");
-REGISTER_HELP(
-    DBA_CREATECLUSTER_THROWS4,
-    "@throws ArgumentError if the options contain an invalid attribute.");
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS4, "@li If the Cluster name is empty.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS5,
-              "@throws ArgumentError if adoptFromGR "
+              "@li If the Cluster name is not valid.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS6,
+              "@li If the options contain an invalid attribute.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS7,
+              "@li If adoptFromGR "
               "is true and the memberSslMode option "
               "is used.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS6,
-              "@throws ArgumentError if the value "
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS8,
+              "@li If the value "
               "for the memberSslMode option is not "
               "one of the allowed.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS7,
-              "@throws ArgumentError if adoptFromGR "
-               "is true and the multiMaster option "
-               "is used.");
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS8,
-              "@throws ArgumentError if the value for the ipWhitelist, "\
-              "groupName, localAddress, or groupSeeds options is empty.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS9,
-              "@throws RuntimeError if the value for the groupName, "\
-              "localAddress, or groupSeeds options is not valid for Group "\
-              "Replication.");
+              "@li If adoptFromGR "
+              "is true and the multiMaster option "
+              "is used.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS10,
-              "@throws RuntimeError if the current connection cannot be used "
+              "@li If the value for the ipWhitelist, "
+              "groupName, localAddress, or groupSeeds options is empty.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS11,
+              "RuntimeError in the following scenarios:");
+
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS12,
+              "@li If the value for the groupName, "
+              "localAddress, or groupSeeds options is not valid for Group "
+              "Replication.");
+REGISTER_HELP(DBA_CREATECLUSTER_THROWS13,
+              "@li If the current connection cannot be used "
               "for Group Replication.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_RETURNS,
@@ -662,16 +677,16 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7,
               "used to confirm that super_read_only "
               "must be disabled.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8,
-"@li groupName: string value with the Group Replication group "\
+              "@li groupName: string value with the Group Replication group "
               "name UUID to be used instead of the automatically generated "
-"one.");
+              "one.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL9,
-"@li localAddress: string value with the Group Replication "\
-              "local address to be used instead of the automatically "\
+              "@li localAddress: string value with the Group Replication "
+              "local address to be used instead of the automatically "
               "generated one.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL10,
-"@li groupSeeds: string value with a comma-separated list of "\
-              "the Group Replication peer addresses to be used instead of the "\
+              "@li groupSeeds: string value with a comma-separated list of "
+              "the Group Replication peer addresses to be used instead of the "
               "automatically generated one.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
@@ -710,35 +725,34 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL20,
               "from the instance private network to be automatically set for "
               "the whitelist.");
 
-
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL21,
-              "The groupName, localAddress, and groupSeeds are advanced "\
-              "options and their usage is discouraged since incorrect values "\
+              "The groupName, localAddress, and groupSeeds are advanced "
+              "options and their usage is discouraged since incorrect values "
               "can lead to Group Replication errors.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL22,
-              "The value for groupName is used to set the Group Replication "\
+              "The value for groupName is used to set the Group Replication "
               "system variable 'group_replication_group_name'.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
-              "The value for localAddress is used to set the Group "\
-              "Replication system variable 'group_replication_local_address'. "\
-              "The localAddress option accepts values in the format: "\
-              "'host:port' or 'host:' or ':port'. If the specified "\
-              "value does not include a colon (:) and it is numeric, then it "\
-              "is assumed to be the port, otherwise it is considered to be "\
-              "the host. When the host is not specified, the default value is "\
-              "the host of the current active connection (session). When the "\
-              "port is not specified, the default value is the port of the "\
-              "current active connection (session) * 10 + 1. In case the "\
-              "automatically determined default port value is invalid "\
-              "(> 65535) then a random value in the range [1000, 65535] is "\
+              "The value for localAddress is used to set the Group "
+              "Replication system variable 'group_replication_local_address'. "
+              "The localAddress option accepts values in the format: "
+              "'host:port' or 'host:' or ':port'. If the specified "
+              "value does not include a colon (:) and it is numeric, then it "
+              "is assumed to be the port, otherwise it is considered to be "
+              "the host. When the host is not specified, the default value is "
+              "the host of the current active connection (session). When the "
+              "port is not specified, the default value is the port of the "
+              "current active connection (session) * 10 + 1. In case the "
+              "automatically determined default port value is invalid "
+              "(> 65535) then a random value in the range [1000, 65535] is "
               "used.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
-              "The value for groupSeeds is used to set the Group Replication "\
-              "system variable 'group_replication_group_seeds'. The "\
-              "groupSeeds option accepts a comma-separated list of addresses "\
+              "The value for groupSeeds is used to set the Group Replication "
+              "system variable 'group_replication_group_seeds'. The "
+              "groupSeeds option accepts a comma-separated list of addresses "
               "in the format: 'host1:port1,...,hostN:portN'.");
 
 /**
@@ -758,6 +772,9 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
  * $(DBA_CREATECLUSTER_THROWS8)
  * $(DBA_CREATECLUSTER_THROWS9)
  * $(DBA_CREATECLUSTER_THROWS10)
+ * $(DBA_CREATECLUSTER_THROWS11)
+ * $(DBA_CREATECLUSTER_THROWS12)
+ * $(DBA_CREATECLUSTER_THROWS13)
  *
  * $(DBA_CREATECLUSTER_RETURNS)
  *
@@ -839,7 +856,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     } else {
       throw;
     }
-  } catch (const mysqlshdk::db::Error& dberr) {
+  } catch (const mysqlshdk::db::Error &dberr) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         dberr.what(), dberr.code(), dberr.sqlstate());
   }
@@ -882,7 +899,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Validate group name option
       validate_group_name_option(options);
 
-      // Validate local address option
+      // Validate local address option (group_replication_local_address)
       validate_local_address_option(options);
 
       // Validate group seeds option
@@ -891,8 +908,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       if (opt_map.has_key("multiMaster"))
         multi_master = opt_map.bool_at("multiMaster");
 
-      if (opt_map.has_key("force"))
-        force = opt_map.bool_at("force");
+      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
 
       if (opt_map.has_key("adoptFromGR"))
         adopt_from_gr = opt_map.bool_at("adoptFromGR");
@@ -924,6 +940,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
         group_seeds = opt_map.string_at("groupSeeds");
     }
 
+    // TODO(alfredo) - this check might be redundant with the ones done
+    // by ensure_instance_configuration_valid()
     // Validate if the connection host is resolved to a supported IP address.
     // NOTE: Not needed when adopting an existing cluster.
     if (!adopt_from_gr) {
@@ -937,11 +955,28 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true");
 
+    mysqlshdk::mysql::Instance target_instance(group_session);
+    target_instance.cache_global_sysvars();
+
+    if (!adopt_from_gr) {
+      // Check instance configuration and state, like dba.checkInstance
+      // but skip if we're adopting, since in that case the target is obviously
+      // already configured
+      ensure_instance_configuration_valid(
+          &target_instance, get_provisioning_interface(), m_console);
+    }
+
+    m_console->println(
+        "Creating InnoDB cluster '" + cluster_name + "' on '" +
+        group_session->uri(
+            mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+        "'...");
+
     // Check if super_read_only is turned off and disable it if required
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(group_session, clear_read_only);
+    validate_super_read_only(group_session, clear_read_only, m_console);
 
     // Check replication filters before creating the Metadata.
     validate_replication_filters(group_session);
@@ -957,7 +992,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     MetadataStorage::Transaction tx(metadata);
 
     std::shared_ptr<Cluster> cluster(
-        new Cluster(cluster_name, group_session, metadata, m_console_handler));
+        new Cluster(cluster_name, group_session, metadata, m_console));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -988,20 +1023,17 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     // Only set SSL option if available from createCluster options (not empty).
     // Do not set default values to avoid validation issues for addInstance.
-    if (!ssl_mode.empty())
-      (*options)["memberSslMode"] = Value(ssl_mode);
+    if (!ssl_mode.empty()) (*options)["memberSslMode"] = Value(ssl_mode);
 
     // Set IP whitelist
-    if (!ip_whitelist.empty())
-      (*options)["ipWhitelist"] = Value(ip_whitelist);
+    if (!ip_whitelist.empty()) (*options)["ipWhitelist"] = Value(ip_whitelist);
 
     // Set local address
     if (!local_address.empty())
       (*options)["localAddress"] = Value(local_address);
 
     // Set group seeds
-    if (!group_seeds.empty())
-      (*options)["groupSeeds"] = Value(group_seeds);
+    if (!group_seeds.empty()) (*options)["groupSeeds"] = Value(group_seeds);
 
     new_args.push_back(shcore::Value(options));
 
@@ -1015,14 +1047,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       log_info(
           "The MySQL InnoDB cluster is going to be setup in advanced "
           "Multi-Master Mode. Consult its requirements and limitations in "
-          "https://dev.mysql.com/doc/refman/en/group-replication-limitations.html");
+          "https://dev.mysql.com/doc/refman/en/"
+          "group-replication-limitations.html");
     }
     cluster->add_seed_instance(instance_def, new_args, multi_master,
-                               adopt_from_gr, replication_user,
-                               replication_pwd, group_name);
+                               adopt_from_gr, replication_user, replication_pwd,
+                               group_name);
 
-    if (adopt_from_gr)
-      cluster->get_default_replicaset()->adopt_from_gr();
+    if (adopt_from_gr) cluster->get_default_replicaset()->adopt_from_gr();
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
@@ -1033,8 +1065,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     try {
       if (!replication_user.empty()) {
         log_debug("Removing replication user '%s'", replication_user.c_str());
-        group_session->query("DROP USER IF EXISTS /*(*/" +
-                             replication_user + "/*)*/");
+        group_session->query("DROP USER IF EXISTS /*(*/" + replication_user +
+                             "/*)*/");
       }
 
       throw;
@@ -1051,11 +1083,20 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM,
               "@param options Dictionary "
               "containing an option to confirm "
               "the drop operation.");
+
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS,
-              "@throws MetadataError if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS1,
-              "@throws RuntimeError if the current connection cannot be used "
+              "@li If the Metadata is inaccessible.");
+
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS2,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS3,
+              "@li If the current connection cannot be used "
               "for Group Replication.");
+
+
+
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_RETURNS, "@returns nothing.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL,
               "The options dictionary may contain the following options:");
@@ -1069,21 +1110,23 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL2,
               "disabled");
 
 /**
-* $(DBA_DROPMETADATASCHEMA_BRIEF)
-*
-* $(DBA_DROPMETADATASCHEMA_PARAM)
-*
-* $(DBA_DROPMETADATASCHEMA_THROWS)
-* $(DBA_DROPMETADATASCHEMA_THROWS1)
-*
-* $(DBA_DROPMETADATASCHEMA_RETURNS)
-*
-* $(DBA_DROPMETADATASCHEMA_PARAM)
-*
-* $(DBA_DROPMETADATASCHEMA_DETAIL)
-* $(DBA_DROPMETADATASCHEMA_DETAIL1)
-* $(DBA_DROPMETADATASCHEMA_DETAIL2)
-*/
+ * $(DBA_DROPMETADATASCHEMA_BRIEF)
+ *
+ * $(DBA_DROPMETADATASCHEMA_PARAM)
+ *
+ * $(DBA_DROPMETADATASCHEMA_THROWS)
+ * $(DBA_DROPMETADATASCHEMA_THROWS1)
+ * $(DBA_DROPMETADATASCHEMA_THROWS2)
+ * $(DBA_DROPMETADATASCHEMA_THROWS3)
+ *
+ * $(DBA_DROPMETADATASCHEMA_RETURNS)
+ *
+ * $(DBA_DROPMETADATASCHEMA_PARAM)
+ *
+ * $(DBA_DROPMETADATASCHEMA_DETAIL)
+ * $(DBA_DROPMETADATASCHEMA_DETAIL1)
+ * $(DBA_DROPMETADATASCHEMA_DETAIL2)
+ */
 #if DOXYGEN_JS
 Undefined Dba::dropMetadataSchema(Dictionary options) {}
 #elif DOXYGEN_PY
@@ -1113,18 +1156,17 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
 
     opt_map.ensure_keys({}, {"force", "clearReadOnly"}, "the options");
 
-    if (opt_map.has_key("force"))
-      force = opt_map.bool_at("force");
+    if (opt_map.has_key("force")) force = opt_map.bool_at("force");
 
     if (opt_map.has_key("clearReadOnly"))
-        clear_read_only = opt_map.bool_at("clearReadOnly");
+      clear_read_only = opt_map.bool_at("clearReadOnly");
 
     if (force) {
       // Check if super_read_only is turned off and disable it if required
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(group_session, clear_read_only);
+      validate_super_read_only(group_session, clear_read_only, m_console);
 
       metadata->drop_metadata_schema();
     } else {
@@ -1139,39 +1181,48 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_BRIEF,
-              "Validates an instance for cluster usage.");
+              "Validates an instance for MySQL InnoDB Cluster usage.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM,
               "@param instance An instance definition.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM1,
               "@param options Optional data for the operation.");
+
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS,
-              "@throws ArgumentError if the instance parameter is empty.");
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS1,
-              "@throws ArgumentError if the instance definition is invalid.");
+              "@li If the instance parameter is empty.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS2,
-              "@throws ArgumentError if the instance definition is a "
-              "connection dictionary but empty.");
+              "@li If the instance definition is invalid.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS3,
-              "@throws ArgumentError if the instance definition cannot be used "
-              "for Group Replication.");
+              "@li If the instance definition is a "
+              "connection dictionary but empty.");
+
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS4,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "RuntimeError in the following scenarios:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS5,
-              "@throws RuntimeError if the instance is offline.");
+              "@li If the instance accounts are invalid.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS6,
-              "@throws RuntimeError if the instance is already part of a "
-              "Replication Group.");
+              "@li If the instance is offline.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS7,
-              "@throws RuntimeError if the instance is already part of an "
+              "@li If the instance is already part of a "
+              "Replication Group.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS8,
+              "@li If the instance is already part of an "
               "InnoDB Cluster.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_THROWS9,
+              "@li If the given the instance cannot be used "
+              "for Group Replication.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_RETURNS,
-              "@returns A JSON object with the status.");
+              "@returns A descriptive text of the operation result.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL,
               "This function reviews the instance configuration to identify if "
-              "it is valid "
-              "for usage in group replication.");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+              "it is valid for usage with group replication. Use this to check "
+              "for possible configuration issues on MySQL instances before "
+              "creating a cluster with them or adding them to an existing "
+              "cluster.");
+REGISTER_HELP(
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL1,
+    "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -1179,57 +1230,56 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2,
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3,
               "The options dictionary may contain the following options:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4,
-              "@li mycnfPath: The path of the MySQL configuration file for the "
-              "instance.");
+              "@li mycnfPath: Optional path to the MySQL configuration file "
+              "for the instance. Alias for verifyMyCnf");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5,
-              "@li password: The password to get connected to the instance.");
+            "@li verifyMyCnf: Optional path to the MySQL configuration file "
+            "for the instance. If this option is given, the configuration "
+            "file will be verified for the expected option values, in "
+            "addition to the global MySQL system variables.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
+              "@li password: The password to get connected to the instance.");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
+              "@li interactive: boolean value used to disable the wizards in "
+              "the command execution, i.e. prompts are not provided to the "
+              "user and confirmation prompts are not shown.");
+
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL7,
-              "The returned JSON object contains the following attributes:");
-REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL8,
-    "@li status: the final status of the command, either \"ok\" or \"error\".");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL9,
-              "@li config_errors: a list of dictionaries containing the failed "
-              "requirements");
+              "The returned descriptive text of the operation result indicates "
+              "whether the instance is valid for InnoDB Cluster usage or not. "
+              "If not, a table containing the following information is "
+              "presented:");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL10,
-              "@li errors: a list of errors of the operation");
+              "@li Variable: the invalid configuration variable.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL11,
-              "@li restart_required: a boolean value indicating whether a "
-              "restart is required");
-
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
-              "Each dictionary of the list of config_errors includes the "
-              "following attributes:");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
-              "@li option: The configuration option for which the requirement "
-              "wasn't met");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
-              "@li current: The current value of the configuration option");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
-              "@li required: The configuration option required value");
+              "@li Current Value: the current value for the invalid "
+              "configuration variable.");
 REGISTER_HELP(
-    DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
-    "@li action: The action to be taken in order to meet the requirement");
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL12,
+    "@li Required Value: the required value for the configuration variable.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL13,
+              "@li Note: the action to be taken.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL14,
+              "The note can be one of the following:");
 
+REGISTER_HELP(
+    DBA_CHECKINSTANCECONFIGURATION_DETAIL15,
+    "@li Update the config file and update or restart the server variable.");
+REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL16,
+              "@li Update the config file and restart the server.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL17,
-              "The action can be one of the following:");
+              "@li Update the config file.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL18,
-              "@li server_update+config_update: Both the server and the "
-              "configuration need to be updated");
+              "@li Update the server variable.");
+
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
-              "@li config_update+restart: The configuration needs to be "
-              "updated and the server restarted");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL20,
-              "@li config_update: The configuration needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL21,
-              "@li server_update: The server needs to be updated");
-REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
-              "@li restart: The server needs to be restarted");
+              "@li Restart the server.");
 
 /**
 * $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
@@ -1245,6 +1295,8 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
 * $(DBA_CHECKINSTANCECONFIGURATION_THROWS5)
 * $(DBA_CHECKINSTANCECONFIGURATION_THROWS6)
 * $(DBA_CHECKINSTANCECONFIGURATION_THROWS7)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS8)
+* $(DBA_CHECKINSTANCECONFIGURATION_THROWS9)
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_RETURNS)
 *
@@ -1252,7 +1304,8 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
 *
-* Detailed description of the connection data format is available at \ref connection_data.
+* Detailed description of the connection data format is available at \ref
+* connection_data.
 *
 * Only TCP/IP connections are allowed for this function.
 *
@@ -1261,52 +1314,93 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL22,
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
-*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
 *
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
+*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL10)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL11)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL12)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL13)
-*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL14)
+*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL15)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL16)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL17)
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL18)
-*
 * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL20)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL21)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL22)
 */
 #if DOXYGEN_JS
-Undefined Dba::checkInstanceConfiguration(InstanceDef instance,
+JSON Dba::checkInstanceConfiguration(InstanceDef instance,
                                           Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::check_instance_configuration(InstanceDef instance, dict options) {}
+JSON Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::check_instance_configuration(
     const shcore::Argument_list &args) {
-  args.ensure_count(1, 2,
+  args.ensure_count(0, 2,
                     get_function_name("checkInstanceConfiguration").c_str());
-
   shcore::Value ret_val;
+  mysqlshdk::db::Connection_options instance_def;
+  std::shared_ptr<mysqlshdk::db::ISession> instance_session;
+  bool interactive = m_wizards_mode;
+  std::string mycnf_path, password;
 
   try {
-    auto instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
+    if (args.size() == 2) {
+      // Retrieves optional options if exists or leaves empty so the default is
+      // set afterwards
+      Unpack_options(args.map_at(1))
+          .optional("mycnfPath", &mycnf_path)
+          .optional("verifyMyCnf", &mycnf_path)
+          .optional_ci("password", &password)
+          .optional("interactive", &interactive)
+          .end();
+    }
 
-    // Resolves user and validates password
-    mysqlsh::resolve_connection_credentials(&instance_def);
+    // If there are no args, the instanceDef is empty (no data)
+    if (args.size() != 0 && args[0].type != shcore::Null) {
+      instance_def = mysqlsh::get_connection_options(
+          args, mysqlsh::PasswordFormat::OPTIONS);
+    }
 
-    shcore::Value::Map_type_ref options;
-    if (args.size() == 2)
-      options = args.map_at(1);
+    // If interactive is enabled, resolves user and validates password
+    if (interactive) {
+      if (instance_def.has_data())
+        mysqlsh::resolve_connection_credentials(&instance_def, m_console);
+    }
 
-    ret_val = shcore::Value(
-        _check_instance_configuration(instance_def, options, false));
+    // Establish the session to the target instance
+    if (instance_def.has_data()) {
+      validate_connection_options(instance_def);
+
+      instance_session = mysqlshdk::db::mysql::Session::create();
+      instance_session->connect(instance_def);
+    } else {
+      instance_session = connect_to_target_member();
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("checkInstanceConfiguration"));
+
+  check_preconditions(instance_session, "checkInstanceConfiguration");
+
+  try {
+    // Create the Instance object with the established session
+    mysqlshdk::mysql::Instance target_instance(instance_session);
+
+    target_instance.cache_global_sysvars();
+
+    // Call the API
+    std::unique_ptr<Check_instance> op_check_instance(new Check_instance(
+        &target_instance, mycnf_path, _provisioning_interface, m_console));
+
+    op_check_instance->prepare();
+    ret_val = shcore::Value(op_check_instance->execute());
+    op_check_instance->finish();
+
+    // Close the session
+    target_instance.close_session();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("checkInstanceConfiguration"));
@@ -1347,8 +1441,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
 
       if (opt_map.has_key("password"))
         password = opt_map.string_at("password");
-      else if (opt_map.has_key("dbPassword"))
-        password = opt_map.string_at("dbPassword");
       else
         throw shcore::Exception::argument_error(
             "Missing root password for the deployed instance");
@@ -1356,8 +1448,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
       opt_map.ensure_keys({}, _stop_instance_opts, "the instance data");
       if (opt_map.has_key("password"))
         password = opt_map.string_at("password");
-      else if (opt_map.has_key("dbPassword"))
-        password = opt_map.string_at("dbPassword");
       else
         throw shcore::Exception::argument_error(
             "Missing root password for the instance");
@@ -1430,16 +1520,19 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_PARAM1,
               "@param options Optional dictionary with options affecting the "
               "new deployed instance.");
 
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_THROWS,
-    "@throws ArgumentError if the options contain an invalid attribute.");
-REGISTER_HELP(
-    DBA_DEPLOYSANDBOXINSTANCE_THROWS1,
-    "@throws ArgumentError if the root password is missing on the options.");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS1,
+              "@li If the options contain an invalid attribute.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS2,
-              "@throws ArgumentError if the port value is < 1024 or > 65535.");
+              "@li If the root password is missing on the options.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS3,
-              "@throws RuntimeError if SSL "
+              "@li AIf the port value is < 1024 or > 65535.");
+
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS4,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS5,
+              "@li If SSL "
               "support can be provided and "
               "ignoreSslError: false.");
 
@@ -1472,7 +1565,7 @@ REGISTER_HELP(
     "If the portx option is not specified, it will be automatically calculated "
     "as 10 times the value of the provided MySQL port.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL7,
-              "The password or dbPassword options specify the MySQL root "
+              "The password option specifies the MySQL root "
               "password on the new instance.");
 REGISTER_HELP(
     DBA_DEPLOYSANDBOXINSTANCE_DETAIL8,
@@ -1499,6 +1592,8 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_DETAIL10,
  * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS1)
  * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS2)
  * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS3)
+ * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS4)
+ * $(DBA_DEPLOYSANDBOXINSTANCE_THROWS5)
  *
  * $(DBA_DEPLOYSANDBOXINSTANCE_RETURNS)
  *
@@ -1559,8 +1654,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
           session->execute("SET sql_log_bin = 0");
           {
             std::string pwd;
-            if (instance_def.has_password())
-              pwd = instance_def.get_password();
+            if (instance_def.has_password()) pwd = instance_def.get_password();
 
             sqlstring create_user("CREATE USER root@? IDENTIFIED BY ?", 0);
             create_user << remote_root << pwd;
@@ -1597,11 +1691,12 @@ REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM1,
               "@param options Optional dictionary with options that modify the "
               "way this function is executed.");
 
-REGISTER_HELP(
-    DBA_DELETESANDBOXINSTANCE_THROWS,
-    "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS1,
-              "@throws ArgumentError if the port value is < 1024 or > 65535.");
+              "@li If the options contain an invalid attribute.");
+REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_THROWS2,
+              "@li If the port value is < 1024 or > 65535.");
 
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_RETURNS, "@returns nothing.");
 
@@ -1628,6 +1723,7 @@ REGISTER_HELP(
  *
  * $(DBA_DELETESANDBOXINSTANCE_THROWS)
  * $(DBA_DELETESANDBOXINSTANCE_THROWS1)
+ * $(DBA_DELETESANDBOXINSTANCE_THROWS2)
  *
  * $(DBA_DELETESANDBOXINSTANCE_RETURNS)
  *
@@ -1666,11 +1762,12 @@ REGISTER_HELP(
     DBA_KILLSANDBOXINSTANCE_PARAM1,
     "@param options Optional dictionary with options affecting the result.");
 
-REGISTER_HELP(
-    DBA_KILLSANDBOXINSTANCE_THROWS,
-    "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS1,
-              "@throws ArgumentError if the port value is < 1024 or > 65535.");
+              "@li If the options contain an invalid attribute.");
+REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_THROWS2,
+              "@li If the port value is < 1024 or > 65535.");
 
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_RETURNS, "@returns nothing.");
 
@@ -1698,6 +1795,7 @@ REGISTER_HELP(
  *
  * $(DBA_KILLSANDBOXINSTANCE_THROWS)
  * $(DBA_KILLSANDBOXINSTANCE_THROWS1)
+ * $(DBA_KILLSANDBOXINSTANCE_THROWS2)
  *
  * $(DBA_KILLSANDBOXINSTANCE_RETURNS)
  *
@@ -1736,14 +1834,14 @@ REGISTER_HELP(
     DBA_STOPSANDBOXINSTANCE_PARAM1,
     "@param options Optional dictionary with options affecting the result.");
 
-REGISTER_HELP(
-    DBA_STOPSANDBOXINSTANCE_THROWS,
-    "@throws ArgumentError if the options contain an invalid attribute.");
-REGISTER_HELP(
-    DBA_STOPSANDBOXINSTANCE_THROWS1,
-    "@throws ArgumentError if the root password is missing on the options.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS1,
+              "@li If the options contain an invalid attribute.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS2,
-              "@throws ArgumentError if the port value is < 1024 or > 65535.");
+              "@li If the root password is missing on the options.");
+REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_THROWS3,
+              "@li If the port value is < 1024 or > 65535.");
 
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_RETURNS, "@returns nothing.");
 
@@ -1775,6 +1873,7 @@ REGISTER_HELP(
  * $(DBA_STOPSANDBOXINSTANCE_THROWS)
  * $(DBA_STOPSANDBOXINSTANCE_THROWS1)
  * $(DBA_STOPSANDBOXINSTANCE_THROWS2)
+ * $(DBA_STOPSANDBOXINSTANCE_THROWS3)
  *
  * $(DBA_STOPSANDBOXINSTANCE_RETURNS)
  *
@@ -1816,11 +1915,12 @@ REGISTER_HELP(
     DBA_STARTSANDBOXINSTANCE_PARAM1,
     "@param options Optional dictionary with options affecting the result.");
 
-REGISTER_HELP(
-    DBA_STARTSANDBOXINSTANCE_THROWS,
-    "@throws ArgumentError if the options contain an invalid attribute.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS1,
-              "@throws ArgumentError if the port value is < 1024 or > 65535.");
+              "@li If the options contain an invalid attribute.");
+REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_THROWS2,
+              "@li If the port value is < 1024 or > 65535.");
 
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_RETURNS, "@returns nothing.");
 
@@ -1848,6 +1948,7 @@ REGISTER_HELP(
  *
  * $(DBA_STARTSANDBOXINSTANCE_THROWS)
  * $(DBA_STARTSANDBOXINSTANCE_THROWS1)
+ * $(DBA_STARTSANDBOXINSTANCE_THROWS2)
  *
  * $(DBA_STARTSANDBOXINSTANCE_RETURNS)
  *
@@ -1876,44 +1977,141 @@ shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
+                                         bool local) {
+  shcore::Value ret_val;
+  mysqlshdk::db::Connection_options instance_def;
+  std::shared_ptr<mysqlshdk::db::ISession> instance_session;
+
+  std::string mycnf_path, output_mycnf_path, cluster_admin, password;
+  mysqlshdk::utils::nullable<std::string> cluster_admin_password;
+  mysqlshdk::utils::nullable<bool> clear_read_only;
+  bool interactive = m_wizards_mode;
+  mysqlshdk::utils::nullable<bool> restart;
+
+  {
+    if (args.size() == 2) {
+      // Retrieves optional options if exists or leaves empty so the default is
+      // set afterwards
+      Unpack_options(args.map_at(1))
+          .optional("mycnfPath", &mycnf_path)
+          .optional("outputMycnfPath", &output_mycnf_path)
+          .optional("clusterAdmin", &cluster_admin)
+          .optional("clusterAdminPassword", &cluster_admin_password)
+          .optional("clearReadOnly", &clear_read_only)
+          .optional("interactive", &interactive)
+          .optional("restart", &restart)
+          .optional_ci("password", &password)
+          .end();
+    }
+
+    // If there are no args, the instanceDef is empty (no data)
+    if (args.size() != 0 && args[0].type != shcore::Null) {
+      instance_def = mysqlsh::get_connection_options(
+          args, mysqlsh::PasswordFormat::OPTIONS);
+    }
+
+    // If interactive is enabled, resolves user and validates password
+    if (interactive) {
+      if (instance_def.has_data())
+        mysqlsh::resolve_connection_credentials(&instance_def, m_console);
+    }
+
+    // Establish the session to the target instance
+    if (instance_def.has_data()) {
+      validate_connection_options(instance_def);
+
+      instance_session = mysqlshdk::db::mysql::Session::create();
+      instance_session->connect(instance_def);
+    } else {
+      instance_session = connect_to_target_member();
+    }
+  }
+
+  // Check the function preconditions
+  // (FR7) Validate if the instance is already part of a GR group
+  // or InnoDB cluster
+  check_preconditions(instance_session,
+                      local ? "configureLocalInstance" : "configureInstance");
+
+  {
+    // Create the Instance object with the established session
+    mysqlshdk::mysql::Instance target_instance(instance_session);
+
+    target_instance.cache_global_sysvars();
+
+    // Call the API
+    std::unique_ptr<Configure_instance> op_configure_instance;
+    if (local)
+      op_configure_instance.reset(new Configure_local_instance(
+          &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
+          cluster_admin_password, clear_read_only, interactive, restart,
+          _provisioning_interface, m_console));
+    else
+      op_configure_instance.reset(new Configure_instance(
+          &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
+          cluster_admin_password, clear_read_only, interactive, restart,
+          _provisioning_interface, m_console));
+
+    op_configure_instance->prepare();
+    ret_val = shcore::Value(op_configure_instance->execute());
+    op_configure_instance->finish();
+
+    // Close the session
+    target_instance.close_session();
+  }
+
+  return ret_val;
+}
+
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_BRIEF,
-              "Validates and configures an instance for cluster usage.");
+              "Validates and configures a local instance for MySQL InnoDB "
+              "Cluster usage.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM,
               "@param instance An instance definition.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_PARAM1,
               "@param options Optional Additional options for the operation.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS,
-              "@throws ArgumentError if the instance parameter is empty.");
+              "ArgumentError in the following scenarios:");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS1,
-              "@throws ArgumentError if the instance definition is invalid.");
+              "@li If the instance parameter is empty.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS2,
-              "@throws ArgumentError if the instance definition is a "
-              "connection dictionary but empty.");
+              "@li If the instance definition is invalid.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS3,
-              "@throws ArgumentError if the instance definition cannot be used "
-              "for Group Replication.");
+              "@li If the instance definition is a "
+              "connection dictionary but empty.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS4,
-              "@throws RuntimeError if the instance accounts are invalid.");
+              "@li If the instance definition is a "
+              "connection dictionary but any option is invalid.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS5,
-              "@throws RuntimeError if the instance is offline.");
+              "@li If the instance definition is missing "
+              "the password.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS6,
-              "@throws RuntimeError if the "
-              "instance is already part of "
-              "a Replication Group.");
+              "@li If the provided password is empty.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS7,
-              "@throws RuntimeError if the "
-              "instance is already part of "
-              "an InnoDB Cluster.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_RETURNS,
-              "@returns resultset A JSON object with the status.");
+              "@li If the configuration file path is "
+              "required but not provided or wrong.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS8,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS9,
+              "@li If the instance accounts are invalid.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS10,
+              "@li If the instance is offline.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS11,
+              "@li If the instance is already part of a "
+              "Replication Group.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_THROWS12,
+              "@li If the given instance cannot be used "
+              "for Group Replication.");
+
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL,
               "This function reviews the instance configuration to identify if "
-              "it is valid "
-              "for usage in group replication and cluster. A JSON object is "
-              "returned containing the result of the operation.");
+              "it is valid for usage in group replication and cluster. "
+              "An exception is thrown if not.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+              "The instance definition is the connection data for the "
+              "instance.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -1924,157 +2122,295 @@ REGISTER_HELP(
     DBA_CONFIGURELOCALINSTANCE_DETAIL4,
     "@li mycnfPath: The path to the MySQL configuration file of the instance.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL5,
-              "@li password: The password to be used on the connection.");
+              "@li outputMycnfPath: Alternative output path to write the MySQL "
+              "configuration file of the instance.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL6,
+              "@li password: The password to be used on the connection.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7,
               "@li clusterAdmin: The name of the InnoDB cluster administrator "
               "user to be created. The supported format is the standard MySQL "
               "account name format.");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL7,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8,
               "@li clusterAdminPassword: The password for the InnoDB cluster "
               "administrator account.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL8,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9,
               "@li clearReadOnly: boolean value used to confirm that "
               "super_read_only must be disabled.");
 
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10,
+              "@li interactive: boolean value used to disable the wizards in "
+              "the command execution, i.e. prompts are not provided to the "
+              "user and confirmation prompts are not shown.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL9,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10,
-              "The returned JSON object contains the following attributes:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11,
-    "@li status: the final status of the command, either \"ok\" or \"error\".");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12,
-              "@li config_errors: a list "
-              "of dictionaries containing "
-              "the failed requirements");
+              "The returned descriptive text of the operation result indicates "
+              "whether the instance was successfully configured for InnoDB "
+              "Cluster usage or if it was already valid for InnoDB Cluster "
+              "usage.");
+
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13,
-              "@li errors: a list of errors of the operation");
+              "If the instance was not valid for InnoDB Cluster and "
+              "interaction is enabled, before configuring the instance a "
+              "prompt to confirm the changes is presented and a table with the "
+              "following information:");
+
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14,
-              "@li restart_required: a boolean value indicating whether a "
-              "restart is required");
-
+              "@li Variable: the invalid configuration variable.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL15,
-              "Each dictionary of the list of config_errors includes the "
-              "following attributes:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16,
-              "@li option: The configuration option for which the requirement "
-              "wasn't met");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL17,
-              "@li current: The current value of the configuration option");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL18,
-              "@li required: The configuration option required value");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL19,
-    "@li action: The action to be taken in order to meet the requirement");
-
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL20,
-              "The action can be one of the following:");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL21,
-              "@li server_update+config_update: Both the server and the "
-              "configuration need to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL22,
-              "@li config_update+restart: The configuration needs to be "
-              "updated and the server restarted");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL23,
-              "@li config_update: The configuration needs to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL24,
-              "@li server_update: The server needs to be updated");
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL25,
-              "@li restart: The server needs to be restarted");
+              "@li Current Value: the current value for the invalid "
+              "configuration variable.");
+REGISTER_HELP(
+    DBA_CONFIGURELOCALINSTANCE_DETAIL16,
+    "@li Required Value: the required value for the configuration variable.");
 /**
-* $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_PARAM)
-* $(DBA_CONFIGURELOCALINSTANCE_PARAM1)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS1)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS2)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS3)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS4)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS5)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS6)
-* $(DBA_CONFIGURELOCALINSTANCE_THROWS7)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_RETURNS)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
-*
-* Detailed description of the connection data format is available at \ref connection_data.
-*
-* Only TCP/IP connections are allowed for this function.
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL7)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL8)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL9)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL10)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL11)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL12)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL13)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL14)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL15)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL17)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL18)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL19)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL20)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL21)
-*
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL22)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL23)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL24)
-* $(DBA_CONFIGURELOCALINSTANCE_DETAIL25)
-*/
+ * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_PARAM)
+ * $(DBA_CONFIGURELOCALINSTANCE_PARAM1)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS1)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS2)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS3)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS4)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS5)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS6)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS7)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS8)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS9)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS10)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS11)
+ * $(DBA_CONFIGURELOCALINSTANCE_THROWS12)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_RETURNS)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL1)
+ *
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
+ *
+ * Only TCP/IP connections are allowed for this function.
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL3)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL4)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL5)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL6)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL7)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL8)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL9)
+ *
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL10)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL11)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL12)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL13)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL14)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL15)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
+ */
 #if DOXYGEN_JS
-Instance Dba::configureLocalInstance(InstanceDef instance, Dictionary options) {
-}
+Undefined Dba::configureLocalInstance(InstanceDef instance,
+                                      Dictionary options) {}
 #elif DOXYGEN_PY
-Instance Dba::configure_local_instance(InstanceDef instance, dict options) {}
+None Dba::configure_local_instance(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("configureLocalInstance").c_str());
+  args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
 
   try {
-    auto instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    // Resolves user and validates password
-    mysqlsh::resolve_connection_credentials(&instance_def);
-
-    shcore::Value::Map_type_ref options;
-    if (args.size() == 2)
-      options = args.map_at(1);
-
-    if (instance_def.has_host()) {
-      if (mysqlshdk::utils::Net::is_local_address(instance_def.get_host())) {
-        ret_val = shcore::Value(
-            _check_instance_configuration(instance_def, options, true));
-      } else {
-        throw shcore::Exception::runtime_error(
-            "This function only works with local instances");
-      }
-    } else {
-      throw shcore::Exception::runtime_error(
-          "This function requires a TCP connection, host is missing.");
-    }
+    return do_configure_instance(args, true);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("configureLocalInstance"));
+}
 
-  return ret_val;
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_BRIEF,
+              "Validates and configures an instance for MySQL InnoDB Cluster "
+              "usage.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_PARAM,
+              "@param instance Optional An instance definition.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_PARAM1,
+              "@param options Optional Additional options for the operation.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_RETURNS,
+              "@returns A descriptive text of the operation result.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL,
+              "This function auto-configures the instance for InnoDB Cluster "
+              "usage."
+              "If the target instance already belongs to an InnoDB Cluster it "
+              "errors out.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL1,
+              "The instance definition is the connection data for the "
+              "instance.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL2,
+              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL3,
+              "The options dictionary may contain the following options:");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL4,
+              "@li mycnfPath: The path to the MySQL configuration file of "
+              "the instance.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL5,
+              "@li outputMycnfPath: Alternative output path to write the MySQL "
+              "configuration file of the instance.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL6,
+              "@li password: The password to be used on the connection.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL7,
+              "@li clusterAdmin: The name of the InnoDB cluster administrator "
+              "user to be created. The supported format is the standard MySQL "
+              "account name format.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL8,
+              "@li clusterAdminPassword: The password for the InnoDB cluster "
+              "administrator account.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL9,
+              "@li clearReadOnly: boolean value used to confirm that "
+              "super_read_only must be disabled.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL10,
+              "@li interactive: boolean value used to disable the wizards in "
+              "the command execution, i.e. prompts are not provided to the "
+              "user and confirmation prompts are not shown.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL11,
+              "@li restart: boolean value used to indicate that a remote "
+              "restart of the target instance should be performed to finalize "
+              "the operation.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL12,
+              "The connection password may be contained on the instance "
+              "definition, however, it can be overwritten "
+              "if it is specified on the options.");
+
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL13,
+              "This function reviews the instance configuration to identify if "
+              "it is valid for usage in group replication and cluster. "
+              "An exception is thrown if not.");
+
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL14,
+              "If the instance was not valid for InnoDB Cluster and "
+              "interaction is enabled, before configuring the instance a "
+              "prompt to confirm the changes is presented and a table with the "
+              "following information:");
+
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL15,
+              "@li Variable: the invalid configuration variable.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL16,
+              "@li Current Value: the current value for the invalid "
+              "configuration variable.");
+REGISTER_HELP(
+    DBA_CONFIGUREINSTANCE_DETAIL17,
+    "@li Required Value: the required value for the configuration variable.");
+
+REGISTER_HELP(
+    DBA_CONFIGUREINSTANCE_DETAIL18,
+    "@li Required Value: the required value for the configuration variable.");
+
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS1,
+              "@li If 'interactive' is disabled and the "
+              "instance parameter is empty.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS2,
+              "@li If the instance definition is invalid.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS3,
+              "@li If the instance definition is a "
+              "connection dictionary but empty.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS4,
+              "@li If the instance definition is a "
+              "connection dictionary but any option is invalid.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS5,
+              "@li If 'interactive' mode is disabled and "
+              "the instance definition is missing the password.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS6,
+              "@li If 'interactive' mode is enabled and the "
+              "provided password is empty.");
+
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS7,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS8,
+              "@li If the configuration file path is "
+              "required but not provided or wrong.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS9,
+              "@li If the instance accounts are invalid.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS10,
+              "@li If the instance is offline.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS11,
+              "@li If the instance is already part of a "
+              "Replication Group.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS12,
+              "@li If the instance is already part of an "
+              "InnoDB Cluster.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS13,
+              "@li If the given instance cannot be used "
+              "for Group Replication.");
+
+/**
+ * $(DBA_CONFIGUREINSTANCE_BRIEF)
+ *
+ * $(DBA_CONFIGUREINSTANCE_PARAM)
+ * $(DBA_CONFIGUREINSTANCE_PARAM1)
+ *
+ * $(DBA_CONFIGUREINSTANCE_RETURNS)
+ *
+ * $(DBA_CONFIGUREINSTANCE_DETAIL)
+ *
+ * $(DBA_CONFIGUREINSTANCE_DETAIL1)
+ *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref
+ * connection_data
+ *
+ * $(DBA_CONFIGUREINSTANCE_DETAIL3)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL4)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL5)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL6)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL7)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL8)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL9)
+ *
+ * $(DBA_CONFIGUREINSTANCE_DETAIL10)
+ *
+ * $(DBA_CONFIGUREINSTANCE_DETAIL11)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL12)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL13)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL14)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL15)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL16)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL17)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL18)
+ *
+ * $(DBA_CONFIGUREINSTANCE_THROWS)
+ * $(DBA_CONFIGUREINSTANCE_THROWS1)
+ * $(DBA_CONFIGUREINSTANCE_THROWS2)
+ * $(DBA_CONFIGUREINSTANCE_THROWS3)
+ * $(DBA_CONFIGUREINSTANCE_THROWS4)
+ * $(DBA_CONFIGUREINSTANCE_THROWS5)
+ * $(DBA_CONFIGUREINSTANCE_THROWS6)
+ * $(DBA_CONFIGUREINSTANCE_THROWS7)
+ * $(DBA_CONFIGUREINSTANCE_THROWS8)
+ * $(DBA_CONFIGUREINSTANCE_THROWS9)
+ * $(DBA_CONFIGUREINSTANCE_THROWS10)
+ * $(DBA_CONFIGUREINSTANCE_THROWS11)
+ * $(DBA_CONFIGUREINSTANCE_THROWS12)
+ * $(DBA_CONFIGUREINSTANCE_THROWS13)
+ */
+#if DOXYGEN_JS
+Undefined Dba::configureInstance(InstanceDef instance, Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::configure_instance(InstanceDef instance, dict options) {}
+#endif
+shcore::Value Dba::configure_instance(const shcore::Argument_list &args) {
+  args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
+
+  try {
+    return do_configure_instance(args, false);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("configureInstance"));
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
@@ -2084,420 +2420,6 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
   ret_val = mysqlshdk::db::mysql::Session::create();
 
   ret_val->connect(args);
-
-  return ret_val;
-}
-
-shcore::Value::Map_type_ref Dba::_check_instance_configuration(
-    const mysqlshdk::db::Connection_options &instance_def,
-    const shcore::Value::Map_type_ref &options, bool allow_update) {
-  validate_connection_options(instance_def);
-
-  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
-  shcore::Value::Array_type_ref errors(new shcore::Value::Array_type());
-
-  shcore::Argument_map validate_opt_map;
-
-  shcore::Value::Map_type_ref validate_options;
-
-  std::string cnfpath, cluster_admin, cluster_admin_password;
-  std::string admin_user, admin_user_host, validate_user, validate_host;
-  std::string current_user, current_host;
-  std::string uri_user = instance_def.get_user();
-  std::string uri_host = instance_def.get_host();
-  bool cluster_admin_user_exists = false;
-  bool clear_read_only = false;
-
-  auto create_privilege_error = [&cluster_admin_user_exists,
-                                 &uri_user,
-                                 &uri_host]
-                                (const std::string &user,
-                                 const std::string &host,
-                                 const std::string &extra) -> std::string {
-    std::string error;
-
-    if (cluster_admin_user_exists)
-      error += "Cluster Admin";
-    else
-      error += "Session";
-
-    error += " account '" + user + "'@'" + host + "'";
-
-    if (!cluster_admin_user_exists && (uri_host != host || uri_user != user))
-      error += " (used to authenticate '" + uri_user + "'@'" + uri_host + "')";
-
-    error += " does not have all the required privileges to execute this"
-             " operation.";
-
-    std::string extra_trimmed = shcore::str_strip(extra);
-
-    if (!extra_trimmed.empty())
-      error += " " + extra_trimmed;
-
-    error += " For more information, see the online documentation.";
-
-    return error;
-  };
-
-  if (options) {
-    shcore::Argument_map tmp_map(*options);
-
-    std::set<std::string> check_options {"password", "dbPassword", "mycnfPath"};
-    // The clearReadOnly option is only available in configureLocalInstance
-    // i.e. with allow_update set as true
-    if (allow_update) {
-      check_options.insert("clusterAdmin");
-      check_options.insert("clusterAdminPassword");
-      check_options.insert("clearReadOnly");
-    }
-    tmp_map.ensure_keys({}, check_options, "validation options");
-    validate_opt_map = tmp_map;
-
-    // Retrieves the .cnf path if exists or leaves it empty so the default is
-    // set afterwards
-    if (validate_opt_map.has_key("mycnfPath"))
-      cnfpath = validate_opt_map.string_at("mycnfPath");
-
-    // Retrives the clusterAdmin if exists or leaves it empty so the default is
-    // set afterwards
-    if (validate_opt_map.has_key("clusterAdmin"))
-      cluster_admin = validate_opt_map.string_at("clusterAdmin");
-
-    // Retrieves the clusterAdminPassword if exists or leaves it empty so the
-    // default is set afterwards
-    if (validate_opt_map.has_key("clusterAdminPassword"))
-      cluster_admin_password =
-          validate_opt_map.string_at("clusterAdminPassword");
-
-    if (allow_update) {
-      if (validate_opt_map.has_key("clearReadOnly"))
-          clear_read_only = validate_opt_map.bool_at("clearReadOnly");
-    }
-  }
-
-  if (cnfpath.empty() && allow_update)
-    throw shcore::Exception::runtime_error(
-        "The path to the MySQL Configuration is required to verify and fix the "
-        "InnoDB Cluster settings");
-
-  // Now validates the instance GR status itself
-  auto session = Dba::get_session(instance_def);
-
-  // get the current user
-  auto result = session->query("SELECT CURRENT_USER()");
-  auto row = result->fetch_one();
-  std::string current_account = row->get_string(0);
-  split_account(current_account, &current_user, &current_host, true);
-
-  // if this is a configureLocalInstance operation and the clusterAdmin
-  // option was used and that user exists, validate its privileges, otherwise
-  // validate the privileges of the current user
-  if (allow_update && !cluster_admin.empty()) {
-    shcore::split_account(cluster_admin, &admin_user, &admin_user_host, false);
-    // Host '%' is used by default if not provided in the user account.
-    if (admin_user_host.empty())
-      admin_user_host = "%";
-    // Check if the cluster_admin user exists
-    shcore::sqlstring query = shcore::sqlstring(
-        "SELECT COUNT(*) from mysql.user WHERE "
-        "User = ? AND Host = ?", 0);
-    query << admin_user << admin_user_host;
-    query.done();
-    try {
-      result = session->query(query);
-      cluster_admin_user_exists =
-          result->fetch_one()->get_int(0) != 0;
-    } catch (mysqlshdk::db::Error &err) {
-      if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
-        // the current_account doesn't have enough privileges to execute
-        // the query
-        std::string error_msg = create_privilege_error(current_user,
-            current_host, "Missing privilege on schema 'mysql': SELECT.");
-        log_error("%s", error_msg.c_str());
-        throw std::runtime_error(error_msg);
-      } else {
-        throw;
-      }
-    }
-  }
-  if (cluster_admin_user_exists) {
-    // cluster admin account exists, so we will validate its privileges
-    validate_user = admin_user;
-    validate_host = admin_user_host;
-  } else {
-    // cluster admin doesn't exist, so we validate the privileges of the
-    // current user
-    validate_user = current_user;
-    validate_host = current_host;
-  }
-  {
-    std::string validation_error;
-
-    // Validate the permissions of the user running the operation.
-    if (!validate_cluster_admin_user_privileges(session, validate_user,
-            validate_host, &validation_error)) {
-      std::string error_msg = create_privilege_error(validate_user,
-          validate_host, validation_error);
-      log_error("%s", error_msg.c_str());
-      throw std::runtime_error(error_msg);
-    }
-  }
-  // Now validates the instance GR status itself
-  std::string uri = session->uri(mysqlshdk::db::uri::formats::only_transport());
-
-  GRInstanceType type = get_gr_instance_type(session);
-
-  if (type == GRInstanceType::GroupReplication) {
-    session->close();
-    throw shcore::Exception::runtime_error(
-        "The instance '" + uri + "' is already part of a Replication Group");
-
-  // configureLocalInstance is allowed even if the instance is part of the
-  // InnoDB cluster checkInstanceConfiguration is not
-  } else if (type == GRInstanceType::InnoDBCluster && !allow_update) {
-    session->close();
-    throw shcore::Exception::runtime_error(
-        "The instance '" + uri + "' is already part of an InnoDB Cluster");
-  } else {
-    if (!cluster_admin.empty() && allow_update) {
-      // Check if super_read_only is turned off and disable it if required
-      // NOTE: this is left for last to avoid setting super_read_only to true
-      // and right before some execution failure of the command leaving the
-      // instance in an incorrect state
-      bool super_read_only = validate_super_read_only(session, clear_read_only);
-      if (!cluster_admin_user_exists) {
-        try {
-          create_cluster_admin_user(session, cluster_admin,
-                                    cluster_admin_password);
-        } catch (shcore::Exception &err) {
-          std::string error_msg = "Unexpected error creating " + cluster_admin +
-                                  " user: " + err.what();
-          errors->push_back(shcore::Value(error_msg));
-          log_error("%s", error_msg.c_str());
-        }
-        // If we disabled super_read_only we must enable it back
-        // also confirm that the initial status was 1/ON
-        if (clear_read_only && super_read_only) {
-          log_info("Enabling super_read_only on the instance '%s'",
-                  uri.c_str());
-          set_global_variable(session, "super_read_only", "ON");
-        }
-      } else {
-        log_warning("User %s already exists.", cluster_admin.c_str());
-      }
-    }
-
-    if (type == GRInstanceType::InnoDBCluster) {
-      auto seeds =
-          get_peer_seeds(session,
-                         instance_def.as_uri(only_transport()));
-
-      auto peer_seeds = shcore::str_join(seeds, ",");
-      set_global_variable(session,
-                          "group_replication_group_seeds", peer_seeds);
-    }
-
-    std::string user;
-    std::string password;
-    // If a clusterAdmin account was specified, use it, otherwise user the
-    // user of the instance.
-    if (!cluster_admin.empty()) {
-      user = admin_user;
-      password = cluster_admin_password;
-    } else {
-      user = uri_user;
-      password = instance_def.get_value(
-          instance_def.has("password") ? "password" : "dbPassword");
-    }
-
-    // Verbose is mandatory for checkInstanceConfiguration
-    shcore::Value::Array_type_ref mp_errors;
-    auto check_options = instance_def;
-    check_options.clear_user();
-    check_options.clear_password();
-    check_options.set_user(user);
-    check_options.set_password(password);
-    if ((_provisioning_interface->check(check_options, cnfpath,
-                                        allow_update, &mp_errors) == 0)) {
-      // Only return status "ok" if no previous errors were found.
-      if (errors->size() == 0) {
-        (*ret_val)["status"] = shcore::Value("ok");
-      } else {
-        (*ret_val)["status"] = shcore::Value("error");
-        (*ret_val)["errors"] = shcore::Value(errors);
-        (*ret_val)["restart_required"] = shcore::Value(false);
-      }
-    } else {
-      bool restart_required = false;
-
-      (*ret_val)["status"] = shcore::Value("error");
-
-      if (mp_errors) {
-        for (auto error_object : *mp_errors) {
-          auto map = error_object.as_map();
-
-          std::string error_str;
-          if (map->get_string("type") == "ERROR") {
-            error_str = map->get_string("msg");
-
-            if (error_str.find("The operation could not continue due to the "
-                               "following requirements not being met") !=
-                std::string::npos) {
-              auto lines = shcore::split_string(error_str, "\n");
-
-              bool loading_options = false;
-
-              shcore::Value::Map_type_ref server_options(
-                  new shcore::Value::Map_type());
-              std::string option_type;
-
-              for (size_t index = 1; index < lines.size(); index++) {
-                if (loading_options) {
-                  auto option_tokens =
-                      shcore::split_string(lines[index], " ", true);
-
-                  if (option_tokens[1] == "<no") {
-                    option_tokens[1] = "<no value>";
-                    option_tokens.erase(option_tokens.begin() + 2);
-                  }
-
-                  if (option_tokens[2] == "<no") {
-                    option_tokens[2] = "<no value>";
-                    option_tokens.erase(option_tokens.begin() + 3);
-                  }
-
-                  if (option_tokens[2] == "<not") {
-                    option_tokens[2] = "<not set>";
-                    option_tokens.erase(option_tokens.begin() + 3);
-                  }
-
-                  if (option_tokens[1] == "<unique") {
-                    option_tokens[1] = "<unique ID>";
-                    option_tokens.erase(option_tokens.begin() + 2);
-                  }
-
-                  // The tokens describing each option have length of 5
-                  if (option_tokens.size() > 5) {
-                    index--;
-                    loading_options = false;
-                  } else {
-                    shcore::Value::Map_type_ref option;
-                    if (!server_options->has_key(option_tokens[0])) {
-                      option.reset(new shcore::Value::Map_type());
-                      (*server_options)[option_tokens[0]] =
-                          shcore::Value(option);
-                    } else {
-                      option = (*server_options)[option_tokens[0]].as_map();
-                    }
-
-                    (*option)["required"] =
-                        shcore::Value(option_tokens[1]);  // The required value
-                    (*option)[option_type] =
-                        shcore::Value(option_tokens[2]);  // The current value
-                  }
-                } else {
-                  if (lines[index].find("Some active options on server") !=
-                      std::string::npos) {
-                    option_type = "server";
-                    loading_options = true;
-                    // Skips to the actual option table
-                    do {
-                      index++;
-                    } while (
-                        lines[index].find("-------------------------------") ==
-                        std::string::npos);
-
-                  } else if (lines[index].find("Some of the configuration "
-                                               "values on your options file") !=
-                             std::string::npos) {
-                    option_type = "config";
-                    loading_options = true;
-                    // Skips to the actual option table
-                    do {
-                      index++;
-                    } while (
-                        lines[index].find("-------------------------------") ==
-                        std::string::npos);
-                  }
-                }
-              }
-
-              if (server_options->size()) {
-                shcore::Value::Array_type_ref config_errors(
-                    new shcore::Value::Array_type());
-                for (auto option : *server_options) {
-                  auto state = option.second.as_map();
-
-                  std::string required_value = state->get_string("required");
-                  std::string server_value = state->get_string("server", "");
-                  std::string config_value = state->get_string("config", "");
-
-                  // Taken from MP, reading docs made me think all variables
-                  // should require restart Even several of them are dynamic, it
-                  // seems changing values may lead to problems An
-                  // extransaction_write_set_extraction which apparently is
-                  // reserved for future use So I just took what I saw on the MP
-                  // code Source:
-                  // http://dev.mysql.com/doc/refman/5.7/en/dynamic-system-variables.html
-                  std::vector<std::string> dynamic_variables = {
-                      "binlog_format", "binlog_checksum", "slave_parallel_type",
-                      "slave_preserve_commit_order"};
-
-                  bool dynamic =
-                      std::find(dynamic_variables.begin(),
-                                dynamic_variables.end(),
-                                option.first) != dynamic_variables.end();
-
-                  std::string action;
-                  std::string current;
-                  if (!server_value.empty() &&
-                      !config_value.empty()) {  // Both server and configuration
-                                                // are wrong
-                    if (dynamic)
-                      action = "server_update+config_update";
-                    else {
-                      action = "config_update+restart";
-                      restart_required = true;
-                    }
-
-                    current = server_value;
-                  } else if (!config_value.empty()) {  // Configuration is
-                                                       // wrong, server is OK
-                    action = "config_update";
-                    current = config_value;
-                  } else if (!server_value.empty()) {  // Server is wronf,
-                                                       // configuration is OK
-                    if (dynamic)
-                      action = "server_update";
-                    else {
-                      action = "restart";
-                      restart_required = true;
-                    }
-                    current = server_value;
-                  }
-
-                  shcore::Value::Map_type_ref error(
-                      new shcore::Value::Map_type());
-
-                  (*error)["option"] = shcore::Value(option.first);
-                  (*error)["current"] = shcore::Value(current);
-                  (*error)["required"] = shcore::Value(required_value);
-                  (*error)["action"] = shcore::Value(action);
-
-                  config_errors->push_back(shcore::Value(error));
-                }
-
-                (*ret_val)["config_errors"] = shcore::Value(config_errors);
-              }
-            } else
-              errors->push_back(shcore::Value(error_str));
-          }
-        }
-      }
-      (*ret_val)["errors"] = shcore::Value(errors);
-      (*ret_val)["restart_required"] = shcore::Value(restart_required);
-    }
-  }
 
   return ret_val;
 }
@@ -2512,23 +2434,24 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1,
               "behavior of this function.");
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS,
-              "@throws MetadataError  if the Metadata is inaccessible.");
+              "MetadataError in the following scenarios:");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1,
-              "@throws ArgumentError if the Cluster name is empty.");
+              "@li If the Metadata is inaccessible.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2,
-              "@throws ArgumentError if the Cluster name is not valid.");
-REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3,
-    "@throws ArgumentError if the options contain an invalid attribute.");
-REGISTER_HELP(
-    DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4,
-    "@throws RuntimeError if the Cluster does not exist on the Metadata.");
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3,
+              "@li If the Cluster name is empty.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4,
+              "@li If the Cluster name is not valid.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5,
-              "@throws RuntimeError if some instance of the Cluster belongs to "
-              "a Replication Group.");
+              "@li If the options contain an invalid attribute.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6,
-              "@throws RuntimeError if the current connection cannot be used "
-              "for Group Replication.");
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS7,
+              "@li If the Cluster does not exist on the Metadata.");
+REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS8,
+              "@li If some instance of the Cluster belongs to "
+              "a Replication Group.");
 
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS,
               "@returns The rebooted cluster object.");
@@ -2545,7 +2468,7 @@ REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3,
               "@li rejoinInstances: The list of instances to be rejoined on "
               "the cluster.");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4,
-              "@li clearReadOnly: boolean value used to confirm that "\
+              "@li clearReadOnly: boolean value used to confirm that "
               "super_read_only must be disabled");
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5,
               "This function reboots a cluster from complete outage. "
@@ -2564,32 +2487,34 @@ REGISTER_HELP(
     "If name is not specified, the default cluster will be returned.");
 
 /**
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
-*
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
-*
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6)
-*
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
-*
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
-*
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
-* $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8)
-*/
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF)
+ *
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_PARAM1)
+ *
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS1)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS2)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS3)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS4)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS5)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS6)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS7)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_THROWS8)
+ *
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_RETURNS)
+ *
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL1)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL2)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL3)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL4)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL5)
+ *
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL6)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL7)
+ * $(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_DETAIL8)
+ */
 #if DOXYGEN_JS
 Undefined Dba::rebootClusterFromCompleteOutage(String clusterName,
                                                Dictionary options) {}
@@ -2601,6 +2526,9 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     const shcore::Argument_list &args) {
   args.ensure_count(
       0, 2, get_function_name("rebootClusterFromCompleteOutage").c_str());
+
+  check_preconditions(get_active_shell_session(),
+                      "rebootClusterFromCompleteOutage");
 
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<mysqlshdk::db::ISession> group_session;
@@ -2621,8 +2549,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
 
-  check_preconditions(group_session, "rebootClusterFromCompleteOutage");
-
   std::string cluster_name;
   try {
     bool default_cluster = false;
@@ -2641,8 +2567,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     auto current_session_options = group_session->get_connection_options();
 
     // Get the current session instance address
-    instance_session_address =
-        current_session_options.as_uri(only_transport());
+    instance_session_address = current_session_options.as_uri(only_transport());
 
     if (options) {
       mysqlsh::set_user_from_map(&current_session_options, options);
@@ -2711,8 +2636,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
-    cluster.reset(new Cluster(cluster_name, group_session, metadata,
-                              m_console_handler));
+    cluster.reset(
+        new Cluster(cluster_name, group_session, metadata, m_console));
 
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.
@@ -2737,8 +2662,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
 
       // 2. Ensure that the current session instance exists on the Metadata
       // Schema
-      if (!metadata->is_instance_on_replicaset(
-              default_replicaset->get_id(), instance_session_address))
+      if (!metadata->is_instance_on_replicaset(default_replicaset->get_id(),
+                                               instance_session_address))
         throw Exception::runtime_error(
             "The current session instance does not belong "
             "to the cluster: '" +
@@ -2856,7 +2781,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(group_session, clear_read_only);
+      validate_super_read_only(group_session, clear_read_only, m_console);
 
       shcore::Argument_list new_args;
       std::string replication_user, replication_user_password;
@@ -2876,7 +2801,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       default_replicaset->add_instance(current_session_options, new_args,
                                        replication_user,
                                        replication_user_password, true,
-                                       current_group_replication_group_name);
+                                       current_group_replication_group_name,
+                                       true);
     }
 
     // 7. Update the Metadata Schema information
@@ -2911,7 +2837,8 @@ Cluster_check_info Dba::check_preconditions(
  * reachable, or if not reachable contains the connection failure error message
  */
 std::vector<std::pair<std::string, std::string>>
-Dba::get_replicaset_instances_status(std::shared_ptr<Cluster> cluster,
+Dba::get_replicaset_instances_status(
+    std::shared_ptr<Cluster> cluster,
     const shcore::Value::Map_type_ref &options) {
   std::vector<std::pair<std::string, std::string>> instances_status;
   std::string active_session_address, instance_address, conn_status;
@@ -2928,8 +2855,7 @@ Dba::get_replicaset_instances_status(std::shared_ptr<Cluster> cluster,
       cluster->get_group_session()->get_connection_options();
 
   // Get the current session instance address
-  active_session_address =
-      current_session_options.as_uri(only_transport());
+  active_session_address = current_session_options.as_uri(only_transport());
 
   if (options) {
     // Check if the password is specified on the options and if not prompt it
@@ -2972,12 +2898,9 @@ Dba::get_replicaset_instances_status(std::shared_ptr<Cluster> cluster,
   return instances_status;
 }
 
-
 static void validate_instance_belongs_to_cluster(
     std::shared_ptr<mysqlshdk::db::ISession> member_session,
-    const std::string &gr_group_name,
-    const std::string &restore_function) {
-
+    const std::string &gr_group_name, const std::string &restore_function) {
   // TODO(alfredo) gr_group_name should receive the group_name as stored
   // in the metadata to validate if it matches the expected value
   // if the name does not match, an error should be thrown asking for an option
@@ -3006,6 +2929,7 @@ static void validate_instance_belongs_to_cluster(
 
     case GRInstanceType::Standalone:
     case GRInstanceType::StandaloneWithMetadata:
+    case GRInstanceType::Unknown:
       // We only want to check whether the status if InnoDBCluster or
       // GroupReplication to stop and thrown an exception
       break;
@@ -3161,8 +3085,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
     // if the status is not empty it means the connection failed
     // so we skip this instance
-    if (!instance_status.empty())
-      continue;
+    if (!instance_status.empty()) continue;
 
     auto connection_options =
         shcore::get_connection_options(instance_address, false);
@@ -3182,8 +3105,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
     std::string gtid_executed;
 
     // Get @@GLOBAL.GTID_EXECUTED
-    get_server_variable(session, "GLOBAL.GTID_EXECUTED",
-                        gtid_executed);
+    get_server_variable(session, "GLOBAL.GTID_EXECUTED", gtid_executed);
 
     // Close the session
     session->close();

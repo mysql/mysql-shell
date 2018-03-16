@@ -213,10 +213,10 @@ shcore::Prompt_answer Interactive_object_wrapper::prompt(const std::string& prom
     std::string def_str = "";
     switch (def) {
       case Prompt_answer::YES:
-        def_str = " [Y|n]: ";
+        def_str = " [Y/n]: ";
         break;
       case Prompt_answer::NO:
-        def_str = " [y|N]: ";
+        def_str = " [y/N]: ";
         break;
       default:
         break;

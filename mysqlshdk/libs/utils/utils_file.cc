@@ -221,14 +221,8 @@ std::string get_binary_folder() {
 std::string SHCORE_PUBLIC get_mp_path() {
   // Determine provisioning path
   std::string path;
-  const char *tmp;
-
-#ifdef _WIN32
-  tmp = "\\share\\mysqlsh\\mysqlprovision.zip";
-#else
-  tmp = "/share/mysqlsh/mysqlprovision.zip";
-#endif
-  path = shcore::path::join_path(get_mysqlx_home_path(), tmp);
+  path = shcore::path::join_path(get_mysqlx_home_path(), "share", "mysqlsh",
+                                 "mysqlprovision.zip");
   if (!shcore::file_exists(path))
     throw std::runtime_error(
         path + ": mysqlprovision not found, shell installation likely invalid");
@@ -253,31 +247,19 @@ std::string get_mysqlx_home_path() {
   std::string path_separator;
   const char* env_home = getenv("MYSQLSH_HOME");
 
-  if (env_home)
+  if (env_home) {
     ret_val.assign(env_home);
-  else {
-#ifdef WIN32
-    path_separator = "\\";
-#else
-    path_separator = "/";
-#endif
+  } else {
     binary_folder = get_binary_folder();
 
     // If the exe path was found now we check if it can be considered the standard installation
     // by checking the parent folder is "bin"
     if (!binary_folder.empty()) {
-      std::vector<std::string> tokens;
-      tokens = split_string(binary_folder, path_separator, true);
-
-      if (tokens.at(tokens.size() - 1) == "bin") {
-        // It seems to be a standard installation so re remove the bin folder
-        // and the parent is MYSQLX_HOME!
-        tokens.erase(tokens.end() - 1);
-        ret_val = str_join(tokens, path_separator);
+      if (shcore::path::basename(binary_folder) == "bin") {
+        ret_val = shcore::path::dirname(binary_folder);
       }
     }
   }
-
   return ret_val;
 }
 

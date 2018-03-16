@@ -33,6 +33,7 @@ import datetime
 import logging
 import re
 import socket
+import time
 
 from mysql_gadgets import MIN_MYSQL_VERSION, MIN_PERSIST_MYSQL_VERSION
 from mysql_gadgets.exceptions import (GadgetDBError, GadgetError,
@@ -177,8 +178,6 @@ _HEX_NUM = "[a-z|A-Z|0-9]"
 REX_UUID = (r"{0}{{8}}\-{0}{{4}}\-{0}{{4}}\-{0}{{4}}\-{0}{{12}}"
             "".format(_HEX_NUM))
 
-OPT_SKIP_CHECK_GR_SCHEMA_COMPLIANCE = "--allow-non-compatible-tables"
-
 REQ_GR_PLUGIN_VER = ".".join(str(i) for i in MIN_MYSQL_VERSION)
 
 # Loose prefix for options in the defaults file.
@@ -313,19 +312,6 @@ ERROR_PEERS_VARIABLE = ("The value '{0}' in variable '{1}' differs from the "
                         "equals on all the members of the group.")
 
 PEER_VARIABLES = (TRANSACTION_WRITE_SET_EXTRACTION, )
-
-INNODB_RQD_MSG = ("Group Replication requires tables to use InnoDB and "
-                  "have a PRIMARY KEY or PRIMARY KEY Equivalent (non-null "
-                  "unique key). Tables that do not follow these "
-                  "requirements will be readable but not updateable "
-                  "when used with Group Replication. "
-                  "If your applications make updates (INSERT, UPDATE or "
-                  "DELETE) to these tables, ensure they use the InnoDB "
-                  "storage engine and have a PRIMARY KEY or PRIMARY KEY "
-                  "Equivalent.")
-SKIP_SCHEMA_MSG = ("You can retry this command with the {0} option "
-                   "if you'd like to enable Group Replication ignoring "
-                   "this warning.".format(OPT_SKIP_CHECK_GR_SCHEMA_COMPLIANCE))
 
 
 def _format_table_results(dict_result, verbose=False):
@@ -594,7 +580,7 @@ def setup_gr_config(server, gr_config_vars, disable_binlog=True,
     """
     # setup Variables
     msg = "Setting Group Replication variables"
-    _LOGGER.debug(msg)
+    _LOGGER.debug("%s", msg)
     # if server version is > 8.0.4 we should use set persist instead of
     # set global
     if server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION):
@@ -607,7 +593,7 @@ def setup_gr_config(server, gr_config_vars, disable_binlog=True,
                           var, gr_config_vars[var])
         else:
             msg = ("  {0} = {1}".format(var, gr_config_vars[var]))
-            _LOGGER.debug(msg)
+            _LOGGER.debug("%s", msg)
             try:
                 if disable_binlog:
                     server.exec_query("SET SQL_LOG_BIN=0")
@@ -1027,53 +1013,6 @@ def check_peer_variables(req_checker, error_msgs=None, verbose=False):
     return server_var_res
 
 
-def check_compliance(req_checker, error_msgs=None):
-    """Checks if existing tables uses InnoDB and have a Primary key,
-
-    :param req_checker: RequirementChecker instance used to run the tests.
-    :type req_checker:  RequirementChecker
-    :param error_msgs:  List of errors to which errors that occur during check
-                        are appended.
-    :type error_msgs:   list
-    """
-    if error_msgs is None:
-        error_msgs = []
-    try:
-        compliance = req_checker.validate_schemas_gr_compliance()
-    except GadgetError as err:
-        error_msgs.append(err.errmsg)
-    else:
-        if compliance:
-            bad_engine = compliance["engine_type"]
-            bad_pk = compliance["primary_key"]
-            test_result = "PASS" if not bad_engine and not bad_pk else "FAIL"
-        else:
-            test_result = "SKIP"
-        _LOGGER.info("* Checking compliance of existing tables... %s",
-                     test_result)
-
-        if compliance:
-            if bad_engine:
-                _LOGGER.error("%i table(s) do not use InnoDB", len(bad_engine))
-                for schema, table, engine in bad_engine:
-                    _LOGGER.info("\t%s.%s (%s)", schema, table, engine)
-                _LOGGER.info("")
-
-            if bad_pk:
-                _LOGGER.error(
-                    "%i table(s) do not have a Primary Key or Primary Key "
-                    "Equivalent (non-null unique key).", len(bad_pk))
-                _LOGGER.info("\t%s",
-                             ", ".join(["{0}.{1}".format(s, t) for s, t
-                                        in bad_pk]))
-                _LOGGER.info("")
-
-            if bad_engine or bad_pk:
-                error_msgs.append("Non-compatible tables found in database.")
-                _LOGGER.info(INNODB_RQD_MSG)
-                _LOGGER.info("")
-
-
 def check_user_privileges(req_checker, rpl_settings, dry_run=False,
                           verbose=False, error_msgs=None):
     """Checks the user privileges
@@ -1402,7 +1341,7 @@ def check_options_file(req_checker, error_msgs=None, update=True,
 
 def check_server_variables(req_checker, error_msgs=None, update=True,
                            dynamic_vars=DYNAMIC_SERVER_VARS,
-                           var_change_warning=False, remote=False):
+                           var_change_warning=False):
     """Checks the server variables that requires specific values for GR plugin
 
     :param req_checker: RequirementChecker instance used to run the tests.
@@ -1420,9 +1359,6 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                                server variable is changed. By default False,
                                no warning is issued.
     :type var_change_warning: bool
-    :param remote:        If true, then this is remote operation and we should
-                          use set persist/persist_only wherever we can.
-    :type remote:         bool.
 
     """
     if error_msgs is None:
@@ -1448,8 +1384,7 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                        "usage and try again.")
         msg = _ERROR_SERVER_VARIABLES.format(server, restart_msg)
         if update:
-            if (server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION) and
-                    remote):
+            if server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION):
                 restart_msg = _ERROR_RESTART_SERVER_PERSISTED.format(
                     req_checker.server)
             else:
@@ -1457,7 +1392,17 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
             msg = _ERROR_SERVER_VARIABLES.format(server, restart_msg)
 
             var_res = server_var_res
-            for var_name in list(var_res.keys()):
+            # Workaround for server BUG#27629719, requiring some GR required
+            # variables to be set in a certain order, namely:
+            # enforce_gtid_consistency before gtid_mode. In addition, a delay
+            # is required to avoid them from having the same timestamp in
+            # mysqld-auto.cnf when persisted.
+            ordered_var_list = list(var_res.keys())
+            if 'enforce_gtid_consistency' in ordered_var_list:
+                ordered_var_list.insert(
+                    0, ordered_var_list.pop(
+                        ordered_var_list.index('enforce_gtid_consistency')))
+            for var_name in ordered_var_list:
                 if var_name == "pass":
                     var_res.pop(var_name)
                     continue
@@ -1478,12 +1423,20 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                         if needs_value == '<no value>':
                             needs_value = ""
                         var_type = "global"
+                        persist_interval = 0
                         if (server.check_version_compat(
-                                *MIN_PERSIST_MYSQL_VERSION) and remote):
+                                *MIN_PERSIST_MYSQL_VERSION)):
                             var_type = "persist"
+                            if var_name == "enforce_gtid_consistency":
+                                persist_interval = 1  # 1 sec
                         server.set_variable(var_name,
                                             "'{0}'".format(needs_value),
                                             var_type=var_type)
+                        # TODO: change to 1 ms after server bug is fixed.
+                        # Workaround for server BUG#27629719: wait 1 sec after
+                        # each SET PERSIST to ensure a different timestamp is
+                        # produced.
+                        time.sleep(persist_interval)
                         # Issue a warning if requested.
                         if var_change_warning:
                             _LOGGER.warning("Server variable %s was changed "
@@ -1499,8 +1452,7 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                     # if server supports set persist syntax, we can persist
                     # the non dynamic variables
                     if (server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION)
-                            and remote and var_name not in
-                            CANNOT_PERSIST_VARS):
+                            and var_name not in CANNOT_PERSIST_VARS):
                         _LOGGER.debug("Persisting read-only variable: %s to "
                                       "value: %s", var_name, needs_value)
                         var_format = "{0}"
@@ -1514,6 +1466,12 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
                             server.set_variable(var_name,
                                                 var_format.format(needs_value),
                                                 var_type="persist_only")
+                            # TODO: change to 1 ms after server bug is fixed.
+                            # Workaround for server BUG#27629719: wait 1 sec
+                            # after each SET PERSIST to ensure a different
+                            # timestamp is produced.
+                            if var_name == "enforce_gtid_consistency":
+                                time.sleep(1)
                         except GadgetDBError as err:
                             _LOGGER.warning("Error: %s was raised persisting"
                                             " %s to %s", err, var_name,
@@ -1547,7 +1505,7 @@ def check_server_variables(req_checker, error_msgs=None, update=True,
 
 
 def check_mts(req_checker, error_msgs=None, update=True,
-              var_change_warning=False, remote=False):
+              var_change_warning=False):
     """Check Multi-Threaded Slave settings for Group Replications.
 
     Check the compatibility of the Multi-Threaded Slave (MTS) settings to
@@ -1564,9 +1522,6 @@ def check_mts(req_checker, error_msgs=None, update=True,
                                server variable is changed. By default False,
                                no warning is issued.
     :type var_change_warning:  bool
-    :param remote:        If true, then this is remote operation and we should
-                          use set persist/persist_only wherever we can.
-    :type remote:         bool.
 
     :return: Dictionary with the result of the check ('pass' key with the
              value 'PASS' or 'FAIL') and the variables that need to be changed
@@ -1588,7 +1543,7 @@ def check_mts(req_checker, error_msgs=None, update=True,
     else:
         server = req_checker.server
         # Note: Error message must be the same as for server variables check.
-        if server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION) and remote:
+        if server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION):
             restart_msg = _ERROR_RESTART_SERVER_PERSISTED.format(server)
         else:
             restart_msg = _ERROR_RESTART_SERVER.format(server)
@@ -1603,8 +1558,7 @@ def check_mts(req_checker, error_msgs=None, update=True,
                     _LOGGER.debug("Updating variable: %s to value: %s",
                                   var_name, needs_value)
                     var_type = "global"
-                    if (server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION)
-                            and remote):
+                    if server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION):
                         var_type = "persist"
                     server.set_variable(var_name,
                                         "'{0}'".format(needs_value),
@@ -1730,7 +1684,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                               update=True, skip_backup=False,
                               dynamic_vars=DYNAMIC_SERVER_VARS,
                               var_change_warning=False,
-                              remote=False):
+                              output_cnf_file=None):
     """Runs the checking of the group replication requirements
 
     :param server:        Server to check GR requirements.
@@ -1761,9 +1715,10 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                                server variable is changed. By default False,
                                no warning is issued.
     :type var_change_warning: bool
-    :param remote:        If true, then this is remote operation and we should
-                          use set persist/persist_only wherever we can.
-    :type remote:         bool.
+    :param output_cnf_file: Provided by the shell if the option_file is
+                            non-writable, this file is where we persist the
+                            correct configuration settings.
+    :type output_cnf_file:  string
 
     :raise GadgetError: If the server does not meet the requirements or
                         Gadget could not make the required changes to
@@ -1779,8 +1734,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
     if SERVER_VARIABLES in req_dict.keys():
         errors = []
         options_res = check_server_variables(req_checker, errors, update,
-                                             dynamic_vars, var_change_warning,
-                                             remote=remote)
+                                             dynamic_vars, var_change_warning)
         if errors:
             error_msgs[SERVER_VARIABLES] = errors
 
@@ -1811,8 +1765,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
             # Update the option file if provided and update is requested or if
             # our version supports the set persist only syntax.
             if (update and (OPTION_PARSER in req_dict.keys() or
-                    (server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION)
-                            and remote))):
+                    server.check_version_compat(*MIN_PERSIST_MYSQL_VERSION))):
                 # Generate a new random server_id.
                 server_id = generate_server_id()
                 # Set the new server_id to be changed for the option file.
@@ -1870,7 +1823,7 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
     if MTS_SETTINGS in req_dict.keys():
         errors = []
         mts_opt_res = check_mts(req_checker, errors, update,
-                                var_change_warning, remote=remote)
+                                var_change_warning)
         if 'pass' in mts_opt_res and not mts_opt_res['pass']:
             # Update the result for SERVER_VARIABLES to include the MTS
             # settings that need to be changed.
@@ -1930,17 +1883,6 @@ def check_server_requirements(server, req_dict, rpl_settings, verbose=False,
                               errors)
         if errors:
             error_msgs[USER_PRIVILEGES] = errors
-
-    # Check if the server has Tables and if has if these complains the
-    # requirements from GR plugin (Engine InnoDB and has Primary key).
-    if not skip_schema_checks:
-        errors = []
-        check_compliance(req_checker, errors)
-        if errors:
-            error_msgs["schema_check"] = errors
-
-    # Line separator of test and results.
-    _LOGGER.info("")
 
     # If no errors found, setup can proceed.
     if not error_msgs:
@@ -2025,7 +1967,8 @@ def get_gr_members(server, exclude_server=None):
     return members
 
 
-def get_req_dict(server, replication_user, peer_server=None, option_file=None):
+def get_req_dict(server, replication_user, peer_server=None, option_file=None,
+                 output_cnf_file=None):
     """Create a dictionary with the requirements for setting GR plugin.
 
     :param server: The server in which the command wil be perform..
@@ -2038,6 +1981,10 @@ def get_req_dict(server, replication_user, peer_server=None, option_file=None):
     :param option_file: The system path of the option file used to start
                         the server.
     :type option_file:  string
+    :param output_cnf_file: Provided by the shell if the option_file is
+                            non-writable, this file is where we persist the
+                            correct configuration settings.
+    :type output_cnf_file:  string
 
     :return: A dictionary with the options and required values to check on the
              server.
@@ -2052,7 +1999,8 @@ def get_req_dict(server, replication_user, peer_server=None, option_file=None):
 
     if option_file is not None:
         # Add the option parser to be used to check and update option file
-        req_dict[OPTION_PARSER] = MySQLOptionsParser(option_file)
+        req_dict[OPTION_PARSER] = MySQLOptionsParser(option_file,
+                                                     output_cnf_file)
         req_dict[CONFIG_SETTINGS] = GR_REQUIRED_OPTIONS
         # Add the report_port
         req_dict[CONFIG_SETTINGS]['report_port'] = {ONE_OF: (port_str,)}
@@ -2103,12 +2051,16 @@ def get_req_dict_user_check(server, replication_user):
     return req_dict
 
 
-def get_req_dict_for_opt_file(option_file):
+def get_req_dict_for_opt_file(option_file, output_cnf_file=None):
     """Create a dictionary with the requirements for check an option file.
 
     :param option_file: The system path of the option file used to start
                         the server.
     :type option_file:  string
+    :param output_cnf_file: Provided by the shell if the option_file is
+                            non-writable, this file is where we persist the
+                            correct configuration settings.
+    :type output_cnf_file:  string
 
     :return: A dictionary whit the options and required values to check on the
              server.
@@ -2116,7 +2068,7 @@ def get_req_dict_for_opt_file(option_file):
     """
     req_dict = {}
     # Add the option parser to be used to check and update option file
-    req_dict[OPTION_PARSER] = MySQLOptionsParser(option_file)
+    req_dict[OPTION_PARSER] = MySQLOptionsParser(option_file, output_cnf_file)
     req_dict[CONFIG_SETTINGS] = GR_REQUIRED_OPTIONS
 
     return req_dict
@@ -2349,7 +2301,7 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
 
 
 def persist_gr_config(defaults_path, config_values=None, set_on=True,
-                      dry_run=False, skip_backup=False):
+                      dry_run=False, skip_backup=False, output_cnf_file=None):
     """Write provided Group Replication config values to the option file.
 
     This method persists the given Group Replication (GR) configuration values
@@ -2372,6 +2324,10 @@ def persist_gr_config(defaults_path, config_values=None, set_on=True,
     :param skip_backup: if True, skip the creation of a backup file when
                         modifying the options file.
     :type skip_backup: boolean
+    :param output_cnf_file: Provided by the shell if the option_file is
+                            non-writable, this file is where we persist the
+                            correct configuration settings.
+    :type output_cnf_file:  string
     """
     if defaults_path is None or defaults_path == "":
         _LOGGER.warning("No path to the defaults file was given.")
@@ -2379,7 +2335,7 @@ def persist_gr_config(defaults_path, config_values=None, set_on=True,
     if isinstance(defaults_path, MySQLOptionsParser):
         options_parser = defaults_path
     else:
-        options_parser = MySQLOptionsParser(defaults_path)
+        options_parser = MySQLOptionsParser(defaults_path, output_cnf_file)
 
     if config_values is None:
         config_values = {}

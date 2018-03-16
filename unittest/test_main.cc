@@ -61,11 +61,12 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
 bool g_generate_validation_file = false;
 
 int g_test_trace_scripts = 0;
+bool g_test_fail_early = false;
 int g_test_trace_sql = 0;
 bool g_test_color_output = false;
 
 // Default trace set (MySQL version) to be used for replay mode
-mysqlshdk::utils::Version g_target_server_version = Version("8.0.4");
+mysqlshdk::utils::Version g_target_server_version = Version("8.0.5");
 mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
@@ -80,6 +81,7 @@ const char *g_test_home = nullptr;
 }
 const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
+bool g_profile_test_scripts = false;
 
 std::vector<std::pair<std::string, std::string> > g_skipped_tests;
 std::vector<std::pair<std::string, std::string> > g_skipped_chunks;
@@ -101,7 +103,7 @@ static std::string make_socket_absolute_path(const std::string &datadir,
 
 static void detect_mysql_environment(int port, const char *pwd) {
   std::string socket, xsocket, datadir;
-  std::string hostname;
+  std::string hostname, report_host;
   int xport = 0;
   int server_id = 0;
   bool have_ssl = false;
@@ -139,11 +141,12 @@ static void detect_mysql_environment(int port, const char *pwd) {
     }
 
     {
-      const char *query = "show variables like 'hostname'";
+      const char *query = "select @@hostname, @@report_host";
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
-          hostname = row[1];
+          hostname = row[0];
+          report_host = row[1] ? row[1] : "";
         }
         mysql_free_result(res);
       }
@@ -187,6 +190,10 @@ static void detect_mysql_environment(int port, const char *pwd) {
         mysql_free_result(res);
       }
     }
+  } else {
+    std::cerr << "Cannot connect to MySQL server at " << port << ": "
+              << mysql_error(mysql) << "\n";
+    exit(1);
   }
   mysql_close(mysql);
 
@@ -200,12 +207,19 @@ static void detect_mysql_environment(int port, const char *pwd) {
   const std::string xsocket_absolute =
       make_socket_absolute_path(datadir, xsocket);
 
-  std::string hostname_ip =
-      mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
+  std::string hostname_ip;
+  try {
+    hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(hostname);
+  } catch (std::exception &e) {
+    std::cerr << "Error resolving hostname of target server: " << e.what()
+              << "\n";
+    exit(1);
+  }
 
   std::cout << "Target MySQL server:\n";
   std::cout << "version=" << g_target_server_version.get_full() << "\n";
   std::cout << "hostname=" << hostname << ", ip=" << hostname_ip << "\n";
+  std::cout << "report_host=" << report_host << "\n";
   std::cout << "server_id=" << server_id << ", ssl=" << have_ssl
             << ", openssl=" << have_openssl
             << ", highest_tls_version=" << g_highest_tls_version.get_full()
@@ -223,11 +237,11 @@ static void detect_mysql_environment(int port, const char *pwd) {
   std::cout << ((xsocket != xsocket_absolute) ? " (" + xsocket_absolute + ")\n"
                                               : "\n");
 
-  if (!getenv("MYSQL_SOCKET")) {
+  {
     static char path[1024];
     snprintf(path, sizeof(path), "MYSQL_SOCKET=%s", socket_absolute.c_str());
     if (putenv(path) != 0) {
-      std::cerr << "MYSQL_SOCKET was not set and putenv failed to set it\n";
+      std::cerr << "MYSQL_SOCKET putenv failed to set it\n";
       exit(1);
     }
   }
@@ -240,21 +254,45 @@ static void detect_mysql_environment(int port, const char *pwd) {
     putenv(path);
   }
 
-  if (!getenv("MYSQLX_SOCKET")) {
+  {
     static char path[1024];
     snprintf(path, sizeof(path), "MYSQLX_SOCKET=%s", xsocket_absolute.c_str());
     if (putenv(path) != 0) {
-      std::cerr << "MYSQLX_SOCKET was not set and putenv failed to set it\n";
+      std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
+      exit(1);
+    }
+  }
+  {
+    static char path[1024];
+    snprintf(path, sizeof(path), "MYSQLX_PORT=%i", xport);
+    if (putenv(path) != 0) {
+      std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
+      exit(1);
+    }
+  }
+
+  // MYSQL_HOSTNAME corresponds to whatever is returned by gethostbyname,
+  // although it's fetched from @@hostname in the test MySQL server.
+  // In some systems (Debian, Ubuntu) it resolves to 127.0.1.1, which is
+  // unusable for setting up GR. In these hosts, MYSQL_HOSTNAME must be set
+  // to an address that can be reached from outside.
+  // OTOH MYSQL_REAL_HOSTNAME will always have @@hostname
+  if (!getenv("MYSQL_HOSTNAME")) {
+    static char my_hostname[1024];
+    snprintf(my_hostname, sizeof(my_hostname), "MYSQL_HOSTNAME=%s",
+             hostname.c_str());
+    if (putenv(my_hostname) != 0) {
+      std::cerr << "MYSQL_HOSTNAME could not be set\n";
       exit(1);
     }
   }
 
   {
     static char my_hostname[1024];
-    snprintf(my_hostname, sizeof(my_hostname), "MYSQL_HOSTNAME=%s",
+    snprintf(my_hostname, sizeof(my_hostname), "MYSQL_REAL_HOSTNAME=%s",
              hostname.c_str());
     if (putenv(my_hostname) != 0) {
-      std::cerr << "MYSQL_HOSTNAME could not be set\n";
+      std::cerr << "MYSQL_REAL_HOSTNAME could not be set\n";
       exit(1);
     }
   }
@@ -450,13 +488,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (!getenv("MYSQLX_PORT")) {
-    if (putenv(const_cast<char *>("MYSQLX_PORT=33060")) != 0) {
-      std::cerr << "MYSQLX_PORT was not set and putenv failed to set it\n";
-      exit(1);
-    }
-  }
-
   detect_mysql_environment(atoi(getenv("MYSQL_PORT")), "");
 
   if (!getenv("MYSQL_REMOTE_HOST")) {
@@ -542,10 +573,20 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[index], "--trace") == 0) {
       // stop executing script on failure
       g_test_trace_scripts = 2;
+      g_test_fail_early = true;
     } else if (strcmp(argv[index], "--trace-sql") == 0) {
       g_test_trace_sql = 1;
     } else if (strcmp(argv[index], "--trace-all-sql") == 0) {
       g_test_trace_sql = 2;
+    } else if (strcmp(argv[index], "--stop-on-fail") == 0) {
+      g_test_fail_early = true;
+    } else if (strcmp(argv[index], "--tdb") == 0) {
+      extern void enable_tdb();
+      enable_tdb();
+      g_test_trace_scripts = 1;
+      g_test_fail_early = true;
+    } else if (strcmp(argv[index], "--profile-scripts") == 0) {
+      g_profile_test_scripts = true;
     } else if (strcmp(argv[index], "--gtest_color=yes") == 0) {
       g_test_color_output = true;
     } else if (!shcore::str_beginswith(argv[index], "--gtest_") &&
@@ -634,6 +675,31 @@ int main(int argc, char **argv) {
   std::cout << "Shell Home: " << shcore::get_mysqlx_home_path() << std::endl;
   std::cout << "MySQL Provision: " << g_mppath << std::endl;
   std::cout << "Test Data Home: " << g_test_home << std::endl;
+  std::cout << "Effective Hostname (external address of this host): "
+            << getenv("MYSQL_HOSTNAME") << std::endl;
+  std::cout << "Real Hostname (as returned by gethostbyname): "
+            << getenv("MYSQL_REAL_HOSTNAME") << std::endl;
+  if (mysqlshdk::utils::Net::is_loopback(getenv("MYSQL_REAL_HOSTNAME"))) {
+    std::cout << "Note: " << getenv("MYSQL_REAL_HOSTNAME")
+              << " resolves to a loopback\n";
+    if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) == 0) {
+      std::cout
+          << "Set the MYSQL_HOSTNAME to an externally addressable "
+             "hostname or IP when executing AdminAPI tests in this host.\n";
+    }
+  } else {
+    if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) != 0) {
+      std::cout
+          << "ERROR: " << getenv("MYSQL_REAL_HOSTNAME")
+          << " does not resolve to a loopback but "
+             "MYSQL_HOSTNAME and MYSQL_REAL_HOSTNAME have different values. "
+             "You can leave MYSQL_HOSTNAME unset unless you're "
+             "in a system where the default hostname "
+             "is a loopback (like Ubuntu/Debian).\n";
+      exit(1);
+    }
+  }
+
 
   switch (g_test_recording_mode) {
     case mysqlshdk::db::replay::Mode::Direct:
@@ -683,7 +749,10 @@ int main(int argc, char **argv) {
       std::cout << "\tNote: " << t.second << "\n";
     }
   }
-
+  {
+    extern void fini_tdb();
+    fini_tdb();
+  }
 #ifndef NDEBUG
   if (getenv("DEBUG_OBJ"))
     shcore::debug::debug_object_dump_report(false);

@@ -94,7 +94,7 @@ Cluster.status();
 //   dba.stopSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir, password: 'root'});
 // else
 //   dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
-testutil.stopSandbox(__mysql_sandbox_port3, 'root')
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 

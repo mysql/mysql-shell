@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "60",
+    "connection_id": "56",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "b5995e9b-22cc-11e8-bb98-5ce0c50b9d66"
+            "bcb9cd4a-26de-11e8-9543-b86b230042b9"
         ]
     ]
 },
@@ -523,7 +523,7 @@
     ],
     "rows": [
         [
-            3340
+            3316
         ]
     ]
 },
@@ -654,7 +654,7 @@
     "rows": [
         [
             "version",
-            "8.0.11"
+            "8.0.11-debug"
         ]
     ]
 },
@@ -692,7 +692,7 @@
     ],
     "rows": [
         [
-            15685
+            15661
         ]
     ]
 },
@@ -776,128 +776,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "SELECT table_schema, table_name, engine FROM information_schema.tables WHERE engine NOT IN ('InnoDB', 'MEMORY') AND table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 42,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "mysql",
-            "table_name": "TABLES",
-            "table_label": "tables",
-            "column_name": "TABLE_SCHEMA",
-            "column_label": "TABLE_SCHEMA",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "mysql",
-            "table_name": "TABLES",
-            "table_label": "tables",
-            "column_name": "TABLE_NAME",
-            "column_label": "TABLE_NAME",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "TABLES",
-            "table_label": "tables",
-            "column_name": "ENGINE",
-            "column_label": "ENGINE",
-            "length": 256,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": []
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 43,
-    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 44,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "mysql",
-            "table_name": "TABLES",
-            "table_label": "t",
-            "column_name": "TABLE_SCHEMA",
-            "column_label": "TABLE_SCHEMA",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "mysql",
-            "table_name": "TABLES",
-            "table_label": "t",
-            "column_name": "TABLE_NAME",
-            "column_label": "TABLE_NAME",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": []
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 45,
     "sql": "show plugins"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 46,
+    "index": 42,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1021,6 +905,13 @@
             "GPL"
         ],
         [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1035,14 +926,7 @@
             "GPL"
         ],
         [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MEMORY",
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1231,14 +1115,14 @@
             "GPL"
         ],
         [
-            "CSV",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MyISAM",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1298,13 +1182,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 47,
+    "index": 43,
     "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'group_replication%'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 48,
+    "index": 44,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1353,11 +1237,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 49
+    "index": 45
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 50
+    "index": 46
 },
 null]

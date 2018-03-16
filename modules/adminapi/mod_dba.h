@@ -52,9 +52,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
  public:
 #if DOXYGEN_JS
   Integer verbose;
-  Undefined checkInstanceConfiguration(InstanceDef instance,
+  JSON checkInstanceConfiguration(InstanceDef instance,
                                        Dictionary options);
-  JSON configureLocalInstance(InstanceDef instance, Dictionary options);
+  Undefined configureLocalInstance(InstanceDef instance, Dictionary options);
+  Undefined configureInstance(InstanceDef instance, Dictionary options);
   Cluster createCluster(String name, Dictionary options);
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
   Instance deploySandboxInstance(Integer port, Dictionary options);
@@ -67,8 +68,9 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Undefined stopSandboxInstance(Integer port, Dictionary options);
 #elif DOXYGEN_PY
   int verbose;
-  None check_instance_configuration(InstanceDef instance, dict options);
-  JSON configure_local_instance(InstanceDef instance, dict options);
+  JSON check_instance_configuration(InstanceDef instance, dict options);
+  None configure_local_instance(InstanceDef instance, dict options);
+  None configure_instance(InstanceDef instance, dict options);
   Cluster create_cluster(str name, dict options);
   None delete_sandbox_instance(int port, dict options);
   Instance deploy_sandbox_instance(int port, dict options);
@@ -120,8 +122,11 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       std::shared_ptr<mysqlshdk::db::ISession> group_session) const;
 
   std::shared_ptr<mysqlsh::IConsole> get_console_handler() const {
-    return m_console_handler;
+    return m_console;
   }
+
+  shcore::Value do_configure_instance(const shcore::Argument_list &args,
+                                      bool local);
 
  public:  // Exported public methods
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
@@ -133,6 +138,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value configure_local_instance(const shcore::Argument_list &args);
+  shcore::Value configure_instance(const shcore::Argument_list &args);
 
   shcore::Value clone_instance(const shcore::Argument_list &args);
   shcore::Value reset_instance(const shcore::Argument_list &args);
@@ -157,17 +163,12 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       std::shared_ptr<Cluster> cluster,
       const shcore::Value::Map_type_ref &options,
       const std::shared_ptr<mysqlshdk::db::ISession> &instance_session);
-
   std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
-      return _provisioning_interface;
+    return _provisioning_interface;
   }
 
   static std::shared_ptr<mysqlshdk::db::ISession> get_session(
       const mysqlshdk::db::Connection_options &args);
-
-  virtual shcore::Value::Map_type_ref _check_instance_configuration(
-      const mysqlshdk::db::Connection_options &instance_def,
-      const shcore::Value::Map_type_ref &options, bool allow_update);
 
  protected:
   shcore::IShell_core *_shell_core;
@@ -183,7 +184,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
  private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
-  std::shared_ptr<mysqlsh::IConsole> m_console_handler;
+  std::shared_ptr<mysqlsh::IConsole> m_console;
   bool m_wizards_mode;
 
   shcore::Value exec_instance_op(const std::string &function,

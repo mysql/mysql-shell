@@ -2,7 +2,7 @@
 
 //@<OUT> create GR admin account using configureLocalInstance
 var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root', clusterAdmin: "gr_user", clusterAdminPassword: "root"});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root', clusterAdmin: "gr_user", clusterAdminPassword: "root"});
 
 //@ Error: user has no privileges to run the configure command (BUG#26609909)
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -10,12 +10,12 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 session.runSql("SET sql_log_bin = 0");
 session.runSql("REVOKE SELECT on *.* FROM 'gr_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
-dba.configureLocalInstance("gr_user@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root'});
+dba.configureLocalInstance("gr_user@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root'});
 //@ Error: session user has privileges to run the configure command but we pass it an existing clusterAdmin user that doesn't have enough privileges (BUG#26979375)
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root', clusterAdmin: 'gr_user', clusterAdminPassword: "root"});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root', clusterAdmin: 'gr_user', clusterAdminPassword: "root"});
 
 //@ Session user has privileges to run the configure command and we pass it an non existing clusterAdmin user(BUG#26979375)
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root', clusterAdmin: 'gr_user2', clusterAdminPassword: "root"});
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root', clusterAdmin: 'gr_user2', clusterAdminPassword: "root"});
 
 // restore select privilege to gr_user
 session.runSql("SET sql_log_bin = 0");

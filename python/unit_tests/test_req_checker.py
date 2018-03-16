@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -109,7 +109,7 @@ class Test(GadgetsTestCase):
         """ Test requirement_checker all values tested regardless of result.
         """
         res = self.server.exec_query("show databases")
-        logging.debug(res)
+        logging.debug("%s", res)
         req_dict = {
             SERVER_VARIABLES: {
                 "log_bin": {ONE_OF: ("1",)},
@@ -142,7 +142,7 @@ class Test(GadgetsTestCase):
         """
         logging.debug("\n-- test_requirement_checker_fail")
         res = self.server.exec_query("SET SQL_LOG_BIN=1")
-        logging.debug(res)
+        logging.debug("%s", res)
         req_dict = {
             SERVER_VARIABLES: {
                 "sql_log_bin": {ONE_OF: ("0",)},
@@ -214,7 +214,7 @@ class Test(GadgetsTestCase):
         """
 
         res = self.server.exec_query("SET GLOBAL show_compatibility_56=1")
-        logging.debug(res)
+        logging.debug("%s", res)
         req_dict = {
             SERVER_VARIABLES: {
                 "show_compatibility_56": {ONE_OF: ("0",)},
@@ -248,7 +248,7 @@ class Test(GadgetsTestCase):
             results = req_check.check_requirements()
             logging.debug("check_requirements result %s", results)
         exception = test_raises.exception
-        logging.debug(dir(exception))
+        logging.debug("%s", dir(exception))
         self.assertTrue("does not have a valid format" in exception.errmsg,
                         "The exception message was not the expected")
 
@@ -283,7 +283,7 @@ class Test(GadgetsTestCase):
             results = req_check.check_requirements()
             logging.debug("check_requirements result %s", results)
         exception = test_raises.exception
-        logging.debug(dir(exception))
+        logging.debug("%s", dir(exception))
         self.assertTrue("no server has been set to check" in exception.errmsg,
                         "The exception message was not the expected")
 

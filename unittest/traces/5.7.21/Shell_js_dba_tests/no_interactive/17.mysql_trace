@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "31",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select concat(@@version, ' ', @@version_comment)"
+    "sql": "SELECT @@server_uuid"
 },
 {
     "type": "response",
@@ -32,8 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 97,
+            "column_label": "@@server_uuid",
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -46,7 +50,7 @@
     ],
     "rows": [
         [
-            "5.7.21-enterprise-commercial-advanced-log MySQL Enterprise Server - Advanced Edition (Commercial)"
+            "d03bd836-2517-11e8-a5f3-62e969546709"
         ]
     ]
 },
@@ -54,87 +58,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "SELECT @@mysqlx_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
-    "sql": "CREATE USER missingprivileges@localhost"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 8,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 9,
-    "sql": "GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 10,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 11,
-    "sql": "GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 12,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 13,
-    "sql": "SET SQL_LOG_BIN=1"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 14,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 15,
-    "sql": "select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 16,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -145,32 +74,60 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "COUNT(*)",
+            "column_label": "@@mysqlx_port",
             "length": 21,
             "fractional": 0,
-            "type": "Integer",
+            "type": "UInteger",
             "collation": "binary",
             "charset": "binary",
             "collation_id": 63,
-            "unsigned": false,
+            "unsigned": true,
             "zerofill": false,
             "binary": true
         }
     ],
     "rows": [
         [
-            1
+            33160
         ]
     ]
 },
 {
     "type": "request",
-    "subtype": "CLOSE",
-    "index": 17
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT @@group_replication_local_address"
 },
 {
     "type": "response",
-    "subtype": "OK",
-    "index": 18
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_local_address",
+            "length": 15,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "localhost:33161"
+        ]
+    ]
 },
 null]

@@ -10,10 +10,10 @@
 //@ Adding instance
 ||
 
-//@ Configure instance on port1.
+//@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.5)}
 ||
 
-//@ Configure instance on port2.
+//@ Configure instance on port2 to persist auto-rejoin settings {VER(<8.0.5)}
 ||
 
 //@<OUT> Number of instance according to GR.
@@ -120,7 +120,7 @@
 //@ Connect to restarted instance.
 ||
 
-//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.4)}.
+//@<OUT> Confirm that GR start on boot is disabled
 OFF
 
 //@ Connect back to seed instance and get cluster.

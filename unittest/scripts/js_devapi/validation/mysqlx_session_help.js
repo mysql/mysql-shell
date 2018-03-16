@@ -70,7 +70,7 @@ SYNTAX
 
 RETURNS
 
- A SqlResult object.
+  A SqlResult object.
 
 DESCRIPTION
 
@@ -93,7 +93,7 @@ WHERE
 
 RETURNS
 
- The created schema object.
+  The created schema object.
 
 //@<OUT> Session: help dropSchema
 Drops the schema with the specified name.
@@ -104,7 +104,7 @@ SYNTAX
 
 RETURNS
 
- Nothing.
+  Nothing.
 
 
 //@<OUT> Session: help getCurrentSchema
@@ -116,7 +116,7 @@ SYNTAX
 
 RETURNS
 
-A Schema object if a schema is active on the session.
+ A Schema object if a schema is active on the session.
 
 //@<OUT> Session: help getDefaultSchema
 Retrieves the Schema configured as default for the session.
@@ -127,7 +127,7 @@ SYNTAX
 
 RETURNS
 
- A Schema object or Null
+  A Schema object or Null
 
 //@<OUT> Session: help getSchema
 Retrieves a Schema object from the current session through it's name.
@@ -142,7 +142,7 @@ WHERE
 
 RETURNS
 
- The Schema object with the given name.
+  The Schema object with the given name.
 
 //@<OUT> Session: help getSchemas
 Retrieves the Schemas available on the session.
@@ -153,7 +153,7 @@ SYNTAX
 
 RETURNS
 
- A List containing the Schema objects available on the session.
+  A List containing the Schema objects available on the session.
 
 //@<OUT> Session: help getUri
 Retrieves the URI for the current session.
@@ -164,7 +164,7 @@ SYNTAX
 
 RETURNS
 
-A string representing the connection data.
+ A string representing the connection data.
 
 //@<OUT> Session: help isOpen
 Returns true if session is known to be open.
@@ -175,7 +175,7 @@ SYNTAX
 
 RETURNS
 
- A boolean value indicating if the session is still open.
+  A boolean value indicating if the session is still open.
 
 DESCRIPTION
 
@@ -191,7 +191,7 @@ SYNTAX
 
 RETURNS
 
-A String containing the escaped identifier.
+ A String containing the escaped identifier.
 
 //@<OUT> Session: releaseSavepoint
 Removes a savepoint defined on a transaction.
@@ -221,7 +221,7 @@ SYNTAX
 
 RETURNS
 
- A SqlResult object.
+  A SqlResult object.
 
 DESCRIPTION
 
@@ -245,7 +245,7 @@ WHERE
 
 RETURNS
 
-the Schema object for the new schema.
+ the Schema object for the new schema.
 
 DESCRIPTION
 
@@ -289,7 +289,7 @@ WHERE
 
 RETURNS
 
- The name of the transaction savepoint.
+  The name of the transaction savepoint.
 
 DESCRIPTION
 
@@ -336,7 +336,7 @@ SYNTAX
 
 RETURNS
 
- A SqlResult object.
+  A SqlResult object.
 
 DESCRIPTION
 

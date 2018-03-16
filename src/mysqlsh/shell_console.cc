@@ -22,54 +22,109 @@
  */
 
 #include "src/mysqlsh/shell_console.h"
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/stringbuffer.h>
 #include <string>
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "scripting/shexcept.h"
+#include "shellcore/shell_options.h"
+#include "shellcore/base_shell.h"
 
 namespace mysqlsh {
+namespace {
+std::string json_obj(const char *key, const std::string &value) {
+  rapidjson::Document doc;
+  doc.SetObject();
+  rapidjson::Value v(value.c_str(), doc.GetAllocator());
+  rapidjson::Value k(key, doc.GetAllocator());
+  doc.AddMember(k, v, doc.GetAllocator());
+
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  doc.Accept(writer);
+  return std::string(buffer.GetString()) + "\n";
+}
+
+bool use_json() {
+  std::string format = mysqlsh::Base_shell::options().output_format;
+  return format.find("json") != std::string::npos;
+}
+}  // namespace
 
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {}
 
 void Shell_console::print(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data, text.c_str());
+  if (use_json()) {
+    m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
+  } else {
+    m_ideleg->print(m_ideleg->user_data, text.c_str());
+  }
   log_debug("%s", text.c_str());
 }
 
 void Shell_console::println(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+  if (use_json() && !text.empty()) {
+    m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
+  } else {
+    m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+  }
   if (!text.empty()) log_debug("%s", text.c_str());
 }
 
 void Shell_console::print_error(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data,
-                  (mysqlshdk::textui::error("ERROR: ") + text + "\n").c_str());
+  if (use_json()) {
+    m_ideleg->print(m_ideleg->user_data, json_obj("error", text).c_str());
+  } else {
+    m_ideleg->print(
+        m_ideleg->user_data,
+        (mysqlshdk::textui::error("ERROR: ") + text + "\n").c_str());
+  }
   log_error("%s", text.c_str());
 }
 
 void Shell_console::print_warning(const std::string &text) {
-  m_ideleg->print(
-      m_ideleg->user_data,
-      (mysqlshdk::textui::warning("WARNING: ") + text + "\n").c_str());
+  if (use_json()) {
+    m_ideleg->print(m_ideleg->user_data, json_obj("warning", text).c_str());
+  } else {
+    m_ideleg->print(
+        m_ideleg->user_data,
+        (mysqlshdk::textui::warning("WARNING: ") + text + "\n").c_str());
+  }
   log_warning("%s", text.c_str());
 }
 
 void Shell_console::print_note(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data,
-                  mysqlshdk::textui::notice(text + "\n").c_str());
+  if (use_json()) {
+    m_ideleg->print(m_ideleg->user_data, json_obj("note", text).c_str());
+  } else {
+    m_ideleg->print(m_ideleg->user_data,
+                    mysqlshdk::textui::notice(text + "\n").c_str());
+  }
   log_info("%s", text.c_str());
 }
 
 void Shell_console::print_info(const std::string &text) {
-  m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+  if (use_json()) {
+    m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
+  } else {
+    m_ideleg->print(m_ideleg->user_data, (text + "\n").c_str());
+  }
   log_info("%s", text.c_str());
 }
 
 bool Shell_console::prompt(const std::string &prompt, std::string *ret_val) {
-  shcore::Prompt_result result = m_ideleg->prompt(
-      m_ideleg->user_data, mysqlshdk::textui::bold(prompt).c_str(), ret_val);
+  std::string text;
+  if (use_json()) {
+    text = json_obj("prompt", prompt);
+  } else {
+    text = mysqlshdk::textui::bold(prompt);
+  }
+  shcore::Prompt_result result =
+      m_ideleg->prompt(m_ideleg->user_data, text.c_str(), ret_val);
   if (result == shcore::Prompt_result::Cancel)
     throw shcore::cancelled("Cancelled");
   if (result == shcore::Prompt_result::Ok) return true;
@@ -185,7 +240,13 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
 
 shcore::Prompt_result Shell_console::prompt_password(const std::string &prompt,
                                                      std::string *out_val) {
-  return m_ideleg->password(m_ideleg->user_data, prompt.c_str(), out_val);
+  std::string text;
+  if (use_json()) {
+    text = json_obj("password", prompt);
+  } else {
+    text = mysqlshdk::textui::bold(prompt);
+  }
+  return m_ideleg->password(m_ideleg->user_data, text.c_str(), out_val);
 }
 
 }  // namespace mysqlsh

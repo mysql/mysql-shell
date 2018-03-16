@@ -16,14 +16,14 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster state
 cluster.status();
 
-//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.4)}
+//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.5)}
 var s3 = mysql.getSession(__sandbox_uri3);
 s3.runSql("RESET PERSIST IF EXISTS group_replication_start_on_boot");
 s3.runSql("RESET PERSIST IF EXISTS group_replication_group_name");
 s3.close();
 
 //@ Take third sandbox down, change group_name, start it back
-testutil.stopSandbox(__mysql_sandbox_port3, "root");
+testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 testutil.removeFromSandboxConf(__mysql_sandbox_port3, "group_replication_start_on_boot");
@@ -33,7 +33,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 //@<OUT> Should have 2 members ONLINE and one missing
 cluster.status();
 
-testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y|n]: ", "n");
+testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]: ", "n");
 //@ Rescan
 cluster.rescan();
 

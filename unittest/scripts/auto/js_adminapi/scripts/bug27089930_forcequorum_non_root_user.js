@@ -1,7 +1,10 @@
 // Deploy instances.
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 //@ Configure instance 1 creating an Admin User.
 var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);

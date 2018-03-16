@@ -185,8 +185,22 @@ void Shell_test_wrapper::enable_testutil() {
       [this](const std::string &prompt, const std::string &pass) {
         output_handler.passwords.push_back({prompt, pass});
       },
-      [this]() -> std::string { return output_handler.std_out; },
-      [this]() -> std::string { return output_handler.std_err; });
+      [this](bool eat_one) -> std::string {
+        if (eat_one) {
+          return shcore::str_partition_after_inpl(&output_handler.std_out,
+                                                  "\n");
+        } else {
+          return output_handler.std_out;
+        }
+      },
+      [this](bool eat_one) -> std::string {
+        if (eat_one) {
+          return shcore::str_partition_after_inpl(&output_handler.std_err,
+                                                  "\n");
+        } else {
+          return output_handler.std_err;
+        }
+      });
 
   if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct)
     _testutil->set_sandbox_snapshot_dir(
@@ -332,7 +346,7 @@ void Shell_test_wrapper::teardown_recorder() {
 
 static int find_column_in_select_stmt(const std::string &sql,
   const std::string &column) {
-  std::string s = shcore::str_lower(sql);
+  std::string s = shcore::str_rstrip(shcore::str_lower(sql), ";");
   // sanity checks for things we don't support
   assert(s.find(" from ") == std::string::npos);
   assert(s.find(" where ") == std::string::npos);

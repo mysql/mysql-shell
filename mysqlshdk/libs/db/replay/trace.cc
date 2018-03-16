@@ -412,17 +412,23 @@ std::map<std::string, std::string> Trace::get_metadata() {
 }
 
 void Trace::expect_request(rapidjson::Value* doc, const char* subtype) {
-  if (strcmp((*doc)["type"].GetString(), "request") != 0)
+  if (_got_error)
+    throw sequence_error("Session " + _trace_path + " is invalidated");
+
+  if (strcmp((*doc)["type"].GetString(), "request") != 0) {
+    _got_error = true;
     throw sequence_error(("Attempted a request in replayed session " +
                           _trace_path +
                           ", but got something else: " + to_json(doc))
                              .c_str());
-
-  if (strcmp((*doc)["subtype"].GetString(), subtype) != 0)
+  }
+  if (strcmp((*doc)["subtype"].GetString(), subtype) != 0) {
+    _got_error = true;
     throw sequence_error(
         shcore::str_format("Attempting a '%s' but replayed session %s has %s",
                            subtype, _trace_path.c_str(), to_json(doc).c_str())
             .c_str());
+  }
 }
 
 mysqlshdk::db::Connection_options Trace::expected_connect() {

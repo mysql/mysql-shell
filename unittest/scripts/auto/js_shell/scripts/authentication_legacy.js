@@ -26,7 +26,7 @@ rootsess.runSql("CREATE USER remo_pass@'%' IDENTIFIED WITH mysql_native_password
 
 // error returned for invalid password in 5.7 over xproto is different from 8.0
 if (testutil.versionCheck(__version, ">=", "8.0.4"))
-  var auth_fail_exc = "Invalid authentication method: PLAIN over unsecure channel";
+  var auth_fail_exc = "Invalid authentication method PLAIN";
 else
   var auth_fail_exc = "Invalid user or password";
 

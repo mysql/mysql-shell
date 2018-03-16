@@ -60,8 +60,7 @@ JOIN = "join-replicaset"
 LEAVE = "leave-replicaset"
 START = "start-replicaset"
 
-
-if __name__ == "__main__":
+def main():
     # Get the provided command
     command = sys.argv[1]
 
@@ -130,10 +129,15 @@ if __name__ == "__main__":
 
         except GadgetError:
             _, err, _ = sys.exc_info()
-            _LOGGER.error(u"Error %s: %s", command_error_msg, unicode(err))
+            # the check for mysql.get_classic_session is a hack to prevent
+            # double printing of the DB error
+            if err.cause and u"mysql.get_classic_session" not in unicode(err):
+                _LOGGER.error(u"Error %s: %s: %s", command_error_msg, unicode(err), unicode(err.cause))
+            else:
+                _LOGGER.error(u"Error %s: %s", command_error_msg, unicode(err))
             if _LOGGER.level <= logging.DEBUG:
                 import traceback
-                _LOGGER.debug(traceback.format_exc())
+                _LOGGER.debug("%s", traceback.format_exc())
             sys.exit(1)
         except UnicodeEncodeError:
             _, err, _ = sys.exc_info()
@@ -142,7 +146,7 @@ if __name__ == "__main__":
                           u"values.", command_error_msg, unicode(err))
             if _LOGGER.level <= logging.DEBUG:
                 import traceback
-                _LOGGER.debug(traceback.format_exc())
+                _LOGGER.debug("%s", traceback.format_exc())
             sys.exit(1)
         except Exception:  # pylint: disable=broad-except
             _, err, _ = sys.exc_info()
@@ -150,7 +154,7 @@ if __name__ == "__main__":
                           unicode(err))
             if _LOGGER.level <= logging.DEBUG:
                 import traceback
-                _LOGGER.debug(traceback.format_exc())
+                _LOGGER.debug("%s", traceback.format_exc())
             sys.exit(1)
 
         # Operation completed with success.
@@ -167,3 +171,19 @@ if __name__ == "__main__":
         else:
             signal.signal(signal.SIGINT, signal.SIG_DFL)
             os.kill(os.getpid(), signal.SIGINT)
+
+
+if __name__ == "__main__":
+    # set to True if you want to enable tracing of the Python code
+    # traces are sent to stdout. For debugging only.
+    enable_trace = False
+    if enable_trace:
+        import trace
+
+        tracer = trace.Trace(
+            ignoredirs=[sys.prefix, sys.exec_prefix], count=0)
+
+        # run the new command using the given tracer
+        tracer.run('main()')
+    else:
+        main()

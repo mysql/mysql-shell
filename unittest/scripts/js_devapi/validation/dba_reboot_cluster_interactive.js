@@ -70,10 +70,10 @@
     },
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
-//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.4)}
+//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.5)}
 ||
 
-//@ Add instance 3 back to the cluster {VER(<=8.0.4)}
+//@ Add instance 3 back to the cluster {VER(<=8.0.5)}
 ||
 
 //@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390

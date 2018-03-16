@@ -34,14 +34,6 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 // Waiting for the second added instance to become online
 wait_slave_state(cluster, uri2, "ONLINE");
 
-//@ Configure instance on port1.
-var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, dbPassword:'root'});
-
-//@ Configure instance on port2.
-var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, dbPassword:'root'});
-
 //@<OUT> Number of instance according to GR.
 print_instances_count_for_gr();
 
@@ -69,7 +61,7 @@ print_instances_count_for_gr();
 
 //@ Stop instance on port2.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
-testutil.stopSandbox(__mysql_sandbox_port2, "root");
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 //@ Restart instance on port2.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
@@ -80,10 +72,10 @@ session.close();
 cluster.disconnect();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
-//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.4)}.
+//@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.5)}.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
 // NOTE: Cannot count instance for GR due to a SET PERSIST bug (BUG#26495619).
-// This test check is only valid for server version >= 8.0.4.
+// This test check is only valid for server version >= 8.0.5.
 print_gr_start_on_boot();
 
 //@ Connect back to seed instance and get cluster.
@@ -101,7 +93,7 @@ wait_slave_state(cluster, uri2, "ONLINE");
 
 //@ Stop instance on port2
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-testutil.stopSandbox(__mysql_sandbox_port2, "root");
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Waiting for the instance on port2 to be found missing
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER

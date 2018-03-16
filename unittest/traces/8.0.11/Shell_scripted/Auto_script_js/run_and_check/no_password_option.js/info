@@ -1,7 +1,9 @@
 {
-    "hostname": "parasol",
-    "hostname_ip": "127.0.1.1",
-    "sandbox_port1": "4010",
-    "sandbox_port2": "4020",
-    "sandbox_port3": "4030"
+    "hostname": "dhcp-10-159-159-64.vpn.oracle.com",
+    "hostname_ip": "10.159.159.64",
+    "real_host_is_loopback": "0",
+    "real_hostname": "dhcp-10-159-159-64.vpn.oracle.com",
+    "sandbox_port1": "3317",
+    "sandbox_port2": "3327",
+    "sandbox_port3": "3337"
 }

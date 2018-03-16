@@ -1,8 +1,11 @@
 // Assumptions: wait_slave_state is defined
 
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
@@ -80,7 +83,7 @@ Cluster.status()
 
 //@# Dba: stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
-testutil.stopSandbox(__mysql_sandbox_port3, 'root');
+testutil.stopSandbox(__mysql_sandbox_port3);
 
 wait_slave_state(Cluster, uri3, ["(MISSING)"]);
 

@@ -36,6 +36,7 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 
 extern "C" const char *g_argv0;
 extern int g_test_trace_scripts;
+extern bool g_test_fail_early;
 extern int g_test_trace_sql;
 extern bool g_test_color_output;
 
@@ -119,8 +120,14 @@ class Shell_test_env : public ::testing::Test {
   static std::string _user;
   static std::string _pwd;
   static int _port_number;       //!< The port for X protocol, env:MYSQLX_PORT
-  static std::string _hostname;  //!< TBD
-  static std::string _hostname_ip;   //!< TBD
+  static std::string s_hostname;  //!< TBD
+  std::string m_hostname;
+  static bool s_real_host_is_loopback;
+  bool m_real_host_is_loopback;
+  static std::string s_hostname_ip;   //!< TBD
+  std::string m_hostname_ip;
+  static std::string s_real_hostname;  //!< TBD
+  std::string m_real_hostname;
   static std::string _uri;           //!< A full URI for X protocol sessions
   static std::string _uri_nopasswd;  //!< A password-less URI for X protocol
   static std::string
@@ -155,7 +162,6 @@ class Shell_test_env : public ::testing::Test {
   static mysqlshdk::utils::Version _highest_tls_version;  //!< The highest TLS
                                                           //!< version supported
                                                           //!< by MySQL Server
-
  protected:
   std::string _test_context;  //!< Context for script validation engine
 
@@ -173,12 +179,24 @@ class Shell_test_env : public ::testing::Test {
  public:
   static std::string get_path_to_mysqlsh();
   static std::string get_path_to_test_dir(const std::string &file = "");
-  static std::string hostname() {
-    return _hostname;
+
+  std::string hostname() {
+    return m_hostname.empty() ? s_hostname : m_hostname;
   }
-  static std::string hostname_ip() {
-    return _hostname_ip;
+
+  std::string hostname_ip() {
+    return m_hostname_ip.empty() ? s_hostname_ip : m_hostname_ip;
   }
+
+  std::string real_hostname() {
+    return m_real_hostname.empty() ? s_real_hostname : m_real_hostname;
+  }
+
+  bool real_host_is_loopback() {
+    return m_real_hostname.empty() ? s_real_host_is_loopback
+                                   : m_real_host_is_loopback;
+  }
+
   std::string mysql_sandbox_uri1(const std::string &user = "root",
                                  const std::string &pwd = "root");
   std::string mysql_sandbox_uri2(const std::string &user = "root",

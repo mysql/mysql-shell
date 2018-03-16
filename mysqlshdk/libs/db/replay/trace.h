@@ -181,6 +181,7 @@ class Trace {
   rapidjson::SizeType _index;
   std::string _trace_path;
   int _print_traces = 0;
+  bool _got_error = false;
 };
 
 }  // namespace replay

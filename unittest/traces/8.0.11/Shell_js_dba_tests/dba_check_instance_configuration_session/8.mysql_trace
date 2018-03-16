@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://test_user:@T460:3311",
+    "uri": "mysql://test_user:@dhcp-10-159-159-64.vpn.oracle.com:3317",
     "protocol": "classic"
 },
 {
@@ -11,10 +11,10 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "15",
-    "connection_info": "T460 via TCP/IP",
-    "server_info": "8.0.11-debug-log",
+    "connection_info": "dhcp-10-159-159-64.vpn.oracle.com via TCP/IP",
+    "server_info": "8.0.11",
     "server_version": "8.0.11",
-    "ssl_cipher": "ECDHE-RSA-AES128-GCM-SHA256"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.11-debug-log Source distribution"
+            "8.0.11 MySQL Community Server - GPL"
         ]
     ]
 },

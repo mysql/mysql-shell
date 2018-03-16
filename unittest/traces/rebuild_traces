@@ -18,7 +18,7 @@ else
 fi
 
 # Filter to find all tests that are replayable and processed by default
-replayable_tests_filter="Shell_js_dba*:*Auto_script_js*:Dba_common_test.*:-Shell_js_dba_tests.no_interactive_sandboxes:Shell_js_dba_tests.interactive_deploy_instance"
+replayable_tests_filter="Shell_js_dba*:*Auto_script_js*:Dba_common_test.*:Dba_sql_test.*:Dba_common_cluster_functions.*:Dba_replicaset_test.*:-Shell_js_dba_tests.no_interactive_sandboxes:Shell_js_dba_tests.interactive_deploy_instance"
 # Test groups that must be recorded/executed at once instead of case by case
 replayable_test_groups_nosplit="Dba_common_cluster_functions.*:Dba_replicaset_test.*:Dba_sql_test.*"
 
@@ -42,10 +42,18 @@ passed_tests=""
 rut_args=""
 all_=" FAILED"
 rebuild_all_tests=0
+list_only=0
 for arg in $*; do
   if test "$arg" == "--all"; then
     rebuild_all_tests=1
     all_=" ALL"
+  elif test "$arg" == "--list"; then
+    list_only=1
+  elif [[ "$arg" == "--base-sandbox-port="* ]]; then
+    baseport=$(echo $arg|cut -d= -f2)
+    export MYSQL_SANDBOX_PORT1=$(($baseport + 1))
+    export MYSQL_SANDBOX_PORT2=$(($baseport + 2))
+    export MYSQL_SANDBOX_PORT3=$(($baseport + 3))
   elif [[ "$arg" == "--"* ]]; then
     rut_args="$arg $rut_args"
   else
@@ -76,9 +84,7 @@ function is_nosplit_group() {
   return 1
 }
 
-
-echo "Will start checking and rebuilding$all_ traces for MySQL $version..."
-sleep 3
+echo "Will start checking and rebuilding$all_ traces for MySQL $version..." >& 2
 
 group=""
 ok=0
@@ -105,7 +111,14 @@ for t in $($rut --gtest_list_tests --gtest_filter=$filter|tail -n +5|grep -v DIS
       fi
     fi
 done
+
+if [ $list_only -ne 0 ]; then
+  echo $all_tests
+  exit 0
+fi
+
 echo
+sleep 3
 echo "Retesting $all_tests..."
 echo
 
@@ -137,7 +150,7 @@ for tname in $all_tests; do
     fi
     if [ -d $tracedir/$tcase_tracedir ]; then
       if [ $rebuild_all_tests -a ! -f $tracedir/$tcase_tracedir/FAILED ]; then
-        $rut --gtest_filter=$test_filter --replay=$version $rut_args
+        $rut --gtest_filter=$test_filter --replay=$version --stop-on-fail $rut_args
         if [ $? -eq 0 ]; then
             passed_tests="$test_filter $passed_tests"
 
@@ -158,9 +171,9 @@ for tname in $all_tests; do
       echo -e "\033[35mRecording $test_filter traces...\033[0m"
     fi
 
-    $rut --gtest_filter=$test_filter --record=$version $rut_args
+    $rut --gtest_filter=$test_filter --stop-on-fail --record=$version $rut_args
     if [ $? -eq 0 ]; then
-        $rut --gtest_filter=$test_filter --replay=$version $rut_args
+        $rut --gtest_filter=$test_filter --stop-on-fail --replay=$version $rut_args
         if [ $? -eq 0 ]; then
             echo -e "\033[35m$test_filter was FIXED\033[0m"
             fixed_tests="$test_filter $fixed_tests"

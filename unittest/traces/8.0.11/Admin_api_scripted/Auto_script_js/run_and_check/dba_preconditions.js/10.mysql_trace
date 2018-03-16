@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "28",
+    "connection_id": "29",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,122 +20,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "SELECT NOT @@group_replication_single_primary_mode OR     (select variable_value       from performance_schema.global_status       where variable_name = 'group_replication_primary_member')    = @@server_uuid"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 4,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "NOT @@group_replication_single_primary_mode OR     (select variable_value       from performance_schema.global_status       where variable_name = 'group_replication_primary_member')    = @@server_uuid",
-            "length": 1,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            1
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 5,
-    "sql": "SELECT   CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNRCH,  COUNT(*) AS TOTAL,  (SELECT member_state      FROM performance_schema.replication_group_members      WHERE member_id = @@server_uuid) AS my_state  FROM performance_schema.replication_group_members"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 6,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "UNRCH",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "TOTAL",
-            "length": 21,
-            "fractional": 0,
-            "type": "Integer",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "my_state",
-            "length": 256,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
-            0,
-            1,
-            "ONLINE"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 7,
     "sql": "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 8,
+    "index": 4,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -167,13 +57,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 9,
+    "index": 5,
     "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 10,
+    "index": 6,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -205,13 +95,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 11,
+    "index": 7,
     "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
 },
 {
     "type": "response",
     "subtype": "ERROR",
-    "index": 12,
+    "index": 8,
     "code": "1049",
     "msg": "Unknown database 'mysql_innodb_cluster_metadata'",
     "sqlstate": "42000"
@@ -219,13 +109,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 13,
+    "index": 9,
     "sql": "SELECT @@server_uuid, VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME = 'group_replication_primary_member';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 14,
+    "index": 10,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -266,21 +156,21 @@
     ],
     "rows": [
         [
-            "db62ebd2-22cb-11e8-9952-5ce0c50b9d66",
-            "db62ebd2-22cb-11e8-9952-5ce0c50b9d66"
+            "6efd81b0-2700-11e8-96af-57b794bcf289",
+            "6efd81b0-2700-11e8-96af-57b794bcf289"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 15,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'db62ebd2-22cb-11e8-9952-5ce0c50b9d66'"
+    "index": 11,
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6efd81b0-2700-11e8-96af-57b794bcf289'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 16,
+    "index": 12,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -312,13 +202,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 17,
+    "index": 13,
     "sql": "SELECT CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNREACHABLE,  COUNT(*) AS TOTAL FROM performance_schema.replication_group_members"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 18,
+    "index": 14,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,

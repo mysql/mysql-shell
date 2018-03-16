@@ -28,6 +28,9 @@ dba.help('checkInstanceConfiguration');
 //@<OUT> Stop Sandbox
 dba.help('stopSandboxInstance');
 
+//@<OUT> Configure Instance
+dba.help('configureInstance');
+
 //@<OUT> Configure Local Instance
 dba.help('configureLocalInstance');
 

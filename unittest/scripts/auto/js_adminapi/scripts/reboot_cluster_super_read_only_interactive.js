@@ -11,7 +11,7 @@ c = dba.createCluster("dev");
 c.status();
 
 session.runSql("stop group_replication");
-//@# status after stop GR - error
+//@ status after stop GR - error
 c.status();
 
 c.disconnect();
@@ -19,7 +19,7 @@ c.disconnect();
 // metadata should be there now, but GR is not running and since this is a
 // single node, we have full outage
 // super_read_only is also supposed to be on
-//@# getCluster() - error
+//@ getCluster() - error
 dba.getCluster();
 
 // Reboot with no prompt
@@ -39,7 +39,7 @@ dba.getCluster();
 
 
 //@<OUT> No flag, yes on prompt
-testutil.expectPrompt("Do you want to disable super_read_only and continue? [y|N]: ", "y");
+testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "y");
 
 var c = dba.rebootClusterFromCompleteOutage('dev');
 
@@ -48,15 +48,15 @@ session.runSql("stop group_replication");
 
 c.disconnect();
 //@<OUT> No flag, no on prompt
-testutil.expectPrompt("Do you want to disable super_read_only and continue? [y|N]: ", "n");
+testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
 
 var c = dba.rebootClusterFromCompleteOutage('dev');
 
 
-//@# Invalid flag value
+//@ Invalid flag value
 var c = dba.rebootClusterFromCompleteOutage('dev', {clearReadOnly: 'NotABool'});
 
-//@# Flag false
+//@ Flag false
 var c = dba.rebootClusterFromCompleteOutage('dev', {clearReadOnly: false});
 
 

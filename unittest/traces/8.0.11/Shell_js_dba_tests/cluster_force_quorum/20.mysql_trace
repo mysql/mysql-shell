@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3317",
     "protocol": "classic"
 },
 {
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "localhost:33401"
+            "localhost:33171"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SET GLOBAL group_replication_force_members = 'localhost:33401'"
+    "sql": "SET GLOBAL group_replication_force_members = 'localhost:33171'"
 },
 {
     "type": "response",

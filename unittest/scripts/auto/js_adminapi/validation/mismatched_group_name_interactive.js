@@ -41,7 +41,7 @@
 //@ Preparation
 ||
 
-//@ Remove the persist group_replication_group_name {VER(>=8.0.4)}
+//@ Remove the persist group_replication_group_name {VER(>=8.0.5)}
 ||
 
 //@ Kill instance 2, change the group_name and start it back

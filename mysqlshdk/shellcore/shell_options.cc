@@ -344,7 +344,9 @@ Shell_options::Shell_options(int argc, char** argv,
     (&storage.initial_mode, shcore::IShell_core::Mode::None,
         "defaultMode", "Specifies the shell mode to use when shell is started "
         "- one of sql, js or py.", std::bind(&shcore::parse_mode, _1),
-        &shcore::to_string);
+        [](shcore::IShell_core::Mode mode) {
+          return shcore::to_string(mode);
+        });
 
   add_startup_options()
     (cmdline("--name-cache"),

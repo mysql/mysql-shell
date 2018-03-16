@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "29",
+    "connection_id": "33",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
+    "sql": "SELECT cluster_id, cluster_name, default_replicaset, description, options, attributes FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_name = 'dev'"
 },
 {
     "type": "response",
@@ -32,12 +32,28 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "clusters",
+            "table_label": "clusters",
+            "column_name": "cluster_id",
+            "column_label": "cluster_id",
+            "length": 10,
+            "fractional": 0,
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "clusters",
+            "table_label": "clusters",
+            "column_name": "cluster_name",
+            "column_label": "cluster_name",
+            "length": 160,
             "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -48,26 +64,78 @@
             "binary": false
         },
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "clusters",
+            "table_label": "clusters",
+            "column_name": "default_replicaset",
+            "column_label": "default_replicaset",
+            "length": 10,
             "fractional": 0,
-            "type": "String",
+            "type": "UInteger",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": true,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "clusters",
+            "table_label": "clusters",
+            "column_name": "description",
+            "column_label": "description",
+            "length": 262140,
+            "fractional": 0,
+            "type": "Bytes",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "clusters",
+            "table_label": "clusters",
+            "column_name": "options",
+            "column_label": "options",
+            "length": 4294967295,
+            "fractional": 0,
+            "type": "Json",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        },
+        {
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "clusters",
+            "table_label": "clusters",
+            "column_name": "attributes",
+            "column_label": "attributes",
+            "length": 4294967295,
+            "fractional": 0,
+            "type": "Json",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
         }
     ],
     "rows": [
         [
-            "group_replication_group_seeds",
-            "localhost:33401"
+            1,
+            "dev",
+            1,
+            "Default Cluster",
+            "null",
+            "{\"default\": true}"
         ]
     ]
 },
@@ -75,7 +143,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "show GLOBAL variables where `variable_name` in ('persisted_globals_load')"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -87,12 +155,12 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
-            "length": 256,
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "replicasets",
+            "table_label": "replicasets",
+            "column_name": "replicaset_name",
+            "column_label": "replicaset_name",
+            "length": 160,
             "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -103,13 +171,69 @@
             "binary": false
         },
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
+            "schema": "mysql_innodb_cluster_metadata",
+            "table_name": "replicasets",
+            "table_label": "replicasets",
+            "column_name": "topology_type",
+            "column_label": "topology_type",
+            "length": 8,
             "fractional": 0,
+            "type": "Enum",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "group_name",
+            "length": 67108864,
+            "fractional": 31,
+            "type": "Bytes",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            "default",
+            "pm",
+            "43793a7d-26ec-11e8-91bb-b86b230042b9"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "SELECT @@group_replication_group_name"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@group_replication_group_name",
+            "length": 144,
+            "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -121,34 +245,84 @@
     ],
     "rows": [
         [
-            "persisted_globals_load",
-            "ON"
+            "43793a7d-26ec-11e8-91bb-b86b230042b9"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33401,localhost:33601'"
+    "index": 9,
+    "sql": "select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 8,
+    "index": 10,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            1
+        ]
+    ]
 },
 {
     "type": "request",
-    "subtype": "CLOSE",
-    "index": 9
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = @@server_uuid"
 },
 {
     "type": "response",
-    "subtype": "OK",
-    "index": 10
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            1
+        ]
+    ]
 },
 null]

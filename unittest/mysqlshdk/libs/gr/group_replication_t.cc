@@ -86,6 +86,29 @@ TEST_F(Group_replication_Test, plugin_installation) {
     EXPECT_THROW(mysqlshdk::gr::install_plugin(*instance),
                  std::runtime_error);
   } else {
+    // Requirements to install the GR plugin:
+    // - server_id != 0
+    // - master_info_repository=TABLE
+    // - relay_log_info_repository=TABLE
+    nullable<int64_t> server_id = instance->get_sysvar_int("server_id");
+    if (*server_id == 0) {
+      SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
+    }
+    nullable<std::string> master_info_repository =
+      instance->get_sysvar_string("master_info_repository");
+    if ((*master_info_repository).compare("TABLE") != 0) {
+      SKIP_TEST(
+          "Test server does not meet GR requirements: master_info_repository "
+          "must be 'TABLE'.");
+    }
+    nullable<std::string> relay_log_info_repository =
+        instance->get_sysvar_string("relay_log_info_repository");
+    if ((*relay_log_info_repository).compare("TABLE") != 0) {
+      SKIP_TEST(
+          "Test server does not meet GR requirements: relay_log_info_repository "
+          "must be 'TABLE'.");
+    }
+
     // GR plugin is installed and activated (if not previously disabled).
     bool res = mysqlshdk::gr::install_plugin(*instance);
     ASSERT_TRUE(res)
@@ -163,59 +186,58 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   // Check if used server meets the requirements.
   nullable<int64_t> server_id = instance->get_sysvar_int("server_id");
   if (*server_id == 0) {
-    std::cout << "[  SKIPPED ] - server_id is 0." << std::endl;
-    return;
+    SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
   }
   nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
   if (*log_bin != true) {
-    std::cout << "[  SKIPPED ] - log_bin must be ON." << std::endl;
-    return;
+    SKIP_TEST("Test server does not meet GR requirements: log_bin must be ON.");
   }
   nullable<bool> gtid_mode = instance->get_sysvar_bool("gtid_mode");
   if (*gtid_mode != true) {
-    std::cout << "[  SKIPPED ] - gtid_mode must be ON." << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: gtid_mode must be ON.");
   }
   nullable<bool> enforce_gtid_consistency =
       instance->get_sysvar_bool("enforce_gtid_consistency");
   if (*enforce_gtid_consistency != true) {
-    std::cout << "[  SKIPPED ] - enforce_gtid_consistency must be ON."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: enforce_gtid_consistency "
+        "must be ON.");
   }
   nullable<std::string> master_info_repository =
       instance->get_sysvar_string("master_info_repository");
   if ((*master_info_repository).compare("TABLE") != 0) {
-    std::cout << "[  SKIPPED ] - master_info_repository must be 'TABLE'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: master_info_repository "
+        "must be 'TABLE'.");
   }
   nullable<std::string> relay_log_info_repository =
       instance->get_sysvar_string("relay_log_info_repository");
   if ((*relay_log_info_repository).compare("TABLE") != 0) {
-    std::cout << "[  SKIPPED ] - relay_log_info_repository must be 'TABLE'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: relay_log_info_repository "
+        "must be 'TABLE'.");
   }
   nullable<std::string> binlog_checksum =
       instance->get_sysvar_string("binlog_checksum");
   if ((*binlog_checksum).compare("NONE") != 0) {
-    std::cout << "[  SKIPPED ] - binlog_checksum must be 'NONE'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: binlog_checksum must be "
+        "'NONE'.");
   }
   nullable<bool> log_slave_updates =
       instance->get_sysvar_bool("log_slave_updates");
   if (*log_slave_updates != true) {
-    std::cout << "[  SKIPPED ] - log_slave_updates must be ON." << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: log_slave_updates must "
+        "be ON.");
   }
   nullable<std::string> binlog_format =
       instance->get_sysvar_string("binlog_format");
   if ((*binlog_format).compare("ROW") != 0) {
-    std::cout << "[  SKIPPED ] - binlog_format must be 'ROW'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: binlog_format must be "
+        "'ROW'.");
   }
 
   // Test: member is not part of any group, state must be MISSING.
@@ -355,59 +377,57 @@ TEST_F(Group_replication_Test, get_replication_user) {
   // Check if used server meets the requirements.
   nullable<int64_t> server_id = instance->get_sysvar_int("server_id");
   if (*server_id == 0) {
-    std::cout << "[  SKIPPED ] - server_id is 0." << std::endl;
-    return;
+    SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
   }
   nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
   if (*log_bin != true) {
-    std::cout << "[  SKIPPED ] - log_bin must be ON." << std::endl;
-    return;
+    SKIP_TEST("Test server does not meet GR requirements: log_bin must be ON.");
   }
   nullable<bool> gtid_mode = instance->get_sysvar_bool("gtid_mode");
   if (*gtid_mode != true) {
-    std::cout << "[  SKIPPED ] - gtid_mode must be ON." << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: gtid_mode must be ON.");
   }
   nullable<bool> enforce_gtid_consistency =
       instance->get_sysvar_bool("enforce_gtid_consistency");
   if (*enforce_gtid_consistency != true) {
-    std::cout << "[  SKIPPED ] - enforce_gtid_consistency must be ON."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: enforce_gtid_consistency "
+        "must be ON.");
   }
   nullable<std::string> master_info_repository =
       instance->get_sysvar_string("master_info_repository");
   if ((*master_info_repository).compare("TABLE") != 0) {
-    std::cout << "[  SKIPPED ] - master_info_repository must be 'TABLE'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: master_info_repository "
+        "must be 'TABLE'.");
   }
   nullable<std::string> relay_log_info_repository =
       instance->get_sysvar_string("relay_log_info_repository");
   if ((*relay_log_info_repository).compare("TABLE") != 0) {
-    std::cout << "[  SKIPPED ] - relay_log_info_repository must be 'TABLE'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: relay_log_info_repository "
+        "must be 'TABLE'.");
   }
   nullable<std::string> binlog_checksum =
       instance->get_sysvar_string("binlog_checksum");
   if ((*binlog_checksum).compare("NONE") != 0) {
-    std::cout << "[  SKIPPED ] - binlog_checksum must be 'NONE'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: binlog_checksum must be "
+        "'NONE'.");
   }
   nullable<bool> log_slave_updates =
       instance->get_sysvar_bool("log_slave_updates");
   if (*log_slave_updates != true) {
-    std::cout << "[  SKIPPED ] - log_slave_updates must be ON." << std::endl;
-    return;
+    SKIP_TEST("Test server does not meet GR requirements: log_slave_updates "
+              "must be ON.");
   }
   nullable<std::string> binlog_format =
       instance->get_sysvar_string("binlog_format");
   if ((*binlog_format).compare("ROW") != 0) {
-    std::cout << "[  SKIPPED ] - binlog_format must be 'ROW'."
-              << std::endl;
-    return;
+    SKIP_TEST(
+        "Test server does not meet GR requirements: binlog_format must be "
+        "'ROW'.");
   }
 
   // Install GR plugin if needed.

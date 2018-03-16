@@ -339,7 +339,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(
       _session->connect(instance_def);
       mysqlshdk::mysql::Instance *instance =
           new mysqlshdk::mysql::Instance(_session);
-      if (instance->get_version() < mysqlshdk::utils::Version(8, 0, 4)) {
+      if (instance->get_version() < mysqlshdk::utils::Version(8, 0, 5)) {
         println("WARNING: The 'group_replication_start_on_boot' variable must "
                 "be set to 'OFF' in the server configuration file, otherwise "
                 "it might silently rejoin the cluster upon restart.");

@@ -32,7 +32,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
-// #include "modules/adminapi/mod_dba_instance.h"
+#include "modules/adminapi/dba/check_instance.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/utils_help.h"
@@ -68,12 +68,6 @@ void Global_dba::init() {
              "clusterName", shcore::String);
   add_method("dropMetadataSchema",
              std::bind(&Global_dba::drop_metadata_schema, this, _1), "data",
-             shcore::Map);
-  add_method("checkInstanceConfiguration",
-             std::bind(&Global_dba::check_instance_configuration, this, _1),
-             "data", shcore::Map);
-  add_method("configureLocalInstance",
-             std::bind(&Global_dba::configure_local_instance, this, _1), "data",
              shcore::Map);
 }
 
@@ -169,7 +163,7 @@ shcore::Value Global_dba::deploy_sandbox_instance(
     std::string sandbox_dir{options->get_string("sandboxDir")};
 
     bool prompt_password =
-        !options->has_key("password") && !options->has_key("dbPassword");
+        !options->has_key("password");
 
     std::string message;
     if (prompt_password) {
@@ -256,7 +250,7 @@ shcore::Value Global_dba::perform_instance_operation(
 
   if (fname == "stopSandboxInstance") {
     bool prompt_password =
-        !options->has_key("password") && !options->has_key("dbPassword");
+        !options->has_key("password");
 
     if (prompt_password) {
       std::string message =
@@ -421,53 +415,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
                 mysqlshdk::db::uri::formats::no_scheme_no_password()) +
             "'.\n");
 
-    // Use check_instance_configuration() in order to verify if we need
-    // to prompt the user to allow the configuration changes
-    try {
-      auto instance_def = member_session->get_connection_options();
-      // Resolves user and validates password
-      mysqlsh::resolve_connection_credentials(&instance_def);
-      auto result = dba->_check_instance_configuration(instance_def, {}, false);
-
-      std::string status = result->get_string("status");
-
-      if (status == "error") {
-        println("Warning: The instance configuration needs to be changed in "
-                "order to\ncreate an InnoDB cluster. To see which changes will "
-                "be made, please\nuse the dba." +
-                get_member_name("checkInstanceConfiguration", naming_style) +
-                "() function before confirming\nto change the configuration.");
-        println();
-
-        if (prompt("Should the configuration be changed accordingly?",
-                  Prompt_answer::NO) == Prompt_answer::NO) {
-          println();
-          println("Cancelled");
-          return shcore::Value();
-        } else {
-          println();
-        }
-      }
-    } catch (shcore::Exception &e) {
-      // We must ignore the two possible exceptions of
-      // checkInstanceConfiguration for this call:
-      //  * Instance already being part of a GR group
-      //    - If adoptFromGR is used this must be bypassed
-      //  * Instance already part of an InnoDB cluster
-      //    - Already checked on the function preconditions check
-      // If some other exception is caught we throw it
-      std::string error(e.what());
-      if (error.find("is already part of a Replication Group")
-            != std::string::npos) {
-        // Log the exception ignored
-        log_info("Ignoring exception thrown: '%s', "
-                 "due to the operation of creating the InnoDB cluster based "
-                 "on an existing replication group", e.what());
-      } else {
-        throw;
-      }
-    }
-
     if (multi_master && !force) {
       println(
           "The MySQL InnoDB cluster is going to be setup in advanced "
@@ -513,11 +460,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   if (options != NULL)
     new_args.push_back(shcore::Value(options));
-
-  println("Creating InnoDB cluster '" + cluster_name + "' on '" +
-          member_session->uri(
-              mysqlshdk::db::uri::formats::no_scheme_no_password()) +
-          "'...");
 
   // This is an instance of the API cluster
   auto raw_cluster = call_target("createCluster", new_args);
@@ -572,6 +514,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       new Interactive_dba_cluster(this->_shell_core, _delegate);
   cluster->set_target(dba_cluster);
   ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+
+  member_session->close();
 
   return ret_val;
 }
@@ -694,13 +638,15 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
   Value::Array_type_ref remove_instances_ref, rejoin_instances_ref;
   shcore::Argument_list new_args;
   shcore::Argument_map opt_map;
-
+  bool prompt_read_only = true;
+  bool confirm_rescan_rejoins = true, confirm_rescan_removes = true;
   auto dba = std::dynamic_pointer_cast<mysqlsh::dba::Dba>(_target);
 
+  check_preconditions(dba->get_active_shell_session(),
+                      "rebootClusterFromCompleteOutage");
+
   try {
-    bool confirm_rescan_rejoins = true, confirm_rescan_removes = true;
     bool default_cluster = false;
-    bool prompt_read_only = true;
 
     if (args.size() == 0) {
       default_cluster = true;
@@ -758,9 +704,6 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
               "' from complete outage...");
       cluster = dba->get_cluster(cluster_name.c_str(), metadata, group_session);
     }
-
-    check_preconditions(cluster->get_group_session(),
-                        "rebootClusterFromCompleteOutage");
 
     // Verify the status of the instances
     validate_instances_status_reboot_cluster(
@@ -923,6 +866,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       if (!prompt_super_read_only(cluster->get_group_session(), options))
         return shcore::Value();
     }
+  }
+  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
+      get_function_name("rebootClusterFromCompleteOutage"));
 
     if (!confirmed_rescan_rejoins->empty() ||
         !confirmed_rescan_removes->empty() ||
@@ -960,11 +906,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     println();
     println("The cluster was successfully rebooted.");
     println();
-  }
-  CATCH_AND_TRANSLATE_CLUSTER_EXCEPTION(
-      get_function_name("rebootClusterFromCompleteOutage"));
 
-  Interactive_dba_cluster *cluster =
+    Interactive_dba_cluster *cluster =
       new Interactive_dba_cluster(this->_shell_core, _delegate);
   cluster->set_target(
       std::dynamic_pointer_cast<Cpp_object_bridge>(ret_val.as_object()));
@@ -1017,84 +960,16 @@ void Global_dba::print_validation_results(
       (*opt_map)["note"] = shcore::Value(note);
     }
 
-    dump_table(
+    mysqlsh::dba::dump_table(
         {"option", "current", "required", "note"},
         {"Variable", "Current Value", "Required Value", "Note"},
-        config_errors);
+        config_errors, _delegate);
 
     for (auto option : *config_errors) {
       auto opt_map = option.as_map();
       opt_map->erase("note");
     }
   }
-}
-
-shcore::Value Global_dba::check_instance_configuration(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  std::string format = mysqlsh::Base_shell::options().output_format;
-
-  args.ensure_count(1, 2,
-                    get_function_name("checkInstanceConfiguration").c_str());
-
-  auto instance_def =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-  if (args.size() == 2) {
-    shcore::Argument_map extra_opts(*args.map_at(1));
-    extra_opts.ensure_keys({}, {"password", "dbPassword", "mycnfPath"},
-                           "validation options");
-  }
-
-  // Gather username and password if missing
-  mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
-  auto instance_map = mysqlsh::get_connection_map(instance_def);
-
-  shcore::Argument_list new_args;
-  new_args.push_back(shcore::Value(instance_map));
-
-  if (args.size() == 2)
-    new_args.push_back(args[1]);
-
-  // Let's get the user to know we're starting to validate the instance
-  println("Validating instance...");
-  println();
-
-  ret_val = call_target("checkInstanceConfiguration", new_args);
-
-  if (format.find("json") != std::string::npos) {
-    print_value(ret_val, "");
-  } else {
-    auto result = ret_val.as_map();
-
-    if (result->get_string("status") == "ok") {
-      println(
-          "The instance '" +
-          instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
-          "' is valid "
-          "for Cluster usage");
-    } else {
-      println(
-          "The instance '" +
-          instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
-          "' is not "
-          "valid for Cluster usage.");
-
-      print_validation_results(result);
-
-      std::string closing_error = "Please fix these issues";
-      if (result->get_bool("restart_required"))
-        closing_error += ", restart the server";
-
-      closing_error += " and try again.";
-
-      println();
-      println(closing_error);
-      println();
-    }
-  }
-
-  return ret_val;
 }
 
 bool Global_dba::resolve_cnf_path(
@@ -1514,308 +1389,4 @@ bool Global_dba::prompt_super_read_only(
     }
   }
   return true;
-}
-
-shcore::Value Global_dba::configure_local_instance(
-    const shcore::Argument_list &_args) {
-  _args.ensure_count(0, 2, get_function_name("configureLocalInstance").c_str());
-
-  std::string user;
-  shcore::Value::Map_type_ref instance_map;
-  mysqlshdk::db::Connection_options instance_def;
-  shcore::Argument_list args(_args);
-  shcore::Argument_list target_args;
-
-  try {
-    bool prompt_read_only = true;
-
-    if (args.size() == 0) {
-      // default instance
-      args.push_back(Value("root@localhost:3306"));
-    }
-    instance_def =
-        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-
-    if (!mysqlshdk::utils::Net::is_local_address(instance_def.get_host()))
-      throw shcore::Exception::runtime_error(
-          "This function only works with local instances");
-
-    // Gather username and password if missing
-    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
-    instance_map = mysqlsh::get_connection_map(instance_def);
-
-    shcore::Value::Map_type_ref extra_options;
-    if (args.size() == 2) {
-      extra_options = args.map_at(1);
-      shcore::Argument_map extra_opts(*extra_options);
-      extra_opts.ensure_keys(
-          {},
-          {"password", "dbPassword", "mycnfPath", "clusterAdmin",
-           "clusterAdminPassword", "clearReadOnly"},
-          "validation options");
-
-      if (extra_opts.has_key("clearReadOnly")) {
-        // This call is done only to validate the passed data
-        extra_opts.bool_at("clearReadOnly");
-        prompt_read_only = false;
-      }
-    } else {
-      extra_options.reset(new shcore::Value::Map_type());
-    }
-
-    // Target args contain the args received on the interactive layer
-    // including the resolved user and password
-    target_args.push_back(shcore::Value(instance_map));
-    target_args.push_back(shcore::Value(extra_options));
-
-    // Session args holds all the connection data, including the
-    // resolved user/password
-    user = instance_def.get_user();
-
-    // Attempts to resolve the configuration file path
-    if (!extra_options->has_key("mycnfPath")) {
-      bool resolved = resolve_cnf_path(instance_def, extra_options);
-
-      if (!resolved) {
-        println();
-        println(
-            "The path to the MySQL Configuration is required to verify "
-            "and fix the InnoDB Cluster settings");
-        return shcore::Value();
-      }
-    }
-
-    // Validate whether the user to be used for cluster admin has the expected
-    // privileges and is not just a @localhost account
-    // (which can't be used to manage remote instances)
-    {
-      std::string admin_user = user;
-      std::string admin_user_host = "%";
-      std::string account;
-
-      std::shared_ptr<mysqlshdk::db::ISession> target_member_session;
-
-      // User passed clusterAdmin option, we ensure that account exists
-      if (extra_options->has_key("clusterAdmin")) {
-        account = extra_options->get_string("clusterAdmin");
-
-        try {
-          shcore::split_account(account, &admin_user, &admin_user_host, false);
-        } catch (...) {
-          throw shcore::Exception::runtime_error(
-              "Invalid account name syntax in " + account);
-        }
-        if (admin_user_host.empty())
-          admin_user_host = "%";
-
-        account = shcore::make_account(admin_user, admin_user_host);
-      } else {
-        // Validate the account being used
-        target_member_session = mysqlsh::dba::Dba::get_session(instance_def);
-
-        if (!ensure_admin_account_usable(target_member_session, admin_user,
-                                         admin_user_host, &account)) {
-          target_member_session->close();
-          return shcore::Value();
-        }
-      }
-      // set account creation options so that backend can do it later
-      if (!account.empty()) {
-        (*extra_options)["clusterAdmin"] = shcore::Value(account);
-        if (!extra_options->has_key("clusterAdminPassword")) {
-          std::string admin_password = prompt_confirmed_password();
-          (*extra_options)["clusterAdminPassword"] =
-              shcore::Value(admin_password);
-        }
-      }
-
-      // Verify the status of super_read_only and ask the user if wants
-      // to disable it
-      // NOTE: this is left for last to avoid setting super_read_only to true
-      // and right before some execution failure of the command leaving the
-      // instance in an incorrect state
-      if (prompt_read_only) {
-        if (!target_member_session)
-          target_member_session = mysqlsh::dba::Dba::get_session(instance_def);
-
-        if (!prompt_super_read_only(target_member_session, extra_options)) {
-          target_member_session->close();
-          return shcore::Value();
-        }
-      }
-
-      if (target_member_session)
-        target_member_session->close();
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("configureLocalInstance"));
-
-  println("Validating instance...");
-  println();
-
-  // Algorithm Step 2: Call mp on the provided MySQL URI with the validate
-  //                   option
-  // Algorithm Step 3: IF GR is already active on the remote server, stop
-  //                   and tell user that the server is already part of a
-  //                   group and return
-  shcore::Value validation_report =
-      call_target("configureLocalInstance", target_args);
-
-  auto result = validation_report.as_map();
-
-  // Algorithm Step 4: IF instance is ready for GR, stop and return
-  if (result->get_string("status") == "ok") {
-    println("The instance '" +
-            instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
-            "' is valid "
-            "for Cluster usage");
-
-    println("You can now use it in an InnoDB Cluster.");
-    println();
-  } else {
-    auto errors = result->get_array("errors");
-
-    // If there are only configuration errors, a simple restart may solve them
-    bool restart_required = result->get_bool("restart_required");
-    bool just_restart = false;
-    bool just_dynamic = !restart_required;
-
-    if (restart_required) {
-      just_restart = errors->empty();
-      if (just_restart && result->has_key("config_errors")) {
-        auto config_errors = result->get_array("config_errors");
-
-        // We gotta review item by item to determine if a simple restart is
-        // enough
-        for (auto config_error : *config_errors) {
-          auto error_map = config_error.as_map();
-
-          std::string action = error_map->get_string("action");
-
-          // If restart is required anyway, these two will be fixed on that
-          // process
-          if (action == "server_update+config_update" ||
-              action == "server_update") {
-            if (!restart_required)
-              just_restart = false;
-          } else if (action != "restart") {
-            just_restart = false;
-          }
-
-          if (!just_restart)
-            break;
-        }
-      }
-    }
-
-    if (just_restart) {
-      println(
-          "The configuration has been updated but it is required to "
-          "restart the server.");
-    } else if (just_dynamic) {
-      println(
-          "The issues above can be fixed dynamically to get the server "
-          "ready for InnoDB Cluster.");
-    } else {
-      println(
-          "Failed to resolve all the issues, the instance is still not "
-          "good for InnoDB Cluster.");
-      println(
-          "Please fix these issues to get the instance ready for InnoDB "
-          "Cluster:");
-      println();
-
-      print_validation_results(result);
-    }
-
-    println();
-  }
-
-  return validation_report;
-}
-
-void Global_dba::dump_table(const std::vector<std::string> &column_names,
-                            const std::vector<std::string> &column_labels,
-                            shcore::Value::Array_type_ref documents) {
-  std::vector<uint64_t> max_lengths;
-
-  size_t field_count = column_names.size();
-
-  // Updates the max_length array with the maximum length between column name,
-  // min column length and column max length
-  for (size_t field_index = 0; field_index < field_count; field_index++) {
-    max_lengths.push_back(0);
-    max_lengths[field_index] = std::max<uint64_t>(
-        max_lengths[field_index], column_labels[field_index].size());
-  }
-
-  // Now updates the length with the real column data lengths
-  if (documents) {
-    for (auto map : *documents) {
-      auto document = map.as_map();
-      for (size_t field_index = 0; field_index < field_count; field_index++)
-        max_lengths[field_index] = std::max<uint64_t>(
-            max_lengths[field_index],
-            document->get_string(column_names[field_index]).size());
-    }
-  }
-
-  //-----------
-
-  size_t index = 0;
-  std::vector<std::string> formats(field_count, "%-");
-
-  // Calculates the max column widths and constructs the separator line.
-  std::string separator("+");
-  for (index = 0; index < field_count; index++) {
-    // Creates the format string to print each field
-    formats[index].append(std::to_string(max_lengths[index]));
-    if (index == field_count - 1)
-      formats[index].append("s |");
-    else
-      formats[index].append("s | ");
-
-    std::string field_separator(max_lengths[index] + 2, '-');
-    field_separator.append("+");
-    separator.append(field_separator);
-  }
-  separator.append("\n");
-
-  // Prints the initial separator line and the column headers
-  print(separator);
-  print("| ");
-
-  for (index = 0; index < field_count; index++) {
-    std::string data =
-        str_format(formats[index].c_str(), column_labels[index].c_str());
-    print(data.c_str());
-
-    // Once the header is printed, updates the numeric fields formats
-    // so they are right aligned
-    // if (numerics[index])
-    //  formats[index] = formats[index].replace(1, 1, "");
-  }
-  println();
-  print(separator);
-
-  if (documents) {
-    // Now prints the records
-    for (auto map : *documents) {
-      auto document = map.as_map();
-
-      print("| ");
-
-      for (size_t field_index = 0; field_index < field_count; field_index++) {
-        std::string raw_value = document->get_string(column_names[field_index]);
-        std::string data =
-            str_format(formats[field_index].c_str(), raw_value.c_str());
-
-        print(data.c_str());
-      }
-      println();
-    }
-  }
-
-  println(separator);
 }

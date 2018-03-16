@@ -31,7 +31,7 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 // Waiting for the third added instance to become online
 wait_slave_state(cluster, uri3, "ONLINE");
 
-//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.4)}
+//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.5)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 2 will
 // be still trying to join the cluster from the moment it was started again until
 // the cluster is unlocked after the forceQuorumUsingPartitionOf command

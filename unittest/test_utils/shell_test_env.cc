@@ -66,7 +66,12 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
    * Injects this instance of network utilities, replacing the default
    * behaviour.
    */
-  void inject() {
+  void inject(const std::string &hostname, const std::string &hostname_ip,
+              const std::string &real_hostname, bool real_host_is_loopback) {
+    m_hostname = hostname;
+    m_hostname_ip = hostname_ip;
+    m_real_hostname = real_hostname;
+    m_real_host_is_loopback = real_host_is_loopback;
     set(this);
   }
 
@@ -79,15 +84,37 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
   }
 
  protected:
+  std::string m_hostname;
+  std::string m_hostname_ip;
+  std::string m_real_hostname;
+  bool m_real_host_is_loopback = false;
+
   /**
    * Allows to resolve the hostname stored by the shell test environment.
    */
   std::string resolve_hostname_ipv4_impl(const std::string &name) const
                                                                   override {
-    if (name == Shell_test_env::hostname())
-      return Shell_test_env::hostname_ip();
+    if (name == m_hostname)
+      return m_hostname_ip;
     else
       return Net::resolve_hostname_ipv4_impl(name);
+  }
+
+  bool is_local_address_impl(const std::string &address) const override {
+    if (address == m_hostname || address == m_hostname_ip ||
+        address == m_real_hostname)
+      return true;
+    else
+      return Net::is_local_address_impl(address);
+  }
+
+  bool is_loopback_impl(const std::string &address) const override {
+    if (address == m_real_hostname && m_real_host_is_loopback) return true;
+    return Net::is_loopback_impl(address);
+  }
+
+  std::string get_hostname_impl() const override {
+    return m_hostname;
   }
 };
 
@@ -100,8 +127,10 @@ std::string Shell_test_env::_port;
 std::string Shell_test_env::_user;
 std::string Shell_test_env::_pwd;
 int Shell_test_env::_port_number;
-std::string Shell_test_env::_hostname;
-std::string Shell_test_env::_hostname_ip;
+std::string Shell_test_env::s_hostname;
+bool Shell_test_env::s_real_host_is_loopback;
+std::string Shell_test_env::s_real_hostname;
+std::string Shell_test_env::s_hostname_ip;
 std::string Shell_test_env::_uri;
 std::string Shell_test_env::_uri_nopasswd;
 std::string Shell_test_env::_mysql_port;
@@ -157,8 +186,12 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
     _mysql_socket = sock;
   }
 
-  _hostname = getenv("MYSQL_HOSTNAME");
-  _hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(_hostname);
+  s_hostname = getenv("MYSQL_HOSTNAME");
+  s_real_hostname = getenv("MYSQL_REAL_HOSTNAME");
+  s_real_host_is_loopback =
+      mysqlshdk::utils::Net::is_loopback(s_real_hostname);
+  s_hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(s_hostname);
+  assert(!s_real_hostname.empty());
 
   _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 
@@ -179,8 +212,6 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
   // version
   _target_server_version = g_target_server_version;
   _highest_tls_version = g_highest_tls_version;
-
-  test_net_utilities.inject();
 }
 
 /**
@@ -269,9 +300,10 @@ void Shell_test_env::TearDown() {
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
 
   if (_recording_enabled) {
-    // TODO(.) this getenv should be removed once all issues are fixed, so
-    // the check is always executed
-    if (!check_open_sessions()) {
+    const ::testing::TestInfo *const test_info =
+        ::testing::UnitTest::GetInstance()->current_test_info();
+    // Don't bother with checking session leaks if the test itself failed
+    if (!test_info->result()->Failed() && !check_open_sessions()) {
       ADD_FAILURE() << "Leaky sessions detected\n";
     }
 
@@ -324,6 +356,12 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
 
   mysqlshdk::db::replay::begin_recording_context(context);
 
+  // Reset per-test network environment vars. overriden below if replaying
+  m_hostname.clear();
+  m_hostname_ip.clear();
+  m_real_hostname.clear();
+  m_real_host_is_loopback = false;
+
   if (is_recording) {
     if (shcore::is_folder(mysqlshdk::db::replay::current_recording_dir()) &&
         !shcore::file_exists(mysqlshdk::db::replay::current_recording_dir() +
@@ -358,28 +396,41 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
       std::map<std::string, std::string> info =
           mysqlshdk::db::replay::load_test_case_info();
 
+      // Note: these ports are static vars, we assume only one test will
+      // be active at a time.
+
       // Override environment dependant data with the same values that were
       // used and saved during recording
       _mysql_sandbox_port1 = std::stoi(info["sandbox_port1"]);
       _mysql_sandbox_port2 = std::stoi(info["sandbox_port2"]);
       _mysql_sandbox_port3 = std::stoi(info["sandbox_port3"]);
 
-      _hostname = info["hostname"];
-      _hostname_ip = info["hostname_ip"];
+      m_hostname = info["hostname"];
+      m_hostname_ip = info["hostname_ip"];
+      m_real_hostname = info["real_hostname"];
+      m_real_host_is_loopback = info["real_host_is_loopback"] == "1";
     } catch (std::exception &e) {
       // std::cout << e.what() << "\n";
       _mysql_sandbox_port1 = 3316;
       _mysql_sandbox_port2 = 3326;
       _mysql_sandbox_port3 = 3336;
     }
+
+    // Inject the recorded environment, so that tests that call things like
+    // Net::is_loopback() will replay with the same environment as where
+    // traces were recorded
+    test_net_utilities.inject(m_hostname, m_hostname_ip, m_real_hostname,
+                              m_real_host_is_loopback);
   } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
     std::map<std::string, std::string> info;
 
     info["sandbox_port1"] = std::to_string(_mysql_sandbox_port1);
     info["sandbox_port2"] = std::to_string(_mysql_sandbox_port2);
     info["sandbox_port3"] = std::to_string(_mysql_sandbox_port3);
-    info["hostname"] = _hostname;
-    info["hostname_ip"] = _hostname_ip;
+    info["hostname"] = s_hostname;
+    info["hostname_ip"] = s_hostname_ip;
+    info["real_hostname"] = s_real_hostname;
+    info["real_host_is_loopback"] = s_real_host_is_loopback ? "1" : "0";
 
     mysqlshdk::db::replay::save_test_case_info(info);
   }
@@ -407,6 +458,9 @@ void Shell_test_env::teardown_recorder() {
                           "/FAILED");
     }
   }
+
+  test_net_utilities.remove();
+
   mysqlshdk::db::replay::end_recording_context();
 }
 

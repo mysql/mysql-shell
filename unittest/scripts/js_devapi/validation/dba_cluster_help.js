@@ -1,29 +1,8 @@
 //@ Initialization
 ||
 
-//@<OUT> create cluster
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "<<<__ssl_mode>>>",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},
-                "role": "HA",
-                "status": "ONLINE"
-            }
-        }
-    },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@<OUT> Object Help
+
 The cluster object is the entry point to manage and monitor a MySQL InnoDB
 cluster.
 
@@ -57,7 +36,9 @@ For more help on a specific function use: cluster.help('<functionName>')
 
 e.g. cluster.help('addInstance')
 
+
 //@<OUT> Add Instance
+
 Adds an Instance to the cluster.
 
 SYNTAX
@@ -69,30 +50,9 @@ WHERE
   instance: An instance definition.
   options: Dictionary with options for the operation.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-  ArgumentError: if the instance parameter is empty.
-  ArgumentError: if the instance definition is invalid.
-  ArgumentError: if the instance definition is a connection dictionary but
-                 empty.
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  ArgumentError: if the value for the memberSslMode option is not one of the
-                 allowed: "AUTO", "DISABLED", "REQUIRED".
-  ArgumentError: if the value for the ipWhitelist, localAddress, or groupSeeds
-                 options is empty.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if the instance is not in bootstrapped state.
-  RuntimeError: if the SSL mode specified is not compatible with the one used
-                in the cluster.
-  RuntimeError: if the value for the localAddress or groupSeeds options is not
-                valid for Group Replication.
-
 RETURNS
 
- nothing
+  nothing
 
 DESCRIPTION
 
@@ -152,7 +112,36 @@ The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a
 comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+  ArgumentError in the following scenarios:
+
+   - If the instance parameter is empty.
+   - If the instance definition is invalid.
+   - If the instance definition is a connection dictionary but empty.
+   - If the value for the memberSslMode option is not one of the allowed:
+     "AUTO", "DISABLED", "REQUIRED".
+   - If the value for the ipWhitelist, localAddress, or groupSeeds options is
+     empty.
+   - If the instance definition cannot be used for Group Replication.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance accounts are invalid.
+   - If the instance is not in bootstrapped state.
+   - If the SSL mode specified is not compatible with the one used in the
+     cluster.
+   - If the value for the localAddress or groupSeeds options is not valid for
+     Group Replication.
+
+
 //@<OUT> Check Instance State
+
 Verifies the instance gtid state in relation with the cluster.
 
 SYNTAX
@@ -164,20 +153,9 @@ WHERE
   instance: An instance definition.
   password: String with the password for the connection.
 
-EXCEPTIONS
-
-  ArgumentError: if the instance parameter is empty.
-  ArgumentError: if the instance definition is invalid.
-  ArgumentError: if the instance definition is a connection dictionary but
-                 empty.
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if the instance is offline.
-
 RETURNS
 
- resultset A JSON object with the status.
+  resultset A JSON object with the status.
 
 DESCRIPTION
 
@@ -213,6 +191,21 @@ The reason for the state reported can be one of the following:
  - lost_transactions: if the instance has more executed GTIDs than the executed
    GTIDs of the cluster instances
 
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the instance parameter is empty.
+   - If the instance definition is invalid.
+   - If the instance definition is a connection dictionary but empty.
+   - If the instance definition cannot be used for Group Replication.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance accounts are invalid.
+   - If the instance is offline.
+
+
 //@<OUT> Describe
 
 Describe the structure of the cluster.
@@ -221,14 +214,9 @@ SYNTAX
 
   <Cluster>.describe()
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-
 RETURNS
 
- A JSON object describing the structure of the cluster.
+  A JSON object describing the structure of the cluster.
 
 DESCRIPTION
 
@@ -252,6 +240,14 @@ Each instance dictionary contains the following attributes:
  - label: the instance name identifier
  - role: the instance role
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+
 //@<OUT> Disconnect
 
 Disconnects all internal sessions used by the cluster object.
@@ -262,12 +258,13 @@ SYNTAX
 
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
 Disconnects the internal MySQL sessions used by the cluster to query for
 metadata and replication information.
+
 
 //@<OUT> Dissolve
 
@@ -282,14 +279,9 @@ WHERE
   options: Parameter to specify if it should deactivate replication and
            unregister the ReplicaSets from the cluster.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -302,8 +294,16 @@ The following is the only option supported:
 
  - force: boolean, confirms that the dissolve operation must be executed.
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
 
 //@<OUT> Force Quorum Using Partition Of
+
 Restores the cluster from quorum loss.
 
 SYNTAX
@@ -315,21 +315,9 @@ WHERE
   instance: An instance definition to derive the forced group from.
   password: String with the password for the connection.
 
-EXCEPTIONS
-
-  ArgumentError: if the instance parameter is empty.
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  RuntimeError: if the instance does not exist on the Metadata.
-  RuntimeError: if the instance is not on the ONLINE state.
-  RuntimeError: if the instance does is not an active member of a replication
-                group.
-  RuntimeError: if there are no ONLINE instances visible from the given one.
-  LogicError: if the cluster does not exist.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -362,6 +350,24 @@ in the network, but not accessible from your location.
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
 
+EXCEPTIONS
+
+  ArgumentError in the following scenarios:
+
+   - If the instance parameter is empty.
+   - If the instance definition cannot be used for Group Replication.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance does not exist on the Metadata.
+   - If the instance is not on the ONLINE state.
+   - If the instance does is not an active member of a replication group.
+   - If there are no ONLINE instances visible from the given one.
+
+  LogicError in the following scenarios:
+
+   - If the cluster does not exist.
+
 
 //@<OUT> Get Name
 
@@ -373,14 +379,23 @@ SYNTAX
 
 RETURNS
 
- The name of the cluster.
+  The name of the cluster.
+
+
+
 
 //@<OUT> Help
+
+
 SYNTAX
 
   <Cluster>.help()
 
+
+
+
 //@<OUT> Rejoin Instance
+
 Rejoins an Instance to the cluster.
 
 SYNTAX
@@ -392,24 +407,9 @@ WHERE
   instance: An instance definition.
   options: Dictionary with options for the operation.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-  ArgumentError: if the value for the memberSslMode option is not one of the
-                 allowed: "AUTO", "DISABLED", "REQUIRED".
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  RuntimeError: if the instance does not exist.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if the instance is not in bootstrapped state.
-  RuntimeError: if the SSL mode specified is not compatible with the one used
-                in the cluster.
-  RuntimeError: if the instance is an active member of the ReplicaSet.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -447,7 +447,31 @@ notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
 AUTOMATIC, allowing addresses from the instance private network to be
 automatically set for the whitelist.
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+  ArgumentError in the following scenarios:
+
+   - If the value for the memberSslMode option is not one of the allowed:
+     "AUTO", "DISABLED", "REQUIRED".
+   - If the instance definition cannot be used for Group Replication.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance does not exist.
+   - If the instance accounts are invalid.
+   - If the instance is not in bootstrapped state.
+   - If the SSL mode specified is not compatible with the one used in the
+     cluster.
+   - If the instance is an active member of the ReplicaSet.
+
+
 //@<OUT> Remove Instance
+
 Removes an Instance from the cluster.
 
 SYNTAX
@@ -459,23 +483,9 @@ WHERE
   instance: An instance definition.
   options: Dictionary with options for the operation.
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-  ArgumentError: if the instance parameter is empty.
-  ArgumentError: if the instance definition is invalid.
-  ArgumentError: if the instance definition is a connection dictionary but
-                 empty.
-  ArgumentError: if the instance definition cannot be used for Group
-                 Replication.
-  RuntimeError: if the instance accounts are invalid.
-  RuntimeError: if an error occurs when trying to remove the instance (e.g.,
-                instance is not reachable).
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
@@ -489,7 +499,7 @@ Only TCP/IP connections are allowed for this function.
 
 The options dictionary may contain the following attributes:
 
- - password/dbPassword: the instance connection password
+ - password: the instance connection password
  - force: boolean, indicating if the instance must be removed (even if only
    from metadata) in case it cannot be reached. By default, set to false.
 
@@ -503,6 +513,27 @@ longer be recovered. Otherwise, the instance must be brought back ONLINE and
 removed without the force option to avoid errors trying to add it back to a
 cluster.
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+  ArgumentError in the following scenarios:
+
+   - If the instance parameter is empty.
+   - If the instance definition is invalid.
+   - If the instance definition is a connection dictionary but empty.
+   - If the instance definition cannot be used for Group Replication.
+
+  RuntimeError in the following scenarios:
+
+   - If the instance accounts are invalid.
+   - If an error occurs when trying to remove the instance (e.g., instance is
+     not reachable).
+
+
 //@<OUT> Rescan
 
 Rescans the cluster.
@@ -511,20 +542,29 @@ SYNTAX
 
   <Cluster>.rescan()
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-  LogicError: if the cluster does not exist.
-  RuntimeError: if all the ReplicaSet instances of any ReplicaSet are offline.
-
 RETURNS
 
- nothing.
+  nothing.
 
 DESCRIPTION
 
 This function rescans the cluster for new Group Replication members/instances.
+
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
+
+  LogicError in the following scenarios:
+
+   - If the cluster does not exist.
+
+  RuntimeError in the following scenarios:
+
+   - If all the ReplicaSet instances of any ReplicaSet are offline.
+
 
 //@<OUT> Status
 
@@ -534,14 +574,9 @@ SYNTAX
 
   <Cluster>.status()
 
-EXCEPTIONS
-
-  MetadataError: if the Metadata is inaccessible.
-  MetadataError: if the Metadata update operation failed.
-
 RETURNS
 
- A JSON object describing the status of the cluster.
+  A JSON object describing the status of the cluster.
 
 DESCRIPTION
 
@@ -577,6 +612,12 @@ Each instance is a dictionary containing the following attributes:
  - role: the instance role
  - status: the instance status
 
+EXCEPTIONS
+
+  MetadataError in the following scenarios:
+
+   - If the Metadata is inaccessible.
+   - If the Metadata update operation failed.
 
 //@ Finalization
 ||

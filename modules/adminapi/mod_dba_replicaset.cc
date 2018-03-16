@@ -30,6 +30,7 @@
 #include <vector>
 #include <memory>
 #include "modules/adminapi/mod_dba_replicaset.h"
+#include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
@@ -52,10 +53,10 @@ using namespace shcore;
 using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
 std::set<std::string> ReplicaSet::_add_instance_opts = {
-    "label", "password", "dbPassword", "memberSslMode", "ipWhitelist",
+    "label", "password", "memberSslMode", "ipWhitelist",
     "localAddress", "groupSeeds"};
 std::set<std::string> ReplicaSet::_remove_instance_opts = {
-    "password", "dbPassword", "force"};
+    "password", "force"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -72,12 +73,12 @@ ReplicaSet::ReplicaSet(const std::string &name,
                        const std::string &topology_type,
                        const std::string &group_name,
                        std::shared_ptr<MetadataStorage> metadata_storage,
-                       std::shared_ptr<IConsole> m_console_handler)
+                       std::shared_ptr<IConsole> m_console)
     : _name(name),
       _topology_type(topology_type),
       _group_name(group_name),
       _metadata_storage(metadata_storage),
-      m_console_handler(m_console_handler) {
+      m_console(m_console) {
   assert(topology_type == kTopologyMultiMaster ||
          topology_type == kTopologyPrimaryMaster);
   init();
@@ -278,10 +279,10 @@ static void update_group_replication_group_seeds(
   }
 
   // Update group_replication_group_seeds variable
-  // If server version >= 8.0.4 use set persist, otherwise use set global
+  // If server version >= 8.0.5 use set persist, otherwise use set global
   // and warn users that they should use configureLocalInstance to persist
   // the value of the variables
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 4)) {
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 5)) {
     bool persist_load = *instance.get_sysvar_bool(
         "persisted_globals_load", mysqlshdk::mysql::Var_qualifier::GLOBAL);
     if (!persist_load) {
@@ -305,7 +306,7 @@ static void update_group_replication_group_seeds(
       "On instance '" + address + "' membership change cannot "
       "be persisted since MySQL version " + instance.get_version().get_base() +
       " does not support the SET PERSIST command "
-      "(MySQL version >= 8.0.4 required). Please use the <Dba>." +
+      "(MySQL version >= 8.0.5 required). Please use the <Dba>." +
       get_member_name("configureLocalInstance", naming_style) + " command "
       "locally to persist the changes.";
     console_handler->print_warning(warn_msg);
@@ -368,27 +369,6 @@ void ReplicaSet::validate_instance_address(
           "To add an instance to the cluster, please use a valid, non-local "
           "hostname or IP. " +
           hostname + " can only be used with sandbox MySQL instances.");
-    } else {
-      log_warning(
-          "'%s' (%s) detected as local sandbox. Sandbox instances are only "
-          "suitable for deploying and running on your local machine for "
-          "testing purposes and are not accessible from external networks.",
-          hostname.c_str(), datadir.c_str());
-    }
-  } else {
-    auto result = session->query("select @@report_host, @@hostname");
-    auto row = result->fetch_one();
-    // host is not set explicitly by the user, so GR will pick hostname by
-    // default now we check if this is a loopback address
-    if (row->is_null(0)) {
-      if (mysqlshdk::utils::Net::is_loopback(row->get_as_string(1))) {
-        std::string msg = "MySQL server reports hostname as being '" +
-                          row->get_as_string(1) +
-                          "', which may cause the cluster to be inaccessible "
-                          "externally. Please set report_host in MySQL to fix "
-                          "this.";
-        log_warning("%s", msg.c_str());
-      }
     }
   }
 }
@@ -396,7 +376,7 @@ void ReplicaSet::validate_instance_address(
 void set_group_replication_member_options(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &ssl_mode) {
-  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4)
+  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 5)
       && ssl_mode == dba::kMemberSSLModeDisabled) {
     // We need to install the GR plugin to have GR sysvars available
     mysqlshdk::mysql::Instance instance(session);
@@ -413,7 +393,7 @@ shcore::Value ReplicaSet::add_instance(
     const shcore::Argument_list &args,
     const std::string &existing_replication_user,
     const std::string &existing_replication_password, bool overwrite_seed,
-    const std::string &group_name) {
+    const std::string &group_name, bool skip_instance_check) {
   shcore::Value ret_val;
   bool success = false;
 
@@ -494,9 +474,22 @@ shcore::Value ReplicaSet::add_instance(
   std::shared_ptr<mysqlshdk::db::ISession> session(
       mysqlshdk::db::mysql::Session::create());
   session->connect(instance_cnx_opt);
+  mysqlshdk::mysql::Instance target_instance(session);
+  target_instance.cache_global_sysvars();
 
   // Check whether the address being used is not in a known not-good case
   validate_instance_address(session, joiner_host, instance_cnx_opt.get_port());
+
+  // Check instance configuration and state, like dba.checkInstance
+  // But don't do it if it was already done by the caller
+  if (!skip_instance_check) {
+    std::shared_ptr<Cluster> cluster(_cluster.lock());
+    if (!cluster)
+      throw shcore::Exception::runtime_error(
+          "Cluster object is no longer valid");
+    ensure_instance_configuration_valid(
+        &target_instance, cluster->get_provisioning_interface(), m_console);
+  }
 
   // Check replication filters before creating the Metadata.
   validate_replication_filters(session);
@@ -654,6 +647,7 @@ shcore::Value ReplicaSet::add_instance(
     std::string added_instance_gr_address = *added_instance.get_sysvar_string(
         "group_replication_local_address",
         mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
     // Update the group_seeds of the instance that was just added
     // If the groupSeeds option was used (not empty), we use
     // that value, otherwise we use the value of all the
@@ -661,19 +655,20 @@ shcore::Value ReplicaSet::add_instance(
     update_group_replication_group_seeds(group_seeds,
                                          Gr_seeds_change_type::OVERRIDE,
                                          session, naming_style,
-                                         m_console_handler);
+                                         m_console);
     // Update the group_replication_group_seeds of the members that
     // already belonged to the cluster and are either ONLINE or recovering
     // by adding the gr_local_address of the instance that was just added.
     std::vector<std::string> ignore_instances_vec = {instance_address};
     Gr_seeds_change_type change_type = Gr_seeds_change_type::ADD;
+
     execute_in_members(
         {"'ONLINE'", "'RECOVERING'"}, instance_cnx_opt, ignore_instances_vec,
         [added_instance_gr_address, change_type, this]
             (std::shared_ptr<mysqlshdk::db::ISession> session) {
           update_group_replication_group_seeds(
               added_instance_gr_address, change_type,
-              session, this->naming_style, this->m_console_handler);
+              session, this->naming_style, this->m_console);
         });
     log_debug("Instance add finished");
   }
@@ -1188,13 +1183,14 @@ void ReplicaSet::finalize_instance_removal(
   // of the instance that was removed
   std::vector<std::string> ignore_instances_vec;
   Gr_seeds_change_type change_type = Gr_seeds_change_type::REMOVE;
+
   execute_in_members(
       {"'ONLINE'", "'RECOVERING'"}, instance_cnx_opts, ignore_instances_vec,
       [local_gr_address, change_type, this]
           (std::shared_ptr<mysqlshdk::db::ISession> session) {
         update_group_replication_group_seeds(local_gr_address, change_type,
                                              session, this->naming_style,
-                                             this->m_console_handler);
+                                             this->m_console);
       });
   const std::vector<std::string> kGRRemoveInstanceVarsDefault {
       "group_replication_bootstrap_group", "group_replication_force_members",
@@ -1203,10 +1199,10 @@ void ReplicaSet::finalize_instance_removal(
   // reset values for group_replication_bootstrap_group,
   // group_replication_force_members, group_replication_group_seeds and
   // group_replication_local_address
-  // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.4
-  //       due to BUG#26495619.
+  // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.5
+  // due to BUG#26495619.
 
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 4)) {
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 5)) {
     instance.set_sysvar("group_replication_start_on_boot", false,
                         mysqlshdk::mysql::Var_qualifier::PERSIST);
     for (auto gr_var : kGRRemoveInstanceVarsDefault) {
@@ -1225,7 +1221,8 @@ void ReplicaSet::finalize_instance_removal(
         "configuration file or set the 'group_replication_start_on_boot' "
         "variable to 'OFF' in the server configuration file, otherwise it "
         "might rejoin the cluster upon restart.";
-      m_console_handler->print_warning(warn_msg);
+
+      m_console->print_warning(warn_msg);
     }
   } else {
     // NOTE: mysqlprovision already set group_replication_start_on_boot=OFF
@@ -1234,11 +1231,12 @@ void ReplicaSet::finalize_instance_removal(
         "' configuration cannot be persisted since MySQL version " +
         _session->get_server_version().get_base() +
         " does not support the SET "
-        "PERSIST command (MySQL version >= 8.0.4 required). Please set the "
+        "PERSIST command (MySQL version >= 8.0.5 required). Please set the "
         "'group_replication_start_on_boot' variable to 'OFF' in the server "
         "configuration file, otherwise it might rejoin the cluster upon "
         "restart.";
-    m_console_handler->print_warning(warn_msg);
+
+    m_console->print_warning(warn_msg);
   }
 
   // Check if super_read_only is enabled and disable it to remove

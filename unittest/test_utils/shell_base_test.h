@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -70,7 +70,8 @@ class Shell_base_test : public Shell_test_env {
   bool check_multiline_expect(const std::string& context,
                               const std::string& stream,
                               const std::string& expected,
-                              const std::string& actual);
+                              const std::string& actual,
+                              int srcline = 0, int valline = 0);
   std::string multiline(const std::vector<std::string> input);
 
   void create_file(const std::string& name, const std::string& content);

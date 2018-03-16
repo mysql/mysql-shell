@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3317?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "18",
+    "connection_id": "13",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -485,7 +485,7 @@
     ],
     "rows": [
         [
-            3317
+            3316
         ]
     ]
 },
@@ -654,7 +654,7 @@
     ],
     "rows": [
         [
-            15662
+            15661
         ]
     ]
 },
@@ -738,7 +738,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SELECT * FROM mysql.user WHERE user = 'mysql_innodb_cluster_r0000000006' and host = '%'"
+    "sql": "SELECT * FROM mysql.user WHERE user = 'mysql_innodb_cluster_r0000000005' and host = '%'"
 },
 {
     "type": "response",
@@ -1537,7 +1537,7 @@
     "rows": [
         [
             "%",
-            "mysql_innodb_cluster_r0000000006",
+            "mysql_innodb_cluster_r0000000005",
             "N",
             "N",
             "N",
@@ -1576,9 +1576,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$e)\u0001K\u001EfMY{&\u0006(\u0007]\u0001\u001D9\u0005ftKTwmUAfaNlVOjBF7UEs1wRcK0aFgmJacXbxbZikOg7C",
+            "$A$005$\u0011\u0005|\t\u001F&XeI[Z%uw.v?8F\u0015pjm.zfhvRHLZyljAgv0ElZX7Jmu3Uysxr1ahuScK5m4",
             "N",
-            "2018-03-12 14:32:38",
+            "2018-03-14 17:18:23",
             null,
             "N",
             "N",
@@ -1644,7 +1644,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SHOW GRANTS FOR 'mysql_innodb_cluster_r0000000006'@'%'"
+    "sql": "SHOW GRANTS FOR 'mysql_innodb_cluster_r0000000005'@'%'"
 },
 {
     "type": "response",
@@ -1660,7 +1660,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "Grants for mysql_innodb_cluster_r0000000006@%",
+            "column_label": "Grants for mysql_innodb_cluster_r0000000005@%",
             "length": 4096,
             "fractional": 31,
             "type": "String",
@@ -1674,7 +1674,7 @@
     ],
     "rows": [
         [
-            "GRANT REPLICATION SLAVE ON *.* TO `mysql_innodb_cluster_r0000000006`@`%`"
+            "GRANT REPLICATION SLAVE ON *.* TO `mysql_innodb_cluster_r0000000005`@`%`"
         ]
     ]
 },
@@ -2558,9 +2558,9 @@
             0,
             0,
             "caching_sha2_password",
-            "$A$005$\u0001\u0007!\u000E\u0004u\u00122Q\u001B\t&=\r/vRSU\u0011uw3KiRt2c9sRAXw6TAxDTe2TulXvURg0KriB9tyAEw2",
+            "$A$005$O\r0OT\u0015l9\u0003\u000E:HkhK2dznyU25wj3jTYNlBMac/cx9hYL2Q3APaoAlMdxvyECYNr1",
             "N",
-            "2018-03-12 11:42:32",
+            "2018-03-13 22:17:33",
             null,
             "N",
             "Y",
@@ -2900,7 +2900,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "SELECT table_schema, table_name, engine FROM information_schema.tables WHERE engine NOT IN ('InnoDB', 'MEMORY') AND table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
+    "sql": "show plugins"
 },
 {
     "type": "response",
@@ -2912,13 +2912,13 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "TABLES",
-            "table_label": "tables",
-            "column_name": "TABLE_SCHEMA",
-            "column_label": "TABLE_SCHEMA",
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "PLUGINS",
+            "column_name": "PLUGIN_NAME",
+            "column_label": "Name",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -2928,13 +2928,13 @@
             "binary": false
         },
         {
-            "schema": "",
-            "table_name": "TABLES",
-            "table_label": "tables",
-            "column_name": "TABLE_NAME",
-            "column_label": "TABLE_NAME",
-            "length": 256,
-            "fractional": 31,
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "PLUGINS",
+            "column_name": "PLUGIN_STATUS",
+            "column_label": "Status",
+            "length": 40,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -2944,13 +2944,45 @@
             "binary": false
         },
         {
-            "schema": "",
-            "table_name": "TABLES",
-            "table_label": "tables",
-            "column_name": "ENGINE",
-            "column_label": "ENGINE",
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "PLUGINS",
+            "column_name": "PLUGIN_TYPE",
+            "column_label": "Type",
+            "length": 320,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "PLUGINS",
+            "column_name": "PLUGIN_LIBRARY",
+            "column_label": "Library",
             "length": 256,
-            "fractional": 31,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        },
+        {
+            "schema": "information_schema",
+            "table_name": "PLUGINS",
+            "table_label": "PLUGINS",
+            "column_name": "PLUGIN_LICENSE",
+            "column_label": "License",
+            "length": 320,
+            "fractional": 0,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
             "charset": "utf8mb4",
@@ -2960,13 +2992,315 @@
             "binary": false
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "binlog",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "mysql_native_password",
+            "ACTIVE",
+            "AUTHENTICATION",
+            null,
+            "GPL"
+        ],
+        [
+            "sha256_password",
+            "ACTIVE",
+            "AUTHENTICATION",
+            null,
+            "GPL"
+        ],
+        [
+            "caching_sha2_password",
+            "ACTIVE",
+            "AUTHENTICATION",
+            null,
+            "GPL"
+        ],
+        [
+            "sha2_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "CSV",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "InnoDB",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_TRX",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CMP",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CMP_RESET",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CMPMEM",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CMPMEM_RESET",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CMP_PER_INDEX",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CMP_PER_INDEX_RESET",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_BUFFER_PAGE",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_BUFFER_PAGE_LRU",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_BUFFER_POOL_STATS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_TEMP_TABLE_INFO",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_METRICS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_FT_DEFAULT_STOPWORD",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_FT_DELETED",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_FT_BEING_DELETED",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_FT_CONFIG",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_FT_INDEX_CACHE",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_FT_INDEX_TABLE",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_TABLES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_TABLESTATS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_INDEXES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_TABLESPACES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_COLUMNS",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_VIRTUAL",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "INNODB_CACHED_INDEXES",
+            "ACTIVE",
+            "INFORMATION SCHEMA",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "BLACKHOLE",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "FEDERATED",
+            "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
+            null,
+            "GPL"
+        ],
+        [
+            "mysqlx",
+            "ACTIVE",
+            "DAEMON",
+            null,
+            "GPL"
+        ],
+        [
+            "mysqlx_cache_cleaner",
+            "ACTIVE",
+            "AUDIT",
+            null,
+            "GPL"
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "SELECT t.table_schema, t.table_name FROM information_schema.tables t     LEFT JOIN (SELECT table_schema, table_name                FROM information_schema.statistics                GROUP BY table_schema, table_name, index_name                HAVING SUM(CASE                    WHEN non_unique = 0 AND nullable != 'YES'                    THEN 1 ELSE 0 END) = COUNT(*)               ) puks     ON t.table_schema = puks.table_schema         AND t.table_name = puks.table_name WHERE puks.table_name IS NULL     AND t.table_type = 'BASE TABLE'     AND t.table_schema NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')"
+    "sql": "SELECT @@global.super_read_only"
 },
 {
     "type": "response",
@@ -2979,38 +3313,26 @@
     "columns": [
         {
             "schema": "",
-            "table_name": "TABLES",
-            "table_label": "t",
-            "column_name": "TABLE_SCHEMA",
-            "column_label": "TABLE_SCHEMA",
-            "length": 256,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@global.super_read_only",
+            "length": 1,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "TABLES",
-            "table_label": "t",
-            "column_name": "TABLE_NAME",
-            "column_label": "TABLE_NAME",
-            "length": 256,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            0
+        ]
+    ]
 },
 {
     "type": "request",
@@ -3409,13 +3731,6 @@
             "AUDIT",
             null,
             "GPL"
-        ],
-        [
-            "group_replication",
-            "ACTIVE",
-            "GROUP REPLICATION",
-            "group_replication.so",
-            "GPL"
         ]
     ]
 },
@@ -3423,12 +3738,80 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'group_replication%'"
+    "sql": "SELECT @@version_compile_os"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 78,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "@@version_compile_os",
+            "length": 32,
+            "fractional": 31,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "osx10.13"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 79,
+    "sql": "INSTALL PLUGIN group_replication SONAME 'group_replication.so'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 80,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 81,
+    "sql": "commit"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 82,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 83,
+    "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'group_replication%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 84,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -3477,13 +3860,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 79,
+    "index": 85,
     "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members as m JOIN performance_schema.replication_group_member_stats as s on m.MEMBER_ID = s.MEMBER_ID AND m.MEMBER_ID = @@server_uuid"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 80,
+    "index": 86,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -3506,22 +3889,18 @@
             "binary": true
         }
     ],
-    "rows": [
-        [
-            "OFFLINE"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 81,
+    "index": 87,
     "sql": "SELECT @@server_id"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 82,
+    "index": 88,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -3546,60 +3925,15 @@
     ],
     "rows": [
         [
-            15662
+            15661
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 83,
-    "sql": "SET SQL_LOG_BIN=0"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 84,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 85,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 86,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 87,
-    "sql": "SET PERSIST group_replication_single_primary_mode = 'OFF'"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 88,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
     "index": 89,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3614,7 +3948,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3629,7 +3963,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_single_primary_mode = 'OFF'"
 },
 {
     "type": "response",
@@ -3644,7 +3978,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 95,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3659,7 +3993,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3674,7 +4008,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 99,
-    "sql": "SET PERSIST group_replication_group_name = 'ca94447b-e6fc-11e7-b69d-4485005154dc'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3689,7 +4023,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 101,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3704,7 +4038,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 103,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3719,7 +4053,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 105,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_group_name = 'ca94447b-e6fc-11e7-b69d-4485005154dc'"
 },
 {
     "type": "response",
@@ -3734,7 +4068,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 107,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3749,7 +4083,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 109,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3764,7 +4098,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SET PERSIST group_replication_recovery_use_ssl = 'ON'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3779,7 +4113,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 113,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3794,7 +4128,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 115,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3809,7 +4143,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 117,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_recovery_use_ssl = 'ON'"
 },
 {
     "type": "response",
@@ -3824,7 +4158,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 119,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3839,7 +4173,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3854,7 +4188,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 123,
-    "sql": "SET PERSIST auto_increment_offset = 4"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3869,7 +4203,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 125,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3884,7 +4218,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 127,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3899,7 +4233,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 129,
-    "sql": "commit"
+    "sql": "SET PERSIST auto_increment_offset = 3"
 },
 {
     "type": "response",
@@ -3914,7 +4248,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 131,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3929,7 +4263,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 133,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3944,7 +4278,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 135,
-    "sql": "SET PERSIST group_replication_ssl_mode = 'REQUIRED'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3959,7 +4293,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 137,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3974,7 +4308,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 139,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3989,7 +4323,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 141,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_ssl_mode = 'REQUIRED'"
 },
 {
     "type": "response",
@@ -4004,7 +4338,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 143,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4019,7 +4353,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -4034,7 +4368,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 147,
-    "sql": "SET PERSIST group_replication_start_on_boot = 'ON'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4049,7 +4383,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 149,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -4064,7 +4398,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 151,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4079,7 +4413,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_start_on_boot = 'ON'"
 },
 {
     "type": "response",
@@ -4094,7 +4428,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 155,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4109,7 +4443,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 157,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -4124,7 +4458,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 159,
-    "sql": "SET PERSIST group_replication_local_address = 'localhost:33171'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4139,7 +4473,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 161,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -4154,7 +4488,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4169,7 +4503,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 165,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_local_address = 'localhost:33161'"
 },
 {
     "type": "response",
@@ -4184,7 +4518,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 167,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4199,7 +4533,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -4214,7 +4548,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 171,
-    "sql": "SET PERSIST auto_increment_increment = 7"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4229,7 +4563,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 173,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -4244,7 +4578,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 175,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4259,7 +4593,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 177,
-    "sql": "commit"
+    "sql": "SET PERSIST auto_increment_increment = 7"
 },
 {
     "type": "response",
@@ -4274,7 +4608,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4289,7 +4623,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 181,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -4304,7 +4638,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ '.#e@=,]T@2E+9&<y#{:/;S)$j+,7#z<$' /*)*/ FOR CHANNEL 'group_replication_recovery';"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4312,14 +4646,14 @@
     "index": 184,
     "auto_increment_value": 0,
     "affected_rows": 0,
-    "warning_count": 1,
+    "warning_count": 0,
     "info": ""
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 185,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -4334,7 +4668,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 187,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4349,7 +4683,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 189,
-    "sql": "commit"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000005' /*)*/, MASTER_PASSWORD = /*(*/ ';=;S#;m&|8R~*c?6;)]c(w$>L1~}$F=%' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
@@ -4357,14 +4691,14 @@
     "index": 190,
     "auto_increment_value": 0,
     "affected_rows": 0,
-    "warning_count": 0,
+    "warning_count": 1,
     "info": ""
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 191,
-    "sql": "SET PERSIST group_replication_bootstrap_group = 1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4379,7 +4713,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 193,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -4394,7 +4728,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 195,
-    "sql": "START group_replication"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4409,7 +4743,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 197,
-    "sql": "commit"
+    "sql": "SET PERSIST group_replication_bootstrap_group = 1"
 },
 {
     "type": "response",
@@ -4424,12 +4758,57 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 199,
-    "sql": "SELECT @@global.super_read_only"
+    "sql": "commit"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 200,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 201,
+    "sql": "START group_replication"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 202,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 203,
+    "sql": "commit"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 204,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 205,
+    "sql": "SELECT @@global.super_read_only"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 206,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -4461,13 +4840,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 201,
+    "index": 207,
     "sql": "SELECT @@global.super_read_only"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 202,
+    "index": 208,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -4499,13 +4878,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 203,
+    "index": 209,
     "sql": "SET PERSIST group_replication_bootstrap_group = 0"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 204,
+    "index": 210,
     "auto_increment_value": 0,
     "affected_rows": 0,
     "warning_count": 0,
@@ -4514,13 +4893,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 205,
+    "index": 211,
     "sql": "commit"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 206,
+    "index": 212,
     "auto_increment_value": 0,
     "affected_rows": 0,
     "warning_count": 0,
@@ -4529,11 +4908,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 207
+    "index": 213
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 208
+    "index": 214
 },
 null]

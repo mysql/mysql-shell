@@ -1,13 +1,14 @@
 
 //@ Initialization
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 function rebuild_sandbox() {
   session.close();
   testutil.destroySandbox(__mysql_sandbox_port1);
-  testutil.deploySandbox(__mysql_sandbox_port1, "root");
+  testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname});
+  testutil.snapshotSandboxConf(__mysql_sandbox_port1);
   shell.connect(__sandbox_uri1);
 }
 
@@ -83,7 +84,7 @@ rebuild_sandbox();
 set_sysvar(session, "super_read_only", 1);
 
 //@# create_cluster.read_only_flag_false
-var c = dba.createCluster('dev', {clearReadOnly: false});
+dba.createCluster('dev', {clearReadOnly: false});
 
 EXPECT_OUTPUT_NOT_CONTAINS("Adding Seed Instance...");
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,10 +55,6 @@ void Instance::init() {
     if (_options->has_key("password")) {
       _password = _options->get_string("password");
       _options->erase("password");
-    } else if (_options->has_key("dbPassword")) {
-      _password = _options->get_string("dbPassword");
-      _options->erase("dbPassword");
-    }
   }
 }
 

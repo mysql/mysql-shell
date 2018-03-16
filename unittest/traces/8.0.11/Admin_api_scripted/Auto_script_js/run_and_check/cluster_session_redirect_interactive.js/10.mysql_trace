@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "32",
+    "connection_id": "21",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "show GLOBAL variables where `variable_name` in ('group_replication_group_seeds')"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -32,11 +32,11 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
             "length": 256,
             "fractional": 0,
             "type": "String",
@@ -45,29 +45,12 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "group_replication_group_seeds",
-            ""
+            "RECOVERING"
         ]
     ]
 },
@@ -75,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "show GLOBAL variables where `variable_name` in ('persisted_globals_load')"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -87,11 +70,11 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Variable_name",
-            "column_label": "Variable_name",
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
             "length": 256,
             "fractional": 0,
             "type": "String",
@@ -100,29 +83,12 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
-        },
-        {
-            "schema": "",
-            "table_name": "global_variables",
-            "table_label": "global_variables",
-            "column_name": "Value",
-            "column_label": "Value",
-            "length": 4096,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
         [
-            "persisted_globals_load",
-            "ON"
+            "RECOVERING"
         ]
     ]
 },
@@ -130,25 +96,124 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:33501'"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 8,
     "auto_increment_value": 0,
-    "affected_rows": 0,
+    "affected_rows": 18446744073709551615,
     "warning_count": 0,
-    "info": ""
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            "RECOVERING"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            "RECOVERING"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 11,
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 12,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
+            "ONLINE"
+        ]
+    ]
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 9
+    "index": 13
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 10
+    "index": 14
 },
 null]

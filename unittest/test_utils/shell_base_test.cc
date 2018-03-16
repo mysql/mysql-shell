@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -205,7 +205,8 @@ bool Shell_base_test::multi_value_compare(const std::string& expected,
 bool Shell_base_test::check_multiline_expect(const std::string& context,
                                              const std::string &stream,
                                              const std::string& expected,
-                                             const std::string &actual) {
+                                             const std::string &actual,
+                                             int srcline, int valline) {
   bool ret_val = true;
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
@@ -234,7 +235,7 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
       // if there are less actual lines than the ones expected
       if ((actual_index + expected_index) >= actual_lines.size()) {
         SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
-        expected_lines[expected_index] += "<------ MISSING";
+        expected_lines[expected_index] += makeyellow("<------ MISSING");
         SCOPED_TRACE(makeyellow(stream + " expected lines missing: ") +
             shcore::str_join(expected_lines, "\n"));
         ADD_FAILURE();
@@ -247,26 +248,28 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
 
       auto exp_str = shcore::str_rstrip(expected_lines[expected_index]);
       if (!multi_value_compare(exp_str, act_str)) {
-        SCOPED_TRACE("Executing: " + context);
         SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
 
-        expected_lines[expected_index] += "<------ INCONSISTENCY";
+        expected_lines[expected_index] += makeyellow("<------ INCONSISTENCY");
 
-        SCOPED_TRACE(makeyellow(stream + " inconsistent: ") +
+        SCOPED_TRACE(makeyellow(stream + " expected: ") +
             shcore::str_join(expected_lines, "\n"));
+        SCOPED_TRACE(makeblue("Executing: " + context) +
+                     ", validation at line " + std::to_string(valline));
         ADD_FAILURE();
         ret_val = false;
         break;
       }
     }
   } else {
-      SCOPED_TRACE(makeyellow("Executing: ") + context);
       SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
 
-      expected_lines[0] += "<------ INCONSISTENCY";
+      expected_lines[0] += makeyellow("<------ INCONSISTENCY");
 
-      SCOPED_TRACE(makeyellow(stream + " inconsistent: ") +
-      shcore::str_join(expected_lines, "\n"));
+      SCOPED_TRACE(makeyellow(stream + " expected: ") +
+                   shcore::str_join(expected_lines, "\n"));
+      SCOPED_TRACE(makeblue("Executing: " + context) + ", validation at line " +
+                   std::to_string(valline));
       ADD_FAILURE();
       ret_val = false;
   }

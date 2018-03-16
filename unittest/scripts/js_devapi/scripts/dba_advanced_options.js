@@ -43,7 +43,7 @@ function print_gr_group_name() {
 }
 
 function stop_sandbox(port) {
-    testutil.stopSandbox(port, 'root');
+    testutil.stopSandbox(port);
 }
 
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -124,7 +124,7 @@ print_gr_local_address();
 c.dissolve({force: true});
 
 //@ Create cluster specifying <valid_host>:<valid_port> for localAddress (FR1-TS-1-10)
-var __local_address_10 = localhost + ":12345";
+var __local_address_10 = localhost + ":12346";
 var __result_local_address_10 = __local_address_10;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_10});
 
@@ -231,7 +231,7 @@ var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
 //@ Add instance specifying <valid_port> for localAddress (FR1-TS-2-4)
-var __local_address_add_4 = "12345";
+var __local_address_add_4 = "12347";
 var __result_local_address_add_4 = localhost + ":" + __local_address_add_4;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_4});
 
@@ -263,7 +263,7 @@ var c = dba.getCluster();
 c.removeInstance(add_instance_options);
 
 //@ Add instance specifying <valid_host>:<valid_port> for localAddress (FR1-TS-2-10)
-var __local_address_add_10 = localhost + ":12345";
+var __local_address_add_10 = localhost + ":12348";
 var __result_local_address_add_10 = __local_address_add_10;
 c.addInstance(add_instance_options, {localAddress: __local_address_add_10});
 
@@ -337,14 +337,14 @@ c.disconnect();
 
 //@ Configure seed instance (FR1-TS-4)
 var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
-dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root'}, {mycnfPath: cnfPath1});
+dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root', user: 'root'}, {mycnfPath: cnfPath1});
 
 //@ Configure added instance (FR1-TS-4)
 session.close();
 add_instance_options['port'] = __mysql_sandbox_port2;
 shell.connect(add_instance_options);
 var cnfPath2 = __sandbox_dir + __mysql_sandbox_port2 + "/my.cnf";
-dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, password:'root'}, {mycnfPath: cnfPath2});
+dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, password:'root', user: 'root'}, {mycnfPath: cnfPath2});
 
 //@ Stop seed and added instance with specific options (FR1-TS-4)
 stop_sandbox(__mysql_sandbox_port2);

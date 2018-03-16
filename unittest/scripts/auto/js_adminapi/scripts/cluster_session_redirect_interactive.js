@@ -15,7 +15,7 @@ shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("clus");
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 cluster.addInstance(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE", true);
 
 session.close();
 cluster.disconnect();
@@ -38,7 +38,7 @@ shell.connect(__sandbox_uri2);
 var cluster = dba.getCluster("clus", {connectToPrimary: false});
 
 // warning expected about read only
-EXPECT_OUTPUT_CONTAINS("WARNING: You are connected to an instance in state 'Read Only'");
+//EXPECT_OUTPUT_CONTAINS("WARNING: You are connected to an instance in state 'Read Only'");
 
 //@ addInstance should fail
 cluster.addInstance(__sandbox_uri3);

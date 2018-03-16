@@ -53,6 +53,30 @@ TEST(utils_net, resolve_hostname_ipv4) {
   EXPECT_THROW(Net::resolve_hostname_ipv4("127.0.0.256"), net_error);
 }
 
+TEST(utils_net, resolve_hostname_ipv4_all) {
+  {
+    std::vector<std::string> addrs =
+        Net::resolve_hostname_ipv4_all("localhost");
+    for (const auto &a : addrs) {
+      std::cout << "localhost: " << a << "\n";
+    }
+  }
+  {
+    std::vector<std::string> addrs =
+        Net::resolve_hostname_ipv4_all("oracle.com");
+    for (const auto &a : addrs) {
+      std::cout << "oracle.com: " << a << "\n";
+    }
+  }
+  {
+    std::vector<std::string> addrs =
+        Net::resolve_hostname_ipv4_all(Net::get_hostname());
+    for (const auto &a : addrs) {
+      std::cout << Net::get_hostname() << ": " << a << "\n";
+    }
+  }
+}
+
 TEST(utils_net, is_ipv4) {
   EXPECT_TRUE(Net::is_ipv4("0.0.0.0"));
   EXPECT_TRUE(Net::is_ipv4("127.0.0.1"));
@@ -109,6 +133,7 @@ TEST(utils_net, is_local_address) {
       Net::is_local_address(Net::resolve_hostname_ipv4(Net::get_hostname())));
 
   EXPECT_FALSE(Net::is_local_address("oracle.com"));
+  EXPECT_FALSE(Net::is_local_address("bogus-host"));
 }
 
 TEST(utils_net, get_local_addresses) {

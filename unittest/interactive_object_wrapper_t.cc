@@ -51,79 +51,79 @@ TEST_F(Interactive_object_wrapper_test, prompt_answer) {
 
   output_handler.prompts.push_back({"*", ""});
   Prompt_answer ans = wrap.prompt("ques?");
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", "y"});
   ans = wrap.prompt("ques?");
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", "Y"});
   ans = wrap.prompt("ques?", Prompt_answer::YES);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", "yes"});
   ans = wrap.prompt("ques?");
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", "YES"});
   ans = wrap.prompt("ques?");
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", "Yes"});
   ans = wrap.prompt("ques?");
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", "yEs"});
   ans = wrap.prompt("ques?");
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   EXPECT_EQ(ans, Prompt_answer::YES);
 
   output_handler.prompts.push_back({"*", ""});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   EXPECT_EQ(ans, Prompt_answer::NO);
 
   output_handler.prompts.push_back({"*", "n"});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   EXPECT_EQ(ans, Prompt_answer::NO);
 
   output_handler.prompts.push_back({"*", "N"});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   EXPECT_EQ(ans, Prompt_answer::NO);
 
   output_handler.prompts.push_back({"*", "NO"});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   EXPECT_EQ(ans, Prompt_answer::NO);
 
   output_handler.prompts.push_back({"*", "No"});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   EXPECT_EQ(ans, Prompt_answer::NO);
 
   output_handler.prompts.push_back({"*", "nO"});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   EXPECT_EQ(ans, Prompt_answer::NO);
 
   output_handler.prompts.push_back({"*", "sfd"});
   output_handler.prompts.push_back({"*", ""});
   ans = wrap.prompt("ques?", Prompt_answer::NO);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [y|N]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
   MY_EXPECT_STDOUT_CONTAINS("Invalid answer!");
 
   output_handler.prompts.push_back({"*", "      "});
   output_handler.prompts.push_back({"*", ""});
   ans = wrap.prompt("ques?", Prompt_answer::YES);
-  MY_EXPECT_STDOUT_CONTAINS("ques? [Y|n]");
+  MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
   MY_EXPECT_STDOUT_CONTAINS("Invalid answer!");
 
   output_handler.prompts.push_back({"*", ""});

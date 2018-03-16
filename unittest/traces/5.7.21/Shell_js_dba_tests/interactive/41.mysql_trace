@@ -3,20 +3,24 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mydba:@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
+    "connection_id": "26",
+    "connection_info": "localhost via TCP/IP",
+    "server_info": "5.7.21-log",
+    "server_version": "5.7.21",
+    "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select @@port, @@datadir;"
+    "sql": "select concat(@@version, ' ', @@version_comment)"
 },
 {
     "type": "response",
@@ -32,24 +36,8 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "@@port",
-            "length": 21,
-            "fractional": 0,
-            "type": "UInteger",
-            "collation": "binary",
-            "charset": "binary",
-            "collation_id": 63,
-            "unsigned": true,
-            "zerofill": false,
-            "binary": true
-        },
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@datadir",
-            "length": 63,
+            "column_label": "concat(@@version, ' ', @@version_comment)",
+            "length": 39,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -62,9 +50,63 @@
     ],
     "rows": [
         [
-            3350,
-            "/home/kg/repo/ngshell/bld-clang_head/unittest/3350/sandboxdata/"
+            "5.7.21-log MySQL Community Server (GPL)"
         ]
     ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 5,
+    "sql": "SET sql_log_bin = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 6,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 7,
+    "sql": "CREATE USER 'no_privileges'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 8,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 9,
+    "sql": "SET sql_log_bin = 1"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 10,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "CLOSE",
+    "index": 11
+},
+{
+    "type": "response",
+    "subtype": "OK",
+    "index": 12
 },
 null]
