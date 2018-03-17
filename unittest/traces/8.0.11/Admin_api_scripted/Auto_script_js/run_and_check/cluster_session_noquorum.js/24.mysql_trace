@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "42c00536-2973-11e8-92d6-5ce0c50b9d66"
+            "54e5a112-2a17-11e8-9195-d1f86b2c9c88"
         ]
     ]
 },
@@ -245,7 +245,7 @@
     ],
     "rows": [
         [
-            "42c00536-2973-11e8-92d6-5ce0c50b9d66"
+            "54e5a112-2a17-11e8-9195-d1f86b2c9c88"
         ]
     ]
 },
@@ -413,8 +413,8 @@
     ],
     "rows": [
         [
-            "41b3c0a9-2973-11e8-9e5f-5ce0c50b9d66",
-            "3fe713f6-2973-11e8-92d6-5ce0c50b9d66"
+            "54183664-2a17-11e8-a6f1-79c56fdafa54",
+            "533d36ea-2a17-11e8-9195-d1f86b2c9c88"
         ]
     ]
 },
@@ -422,7 +422,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '41b3c0a9-2973-11e8-9e5f-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '54183664-2a17-11e8-a6f1-79c56fdafa54'"
 },
 {
     "type": "response",
@@ -600,7 +600,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "3fe713f6-2973-11e8-92d6-5ce0c50b9d66"
+            "533d36ea-2a17-11e8-9195-d1f86b2c9c88"
         ]
     ]
 },
@@ -740,17 +740,17 @@
     ],
     "rows": [
         [
-            "3fe713f6-2973-11e8-92d6-5ce0c50b9d66",
-            "localhost:3340",
+            "533d36ea-2a17-11e8-9195-d1f86b2c9c88",
+            "localhost:3316",
             "HA",
-            "localhost:3340",
+            "localhost:3316",
             "UNREACHABLE"
         ],
         [
-            "41b3c0a9-2973-11e8-9e5f-5ce0c50b9d66",
-            "localhost:3350",
+            "54183664-2a17-11e8-a6f1-79c56fdafa54",
+            "localhost:3326",
             "HA",
-            "localhost:3350",
+            "localhost:3326",
             "ONLINE"
         ]
     ]

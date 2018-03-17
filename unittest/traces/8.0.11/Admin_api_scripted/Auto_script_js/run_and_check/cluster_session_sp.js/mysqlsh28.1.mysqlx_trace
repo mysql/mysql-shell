@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:33600",
+    "uri": "root:root@localhost:33360",
     "protocol": "x"
 },
 {

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3350?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3326?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -481,7 +481,7 @@
     ],
     "rows": [
         [
-            3350
+            3326
         ]
     ]
 },
@@ -650,7 +650,7 @@
     ],
     "rows": [
         [
-            15695
+            15671
         ]
     ]
 },
@@ -811,14 +811,7 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MRG_MYISAM",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1049,13 +1042,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1063,14 +1049,21 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "partition",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1086,6 +1079,13 @@
         [
             "FEDERATED",
             "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "partition",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1225,14 +1225,7 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MRG_MYISAM",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1463,13 +1456,6 @@
             "GPL"
         ],
         [
-            "CSV",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1477,14 +1463,21 @@
             "GPL"
         ],
         [
-            "ARCHIVE",
+            "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "partition",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1500,6 +1493,13 @@
         [
             "FEDERATED",
             "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "partition",
+            "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"

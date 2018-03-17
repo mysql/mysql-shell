@@ -21,11 +21,12 @@ function get_sysvar(session, variable) {
 }
 
 function wait_session_sync(session, session2) {
+  const timeout = 10;
   // block until session finishes executing all transactions that happened in session2
   var gtid = session2.runSql("select @@gtid_executed").fetchOne()[0];
-  var r = session.runSql("select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(?)", [gtid]).fetchOne()[0];
+  var r = session.runSql("select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(?, ?, 'group_replication_applier')", [gtid, timeout]).fetchOne()[0];
   if (r == null) {
-    println("** GR not active!?");
+    println("** GR not active (WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS returned NULL)!?");
   }
 }
 

@@ -3,14 +3,14 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350?ssl-mode=required",
+    "uri": "mysql://root:root@localhost:3326?ssl-mode=required",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "25",
+    "connection_id": "24",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11",
     "server_version": "8.0.11",
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('f1a6c07d-2972-11e8-94a9-5ce0c50b9d66:1-14,\\nf5438f68-2972-11e8-94a9-5ce0c50b9d66:1-10')"
+    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('21bcc766-2a17-11e8-969d-b4cfee3d633b:1-14,\\n2455c464-2a17-11e8-969d-b4cfee3d633b:1-10', 10, 'group_replication_applier')"
 },
 {
     "type": "response",
@@ -36,7 +36,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('f1a6c07d-2972-11e8-94a9-5ce0c50b9d66:1-14,\\nf5438f68-2972-11e8-94a9-5ce0c50b9d66:1-10')",
+            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('21bcc766-2a17-11e8-969d-b4cfee3d633b:1-14,\\n2455c464-2a17-11e8-969d-b4cfee3d633b:1-10', 10, 'group_replication_applier')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            null
+            1
         ]
     ]
 },

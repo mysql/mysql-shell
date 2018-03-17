@@ -34,6 +34,7 @@
 #include "modules/mod_common.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
+#include "shellcore/shell_options.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/mod_dba_common.h"
@@ -83,7 +84,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 #endif
 
   Dba(shcore::IShell_core *owner,
-      std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode);
+      std::shared_ptr<mysqlsh::IConsole> console_handler,
+      const Shell_options::Storage &options);
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
@@ -176,7 +178,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   void init();
 
   // Added for limited mock support
-  Dba() {}
+  // Dba() {}
   void set_owner(shcore::IShell_core *shell_core) {
     _shell_core = shell_core;
     init();
@@ -185,7 +187,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
  private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
   std::shared_ptr<mysqlsh::IConsole> m_console;
-  bool m_wizards_mode;
+  const Shell_options::Storage &m_options;
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);
