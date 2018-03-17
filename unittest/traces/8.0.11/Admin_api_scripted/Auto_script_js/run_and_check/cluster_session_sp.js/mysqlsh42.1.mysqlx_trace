@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysqlx://root:root@localhost:33600",
+    "uri": "mysqlx://root:root@localhost:33360",
     "protocol": "x"
 },
 {
@@ -107,17 +107,17 @@
     "info": "",
     "columns": [
         {
-            "schema": "mysql",
-            "table_name": "schemata",
+            "schema": "",
+            "table_name": "SCHEMATA",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
             "length": 192,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
+            "collation": "utf8_tolower_ci",
             "charset": "utf8",
-            "collation_id": 83,
+            "collation_id": 76,
             "unsigned": false,
             "zerofill": false,
             "binary": false

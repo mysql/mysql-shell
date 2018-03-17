@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "5"
         ],
         [
             "autocommit",
@@ -201,7 +201,7 @@
         ],
         [
             "basedir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/"
+            "/usr/local/mysql-5.7.21-macos10.13-x86_64/"
         ],
         [
             "big_tables",
@@ -301,7 +301,7 @@
         ],
         [
             "character_sets_dir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/share/charsets/"
+            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -337,7 +337,7 @@
         ],
         [
             "datadir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ],
         [
             "date_format",
@@ -457,7 +457,7 @@
         ],
         [
             "general_log_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B.log"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166.log"
         ],
         [
             "group_concat_max_len",
@@ -533,7 +533,7 @@
         ],
         [
             "hostname",
-            "pjesus-TECRA-Z40-B"
+            "dhcp-10-159-249-166.vpn.oracle.com"
         ],
         [
             "ignore_builtin_innodb",
@@ -900,10 +900,6 @@
             ""
         ],
         [
-            "innodb_numa_interleave",
-            "OFF"
-        ],
-        [
             "innodb_old_blocks_pct",
             "37"
         ],
@@ -1077,7 +1073,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "ON"
+            "OFF"
         ],
         [
             "innodb_version",
@@ -1141,7 +1137,7 @@
         ],
         [
             "lc_messages_dir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/share/"
+            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/"
         ],
         [
             "lc_time_names",
@@ -1169,11 +1165,11 @@
         ],
         [
             "log_bin_basename",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-bin"
         ],
         [
             "log_bin_index",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin.index"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1189,7 +1185,7 @@
         ],
         [
             "log_error",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/error.log"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log"
         ],
         [
             "log_error_verbosity",
@@ -1257,11 +1253,11 @@
         ],
         [
             "lower_case_file_system",
-            "OFF"
+            "ON"
         ],
         [
             "lower_case_table_names",
-            "0"
+            "2"
         ],
         [
             "master_info_repository",
@@ -1441,7 +1437,7 @@
         ],
         [
             "mysqlx_port",
-            "33400"
+            "33160"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1521,7 +1517,7 @@
         ],
         [
             "open_files_limit",
-            "5000"
+            "10000"
         ],
         [
             "optimizer_prune_level",
@@ -1729,15 +1725,15 @@
         ],
         [
             "pid_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/3340.pid"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid"
         ],
         [
             "plugin_dir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/lib/plugin/"
+            "/usr/local/mysql-5.7.21-macos10.13-x86_64/lib/plugin/"
         ],
         [
             "port",
-            "3340"
+            "3316"
         ],
         [
             "preload_buffer_size",
@@ -1813,11 +1809,11 @@
         ],
         [
             "relay_log_basename",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-relay-bin"
         ],
         [
             "relay_log_index",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin.index"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1849,7 +1845,7 @@
         ],
         [
             "report_port",
-            "3340"
+            "3316"
         ],
         [
             "report_user",
@@ -1869,11 +1865,11 @@
         ],
         [
             "secure_file_priv",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/mysql-files/"
+            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files/"
         ],
         [
             "server_id",
-            "15685"
+            "15661"
         ],
         [
             "server_id_bits",
@@ -1881,7 +1877,7 @@
         ],
         [
             "server_uuid",
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66"
+            "cba2cb08-2a18-11e8-a963-429525fc7e83"
         ],
         [
             "session_track_gtids",
@@ -1953,7 +1949,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
         ],
         [
             "slave_max_allowed_packet",
@@ -2009,7 +2005,7 @@
         ],
         [
             "slow_query_log_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-slow.log"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-slow.log"
         ],
         [
             "socket",
@@ -2121,7 +2117,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "PDT"
         ],
         [
             "table_definition_cache",
@@ -2165,7 +2161,7 @@
         ],
         [
             "tmpdir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
         ],
         [
             "transaction_alloc_block_size",
@@ -2217,7 +2213,7 @@
         ],
         [
             "version_compile_os",
-            "linux-glibc2.12"
+            "macos10.13"
         ],
         [
             "wait_timeout",
@@ -2611,7 +2607,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 74,
+            "length": 66,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -2624,8 +2620,8 @@
     ],
     "rows": [
         [
-            3340,
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            3316,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -2666,7 +2662,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 74,
+            "length": 66,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -2679,8 +2675,8 @@
     ],
     "rows": [
         [
-            3340,
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            3316,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -2991,7 +2987,7 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000003",
+            "dhcp-10-159-249-166-bin.000003",
             150,
             "",
             "",
@@ -3217,7 +3213,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '^-:X|n{?<5&6$/u|f<=(>/F1{#B&=#%J' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '6*{^]$^V<R,;?O<~8=+&.%x-e>:3<E$#' /*)*/ "
 },
 {
     "type": "response",
@@ -3232,7 +3228,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 61,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '^-:X|n{?<5&6$/u|f<=(>/F1{#B&=#%J' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '6*{^]$^V<R,;?O<~8=+&.%x-e>:3<E$#' /*)*/ "
 },
 {
     "type": "response",
@@ -3428,7 +3424,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3316'"
 },
 {
     "type": "response",
@@ -3629,7 +3625,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66', 'localhost:3340', 'HA', json_object('mysqlClassic', 'localhost:3340', 'mysqlX', 'localhost:33400', 'grLocal', 'localhost:33401'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, 'cba2cb08-2a18-11e8-a963-429525fc7e83', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
@@ -3722,10 +3718,10 @@
     ],
     "rows": [
         [
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66",
-            "localhost:3340",
+            "cba2cb08-2a18-11e8-a963-429525fc7e83",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ]
     ]
 },
@@ -3763,7 +3759,7 @@
     ],
     "rows": [
         [
-            "1ec62186-297f-11e8-9a3d-5ce0c50b9d66"
+            "cd5e9f8a-2a18-11e8-a963-429525fc7e83"
         ]
     ]
 },
@@ -3771,7 +3767,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 95,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '1ec62186-297f-11e8-9a3d-5ce0c50b9d66') WHERE replicaset_id = 1"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'cd5e9f8a-2a18-11e8-a963-429525fc7e83') WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -3961,8 +3957,8 @@
     ],
     "rows": [
         [
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66",
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66"
+            "cba2cb08-2a18-11e8-a963-429525fc7e83",
+            "cba2cb08-2a18-11e8-a963-429525fc7e83"
         ]
     ]
 },
@@ -3970,7 +3966,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 107,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'cba2cb08-2a18-11e8-a963-429525fc7e83'"
 },
 {
     "type": "response",
@@ -4101,7 +4097,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 113,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3350'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1 AND addresses->'$.mysqlClassic' = 'localhost:3326'"
 },
 {
     "type": "response",
@@ -4255,10 +4251,10 @@
     ],
     "rows": [
         [
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66",
-            "localhost:3340",
+            "cba2cb08-2a18-11e8-a963-429525fc7e83",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ]
     ]
 },
@@ -4311,7 +4307,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 125,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '&2;:^:[I1c(^;n/U^7_<#?{y<&n]*-=B' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '7L.#)C&;3*^x:K^-[;i(^$K:s[<,2t=<' /*)*/ "
 },
 {
     "type": "response",
@@ -4326,7 +4322,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 127,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '&2;:^:[I1c(^;n/U^7_<#?{y<&n]*-=B' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '7L.#)C&;3*^x:K^-[;i(^$K:s[<,2t=<' /*)*/ "
 },
 {
     "type": "response",
@@ -4433,7 +4429,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66"
+            "cba2cb08-2a18-11e8-a963-429525fc7e83"
         ]
     ]
 },
@@ -4519,10 +4515,10 @@
     ],
     "rows": [
         [
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66",
-            "localhost:3340",
+            "cba2cb08-2a18-11e8-a963-429525fc7e83",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ]
     ]
 },
@@ -4608,10 +4604,10 @@
     ],
     "rows": [
         [
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66",
-            "localhost:3340",
+            "cba2cb08-2a18-11e8-a963-429525fc7e83",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ]
     ]
 },
@@ -4706,7 +4702,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '1c78b056-297f-11e8-9d35-5ce0c50b9d66', 'localhost:3350', 'HA', json_object('mysqlClassic', 'localhost:3350', 'mysqlX', 'localhost:33500', 'grLocal', 'localhost:33501'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, 'cc856864-2a18-11e8-873f-a31ea9f6d445', 'localhost:3326', 'HA', json_object('mysqlClassic', 'localhost:3326', 'mysqlX', 'localhost:33260', 'grLocal', 'localhost:33261'))"
 },
 {
     "type": "response",
@@ -4814,16 +4810,16 @@
     ],
     "rows": [
         [
-            "1bbf38f3-297f-11e8-9a3d-5ce0c50b9d66",
-            "localhost:3340",
+            "cba2cb08-2a18-11e8-a963-429525fc7e83",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ],
         [
-            "1c78b056-297f-11e8-9d35-5ce0c50b9d66",
-            "localhost:3350",
+            "cc856864-2a18-11e8-873f-a31ea9f6d445",
+            "localhost:3326",
             "HA",
-            "localhost:3350"
+            "localhost:3326"
         ]
     ]
 },

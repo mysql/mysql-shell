@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350?ssl-mode=required",
+    "uri": "mysql://root:root@localhost:3326?ssl-mode=required",
     "protocol": "classic"
 },
 {
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('')"
+    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('', 10, 'group_replication_applier')"
 },
 {
     "type": "response",
@@ -36,7 +36,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('')",
+            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('', 10, 'group_replication_applier')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            null
+            0
         ]
     ]
 },

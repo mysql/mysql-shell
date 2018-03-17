@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:33400",
+    "uri": "root:root@localhost:33160",
     "protocol": "x"
 },
 {
@@ -217,8 +217,8 @@
     ],
     "rows": [
         [
-            "dab055ba-297e-11e8-9f0a-5ce0c50b9d66",
-            "dab055ba-297e-11e8-9f0a-5ce0c50b9d66"
+            "a1a776c8-2a18-11e8-a821-3d7cb8259063",
+            "a1a776c8-2a18-11e8-a821-3d7cb8259063"
         ]
     ]
 },
@@ -226,7 +226,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'dab055ba-297e-11e8-9f0a-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a1a776c8-2a18-11e8-a821-3d7cb8259063'"
 },
 {
     "type": "response",
@@ -349,7 +349,7 @@
     ],
     "rows": [
         [
-            3340
+            3316
         ]
     ]
 },
@@ -596,7 +596,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 222,
+            "length": 198,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -615,8 +615,8 @@
             "latin1",
             "5.7.21-log MySQL Community Server (GPL)",
             "mysqlx.sock",
-            33400,
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            33160,
+            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
         ]
     ]
 },
@@ -671,7 +671,7 @@
     "rows": [
         [
             "Uptime",
-            "20"
+            "16"
         ]
     ]
 },

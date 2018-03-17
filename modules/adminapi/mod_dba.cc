@@ -194,10 +194,11 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
 Dba::Dba(shcore::IShell_core *owner,
-         std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode)
+         std::shared_ptr<mysqlsh::IConsole> console_handler,
+         const Shell_options::Storage &options)
     : _shell_core(owner),
       m_console(console_handler),
-      m_wizards_mode(wizards_mode) {
+      m_options(options) {
   init();
 }
 
@@ -1348,7 +1349,7 @@ shcore::Value Dba::check_instance_configuration(
   shcore::Value ret_val;
   mysqlshdk::db::Connection_options instance_def;
   std::shared_ptr<mysqlshdk::db::ISession> instance_session;
-  bool interactive = m_wizards_mode;
+  bool interactive = m_options.wizards;
   std::string mycnf_path, password;
 
   try {
@@ -1991,7 +1992,7 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
   std::string mycnf_path, output_mycnf_path, cluster_admin, password;
   mysqlshdk::utils::nullable<std::string> cluster_admin_password;
   mysqlshdk::utils::nullable<bool> clear_read_only;
-  bool interactive = m_wizards_mode;
+  bool interactive = m_options.wizards;
   mysqlshdk::utils::nullable<bool> restart;
 
   {

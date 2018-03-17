@@ -141,10 +141,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
   _global_js_sys =
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
-  _global_dba =
-      std::shared_ptr<mysqlsh::dba::Dba>(
-          new mysqlsh::dba::Dba(_shell.get(), _console_handler,
-                                options().wizards));
+  _global_dba = std::shared_ptr<mysqlsh::dba::Dba>(
+      new mysqlsh::dba::Dba(_shell.get(), _console_handler, options()));
   _global_util =
       std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get(),
                                                        _console_handler,

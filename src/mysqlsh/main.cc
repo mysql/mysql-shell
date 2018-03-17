@@ -472,9 +472,6 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
       (!options.interactive || !stdin_is_tty || !stdout_is_tty))
     shell_options->set_db_name_cache(false);
 
-  // Usage of wizards will be disabled if running in non interactive mode
-  if (!options.interactive)
-    shell_options->set_wizards(false);
   // Switch default output format to tab separated instead of table
   if (!options.interactive && options.output_format == "table" && !stdout_is_tty)
     shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));

@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "2f73959d-297f-11e8-a802-5ce0c50b9d66"
+            "dce94cca-2a18-11e8-8be0-88b1df4ad344"
         ]
     ]
 },
