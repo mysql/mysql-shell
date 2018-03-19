@@ -2372,7 +2372,10 @@ shcore::Value ReplicaSet::get_status(
     if (active_session_address == value.endpoint)
       active_session_instance = true;
 
-    if (value == master && single_primary_mode)
+    // We compare the server's uuid to match instances, which means that
+    // if uuid for an instances changes, the status will look off.
+    // re-syncing uuid should be done in a separate step
+    if (value.uuid == master.uuid && single_primary_mode)
       append_member_status(instance_node, value, true, active_session_instance);
     else
       append_member_status(instance_node, value,
