@@ -1,8 +1,8 @@
 {
-    "hostname": "10.172.234.37",
-    "hostname_ip": "10.172.234.37",
-    "real_host_is_loopback": "1",
-    "real_hostname": "tecra",
+    "hostname": "vm-ubuntu",
+    "hostname_ip": "10.0.2.15",
+    "real_host_is_loopback": "0",
+    "real_hostname": "vm-ubuntu",
     "sandbox_port1": "3316",
     "sandbox_port2": "3326",
     "sandbox_port3": "3336"

@@ -290,6 +290,29 @@ connect_to_sandbox([__mysql_sandbox_port2]);
 session.runSql("SET sql_log_bin = 0");
 session.runSql("DROP user 'no_privileges'@'%'");
 session.runSql("SET sql_log_bin = 1");
+
+// Create account without global grant option
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE USER 'no_global_grant'@'%'");
+session.runSql("GRANT ALL PRIVILEGES on *.* to 'no_global_grant'@'%'");
+session.runSql("SET sql_log_bin = 1");
+session.close();
+
+//@ configureLocalInstance() should fail if user does not have global GRANT OPTION
+dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, user: 'no_global_grant', password:''});
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'no_global_grant', password: ''});
+
+//@ createCluster() should fail if user does not have global GRANT OPTION
+dba.createCluster("cluster");
+
+session.close();
+
+connect_to_sandbox([__mysql_sandbox_port2]);
+// Drop user
+session.runSql("SET sql_log_bin = 0");
+session.runSql("DROP user 'no_global_grant'@'%'");
+session.runSql("SET sql_log_bin = 1");
 session.close();
 
 connect_to_sandbox([__mysql_sandbox_port1]);

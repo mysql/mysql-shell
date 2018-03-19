@@ -200,6 +200,20 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 //@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|
 
+//@ configureLocalInstance() should fail if user does not have global GRANT OPTION
+|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...|
+|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
+|Missing global privileges: GRANT OPTION.|
+|For more information, see the online documentation.|
+||Dba.configureLocalInstance: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+
+//@ createCluster() should fail if user does not have global GRANT OPTION
+|Validating instance at localhost:<<<__mysql_sandbox_port2>>>...|
+|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
+|Missing global privileges: GRANT OPTION.|
+|For more information, see the online documentation.|
+||Dba.createCluster: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+
 //@# Dba: getCluster errors
 ||Invalid cluster name: Argument #1 is expected to be a string
 ||Invalid number of arguments in Dba.getCluster, expected 0 to 2 but got 3

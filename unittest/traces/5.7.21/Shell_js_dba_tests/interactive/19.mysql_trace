@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "60",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-debug-log",
+    "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -180,8 +180,8 @@
     ],
     "rows": [
         [
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9",
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9"
+            "270449b5-2e77-11e8-af12-080027c42733",
+            "270449b5-2e77-11e8-af12-080027c42733"
         ]
     ]
 },
@@ -189,7 +189,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9b0b3e23-2deb-11e8-aa2d-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '270449b5-2e77-11e8-af12-080027c42733'"
 },
 {
     "type": "response",

@@ -393,7 +393,7 @@ bool validate_cluster_admin_user_privileges(
   // Check global privileges.
   auto global = user_privileges.validate(k_global_privileges);
 
-  if (global.has_missing_privileges()) {
+  if (global.has_missing_privileges() || !global.has_grant_option()) {
     auto missing = global.get_missing_privileges();
 
     if (!global.has_grant_option()) {
