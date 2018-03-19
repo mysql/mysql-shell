@@ -25,6 +25,7 @@
 #include "mysh_config.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "shellcore/interrupt_handler.h"
+#include "shellcore/shell_init.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -480,11 +481,8 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
 }
 
 static void init_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
-#ifdef HAVE_V8
-  extern void JScript_context_init();
+  mysqlsh::global_init();
 
-  JScript_context_init();
-#endif
 #ifdef ENABLE_SESSION_RECORDING
   init_debug_shell(shell);
 #endif
@@ -494,6 +492,7 @@ static void finalize_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
 #ifdef ENABLE_SESSION_RECORDING
   finalize_debug_shell(shell);
 #endif
+  mysqlsh::global_end();
 }
 
 int main(int argc, char **argv) {

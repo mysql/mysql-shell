@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,21 +64,30 @@ JScript_object_wrapper::~JScript_object_wrapper() {
 }
 
 struct shcore::JScript_object_wrapper::Collectable {
-  std::shared_ptr<Object_bridge> data;
+ private:
+  std::shared_ptr<Object_bridge> m_data;
+
+ public:
   v8::Persistent<v8::Object> *persistent;
 
-  explicit Collectable(std::shared_ptr<Object_bridge> d) {
-    data = d;
-    DEBUG_OBJ_ALLOC_N(JSObjectWrapper, d->class_name());
+  Collectable(std::shared_ptr<Object_bridge> d,
+              v8::Persistent<v8::Object> *p)
+      : m_data(std::move(d)), persistent(p) {
+    DEBUG_OBJ_ALLOC_N(JSObjectWrapper, m_data->class_name());
   }
 
+  Collectable(const Collectable &) = delete;
+  Collectable &operator = (const Collectable &) = delete;
+  Collectable(Collectable &&) = delete;
+  Collectable &operator = (Collectable &&) = delete;
+
   std::shared_ptr<Object_bridge> get() {
-    return data;
+    return m_data;
   }
 
   ~Collectable() {
     DEBUG_OBJ_DEALLOC(JSObjectWrapper);
-    data.reset();
+    m_data.reset();
     persistent->Reset();
     delete persistent;
   }
@@ -91,10 +100,8 @@ v8::Handle<v8::Object> JScript_object_wrapper::wrap(
   if (!templ.IsEmpty()) {
     v8::Local<v8::Object> self(templ->NewInstance());
     if (!self.IsEmpty()) {
-      auto holder = new Collectable(object);
-
-      holder->persistent =
-          new v8::Persistent<v8::Object>(_context->isolate(), self);
+      auto holder = new Collectable(
+          object, new v8::Persistent<v8::Object>(_context->isolate(), self));
 
       self->SetAlignedPointerInInternalField(0, &magic_pointer);
       self->SetAlignedPointerInInternalField(1, holder);
