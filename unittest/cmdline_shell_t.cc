@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -152,7 +152,7 @@ TEST(Cmdline_shell, help) {
   shell.print_banner();
   std::string year = shcore::fmttime("%Y");
   std::string expected =
-      "MySQL Shell 8.0.11\n\nCopyright (c) 2016, " + year +
+      "MySQL Shell 8.0.12\n\nCopyright (c) 2016, " + year +
       ", Oracle and/or its "
       "affiliates. All rights reserved.\n\nOracle is a registered trademark of "
       "Oracle Corporation and/or its\naffiliates. Other names may be "
