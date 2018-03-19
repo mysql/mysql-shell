@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "37",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11-debug",
+    "server_info": "8.0.11-commercial",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "5ad4a992-2cfe-11e8-a25d-b86b230042b9"
+            "f18d3346-2e72-11e8-86e8-080027c42733"
         ]
     ]
 },

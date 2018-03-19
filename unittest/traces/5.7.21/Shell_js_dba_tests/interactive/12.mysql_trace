@@ -12,9 +12,9 @@
     "index": 2,
     "connection_id": "39",
     "connection_info": "127.0.0.1 via TCP/IP",
-    "server_info": "5.7.21-debug-log",
+    "server_info": "5.7.21-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9"
+            "270449b5-2e77-11e8-af12-080027c42733"
         ]
     ]
 },
