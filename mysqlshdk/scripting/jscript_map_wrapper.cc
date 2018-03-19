@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,46 +51,70 @@ JScript_map_wrapper::~JScript_map_wrapper() {
 }
 
 struct shcore::JScript_map_wrapper::Collectable {
-  std::shared_ptr<Value::Map_type> data;
-  v8::Persistent<v8::Object> handle;
+ private:
+  std::shared_ptr<Value::Map_type> m_data;
+
+ public:
+  v8::Persistent<v8::Object> *persistent;
+
+  Collectable(std::shared_ptr<Value::Map_type> d,
+                       v8::Persistent<v8::Object> *p)
+      : m_data(std::move(d)), persistent(p) {}
+
+  Collectable(const Collectable &) = delete;
+  Collectable &operator = (const Collectable &) = delete;
+  Collectable(Collectable &&) = delete;
+  Collectable &operator = (Collectable &&) = delete;
+
+  std::shared_ptr<Value::Map_type> get() {
+    return m_data;
+  }
+
+  ~Collectable() {
+    m_data.reset();
+    persistent->Reset();
+    delete persistent;
+  }
 };
 
-v8::Handle<v8::Object> JScript_map_wrapper::wrap(std::shared_ptr<Value::Map_type> map) {
-  v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _map_template);
+v8::Handle<v8::Object> JScript_map_wrapper::wrap(
+    std::shared_ptr<Value::Map_type> map) {
+  v8::Local<v8::ObjectTemplate> templ =
+      v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _map_template);
+  if (!templ.IsEmpty()) {
+    v8::Local<v8::Object> self(templ->NewInstance());
+    if (!self.IsEmpty()) {
+      auto holder = new Collectable(
+          map, new v8::Persistent<v8::Object>(_context->isolate(), self));
 
-  v8::Handle<v8::Object> obj(templ->NewInstance());
-  if (!obj.IsEmpty()) {
-    obj->SetAlignedPointerInInternalField(0, &magic_pointer);
-
-    Collectable *tmp = new Collectable();
-    tmp->data = map;
-    obj->SetAlignedPointerInInternalField(1, tmp);
-    obj->SetAlignedPointerInInternalField(2, this);
-
-    // marks the persistent instance to be garbage collectable, with a callback called on deletion
-    tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
-    tmp->handle.SetWeak(tmp, wrapper_deleted);
-    tmp->handle.MarkIndependent();
+      self->SetAlignedPointerInInternalField(0, &magic_pointer);
+      self->SetAlignedPointerInInternalField(1, holder);
+      self->SetAlignedPointerInInternalField(2, this);
+      holder->persistent->SetWeak(holder, wrapper_deleted);
+      holder->persistent->MarkIndependent();
+    }
+    return self;
   }
-  return obj;
+  return {};
 }
 
 void JScript_map_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
-  data.GetParameter()->data.reset();
-  data.GetParameter()->handle.Reset();
   delete data.GetParameter();
 }
 
 void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
-  if (!map)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Value::Map_type> map =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!map) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   v8::String::Utf8Value prop(property);
 
@@ -106,8 +130,8 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
   }
   else*/
   {
-    Value::Map_type::const_iterator iter = (*map)->find(*prop);
-    if (iter == (*map)->end())
+    Value::Map_type::const_iterator iter = map->find(*prop);
+    if (iter == map->end())
       info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid map member '").append(*prop).append("'")).c_str()));
     else
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(iter->second));
@@ -117,13 +141,18 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
 void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-  if (!map)
-    throw std::logic_error("bug!");
+  std::shared_ptr<Value::Map_type> map =
+      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->get();
+  if (!map) {
+    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
+        info.GetIsolate(), "Reference to invalid object"));
+    return;
+  }
 
   v8::String::Utf8Value prop(property);
-  (**map)[*prop] = self->_context->v8_value_to_shcore_value(value);
+  (*map)[*prop] = self->_context->v8_value_to_shcore_value(value);
 
   info.GetReturnValue().Set(value);
 }

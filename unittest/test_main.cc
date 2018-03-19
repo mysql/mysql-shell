@@ -41,6 +41,7 @@
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "shellcore/interrupt_handler.h"
+#include "shellcore/shell_init.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mod_testutils.h"
@@ -393,6 +394,8 @@ int main(int argc, char **argv) {
   SetConsoleMode(handle, mode | 0x004);
 #endif
 
+  mysqlsh::global_init();
+
   // Allows customizing the path where the test data files are, if customized
   // it should be a path that contains the next folders:
   // - scripts: with all the tests that go through the Shell_script_tester
@@ -421,11 +424,6 @@ int main(int argc, char **argv) {
   }
 #endif
 
-#ifdef HAVE_V8
-  extern void JScript_context_init();
-
-  JScript_context_init();
-#endif
   // init the ^C handler, so it knows what's the main thread
   shcore::Interrupts::init(nullptr);
   // Disable colors for tests
@@ -540,6 +538,7 @@ int main(int argc, char **argv) {
   }
   ngcommon::Logger::setup_instance(log_path.c_str(), false);
 
+  bool show_all_skipped = false;
   bool got_filter = false;
   std::string target_version = g_target_server_version.get_base();
   const char *target = target_version.c_str();
@@ -593,6 +592,8 @@ int main(int argc, char **argv) {
                strcmp(argv[index], "--help") != 0) {
       std::cerr << "Invalid option " << argv[index] << "\n";
       exit(1);
+    } else if (strcmp(argv[index], "--show-skipped") == 0) {
+      show_all_skipped = true;
     }
   }
 
@@ -727,18 +728,33 @@ int main(int argc, char **argv) {
       std::cout << "\tNote: " << t.second << "\n";
     }
   }
-  if (!g_skipped_chunks.empty()) {
-    std::cout << makeyellow("The following test chunks were SKIPPED:") << "\n";
-    for (auto &t : g_skipped_chunks) {
-      std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
-      std::cout << "\tChunk: " << t.second << "\n";
+
+  if (show_all_skipped) {
+    if (!g_skipped_chunks.empty()) {
+      std::cout << makeyellow("The following test chunks were SKIPPED:")
+                << "\n";
+      for (auto &t : g_skipped_chunks) {
+        std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
+        std::cout << "\tChunk: " << t.second << "\n";
+      }
     }
-  }
-  if (!g_skipped_validations.empty()) {
-    std::cout << makeyellow("The following test chunk validations were SKIPPED:") << "\n";
-    for (auto &t : g_skipped_validations) {
-      std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
-      std::cout << "\tValidation: " << t.second << "\n";
+    if (!g_skipped_validations.empty()) {
+      std::cout << makeyellow(
+                       "The following test chunk validations were SKIPPED:")
+                << "\n";
+      for (auto &t : g_skipped_validations) {
+        std::cout << makeyellow("[  SKIPPED ]") << " " << t.first << "\n";
+        std::cout << "\tValidation: " << t.second << "\n";
+      }
+    }
+  } else {
+    if (g_skipped_chunks.size() > 0 || g_skipped_validations.size() > 0) {
+      std::cout << makeyellow(std::to_string(g_skipped_chunks.size()) +
+                              " chunks and " +
+                              std::to_string(g_skipped_validations.size()) +
+                              " chunk validations were skipped. Use "
+                              "--show-skipped to show them.")
+                << "\n";
     }
   }
   if (!g_pending_fixes.empty()) {
@@ -757,6 +773,8 @@ int main(int argc, char **argv) {
   if (getenv("DEBUG_OBJ"))
     shcore::debug::debug_object_dump_report(false);
 #endif
+
+  mysqlsh::global_end();
 
   return ret_val;
 }

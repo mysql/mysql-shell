@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include <mysql.h>
+
 #include "shellcore/base_shell.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"
@@ -66,10 +66,6 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
   _update_variables_pending = 1;
 
   _result_processor = std::bind(&Base_shell::process_result, this, _1);
-
-  // This call is to initialize the SSL engine
-  auto handle = mysql_init(NULL);
-  mysql_close(handle);
 }
 
 void Base_shell::finish_init() {
