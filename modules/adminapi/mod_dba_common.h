@@ -62,17 +62,7 @@ struct Instance_definition {
   std::string xendpoint;
   std::string grendpoint;
 
-  bool operator==(const Instance_definition& other) const {
-    return host_id == other.host_id &&
-           replicaset_id == other.replicaset_id &&
-           uuid == other.uuid &&
-           label == other.label &&
-           role == other.role &&
-           state == other.state &&
-           endpoint == other.endpoint &&
-           xendpoint == other.xendpoint &&
-           grendpoint == other.grendpoint;
-  }
+  bool operator==(const Instance_definition& other) const = delete;
 };
 
 namespace ReplicaSetStatus {
