@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "35",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -67,7 +67,7 @@
     "rows": [
         [
             "gtid_executed",
-            "e3d4b031-2972-11e8-ae91-5ce0c50b9d66:1-14,\ne6cd2055-2972-11e8-ae91-5ce0c50b9d66:1-10"
+            "2ca30592-2c5d-11e8-9ffa-b86b230042b9:1-14,\n3149f696-2c5d-11e8-9ffa-b86b230042b9:1-10"
         ],
         [
             "gtid_purged",

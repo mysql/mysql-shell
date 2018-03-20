@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "2455c464-2a17-11e8-969d-b4cfee3d633b"
+            "473d6d9e-2c5d-11e8-b6c9-b86b230042b9"
         ]
     ]
 },
@@ -273,7 +273,7 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-249-166.vpn.oracle.com",
+            "tecra",
             3316
         ]
     ]
@@ -449,14 +449,28 @@
             "GPL"
         ],
         [
-            "CSV",
+            "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MEMORY",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -645,42 +659,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -694,9 +680,16 @@
             "GPL"
         ],
         [
-            "ngram",
+            "BLACKHOLE",
             "ACTIVE",
-            "FTPARSER",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
             null,
             "GPL"
         ],
@@ -711,6 +704,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ],
@@ -932,14 +932,28 @@
             "GPL"
         ],
         [
-            "CSV",
+            "TempTable",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MEMORY",
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1128,42 +1142,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
             "GPL"
         ],
         [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "ARCHIVE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
+            "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1177,9 +1163,16 @@
             "GPL"
         ],
         [
-            "ngram",
+            "BLACKHOLE",
             "ACTIVE",
-            "FTPARSER",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "ARCHIVE",
+            "ACTIVE",
+            "STORAGE ENGINE",
             null,
             "GPL"
         ],
@@ -1194,6 +1187,13 @@
             "mysqlx_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "ngram",
+            "ACTIVE",
+            "FTPARSER",
             null,
             "GPL"
         ],
@@ -1240,7 +1240,7 @@
     ],
     "rows": [
         [
-            "2455c464-2a17-11e8-969d-b4cfee3d633b"
+            "473d6d9e-2c5d-11e8-b6c9-b86b230042b9"
         ]
     ]
 },

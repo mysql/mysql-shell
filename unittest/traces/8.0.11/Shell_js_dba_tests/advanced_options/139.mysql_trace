@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3350",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "184",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -67,7 +67,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:23340,localhost:23350,localhost:23360"
+            "localhost:23316,localhost:23326,localhost:23336"
         ]
     ]
 },
@@ -130,7 +130,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:23340,localhost:23350,localhost:23360'"
+    "sql": "SET PERSIST `group_replication_group_seeds` = 'localhost:23316,localhost:23326,localhost:23336'"
 },
 {
     "type": "response",

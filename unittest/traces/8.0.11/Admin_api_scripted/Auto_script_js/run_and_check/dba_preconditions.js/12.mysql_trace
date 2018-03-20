@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "31",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -79,7 +79,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "3"
         ],
         [
             "autocommit",
@@ -99,7 +99,7 @@
         ],
         [
             "basedir",
-            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/"
+            "/home/miguel/work/mysql-server/8.0.11/"
         ],
         [
             "big_tables",
@@ -231,7 +231,7 @@
         ],
         [
             "character_sets_dir",
-            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/share/charsets/"
+            "/home/miguel/work/mysql-server/8.0.11/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -271,7 +271,11 @@
         ],
         [
             "datadir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
+        ],
+        [
+            "debug",
+            ""
         ],
         [
             "default_authentication_plugin",
@@ -315,7 +319,7 @@
         ],
         [
             "disabled_storage_engines",
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
+            ""
         ],
         [
             "disconnect_on_expired_password",
@@ -387,7 +391,7 @@
         ],
         [
             "general_log_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B.log"
+            "/tmp/miguel/3316/sandboxdata/tecra.log"
         ],
         [
             "group_concat_max_len",
@@ -467,7 +471,7 @@
         ],
         [
             "group_replication_group_name",
-            "b5cdebc5-2972-11e8-b903-5ce0c50b9d66"
+            "e4d8f8f5-2c5c-11e8-90c4-b86b230042b9"
         ],
         [
             "group_replication_group_seeds",
@@ -483,7 +487,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:33401"
+            "localhost:33161"
         ],
         [
             "group_replication_member_weight",
@@ -571,7 +575,7 @@
         ],
         [
             "gtid_executed",
-            "b41186da-2972-11e8-b903-5ce0c50b9d66:1-14,\nb5cdebc5-2972-11e8-b903-5ce0c50b9d66:1-17"
+            "e291491a-2c5c-11e8-90c4-b86b230042b9:1-14,\ne4d8f8f5-2c5c-11e8-90c4-b86b230042b9:1-17"
         ],
         [
             "gtid_executed_compression_period",
@@ -639,7 +643,7 @@
         ],
         [
             "hostname",
-            "pjesus-TECRA-Z40-B"
+            "tecra"
         ],
         [
             "information_schema_stats_expiry",
@@ -706,8 +710,20 @@
             "2"
         ],
         [
+            "innodb_background_drop_list_empty",
+            "OFF"
+        ],
+        [
+            "innodb_buf_flush_list_now",
+            "OFF"
+        ],
+        [
             "innodb_buffer_pool_chunk_size",
             "134217728"
+        ],
+        [
+            "innodb_buffer_pool_debug",
+            "OFF"
         ],
         [
             "innodb_buffer_pool_dump_at_shutdown",
@@ -720,6 +736,10 @@
         [
             "innodb_buffer_pool_dump_pct",
             "25"
+        ],
+        [
+            "innodb_buffer_pool_evict",
+            ""
         ],
         [
             "innodb_buffer_pool_filename",
@@ -754,6 +774,14 @@
             "all"
         ],
         [
+            "innodb_change_buffering_debug",
+            "0"
+        ],
+        [
+            "innodb_checkpoint_disabled",
+            "OFF"
+        ],
+        [
             "innodb_checksum_algorithm",
             "crc32"
         ],
@@ -764,6 +792,10 @@
         [
             "innodb_commit_concurrency",
             "0"
+        ],
+        [
+            "innodb_compress_debug",
+            "none"
         ],
         [
             "innodb_compression_failure_threshold_pct",
@@ -790,6 +822,10 @@
             ""
         ],
         [
+            "innodb_ddl_log_crash_reset_debug",
+            "OFF"
+        ],
+        [
             "innodb_deadlock_detect",
             "ON"
         ],
@@ -802,8 +838,16 @@
             "dynamic"
         ],
         [
+            "innodb_dict_stats_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_directories",
             ""
+        ],
+        [
+            "innodb_disable_background_merge",
+            "OFF"
         ],
         [
             "innodb_disable_sort_file_cache",
@@ -814,8 +858,16 @@
             "ON"
         ],
         [
+            "innodb_doublewrite_batch_size",
+            "120"
+        ],
+        [
             "innodb_fast_shutdown",
             "1"
+        ],
+        [
+            "innodb_fil_make_page_dirty_debug",
+            "0"
         ],
         [
             "innodb_file_per_table",
@@ -855,6 +907,10 @@
         ],
         [
             "innodb_force_recovery",
+            "0"
+        ],
+        [
+            "innodb_force_recovery_crash",
             "0"
         ],
         [
@@ -914,12 +970,20 @@
             "2000"
         ],
         [
+            "innodb_limit_optimistic_insert_debug",
+            "0"
+        ],
+        [
             "innodb_lock_wait_timeout",
             "50"
         ],
         [
             "innodb_log_buffer_size",
             "1048576"
+        ],
+        [
+            "innodb_log_checkpoint_now",
+            "OFF"
         ],
         [
             "innodb_log_checksums",
@@ -962,6 +1026,10 @@
             "1024"
         ],
         [
+            "innodb_master_thread_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_max_dirty_pages_pct",
             "90.000000"
         ],
@@ -982,6 +1050,10 @@
             "1073741824"
         ],
         [
+            "innodb_merge_threshold_set_all_debug",
+            "50"
+        ],
+        [
             "innodb_monitor_disable",
             ""
         ],
@@ -996,10 +1068,6 @@
         [
             "innodb_monitor_reset_all",
             ""
-        ],
-        [
-            "innodb_numa_interleave",
-            "OFF"
         ],
         [
             "innodb_old_blocks_pct",
@@ -1022,8 +1090,16 @@
             "OFF"
         ],
         [
+            "innodb_page_cleaner_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_page_cleaners",
             "1"
+        ],
+        [
+            "innodb_page_hash_locks",
+            "16"
         ],
         [
             "innodb_page_size",
@@ -1044,6 +1120,14 @@
         [
             "innodb_purge_rseg_truncate_frequency",
             "128"
+        ],
+        [
+            "innodb_purge_run_now",
+            "OFF"
+        ],
+        [
+            "innodb_purge_stop_now",
+            "OFF"
         ],
         [
             "innodb_purge_threads",
@@ -1080,6 +1164,10 @@
         [
             "innodb_rollback_segments",
             "128"
+        ],
+        [
+            "innodb_saved_page_number_debug",
+            "0"
         ],
         [
             "innodb_sort_buffer_size",
@@ -1134,6 +1222,10 @@
             "1"
         ],
         [
+            "innodb_sync_debug",
+            "OFF"
+        ],
+        [
             "innodb_sync_spin_loops",
             "30"
         ],
@@ -1158,6 +1250,14 @@
             ""
         ],
         [
+            "innodb_trx_purge_view_update_only_debug",
+            "OFF"
+        ],
+        [
+            "innodb_trx_rseg_n_slots_debug",
+            "0"
+        ],
+        [
             "innodb_undo_directory",
             "./"
         ],
@@ -1175,7 +1275,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "ON"
+            "OFF"
         ],
         [
             "innodb_version",
@@ -1243,7 +1343,7 @@
         ],
         [
             "lc_messages_dir",
-            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/share/"
+            "/home/miguel/work/mysql-server/8.0.11/share/"
         ],
         [
             "lc_time_names",
@@ -1271,11 +1371,11 @@
         ],
         [
             "log_bin_basename",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin"
         ],
         [
             "log_bin_index",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1287,7 +1387,7 @@
         ],
         [
             "log_error",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/error.log"
+            "/tmp/miguel/3316/sandboxdata/error.log"
         ],
         [
             "log_error_services",
@@ -1543,7 +1643,7 @@
         ],
         [
             "mysqlx_port",
-            "33400"
+            "33160"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1859,15 +1959,15 @@
         ],
         [
             "pid_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/3340.pid"
+            "/tmp/miguel/3316/3316.pid"
         ],
         [
             "plugin_dir",
-            "/home/workspace/SERVERS/mysql-8.0.11-linux-glibc2.12-x86_64/lib/plugin/"
+            "/home/miguel/work/mysql-server/8.0.11/lib/plugin/"
         ],
         [
             "port",
-            "3340"
+            "3316"
         ],
         [
             "preload_buffer_size",
@@ -1927,15 +2027,15 @@
         ],
         [
             "relay_log",
-            "pjesus-TECRA-Z40-B-relay-bin"
+            "tecra-relay-bin"
         ],
         [
             "relay_log_basename",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin"
         ],
         [
             "relay_log_index",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1967,7 +2067,7 @@
         ],
         [
             "report_port",
-            "3340"
+            "3316"
         ],
         [
             "report_user",
@@ -1991,11 +2091,11 @@
         ],
         [
             "secure_file_priv",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/mysql-files/"
+            "/tmp/miguel/3316/mysql-files/"
         ],
         [
             "server_id",
-            "15685"
+            "15661"
         ],
         [
             "server_id_bits",
@@ -2003,7 +2103,7 @@
         ],
         [
             "server_uuid",
-            "b41186da-2972-11e8-b903-5ce0c50b9d66"
+            "e291491a-2c5c-11e8-90c4-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -2087,7 +2187,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
+            "/tmp/miguel"
         ],
         [
             "slave_max_allowed_packet",
@@ -2143,7 +2243,7 @@
         ],
         [
             "slow_query_log_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-slow.log"
+            "/tmp/miguel/3316/sandboxdata/tecra-slow.log"
         ],
         [
             "socket",
@@ -2307,7 +2407,7 @@
         ],
         [
             "tmpdir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
+            "/tmp/miguel"
         ],
         [
             "transaction_alloc_block_size",
@@ -2339,11 +2439,11 @@
         ],
         [
             "version",
-            "8.0.11"
+            "8.0.11-debug"
         ],
         [
             "version_comment",
-            "MySQL Community Server - GPL"
+            "Source distribution"
         ],
         [
             "version_compile_machine",
@@ -2351,7 +2451,7 @@
         ],
         [
             "version_compile_os",
-            "linux-glibc2.12"
+            "Linux"
         ],
         [
             "version_compile_zlib",
@@ -2388,7 +2488,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 296,
+            "length": 116,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2401,7 +2501,7 @@
     ],
     "rows": [
         [
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ]
     ]
 },
@@ -2503,11 +2603,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000003",
+            "tecra-bin.000003",
             23764,
             "",
             "",
-            "b41186da-2972-11e8-b903-5ce0c50b9d66:1-14,\nb5cdebc5-2972-11e8-b903-5ce0c50b9d66:1-17"
+            "e291491a-2c5c-11e8-90c4-b86b230042b9:1-14,\ne4d8f8f5-2c5c-11e8-90c4-b86b230042b9:1-17"
         ]
     ]
 },
@@ -2659,7 +2759,7 @@
     ],
     "rows": [
         [
-            "b41186da-2972-11e8-b903-5ce0c50b9d66"
+            "e291491a-2c5c-11e8-90c4-b86b230042b9"
         ]
     ]
 },
@@ -2714,7 +2814,7 @@
     "rows": [
         [
             "server_uuid",
-            "b41186da-2972-11e8-b903-5ce0c50b9d66"
+            "e291491a-2c5c-11e8-90c4-b86b230042b9"
         ]
     ]
 },

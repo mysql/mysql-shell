@@ -227,9 +227,6 @@ GR_REQUIRED_CONFIG = {
     # Hash used for extract what writes were made during a transaction.
     TRANSACTION_WRITE_SET_EXTRACTION: {
         ONE_OF: ("XXHASH64", "2", "MURMUR32", "1")},
-    # Not supported engines by GR.
-    DISABLED_STORAGE_ENGINES: {
-        ALL_OF: ("MyISAM", "BLACKHOLE", "FEDERATED", "CSV", "ARCHIVE",)},
 
     # options related to network
     BIND_ADDRESS: {ONE_OF: ("*", )},
@@ -290,9 +287,6 @@ GR_REQUIRED_OPTIONS = {
     # Hash used for extract what writes were made during a transaction.
     TRANSACTION_WRITE_SET_EXTRACTION: {
         ONE_OF: ("XXHASH64", "2", "MURMUR32", "1")},
-    # Not supported engines by GR.
-    DISABLED_STORAGE_ENGINES: {
-        ALL_OF: ("MyISAM", "BLACKHOLE", "FEDERATED", "CSV", "ARCHIVE",)},
 
     # Not necessary to set plugin-load = group_replication.so/ddl on the
     # configuration file  since the the check, start-replicaset
