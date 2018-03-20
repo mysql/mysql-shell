@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "test_user@127.0.0.1:3340?ssl-mode=PREFERRED",
+    "uri": "test_user@127.0.0.1:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "31",
     "connection_info": "127.0.0.1 via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "e521ed59-297b-11e8-9302-5ce0c50b9d66"
+            "5eb720ca-2cfd-11e8-bf53-b86b230042b9"
         ]
     ]
 },
@@ -303,50 +303,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 17,
-    "sql": "SELECT @@disabled_storage_engines"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 18,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@disabled_storage_engines",
-            "length": 152,
-            "fractional": 31,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 19,
     "sql": "SELECT @@binlog_checksum"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 20,
+    "index": 18,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -378,13 +340,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 21,
+    "index": 19,
     "sql": "SELECT @@enforce_gtid_consistency"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 22,
+    "index": 20,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -416,13 +378,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 23,
+    "index": 21,
     "sql": "SELECT @@gtid_mode"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 24,
+    "index": 22,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -454,13 +416,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 25,
+    "index": 23,
     "sql": "SELECT @@binlog_format"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 26,
+    "index": 24,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -492,13 +454,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 27,
+    "index": 25,
     "sql": "SELECT @@report_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 28,
+    "index": 26,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -523,20 +485,20 @@
     ],
     "rows": [
         [
-            3340
+            3316
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 29,
+    "index": 27,
     "sql": "SELECT @@bind_address"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 30,
+    "index": 28,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -568,13 +530,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 31,
+    "index": 29,
     "sql": "SELECT @@log_bin"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 32,
+    "index": 30,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -606,13 +568,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 33,
+    "index": 31,
     "sql": "SHOW VARIABLES LIKE 'VERSION'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 34,
+    "index": 32,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -654,20 +616,20 @@
     "rows": [
         [
             "version",
-            "8.0.11"
+            "8.0.11-debug"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 35,
+    "index": 33,
     "sql": "SELECT @@server_id"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 36,
+    "index": 34,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -692,20 +654,20 @@
     ],
     "rows": [
         [
-            15685
+            15661
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 37,
+    "index": 35,
     "sql": "SELECT variable_source FROM performance_schema.variables_info WHERE variable_name='server_id'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 38,
+    "index": 36,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -737,13 +699,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 39,
+    "index": 37,
     "sql": "SELECT @@slave_parallel_workers"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 40,
+    "index": 38,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -775,13 +737,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 41,
+    "index": 39,
     "sql": "show plugins"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 42,
+    "index": 40,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -901,6 +863,34 @@
             "sha2_cache_cleaner",
             "ACTIVE",
             "AUDIT",
+            null,
+            "GPL"
+        ],
+        [
+            "TempTable",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MRG_MYISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
+            "ACTIVE",
+            "STORAGE ENGINE",
             null,
             "GPL"
         ],
@@ -1087,20 +1077,6 @@
             "GPL"
         ],
         [
-            "MyISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "MRG_MYISAM",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MEMORY",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1115,15 +1091,8 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "TempTable",
-            "ACTIVE",
+            "FEDERATED",
+            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1138,13 +1107,6 @@
         [
             "ARCHIVE",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1182,13 +1144,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 43,
+    "index": 41,
     "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'group_replication%'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 44,
+    "index": 42,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1237,11 +1199,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 45
+    "index": 43
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 46
+    "index": 44
 },
 null]

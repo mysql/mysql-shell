@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "37",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11",
+    "server_version": "8.0.11-debug",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
@@ -36,7 +36,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 78,
+            "length": 96,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -49,7 +49,7 @@
     ],
     "rows": [
         [
-            "8.0.11 Source distribution"
+            "8.0.11-debug Source distribution"
         ]
     ]
 },
@@ -217,8 +217,8 @@
     ],
     "rows": [
         [
-            "229c1cae-2a17-11e8-879f-eaead671b125",
-            "21bcc766-2a17-11e8-969d-b4cfee3d633b"
+            "4222c9fd-2c5d-11e8-8a0c-b86b230042b9",
+            "3fa09f9a-2c5d-11e8-b6c9-b86b230042b9"
         ]
     ]
 },
@@ -226,7 +226,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '229c1cae-2a17-11e8-879f-eaead671b125'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4222c9fd-2c5d-11e8-8a0c-b86b230042b9'"
 },
 {
     "type": "response",
@@ -548,7 +548,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 78,
+            "length": 96,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -596,7 +596,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 198,
+            "length": 87,
             "fractional": 0,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -613,10 +613,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.11 Source distribution",
+            "8.0.11-debug Source distribution",
             "mysqlx.sock",
             33260,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3326/sandboxdata/"
+            "/tmp/miguel/3326/sandboxdata/"
         ]
     ]
 },
@@ -671,7 +671,7 @@
     "rows": [
         [
             "Uptime",
-            "15"
+            "33"
         ]
     ]
 },

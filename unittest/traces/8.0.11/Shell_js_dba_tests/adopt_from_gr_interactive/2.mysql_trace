@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 140,
+            "length": 128,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "8.0.11 MySQL Community Server - GPL"
+            "8.0.11-debug Source distribution"
         ]
     ]
 },
@@ -73,7 +73,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "CREATE USER 'root'@'pjesus-TECRA-Z40-B' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'tecra' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -88,7 +88,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'pjesus-TECRA-Z40-B' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'tecra' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -103,7 +103,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "CREATE USER 'root'@'192.168.1.72' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'10.172.237.31' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -118,7 +118,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'192.168.1.72' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'10.172.237.31' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -308,8 +308,8 @@
     ],
     "rows": [
         [
-            "6a7d45a1-2976-11e8-93c8-5ce0c50b9d66",
-            "6a7d45a1-2976-11e8-93c8-5ce0c50b9d66"
+            "9fbb2b5f-2cf7-11e8-9e0e-b86b230042b9",
+            "9fbb2b5f-2cf7-11e8-9e0e-b86b230042b9"
         ]
     ]
 },
@@ -317,7 +317,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6a7d45a1-2976-11e8-93c8-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9fbb2b5f-2cf7-11e8-9e0e-b86b230042b9'"
 },
 {
     "type": "response",

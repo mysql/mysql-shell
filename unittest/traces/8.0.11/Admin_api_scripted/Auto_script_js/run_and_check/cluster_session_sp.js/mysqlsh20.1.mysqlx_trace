@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "11",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11",
+    "server_version": "8.0.11-debug",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {

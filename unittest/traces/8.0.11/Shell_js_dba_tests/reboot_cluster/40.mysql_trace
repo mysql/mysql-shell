@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3350",
+    "uri": "root:root@localhost:3326",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "21",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "31571fef-297a-11e8-ab50-5ce0c50b9d66"
+            "9515d0d7-2cfb-11e8-96a2-b86b230042b9"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "2eb58c32-297a-11e8-9654-5ce0c50b9d66"
+            "9014cf58-2cfb-11e8-89b3-b86b230042b9"
         ]
     ]
 },
@@ -143,7 +143,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33401,localhost:33601"
+            "localhost:33161,localhost:33361"
         ]
     ]
 },
@@ -245,11 +245,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000004",
+            "tecra-bin.000004",
             231,
             "",
             "",
-            "2cd124b2-297a-11e8-ab50-5ce0c50b9d66:1-14,\n31571fef-297a-11e8-ab50-5ce0c50b9d66:1-18"
+            "8dda636b-2cfb-11e8-96a2-b86b230042b9:1-14,\n9515d0d7-2cfb-11e8-96a2-b86b230042b9:1-18"
         ]
     ]
 },

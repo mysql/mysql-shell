@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "54",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -170,9 +170,9 @@
     ],
     "rows": [
         [
-            "2455c464-2a17-11e8-969d-b4cfee3d633b",
+            "473d6d9e-2c5d-11e8-b6c9-b86b230042b9",
             1,
-            "21bcc766-2a17-11e8-969d-b4cfee3d633b",
+            "3fa09f9a-2c5d-11e8-b6c9-b86b230042b9",
             "ONLINE"
         ]
     ]
@@ -482,7 +482,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 104,
+            "length": 128,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -530,7 +530,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 116,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -547,10 +547,10 @@
             "utf8mb4",
             "utf8mb4",
             "utf8mb4",
-            "8.0.11 Source distribution",
+            "8.0.11-debug Source distribution",
             "mysqld.sock",
             3316,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ]
     ]
 },

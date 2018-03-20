@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11",
+    "server_version": "8.0.11-debug",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
@@ -179,7 +179,7 @@
     ],
     "rows": [
         [
-            "65b31ace-2a17-11e8-b745-daabcaf56b37",
+            "c9b5efe2-2c5d-11e8-9cad-b86b230042b9",
             ""
         ]
     ]
@@ -188,7 +188,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '65b31ace-2a17-11e8-b745-daabcaf56b37'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c9b5efe2-2c5d-11e8-9cad-b86b230042b9'"
 },
 {
     "type": "response",

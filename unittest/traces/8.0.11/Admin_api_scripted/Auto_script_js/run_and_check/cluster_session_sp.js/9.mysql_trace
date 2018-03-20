@@ -10,9 +10,9 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "24",
+    "connection_id": "25",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('21bcc766-2a17-11e8-969d-b4cfee3d633b:1-14,\\n2455c464-2a17-11e8-969d-b4cfee3d633b:1-10', 10, 'group_replication_applier')"
+    "sql": "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('3fa09f9a-2c5d-11e8-b6c9-b86b230042b9:1-14,\\n473d6d9e-2c5d-11e8-b6c9-b86b230042b9:1-10', 10, 'group_replication_applier')"
 },
 {
     "type": "response",
@@ -36,7 +36,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('21bcc766-2a17-11e8-969d-b4cfee3d633b:1-14,\\n2455c464-2a17-11e8-969d-b4cfee3d633b:1-10', 10, 'group_replication_applier')",
+            "column_label": "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('3fa09f9a-2c5d-11e8-b6c9-b86b230042b9:1-14,\\n473d6d9e-2c5d-11e8-b6c9-b86b230042b9:1-10', 10, 'group_replication_applier')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            1
+            0
         ]
     ]
 },

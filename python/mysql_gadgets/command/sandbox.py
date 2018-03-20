@@ -548,13 +548,6 @@ def create_sandbox(**kwargs):
         "log_bin": None,
         "enforce_gtid_consistency": "ON",
         "pid_file": pidf_path.replace("\\", '/'),
-        # CSV cannot be disabled as myslqldump forcefully clones slow_log
-        # and general_log tables on the clone operation.
-        # MyISAM cannot be disabled as some tables on the mysql schema still
-        # use it and the clone operation needs to recreate those tables
-        # on the destination to make sure they are empty before filling them
-        # with data (there is no option on mysqldump to truncate tables).
-        "disabled_storage_engines": "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV",
     }, "client": {
         "port": port,
         "user": "root",

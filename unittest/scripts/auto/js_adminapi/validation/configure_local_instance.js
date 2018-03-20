@@ -11,22 +11,21 @@ This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root'@'%' for root
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| Variable                         | Current Value | Required Value                         | Note                                             |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE                                   | Update the server variable and the config file   |
-| binlog_format                    | <not set>     | ROW                                    | Update the config file                           |
-| disabled_storage_engines         | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file and restart the server    |
-| enforce_gtid_consistency         | OFF           | ON                                     | Update the config file and restart the server    |
-| gtid_mode                        | OFF           | ON                                     | Update the config file and restart the server    |
-| log_bin                          | <not set>     | <no value>                             | Update the config file                           |
-| log_slave_updates                | <not set>     | ON                                     | Update the config file                           |
-| master_info_repository           | <not set>     | TABLE                                  | Update the config file                           |
-| relay_log_info_repository        | <not set>     | TABLE                                  | Update the config file                           |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>                                   | Update the config file                           |
-| server_id                        | 1             | <unique ID>                            | Update read-only variable and restart the server |
-| transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file                           |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                             |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
+| binlog_format                    | <not set>     | ROW            | Update the config file                           |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
+| log_bin                          | <not set>     | <no value>     | Update the config file                           |
+| log_slave_updates                | <not set>     | ON             | Update the config file                           |
+| master_info_repository           | <not set>     | TABLE          | Update the config file                           |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                           |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                           |
+| server_id                        | 1             | <unique ID>    | Update read-only variable and restart the server |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                           |
++----------------------------------+---------------+----------------+--------------------------------------------------+
 
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Cluster admin user 'root'@'%' created.
@@ -46,7 +45,6 @@ Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
 | binlog_checksum                  | CRC32         | NONE                                   | Update the server variable and the config file   |
 | binlog_format                    | <not set>     | ROW                                    | Update the config file                           |
-| disabled_storage_engines         | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file and restart the server    |
 | enforce_gtid_consistency         | OFF           | ON                                     | Update the config file and restart the server    |
 | gtid_mode                        | OFF           | ON                                     | Update the config file and restart the server    |
 | log_bin                          | 0             | 1                                      | Update the config file and restart the server    |
@@ -71,14 +69,13 @@ This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root2'@'%' for root2
 
 Some configuration options need to be fixed:
-+--------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| Variable                 | Current Value | Required Value                         | Note                                             |
-+--------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| disabled_storage_engines | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update read-only variable and restart the server |
-| enforce_gtid_consistency | OFF           | ON                                     | Update read-only variable and restart the server |
-| gtid_mode                | OFF           | ON                                     | Update read-only variable and restart the server |
-| server_id                | 1             | <unique ID>                            | Update read-only variable and restart the server |
-+--------------------------+---------------+----------------------------------------+--------------------------------------------------+
++--------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                 | Current Value | Required Value | Note                                             |
++--------------------------+---------------+----------------+--------------------------------------------------+
+| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
++--------------------------+---------------+----------------+--------------------------------------------------+
 
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
@@ -102,19 +99,18 @@ This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root2'@'%' for root2
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| Variable                         | Current Value | Required Value                         | Note                                             |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| disabled_storage_engines         | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update read-only variable and restart the server |
-| enforce_gtid_consistency         | OFF           | ON                                     | Update read-only variable and restart the server |
-| gtid_mode                        | OFF           | ON                                     | Update read-only variable and restart the server |
-| log_bin                          | 0             | 1                                      | Update read-only variable and restart the server |
-| log_slave_updates                | 0             | ON                                     | Update read-only variable and restart the server |
-| master_info_repository           | FILE          | TABLE                                  | Update read-only variable and restart the server |
-| relay_log_info_repository        | FILE          | TABLE                                  | Update read-only variable and restart the server |
-| server_id                        | 0             | <unique ID>                            | Update read-only variable and restart the server |
-| transaction_write_set_extraction | OFF           | XXHASH64                               | Update read-only variable and restart the server |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                             |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| enforce_gtid_consistency         | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                        | OFF           | ON             | Update read-only variable and restart the server |
+| log_bin                          | 0             | 1              | Update read-only variable and restart the server |
+| log_slave_updates                | 0             | ON             | Update read-only variable and restart the server |
+| master_info_repository           | FILE          | TABLE          | Update read-only variable and restart the server |
+| relay_log_info_repository        | FILE          | TABLE          | Update read-only variable and restart the server |
+| server_id                        | 0             | <unique ID>    | Update read-only variable and restart the server |
+| transaction_write_set_extraction | OFF           | XXHASH64       | Update read-only variable and restart the server |
++----------------------------------+---------------+----------------+--------------------------------------------------+
 
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Do you want to perform the required configuration changes? [y/n]:
@@ -148,14 +144,13 @@ This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root5'@'%' for root5
 
 Some configuration options need to be fixed:
-+--------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| Variable                 | Current Value | Required Value                         | Note                                             |
-+--------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| disabled_storage_engines | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update read-only variable and restart the server |
-| enforce_gtid_consistency | OFF           | ON                                     | Update read-only variable and restart the server |
-| gtid_mode                | OFF           | ON                                     | Update read-only variable and restart the server |
-| server_id                | 1             | <unique ID>                            | Update read-only variable and restart the server |
-+--------------------------+---------------+----------------------------------------+--------------------------------------------------+
++--------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                 | Current Value | Required Value | Note                                             |
++--------------------------+---------------+----------------+--------------------------------------------------+
+| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
++--------------------------+---------------+----------------+--------------------------------------------------+
 
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 Cluster admin user 'root5'@'%' created.
@@ -168,19 +163,18 @@ This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root5'@'%' for root5
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| Variable                         | Current Value | Required Value                         | Note                                             |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| disabled_storage_engines         | <no value>    | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update read-only variable and restart the server |
-| enforce_gtid_consistency         | OFF           | ON                                     | Update read-only variable and restart the server |
-| gtid_mode                        | OFF           | ON                                     | Update read-only variable and restart the server |
-| log_bin                          | 0             | 1                                      | Update read-only variable and restart the server |
-| log_slave_updates                | 0             | ON                                     | Update read-only variable and restart the server |
-| master_info_repository           | FILE          | TABLE                                  | Update read-only variable and restart the server |
-| relay_log_info_repository        | FILE          | TABLE                                  | Update read-only variable and restart the server |
-| server_id                        | 0             | <unique ID>                            | Update read-only variable and restart the server |
-| transaction_write_set_extraction | OFF           | XXHASH64                               | Update read-only variable and restart the server |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                             |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| enforce_gtid_consistency         | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                        | OFF           | ON             | Update read-only variable and restart the server |
+| log_bin                          | 0             | 1              | Update read-only variable and restart the server |
+| log_slave_updates                | 0             | ON             | Update read-only variable and restart the server |
+| master_info_repository           | FILE          | TABLE          | Update read-only variable and restart the server |
+| relay_log_info_repository        | FILE          | TABLE          | Update read-only variable and restart the server |
+| server_id                        | 0             | <unique ID>    | Update read-only variable and restart the server |
+| transaction_write_set_extraction | OFF           | XXHASH64       | Update read-only variable and restart the server |
++----------------------------------+---------------+----------------+--------------------------------------------------+
 
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Do you want to perform the required configuration changes? [y/n]: Disabled super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'

@@ -75,21 +75,20 @@ Checking instance configuration...
 Configuration file mybad.cnf will also be checked.
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------------------------------+------------------------+
-| Variable                         | Current Value | Required Value                         | Note                   |
-+----------------------------------+---------------+----------------------------------------+------------------------+
-| binlog_checksum                  | <not set>     | NONE                                   | Update the config file |
-| binlog_format                    | <not set>     | ROW                                    | Update the config file |
-| disabled_storage_engines         | <not set>     | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file |
-| enforce_gtid_consistency         | <not set>     | ON                                     | Update the config file |
-| gtid_mode                        | OFF           | ON                                     | Update the config file |
-| log_bin                          | <not set>     | <no value>                             | Update the config file |
-| log_slave_updates                | <not set>     | ON                                     | Update the config file |
-| master_info_repository           | <not set>     | TABLE                                  | Update the config file |
-| relay_log_info_repository        | <not set>     | TABLE                                  | Update the config file |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>                                   | Update the config file |
-| transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file |
-+----------------------------------+---------------+----------------------------------------+------------------------+
++----------------------------------+---------------+----------------+------------------------+
+| Variable                         | Current Value | Required Value | Note                   |
++----------------------------------+---------------+----------------+------------------------+
+| binlog_checksum                  | <not set>     | NONE           | Update the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file |
+| enforce_gtid_consistency         | <not set>     | ON             | Update the config file |
+| gtid_mode                        | OFF           | ON             | Update the config file |
+| log_bin                          | <not set>     | <no value>     | Update the config file |
+| log_slave_updates                | <not set>     | ON             | Update the config file |
+| master_info_repository           | <not set>     | TABLE          | Update the config file |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
++----------------------------------+---------------+----------------+------------------------+
 
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Please use the dba.configureInstance() command to repair these issues.
@@ -119,21 +118,20 @@ WARNING: User 'root' can only connect from localhost.
 If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------------------------------+------------------------+
-| Variable                         | Current Value | Required Value                         | Note                   |
-+----------------------------------+---------------+----------------------------------------+------------------------+
-| binlog_checksum                  | <not set>     | NONE                                   | Update the config file |
-| binlog_format                    | <not set>     | ROW                                    | Update the config file |
-| disabled_storage_engines         | <not set>     | MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE | Update the config file |
-| enforce_gtid_consistency         | <not set>     | ON                                     | Update the config file |
-| gtid_mode                        | OFF           | ON                                     | Update the config file |
-| log_bin                          | <not set>     | <no value>                             | Update the config file |
-| log_slave_updates                | <not set>     | ON                                     | Update the config file |
-| master_info_repository           | <not set>     | TABLE                                  | Update the config file |
-| relay_log_info_repository        | <not set>     | TABLE                                  | Update the config file |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>                                   | Update the config file |
-| transaction_write_set_extraction | <not set>     | XXHASH64                               | Update the config file |
-+----------------------------------+---------------+----------------------------------------+------------------------+
++----------------------------------+---------------+----------------+------------------------+
+| Variable                         | Current Value | Required Value | Note                   |
++----------------------------------+---------------+----------------+------------------------+
+| binlog_checksum                  | <not set>     | NONE           | Update the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file |
+| enforce_gtid_consistency         | <not set>     | ON             | Update the config file |
+| gtid_mode                        | OFF           | ON             | Update the config file |
+| log_bin                          | <not set>     | <no value>     | Update the config file |
+| log_slave_updates                | <not set>     | ON             | Update the config file |
+| master_info_repository           | <not set>     | TABLE          | Update the config file |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
++----------------------------------+---------------+----------------+------------------------+
 
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Configuring instance...

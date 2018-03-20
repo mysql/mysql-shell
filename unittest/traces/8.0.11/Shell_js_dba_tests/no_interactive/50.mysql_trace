@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "81",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -240,9 +240,9 @@
     ],
     "rows": [
         [
-            13,
+            10,
             "devCluster",
-            13,
+            10,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -253,7 +253,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 13"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 10"
 },
 {
     "type": "response",
@@ -317,7 +317,7 @@
         [
             "default",
             "pm",
-            "f07b2a29-297c-11e8-8e65-5ce0c50b9d66"
+            "6f822d32-2cfe-11e8-a25d-b86b230042b9"
         ]
     ]
 },
@@ -355,7 +355,7 @@
     ],
     "rows": [
         [
-            "f07b2a29-297c-11e8-8e65-5ce0c50b9d66"
+            "6f822d32-2cfe-11e8-a25d-b86b230042b9"
         ]
     ]
 },
