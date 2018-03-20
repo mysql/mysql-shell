@@ -258,7 +258,7 @@ SYNTAX
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -281,7 +281,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -317,7 +317,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -409,7 +409,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -485,7 +485,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -544,7 +544,7 @@ SYNTAX
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 

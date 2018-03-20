@@ -563,7 +563,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_THROWS11,
               "instance is an active member "
               "of the ReplicaSet.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_RETURNS, "@returns nothing.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL,
               "This function rejoins an Instance "
@@ -749,7 +749,7 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_THROWS10,
               "the instance "
               "(e.g., instance is not reachable).");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_RETURNS, "@returns nothing.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL,
               "This function removes an "
@@ -1168,7 +1168,7 @@ REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1,
 REGISTER_HELP(CLUSTER_DISSOLVE_THROWS2,
               "@li If the Metadata update operation failed.");
 
-REGISTER_HELP(CLUSTER_DISSOLVE_RETURNS, "@returns nothing.");
+REGISTER_HELP(CLUSTER_DISSOLVE_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_DISSOLVE_PARAM,
               "@param options Optional parameter to "
@@ -1302,7 +1302,7 @@ REGISTER_HELP(CLUSTER_RESCAN_THROWS6,
               "ReplicaSet instances of any ReplicaSet "
               "are offline.");
 
-REGISTER_HELP(CLUSTER_RESCAN_RETURNS, "@returns nothing.");
+REGISTER_HELP(CLUSTER_RESCAN_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_RESCAN_DETAIL,
               "This function rescans the cluster for "
@@ -1365,7 +1365,7 @@ shcore::Value::Map_type_ref Cluster::_rescan(
 REGISTER_HELP(CLUSTER_DISCONNECT_BRIEF,
               "Disconnects all internal sessions used by the cluster object.");
 
-REGISTER_HELP(CLUSTER_DISCONNECT_RETURNS, "@returns nothing.");
+REGISTER_HELP(CLUSTER_DISCONNECT_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_DISCONNECT_DETAIL,
               "Disconnects the internal MySQL sessions used by the cluster "\
@@ -1438,7 +1438,7 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS8,
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS9,
               "@li If the cluster does not exist.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS, "@returns nothing.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL,
               "This function restores the cluster's default replicaset back "
