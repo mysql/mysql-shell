@@ -1,6 +1,6 @@
 {
-    "hostname": "10.172.234.37",
-    "hostname_ip": "10.172.234.37",
+    "hostname": "10.172.237.31",
+    "hostname_ip": "10.172.237.31",
     "real_host_is_loopback": "1",
     "real_hostname": "tecra",
     "sandbox_port1": "3316",

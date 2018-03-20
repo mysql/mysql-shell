@@ -94,7 +94,7 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
    */
   std::string resolve_hostname_ipv4_impl(const std::string &name) const
                                                                   override {
-    if (name == m_hostname)
+    if (name == m_hostname || name == m_real_hostname)
       return m_hostname_ip;
     else
       return Net::resolve_hostname_ipv4_impl(name);

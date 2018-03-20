@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340",
+    "uri": "root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "31",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -20,7 +20,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 3,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = 'e5f63733-2994-11e8-b3f1-5ce0c50b9d66'"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '36461f39-2d1b-11e8-b89b-b86b230042b9'"
 },
 {
     "type": "response",

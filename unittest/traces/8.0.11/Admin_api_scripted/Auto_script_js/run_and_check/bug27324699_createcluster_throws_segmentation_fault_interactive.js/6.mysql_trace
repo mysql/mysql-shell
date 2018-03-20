@@ -189,7 +189,7 @@
         ],
         [
             "auto_increment_offset",
-            "7"
+            "6"
         ],
         [
             "autocommit",
@@ -429,7 +429,7 @@
         ],
         [
             "disabled_storage_engines",
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
+            ""
         ],
         [
             "disconnect_on_expired_password",
@@ -509,7 +509,7 @@
         ],
         [
             "gtid_executed",
-            "1c82114c-26df-11e8-a056-b86b230042b9:1-3"
+            "6ae62110-2c5e-11e8-b62b-b86b230042b9:1-3"
         ],
         [
             "gtid_executed_compression_period",
@@ -2037,7 +2037,7 @@
         ],
         [
             "server_uuid",
-            "1c82114c-26df-11e8-a056-b86b230042b9"
+            "6ae62110-2c5e-11e8-b62b-b86b230042b9"
         ],
         [
             "session_track_gtids",

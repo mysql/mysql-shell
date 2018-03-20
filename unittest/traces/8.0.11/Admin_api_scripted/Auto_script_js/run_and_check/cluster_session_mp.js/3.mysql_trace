@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "11",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "8.0.11",
+    "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
@@ -79,7 +79,7 @@
         ],
         [
             "auto_increment_offset",
-            "1"
+            "6"
         ],
         [
             "autocommit",
@@ -99,7 +99,7 @@
         ],
         [
             "basedir",
-            "/usr/local/mysql-8.0.11/"
+            "/home/miguel/work/mysql-server/8.0.11/"
         ],
         [
             "big_tables",
@@ -231,7 +231,7 @@
         ],
         [
             "character_sets_dir",
-            "/usr/local/mysql-8.0.11/share/charsets/"
+            "/home/miguel/work/mysql-server/8.0.11/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -271,7 +271,11 @@
         ],
         [
             "datadir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
+        ],
+        [
+            "debug",
+            ""
         ],
         [
             "default_authentication_plugin",
@@ -315,7 +319,7 @@
         ],
         [
             "disabled_storage_engines",
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
+            ""
         ],
         [
             "disconnect_on_expired_password",
@@ -387,7 +391,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166.log"
+            "/tmp/miguel/3316/sandboxdata/tecra.log"
         ],
         [
             "group_concat_max_len",
@@ -395,7 +399,7 @@
         ],
         [
             "gtid_executed",
-            "64daa450-2a17-11e8-9d83-10163cedefe7:1-14"
+            "c7463ef2-2c5d-11e8-a977-b86b230042b9:1-14"
         ],
         [
             "gtid_executed_compression_period",
@@ -463,7 +467,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-249-166.vpn.oracle.com"
+            "tecra"
         ],
         [
             "information_schema_stats_expiry",
@@ -530,8 +534,20 @@
             "2"
         ],
         [
+            "innodb_background_drop_list_empty",
+            "OFF"
+        ],
+        [
+            "innodb_buf_flush_list_now",
+            "OFF"
+        ],
+        [
             "innodb_buffer_pool_chunk_size",
             "134217728"
+        ],
+        [
+            "innodb_buffer_pool_debug",
+            "OFF"
         ],
         [
             "innodb_buffer_pool_dump_at_shutdown",
@@ -544,6 +560,10 @@
         [
             "innodb_buffer_pool_dump_pct",
             "25"
+        ],
+        [
+            "innodb_buffer_pool_evict",
+            ""
         ],
         [
             "innodb_buffer_pool_filename",
@@ -578,6 +598,14 @@
             "all"
         ],
         [
+            "innodb_change_buffering_debug",
+            "0"
+        ],
+        [
+            "innodb_checkpoint_disabled",
+            "OFF"
+        ],
+        [
             "innodb_checksum_algorithm",
             "crc32"
         ],
@@ -588,6 +616,10 @@
         [
             "innodb_commit_concurrency",
             "0"
+        ],
+        [
+            "innodb_compress_debug",
+            "none"
         ],
         [
             "innodb_compression_failure_threshold_pct",
@@ -614,6 +646,10 @@
             ""
         ],
         [
+            "innodb_ddl_log_crash_reset_debug",
+            "OFF"
+        ],
+        [
             "innodb_deadlock_detect",
             "ON"
         ],
@@ -626,8 +662,16 @@
             "dynamic"
         ],
         [
+            "innodb_dict_stats_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_directories",
             ""
+        ],
+        [
+            "innodb_disable_background_merge",
+            "OFF"
         ],
         [
             "innodb_disable_sort_file_cache",
@@ -638,8 +682,16 @@
             "ON"
         ],
         [
+            "innodb_doublewrite_batch_size",
+            "120"
+        ],
+        [
             "innodb_fast_shutdown",
             "1"
+        ],
+        [
+            "innodb_fil_make_page_dirty_debug",
+            "0"
         ],
         [
             "innodb_file_per_table",
@@ -679,6 +731,10 @@
         ],
         [
             "innodb_force_recovery",
+            "0"
+        ],
+        [
+            "innodb_force_recovery_crash",
             "0"
         ],
         [
@@ -738,12 +794,20 @@
             "2000"
         ],
         [
+            "innodb_limit_optimistic_insert_debug",
+            "0"
+        ],
+        [
             "innodb_lock_wait_timeout",
             "50"
         ],
         [
             "innodb_log_buffer_size",
             "1048576"
+        ],
+        [
+            "innodb_log_checkpoint_now",
+            "OFF"
         ],
         [
             "innodb_log_checksums",
@@ -786,6 +850,10 @@
             "1024"
         ],
         [
+            "innodb_master_thread_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_max_dirty_pages_pct",
             "90.000000"
         ],
@@ -804,6 +872,10 @@
         [
             "innodb_max_undo_log_size",
             "1073741824"
+        ],
+        [
+            "innodb_merge_threshold_set_all_debug",
+            "50"
         ],
         [
             "innodb_monitor_disable",
@@ -842,8 +914,16 @@
             "OFF"
         ],
         [
+            "innodb_page_cleaner_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_page_cleaners",
             "1"
+        ],
+        [
+            "innodb_page_hash_locks",
+            "16"
         ],
         [
             "innodb_page_size",
@@ -864,6 +944,14 @@
         [
             "innodb_purge_rseg_truncate_frequency",
             "128"
+        ],
+        [
+            "innodb_purge_run_now",
+            "OFF"
+        ],
+        [
+            "innodb_purge_stop_now",
+            "OFF"
         ],
         [
             "innodb_purge_threads",
@@ -900,6 +988,10 @@
         [
             "innodb_rollback_segments",
             "128"
+        ],
+        [
+            "innodb_saved_page_number_debug",
+            "0"
         ],
         [
             "innodb_sort_buffer_size",
@@ -954,6 +1046,10 @@
             "1"
         ],
         [
+            "innodb_sync_debug",
+            "OFF"
+        ],
+        [
             "innodb_sync_spin_loops",
             "30"
         ],
@@ -976,6 +1072,14 @@
         [
             "innodb_tmpdir",
             ""
+        ],
+        [
+            "innodb_trx_purge_view_update_only_debug",
+            "OFF"
+        ],
+        [
+            "innodb_trx_rseg_n_slots_debug",
+            "0"
         ],
         [
             "innodb_undo_directory",
@@ -1063,7 +1167,7 @@
         ],
         [
             "lc_messages_dir",
-            "/usr/local/mysql-8.0.11/share/"
+            "/home/miguel/work/mysql-server/8.0.11/share/"
         ],
         [
             "lc_time_names",
@@ -1091,11 +1195,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1107,7 +1211,7 @@
         ],
         [
             "log_error",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log"
+            "/tmp/miguel/3316/sandboxdata/error.log"
         ],
         [
             "log_error_services",
@@ -1175,11 +1279,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "mandatory_roles",
@@ -1451,7 +1555,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "8161"
         ],
         [
             "optimizer_prune_level",
@@ -1679,11 +1783,11 @@
         ],
         [
             "pid_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid"
+            "/tmp/miguel/3316/3316.pid"
         ],
         [
             "plugin_dir",
-            "/usr/local/mysql-8.0.11/lib/plugin/"
+            "/home/miguel/work/mysql-server/8.0.11/lib/plugin/"
         ],
         [
             "port",
@@ -1747,15 +1851,15 @@
         ],
         [
             "relay_log",
-            "dhcp-10-159-249-166-relay-bin"
+            "tecra-relay-bin"
         ],
         [
             "relay_log_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-relay-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-relay-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1811,7 +1915,7 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files/"
+            "/tmp/miguel/3316/mysql-files/"
         ],
         [
             "server_id",
@@ -1823,7 +1927,7 @@
         ],
         [
             "server_uuid",
-            "64daa450-2a17-11e8-9d83-10163cedefe7"
+            "c7463ef2-2c5d-11e8-a977-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -1907,7 +2011,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/tmp/miguel"
         ],
         [
             "slave_max_allowed_packet",
@@ -1963,7 +2067,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-249-166-slow.log"
+            "/tmp/miguel/3316/sandboxdata/tecra-slow.log"
         ],
         [
             "socket",
@@ -2079,7 +2183,7 @@
         ],
         [
             "system_time_zone",
-            "PDT"
+            "WET"
         ],
         [
             "table_definition_cache",
@@ -2127,7 +2231,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/tmp/miguel"
         ],
         [
             "transaction_alloc_block_size",
@@ -2159,7 +2263,7 @@
         ],
         [
             "version",
-            "8.0.11"
+            "8.0.11-debug"
         ],
         [
             "version_comment",
@@ -2171,7 +2275,7 @@
         ],
         [
             "version_compile_os",
-            "osx10.13"
+            "Linux"
         ],
         [
             "version_compile_zlib",
@@ -2208,7 +2312,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 264,
+            "length": 116,
             "fractional": 31,
             "type": "String",
             "collation": "utf8mb4_0900_ai_ci",
@@ -2221,7 +2325,7 @@
     ],
     "rows": [
         [
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ]
     ]
 },
@@ -2323,11 +2427,11 @@
     ],
     "rows": [
         [
-            "dhcp-10-159-249-166-bin.000003",
-            10723,
+            "tecra-bin.000003",
+            10797,
             "",
             "",
-            "64daa450-2a17-11e8-9d83-10163cedefe7:1-14"
+            "c7463ef2-2c5d-11e8-a977-b86b230042b9:1-14"
         ]
     ]
 },
@@ -2461,8 +2565,8 @@
     "info": "",
     "columns": [
         {
-            "schema": "",
-            "table_name": "",
+            "schema": "mysql",
+            "table_name": "schemata",
             "table_label": "SCHEMATA",
             "column_name": "Database (mysql_innodb_cluster_metadata)",
             "column_label": "Database (mysql_innodb_cluster_metadata)",
@@ -2474,7 +2578,7 @@
             "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
-            "binary": false
+            "binary": true
         }
     ],
     "rows": [
@@ -2534,7 +2638,7 @@
     "rows": [
         [
             "server_uuid",
-            "64daa450-2a17-11e8-9d83-10163cedefe7"
+            "c7463ef2-2c5d-11e8-a977-b86b230042b9"
         ]
     ]
 },
@@ -2623,7 +2727,7 @@
     "rows": [
         [
             "version_compile_os",
-            "osx10.13"
+            "Linux"
         ]
     ]
 },
