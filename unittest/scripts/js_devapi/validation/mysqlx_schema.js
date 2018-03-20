@@ -8,7 +8,7 @@ Views can be used not only to retrieve data from them but also to update, add
 and delete records.
 
 For the purpose of this API, Views behave similar to a Table, and so they are
-threated as Tables.
+treated as Tables.
 
 The following properties are currently supported.
 
@@ -116,7 +116,7 @@ SYNTAX
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 
 //@ Testing dropping existing schema objects

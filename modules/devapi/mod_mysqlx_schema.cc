@@ -67,7 +67,7 @@ REGISTER_HELP(
     "Views can be used not only to retrieve data from them but also to update, add and delete records.");
 REGISTER_HELP(
     SCHEMA_DETAIL3,
-    "For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.");
+    "For the purpose of this API, Views behave similar to a Table, and so they are treated as Tables.");
 
 Schema::Schema(std::shared_ptr<Session> session, const std::string &schema)
     : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema) {
@@ -593,7 +593,7 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
 REGISTER_HELP(SCHEMA_DROPCOLLECTION_BRIEF,
               "Drops the specified collection.");
 REGISTER_HELP(SCHEMA_DROPCOLLECTION_RETURNS,
-              "@returns nothing.");
+              "@returns Nothing.");
 
 /**
  * $(SCHEMA_DROPCOLLECTION_BRIEF)

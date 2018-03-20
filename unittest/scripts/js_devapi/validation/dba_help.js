@@ -169,7 +169,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -209,7 +209,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -266,7 +266,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -348,7 +348,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -388,7 +388,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
@@ -507,7 +507,7 @@ WHERE
 
 RETURNS
 
-  nothing.
+  Nothing.
 
 DESCRIPTION
 
