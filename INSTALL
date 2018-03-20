@@ -8,7 +8,8 @@ Mandatory
 - cmake 2.8.12 (note: if you're using a very recent version of cmake and it
   doesn't work, try downgrading)
 - gcc 5/VisualStudio 2015/clang 8
-- MySQL 8.0.2 built from sources, for libmysqlclient and libmysqlxclient
+- MySQL 8.0.11 client libraries built from sources
+  (libmysqlclient, libmysqlxclient)
 - protobuf (same version used for MySQL 8)
 - zip (gnuwin32 in windows)
 - python 2.7+
@@ -35,17 +36,30 @@ have protobuf 2.6 or newer installed or compiled.
 MySQL
 .....
 
-As of MySQL Shell 8.0.3, the MySQL server sources are required to compile
+As of MySQL Shell 8.0.11, the MySQL server sources are required to compile
 with the X protocol client library.
 
-1) Download and unpack MySQL 8.0.2 (or newer) source code
-2) Configure MySQL server with xplugin support
-  mkdir mysql-8.0.2/bld
-  cd mysql-8.0.2/bld
-  cmake .. <cmake options for MySQL>
-3) Compile server
-  Alternatively, you can build just libmysqlclient and libmysqlxclient
-  for faster compilation
+1) Download and unpack MySQL 8.0.11 (or newer) source code
+2) Configure MySQL server:
+
+  mkdir mysql-8.0.11/bld
+  cd mysql-8.0.11/bld
+  cmake .. -DWITH_BOOST=<path to boost> -DWITH_SSL=system
+
+  If boost is not available use the next options to let cmake download the
+  required version:
+
+  -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1
+
+
+3) Compile the client libraries:
+
+  cmake --build . --target mysqlclient
+  cmake --build . --target mysqlxclient
+
+  Alternatively you can build the entire server:
+
+  make
 
 
 Building the Shell
@@ -54,11 +68,11 @@ Building the Shell
 1) Download and unpack MySQL Shell source code
 2) Configure and Build
 Linux/OSX
-       mkdir mysql-shell-8.0.3/bld
+       mkdir mysql-shell-8.0.11/bld
        cd bld
        cmake .. \
-            -DMYSQL_SOURCE_DIR=<path_to_mysql_sources>\
-            -DMYSQL_BUILD_DIR=<path_to_mysql_bld_directory>\
+            -DMYSQL_SOURCE_DIR=../../mysql-8.0.11\
+            -DMYSQL_BUILD_DIR=../../mysql-8.0.11/bld\
             -DWITH_PROTOBUF=<path_to_protobuf>\
             -DHAVE_PYTHON=1\
             <other options>
@@ -68,6 +82,8 @@ Windows
      mkdir bld
      cd bld
      cmake .. -G "Visual Studio 15 Win64" \
+          -DMYSQL_SOURCE_DIR=../../mysql-8.0.11\
+          -DMYSQL_BUILD_DIR=../../mysql-8.0.11/bld\
           -DWITH_PROTOBUF=<path_to_protobuf> \
           -DWITH_STATIC_LINKING=1 \
           -DHAVE_PYTHON=1\
