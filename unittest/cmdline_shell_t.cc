@@ -20,9 +20,9 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "unittest/gprod_clean.h"
+#include "unittest/gtest_clean.h"
 
-#include <gtest/gtest.h>
-#include <gtest/gtest_prod.h>
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
@@ -132,7 +132,6 @@ static void print_capture(void *cdata, const char *text) {
   std::string *capture = static_cast<std::string *>(cdata);
   capture->append(text).append("\n");
 }
-
 
 TEST(Cmdline_shell, help) {
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>());

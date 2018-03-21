@@ -20,14 +20,15 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
+#include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
-#include "unittest/test_utils.h"
-#include "unittest/test_utils/command_line_test.h"
+
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "unittest/test_utils.h"
+#include "unittest/test_utils/command_line_test.h"
 
 namespace mysqlsh {
 

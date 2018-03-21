@@ -21,9 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// clang-format off
+#include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
-// clang-format on
+
 #include "mysqlsh/prompt_manager.h"
 #include "mysqlsh/prompt_renderer.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"

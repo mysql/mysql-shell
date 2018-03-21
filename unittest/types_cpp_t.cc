@@ -25,7 +25,10 @@
 #include <iostream>
 #include <limits>
 #include <string>
+
+#include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
+
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "unittest/test_utils.h"

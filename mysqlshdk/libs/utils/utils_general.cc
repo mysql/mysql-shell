@@ -25,7 +25,6 @@
 #include "mysh_config.h"
 
 #ifdef WIN32
-#include <windows.h>
 #include <Lmcons.h>
 #define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else

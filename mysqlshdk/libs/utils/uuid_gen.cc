@@ -26,10 +26,12 @@
 #include <sstream>
 
 #ifdef _WIN32
+// clang-format off
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <windows.h>
 #include <algorithm>
+// clang-format on
 #endif
 
 #include <iostream>

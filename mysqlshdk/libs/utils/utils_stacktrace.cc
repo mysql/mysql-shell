@@ -24,15 +24,17 @@
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 
 #if defined(__APPLE__) || defined(__GLIBC__)
-#include <execinfo.h>
 #include <cxxabi.h>
+#include <execinfo.h>
 #elif defined(_WIN32)
+// clang-format off
 #include <windows.h>
 #include <Dbghelp.h>
+// clang-format on
 #endif
 
 #define MAX_STACK_DEPTH 512
