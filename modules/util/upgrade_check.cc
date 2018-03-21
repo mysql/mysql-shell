@@ -165,13 +165,13 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_old_temporal_check() {
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_reserved_keywords_check() {
   std::string keywords =
-      "('ADMIN', 'BUCKETS', 'CLONE', 'COMPONENT', 'CUBE', 'CUME_DIST', "
-      "'DENSE_RANK', 'EXCEPT', 'EMPTY', 'EXCLUDE', 'FIRST_VALUE', 'FOLLOWING', "
-      "'GROUPING', 'GROUPS', 'HISTOGRAM', 'INVISIBLE', 'LAG', 'LAST_VALUE', "
-      "'LEAD', 'LOCKED', 'NOWAIT', 'NTH_VALUE', 'NTILE', 'NULLS', 'OF', "
-      "'OTHERS', 'OVER', 'PERCENT_RANK', 'PERSIST', 'PERSIST_ONLY', "
-      "'PRECEDING', 'RANK', 'RECURSIVE', 'REMOTE', 'RESPECT', 'ROLE', "
-      "'ROW_NUMBER', 'SKIP', 'TIES', 'UNBOUNDED', 'VISIBLE', 'WINDOW');";
+      "('ADMIN', 'CUBE', 'CUME_DIST', "
+      "'DENSE_RANK', 'EMPTY', 'EXCEPT', 'FIRST_VALUE', 'FUNCTION', "
+      "'GROUPING', 'GROUPS', 'JSON_TABLE', 'LAG', 'LAST_VALUE', "
+      "'LEAD', 'NTH_VALUE', 'NTILE', 'OF', "
+      "'OVER', 'PERCENT_RANK', 'PERSIST', 'PERSIST_ONLY', "
+      "'RANK', 'RECURSIVE', 'ROW', 'ROWS', "
+      "'ROW_NUMBER', 'SYSTEM', 'WINDOW');";
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
       "Usage of db objects with names conflicting with reserved keywords "
       "in 8.0",
