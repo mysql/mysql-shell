@@ -108,35 +108,35 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
     puts(to_string(warning).c_str());
   EXPECT_TRUE(issues.empty());
 
-  PrepareTestDatabase("buckets");
+  PrepareTestDatabase("grouping");
   ASSERT_NO_THROW(
-      session->execute("create table Clone(COMPONENT integer, cube int);"));
+      session->execute("create table System(JSON_TABLE integer, cube int);"));
   ASSERT_NO_THROW(
-      session->execute("create trigger first_value AFTER INSERT on Clone FOR "
-                       "EACH ROW delete from Clone where COMPONENT<0;"));
+      session->execute("create trigger first_value AFTER INSERT on System FOR "
+                       "EACH ROW delete from Clone where JSON_TABLE<0;"));
   ASSERT_NO_THROW(
-      session->execute("create view NTile as select * from Clone;"));
+      session->execute("create view NTile as select * from System;"));
   ASSERT_NO_THROW(
-      session->execute("CREATE FUNCTION others (s CHAR(20)) RETURNS CHAR(50) "
+      session->execute("CREATE FUNCTION rows (s CHAR(20)) RETURNS CHAR(50) "
                        "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
   ASSERT_NO_THROW(session->execute(
-      "CREATE EVENT UNBOUNDED ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 "
-      "HOUR DO UPDATE Clone SET COMPONENT = COMPONENT + 1;"));
+      "CREATE EVENT LEAD ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 "
+      "HOUR DO UPDATE System SET JSON_TABLE = JSON_TABLE + 1;"));
 
   ASSERT_NO_THROW(issues = check->run(session));
   ASSERT_EQ(10, issues.size());
-  EXPECT_EQ("buckets", issues[0].schema);
+  EXPECT_EQ("grouping", issues[0].schema);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
-  EXPECT_STRCASEEQ("clone", issues[1].table.c_str());
-  EXPECT_EQ("COMPONENT", issues[2].column);
+  EXPECT_STRCASEEQ("system", issues[1].table.c_str());
+  EXPECT_EQ("JSON_TABLE", issues[2].column);
   EXPECT_EQ("cube", issues[3].column);
   // Views columns are also displayed
-  EXPECT_EQ("COMPONENT", issues[4].column);
+  EXPECT_EQ("JSON_TABLE", issues[4].column);
   EXPECT_EQ("cube", issues[5].column);
   EXPECT_EQ("first_value", issues[6].table);
   EXPECT_STRCASEEQ("NTile", issues[7].table.c_str());
-  EXPECT_EQ("others", issues[8].table);
-  EXPECT_EQ("UNBOUNDED", issues[9].table);
+  EXPECT_EQ("rows", issues[8].table);
+  EXPECT_EQ("LEAD", issues[9].table);
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
