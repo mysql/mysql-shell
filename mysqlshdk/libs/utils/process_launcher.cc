@@ -30,7 +30,6 @@
 #ifdef WIN32
 #include <stdio.h>
 #include <tchar.h>
-#include <windows.h>
 #else
 #include <errno.h>
 #include <fcntl.h>

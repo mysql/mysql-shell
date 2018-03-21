@@ -22,6 +22,7 @@
 */
 
 #include "gtest/gtest_prod.h"
+
 #include "modules/interactive_object_wrapper.h"
 #include "unittest/test_utils.h"
 

@@ -21,9 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <gtest/gtest_prod.h>
-#include "mysqlshdk/libs/utils/utils_net.h"
+#include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
+
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlshdk {
 namespace utils {

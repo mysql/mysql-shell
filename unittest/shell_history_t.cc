@@ -21,17 +21,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
+
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
 #include "ext/linenoise-ng/include/linenoise.h"
+#include "modules/mod_shell.h"
+#include "modules/mod_shell_options.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "modules/mod_shell_options.h"
 #include "src/mysqlsh/cmdline_shell.h"
-#include "modules/mod_shell.h"
 #include "unittest/test_utils.h"
 
 namespace mysqlsh {

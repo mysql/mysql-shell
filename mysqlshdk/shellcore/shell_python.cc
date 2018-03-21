@@ -21,9 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// clang-format off
 #include "scripting/python_context.h"
 #include "shellcore/shell_python.h"
 #include "scripting/python_utils.h"
+// clang-format on
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"

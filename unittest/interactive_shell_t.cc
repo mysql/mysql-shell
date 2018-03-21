@@ -19,8 +19,10 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include <gtest/gtest_prod.h>
 #include <cstdio>
+
+#include "unittest/gprod_clean.h"
+
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
 #include "utils/utils_file.h"
