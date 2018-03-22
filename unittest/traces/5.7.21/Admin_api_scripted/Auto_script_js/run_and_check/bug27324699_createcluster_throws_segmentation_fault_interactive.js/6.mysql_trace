@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "4"
         ],
         [
             "autocommit",
@@ -201,7 +201,7 @@
         ],
         [
             "basedir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/"
+            "/home/miguel/work/mysql-server/5.7.21/"
         ],
         [
             "big_tables",
@@ -301,7 +301,7 @@
         ],
         [
             "character_sets_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/charsets/"
+            "/home/miguel/work/mysql-server/5.7.21/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -337,7 +337,7 @@
         ],
         [
             "datadir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ],
         [
             "date_format",
@@ -346,6 +346,10 @@
         [
             "datetime_format",
             "%Y-%m-%d %H:%i:%s"
+        ],
+        [
+            "debug",
+            ""
         ],
         [
             "default_authentication_plugin",
@@ -385,7 +389,7 @@
         ],
         [
             "disabled_storage_engines",
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
+            ""
         ],
         [
             "disconnect_on_expired_password",
@@ -457,7 +461,7 @@
         ],
         [
             "general_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174.log"
+            "/tmp/miguel/3316/sandboxdata/tecra.log"
         ],
         [
             "group_concat_max_len",
@@ -465,7 +469,7 @@
         ],
         [
             "gtid_executed",
-            "c4cfc6d4-24f8-11e8-9fee-297bed312e56:1-3"
+            "7164a5ff-2dc6-11e8-b5ed-b86b230042b9:1-3"
         ],
         [
             "gtid_executed_compression_period",
@@ -533,7 +537,7 @@
         ],
         [
             "hostname",
-            "dhcp-10-159-237-174.vpn.oracle.com"
+            "tecra"
         ],
         [
             "ignore_builtin_innodb",
@@ -604,6 +608,14 @@
             "1"
         ],
         [
+            "innodb_background_drop_list_empty",
+            "OFF"
+        ],
+        [
+            "innodb_buf_flush_list_now",
+            "OFF"
+        ],
+        [
             "innodb_buffer_pool_chunk_size",
             "134217728"
         ],
@@ -618,6 +630,10 @@
         [
             "innodb_buffer_pool_dump_pct",
             "25"
+        ],
+        [
+            "innodb_buffer_pool_evict",
+            ""
         ],
         [
             "innodb_buffer_pool_filename",
@@ -652,6 +668,10 @@
             "all"
         ],
         [
+            "innodb_change_buffering_debug",
+            "0"
+        ],
+        [
             "innodb_checksum_algorithm",
             "crc32"
         ],
@@ -666,6 +686,10 @@
         [
             "innodb_commit_concurrency",
             "0"
+        ],
+        [
+            "innodb_compress_debug",
+            "none"
         ],
         [
             "innodb_compression_failure_threshold_pct",
@@ -700,6 +724,18 @@
             "dynamic"
         ],
         [
+            "innodb_dict_stats_disabled_debug",
+            "OFF"
+        ],
+        [
+            "innodb_disable_background_merge",
+            "OFF"
+        ],
+        [
+            "innodb_disable_resize_buffer_pool_debug",
+            "ON"
+        ],
+        [
             "innodb_disable_sort_file_cache",
             "OFF"
         ],
@@ -708,8 +744,16 @@
             "ON"
         ],
         [
+            "innodb_doublewrite_batch_size",
+            "120"
+        ],
+        [
             "innodb_fast_shutdown",
             "1"
+        ],
+        [
+            "innodb_fil_make_page_dirty_debug",
+            "0"
         ],
         [
             "innodb_file_format",
@@ -761,6 +805,10 @@
         ],
         [
             "innodb_force_recovery",
+            "0"
+        ],
+        [
+            "innodb_force_recovery_crash",
             "0"
         ],
         [
@@ -824,6 +872,10 @@
             "ON"
         ],
         [
+            "innodb_limit_optimistic_insert_debug",
+            "0"
+        ],
+        [
             "innodb_lock_wait_timeout",
             "50"
         ],
@@ -834,6 +886,10 @@
         [
             "innodb_log_buffer_size",
             "1048576"
+        ],
+        [
+            "innodb_log_checkpoint_now",
+            "OFF"
         ],
         [
             "innodb_log_checksums",
@@ -864,6 +920,10 @@
             "1024"
         ],
         [
+            "innodb_master_thread_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_max_dirty_pages_pct",
             "75.000000"
         ],
@@ -882,6 +942,10 @@
         [
             "innodb_max_undo_log_size",
             "1073741824"
+        ],
+        [
+            "innodb_merge_threshold_set_all_debug",
+            "50"
         ],
         [
             "innodb_monitor_disable",
@@ -920,8 +984,16 @@
             "OFF"
         ],
         [
+            "innodb_page_cleaner_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_page_cleaners",
             "1"
+        ],
+        [
+            "innodb_page_hash_locks",
+            "16"
         ],
         [
             "innodb_page_size",
@@ -938,6 +1010,14 @@
         [
             "innodb_purge_rseg_truncate_frequency",
             "128"
+        ],
+        [
+            "innodb_purge_run_now",
+            "OFF"
+        ],
+        [
+            "innodb_purge_stop_now",
+            "OFF"
         ],
         [
             "innodb_purge_threads",
@@ -970,6 +1050,10 @@
         [
             "innodb_rollback_segments",
             "128"
+        ],
+        [
+            "innodb_saved_page_number_debug",
+            "0"
         ],
         [
             "innodb_sort_buffer_size",
@@ -1032,6 +1116,10 @@
             "1"
         ],
         [
+            "innodb_sync_debug",
+            "OFF"
+        ],
+        [
             "innodb_sync_spin_loops",
             "30"
         ],
@@ -1054,6 +1142,14 @@
         [
             "innodb_tmpdir",
             ""
+        ],
+        [
+            "innodb_trx_purge_view_update_only_debug",
+            "OFF"
+        ],
+        [
+            "innodb_trx_rseg_n_slots_debug",
+            "0"
         ],
         [
             "innodb_undo_directory",
@@ -1137,7 +1233,7 @@
         ],
         [
             "lc_messages_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/share/"
+            "/home/miguel/work/mysql-server/5.7.21/share/"
         ],
         [
             "lc_time_names",
@@ -1165,11 +1261,11 @@
         ],
         [
             "log_bin_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin"
         ],
         [
             "log_bin_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1185,7 +1281,7 @@
         ],
         [
             "log_error",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/error.log"
+            "/tmp/miguel/3316/sandboxdata/error.log"
         ],
         [
             "log_error_verbosity",
@@ -1253,11 +1349,11 @@
         ],
         [
             "lower_case_file_system",
-            "ON"
+            "OFF"
         ],
         [
             "lower_case_table_names",
-            "2"
+            "0"
         ],
         [
             "master_info_repository",
@@ -1517,7 +1613,7 @@
         ],
         [
             "open_files_limit",
-            "10000"
+            "5000"
         ],
         [
             "optimizer_prune_level",
@@ -1725,11 +1821,11 @@
         ],
         [
             "pid_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/3316.pid"
+            "/tmp/miguel/3316/3316.pid"
         ],
         [
             "plugin_dir",
-            "/usr/local/mysql-5.7.21-macos10.13-x86_64/lib/plugin/"
+            "/home/miguel/work/mysql-server/5.7.21/lib/plugin/"
         ],
         [
             "port",
@@ -1809,11 +1905,11 @@
         ],
         [
             "relay_log_basename",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-relay-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin"
         ],
         [
             "relay_log_index",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-relay-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -1865,7 +1961,7 @@
         ],
         [
             "secure_file_priv",
-            "/private/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/mysql-files/"
+            "/tmp/miguel/3316/mysql-files/"
         ],
         [
             "server_id",
@@ -1877,7 +1973,7 @@
         ],
         [
             "server_uuid",
-            "c4cfc6d4-24f8-11e8-9fee-297bed312e56"
+            "7164a5ff-2dc6-11e8-b5ed-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -1949,7 +2045,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/tmp/miguel"
         ],
         [
             "slave_max_allowed_packet",
@@ -2005,7 +2101,7 @@
         ],
         [
             "slow_query_log_file",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/dhcp-10-159-237-174-slow.log"
+            "/tmp/miguel/3316/sandboxdata/tecra-slow.log"
         ],
         [
             "socket",
@@ -2117,7 +2213,7 @@
         ],
         [
             "system_time_zone",
-            "PST"
+            "WET"
         ],
         [
             "table_definition_cache",
@@ -2161,7 +2257,7 @@
         ],
         [
             "tmpdir",
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/"
+            "/tmp/miguel"
         ],
         [
             "transaction_alloc_block_size",
@@ -2201,11 +2297,11 @@
         ],
         [
             "version",
-            "5.7.21-log"
+            "5.7.21-debug-log"
         ],
         [
             "version_comment",
-            "MySQL Community Server (GPL)"
+            "Source distribution"
         ],
         [
             "version_compile_machine",
@@ -2213,7 +2309,7 @@
         ],
         [
             "version_compile_os",
-            "macos10.13"
+            "Linux"
         ],
         [
             "wait_timeout",
@@ -2412,6 +2508,11 @@
     ],
     "rows": [
         [
+            "UPDATE",
+            "YES",
+            "mysql"
+        ],
+        [
             "INSERT",
             "YES",
             "mysql"
@@ -2423,11 +2524,6 @@
         ],
         [
             "SELECT",
-            "YES",
-            "mysql"
-        ],
-        [
-            "UPDATE",
             "YES",
             "mysql"
         ]

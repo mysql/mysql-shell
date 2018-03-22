@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "48",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -211,7 +211,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 39,
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -259,7 +259,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 66,
+            "length": 29,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -276,10 +276,10 @@
             "latin1",
             "latin1",
             "latin1",
-            "5.7.21-log MySQL Community Server (GPL)",
+            "5.7.21-debug-log Source distribution",
             "mysqld.sock",
             3316,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ]
     ]
 },

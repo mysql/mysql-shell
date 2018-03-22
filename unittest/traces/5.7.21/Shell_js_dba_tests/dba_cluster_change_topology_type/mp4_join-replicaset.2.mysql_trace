@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "20",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "5db9dd2d-2982-11e8-8380-5ce0c50b9d66"
+            "7d3a4077-2de8-11e8-9901-b86b230042b9"
         ]
     ]
 },
@@ -273,8 +273,8 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B",
-            3340
+            "tecra",
+            3316
         ]
     ]
 },
@@ -435,13 +435,6 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -449,7 +442,14 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -673,6 +673,13 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -680,7 +687,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "FEDERATED",
+            "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -696,20 +710,6 @@
         [
             "partition",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -771,7 +771,7 @@
     ],
     "rows": [
         [
-            "localhost:33401"
+            "localhost:33161"
         ]
     ]
 },
@@ -932,13 +932,6 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -946,7 +939,14 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1170,6 +1170,13 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1177,7 +1184,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "FEDERATED",
+            "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1193,20 +1207,6 @@
         [
             "partition",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1268,7 +1268,7 @@
     ],
     "rows": [
         [
-            "5db9dd2d-2982-11e8-8380-5ce0c50b9d66"
+            "7d3a4077-2de8-11e8-9901-b86b230042b9"
         ]
     ]
 },

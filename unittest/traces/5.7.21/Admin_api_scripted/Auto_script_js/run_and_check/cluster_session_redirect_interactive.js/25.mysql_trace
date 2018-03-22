@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "33",
+    "connection_id": "32",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 39,
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "5.7.21-log MySQL Community Server (GPL)"
+            "5.7.21-debug-log Source distribution"
         ]
     ]
 },
@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "f915779c-297e-11e8-857a-5ce0c50b9d66",
-            "f84f9a53-297e-11e8-83a4-5ce0c50b9d66"
+            "aa7ec63b-2dc5-11e8-b617-b86b230042b9",
+            "a9bea428-2dc5-11e8-b283-b86b230042b9"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f915779c-297e-11e8-857a-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'aa7ec63b-2dc5-11e8-b617-b86b230042b9'"
 },
 {
     "type": "response",

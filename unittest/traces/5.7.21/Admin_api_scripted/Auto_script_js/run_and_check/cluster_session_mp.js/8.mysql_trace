@@ -10,9 +10,9 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "18",
+    "connection_id": "17",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "db2dea1c-2a18-11e8-a8a7-de0a95d05128"
+            "eb899bb3-2dc5-11e8-b70b-b86b230042b9"
         ]
     ]
 },

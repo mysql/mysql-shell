@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "17",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "da2c8506-2a18-11e8-8be0-88b1df4ad344"
+            "ea90924e-2dc5-11e8-b2fc-b86b230042b9"
         ]
     ]
 },

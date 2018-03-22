@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "46",
     "connection_info": "localhost via TCP/IP",
-    "server_version": "5.7.21-log",
+    "server_version": "5.7.21-debug-log",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
 {
@@ -36,7 +36,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 117,
+            "length": 108,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -49,7 +49,7 @@
     ],
     "rows": [
         [
-            "5.7.21-log MySQL Community Server (GPL)"
+            "5.7.21-debug-log Source distribution"
         ]
     ]
 },
@@ -217,8 +217,8 @@
     ],
     "rows": [
         [
-            "a1a776c8-2a18-11e8-a821-3d7cb8259063",
-            "a1a776c8-2a18-11e8-a821-3d7cb8259063"
+            "7448a1cd-2dc5-11e8-b56f-b86b230042b9",
+            "7448a1cd-2dc5-11e8-b56f-b86b230042b9"
         ]
     ]
 },
@@ -226,7 +226,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a1a776c8-2a18-11e8-a821-3d7cb8259063'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7448a1cd-2dc5-11e8-b56f-b86b230042b9'"
 },
 {
     "type": "response",
@@ -548,7 +548,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "version",
-            "length": 117,
+            "length": 108,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -596,7 +596,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@datadir",
-            "length": 198,
+            "length": 87,
             "fractional": 31,
             "type": "String",
             "collation": "utf8_general_ci",
@@ -613,10 +613,10 @@
             "utf8mb4",
             "latin1",
             "latin1",
-            "5.7.21-log MySQL Community Server (GPL)",
+            "5.7.21-debug-log Source distribution",
             "mysqlx.sock",
             33160,
-            "/var/folders/w3/nl747q0s2q52cdlp3kqqz_q40000gp/T/3316/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ]
     ]
 },
@@ -671,7 +671,7 @@
     "rows": [
         [
             "Uptime",
-            "16"
+            "29"
         ]
     ]
 },

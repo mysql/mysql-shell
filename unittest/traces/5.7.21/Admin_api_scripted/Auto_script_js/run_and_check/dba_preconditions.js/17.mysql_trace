@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@tecra:3316",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "31",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
-    "server_info": "5.7.21-log",
+    "connection_info": "tecra via TCP/IP",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -130,9 +130,9 @@
     ],
     "rows": [
         [
-            6,
+            3,
             "bla",
-            6,
+            3,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -143,7 +143,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 6"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "b4863a59-297e-11e8-acea-5ce0c50b9d66"
+            "424ff859-2dc5-11e8-a980-b86b230042b9"
         ]
     ]
 },
@@ -215,7 +215,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 6 AND addresses->'$.mysqlClassic' = 'pjesus-TECRA-Z40-B:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'tecra:3316'"
 },
 {
     "type": "response",
@@ -253,7 +253,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 6"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -331,10 +331,10 @@
     ],
     "rows": [
         [
-            "b3999206-297e-11e8-acea-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3340",
+            "400e392f-2dc5-11e8-a980-b86b230042b9",
+            "tecra:3316",
             "HA",
-            "pjesus-TECRA-Z40-B:3340"
+            "tecra:3316"
         ]
     ]
 },
@@ -342,7 +342,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 6"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 3"
 },
 {
     "type": "response",

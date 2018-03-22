@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@tecra:3316",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "76",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
-    "server_info": "5.7.21-log",
+    "connection_info": "tecra via TCP/IP",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -156,7 +156,7 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
             ""
         ]
     ]
@@ -165,7 +165,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",
@@ -309,7 +309,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "3"
         ],
         [
             "autocommit",
@@ -329,7 +329,7 @@
         ],
         [
             "basedir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/"
+            "/home/miguel/work/mysql-server/5.7.21/"
         ],
         [
             "big_tables",
@@ -429,7 +429,7 @@
         ],
         [
             "character_sets_dir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/share/charsets/"
+            "/home/miguel/work/mysql-server/5.7.21/share/charsets/"
         ],
         [
             "check_proxy_users",
@@ -465,7 +465,7 @@
         ],
         [
             "datadir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/"
+            "/tmp/miguel/3316/sandboxdata/"
         ],
         [
             "date_format",
@@ -474,6 +474,10 @@
         [
             "datetime_format",
             "%Y-%m-%d %H:%i:%s"
+        ],
+        [
+            "debug",
+            ""
         ],
         [
             "default_authentication_plugin",
@@ -513,7 +517,7 @@
         ],
         [
             "disabled_storage_engines",
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
+            ""
         ],
         [
             "disconnect_on_expired_password",
@@ -585,7 +589,7 @@
         ],
         [
             "general_log_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B.log"
+            "/tmp/miguel/3316/sandboxdata/tecra.log"
         ],
         [
             "group_concat_max_len",
@@ -637,11 +641,11 @@
         ],
         [
             "group_replication_group_name",
-            "b101d69b-2981-11e8-896c-5ce0c50b9d66"
+            "7a4e4d10-2de7-11e8-95b5-b86b230042b9"
         ],
         [
             "group_replication_group_seeds",
-            "localhost:33501"
+            "localhost:33261"
         ],
         [
             "group_replication_gtid_assignment_block_size",
@@ -653,7 +657,7 @@
         ],
         [
             "group_replication_local_address",
-            "localhost:33401"
+            "localhost:33161"
         ],
         [
             "group_replication_member_weight",
@@ -733,7 +737,7 @@
         ],
         [
             "gtid_executed",
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66:1-20,\n9d1174d4-2981-11e8-896c-5ce0c50b9d66:1-43,\nb101d69b-2981-11e8-896c-5ce0c50b9d66:1-11"
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9:1-20,\n615897aa-2de7-11e8-95b5-b86b230042b9:1-43,\n7a4e4d10-2de7-11e8-95b5-b86b230042b9:1-11"
         ],
         [
             "gtid_executed_compression_period",
@@ -801,7 +805,7 @@
         ],
         [
             "hostname",
-            "pjesus-TECRA-Z40-B"
+            "tecra"
         ],
         [
             "ignore_builtin_innodb",
@@ -872,6 +876,14 @@
             "1"
         ],
         [
+            "innodb_background_drop_list_empty",
+            "OFF"
+        ],
+        [
+            "innodb_buf_flush_list_now",
+            "OFF"
+        ],
+        [
             "innodb_buffer_pool_chunk_size",
             "134217728"
         ],
@@ -886,6 +898,10 @@
         [
             "innodb_buffer_pool_dump_pct",
             "25"
+        ],
+        [
+            "innodb_buffer_pool_evict",
+            ""
         ],
         [
             "innodb_buffer_pool_filename",
@@ -920,6 +936,10 @@
             "all"
         ],
         [
+            "innodb_change_buffering_debug",
+            "0"
+        ],
+        [
             "innodb_checksum_algorithm",
             "crc32"
         ],
@@ -934,6 +954,10 @@
         [
             "innodb_commit_concurrency",
             "0"
+        ],
+        [
+            "innodb_compress_debug",
+            "none"
         ],
         [
             "innodb_compression_failure_threshold_pct",
@@ -968,6 +992,18 @@
             "dynamic"
         ],
         [
+            "innodb_dict_stats_disabled_debug",
+            "OFF"
+        ],
+        [
+            "innodb_disable_background_merge",
+            "OFF"
+        ],
+        [
+            "innodb_disable_resize_buffer_pool_debug",
+            "ON"
+        ],
+        [
             "innodb_disable_sort_file_cache",
             "OFF"
         ],
@@ -976,8 +1012,16 @@
             "ON"
         ],
         [
+            "innodb_doublewrite_batch_size",
+            "120"
+        ],
+        [
             "innodb_fast_shutdown",
             "1"
+        ],
+        [
+            "innodb_fil_make_page_dirty_debug",
+            "0"
         ],
         [
             "innodb_file_format",
@@ -1029,6 +1073,10 @@
         ],
         [
             "innodb_force_recovery",
+            "0"
+        ],
+        [
+            "innodb_force_recovery_crash",
             "0"
         ],
         [
@@ -1092,6 +1140,10 @@
             "ON"
         ],
         [
+            "innodb_limit_optimistic_insert_debug",
+            "0"
+        ],
+        [
             "innodb_lock_wait_timeout",
             "50"
         ],
@@ -1102,6 +1154,10 @@
         [
             "innodb_log_buffer_size",
             "1048576"
+        ],
+        [
+            "innodb_log_checkpoint_now",
+            "OFF"
         ],
         [
             "innodb_log_checksums",
@@ -1132,6 +1188,10 @@
             "1024"
         ],
         [
+            "innodb_master_thread_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_max_dirty_pages_pct",
             "75.000000"
         ],
@@ -1152,6 +1212,10 @@
             "1073741824"
         ],
         [
+            "innodb_merge_threshold_set_all_debug",
+            "50"
+        ],
+        [
             "innodb_monitor_disable",
             ""
         ],
@@ -1166,10 +1230,6 @@
         [
             "innodb_monitor_reset_all",
             ""
-        ],
-        [
-            "innodb_numa_interleave",
-            "OFF"
         ],
         [
             "innodb_old_blocks_pct",
@@ -1192,8 +1252,16 @@
             "OFF"
         ],
         [
+            "innodb_page_cleaner_disabled_debug",
+            "OFF"
+        ],
+        [
             "innodb_page_cleaners",
             "1"
+        ],
+        [
+            "innodb_page_hash_locks",
+            "16"
         ],
         [
             "innodb_page_size",
@@ -1210,6 +1278,14 @@
         [
             "innodb_purge_rseg_truncate_frequency",
             "128"
+        ],
+        [
+            "innodb_purge_run_now",
+            "OFF"
+        ],
+        [
+            "innodb_purge_stop_now",
+            "OFF"
         ],
         [
             "innodb_purge_threads",
@@ -1242,6 +1318,10 @@
         [
             "innodb_rollback_segments",
             "128"
+        ],
+        [
+            "innodb_saved_page_number_debug",
+            "0"
         ],
         [
             "innodb_sort_buffer_size",
@@ -1304,6 +1384,10 @@
             "1"
         ],
         [
+            "innodb_sync_debug",
+            "OFF"
+        ],
+        [
             "innodb_sync_spin_loops",
             "30"
         ],
@@ -1328,6 +1412,14 @@
             ""
         ],
         [
+            "innodb_trx_purge_view_update_only_debug",
+            "OFF"
+        ],
+        [
+            "innodb_trx_rseg_n_slots_debug",
+            "0"
+        ],
+        [
             "innodb_undo_directory",
             "./"
         ],
@@ -1345,7 +1437,7 @@
         ],
         [
             "innodb_use_native_aio",
-            "ON"
+            "OFF"
         ],
         [
             "innodb_version",
@@ -1409,7 +1501,7 @@
         ],
         [
             "lc_messages_dir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/share/"
+            "/home/miguel/work/mysql-server/5.7.21/share/"
         ],
         [
             "lc_time_names",
@@ -1437,11 +1529,11 @@
         ],
         [
             "log_bin_basename",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin"
         ],
         [
             "log_bin_index",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-bin.index"
         ],
         [
             "log_bin_trust_function_creators",
@@ -1457,7 +1549,7 @@
         ],
         [
             "log_error",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/error.log"
+            "/tmp/miguel/3316/sandboxdata/error.log"
         ],
         [
             "log_error_verbosity",
@@ -1709,7 +1801,7 @@
         ],
         [
             "mysqlx_port",
-            "33400"
+            "33160"
         ],
         [
             "mysqlx_port_open_timeout",
@@ -1997,15 +2089,15 @@
         ],
         [
             "pid_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/3340.pid"
+            "/tmp/miguel/3316/3316.pid"
         ],
         [
             "plugin_dir",
-            "/home/workspace/SERVERS/mysql-5.7.21-linux-glibc2.12-x86_64/lib/plugin/"
+            "/home/miguel/work/mysql-server/5.7.21/lib/plugin/"
         ],
         [
             "port",
-            "3340"
+            "3316"
         ],
         [
             "preload_buffer_size",
@@ -2081,11 +2173,11 @@
         ],
         [
             "relay_log_basename",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin"
         ],
         [
             "relay_log_index",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-relay-bin.index"
+            "/tmp/miguel/3316/sandboxdata/tecra-relay-bin.index"
         ],
         [
             "relay_log_info_file",
@@ -2117,7 +2209,7 @@
         ],
         [
             "report_port",
-            "3340"
+            "3316"
         ],
         [
             "report_user",
@@ -2137,11 +2229,11 @@
         ],
         [
             "secure_file_priv",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/mysql-files/"
+            "/tmp/miguel/3316/mysql-files/"
         ],
         [
             "server_id",
-            "15685"
+            "15661"
         ],
         [
             "server_id_bits",
@@ -2149,7 +2241,7 @@
         ],
         [
             "server_uuid",
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66"
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -2221,7 +2313,7 @@
         ],
         [
             "slave_load_tmpdir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
+            "/tmp/miguel"
         ],
         [
             "slave_max_allowed_packet",
@@ -2277,7 +2369,7 @@
         ],
         [
             "slow_query_log_file",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin/3340/sandboxdata/pjesus-TECRA-Z40-B-slow.log"
+            "/tmp/miguel/3316/sandboxdata/tecra-slow.log"
         ],
         [
             "socket",
@@ -2433,7 +2525,7 @@
         ],
         [
             "tmpdir",
-            "/home/workspace/git/work/bugs/27329079/ngshell/BUILD/bin"
+            "/tmp/miguel"
         ],
         [
             "transaction_alloc_block_size",
@@ -2473,11 +2565,11 @@
         ],
         [
             "version",
-            "5.7.21-log"
+            "5.7.21-debug-log"
         ],
         [
             "version_comment",
-            "MySQL Community Server (GPL)"
+            "Source distribution"
         ],
         [
             "version_compile_machine",
@@ -2485,7 +2577,7 @@
         ],
         [
             "version_compile_os",
-            "linux-glibc2.12"
+            "Linux"
         ],
         [
             "wait_timeout",
@@ -2629,11 +2721,11 @@
     ],
     "rows": [
         [
-            "pjesus-TECRA-Z40-B-bin.000003",
-            46843,
+            "tecra-bin.000003",
+            46511,
             "",
             "",
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66:1-20,\n9d1174d4-2981-11e8-896c-5ce0c50b9d66:1-43,\nb101d69b-2981-11e8-896c-5ce0c50b9d66:1-11"
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9:1-20,\n615897aa-2de7-11e8-95b5-b86b230042b9:1-43,\n7a4e4d10-2de7-11e8-95b5-b86b230042b9:1-11"
         ]
     ]
 },
@@ -2855,7 +2947,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000007'@'%' IDENTIFIED BY /*(*/ 'J(;0-?W?):x*2^]z{>R-}k<~(7?l{;K&' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000007'@'%' IDENTIFIED BY /*(*/ ',$Z:~2H($:d{=*=m[6&D$>1c<.p{Z({?' /*)*/ "
 },
 {
     "type": "response",
@@ -2870,7 +2962,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 49,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000007'@'localhost' IDENTIFIED BY /*(*/ 'J(;0-?W?):x*2^]z{>R-}k<~(7?l{;K&' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000007'@'localhost' IDENTIFIED BY /*(*/ ',$Z:~2H($:d{=*=m[6&D$>1c<.p{Z({?' /*)*/ "
 },
 {
     "type": "response",
@@ -2989,7 +3081,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 62,
-    "auto_increment_value": 6,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -3004,7 +3096,7 @@
     "type": "response",
     "subtype": "RESULT",
     "index": 64,
-    "auto_increment_value": 6,
+    "auto_increment_value": 3,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -3036,13 +3128,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 65,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (6, 'gr', 'mm', 'default', 1,JSON_OBJECT('adopted', '1',             'group_replication_group_name', ''))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, topology_type, replicaset_name, active, attributes) VALUES (3, 'gr', 'mm', 'default', 1,JSON_OBJECT('adopted', '1',             'group_replication_group_name', ''))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 66,
-    "auto_increment_value": 6,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -3051,7 +3143,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 67,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 6 WHERE cluster_id = 6"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = 3 WHERE cluster_id = 3"
 },
 {
     "type": "response",
@@ -3066,7 +3158,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 69,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 6"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -3104,7 +3196,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 6 AND addresses->'$.mysqlClassic' = 'pjesus-TECRA-Z40-B:3340'"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3 AND addresses->'$.mysqlClassic' = 'tecra:3316'"
 },
 {
     "type": "response",
@@ -3142,7 +3234,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 73,
-    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "select count(*) from performance_schema.replication_group_members where member_id = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",
@@ -3180,7 +3272,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 75,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",
@@ -3292,7 +3384,7 @@
     ],
     "rows": [
         [
-            "b101d69b-2981-11e8-896c-5ce0c50b9d66"
+            "7a4e4d10-2de7-11e8-95b5-b86b230042b9"
         ]
     ]
 },
@@ -3300,7 +3392,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 79,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'b101d69b-2981-11e8-896c-5ce0c50b9d66') WHERE replicaset_id = 6"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '7a4e4d10-2de7-11e8-95b5-b86b230042b9') WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -3345,10 +3437,10 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66"
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9"
         ],
         [
-            "9acb4784-2981-11e8-8a91-5ce0c50b9d66"
+            "5e649936-2de7-11e8-9917-b86b230042b9"
         ]
     ]
 },
@@ -3356,7 +3448,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 83,
-    "sql": "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 6"
+    "sql": "SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -3390,7 +3482,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",
@@ -3452,9 +3544,9 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B",
-            3340
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
+            "tecra",
+            3316
         ]
     ]
 },
@@ -3462,7 +3554,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9acb4784-2981-11e8-8a91-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_ID, MEMBER_HOST, MEMBER_PORT FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5e649936-2de7-11e8-9917-b86b230042b9'"
 },
 {
     "type": "response",
@@ -3524,9 +3616,9 @@
     ],
     "rows": [
         [
-            "9acb4784-2981-11e8-8a91-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B",
-            3350
+            "5e649936-2de7-11e8-9917-b86b230042b9",
+            "tecra",
+            3326
         ]
     ]
 },
@@ -3534,7 +3626,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'pjesus-TECRA-Z40-B' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'tecra' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
@@ -3600,13 +3692,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('pjesus-TECRA-Z40-B', '', '')"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('tecra', '', '')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 92,
-    "auto_increment_value": 6,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -3615,13 +3707,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (6, 6, '99ec7e31-2981-11e8-896c-5ce0c50b9d66', 'pjesus-TECRA-Z40-B:3340', 'HA', json_object('mysqlClassic', 'pjesus-TECRA-Z40-B:3340', 'mysqlX', 'pjesus-TECRA-Z40-B:33400', 'grLocal', 'localhost:33401'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '5bffb6f2-2de7-11e8-95b5-b86b230042b9', 'tecra:3316', 'HA', json_object('mysqlClassic', 'tecra:3316', 'mysqlX', 'tecra:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 94,
-    "auto_increment_value": 6,
+    "auto_increment_value": 3,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -3630,13 +3722,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 95,
-    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'pjesus-TECRA-Z40-B' OR (ip_address <> '' AND ip_address = '')"
+    "sql": "SELECT host_id, host_name, ip_address FROM mysql_innodb_cluster_metadata.hosts WHERE host_name = 'tecra' OR (ip_address <> '' AND ip_address = '')"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 96,
-    "auto_increment_value": 6,
+    "auto_increment_value": 3,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
     "info": "",
@@ -3692,8 +3784,8 @@
     ],
     "rows": [
         [
-            6,
-            "pjesus-TECRA-Z40-B",
+            3,
+            "tecra",
             ""
         ]
     ]
@@ -3702,13 +3794,13 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (6, 6, '9acb4784-2981-11e8-8a91-5ce0c50b9d66', 'pjesus-TECRA-Z40-B:3350', 'HA', json_object('mysqlClassic', 'pjesus-TECRA-Z40-B:3350', 'mysqlX', 'pjesus-TECRA-Z40-B:33500', 'grLocal', 'localhost:33501'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (3, 3, '5e649936-2de7-11e8-9917-b86b230042b9', 'tecra:3326', 'HA', json_object('mysqlClassic', 'tecra:3326', 'mysqlX', 'tecra:33260', 'grLocal', 'localhost:33261'))"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 98,
-    "auto_increment_value": 13,
+    "auto_increment_value": 10,
     "affected_rows": 1,
     "warning_count": 0,
     "info": ""
@@ -3732,7 +3824,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 101,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 6"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i  WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -3810,16 +3902,16 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3340",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
+            "tecra:3316",
             "HA",
-            "pjesus-TECRA-Z40-B:3340"
+            "tecra:3316"
         ],
         [
-            "9acb4784-2981-11e8-8a91-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3350",
+            "5e649936-2de7-11e8-9917-b86b230042b9",
+            "tecra:3326",
             "HA",
-            "pjesus-TECRA-Z40-B:3350"
+            "tecra:3326"
         ]
     ]
 },
@@ -3987,7 +4079,7 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
             ""
         ]
     ]
@@ -3996,7 +4088,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",
@@ -4165,7 +4257,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 119,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host, MEMBER_STATE from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -4259,17 +4351,17 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3340",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
+            "tecra:3316",
             "HA",
-            "pjesus-TECRA-Z40-B:3340",
+            "tecra:3316",
             "ONLINE"
         ],
         [
-            "9acb4784-2981-11e8-8a91-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3350",
+            "5e649936-2de7-11e8-9917-b86b230042b9",
+            "tecra:3326",
             "HA",
-            "pjesus-TECRA-Z40-B:3350",
+            "tecra:3326",
             "ONLINE"
         ]
     ]
@@ -4438,7 +4530,7 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
             ""
         ]
     ]
@@ -4447,7 +4539,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 129,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",
@@ -4700,7 +4792,7 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
             ""
         ]
     ]
@@ -4709,7 +4801,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 141,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",
@@ -4817,7 +4909,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 147,
-    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 6"
+    "sql": "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = 3"
 },
 {
     "type": "response",
@@ -4855,7 +4947,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 149,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6 AND g.member_state IN ('ONLINE')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3 AND g.member_state IN ('ONLINE')"
 },
 {
     "type": "response",
@@ -4933,16 +5025,16 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3340",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
+            "tecra:3316",
             "HA",
-            "pjesus-TECRA-Z40-B:3340"
+            "tecra:3316"
         ],
         [
-            "9acb4784-2981-11e8-8a91-5ce0c50b9d66",
-            "pjesus-TECRA-Z40-B:3350",
+            "5e649936-2de7-11e8-9917-b86b230042b9",
+            "tecra:3326",
             "HA",
-            "pjesus-TECRA-Z40-B:3350"
+            "tecra:3326"
         ]
     ]
 },
@@ -4988,7 +5080,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 6"
+    "sql": "SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 3"
 },
 {
     "type": "response",
@@ -5064,7 +5156,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 157,
-    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 6"
+    "sql": "SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 3"
 },
 {
     "type": "response",
@@ -5094,7 +5186,7 @@
     ],
     "rows": [
         [
-            6
+            3
         ]
     ]
 },
@@ -5102,7 +5194,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 159,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 6"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = 3"
 },
 {
     "type": "response",
@@ -5117,7 +5209,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 161,
-    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 6"
+    "sql": "delete from mysql_innodb_cluster_metadata.instances where replicaset_id = 3"
 },
 {
     "type": "response",
@@ -5132,7 +5224,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 6"
+    "sql": "delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = 3"
 },
 {
     "type": "response",
@@ -5253,7 +5345,7 @@
     ],
     "rows": [
         [
-            6
+            3
         ]
     ]
 },
@@ -5329,7 +5421,7 @@
     ],
     "rows": [
         [
-            6
+            3
         ]
     ]
 },
@@ -5337,7 +5429,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 175,
-    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 6"
+    "sql": "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = 3"
 },
 {
     "type": "response",
@@ -5483,7 +5575,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 177,
-    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 6"
+    "sql": "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = 3"
 },
 {
     "type": "response",
@@ -5583,7 +5675,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 185,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",
@@ -5665,7 +5757,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 187,
-    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 6 AND g.member_state IN ('ONLINE','RECOVERING')"
+    "sql": "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) as host from mysql_innodb_cluster_metadata.instances i LEFT JOIN performance_schema.replication_group_members g ON g.member_id = i.mysql_server_uuid  WHERE replicaset_id = 3 AND g.member_state IN ('ONLINE','RECOVERING')"
 },
 {
     "type": "response",

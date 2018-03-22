@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3360?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3336?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "8",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -261,50 +261,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT @@disabled_storage_engines"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 16,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@disabled_storage_engines",
-            "length": 38,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 17,
     "sql": "SELECT @@binlog_checksum"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 18,
+    "index": 16,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -336,13 +298,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 19,
+    "index": 17,
     "sql": "SELECT @@enforce_gtid_consistency"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 20,
+    "index": 18,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -374,13 +336,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 21,
+    "index": 19,
     "sql": "SELECT @@gtid_mode"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 22,
+    "index": 20,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -412,13 +374,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 23,
+    "index": 21,
     "sql": "SELECT @@binlog_format"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 24,
+    "index": 22,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -450,13 +412,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 25,
+    "index": 23,
     "sql": "SELECT @@report_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 26,
+    "index": 24,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -481,20 +443,20 @@
     ],
     "rows": [
         [
-            3360
+            3336
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 27,
+    "index": 25,
     "sql": "SELECT @@bind_address"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 28,
+    "index": 26,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -526,13 +488,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 29,
+    "index": 27,
     "sql": "SELECT @@log_bin"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 30,
+    "index": 28,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -564,13 +526,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 31,
+    "index": 29,
     "sql": "SHOW VARIABLES LIKE 'VERSION'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 32,
+    "index": 30,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -612,20 +574,20 @@
     "rows": [
         [
             "version",
-            "5.7.21-log"
+            "5.7.21-debug-log"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 33,
+    "index": 31,
     "sql": "SELECT @@server_id"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 34,
+    "index": 32,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -650,20 +612,20 @@
     ],
     "rows": [
         [
-            15705
+            15681
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 35,
+    "index": 33,
     "sql": "SELECT @@slave_parallel_workers"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 36,
+    "index": 34,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -695,13 +657,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 37,
+    "index": 35,
     "sql": "SELECT @@slave_parallel_type"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 38,
+    "index": 36,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -733,13 +695,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 39,
+    "index": 37,
     "sql": "SELECT @@slave_preserve_commit_order"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 40,
+    "index": 38,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -771,8 +733,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 41,
+    "index": 39,
     "sql": "SET @@global.slave_parallel_type='LOGICAL_CLOCK'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 40,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 41,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -787,7 +764,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "commit"
+    "sql": "SET @@global.slave_preserve_commit_order='ON'"
 },
 {
     "type": "response",
@@ -802,7 +779,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SET @@global.slave_preserve_commit_order='ON'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -817,27 +794,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 47,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 48,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 49,
     "sql": "show plugins"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 50,
+    "index": 48,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -947,13 +909,6 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -961,7 +916,14 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1185,6 +1147,13 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1192,7 +1161,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "FEDERATED",
+            "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1208,20 +1184,6 @@
         [
             "partition",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1245,13 +1207,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 51,
+    "index": 49,
     "sql": "SELECT @@global.super_read_only"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 52,
+    "index": 50,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1283,13 +1245,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 53,
+    "index": 51,
     "sql": "show plugins"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 54,
+    "index": 52,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1399,13 +1361,6 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1413,7 +1368,14 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1637,6 +1599,13 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -1644,7 +1613,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "FEDERATED",
+            "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -1660,20 +1636,6 @@
         [
             "partition",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -1697,13 +1659,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 55,
+    "index": 53,
     "sql": "SELECT @@version_compile_os"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 56,
+    "index": 54,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1715,7 +1677,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "@@version_compile_os",
-            "length": 15,
+            "length": 5,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -1728,15 +1690,30 @@
     ],
     "rows": [
         [
-            "linux-glibc2.12"
+            "Linux"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 57,
+    "index": 55,
     "sql": "INSTALL PLUGIN group_replication SONAME 'group_replication.so'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 56,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 57,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -1751,27 +1728,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 60,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 61,
     "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'group_replication%'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 62,
+    "index": 60,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1820,11 +1782,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 63
+    "index": 61
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 64
+    "index": 62
 },
 null]
