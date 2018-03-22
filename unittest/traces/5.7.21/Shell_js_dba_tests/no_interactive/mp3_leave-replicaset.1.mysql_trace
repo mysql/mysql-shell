@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "32",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            "617cef5f-2985-11e8-86f2-5ce0c50b9d66"
+            "82c5a92f-2dec-11e8-8a1a-b86b230042b9"
         ]
     ]
 },

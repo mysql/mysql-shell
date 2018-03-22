@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3340",
+    "uri": "mysql://root:root@localhost:3316",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "68",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -240,9 +240,9 @@
     ],
     "rows": [
         [
-            13,
+            10,
             "devCluster",
-            13,
+            10,
             "Default Cluster",
             "null",
             "{\"default\": true}"
@@ -253,7 +253,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 13"
+    "sql": "SELECT replicaset_name, topology_type,      attributes->>'$.group_replication_group_name' as group_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = 10"
 },
 {
     "type": "response",
@@ -317,7 +317,7 @@
         [
             "default",
             "pm",
-            "c62204b5-2984-11e8-b0e1-5ce0c50b9d66"
+            "b3b6e002-2deb-11e8-aa2d-b86b230042b9"
         ]
     ]
 },
@@ -355,7 +355,7 @@
     ],
     "rows": [
         [
-            "c62204b5-2984-11e8-b0e1-5ce0c50b9d66"
+            "b3b6e002-2deb-11e8-aa2d-b86b230042b9"
         ]
     ]
 },
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "b25a7cef-2984-11e8-b0e1-5ce0c50b9d66",
-            "b25a7cef-2984-11e8-b0e1-5ce0c50b9d66"
+            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9",
+            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b25a7cef-2984-11e8-b0e1-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9b0b3e23-2deb-11e8-aa2d-b86b230042b9'"
 },
 {
     "type": "response",

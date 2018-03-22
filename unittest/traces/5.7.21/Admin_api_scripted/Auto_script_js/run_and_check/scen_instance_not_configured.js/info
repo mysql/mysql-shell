@@ -1,8 +1,8 @@
 {
-    "hostname": "dhcp-10-159-240-73.vpn.oracle.com",
-    "hostname_ip": "10.159.240.73",
-    "real_host_is_loopback": "0",
-    "real_hostname": "dhcp-10-159-240-73.vpn.oracle.com",
+    "hostname": "10.172.234.37",
+    "hostname_ip": "10.172.234.37",
+    "real_host_is_loopback": "1",
+    "real_hostname": "tecra",
     "sandbox_port1": "3316",
     "sandbox_port2": "3326",
     "sandbox_port3": "3336"
