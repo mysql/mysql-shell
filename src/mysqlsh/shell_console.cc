@@ -22,9 +22,6 @@
  */
 
 #include "src/mysqlsh/shell_console.h"
-#include <rapidjson/document.h>
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/stringbuffer.h>
 #include <string>
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -32,20 +29,19 @@
 #include "scripting/shexcept.h"
 #include "shellcore/shell_options.h"
 #include "shellcore/base_shell.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace mysqlsh {
 namespace {
 std::string json_obj(const char *key, const std::string &value) {
-  rapidjson::Document doc;
-  doc.SetObject();
-  rapidjson::Value v(value.c_str(), doc.GetAllocator());
-  rapidjson::Value k(key, doc.GetAllocator());
-  doc.AddMember(k, v, doc.GetAllocator());
+  shcore::JSON_dumper dumper(mysqlsh::Base_shell::options().output_format ==
+                             "json");
+  dumper.start_object();
+  dumper.append_string(key);
+  dumper.append_string(value);
+  dumper.end_object();
 
-  rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-  doc.Accept(writer);
-  return std::string(buffer.GetString()) + "\n";
+  return dumper.str() + "\n";
 }
 
 bool use_json() {
