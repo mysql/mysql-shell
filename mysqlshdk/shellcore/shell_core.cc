@@ -160,7 +160,7 @@ void Shell_core::print_error(const std::string &s) {
   // When using JSON output ALL must be JSON
   std::string format = mysqlsh::Base_shell::options().output_format;
   if (format.find("json") != std::string::npos)
-    output = format_json_output(output, "error");
+    output = format_json_output(s, "error");
   else
     output = s;
 
