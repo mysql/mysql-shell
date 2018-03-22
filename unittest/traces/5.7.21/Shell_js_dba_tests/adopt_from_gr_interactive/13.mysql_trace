@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@tecra:3316",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "31",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
-    "server_info": "5.7.21-log",
+    "connection_info": "tecra via TCP/IP",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 39,
+            "length": 36,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "5.7.21-log MySQL Community Server (GPL)"
+            "5.7.21-debug-log Source distribution"
         ]
     ]
 },
@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66",
-            "99ec7e31-2981-11e8-896c-5ce0c50b9d66"
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
+            "5bffb6f2-2de7-11e8-95b5-b86b230042b9"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '99ec7e31-2981-11e8-896c-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
 },
 {
     "type": "response",

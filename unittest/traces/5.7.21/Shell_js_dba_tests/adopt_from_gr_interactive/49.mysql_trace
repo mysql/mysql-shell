@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@pjesus-TECRA-Z40-B:3340",
+    "uri": "mysql://root:root@tecra:3316",
     "protocol": "classic"
 },
 {
@@ -11,8 +11,8 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "82",
-    "connection_info": "pjesus-TECRA-Z40-B via TCP/IP",
-    "server_info": "5.7.21-log",
+    "connection_info": "tecra via TCP/IP",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },

@@ -40,21 +40,21 @@ This instance reports its own address as <<<hostname>>>
 Assuming full account name 'root'@'%' for root
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| Variable                         | Current Value | Required Value                         | Note                                             |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE                                   | Update the server variable and the config file   |
-| binlog_format                    | <not set>     | ROW                                    | Update the config file                           |
-| enforce_gtid_consistency         | OFF           | ON                                     | Update the config file and restart the server    |
-| gtid_mode                        | OFF           | ON                                     | Update the config file and restart the server    |
-| log_bin                          | 0             | 1                                      | Update the config file and restart the server    |
-| log_slave_updates                | 0             | ON                                     | Update the config file and restart the server    |
-| master_info_repository           | FILE          | TABLE                                  | Update the config file and restart the server    |
-| relay_log_info_repository        | FILE          | TABLE                                  | Update the config file and restart the server    |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>                                   | Update the config file                           |
-| server_id                        | 0             | <unique ID>                            | Update read-only variable and restart the server |
-| transaction_write_set_extraction | OFF           | XXHASH64                               | Update the config file and restart the server    |
-+----------------------------------+---------------+----------------------------------------+--------------------------------------------------+
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                             |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
+| binlog_format                    | <not set>     | ROW            | Update the config file                           |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
+| log_bin                          | 0             | 1              | Update the config file and restart the server    |
+| log_slave_updates                | 0             | ON             | Update the config file and restart the server    |
+| master_info_repository           | FILE          | TABLE          | Update the config file and restart the server    |
+| relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server    |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                           |
+| server_id                        | 0             | <unique ID>    | Update read-only variable and restart the server |
+| transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server    |
++----------------------------------+---------------+----------------+--------------------------------------------------+
 
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Cluster admin user 'root'@'%' created.

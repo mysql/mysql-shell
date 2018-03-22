@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "63",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -208,9 +208,9 @@
     ],
     "rows": [
         [
-            "a4a9413a-2a18-11e8-a821-3d7cb8259063",
+            "7810d0a8-2dc5-11e8-b56f-b86b230042b9",
             1,
-            "a2b25808-2a18-11e8-a785-324ff5df7cd2",
+            "74f723ce-2dc5-11e8-b858-b86b230042b9",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = 'a4a9413a-2a18-11e8-a821-3d7cb8259063'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '7810d0a8-2dc5-11e8-b56f-b86b230042b9'"
 },
 {
     "type": "response",
@@ -385,14 +385,14 @@
     ],
     "rows": [
         [
-            "a1a776c8-2a18-11e8-a821-3d7cb8259063",
+            "7448a1cd-2dc5-11e8-b56f-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "localhost:33160"
         ],
         [
-            "a2b25808-2a18-11e8-a785-324ff5df7cd2",
+            "74f723ce-2dc5-11e8-b858-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326",
@@ -498,16 +498,16 @@
     ],
     "rows": [
         [
-            "a1a776c8-2a18-11e8-a821-3d7cb8259063",
+            "7448a1cd-2dc5-11e8-b56f-b86b230042b9",
             "ONLINE",
-            "dhcp-10-159-249-166.vpn.oracle.com",
+            "tecra",
             3316,
             "PRIMARY"
         ],
         [
-            "a2b25808-2a18-11e8-a785-324ff5df7cd2",
+            "74f723ce-2dc5-11e8-b858-b86b230042b9",
             "ONLINE",
-            "dhcp-10-159-249-166.vpn.oracle.com",
+            "tecra",
             3326,
             "SECONDARY"
         ]

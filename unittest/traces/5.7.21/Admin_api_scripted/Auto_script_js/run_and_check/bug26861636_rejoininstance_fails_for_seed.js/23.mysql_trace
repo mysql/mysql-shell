@@ -3,16 +3,16 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3350",
+    "uri": "mysql://root:root@localhost:3326",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "41",
+    "connection_id": "38",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -317,7 +317,7 @@
         [
             "default",
             "pm",
-            "b6e2b767-297f-11e8-8a4c-5ce0c50b9d66"
+            "a0a63d7b-2dc6-11e8-a2d7-b86b230042b9"
         ]
     ]
 },
@@ -355,7 +355,7 @@
     ],
     "rows": [
         [
-            "b6e2b767-297f-11e8-8a4c-5ce0c50b9d66"
+            "a0a63d7b-2dc6-11e8-a2d7-b86b230042b9"
         ]
     ]
 },
@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "b362f588-297f-11e8-8ca5-5ce0c50b9d66",
-            "b362f588-297f-11e8-8ca5-5ce0c50b9d66"
+            "9c532678-2dc6-11e8-a650-b86b230042b9",
+            "9c532678-2dc6-11e8-a650-b86b230042b9"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'b362f588-297f-11e8-8ca5-5ce0c50b9d66'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '9c532678-2dc6-11e8-a650-b86b230042b9'"
 },
 {
     "type": "response",
@@ -756,22 +756,22 @@
     ],
     "rows": [
         [
-            "b27e8ef0-297f-11e8-8a4c-5ce0c50b9d66",
-            "localhost:3340",
+            "9ba268df-2dc6-11e8-a2d7-b86b230042b9",
+            "localhost:3316",
             "HA",
-            "localhost:3340"
+            "localhost:3316"
         ],
         [
-            "b362f588-297f-11e8-8ca5-5ce0c50b9d66",
-            "localhost:3350",
+            "9c532678-2dc6-11e8-a650-b86b230042b9",
+            "localhost:3326",
             "HA",
-            "localhost:3350"
+            "localhost:3326"
         ],
         [
-            "b5b1c228-297f-11e8-8e9b-5ce0c50b9d66",
-            "localhost:3360",
+            "9e7b02b9-2dc6-11e8-a69a-b86b230042b9",
+            "localhost:3336",
             "HA",
-            "localhost:3360"
+            "localhost:3336"
         ]
     ]
 },
@@ -1404,7 +1404,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "b362f588-297f-11e8-8ca5-5ce0c50b9d66"
+            "9c532678-2dc6-11e8-a650-b86b230042b9"
         ]
     ]
 },

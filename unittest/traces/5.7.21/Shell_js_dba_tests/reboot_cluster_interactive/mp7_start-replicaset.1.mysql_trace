@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@localhost:3340?ssl-mode=PREFERRED",
+    "uri": "root:root@localhost:3316?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
@@ -12,7 +12,7 @@
     "index": 2,
     "connection_id": "12",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-log",
+    "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
     "ssl_cipher": "DHE-RSA-AES256-SHA"
 },
@@ -265,50 +265,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT @@disabled_storage_engines"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 16,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@disabled_storage_engines",
-            "length": 38,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "BLACKHOLE,FEDERATED,ARCHIVE,MyISAM,CSV"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 17,
     "sql": "SELECT @@binlog_checksum"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 18,
+    "index": 16,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -340,13 +302,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 19,
+    "index": 17,
     "sql": "SELECT @@enforce_gtid_consistency"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 20,
+    "index": 18,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -378,13 +340,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 21,
+    "index": 19,
     "sql": "SELECT @@gtid_mode"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 22,
+    "index": 20,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -416,13 +378,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 23,
+    "index": 21,
     "sql": "SELECT @@binlog_format"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 24,
+    "index": 22,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -454,13 +416,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 25,
+    "index": 23,
     "sql": "SELECT @@report_port"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 26,
+    "index": 24,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -485,20 +447,20 @@
     ],
     "rows": [
         [
-            3340
+            3316
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 27,
+    "index": 25,
     "sql": "SELECT @@bind_address"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 28,
+    "index": 26,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -530,13 +492,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 29,
+    "index": 27,
     "sql": "SELECT @@log_bin"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 30,
+    "index": 28,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -568,13 +530,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 31,
+    "index": 29,
     "sql": "SHOW VARIABLES LIKE 'VERSION'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 32,
+    "index": 30,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -616,20 +578,20 @@
     "rows": [
         [
             "version",
-            "5.7.21-log"
+            "5.7.21-debug-log"
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 33,
+    "index": 31,
     "sql": "SELECT @@server_id"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 34,
+    "index": 32,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -654,20 +616,20 @@
     ],
     "rows": [
         [
-            15685
+            15661
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 35,
+    "index": 33,
     "sql": "SELECT @@slave_parallel_workers"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 36,
+    "index": 34,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -699,13 +661,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 37,
+    "index": 35,
     "sql": "SELECT * FROM mysql.user WHERE user = 'mysql_innodb_cluster_r0000000004' and host = '%'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 38,
+    "index": 36,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1474,9 +1436,9 @@
             0,
             0,
             "mysql_native_password",
-            "*F50823A75BC465A52105652813835275621B356D",
+            "*7857EAA8DB488412BF7E95BB7C162E50A6426307",
             "N",
-            "2018-03-17 01:35:38",
+            "2018-03-22 15:59:54",
             null,
             "N"
         ]
@@ -1485,13 +1447,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 39,
+    "index": 37,
     "sql": "SHOW GRANTS FOR 'snuffles'@'host'"
 },
 {
     "type": "response",
     "subtype": "ERROR",
-    "index": 40,
+    "index": 38,
     "code": "1141",
     "msg": "There is no such grant defined for user 'snuffles' on host 'host'",
     "sqlstate": "42000"
@@ -1499,13 +1461,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 41,
+    "index": 39,
     "sql": "SELECT CURRENT_USER()"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 42,
+    "index": 40,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1537,13 +1499,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 43,
+    "index": 41,
     "sql": "SHOW GRANTS FOR 'mysql_innodb_cluster_r0000000004'@'%'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 44,
+    "index": 42,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1575,13 +1537,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 45,
+    "index": 43,
     "sql": "SELECT @@SQL_MODE"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 46,
+    "index": 44,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -1613,13 +1575,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 47,
+    "index": 45,
     "sql": "SELECT * FROM mysql.user WHERE user = 'root' and host = 'localhost'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 48,
+    "index": 46,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -2390,7 +2352,7 @@
             "mysql_native_password",
             "*81F5E21E35407D884A6CD4A731AEBFB6AF209E1B",
             "N",
-            "2018-03-17 00:56:04",
+            "2018-03-22 11:03:50",
             null,
             "N"
         ]
@@ -2399,13 +2361,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 49,
+    "index": 47,
     "sql": "SELECT CURRENT_USER()"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 50,
+    "index": 48,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -2437,8 +2399,49 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 51,
+    "index": 49,
     "sql": "SHOW GRANTS FOR 'root'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 50,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "Grants for root@localhost",
+            "length": 1024,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION"
+        ],
+        [
+            "GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 51,
+    "sql": "SELECT @@SQL_MODE"
 },
 {
     "type": "response",
@@ -2454,6 +2457,58 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
+            "column_label": "@@SQL_MODE",
+            "length": 137,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 53,
+    "sql": "SHOW GRANTS FOR 'root'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "ERROR",
+    "index": 54,
+    "code": "1141",
+    "msg": "There is no such grant defined for user 'root' on host '%'",
+    "sqlstate": "42000"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 55,
+    "sql": "SHOW GRANTS FOR 'root'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 56,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
             "column_label": "Grants for root@localhost",
             "length": 1024,
             "fractional": 31,
@@ -2478,60 +2533,8 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 53,
-    "sql": "SELECT @@SQL_MODE"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 54,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@SQL_MODE",
-            "length": 137,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 55,
-    "sql": "SHOW GRANTS FOR 'root'@'%'"
-},
-{
-    "type": "response",
-    "subtype": "ERROR",
-    "index": 56,
-    "code": "1141",
-    "msg": "There is no such grant defined for user 'root' on host '%'",
-    "sqlstate": "42000"
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
     "index": 57,
-    "sql": "SHOW GRANTS FOR 'root'@'localhost'"
+    "sql": "SELECT @@SQL_MODE"
 },
 {
     "type": "response",
@@ -2547,6 +2550,58 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
+            "column_label": "@@SQL_MODE",
+            "length": 137,
+            "fractional": 31,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": false
+        }
+    ],
+    "rows": [
+        [
+            "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 59,
+    "sql": "SHOW GRANTS FOR 'root'@'%'"
+},
+{
+    "type": "response",
+    "subtype": "ERROR",
+    "index": 60,
+    "code": "1141",
+    "msg": "There is no such grant defined for user 'root' on host '%'",
+    "sqlstate": "42000"
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 61,
+    "sql": "SHOW GRANTS FOR 'root'@'localhost'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 62,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
             "column_label": "Grants for root@localhost",
             "length": 1024,
             "fractional": 31,
@@ -2571,60 +2626,8 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 59,
-    "sql": "SELECT @@SQL_MODE"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 60,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
-            "column_label": "@@SQL_MODE",
-            "length": 137,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 61,
-    "sql": "SHOW GRANTS FOR 'root'@'%'"
-},
-{
-    "type": "response",
-    "subtype": "ERROR",
-    "index": 62,
-    "code": "1141",
-    "msg": "There is no such grant defined for user 'root' on host '%'",
-    "sqlstate": "42000"
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
     "index": 63,
-    "sql": "SHOW GRANTS FOR 'root'@'localhost'"
+    "sql": "SELECT @@SQL_MODE"
 },
 {
     "type": "response",
@@ -2640,47 +2643,6 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "Grants for root@localhost",
-            "length": 1024,
-            "fractional": 31,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": false
-        }
-    ],
-    "rows": [
-        [
-            "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION"
-        ],
-        [
-            "GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 65,
-    "sql": "SELECT @@SQL_MODE"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 66,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "",
-            "table_name": "",
-            "table_label": "",
-            "column_name": "",
             "column_label": "@@SQL_MODE",
             "length": 137,
             "fractional": 31,
@@ -2702,13 +2664,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 67,
+    "index": 65,
     "sql": "SHOW GRANTS FOR 'root'@'%'"
 },
 {
     "type": "response",
     "subtype": "ERROR",
-    "index": 68,
+    "index": 66,
     "code": "1141",
     "msg": "There is no such grant defined for user 'root' on host '%'",
     "sqlstate": "42000"
@@ -2716,13 +2678,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 69,
+    "index": 67,
     "sql": "show plugins"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 70,
+    "index": 68,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -2832,13 +2794,6 @@
             "GPL"
         ],
         [
-            "PERFORMANCE_SCHEMA",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
             "MRG_MYISAM",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -2846,7 +2801,14 @@
             "GPL"
         ],
         [
-            "MEMORY",
+            "PERFORMANCE_SCHEMA",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "MyISAM",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3070,6 +3032,13 @@
             "GPL"
         ],
         [
+            "MEMORY",
+            "ACTIVE",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
             "CSV",
             "ACTIVE",
             "STORAGE ENGINE",
@@ -3077,7 +3046,14 @@
             "GPL"
         ],
         [
-            "MyISAM",
+            "FEDERATED",
+            "DISABLED",
+            "STORAGE ENGINE",
+            null,
+            "GPL"
+        ],
+        [
+            "BLACKHOLE",
             "ACTIVE",
             "STORAGE ENGINE",
             null,
@@ -3093,20 +3069,6 @@
         [
             "partition",
             "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "BLACKHOLE",
-            "ACTIVE",
-            "STORAGE ENGINE",
-            null,
-            "GPL"
-        ],
-        [
-            "FEDERATED",
-            "DISABLED",
             "STORAGE ENGINE",
             null,
             "GPL"
@@ -3137,13 +3099,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 71,
+    "index": 69,
     "sql": "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'group_replication%'"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 72,
+    "index": 70,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -3192,13 +3154,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 73,
+    "index": 71,
     "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members as m JOIN performance_schema.replication_group_member_stats as s on m.MEMBER_ID = s.MEMBER_ID AND m.MEMBER_ID = @@server_uuid"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 74,
+    "index": 72,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -3226,13 +3188,13 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 75,
+    "index": 73,
     "sql": "SELECT @@server_id"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 76,
+    "index": 74,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -3257,15 +3219,30 @@
     ],
     "rows": [
         [
-            15685
+            15661
         ]
     ]
 },
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 77,
+    "index": 75,
     "sql": "SET SQL_LOG_BIN=0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 76,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 77,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3280,7 +3257,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 79,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_single_primary_mode = \"ON\""
 },
 {
     "type": "response",
@@ -3295,7 +3272,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 81,
-    "sql": "SET GLOBAL group_replication_single_primary_mode = \"ON\""
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3310,7 +3287,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 83,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3325,7 +3302,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 85,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3340,7 +3317,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 87,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3355,7 +3332,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3370,7 +3347,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_group_name = 'f41daa58-2de9-11e8-91ba-b86b230042b9'"
 },
 {
     "type": "response",
@@ -3385,7 +3362,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 93,
-    "sql": "SET GLOBAL group_replication_group_name = '6adac27f-2983-11e8-b06a-5ce0c50b9d66'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3400,7 +3377,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 95,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3415,7 +3392,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3430,7 +3407,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 99,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3445,7 +3422,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 101,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3460,7 +3437,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 103,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_recovery_use_ssl = 'ON'"
 },
 {
     "type": "response",
@@ -3475,7 +3452,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 105,
-    "sql": "SET GLOBAL group_replication_recovery_use_ssl = 'ON'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3490,7 +3467,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 107,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3505,7 +3482,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 109,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3520,7 +3497,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 111,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3535,7 +3512,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 113,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3550,7 +3527,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 115,
-    "sql": "commit"
+    "sql": "SET GLOBAL auto_increment_offset = 3"
 },
 {
     "type": "response",
@@ -3565,7 +3542,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 117,
-    "sql": "SET GLOBAL auto_increment_offset = 6"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3580,7 +3557,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 119,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3595,7 +3572,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 121,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3610,7 +3587,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 123,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3625,7 +3602,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 125,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3640,7 +3617,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 127,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_ssl_mode = 'REQUIRED'"
 },
 {
     "type": "response",
@@ -3655,7 +3632,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 129,
-    "sql": "SET GLOBAL group_replication_ssl_mode = 'REQUIRED'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3670,7 +3647,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 131,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3685,7 +3662,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 133,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3700,7 +3677,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 135,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3715,7 +3692,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 137,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3730,7 +3707,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 139,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_start_on_boot = 'ON'"
 },
 {
     "type": "response",
@@ -3745,7 +3722,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 141,
-    "sql": "SET GLOBAL group_replication_start_on_boot = 'ON'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3760,7 +3737,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 143,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3775,7 +3752,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3790,7 +3767,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 147,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3805,7 +3782,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 149,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3820,7 +3797,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 151,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33161'"
 },
 {
     "type": "response",
@@ -3835,7 +3812,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 153,
-    "sql": "SET GLOBAL group_replication_local_address = 'localhost:33401'"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3850,7 +3827,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 155,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3865,7 +3842,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 157,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3880,7 +3857,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 159,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3895,7 +3872,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 161,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3910,7 +3887,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 163,
-    "sql": "commit"
+    "sql": "SET GLOBAL auto_increment_increment = 7"
 },
 {
     "type": "response",
@@ -3925,7 +3902,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 165,
-    "sql": "SET GLOBAL auto_increment_increment = 7"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3940,7 +3917,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 167,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -3955,7 +3932,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 169,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -3970,7 +3947,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 171,
-    "sql": "commit"
+    "sql": "SET SQL_LOG_BIN=0"
 },
 {
     "type": "response",
@@ -3985,7 +3962,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 173,
-    "sql": "SET SQL_LOG_BIN=0"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4000,27 +3977,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 175,
-    "sql": "commit"
+    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '){+E,&|Y%5i,}u.{<L8$.@y~2?)=,&D~' /*)*/ FOR CHANNEL 'group_replication_recovery';"
 },
 {
     "type": "response",
     "subtype": "RESULT",
     "index": 176,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 177,
-    "sql": "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000004' /*)*/, MASTER_PASSWORD = /*(*/ '*Z]&|>F3~b.}j/=P)+8,2=%,;,i-U]_,' /*)*/ FOR CHANNEL 'group_replication_recovery';"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 178,
     "auto_increment_value": 0,
     "affected_rows": 0,
     "warning_count": 1,
@@ -4029,8 +3991,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 179,
+    "index": 177,
     "sql": "commit"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 178,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 179,
+    "sql": "SET SQL_LOG_BIN=1"
 },
 {
     "type": "response",
@@ -4045,7 +4022,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 181,
-    "sql": "SET SQL_LOG_BIN=1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4060,7 +4037,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 183,
-    "sql": "commit"
+    "sql": "SET GLOBAL group_replication_bootstrap_group = 1"
 },
 {
     "type": "response",
@@ -4075,7 +4052,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 185,
-    "sql": "SET GLOBAL group_replication_bootstrap_group = 1"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4090,7 +4067,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 187,
-    "sql": "commit"
+    "sql": "START group_replication"
 },
 {
     "type": "response",
@@ -4105,7 +4082,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 189,
-    "sql": "START group_replication"
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4120,27 +4097,12 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 191,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 192,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 193,
     "sql": "SELECT @@global.super_read_only"
 },
 {
     "type": "response",
     "subtype": "RESULT",
-    "index": 194,
+    "index": 192,
     "auto_increment_value": 0,
     "affected_rows": 18446744073709551615,
     "warning_count": 0,
@@ -4172,8 +4134,23 @@
 {
     "type": "request",
     "subtype": "QUERY",
-    "index": 195,
+    "index": 193,
     "sql": "SET GLOBAL group_replication_bootstrap_group = 0"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 194,
+    "auto_increment_value": 0,
+    "affected_rows": 0,
+    "warning_count": 0,
+    "info": ""
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 195,
+    "sql": "commit"
 },
 {
     "type": "response",
@@ -4186,27 +4163,12 @@
 },
 {
     "type": "request",
-    "subtype": "QUERY",
-    "index": 197,
-    "sql": "commit"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 198,
-    "auto_increment_value": 0,
-    "affected_rows": 0,
-    "warning_count": 0,
-    "info": ""
-},
-{
-    "type": "request",
     "subtype": "CLOSE",
-    "index": 199
+    "index": 197
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 200
+    "index": 198
 },
 null]
