@@ -154,7 +154,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(5));
 
   // unset filter via shell options
-  shcore::Mod_shell_options opts(shell.get_options());
+  mysqlsh::Options opts(shell.get_options());
   opts.set_member("history.sql.ignorePattern", shcore::Value(""));
 
   shell.process_line("top secret;");
@@ -407,7 +407,7 @@ TEST_F(Shell_history, history_linenoise) {
     EXPECT_STREQ("print(2);", linenoiseHistoryLine(1));
     EXPECT_STREQ("print(3);", linenoiseHistoryLine(2));
 
-    shcore::Mod_shell_options opt(shell.get_options());
+    mysqlsh::Options opt(shell.get_options());
 
     // TS_CV#10
     // autosave off by default
@@ -597,7 +597,7 @@ TEST_F(Shell_history, history_autosave_int) {
       std::make_shared<Shell_options>(0, nullptr, _options_file));
 
   {
-    shcore::Mod_shell_options opt(shell.get_options());
+    mysqlsh::Options opt(shell.get_options());
 
     // Expecting the Shell to cast to boolean true if value is 1 or 0
     opt.set_member("history.autoSave", shcore::Value(1));

@@ -46,7 +46,7 @@ REGISTER_HELP(SHELL_BRIEF, "Gives access to general purpose functions and proper
 Shell::Shell(Mysql_shell *owner)
     : _shell(owner),
       _shell_core(owner->shell_context().get()),
-      _core_options(new shcore::Mod_shell_options(owner->get_options())) {
+      _core_options(new Options(owner->get_options())) {
   init();
 }
 
@@ -150,9 +150,9 @@ REGISTER_HELP(
  * $(SHELL_OPTIONS_DETAIL16)
  */
 #if DOXYGEN_JS
-Dictionary Shell::options;
+Options Shell::options;
 #elif DOXYGEN_PY
-dict Shell::options;
+Options Shell::options;
 #endif
 
 shcore::Value Shell::get_member(const std::string &prop) const {
