@@ -66,14 +66,14 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   shcore::Value status(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
-  Dictionary options;
+  Options options;
   Dictionary parseUri(String uri);
   String prompt(String message, Dictionary options);
   Undefined connect(ConnectionData connectionData, String password);
   Undefined log(String level, String message);
   Undefined status();
 #elif DOXYGEN_PY
-  dict options;
+  Options options;
   dict parse_uri(str uri);
   str prompt(str message, dict options);
   None connect(ConnectionData connectionData, str password);
@@ -90,7 +90,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
   mysqlsh::Mysql_shell *_shell;
   shcore::IShell_core *_shell_core;
-  std::shared_ptr<shcore::Mod_shell_options> _core_options;
+  std::shared_ptr<mysqlsh::Options> _core_options;
 };
 }  // namespace mysqlsh
 

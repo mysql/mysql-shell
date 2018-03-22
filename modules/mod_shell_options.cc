@@ -23,93 +23,166 @@
 
 #include "modules/mod_shell_options.h"
 #include "modules/mysqlxtest_utils.h"
+#include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 
-namespace shcore {
+namespace mysqlsh {
 
-std::string &Mod_shell_options::append_descr(std::string &s_out, int indent,
-                                             int quote_strings) const {
+using shcore::Value;
+
+REGISTER_HELP(OPTIONS_BRIEF,
+              "Gives access to options impacting shell behavior, accessible "
+              "via shell.options.");
+
+std::string &Options::append_descr(std::string &s_out, int indent,
+                                   int quote_strings) const {
   shcore::Value::Map_type_ref ops = std::make_shared<shcore::Value::Map_type>();
-  for (const auto &name : options->get_named_options())
-    (*ops)[name] = Value(options->get(name));
+  for (const auto &name : shell_options->get_named_options())
+    (*ops)[name] = Value(shell_options->get(name));
   Value(ops).append_descr(s_out, indent, quote_strings);
+
   return s_out;
 }
 
-bool Mod_shell_options::operator==(const Object_bridge &other) const {
+bool Options::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name();
 }
 
-Value Mod_shell_options::get_member(const std::string &prop) const {
-  if (options->has_key(prop))
-    return options->get(prop);
+Value Options::get_member(const std::string &prop) const {
+  if (shell_options->has_key(prop)) return shell_options->get(prop);
   return Cpp_object_bridge::get_member(prop);
 }
 
-void Mod_shell_options::set_member(const std::string &prop, Value value) {
-  if (!options->has_key(prop))
+void Options::set_member(const std::string &prop, Value value) {
+  if (!shell_options->has_key(prop))
     return Cpp_object_bridge::set_member(prop, value);
-  options->set_and_notify(prop, value, false);
+  shell_options->set_and_notify(prop, value, false);
 }
 
-Mod_shell_options::Mod_shell_options(
-    std::shared_ptr<mysqlsh::Shell_options> options)
-    : options(options) {
+Options::Options(std::shared_ptr<mysqlsh::Shell_options> options)
+    : shell_options(options) {
   for (const auto &opt : options->get_named_options())
     add_property(opt + "|" + opt);
 
-  add_method("set",
-             std::bind(&Mod_shell_options::set, this, std::placeholders::_1));
-  add_method("set_persist", std::bind(&Mod_shell_options::set_persist, this,
-                                      std::placeholders::_1));
-  add_method("unset",
-             std::bind(&Mod_shell_options::unset, this, std::placeholders::_1));
-  add_method("unset_persist", std::bind(&Mod_shell_options::unset_persist, this,
-                                        std::placeholders::_1));
+  add_method("set", std::bind(&Options::set, this, std::placeholders::_1));
+  add_method("set_persist",
+             std::bind(&Options::set_persist, this, std::placeholders::_1));
+  add_method("unset", std::bind(&Options::unset, this, std::placeholders::_1));
+  add_method("unset_persist",
+             std::bind(&Options::unset_persist, this, std::placeholders::_1));
 }
 
-shcore::Value Mod_shell_options::set(const shcore::Argument_list &args) {
+REGISTER_HELP(OPTIONS_SET_BRIEF, "Sets value of an option.");
+REGISTER_HELP(OPTIONS_SET_PARAM,
+              "@param optionName name of the option to set.");
+REGISTER_HELP(OPTIONS_SET_PARAM1, "@param value new value for the option.");
+/**
+ * \ingroup ShellAPI
+ * $(OPTIONS_SET_BRIEF)
+ *
+ * $(OPTIONS_SET_PARAM)
+ * $(OPTIONS_SET_PARAM1)
+ */
+#if DOXYGEN_JS
+Undefined Options::set(optionName, value);
+#elif DOXYGEN_PY
+None Options::set(optionName, value);
+#endif
+
+shcore::Value Options::set(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("set").c_str());
 
   try {
-    options->set_and_notify(args.string_at(0), args.at(1), false);
+    shell_options->set_and_notify(args.string_at(0), args.at(1), false);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("set"));
   return Value();
 }
 
-shcore::Value Mod_shell_options::set_persist(
-    const shcore::Argument_list &args) {
+REGISTER_HELP(
+    OPTIONS_SET_PERSIST_BRIEF,
+    "Sets value of an option and stores it in the configuration file.");
+REGISTER_HELP(OPTIONS_SET_PERSIST_PARAM,
+              "@param optionName name of the option to set.");
+REGISTER_HELP(OPTIONS_SET_PERSIST_PARAM1,
+              "@param value new value for the option.");
+/**
+ * \ingroup ShellAPI
+ * $(OPTIONS_SET_PERSIST_BRIEF)
+ *
+ * $(OPTIONS_SET_PERSIST_PARAM)
+ * $(OPTIONS_SET_PERSIST_PARAM1)
+ */
+#if DOXYGEN_JS
+Undefined Options::set_persist(optionName, value);
+#elif DOXYGEN_PY
+None Options::set_persist(optionName, value);
+#endif
+
+shcore::Value Options::set_persist(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("set_persist").c_str());
 
   try {
-    options->set_and_notify(args.string_at(0), args.at(1), true);
+    shell_options->set_and_notify(args.string_at(0), args.at(1), true);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("set_persist"));
   return Value();
 }
 
-shcore::Value Mod_shell_options::unset(const shcore::Argument_list &args) {
+REGISTER_HELP(OPTIONS_UNSET_BRIEF, "Resets value of an option to default.");
+REGISTER_HELP(OPTIONS_UNSET_PARAM,
+              "@param optionName name of the option to reset.");
+
+/**
+ * \ingroup ShellAPI
+ * $(OPTIONS_UNSET_BRIEF)
+ *
+ * $(OPTIONS_UNSET_PARAM)
+ */
+#if DOXYGEN_JS
+Undefined Options::unset(optionName);
+#elif DOXYGEN_PY
+None Options::unset(optionName);
+#endif
+
+shcore::Value Options::unset(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("unset").c_str());
 
   try {
-    options->unset(args.string_at(0), false);
+    shell_options->unset(args.string_at(0), false);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset"));
   return Value();
 }
 
-shcore::Value Mod_shell_options::unset_persist(
-    const shcore::Argument_list &args) {
+REGISTER_HELP(OPTIONS_UNSET_PERSIST_BRIEF,
+              "Resets value of an option to default and removes it from "
+              "the configuration file.");
+REGISTER_HELP(OPTIONS_UNSET_PERSIST_PARAM,
+              "@param optionName name of the option to reset.");
+
+/**
+ * \ingroup ShellAPI
+ * $(OPTIONS_UNSET_PERSIST_BRIEF)
+ *
+ * $(OPTIONS_UNSET_PERSIST_PARAM)
+ */
+#if DOXYGEN_JS
+Undefined Options::unset_persist(optionName);
+#elif DOXYGEN_PY
+None Options::unset_persist(optionName);
+#endif
+
+shcore::Value Options::unset_persist(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("unset_persist").c_str());
 
   try {
-    options->unset(args.string_at(0), true);
+    shell_options->unset(args.string_at(0), true);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset_persist"));
   return Value();
 }
 
-}  // namespace shcore
+}  // namespace mysqlsh

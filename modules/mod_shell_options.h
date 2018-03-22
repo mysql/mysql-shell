@@ -30,32 +30,49 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "scripting/types_cpp.h"
 
-namespace shcore {
-class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
+namespace mysqlsh {
+
+/**
+ * \ingroup ShellAPI
+ * $(OPTIONS_BRIEF)
+ */
+class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
  public:
-  explicit Mod_shell_options(std::shared_ptr<mysqlsh::Shell_options> options);
-  virtual ~Mod_shell_options() {
+  explicit Options(std::shared_ptr<mysqlsh::Shell_options> options);
+  virtual ~Options() {
   }
 
   // Exposes the object to JS/PY to allow custom validations on options
-  static std::shared_ptr<Mod_shell_options> get_instance();
+  static std::shared_ptr<Options> get_instance();
   static void reset_instance();
 
   std::string class_name() const override {
-    return "ShellOptions";
+    return "Options";
   }
 
   bool operator==(const Object_bridge &other) const override;
   std::vector<std::string> get_members() const override {
-    return options->get_named_options();
+    return shell_options->get_named_options();
   }
-  Value get_member(const std::string &prop) const override;
+  shcore::Value get_member(const std::string &prop) const override;
   bool has_member(const std::string &prop) const override {
-    return options->has_key(prop);
+    return shell_options->has_key(prop);
   }
-  void set_member(const std::string &prop, Value value) override;
+  void set_member(const std::string &prop, shcore::Value value) override;
   std::string &append_descr(std::string &s_out, int indent = -1,
                             int quote_strings = 0) const override;
+
+#if DOXYGEN_JS
+  Undefined set(optionName, value);
+  Undefined set_persist(optionName, value);
+  Undefined unset(optionName);
+  Undefined unset_persist(optionName);
+#elif DOXYGEN_PY
+  None set(optionName, value);
+  None set_persist(optionName, value);
+  None unset(optionName);
+  None unset_persist(optionName);
+#endif
 
   shcore::Value set(const shcore::Argument_list &args);
   shcore::Value set_persist(const shcore::Argument_list &args);
@@ -63,8 +80,8 @@ class SHCORE_PUBLIC Mod_shell_options : public shcore::Cpp_object_bridge {
   shcore::Value unset_persist(const shcore::Argument_list &args);
 
  private:
-  std::shared_ptr<mysqlsh::Shell_options> options;
+  std::shared_ptr<mysqlsh::Shell_options> shell_options;
 };
-}  // namespace shcore
+}  // namespace mysqlsh
 
 #endif  // MODULES_MOD_SHELL_OPTIONS_H_
