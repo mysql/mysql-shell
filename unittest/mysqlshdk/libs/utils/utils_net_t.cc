@@ -44,7 +44,7 @@ TEST(utils_net, resolve_hostname_ipv4) {
 #ifdef WIN32
   // On Windows, using an empty string will resolve to any registered
   // address
-  EXPECT_NO_THROW(Net::resolve_hostname_ipv4(""), net_error);
+  EXPECT_NO_THROW(Net::resolve_hostname_ipv4(""));
 #else
   EXPECT_THROW(Net::resolve_hostname_ipv4(""), net_error);
 #endif  // WIN32
