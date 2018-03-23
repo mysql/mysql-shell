@@ -18,11 +18,6 @@ devCluster.disconnect();
 //@ Cluster: validating members
 var Cluster = dba.getCluster('devCluster');
 
-session.close();
-// session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-session.close();
-
 // Sets the correct local host
 var desc = Cluster.describe();
 var localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0];
@@ -73,8 +68,8 @@ add_instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second');
 //@ Cluster: addInstance 3
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
-wait_slave_state(Cluster, 'second', "ONLINE");
-wait_slave_state(Cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe cluster with instance
 Cluster.describe();
@@ -103,7 +98,7 @@ Cluster.status();
 //@ Cluster: addInstance read only back
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
-wait_slave_state(Cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: describe after adding read only instance back
 Cluster.describe();
@@ -136,7 +131,7 @@ var Cluster = dba.getCluster();
 // Add back uri3
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
 
-wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe on new master
 Cluster.describe();
@@ -147,7 +142,7 @@ Cluster.status();
 //@ Cluster: addInstance adding old master as read only
 add_instance_to_cluster(Cluster, __mysql_sandbox_port1, 'first_sandbox');
 
-wait_slave_state(Cluster, 'first_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@<OUT> Cluster: describe on new master with slave
 Cluster.describe();
@@ -162,7 +157,7 @@ testutil.killSandbox(__mysql_sandbox_port3);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
-wait_slave_state(Cluster, 'third_sandbox', "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@# Dba: start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
@@ -185,10 +180,10 @@ if (__have_ssl)
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, "password":"root"});
 
-wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@#: Dba: Wait instance 3 ONLINE {VER(>=8.0.5)}
-wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Verify if the cluster is OK
 

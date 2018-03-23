@@ -1,4 +1,4 @@
-// Assumptions: wait_slave_state is defined
+// Assumptions: smart deployment rountines available
 
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -29,12 +29,12 @@ var Cluster = dba.getCluster('devCluster');
 //@ Cluster: addInstance 2
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
-wait_slave_state(Cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Cluster: addInstance 3
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe cluster with instance
 Cluster.describe();
@@ -76,12 +76,12 @@ var Cluster = dba.getCluster('devCluster');
 //@ Cluster: addInstance 2 again
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
-wait_slave_state(Cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Cluster: addInstance 3 again
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: status: success
 Cluster.status();
@@ -96,10 +96,9 @@ Cluster.status();
 //   dba.stopSandboxInstance(__mysql_sandbox_port3, {password: 'root'});
 testutil.stopSandbox(__mysql_sandbox_port3);
 
-wait_slave_state(Cluster, uri3, ["(MISSING)"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 // start instance 3
-//try_restart_sandbox(__mysql_sandbox_port3);
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Cluster: rejoinInstance errors
@@ -116,7 +115,7 @@ if (__have_ssl)
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, password: "root"}, {memberSslMode: 'DISABLED'});
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Verify if the cluster is OK
 

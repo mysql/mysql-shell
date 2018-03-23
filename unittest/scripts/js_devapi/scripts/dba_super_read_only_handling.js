@@ -55,23 +55,27 @@ shell.connect(connection1);
 //@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt
 var cluster = dba.createCluster('sample');
 
+var local_address = session.runSql("SELECT @@group_replication_local_address").fetchOne()[0];
+if ("localhost:"+(__mysql_sandbox_port1*10+1) != local_address)
+	testutil.fail("group_replication_local_address has unexpected value " + local_address);
+
 //@<OUT> Adds a read only instance
 cluster.addInstance(connection2);
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@<OUT> Adds other instance
 cluster.addInstance(connection3);
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
 
 // Rejoin instance
 testutil.stopSandbox(__mysql_sandbox_port3);
-wait_slave_state(cluster, uri3, "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 testutil.startSandbox(__mysql_sandbox_port3);
 ensureSuperReadOnly(connection3);
 //@<OUT> Rejoins an instance
@@ -111,8 +115,8 @@ testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 shell.connect(connection1);
 session.runSql('set global super_read_only=ON');
 var cluster = dba.rebootClusterFromCompleteOutage("sample");
-wait_slave_state(cluster, uri2, "ONLINE");
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Cleanup
 session.close();

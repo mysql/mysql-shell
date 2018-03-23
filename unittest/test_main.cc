@@ -34,12 +34,12 @@
 #include <fstream>
 #include <iostream>
 
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_stacktrace.h"
-#include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_init.h"
 #include "unittest/gtest_clean.h"
@@ -71,7 +71,6 @@ mysqlshdk::utils::Version g_target_server_version = Version("8.0.5");
 mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block
-
 
 #ifdef _WIN32
 #define putenv _putenv
@@ -161,12 +160,9 @@ static void detect_mysql_environment(int port, const char *pwd) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           g_target_server_version = mysqlshdk::utils::Version(row[0]);
-          if (row[1] && strcmp(row[1], "1") == 0)
-            have_ssl = true;
-          if (row[2] && strcmp(row[2], "1") == 0)
-            have_openssl = true;
-          if (row[3])
-            xport = atoi(row[3]);
+          if (row[1] && strcmp(row[1], "1") == 0) have_ssl = true;
+          if (row[2] && strcmp(row[2], "1") == 0) have_openssl = true;
+          if (row[3]) xport = atoi(row[3]);
           server_id = atoi(row[4]);
         }
         mysql_free_result(res);
@@ -338,7 +334,6 @@ static bool delete_sandbox(int port) {
   return true;
 }
 
-
 static void check_zombie_sandboxes(int sport1, int sport2, int sport3) {
   bool have_zombies = false;
 
@@ -365,6 +360,109 @@ static void catch_segv(int sig) {
   kill(getpid(), sig);
 }
 #endif
+
+void setup_test_environment() {
+  if (!getenv("MYSQL_PORT")) {
+    if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
+      std::cerr << "MYSQL_PORT was not set and putenv failed to set it\n";
+      exit(1);
+    }
+  }
+
+  detect_mysql_environment(atoi(getenv("MYSQL_PORT")), "");
+
+  if (!getenv("MYSQL_REMOTE_HOST")) {
+    static char hostname[1024] = "MYSQL_REMOTE_HOST=";
+    if (gethostname(hostname + strlen(hostname),
+                    sizeof(hostname) - strlen(hostname)) != 0) {
+      std::cerr << "gethostname() returned error: " << strerror(errno) << "\n";
+      std::cerr << "Set MYSQL_REMOTE_HOST\n";
+      // exit(1); this option is not used for now, so no need to fail
+    }
+    if (putenv(hostname) != 0) {
+      std::cerr
+          << "MYSQL_REMOTE_HOST was not set and putenv failed to set it\n";
+      // exit(1);
+    }
+  }
+
+  if (!getenv("MYSQL_REMOTE_PORT")) {
+    if (putenv(const_cast<char *>("MYSQL_REMOTE_PORT=3306")) != 0) {
+      std::cerr
+          << "MYSQL_REMOTE_PORT was not set and putenv failed to set it\n";
+      // exit(1);
+    }
+  }
+
+  // Check TMPDIR environment variable for windows and other platforms without
+  // TMPDIR defined.
+  // NOTE: Required to be used as location for sandbox deployment.
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir == nullptr || strlen(tmpdir) == 0) {
+    tmpdir = getenv("TEMP");  // TEMP usually used on Windows.
+    static std::string temp("TMPDIR=");
+    if (tmpdir == nullptr || strlen(tmpdir) == 0) {
+      // Use the binary folder as default for the TMPDIR.
+      std::string bin_folder = shcore::get_binary_folder();
+      temp.append(bin_folder);
+      std::cout << std::endl
+                << "WARNING: TMPDIR environment variable is "
+                   "empty or not defined. It will be set with the binary "
+                   "folder path: "
+                << temp << std::endl
+                << std::endl;
+    } else {
+      temp.append(tmpdir);
+    }
+    if (putenv(&temp[0]) != 0) {
+      std::cerr << "TMPDIR was not set and putenv failed to set it\n";
+    }
+  }
+
+  if (!getenv("MYSQLSH_USER_CONFIG_HOME")) {
+    // Override the configuration home for tests, to not mess with custom data
+    if (putenv(const_cast<char*>("MYSQLSH_USER_CONFIG_HOME=.")) != 0) {
+      std::cerr << "MYSQLSH_USER_CONFIG_HOME could not be set with putenv\n";
+    }
+  }
+
+  // Setup logger with default configs
+  std::string log_path =
+      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
+  if (shcore::file_exists(log_path)) {
+    std::cerr << "Deleting old " << log_path << " file\n";
+    shcore::delete_file(log_path);
+  }
+  ngcommon::Logger::setup_instance(log_path.c_str(), false);
+
+  int sport1, sport2, sport3;
+  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+  if (sandbox_port1) {
+    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
+  } else {
+    sport1 = std::stoi(getenv("MYSQL_PORT")) + 10;
+  }
+  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+  if (sandbox_port2) {
+    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
+  } else {
+    sport2 = std::stoi(getenv("MYSQL_PORT")) + 20;
+  }
+  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+  if (sandbox_port3) {
+    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
+  } else {
+    sport3 = std::stoi(getenv("MYSQL_PORT")) + 30;
+  }
+  // Check for leftover sandbox servers
+  if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
+    check_zombie_sandboxes(sport1, sport2, sport3);
+  }
+  tests::Shell_test_env::setup_env(sport1, sport2, sport3);
+
+  tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
+                                         g_target_server_version.get_full());
+}
 
 int main(int argc, char **argv) {
   mysqlshdk::utils::init_stacktrace();
@@ -414,13 +512,11 @@ int main(int argc, char **argv) {
   struct rlimit rlp;
   getrlimit(RLIMIT_NOFILE, &rlp);
   if (rlp.rlim_cur < 10000) {
-    std::cout << "Increasing open files limit FROM: "
-              << rlp.rlim_cur;
+    std::cout << "Increasing open files limit FROM: " << rlp.rlim_cur;
     rlp.rlim_cur = 10000;
     setrlimit(RLIMIT_NOFILE, &rlp);
     getrlimit(RLIMIT_NOFILE, &rlp);
-    std::cout << "  TO: " << rlp.rlim_cur
-              << std::endl;
+    std::cout << "  TO: " << rlp.rlim_cur << std::endl;
   }
 #endif
 
@@ -429,122 +525,21 @@ int main(int argc, char **argv) {
   // Disable colors for tests
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
 
-  // Check TMPDIR environment variable for windows and other platforms without
-  // TMPDIR defined.
-  // NOTE: Required to be used as location for sandbox deployment.
-  const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir == nullptr || strlen(tmpdir) == 0) {
-    tmpdir = getenv("TEMP");  // TEMP usually used on Windows.
-    static std::string temp("TMPDIR=");
-    if (tmpdir == nullptr || strlen(tmpdir) == 0) {
-      // Use the binary folder as default for the TMPDIR.
-      std::string bin_folder = shcore::get_binary_folder();
-      temp.append(bin_folder);
-      std::cout << std::endl
-                << "WARNING: TMPDIR environment variable is "
-                   "empty or not defined. It will be set with the binary "
-                   "folder path: "
-                << temp << std::endl << std::endl;
-    } else {
-      temp.append(tmpdir);
-    }
-    putenv(&temp[0]);
-  }
-
-  bool show_help = false;
-  if (const char *uri = getenv("MYSQL_URI")) {
-    if (strcmp(uri, "root@localhost") != 0 &&
-        strcmp(uri, "root@127.0.0.1") != 0) {
-      std::cerr << "MYSQL_URI is set to " << getenv("MYSQL_URI") << "\n";
-      std::cerr << "MYSQL_URI environment variable is no longer supported.\n";
-      std::cerr << "Tests must run against local server using root user.\n";
-      show_help = true;
-    }
-  }
-
-  if (show_help) {
-    std::cerr
-        << "The following environment variables are available:\n"
-        << "MYSQL_PORT classic protocol port for local MySQL (default 3306)\n"
-        << "MYSQLX_PORT X protocol port for local MySQL (default 33060)\n"
-        // << "MYSQL_REMOTE_HOST for tests against remove MySQL (default not
-        // set)\n"
-        // << "MYSQL_REMOTE_PWD root password for remote MySQL server (default
-        // "")\n"
-        // << "MYSQL_REMOTE_PORT classic port for remote MySQL (default 3306)\n"
-        // << "MYSQLX_REMOTE_PORT X port for remote MySQL (default 33060)\n\n"
-        << "MYSQL_SANDBOX_PORT1, MYSQL_SANDBOX_PORT2, MYSQL_SANDBOX_PORT3\n"
-        << "    ports to use for test sandbox instances. X protocol will use\n"
-        << "    MYSQL_SANDBOX_PORT1 * 10\n";
-    exit(1);
-  }
-
-  if (!getenv("MYSQL_PORT")) {
-    if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
-      std::cerr << "MYSQL_PORT was not set and putenv failed to set it\n";
-      exit(1);
-    }
-  }
-
-  detect_mysql_environment(atoi(getenv("MYSQL_PORT")), "");
-
-  if (!getenv("MYSQL_REMOTE_HOST")) {
-    static char hostname[1024] = "MYSQL_REMOTE_HOST=";
-    if (gethostname(hostname + strlen(hostname),
-                    sizeof(hostname) - strlen(hostname)) != 0) {
-      std::cerr << "gethostname() returned error: " << strerror(errno) << "\n";
-      std::cerr << "Set MYSQL_REMOTE_HOST\n";
-      // exit(1); this option is not used for now, so no need to fail
-    }
-    if (putenv(hostname) != 0) {
-      std::cerr
-          << "MYSQL_REMOTE_HOST was not set and putenv failed to set it\n";
-      // exit(1);
-    }
-  }
-
-  if (!getenv("MYSQL_REMOTE_PORT")) {
-    if (putenv(const_cast<char *>("MYSQL_REMOTE_PORT=3306")) != 0) {
-      std::cerr
-          << "MYSQL_REMOTE_PORT was not set and putenv failed to set it\n";
-      // exit(1);
-    }
-  }
-
-  if (!getenv("MYSQLX_REMOTE_PORT")) {
-    if (putenv(const_cast<char *>("MYSQLX_REMOTE_PORT=33060")) != 0) {
-      std::cerr
-          << "MYSQLX_REMOTE_PORT was not set and putenv failed to set it\n";
-      // exit(1);
-    }
-  }
-
   // Reset these environment vars to start with a clean environment
-  putenv(const_cast<char*>("MYSQLSH_RECORDER_PREFIX="));
-  putenv(const_cast<char*>("MYSQLSH_RECORDER_MODE="));
+  putenv(const_cast<char *>("MYSQLSH_RECORDER_PREFIX="));
+  putenv(const_cast<char *>("MYSQLSH_RECORDER_MODE="));
 
-// Override the configuration home for tests, to not mess with custom data
-#ifdef WIN32
-  _putenv_s("MYSQLSH_USER_CONFIG_HOME", ".");
-#else
-  setenv("MYSQLSH_USER_CONFIG_HOME", ".", 1);
-#endif
-  // Setup logger with default configs
-  std::string log_path = shcore::path::join_path(shcore::get_user_config_path(),
-        "mysqlsh.log");
-  if (shcore::file_exists(log_path)) {
-    std::cerr << "Deleting old " << log_path << " file\n";
-    shcore::delete_file(log_path);
-  }
-  ngcommon::Logger::setup_instance(log_path.c_str(), false);
-
+  bool listing_tests = false;
   bool show_all_skipped = false;
   bool got_filter = false;
   std::string target_version = g_target_server_version.get_base();
-  const char *target = target_version.c_str();
+  std::string tracedir;
+  std::string target;
 
   for (int index = 1; index < argc; index++) {
-    if (shcore::str_beginswith(argv[index], "--gtest_filter")) {
+    if (shcore::str_beginswith(argv[index], "--gtest_list_tests")) {
+      listing_tests = true;
+    } else if (shcore::str_beginswith(argv[index], "--gtest_filter")) {
       got_filter = true;
     } else if (shcore::str_caseeq(argv[index], "--direct")) {
       g_test_recording_mode = mysqlshdk::db::replay::Mode::Direct;
@@ -561,9 +556,14 @@ int main(int argc, char **argv) {
       char *p = strchr(argv[index], '=');
       if (p) {
         target = p + 1;
-      } else {
-        target = target_version.c_str();
       }
+    } else if (shcore::str_beginswith(argv[index], "--tracedir")) {
+      char *p = strchr(argv[index], '=');
+      if (!p) {
+        std::cerr << "--tracedir= option requires directory argument\n";
+        exit(1);
+      }
+      tracedir = p + 1;
     } else if (shcore::str_caseeq(argv[index], "--generate-validation-file")) {
       g_generate_validation_file = true;
     } else if (strcmp(argv[index], "--trace-no-stop") == 0) {
@@ -597,22 +597,27 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
-    std::string tracedir =
-        shcore::path::join_path(g_test_home, "traces", target, "");
-    mysqlshdk::db::replay::set_recording_path_prefix(tracedir);
-  }
+  if (!listing_tests) {
+    setup_test_environment();
 
-  if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
-    shcore::ensure_dir_exists(mysqlshdk::db::replay::g_recording_path_prefix);
+    if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
+      target = g_target_server_version.get_base();
+
+      if (tracedir.empty())
+        tracedir = shcore::path::join_path(g_test_home, "traces", target, "");
+      mysqlshdk::db::replay::set_recording_path_prefix(tracedir);
+    }
+
+    if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
+      shcore::ensure_dir_exists(mysqlshdk::db::replay::g_recording_path_prefix);
+    }
   }
 
   ::testing::InitGoogleTest(&argc, argv);
 
   std::string filter = ::testing::GTEST_FLAG(filter);
   std::string new_filter = filter;
-  if (!got_filter)
-    new_filter = k_default_test_filter;
+  if (!got_filter) new_filter = k_default_test_filter;
 
   if (new_filter != filter) {
     std::cout << "Executing defined filter: " << new_filter.c_str()
@@ -623,7 +628,8 @@ int main(int argc, char **argv) {
   // This will consider the MYSQLSH_HOME environment variable if set,
   // otherwise it assumes parent dir of the current executable
   std::string mppath = shcore::get_mysqlx_home_path();
-  mppath = shcore::path::join_path(mppath, "share", "mysqlsh", "mysqlprovision.zip");
+  mppath =
+      shcore::path::join_path(mppath, "share", "mysqlsh", "mysqlprovision.zip");
   g_mppath = strdup(mppath.c_str());
 
   std::string mysqlsh_path;
@@ -636,34 +642,6 @@ int main(int argc, char **argv) {
 
   g_mysqlsh_argv0 = mysqlsh_path.c_str();
 
-  int sport1, sport2, sport3;
-  const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-  if (sandbox_port1) {
-    sport1 = atoi(getenv("MYSQL_SANDBOX_PORT1"));
-  } else {
-    sport1 = std::stoi(getenv("MYSQL_PORT")) + 10;
-  }
-  const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-  if (sandbox_port2) {
-    sport2 = atoi(getenv("MYSQL_SANDBOX_PORT2"));
-  } else {
-    sport2 = std::stoi(getenv("MYSQL_PORT")) + 20;
-  }
-  const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-  if (sandbox_port3) {
-    sport3 = atoi(getenv("MYSQL_SANDBOX_PORT3"));
-  } else {
-    sport3 = std::stoi(getenv("MYSQL_PORT")) + 30;
-  }
-  // Check for leftover sandbox servers
-  if (!getenv("TEST_SKIP_ZOMBIE_CHECK")) {
-    check_zombie_sandboxes(sport1, sport2, sport3);
-  }
-  tests::Shell_test_env::setup_env(sport1, sport2, sport3);
-
-  tests::Testutils::validate_boilerplate(getenv("TMPDIR"),
-                                         g_target_server_version.get_full());
-
   if (!getenv("MYSQLSH_HOME"))
     std::cout << "Testing: Shell Build." << std::endl;
   else
@@ -672,31 +650,34 @@ int main(int argc, char **argv) {
   std::cout << "Shell Home: " << shcore::get_mysqlx_home_path() << std::endl;
   std::cout << "MySQL Provision: " << g_mppath << std::endl;
   std::cout << "Test Data Home: " << g_test_home << std::endl;
-  std::cout << "Effective Hostname (external address of this host): "
-            << getenv("MYSQL_HOSTNAME") << std::endl;
-  std::cout << "Real Hostname (as returned by gethostbyname): "
-            << getenv("MYSQL_REAL_HOSTNAME") << std::endl;
-  if (mysqlshdk::utils::Net::is_loopback(getenv("MYSQL_REAL_HOSTNAME"))) {
-    std::cout << "Note: " << getenv("MYSQL_REAL_HOSTNAME")
-              << " resolves to a loopback\n";
-    if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) == 0) {
-      std::cout
-          << "Set the MYSQL_HOSTNAME to an externally addressable "
-             "hostname or IP when executing AdminAPI tests in this host.\n";
-    }
-  } else {
-    if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) != 0) {
-      std::cout
-          << "ERROR: " << getenv("MYSQL_REAL_HOSTNAME")
-          << " does not resolve to a loopback but "
-             "MYSQL_HOSTNAME and MYSQL_REAL_HOSTNAME have different values. "
-             "You can leave MYSQL_HOSTNAME unset unless you're "
-             "in a system where the default hostname "
-             "is a loopback (like Ubuntu/Debian).\n";
-      exit(1);
+  if (!listing_tests) {
+    std::cout << "Effective Hostname (external address of this host): "
+              << getenv("MYSQL_HOSTNAME") << std::endl;
+    std::cout << "Real Hostname (as returned by gethostbyname): "
+              << getenv("MYSQL_REAL_HOSTNAME") << std::endl;
+    if (mysqlshdk::utils::Net::is_loopback(getenv("MYSQL_REAL_HOSTNAME"))) {
+      std::cout << "Note: " << getenv("MYSQL_REAL_HOSTNAME")
+                << " resolves to a loopback\n";
+      if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) ==
+          0) {
+        std::cout
+            << "Set the MYSQL_HOSTNAME to an externally addressable "
+               "hostname or IP when executing AdminAPI tests in this host.\n";
+      }
+    } else {
+      if (strcmp(getenv("MYSQL_HOSTNAME"), getenv("MYSQL_REAL_HOSTNAME")) !=
+          0) {
+        std::cout
+            << "ERROR: " << getenv("MYSQL_REAL_HOSTNAME")
+            << " does not resolve to a loopback but "
+               "MYSQL_HOSTNAME and MYSQL_REAL_HOSTNAME have different values. "
+               "You can leave MYSQL_HOSTNAME unset unless you're "
+               "in a system where the default hostname "
+               "is a loopback (like Ubuntu/Debian).\n";
+        exit(1);
+      }
     }
   }
-
 
   switch (g_test_recording_mode) {
     case mysqlshdk::db::replay::Mode::Direct:
@@ -756,8 +737,7 @@ int main(int argc, char **argv) {
   if (!g_pending_fixes.empty()) {
     std::cout << makeyellow("Tests for unfixed bugs:") << "\n";
     for (auto &t : g_pending_fixes) {
-      std::cout << makeyellow("[  FIXME   ]") << " at " << t.first
-                << "\n";
+      std::cout << makeyellow("[  FIXME   ]") << " at " << t.first << "\n";
       std::cout << "\tNote: " << t.second << "\n";
     }
   }
@@ -766,8 +746,7 @@ int main(int argc, char **argv) {
     fini_tdb();
   }
 #ifndef NDEBUG
-  if (getenv("DEBUG_OBJ"))
-    shcore::debug::debug_object_dump_report(false);
+  if (getenv("DEBUG_OBJ")) shcore::debug::debug_object_dump_report(false);
 #endif
 
   mysqlsh::global_end();

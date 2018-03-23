@@ -40,19 +40,19 @@ print (row[0]);
 //@ Adding the remaining instances
 add_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second_sandbox');
 add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox');
-wait_slave_state(cluster, 'second_sandbox', "ONLINE");
-wait_slave_state(cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Healthy cluster status
 cluster.status();
 
 //@ Kill instance, will not auto join after start
 dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir});
-wait_slave_state(cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
 //@ Start instance, will not auto join the cluster
 dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
-wait_slave_state(cluster, 'third_sandbox', ["OFFLINE", "(MISSING)"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@<OUT> Still missing 3rd instance
 os.sleep(5);
@@ -60,7 +60,7 @@ cluster.status();
 
 //@#: Rejoins the instance
 cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"});
-wait_slave_state(cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Instance is back
 cluster.status();
@@ -72,11 +72,11 @@ print (result.status)
 
 //@ Kill instance, will auto join after start
 dba.killSandboxInstance(__mysql_sandbox_port3, {sandboxDir:__sandbox_dir});
-wait_slave_state(cluster, 'third_sandbox', ["UNREACHABLE", "OFFLINE"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
 //@ Start instance, will auto join the cluster
 dba.startSandboxInstance(__mysql_sandbox_port3, {sandboxDir: __sandbox_dir});
-wait_slave_state(cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 session.close();
 

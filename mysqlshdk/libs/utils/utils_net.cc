@@ -261,6 +261,10 @@ bool Net::is_local_address(const std::string &address) {
 
 std::string Net::get_hostname() { return get()->get_hostname_impl(); }
 
+bool Net::is_port_listening(const std::string &address, int port) {
+  return get()->is_port_listening_impl(address, port);
+}
+
 void Net::get_local_addresses(std::vector<std::string> *out_addrs) {
   assert(out_addrs);
   get_this_host_addresses(false, out_addrs);
@@ -369,6 +373,49 @@ bool Net::is_local_address_impl(const std::string &name) const {
 }
 
 std::string Net::get_hostname_impl() const { return get_this_hostname(); }
+
+#ifndef _WIN32
+void closesocket(int sock) {
+  ::close(sock);
+}
+#endif
+
+bool Net::is_port_listening_impl(const std::string &address, int port) const {
+  addrinfo hints;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+
+  addrinfo *info = nullptr;
+  int result =
+      getaddrinfo(address.c_str(), std::to_string(port).c_str(), &hints, &info);
+
+  if (result != 0) throw net_error(gai_strerror(result));
+
+  if (info != nullptr) {
+    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+
+    auto sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+    if (sock < 0) {
+      throw std::runtime_error("Could not create socket: " +
+                               shcore::errno_to_string(errno));
+    }
+
+    if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
+      closesocket(sock);
+      return true;
+    }
+    int err = errno;
+    closesocket(sock);
+
+    if (err == ECONNREFUSED) {
+      return false;
+    }
+    throw net_error(shcore::errno_to_string(err));
+  }
+  throw std::runtime_error("Could not resolve address");
+}
 
 }  // namespace utils
 }  // namespace mysqlshdk

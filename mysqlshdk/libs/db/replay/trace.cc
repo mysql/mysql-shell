@@ -26,7 +26,7 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
-#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/reader.h>
 #include <rapidjson/stringbuffer.h>
@@ -92,7 +92,7 @@ std::string to_json(rapidjson::Value* value) {
   rapidjson::Document doc;
   doc.CopyFrom(*value, doc.GetAllocator());
   rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   doc.Accept(writer);
   return buffer.GetString();
 }
@@ -134,7 +134,7 @@ std::string make_json(
   }
 
   rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   doc.Accept(writer);
   return buffer.GetString();
 }
@@ -181,7 +181,7 @@ void Trace_writer::serialize_connect_ok(
   }
 
   rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   doc.Accept(writer);
   _stream << buffer.GetString() << ",\n";
 }
@@ -291,7 +291,7 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
     }
 
     rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
     _stream << buffer.GetString() << ",\n";
   } catch (std::exception& e) {
@@ -340,7 +340,7 @@ void Trace_writer::set_metadata(
   doc.AddMember("metadata", value, doc.GetAllocator());
 
   rapidjson::StringBuffer buffer;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   doc.Accept(writer);
   _stream << buffer.GetString() << ",\n";
 }
@@ -700,7 +700,7 @@ void save_info(const std::string& path,
     throw std::runtime_error(path + ": " + strerror(errno));
 
   rapidjson::FileWriteStream stream(file, buffer, sizeof(buffer));
-  rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(stream);
+  rapidjson::Writer<rapidjson::FileWriteStream> writer(stream);
   doc.Accept(writer);
   std::fclose(file);
 }

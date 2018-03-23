@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_process.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -73,7 +74,7 @@ extern bool g_test_color_output;
 
 namespace tests {
 
-constexpr int k_wait_member_timeout = 60;
+constexpr int k_wait_member_timeout = 120;
 constexpr int k_max_start_sandbox_retries = 5;
 const char *k_boilerplate_root_password = "root";
 
@@ -121,6 +122,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("waitMemberState", &Testutils::wait_member_state, "port", "states",
          "?direct");
+  expose("waitMemberTransactions", &Testutils::wait_member_transactions,
+         "dest_port", "?source_port");
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value");
@@ -138,8 +141,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("fail", &Testutils::fail, "context");
   expose("skip", &Testutils::skip, "reason");
   expose("versionCheck", &Testutils::version_check, "v1", "op", "v2");
-  expose("waitForDelayedGRStart",
-         &Testutils::wait_for_delayed_gr_start, "port", "rootpass", "timeout");
+  expose("waitForDelayedGRStart", &Testutils::wait_for_delayed_gr_start, "port",
+         "rootpass", "?timeout", k_wait_member_timeout);
   expose("mkdir", &Testutils::mk_dir, "name", "?recursive");
   expose("rmdir", &Testutils::rm_dir, "name", "?recursive");
   expose("chmod", &Testutils::ch_mod, "path", "mode");
@@ -458,7 +461,9 @@ void Testutils::wait_for_delayed_gr_start(int port,
   int elapsed_time = 0;
   bool is_starting = false;
   const uint32_t sleep_time = mysqlshdk::db::replay::g_replay_mode ==
-      mysqlshdk::db::replay::Mode::Replay ? 1 : 1000;
+                                      mysqlshdk::db::replay::Mode::Replay
+                                  ? 1
+                                  : 1000;
   // Convert negative timeout values to 0
   timeout = timeout >= 0 ? timeout : 0;
   while (!timeout || elapsed_time < timeout) {
@@ -678,6 +683,8 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
+    wait_sandbox_dead(port);
+
     // Sandbox from a boilerplate
     if (k_boilerplate_root_password == rootpass) {
       prepare_sandbox_boilerplate(rootpass, port);
@@ -687,7 +694,6 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
       }
     } else {
       prepare_sandbox_boilerplate(rootpass, port);
-
       deploy_sandbox_from_boilerplate(port, opts);
     }
   }
@@ -715,16 +721,18 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
   _passwords[port] = rootpass;
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_dummy_sandboxes) {
+    wait_sandbox_dead(port);
     // Sandbox from a boilerplate
     if (k_boilerplate_root_password == rootpass) {
       prepare_sandbox_boilerplate(rootpass, port);
+      wait_sandbox_dead(port);
       if (!deploy_sandbox_from_boilerplate(port, opts, true)) {
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
     } else {
       prepare_sandbox_boilerplate(rootpass, port);
-
+      wait_sandbox_dead(port);
       deploy_sandbox_from_boilerplate(port, opts, true);
     }
   }
@@ -902,7 +910,6 @@ None Testutils::restart_sandbox(int port);
 ///@}
 void Testutils::restart_sandbox(int port) {
   stop_sandbox(port);
-  wait_sandbox_dead(port);
   start_sandbox(port);
 }
 
@@ -958,44 +965,15 @@ static int os_file_lock(int fd) {
 #endif
 
 void Testutils::wait_sandbox_dead(int port) {
-  // wait until ports are free
-  {
-    mysqlshdk::db::replay::No_replay dont_record;
-    auto options = mysqlshdk::db::Connection_options("root@localhost");
-    auto session = mysqlshdk::db::mysql::Session::create();
-    for (;;) {
-      options.set_port(port);
-      options.set_password(_passwords[port]);
-      try {
-        session->connect(options);
-        session->close();
-        shcore::sleep_ms(500);
-      } catch (
-          mysqlshdk::db::Error &e) {  // Client errors = can't connect anymore
-        if (e.code() >= CR_UNKNOWN_ERROR && e.code() <= CR_ERROR_LAST)
-          break;
-        throw;
-      }
-    }
+  // wait until classic, x and Xcom ports are free
+  while (mysqlshdk::utils::Net::is_port_listening("localhost", port * 10 + 1)) {
+    shcore::sleep_ms(500);
   }
-  {
-    mysqlshdk::db::replay::No_replay dont_record;
-    auto options = mysqlshdk::db::Connection_options("root@localhost");
-    auto session = mysqlshdk::db::mysqlx::Session::create();
-    for (;;) {
-      options.set_port(port * 10);
-      options.set_password(_passwords[port]);
-      try {
-        session->connect(options);
-        session->close();
-        shcore::sleep_ms(500);
-      } catch (mysqlshdk::db::Error &e) {
-        // Client errors = can't connect anymore
-        if (e.code() >= CR_UNKNOWN_ERROR && e.code() <= CR_ERROR_LAST)
-          break;
-        throw;
-      }
-    }
+  while (mysqlshdk::utils::Net::is_port_listening("localhost", port * 10)) {
+    shcore::sleep_ms(500);
+  }
+  while (mysqlshdk::utils::Net::is_port_listening("localhost", port)) {
+    shcore::sleep_ms(500);
   }
 
 #ifdef _WIN32
@@ -1018,7 +996,7 @@ void Testutils::wait_sandbox_dead(int port) {
   }
   // wait for innodb to release lock from ibdata file
   int ibdata_fd =
-      open((get_sandbox_datadir(port) + "/ibdata1").c_str(), O_RDONLY);
+      open((get_sandbox_datadir(port) + "/ibdata1").c_str(), O_RDWR);
   if (ibdata_fd > 0) {
     while (os_file_lock(ibdata_fd) > 0) {
       shcore::sleep_ms(1000);
@@ -1131,8 +1109,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
                                     const std::string &value,
                                     const std::string &section_) {
   std::string section = section_.empty() ? "mysqld" : section_;
-  if (section == "*")
-    section = "";
+  if (section == "*") section = "";
 
   std::string cfgfile_path = get_sandbox_conf_path(port);
   if (!shcore::file_exists(cfgfile_path) && _dummy_sandboxes) return;
@@ -1263,20 +1240,13 @@ std::string Testutils::wait_member_state(int member_port,
   int curtime = 0;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   if (direct) {
-    mysqlshdk::db::Connection_options cnx_opt;
-    cnx_opt.set_user("root");
-    cnx_opt.set_password(_passwords[member_port]);
-    cnx_opt.set_host("localhost");
-    cnx_opt.set_port(member_port);
-    session = mysqlshdk::db::mysql::Session::create();
-    session->connect(cnx_opt);
+    session = connect_to_sandbox(member_port);
   } else {
     // Use the shell's active session
     if (auto shell = _shell.lock()) {
       if (!shell->shell_context()->get_dev_session())
         throw std::runtime_error("No active shell session");
       session = shell->shell_context()->get_dev_session()->get_core_session();
-      std::string current_state;
       if (!session || !session->is_open()) {
         throw std::logic_error(
             "The testutil.waitMemberState method uses the active shell "
@@ -1298,8 +1268,7 @@ std::string Testutils::wait_member_state(int member_port,
       current_state = row->get_string(0);
     }
     if (states.find(current_state) != std::string::npos) {
-      if (direct)
-        session->close();
+      if (direct) session->close();
       return current_state;
     }
 
@@ -1312,14 +1281,81 @@ std::string Testutils::wait_member_state(int member_port,
     }
     curtime++;
   }
-  if (direct)
-    session->close();
+
+  // Print some debugging info
+  auto result = session->query(
+      "SELECT member_id, member_host, member_port, member_state FROM "
+      "performance_schema.replication_group_members");
+  std::cout << "replication_group_members:\n";
+  while (auto row = result->fetch_one()) {
+    std::cout << row->get_as_string(0) << "\t" << row->get_as_string(1) << "\t"
+              << row->get_as_string(2) << "\t" << row->get_as_string(3) << "\n";
+  }
+  if (direct) session->close();
+
   throw std::runtime_error(
       "Timeout while waiting for cluster member to become one of " + states +
       ": seems to be stuck as " + current_state);
 }
 
-//!< @name File Operations
+///@{
+/**
+ * Waits until destination sandbox finishes applying transactions that
+ * were executed in the source sandbox. This is checked using
+ * WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS()
+ * @param dest_port sandbox port waiting for the txs
+ * @param source_port sandbox port where the txs originate from (the primary).
+ *            If 0, it will use the active shell session.
+ * @returns true on success, fail on timeout
+ *
+ * Throws exception on error (e.g. GR not running)
+ */
+#if DOXYGEN_JS
+Boolean Testutils::waitMemberTransactions(Integer destPort,
+                                          Integer sourcePort = 0);
+#elif DOXYGEN_PY
+bool Testutils::wait_member_transactions(int destPort, int sourcePort = 0);
+#endif
+///@}
+bool Testutils::wait_member_transactions(int dest_port, int source_port) {
+  std::shared_ptr<mysqlshdk::db::ISession> source;
+
+  if (source_port == 0) {
+    if (auto shell = _shell.lock()) {
+      if (!shell->shell_context()->get_dev_session())
+        throw std::runtime_error("No active shell session");
+      source = shell->shell_context()->get_dev_session()->get_core_session();
+      if (!source || !source->is_open()) {
+        throw std::logic_error(
+            "The testutil.waitMemberState method uses the active shell "
+            "session and requires it to be open.");
+      }
+    } else {
+      throw std::logic_error("Lost reference to shell object");
+    }
+  } else {
+    source = connect_to_sandbox(source_port);
+  }
+  std::string gtid_set =
+      source->query("select @@gtid_executed")->fetch_one()->get_string(0);
+
+  std::shared_ptr<mysqlshdk::db::ISession> dest;
+  dest = connect_to_sandbox(dest_port);
+
+  auto result = dest->queryf(
+      "select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(?, ?, "
+      "'group_replication_applier')",
+      gtid_set, k_wait_member_timeout);
+  auto row = result->fetch_one();
+  if (row->is_null(0))
+    throw std::logic_error(
+        "WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS() returned NULL, which means GR is "
+        "not started?");
+
+  return row->get_int(0) != 0;
+}
+
+//!<  @name Misc Utilities
 ///@{
 /**
  * Changes access attributes to a file to be read only.
@@ -1361,7 +1397,7 @@ Undefined Testutils::mkdir(String path, Boolean recursive);
 None Testutils::mkdir(str path, bool recursive);
 #endif
 ///@}
-void Testutils::mk_dir(const std::string& path, bool recursive ) {
+void Testutils::mk_dir(const std::string &path, bool recursive) {
   shcore::create_directory(path, recursive);
 }
 
@@ -1378,7 +1414,7 @@ Undefined Testutils::rmdir(String path, Boolean recursive);
 None Testutils::rmdir(str path, bool recursive);
 #endif
 ///@}
-void Testutils::rm_dir(const std::string& path, bool recursive ) {
+void Testutils::rm_dir(const std::string &path, bool recursive) {
   shcore::remove_directory(path, recursive);
 }
 
@@ -1416,7 +1452,7 @@ Integer Testutils::chmod(String path, Integer mode);
 int Testutils::chmod(str path, int mode);
 #endif
 ///@}
-int Testutils::ch_mod(const std::string& path, int mode) {
+int Testutils::ch_mod(const std::string &path, int mode) {
 #ifndef _WIN32
   return chmod(path.c_str(), mode);
 #else
@@ -1426,8 +1462,7 @@ int Testutils::ch_mod(const std::string& path, int mode) {
   int user_write = (2 << 6) & mode;
   dwAttrs = user_write ? dwAttrs & ~FILE_ATTRIBUTE_READONLY
                        : dwAttrs | FILE_ATTRIBUTE_READONLY;
-  if (!SetFileAttributes(path.c_str(), dwAttrs))
-    return -1;
+  if (!SetFileAttributes(path.c_str(), dwAttrs)) return -1;
   return 0;
 #endif
 }
@@ -1445,7 +1480,7 @@ Undefined Testutils::cpfile(String source, String target);
 None Testutils::cpfile(str source, str target);
 #endif
 ///@}
-void Testutils::cp_file(const std::string &source, const std::string& target) {
+void Testutils::cp_file(const std::string &source, const std::string &target) {
   shcore::copy_file(source, target, true);
 }
 
@@ -1461,7 +1496,7 @@ Undefined Testutils::rmfile(String path);
 None Testutils::rmfile(str path);
 #endif
 ///@}
-void Testutils::rm_file(const std::string& target) {
+void Testutils::rm_file(const std::string &target) {
   shcore::delete_file(target, false);
 }
 
@@ -1696,7 +1731,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
 
   _mp->set_verbose(g_test_trace_scripts > 1);
   _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
-                      true, true, &errors);
+                      true, true, 60, &errors);
   if (errors && !errors->empty()) {
     std::cerr << "Error deploying sandbox:\n";
     for (auto &v : *errors) std::cerr << v.descr() << "\n";
@@ -1811,8 +1846,8 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
   std::string basedir = shcore::path::join_path(sandbox_dir, "myboilerplate");
   bool expired = false;
   if (shcore::is_folder(basedir)) {
-    std::string bversion = shcore::get_text_file(
-        shcore::path::join_path(basedir, "version.txt"));
+    std::string bversion =
+        shcore::get_text_file(shcore::path::join_path(basedir, "version.txt"));
     try {
       if (mysqlshdk::utils::Version(bversion) !=
           mysqlshdk::utils::Version(version)) {
@@ -2118,20 +2153,22 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
   return exit_code;
 }
 
-void Testutils::try_rename(const std::string& source, const std::string& target) {
+void Testutils::try_rename(const std::string &source,
+                           const std::string &target) {
 #ifdef _WIN32
   // rename datadir
   // Sometimes windows delays releasing the file handles used on
   // the operations above, causig a Permission Denied error
   // We introduce this loop to give it some time
   int attempts = 10;
-  while(attempts) {
+  while (attempts) {
     try {
       shcore::rename_file(source, target);
       break;
-    } catch (const std::exception& err) {
+    } catch (const std::exception &err) {
       if (attempts) {
-        std::cout << "Failed renaming " << source.c_str() << " to " << target.c_str() << err.what() << std::endl;
+        std::cout << "Failed renaming " << source.c_str() << " to "
+                  << target.c_str() << err.what() << std::endl;
         attempts--;
         shcore::sleep_ms(500);
       } else {
@@ -2143,4 +2180,17 @@ void Testutils::try_rename(const std::string& source, const std::string& target)
   shcore::rename_file(source, target);
 #endif
 }
+
+std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
+    int port) {
+  mysqlshdk::db::Connection_options cnx_opt;
+  cnx_opt.set_user("root");
+  cnx_opt.set_password(_passwords[port]);
+  cnx_opt.set_host("127.0.0.1");
+  cnx_opt.set_port(port);
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(cnx_opt);
+  return session;
+}
+
 }  // namespace tests
