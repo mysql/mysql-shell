@@ -44,33 +44,46 @@ set(mysh_SRC
 )
 
 ADD_CONVENIENCE_LIBRARY(shellfe ${mysh_SRC})
+ADD_STAN_TARGET(shellfe ${mysh_SRC})
+
+set(mysqlsh_SRC
+  mysqlsh/main.cc
+)
 
 if(WIN32)
+  # On Windows it is requred to include this source file on the list of sources
+  # for the main project in order to:
+  # - Define the icon to be used on the application.
+  # - Define the version information to be shown while looking at the file
+  # properties.
   SET(MYSH_FILE_TYPE "VFT_APP")
   SET(MYSH_PRODUCT_NAME "MySQL Shell")
   SET(MYSH_ORIGINAL_FILE_NAME "mysqlsh.exe")
   SET(MYSH_FILE_DESCRIPTION "MySQL Shell")
   CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlsh.rc @ONLY)
-  set(mysh_SRC
-      "${mysh_SRC}"
+  set(mysqlsh_SRC
+      "${mysqlsh_SRC}"
       "${CMAKE_BINARY_DIR}/mysqlsh.rc"
       )
 endif()
 
 add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
 
-add_executable(mysqlsh mysqlsh/main.cc)
+add_executable(mysqlsh ${mysqlsh_SRC})
+ADD_STAN_TARGET(mysqlsh mysqlsh/main.cc)
 set_target_properties(mysqlsh PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
 fix_target_output_directory(mysqlsh "${INSTALL_BINDIR}")
 
-add_executable(mysqlshrec mysqlsh/main.cc
+set(mysqlsh_SRC
+  ${mysqlsh_SRC}
   ${CMAKE_SOURCE_DIR}/unittest/test_utils/mod_testutils.cc
-  mysqlsh/debug_shell.cc)
+  mysqlsh/debug_shell.cc
+)
+
+add_executable(mysqlshrec ${mysqlsh_SRC})
 set_target_properties(mysqlshrec PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_BINDIR})
 fix_target_output_directory(mysqlshrec "${INSTALL_BINDIR}")
 target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
-
-ADD_STAN_TARGET(mysqlsh ${mysh_SRC})
 
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlsh
