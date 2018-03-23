@@ -62,6 +62,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   Undefined dumpData(String uri, String path, Array schemaList);
   Undefined importData(String uri, String path, String defaultSchema);
   String waitMemberState(Integer port, String[] states);
+  Boolean waitMemberTransactions(Integer destPort, Integer sourcePort = 0);
   Undefined waitForDelayedGRStart(Integer port, String rootpass,
                                   Integer timeout = 60);
   Undefined expectPrompt(String prompt, String answer);
@@ -95,6 +96,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   None dump_data(str uri, str path, list schemaList);
   None import_data(str uri, str path, str defaultSchema);
   str wait_member_state(int port, str[] states);
+  bool wait_member_transactions(int destPort, int sourcePort = 0);
   None wait_for_delayed_gr_start(int port, str rootpass,
                                  int timeout = 60);
   None expect_prompt(str prompt, str answer);
@@ -180,12 +182,15 @@ class Testutils : public shcore::Cpp_object_bridge {
                  const std::vector<std::string> &schemas);
   void import_data(const std::string &uri, const std::string &path,
                    const std::string &schema = "");
-  void wait_for_delayed_gr_start(int port, const std::string &root_pass,
-                                 int timeout = 100);
  public:
   // InnoDB cluster routines
+  void wait_for_delayed_gr_start(int port, const std::string &root_pass,
+                                 int timeout = 100);
+
   std::string wait_member_state(int member_port, const std::string &states,
                                 bool direct_connection);
+
+  bool wait_member_transactions(int dest_port, int source_port);
 
  public:
   // Misc utility stuff
@@ -261,6 +266,8 @@ class Testutils : public shcore::Cpp_object_bridge {
   std::string get_sandbox_datadir(int port);
   void try_rename(const std::string& source, const std::string& target);
   void make_empty_file(const std::string &path);
+
+  std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(int port);
 };
 
 }  // namespace tests

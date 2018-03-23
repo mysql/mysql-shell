@@ -1,9 +1,1 @@
-{
-    "hostname": "10.172.234.37",
-    "hostname_ip": "10.172.234.37",
-    "real_host_is_loopback": "1",
-    "real_hostname": "tecra",
-    "sandbox_port1": "3316",
-    "sandbox_port2": "3326",
-    "sandbox_port3": "3336"
-}
+{"hostname":"siv14.no.oracle.com.","hostname_ip":"10.172.160.214","real_host_is_loopback":"1","real_hostname":"siv14","sandbox_port1":"2117","sandbox_port2":"2118","sandbox_port3":"2119"}

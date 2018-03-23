@@ -1,27 +1,6 @@
 [
-{
-    "type": "request",
-    "subtype": "CONNECT",
-    "index": 1,
-    "uri": "remo_blank:@localhost:33170?ssl-mode=DISABLED",
-    "protocol": "x"
-},
-{
-    "type": "response",
-    "subtype": "CONNECT_OK",
-    "index": 2,
-    "connection_id": "46",
-    "connection_info": "localhost via TCP/IP",
-    "server_version": "8.0.11"
-},
-{
-    "type": "request",
-    "subtype": "CLOSE",
-    "index": 3
-},
-{
-    "type": "response",
-    "subtype": "OK",
-    "index": 4
-},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_blank:@localhost:20070?ssl-mode=DISABLED","protocol":"x"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"46","connection_info":"localhost via TCP/IP","server_version":"8.0.11"},
+{"type":"request","subtype":"CLOSE","index":3},
+{"type":"response","subtype":"OK","index":4},
 null]

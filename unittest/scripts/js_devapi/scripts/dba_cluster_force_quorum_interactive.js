@@ -13,23 +13,19 @@ if (__have_ssl)
 else
   var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
 
-// session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-session.close();
-
 cluster.status();
 
 //@ Add instance 2
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 // Waiting for the second added instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Add instance 3
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 
 // Waiting for the third added instance to become online
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.5)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 2 will
@@ -52,14 +48,14 @@ testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
-wait_slave_state(cluster, uri2, "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@ Kill instance 3
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
 // Will remain unreachable since there's no quorum to kick it off
-wait_slave_state(cluster, uri3, "UNREACHABLE");
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
 //@ Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -92,7 +88,7 @@ else
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root'}, {memberSslMode: 'DISABLED'});
 
 // Waiting for the second rejoined instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Rejoin instance 3
 if (__have_ssl)
@@ -101,7 +97,7 @@ else
   cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root'}, {memberSslMode: 'DISABLED'});
 
 // Waiting for the third rejoined instance to become online
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster status after rejoins
 cluster.status();

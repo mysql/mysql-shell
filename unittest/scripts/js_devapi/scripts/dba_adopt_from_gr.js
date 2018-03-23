@@ -33,7 +33,7 @@ else
 
 //@ Adding instance to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // To simulate an existing unmanaged replication group we simply drop the
 // metadata schema

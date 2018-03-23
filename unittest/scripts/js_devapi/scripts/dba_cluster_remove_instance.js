@@ -32,7 +32,7 @@ else
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 // Waiting for the second added instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Number of instance according to GR.
 print_instances_count_for_gr();
@@ -89,7 +89,7 @@ add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 // Waiting for the instance on port2 to become online
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Stop instance on port2
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
@@ -97,7 +97,7 @@ testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Waiting for the instance on port2 to be found missing
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-wait_slave_state(cluster, uri2, "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@<OUT> Cluster status after instance on port2 is stopped
 cluster.status();

@@ -648,7 +648,7 @@ int ProvisioningInterface::exec_sandbox_op(
 int ProvisioningInterface::create_sandbox(
     int port, int portx, const std::string &sandbox_dir,
     const std::string &password, const shcore::Value &mycnf_options, bool start,
-    bool ignore_ssl_error, shcore::Value::Array_type_ref *errors) {
+    bool ignore_ssl_error, int timeout, shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   if (mycnf_options) {
     kwargs["opt"] = mycnf_options;
@@ -662,6 +662,9 @@ int ProvisioningInterface::create_sandbox(
 
   if (!password.empty())
     kwargs["passwd"] = shcore::Value(password);
+
+  if (timeout > 0)
+    kwargs["timeout"] = shcore::Value(timeout);
 
   return exec_sandbox_op("create", port, portx, sandbox_dir, kwargs,
                          errors);

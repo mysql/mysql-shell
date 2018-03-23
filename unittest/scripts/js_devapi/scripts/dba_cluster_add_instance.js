@@ -17,10 +17,10 @@ else
 add_instance_to_cluster(single, __mysql_sandbox_port2);
 
 // Waiting for the second added instance to become online
-wait_slave_state(single, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 // Connect to the future new seed node
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
@@ -42,7 +42,7 @@ var single = dba.getCluster(null, {connectToPrimary:false});
 
 // Kill the seed instance
 testutil.killSandbox(__mysql_sandbox_port1);
-wait_slave_state(single, uri1, ["(MISSING)", "UNREACHABLE"]);
+testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING),UNREACHABLE");
 
 //@ Restore the quorum
 single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2, user: 'root', password:'root'});

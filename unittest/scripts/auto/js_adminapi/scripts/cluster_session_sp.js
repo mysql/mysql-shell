@@ -29,10 +29,8 @@ cluster.addInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-// wait until sandbox2 replicates the cluster metadata
-var s2 = mysql.getSession(__sandbox_uri2);
-wait_session_sync(s2, session);
-s2.close();
+// wait until sandbox2 replicates the cluster metadata from sb1
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 // session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});

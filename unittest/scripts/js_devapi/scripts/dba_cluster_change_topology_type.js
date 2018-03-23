@@ -16,9 +16,10 @@ else
 
 //@ Adding instances to cluster
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Check topology type
 var res = session.runSql("SELECT topology_type " +
@@ -70,7 +71,7 @@ cluster.disconnect();
 // Reconnect to cluster
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Check cluster status is updated
 cluster.status();

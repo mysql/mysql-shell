@@ -323,7 +323,7 @@ var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __cfg_loca
 //@ Add instance with a specific localAddress and groupSeeds (FR1-TS-4)
 c.addInstance(add_instance_options, {localAddress: __cfg_local_address2, groupSeeds: __cfg_group_seeds});
 // Wait for metadata changes to be replicated on added instance
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Add a 3rd instance to ensure it will not affect the persisted group seed values specified on others (FR1-TS-4)
 // NOTE: This instance is also used for convenience, to simplify the test
@@ -331,7 +331,7 @@ wait_sandbox_in_metadata(__mysql_sandbox_port2);
 add_instance_options['port'] = __mysql_sandbox_port3;
 c.addInstance(add_instance_options, {localAddress: __cfg_local_address3});
 // Wait for metadata changes to be replicated on added instance
-wait_sandbox_in_metadata(__mysql_sandbox_port3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
 
 c.disconnect();
 

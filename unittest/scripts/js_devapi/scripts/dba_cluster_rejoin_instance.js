@@ -44,20 +44,20 @@ else
 cluster.addInstance({dbUser: 'root', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'root'});
 
 // Waiting for the instance 2 to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Adding instance 3
 cluster.addInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port3}, {password: 'bar'});
 
 // Waiting for the instance 3 to become online
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // stop instance 2
 // Use stop sandbox instance to make sure the instance is gone before restarting it
 testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Waiting for instance 2 to become missing
-wait_slave_state(cluster, uri2, "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -72,7 +72,7 @@ else
   cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'DISABLED', password: 'bar'});
 
 // Waiting for instance 2 to become back online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster status after rejoin
 cluster.status();

@@ -17,19 +17,19 @@ else
 add_instance_to_cluster(single, __mysql_sandbox_port2);
 
 // Waiting for the added instance to become online
-wait_slave_state(single, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3
 add_instance_to_cluster(single, __mysql_sandbox_port3);
 
 // Waiting for the added instance to become online
-wait_slave_state(single, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
 
 //@ Cluster.dissolve no force error
 single.dissolve();
@@ -53,19 +53,19 @@ else
 add_instance_to_cluster(multi, __mysql_sandbox_port2);
 
 // Waiting for the added instance to become online
-wait_slave_state(multi, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3 mp
 add_instance_to_cluster(multi, __mysql_sandbox_port3);
 
 // Waiting for the added instance to become online
-wait_slave_state(multi, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
 
 //@ Success dissolving multi-primary cluster
 multi.dissolve({force: true});
@@ -83,25 +83,25 @@ else
 add_instance_to_cluster(single2, __mysql_sandbox_port2);
 
 // Waiting for the added instance to become online
-wait_slave_state(single2, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3 2
 add_instance_to_cluster(single2, __mysql_sandbox_port3);
 
 // Waiting for the added instance to become online
-wait_slave_state(single2, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
 
 // stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
 testutil.stopSandbox(__mysql_sandbox_port3);
 
-wait_slave_state(single2, uri3, ["(MISSING)"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 // Regression test for BUG#26001653
 //@ Success dissolving cluster 2
@@ -126,25 +126,25 @@ else
 add_instance_to_cluster(multi2, __mysql_sandbox_port2);
 
 // Waiting for the added instance to become online
-wait_slave_state(multi2, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Wait for the second added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port2);
+testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3 mp 2
 add_instance_to_cluster(multi2, __mysql_sandbox_port3);
 
 // Waiting for the added instance to become online
-wait_slave_state(multi2, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Wait for the third added instance to fetch all the replication data
-wait_sandbox_in_metadata(__mysql_sandbox_port3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
 
 // stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
 testutil.stopSandbox(__mysql_sandbox_port3);
 
-wait_slave_state(multi2, uri3, ["(MISSING)"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 // Regression test for BUG#26001653
 //@ Success dissolving multi-primary cluster 2

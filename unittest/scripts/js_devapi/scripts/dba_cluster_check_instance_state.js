@@ -28,7 +28,7 @@ cluster.checkInstanceState('root@localhost:' + __mysql_sandbox_port1, 'root', ''
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
 
 // Waiting for the second added instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> checkInstanceState: two arguments - added instance
 cluster.checkInstanceState('root@localhost:' + __mysql_sandbox_port2, 'root')

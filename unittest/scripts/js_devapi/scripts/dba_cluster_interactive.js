@@ -20,10 +20,6 @@ else
 
 var Cluster = dba.getCluster('devCluster');
 
-// session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-session.close();
-
 // Sets the correct local host
 var desc = Cluster.describe();
 var localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0];
@@ -72,12 +68,12 @@ Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 //@<OUT> Cluster: addInstance with interaction, ok
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
 
-wait_slave_state(Cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
 
-wait_slave_state(Cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe1
 Cluster.describe();
@@ -118,12 +114,12 @@ Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3});
 //@<OUT> Cluster: addInstance with interaction, ok 3
 add_instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second_sandbox');
 
-wait_slave_state(Cluster, 'second_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
 add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
 
-wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: status: success
 Cluster.status();
@@ -133,7 +129,7 @@ Cluster.status();
 //@# Dba: kill instance 3
 testutil.killSandbox(__mysql_sandbox_port3);
 
-wait_slave_state(Cluster, 'third_sandbox', ["(MISSING)"]);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@# Dba: start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
@@ -156,7 +152,7 @@ if (__have_ssl)
 else
   Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {password: 'root'});
 
-wait_slave_state(Cluster, 'third_sandbox', "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Verify if the cluster is OK
 

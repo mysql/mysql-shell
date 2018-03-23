@@ -20,16 +20,6 @@ function get_sysvar(session, variable) {
   return session.runSql("SHOW GLOBAL VARIABLES LIKE ?", [variable]).fetchOne()[1];
 }
 
-function wait_session_sync(session, session2) {
-  const timeout = 10;
-  // block until session finishes executing all transactions that happened in session2
-  var gtid = session2.runSql("select @@gtid_executed").fetchOne()[0];
-  var r = session.runSql("select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(?, ?, 'group_replication_applier')", [gtid, timeout]).fetchOne()[0];
-  if (r == null) {
-    println("** GR not active (WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS returned NULL)!?");
-  }
-}
-
 
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];

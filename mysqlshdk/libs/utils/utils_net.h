@@ -33,8 +33,7 @@ namespace utils {
 
 class net_error : public std::runtime_error {
  public:
-  explicit net_error(const std::string &what) : std::runtime_error(what) {
-  }
+  explicit net_error(const std::string &what) : std::runtime_error(what) {}
 };
 
 /**
@@ -99,6 +98,14 @@ class Net {
    */
   static std::string get_hostname();
 
+  /**
+   * Checks whether a TCP port is busy
+   * @param address to check
+   * @param port the port number to check
+   * @returns true if the port is busy
+   */
+  static bool is_port_listening(const std::string &address, int port);
+
   static std::vector<std::string> resolve_hostname_ipv4_all(
       const std::string &name);
 
@@ -131,6 +138,10 @@ class Net {
   virtual bool is_local_address_impl(const std::string &address) const;
 
   virtual std::string get_hostname_impl() const;
+
+  virtual bool is_port_listening_impl(const std::string &address,
+                                      int port) const;
+
  private:
   static Net *s_implementation;
 

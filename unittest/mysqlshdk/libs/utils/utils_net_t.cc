@@ -137,6 +137,20 @@ TEST(utils_net, is_local_address) {
   EXPECT_FALSE(Net::is_local_address("bogus-host"));
 }
 
+TEST(utils_net, is_port_listening) {
+  int port = std::atoi(getenv("MYSQL_PORT"));
+  EXPECT_TRUE(Net::is_port_listening("localhost", port));
+  EXPECT_TRUE(Net::is_port_listening("0.0.0.0", port));
+  EXPECT_TRUE(Net::is_port_listening("127.0.0.1", port));
+
+  EXPECT_FALSE(Net::is_port_listening("localhost", 1));
+
+  EXPECT_THROW(Net::is_port_listening("192.168.255.255", 0),
+               std::runtime_error);
+
+  EXPECT_TRUE(Net::is_port_listening("oracle.com", 80));
+}
+
 TEST(utils_net, get_local_addresses) {
   // Not really a unit-test, just get whatever get_local_addresses() returns
   // and print out, so we can inspect visually...

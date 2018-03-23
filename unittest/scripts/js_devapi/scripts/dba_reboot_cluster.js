@@ -30,13 +30,13 @@ cluster.status();
 add_instance_to_cluster(cluster, __mysql_sandbox_port2);
                                                                                                                                        3
 // Waiting for the second added instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Add instance 3
 add_instance_to_cluster(cluster, __mysql_sandbox_port3);
 
 // Waiting for the third added instance to become online
-wait_slave_state(cluster, uri3, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Dba.rebootClusterFromCompleteOutage errors
 dba.rebootClusterFromCompleteOutage("");
@@ -51,14 +51,14 @@ testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
-wait_slave_state(cluster, uri2, "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 // Kill instance 3
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
 // Will remain unreachable since there's no quorum to kick it off
-wait_slave_state(cluster, uri3, "UNREACHABLE");
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
 // Kill instance 1
 testutil.killSandbox(__mysql_sandbox_port1);
@@ -98,7 +98,7 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3], clearReadOnly: true});
 
 // Waiting for the second added instance to become online
-wait_slave_state(cluster, uri2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> cluster status after reboot
 cluster.status();
