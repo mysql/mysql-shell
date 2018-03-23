@@ -145,6 +145,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("chmod", &Testutils::ch_mod, "path", "mode");
   expose("cpfile", &Testutils::cp_file, "source", "target");
   expose("rmfile", &Testutils::rm_file, "target");
+  expose("touch", &Testutils::touch, "file");
 
   _delegate.print = print;
   _delegate.print_error = print;
@@ -1318,7 +1319,7 @@ std::string Testutils::wait_member_state(int member_port,
       ": seems to be stuck as " + current_state);
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Changes access attributes to a file to be read only.
@@ -1346,7 +1347,7 @@ int Testutils::make_file_readonly(const std::string &path) {
 #endif
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Creates a folder with the given name.
@@ -1364,7 +1365,7 @@ void Testutils::mk_dir(const std::string& path, bool recursive ) {
   shcore::create_directory(path, recursive);
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Deletes a folder with the given name.
@@ -1381,7 +1382,7 @@ void Testutils::rm_dir(const std::string& path, bool recursive ) {
   shcore::remove_directory(path, recursive);
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Changes the file permissions of the indicated path.
@@ -1431,7 +1432,7 @@ int Testutils::ch_mod(const std::string& path, int mode) {
 #endif
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Creates a copy of a file.
@@ -1448,7 +1449,7 @@ void Testutils::cp_file(const std::string &source, const std::string& target) {
   shcore::copy_file(source, target, true);
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Deletes a file
@@ -1464,7 +1465,42 @@ void Testutils::rm_file(const std::string& target) {
   shcore::delete_file(target, false);
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
+///@{
+/**
+ * If file does not exists is created empty.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::touch(String file);
+#elif DOXYGEN_PY
+None Testutils::touch(str file);
+#endif
+///@}
+void Testutils::touch(const std::string &file) {
+  if (!shcore::file_exists(file)) {
+    make_empty_file(file);
+  }
+}
+
+//!< @name File Operations
+///@{
+/**
+ * Create empty file specified by path and create parent directories needed by
+ * path if they do not already exists.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::makeEmptyFile(String path);
+#elif DOXYGEN_PY
+None Testutils::make_empty_file(str path);
+#endif
+///@}
+void Testutils::make_empty_file(const std::string &path) {
+  auto directory = shcore::path::dirname(path);
+  shcore::create_directory(directory, true);
+  shcore::create_file(path, "");
+}
+
+//!< @name File Operations
 ///@{
 /**
  * Search for a pattern on a file.
@@ -1501,7 +1537,7 @@ shcore::Array_t Testutils::grep_file(const std::string &path,
   return result;
 }
 
-//!<  @name Misc Utilities
+//!< @name File Operations
 ///@{
 /**
  * Reads a file line by line into an array, much like Unix's cat tool.

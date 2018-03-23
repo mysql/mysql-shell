@@ -845,8 +845,8 @@ def join(server_info, peer_server_info, **kwargs):
         # is_alias(127.0.0.1) != is_alias(gethostname()), but they should
         # match. also is_alias() can't be made to work nicely with recording
         if target_is_local: # server.is_alias("127.0.0.1"):
-            error_log = LocalErrorLog(server)
             try:
+                error_log = LocalErrorLog(server)
                 error_log_size = error_log.get_size()
             except Exception as err:  # pylint: disable=W0703
                 _LOGGER.warning(

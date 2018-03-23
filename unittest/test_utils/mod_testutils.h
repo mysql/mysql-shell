@@ -76,6 +76,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   Integer chmod(String path, Integer mode);
   Undefined cpfile(String source, String target);
   Undefined rmfile(String path);
+  Undefined touch(String file);
   List catFile(String path);
   List wipeFileContents(String path);
 #elif DOXYGEN_PY
@@ -108,6 +109,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   int chmod(str path, int mode);
   None cpfile(str source, str target);
   None rmfile(str path);
+  None touch(str file);
   list cat_file(str path);
   list wipe_file_contents(str path);
 #endif
@@ -193,6 +195,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   int ch_mod(const std::string& path, int mode);
   void cp_file(const std::string &source, const std::string& target);
   void rm_file(const std::string& target);
+  void touch(const std::string& file);
 
   std::string get_shell_log_path();
 
@@ -257,6 +260,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   void change_sandbox_uuid(int port, const std::string &server_uuid);
   std::string get_sandbox_datadir(int port);
   void try_rename(const std::string& source, const std::string& target);
+  void make_empty_file(const std::string &path);
 };
 
 }  // namespace tests

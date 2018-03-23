@@ -1,7 +1,12 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port1));
+testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port2));
+testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port3));
 
 // Create a 3 member cluster
 shell.connect(__sandbox_uri1);
