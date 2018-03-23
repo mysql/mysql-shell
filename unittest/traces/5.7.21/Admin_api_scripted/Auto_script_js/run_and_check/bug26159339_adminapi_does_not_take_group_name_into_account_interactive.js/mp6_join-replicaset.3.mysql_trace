@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@tecra:3316?ssl-mode=PREFERRED",
+    "uri": "root:root@parasol:3340?ssl-mode=PREFERRED",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "31",
-    "connection_info": "tecra via TCP/IP",
-    "server_info": "5.7.21-debug-log",
+    "connection_id": "32",
+    "connection_info": "parasol via TCP/IP",
+    "server_info": "5.7.21-enterprise-commercial-advanced-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -105,7 +105,7 @@
     ],
     "rows": [
         [
-            15661
+            15685
         ]
     ]
 },
