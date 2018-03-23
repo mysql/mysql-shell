@@ -3,18 +3,18 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "mysql://root:root@localhost:3316",
+    "uri": "mysql://root:root@localhost:3340",
     "protocol": "classic"
 },
 {
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "3",
+    "connection_id": "4",
     "connection_info": "localhost via TCP/IP",
-    "server_info": "5.7.21-debug-log",
+    "server_info": "5.7.21-enterprise-commercial-advanced-log",
     "server_version": "5.7.21",
-    "ssl_cipher": "DHE-RSA-AES256-SHA"
+    "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
 },
 {
     "type": "request",
@@ -37,7 +37,7 @@
             "table_label": "",
             "column_name": "",
             "column_label": "concat(@@version, ' ', @@version_comment)",
-            "length": 36,
+            "length": 97,
             "fractional": 31,
             "type": "String",
             "collation": "latin1_swedish_ci",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "5.7.21-debug-log Source distribution"
+            "5.7.21-enterprise-commercial-advanced-log MySQL Enterprise Server - Advanced Edition (Commercial)"
         ]
     ]
 },
@@ -58,7 +58,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 5,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3350"
 },
 {
     "type": "response",
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
 },
 {
     "type": "response",
@@ -134,7 +134,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
 },
 {
     "type": "response",
@@ -172,7 +172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
 },
 {
     "type": "response",
@@ -210,7 +210,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
 },
 {
     "type": "response",
@@ -238,16 +238,54 @@
             "binary": true
         }
     ],
+    "rows": [
+        [
+            "ONLINE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 15,
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3360"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 16,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 64,
+            "fractional": 0,
+            "type": "String",
+            "collation": "latin1_swedish_ci",
+            "charset": "latin1",
+            "collation_id": 8,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
     "rows": []
 },
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 15
+    "index": 17
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 16
+    "index": 18
 },
 null]

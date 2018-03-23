@@ -1,22 +1,22 @@
 [client]
-port = 3336
+port = 3360
 protocol = TCP
 user = root
 [mysqld]
 general_log = 1
-report_port = 3336
-loose_mysqlx_port = 33360
-secure_file_priv = /tmp/miguel/3336/mysql-files
-pid_file = /tmp/miguel/3336/3336.pid
-log_error = /tmp/miguel/3336/sandboxdata/error.log
-datadir = /tmp/miguel/3336/sandboxdata
-server_id = 15681
-port = 3336
+report_port = 3360
+loose_mysqlx_port = 33600
+secure_file_priv = /home/kg/repo/ngshell/bld-clang_head/bin/3360/mysql-files
+pid_file = /home/kg/repo/ngshell/bld-clang_head/bin/3360/3360.pid
+log_error = /home/kg/repo/ngshell/bld-clang_head/bin/3360/sandboxdata/error.log
+datadir = /home/kg/repo/ngshell/bld-clang_head/bin/3360/sandboxdata
+server_id = 15705
+port = 3360
 transaction_write_set_extraction = XXHASH64
 binlog_checksum = NONE
 gtid_mode = ON
 auto_increment_offset = 4
-basedir = /home/miguel/work/mysql-server/5.7.21
+basedir = /home/kg/SERVERS/mysql-advanced-5.7.21-linux-glibc2.12-x86_64
 log_bin
 loose_mysqlx_socket = mysqlx.sock
 log_slave_updates = ON

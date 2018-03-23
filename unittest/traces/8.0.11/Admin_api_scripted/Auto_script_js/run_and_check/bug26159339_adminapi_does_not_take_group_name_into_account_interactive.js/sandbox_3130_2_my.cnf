@@ -1,17 +1,17 @@
 [client]
-port = 3336
+port = 3130
 protocol = TCP
 user = root
 [mysqld]
 general_log = 1
-report_port = 3336
-loose_mysqlx_port = 33360
-secure_file_priv = /tmp/miguel/3336/mysql-files
-pid_file = /tmp/miguel/3336/3336.pid
-log_error = /tmp/miguel/3336/sandboxdata/error.log
-datadir = /tmp/miguel/3336/sandboxdata
-server_id = 15681
-port = 3336
+report_port = 3130
+loose_mysqlx_port = 31300
+secure_file_priv = /home/kg/repo/ngshell/bld-clang_head/bin/3130/mysql-files
+pid_file = /home/kg/repo/ngshell/bld-clang_head/bin/3130/3130.pid
+log_error = /home/kg/repo/ngshell/bld-clang_head/bin/3130/sandboxdata/error.log
+datadir = /home/kg/repo/ngshell/bld-clang_head/bin/3130/sandboxdata
+server_id = 15475
+port = 3130
 log_slave_updates = ON
 innodb_log_buffer_size = 1M
 relay_log_info_repository = TABLE
@@ -25,7 +25,7 @@ enforce_gtid_consistency = ON
 gtid_mode = ON
 innodb_data_file_path = ibdata1:10M:autoextend
 socket = mysqld.sock
-auto_increment_offset = 6
-basedir = /home/miguel/work/mysql-server/8.0.11
+auto_increment_offset = 4
+basedir = /home/kg/SERVERS/mysql-8.0.11-linux-x86_64
 log_bin
 loose_mysqlx_socket = mysqlx.sock

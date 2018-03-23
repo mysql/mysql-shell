@@ -1,9 +1,9 @@
 {
-    "hostname": "10.172.237.31",
-    "hostname_ip": "10.172.237.31",
+    "hostname": "10.175.173.91",
+    "hostname_ip": "10.175.173.91",
     "real_host_is_loopback": "1",
-    "real_hostname": "tecra",
-    "sandbox_port1": "3316",
-    "sandbox_port2": "3326",
-    "sandbox_port3": "3336"
+    "real_hostname": "parasol",
+    "sandbox_port1": "3110",
+    "sandbox_port2": "3120",
+    "sandbox_port3": "3130"
 }
