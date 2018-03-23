@@ -76,7 +76,6 @@ std::vector<std::string> get_stacktrace() {
   symbol->MaxNameLen = 1023;
   symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-  fprintf(stderr, "Programmatically Printed Stacktrace:\n");
   for (auto i = 0; i < nframes; i++) {
     if (SymFromAddr(process, (DWORD64)callstack[i], NULL, symbol))
       stack.push_back(std::string(symbol->Name));
