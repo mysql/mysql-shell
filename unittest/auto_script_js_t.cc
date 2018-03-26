@@ -177,6 +177,8 @@ TEST_P(Auto_script_js, run_and_check) {
   if (folder != "js_devapi" &&
       GetParam().find("_norecord") == std::string::npos) {
     reset_replayable_shell(name.c_str());
+  } else {
+    execute_setup();
   }
 
   // todo(kg): _norecord files haven't defined functions from script.js, e.g.

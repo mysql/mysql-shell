@@ -43,26 +43,39 @@ def validate_crud_functions(crud, expected):
 	else:
 		print "Extra Functions:", actual
 
-def validateMember(memberList, member):
-	index = -1
-	try:
-		index = memberList.index(member)
-	except:
-		pass
+def validate_members(object, expected_members):
+  all_members = dir(object)
 
-	if index != -1:
-		print member + ": OK\n"
-	else:
-		print member + ": Missing\n"
+  # Remove the python built in members
+  members = []
+  for member in all_members:
+    if not member.startswith('__'):
+      members.append(member)
 
-def validateNotMember(memberList, member):
-	index = -1
-	try:
-		index = memberList.index(member)
-	except:
-		pass
+  missing = []
+  for expected in expected_members:
+    try:
+      index = members.index(expected)
+    except:
+      missing.append(expected)
 
-	if index != -1:
-		print member + ": Unexpected\n"
-	else:
-		print member + ": OK\n"
+  unexpected = []
+  for member in members:
+    try:
+      index = expected_members.index(member)
+    except:
+      unexpected.append(member)
+
+  errors = []
+  error = ""
+  if len(unexpected):
+    error = "Unexpected Members: %s" % ', '.join(unexpected)
+    errors.append(error)
+
+  error = ""
+  if len(missing):
+    error = "Missing Members: %s" % ', '.join(missing)
+    errors.append(error)
+
+  if len(errors):
+    testutil.fail(', '.join(errors))
