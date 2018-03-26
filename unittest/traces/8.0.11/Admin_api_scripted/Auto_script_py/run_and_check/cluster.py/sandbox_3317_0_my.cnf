@@ -1,0 +1,31 @@
+[client]
+port = 3317
+protocol = TCP
+user = root
+[mysqld]
+general_log = 1
+report_port = 3317
+loose_mysqlx_port = 33170
+secure_file_priv = /home/juanram/dev/master/coverage_build/bin/3317/mysql-files
+pid_file = /home/juanram/dev/master/coverage_build/bin/3317/3317.pid
+log_error = /home/juanram/dev/master/coverage_build/bin/3317/sandboxdata/error.log
+datadir = /home/juanram/dev/master/coverage_build/bin/3317/sandboxdata
+server_id = 15662
+port = 3317
+log_slave_updates = ON
+innodb_log_buffer_size = 1M
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+transaction_write_set_extraction = XXHASH64
+binlog_format = ROW
+log_syslog = OFF
+binlog_checksum = NONE
+enforce_gtid_consistency = ON
+gtid_mode = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+auto_increment_offset = 5
+basedir = /home/juanram/dev/deps/27634517.mysql-commercial_8.0.11-1ubuntu16.04_amd64/mysql/usr
+log_bin
+loose_mysqlx_socket = mysqlx.sock
