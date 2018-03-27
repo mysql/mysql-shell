@@ -5,7 +5,7 @@ var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root', clusterAdmin: "gr_user", clusterAdminPassword: "root"});
 
 //@ Error: user has no privileges to run the configure command (BUG#26609909)
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 // Remove select privilege to make sure an error is thrown
 session.runSql("SET sql_log_bin = 0");
 session.runSql("REVOKE SELECT on *.* FROM 'gr_user'@'%'");
@@ -36,10 +36,10 @@ var res = session.runSql('select json_unquote(addresses->\'$.grLocal\') from mys
 var row = res.fetchOne();
 print (row[0]);
 
-
 //@ Adding the remaining instances
-add_instance_to_cluster(cluster, __mysql_sandbox_port2, 'second_sandbox');
-add_instance_to_cluster(cluster, __mysql_sandbox_port3, 'third_sandbox');
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2, {'label': 'second_sandbox'});
+cluster.addInstance(__sandbox_uri3, {'label': 'third_sandbox'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

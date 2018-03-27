@@ -6,14 +6,14 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
 // by default, root account can connect only via localhost, create 'root'@'%'
 // so it's possible to connect via hostname
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri2);
 
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'%' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'root'@'%' IDENTIFIED BY 'root'");
@@ -32,7 +32,8 @@ else
   var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED'});
 
 //@ Adding instance to cluster
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // To simulate an existing unmanaged replication group we simply drop the

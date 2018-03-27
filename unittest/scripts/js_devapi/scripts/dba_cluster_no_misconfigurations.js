@@ -3,7 +3,7 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@ Dba.createCluster
 if (__have_ssl)
@@ -29,7 +29,8 @@ if (__have_ssl) {
 }
 
 //@ Add instance requiring secure connections (if supported)
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 
 //@ Dissolve cluster requiring secure connections (if supported)
 cluster.dissolve({force:true});

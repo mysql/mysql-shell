@@ -5,7 +5,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 //@ create first cluster
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var singleSession = session;
 
 if (__have_ssl)
@@ -14,7 +14,8 @@ else
   var single = dba.createCluster('single', {memberSslMode: 'DISABLED'});
 
 //@ Success adding instance
-add_instance_to_cluster(single, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+single.addInstance(__sandbox_uri2);
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -23,7 +24,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 // Connect to the future new seed node
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri2);
 var singleSession2 = session;
 
 //@ Check auto_increment values for single-primary
@@ -48,14 +49,14 @@ testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING),UNREACHABLE");
 single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2, user: 'root', password:'root'});
 
 //@ Success adding instance to the single cluster
-add_instance_to_cluster(single, __mysql_sandbox_port3);
-shell.connect({SCHEME: 'mysql', Host: localhost, PoRt: __mysql_sandbox_port3, UsEr: 'root', PassWord: 'root'});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+single.addInstance(__sandbox_uri3);
 
 //@ Remove the instance from the cluster
 single.removeInstance({host: localhost, port: __mysql_sandbox_port3});
 
 //@ create second cluster
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri3);
 var multiSession = session;
 
 // We must use clearReadOnly because the instance 3 was removed from the cluster before

@@ -164,46 +164,6 @@ function cleanup_sandbox(port) {
 
 }
 
-  // Operation that retries adding an instance to a cluster
-  // 3 retries are done on each case, expectation is that the addition
-  // is done on the first attempt, however, we have detected some OS
-  // delays that cause it to fail, that's why the retry logic
-function add_instance_to_cluster(cluster, port, label) {
-  add_instance_options['port'] = port;
-
-  var labeled = false;
-  if (typeof label != 'undefined') {
-    add_instance_extra_opts['label'] = label;
-    labeled = true;
-  }
-
-  attempt = 0;
-  success = false;
-  while (attempt < 3 && !success) {
-    try {
-      cluster.addInstance(add_instance_options, add_instance_extra_opts);
-      println("Instance added successfully...")
-      success = true;
-    } catch (err) {
-      if (err.message.indexOf("The server is not configured properly to be an active member of the group.") == -1) {
-        attempt = attempt + 1;
-        println("Failed adding instance on attempt " + attempt);
-        println(err);
-        println("Waiting 5 seconds for next attempt");
-        os.sleep(5)
-      }
-      else
-        throw(err);
-    }
-  }
-
-  if (labeled)
-    delete add_instance_extra_opts['label'];
-
-  if (!success)
-    throw ('Failed adding instance : ' + add_instance_options + ',' + add_instance_extra_opts);
-}
-
 //Function to delete sandbox (only succeed after full server shutdown).
 function try_delete_sandbox(port, sandbox_dir) {
     var deleted = false;

@@ -20,7 +20,7 @@ function print_gr_start_on_boot() {
 }
 
 //@ Connect
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@ create cluster
 if (__have_ssl)
@@ -29,7 +29,8 @@ else
   var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED'});
 
 //@ Adding instance
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -70,7 +71,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 //@ Connect to restarted instance.
 session.close();
 cluster.disconnect();
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri2);
 
 //@<OUT> Confirm that GR start on boot is disabled {VER(>=8.0.5)}.
 // Regression for BUG#26796118 : INSTANCE REJOINS GR GROUP AFTER REMOVEINSTANCE() AND RESTART
@@ -80,12 +81,13 @@ print_gr_start_on_boot();
 
 //@ Connect back to seed instance and get cluster.
 session.close();
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var cluster = dba.getCluster('dev');
 
 //@ Adding instance on port2 back
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 
 // Waiting for the instance on port2 to become online
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
