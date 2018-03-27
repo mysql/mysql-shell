@@ -56,7 +56,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Connect to instance on port 1.
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@ Create cluster with success.
 if (__have_ssl)
@@ -65,11 +65,12 @@ else
     var cluster = dba.createCluster('bug26818744', {memberSslMode: 'DISABLED', clearReadOnly: true});
 
 //@ Add instance on port 2 to cluster with success.
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Add instance on port 3 to cluster with success.
-add_instance_to_cluster(cluster, __mysql_sandbox_port3);
+cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Remove instance on port 2 from cluster with success.

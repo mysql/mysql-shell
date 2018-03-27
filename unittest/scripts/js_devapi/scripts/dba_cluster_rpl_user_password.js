@@ -5,8 +5,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
-
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 // Install validate_password plugin and configure it for the medium policy
 var installed = false;
@@ -29,13 +28,14 @@ else
 session.runSql('SET GLOBAL validate_password_policy=\'STRONG\'');
 
 //@ Add instance 2 to cluster
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 
 // configure the validate_password plugin validate_password_length to maximum allowed
 session.runSql('SET GLOBAL validate_password_length=32');
 
 //@ Add instance 3 to cluster
-add_instance_to_cluster(cluster, __mysql_sandbox_port3);
+cluster.addInstance(__sandbox_uri3);
 
 if (installed)
 	session.runSql('UNINSTALL PLUGIN validate_password');

@@ -4,7 +4,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
 //@ Connect
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@ create cluster
 if (__have_ssl)
@@ -25,7 +25,8 @@ cluster.checkInstanceState()
 cluster.checkInstanceState('root@localhost:' + __mysql_sandbox_port1, 'root', '')
 
 //@ Adding instance
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

@@ -7,13 +7,13 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
-shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port3);
+shell.connect(__sandbox_uri3);
 create_root_from_anywhere(session, true);
 
-shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port2);
+shell.connect(__sandbox_uri2);
 create_root_from_anywhere(session, true);
 
-shell.connect("mysql://root:root@localhost:"+__mysql_sandbox_port1);
+shell.connect(__sandbox_uri1);
 create_root_from_anywhere(session, true);
 
 //@ Dba: createCluster multiMaster, ok
@@ -24,15 +24,16 @@ else
 
 cluster.disconnect();
 
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
 
 //@ Cluster: addInstance 2
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+Cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Cluster: addInstance 3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+Cluster.addInstance(__sandbox_uri3);
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -70,16 +71,16 @@ else
 
 Cluster.disconnect();
 
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
 
-
 //@ Cluster: addInstance 2 again
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+Cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Cluster: addInstance 3 again
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+Cluster.addInstance(__sandbox_uri3);
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

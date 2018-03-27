@@ -44,7 +44,7 @@
 //@ Remove the persist group_replication_group_name {VER(>=8.0.5)}
 ||
 
-//@ Kill instance 2, change the group_name and start it back
+//@ Kill instance 2
 ||
 
 //@<OUT> status() on no-quorum
@@ -75,6 +75,13 @@
     },
     "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
+
+//@<OUT> Change the group_name of instance 2 and start it back
+[
+    [
+        "ffd94a44-cce1-11e7-987e-4cfc0b4022e7"
+    ]
+]
 
 //@# forceQuorum
 ||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it may belong to a different ReplicaSet as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the ReplicaSet's Metadata: possible split-brain scenario.

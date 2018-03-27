@@ -5,7 +5,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var singleSession = session;
 
 if (__have_ssl)
@@ -62,11 +62,12 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123", password: "root"});
 
 //@ Cluster: addInstance 2
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second');
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+Cluster.addInstance(__sandbox_uri2, {'label': 'second'});
 
 // Third instance will be added while the second is still on RECOVERY
 //@ Cluster: addInstance 3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+Cluster.addInstance(__sandbox_uri3);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -96,7 +97,7 @@ Cluster.describe();
 Cluster.status();
 
 //@ Cluster: addInstance read only back
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+Cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -125,12 +126,11 @@ Cluster.rescan();
 Cluster.status();
 
 //@ Connecting to new master
-shell.connect({scheme:'mysql', host:localhost, port:__mysql_sandbox_port2, user:'root', password: 'root'});
+shell.connect(__sandbox_uri2);
 var Cluster = dba.getCluster();
 
 // Add back uri3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
-
+Cluster.addInstance(__sandbox_uri3, {'label': 'third_sandbox'});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: describe on new master
@@ -140,8 +140,7 @@ Cluster.describe();
 Cluster.status();
 
 //@ Cluster: addInstance adding old master as read only
-add_instance_to_cluster(Cluster, __mysql_sandbox_port1, 'first_sandbox');
-
+Cluster.addInstance(__sandbox_uri1, {'label': 'first_sandbox'});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@<OUT> Cluster: describe on new master with slave

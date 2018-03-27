@@ -3,7 +3,7 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri2);
 
 // Create root@<hostname> account with all privileges, required to create a
 // cluster.
@@ -14,7 +14,7 @@ session.runSql("CREATE USER 'root'@'"+hostname_ip+"' IDENTIFIED BY 'root'");
 session.runSql("GRANT ALL PRIVILEGES ON *.* to 'root'@'"+hostname_ip+"' WITH GRANT OPTION");
 session.runSql("SET sql_log_bin = 1");
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 // Create root@<hostname> account with all privileges, required to create a
 // cluster.
@@ -32,7 +32,8 @@ dba.createCluster('testCluster', {adoptFromGR: true});
 var cluster = dba.createCluster('testCluster', {memberSslMode: 'DISABLED'});
 
 //@ Adding instance to cluster
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // To simulate an existing unmanaged replication group we simply drop the
@@ -101,11 +102,12 @@ session.close();
 cluster.disconnect();
 
 // create cluster in multi-master mode
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 var cluster = dba.createCluster('testCluster', {multiMaster: true, memberSslMode: __ssl_mode, clearReadOnly: true, force: true});
 
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // To simulate an existing unmanaged replication group we simply drop the

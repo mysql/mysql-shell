@@ -12,7 +12,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root");
 // NOTE: Workaround BUG#25503817 to display the right ssl info for status()
 update_have_ssl(__mysql_sandbox_port1);
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@<OUT> create cluster
 if (__have_ssl)
@@ -20,20 +20,22 @@ if (__have_ssl)
 else
   var cluster = dba.createCluster('dev', {memberSslMode:'DISABLED'});
 
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
 session.close();
 // session is stored on the cluster object so changing the global session should not affect cluster operations
-shell.connect({scheme:'mysql', host: "localhost", port: __mysql_sandbox_port2, user: 'root', password: 'root'})
+shell.connect(__sandbox_uri2)
 
 cluster.status();
 
 //@ Add instance 2
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+cluster.addInstance(__sandbox_uri2);
                                                                                                                                        3
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ Add instance 3
-add_instance_to_cluster(cluster, __mysql_sandbox_port3);
+cluster.addInstance(__sandbox_uri3);
 
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -82,7 +84,7 @@ session.close();
 cluster.disconnect();
 
 // Re-establish the connection to instance 1
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 var instance2 = localhost + ':' + __mysql_sandbox_port2;
 var instance3 = localhost + ':' + __mysql_sandbox_port3;

@@ -7,7 +7,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@<OUT> Dba: createCluster multiMaster with interaction, cancel
 dba.createCluster('devCluster', {multiMaster: true, clearReadOnly: true});
@@ -18,6 +18,7 @@ if (__have_ssl)
 else
   dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
 
 //@ Cluster: addInstance with interaction, error
@@ -25,12 +26,12 @@ add_instance_options['port'] = __mysql_sandbox_port1;
 Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 
 //@<OUT> Cluster: addInstance with interaction, ok
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+Cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+Cluster.addInstance(__sandbox_uri3);
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -64,15 +65,16 @@ if (__have_ssl)
 else
     dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
 
 //@<OUT> Cluster: addInstance with interaction, ok 2
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+Cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+Cluster.addInstance(__sandbox_uri3);
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -114,7 +116,7 @@ Cluster.status();
 Cluster.dissolve({force: true})
 
 // Disable super-read-only (BUG#26422638)
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 session.runSql("SET GLOBAL SUPER_READ_ONLY = 0;");
 session.close();
 

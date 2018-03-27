@@ -10,13 +10,12 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, 'root', {'report_host': hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 if (__have_ssl)
   var cluster = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 else
   var cluster = dba.createCluster('devCluster', {memberSslMode: 'DISABLED'});
-
 
 var Cluster = dba.getCluster('devCluster');
 
@@ -66,12 +65,13 @@ add_instance_options['port'] = __mysql_sandbox_port1;
 Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 
 //@<OUT> Cluster: addInstance with interaction, ok
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+Cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3);
+Cluster.addInstance(__sandbox_uri3);
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -112,12 +112,12 @@ Cluster.dissolve({force: 'sample'});
 Cluster.removeInstance({host:localhost, port:__mysql_sandbox_port3});
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
-add_instance_to_cluster(Cluster, __mysql_sandbox_port2, 'second_sandbox');
+Cluster.addInstance(__sandbox_uri2, {'label': 'second_sandbox'});
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Cluster: addInstance with interaction, ok 4
-add_instance_to_cluster(Cluster, __mysql_sandbox_port3, 'third_sandbox');
+Cluster.addInstance(__sandbox_uri3, {'label': 'third_sandbox'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

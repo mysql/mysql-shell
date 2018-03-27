@@ -5,8 +5,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
-
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 
 //@ Create cluster (topology type: primary master by default)
 if (__have_ssl)
@@ -15,10 +14,11 @@ else
   var cluster = dba.createCluster('pmCluster', {memberSslMode: 'DISABLED'});
 
 //@ Adding instances to cluster
-add_instance_to_cluster(cluster, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-add_instance_to_cluster(cluster, __mysql_sandbox_port3);
+cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Check topology type

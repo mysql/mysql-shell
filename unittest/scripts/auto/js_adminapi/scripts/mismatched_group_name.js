@@ -88,22 +88,21 @@ var s2 = mysql.getSession(__sandbox_uri2);
 s2.runSql("RESET PERSIST IF EXISTS group_replication_group_name");
 s2.close();
 
-//@ Kill instance 2, change the group_name and start it back
+//@ Kill instance 2
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
-
-testutil.changeSandboxConf(__mysql_sandbox_port2, "group_replication_group_name", "ffd94a44-cce1-11e7-987e-4cfc0b4022e7");
-testutil.startSandbox(__mysql_sandbox_port2);
-
-var s2 = mysql.getSession(__sandbox_uri2);
-s2.runSql("select * from performance_schema.replication_group_members").fetchAll();
-s2.close();
-session.runSql("select * from performance_schema.replication_group_members").fetchAll();
 
 //@<OUT> status() on no-quorum
 cluster.status();
 cluster.disconnect();
 session.close();
+
+//@<OUT> Change the group_name of instance 2 and start it back
+testutil.changeSandboxConf(__mysql_sandbox_port2, "group_replication_group_name", "ffd94a44-cce1-11e7-987e-4cfc0b4022e7");
+testutil.startSandbox(__mysql_sandbox_port2);
+var s2 = mysql.getSession(__sandbox_uri2);
+s2.runSql("SELECT @@group_replication_group_name").fetchAll();
+s2.close();
 
 //@# forceQuorum
 // Member 1 has group_name matching metadata

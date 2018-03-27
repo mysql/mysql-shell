@@ -5,7 +5,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 //@ Create single-primary cluster
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var singleSession = session;
 
 if (__have_ssl)
@@ -14,7 +14,8 @@ else
   var single = dba.createCluster('single', {memberSslMode: 'DISABLED'});
 
 //@ Success adding instance 2
-add_instance_to_cluster(single, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+single.addInstance(__sandbox_uri2);
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -23,7 +24,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3
-add_instance_to_cluster(single, __mysql_sandbox_port3);
+single.addInstance(__sandbox_uri3);
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -40,7 +41,7 @@ single.dissolve({force: true});
 //@ Cluster.dissolve already dissolved
 single.dissolve();
 
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var multiSession = session;
 
 //@ Create multi-primary cluster
@@ -50,7 +51,8 @@ else
   var multi = dba.createCluster('multi', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true, force: true});
 
 //@ Success adding instance 2 mp
-add_instance_to_cluster(multi, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+multi.addInstance(__sandbox_uri2)
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -59,7 +61,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3 mp
-add_instance_to_cluster(multi, __mysql_sandbox_port3);
+multi.addInstance(__sandbox_uri3)
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -71,7 +73,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port3);
 multi.dissolve({force: true});
 
 //@ Create single-primary cluster 2
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var singleSession2 = session;
 
 if (__have_ssl)
@@ -80,7 +82,8 @@ else
   var single2 = dba.createCluster('single2', {memberSslMode: 'DISABLED', clearReadOnly: true});
 
 //@ Success adding instance 2 2
-add_instance_to_cluster(single2, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+single2.addInstance(__sandbox_uri2);
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -89,7 +92,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3 2
-add_instance_to_cluster(single2, __mysql_sandbox_port3);
+single2.addInstance(__sandbox_uri3);
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -114,7 +117,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 //@ Create multi-primary cluster 2
-shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+shell.connect(__sandbox_uri1);
 var multiSession2 = session;
 
 if (__have_ssl)
@@ -123,7 +126,8 @@ else
   var multi2 = dba.createCluster('multi2', {memberSslMode: 'DISABLED', clearReadOnly: true, multiMaster: true, force: true});
 
 //@ Success adding instance 2 mp 2
-add_instance_to_cluster(multi2, __mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+multi2.addInstance(__sandbox_uri2);
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -132,7 +136,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 //@ Success adding instance 3 mp 2
-add_instance_to_cluster(multi2, __mysql_sandbox_port3);
+multi2.addInstance(__sandbox_uri3);
 
 // Waiting for the added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");

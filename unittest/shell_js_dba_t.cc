@@ -135,6 +135,15 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       code = "var __mysql_sandbox_port3 = " +
              std::to_string(_mysql_sandbox_port3) + ";";
       exec_and_out_equals(code);
+      code = "var __sandbox_uri1 = 'mysql://root:root@localhost:" +
+             std::to_string(_mysql_sandbox_port1) + "';";
+      exec_and_out_equals(code);
+      code = "var __sandbox_uri2 = 'mysql://root:root@localhost:" +
+             std::to_string(_mysql_sandbox_port2) + "';";
+      exec_and_out_equals(code);
+      code = "var __sandbox_uri3 = 'mysql://root:root@localhost:" +
+             std::to_string(_mysql_sandbox_port3) + "';";
+      exec_and_out_equals(code);
       code = "var uri1 = 'localhost:" + std::to_string(_mysql_sandbox_port1) +
              "';";
       exec_and_out_equals(code);
