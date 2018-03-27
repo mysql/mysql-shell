@@ -169,7 +169,7 @@
 {"type":"response","subtype":"RESULT","index":168,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":169,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":170,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
-{"type":"request","subtype":"QUERY","index":171,"sql":"CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ '|.(4:+_a#0[B}~[=8{j*o{<r$.]})E/@' /*)*/ FOR CHANNEL 'group_replication_recovery';"},
+{"type":"request","subtype":"QUERY","index":171,"sql":"CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_r0000000006' /*)*/, MASTER_PASSWORD = /*(*/ '@&I?~;7z<@|R}{N@0:&u%8=k[{=>-#Y&' /*)*/ FOR CHANNEL 'group_replication_recovery';"},
 {"type":"response","subtype":"RESULT","index":172,"auto_increment_value":0,"affected_rows":0,"warning_count":1,"info":""},
 {"type":"request","subtype":"QUERY","index":173,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":174,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
