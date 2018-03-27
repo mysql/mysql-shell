@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2019","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2299","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"9","connection_info":"localhost via TCP/IP","server_info":"8.0.11","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT * FROM mysql_innodb_cluster_metadata.schema_version"},
 {"type":"response","subtype":"ERROR","index":4,"code":"1049","msg":"Unknown database 'mysql_innodb_cluster_metadata'","sqlstate":"42000"},

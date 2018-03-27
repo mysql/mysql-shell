@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://local_pass:pass@localhost:2197?ssl-mode=DISABLED&get-server-public-key=true","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://local_pass:pass@localhost:2217?ssl-mode=DISABLED&get-server-public-key=true","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"20","connection_info":"localhost via TCP/IP","server_info":"8.0.11","server_version":"8.0.11"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},

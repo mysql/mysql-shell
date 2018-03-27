@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"gr_user:gr_pass@localhost:2237","protocol":"x"},
-{"type":"response","subtype":"ERROR","index":2,"code":"2027","msg":"Requested session assumes MySQL X Protocol but 'localhost:2237' seems to speak the classic MySQL protocol (Unexpected response received from server\n)","sqlstate":""},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"gr_user:gr_pass@localhost:2217","protocol":"x"},
+{"type":"response","subtype":"ERROR","index":2,"code":"2027","msg":"Requested session assumes MySQL X Protocol but 'localhost:2217' seems to speak the classic MySQL protocol (Unexpected response received from server\n)","sqlstate":""},
 null]

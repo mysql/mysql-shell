@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2177","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2097","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"42","connection_info":"localhost via TCP/IP","server_info":"5.7.21-log","server_version":"5.7.21","ssl_cipher":"DHE-RSA-AES256-SHA"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE REGEXP 'mysql_innodb_cluster_r0000000002.*'"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"information_schema","table_name":"USER_PRIVILEGES","table_label":"USER_PRIVILEGES","column_name":"GRANTEE","column_label":"GRANTEE","length":81,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["'mysql_innodb_cluster_r0000000002'@'localhost'"],["'mysql_innodb_cluster_r0000000002'@'%'"]]},

@@ -15,7 +15,7 @@ port = 2187
 transaction_write_set_extraction = XXHASH64
 binlog_checksum = NONE
 gtid_mode = ON
-auto_increment_offset = 3
+auto_increment_offset = 4
 basedir = /export/home/shell-test-trace-building/target-mysql/mysql-5.7.21-linux-glibc2.12-x86_64
 log_bin
 loose_mysqlx_socket = mysqlx.sock

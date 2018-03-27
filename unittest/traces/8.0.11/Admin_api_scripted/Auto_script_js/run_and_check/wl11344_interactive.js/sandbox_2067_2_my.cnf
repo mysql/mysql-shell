@@ -1,0 +1,20 @@
+[client]
+port = 2067
+protocol = TCP
+user = root
+[mysqld]
+report_host = siv14.no.oracle.com.
+general_log = 1
+loose_mysqlx_port = 20670
+secure_file_priv = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker6/tmp/2067/mysql-files
+pid_file = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker6/tmp/2067/2067.pid
+log_error = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker6/tmp/2067/data/error.log
+datadir = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker6/tmp/2067/data
+port = 2067
+innodb_log_buffer_size = 1M
+innodb_log_file_size = 1M
+log_syslog = OFF
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+basedir = /export/home/shell-test-trace-building/target-mysql/mysql-8.0.11-linux-glibc2.12-x86_64
+loose_mysqlx_socket = mysqlx.sock
