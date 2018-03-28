@@ -140,7 +140,11 @@ TEST(utils_net, is_local_address) {
 TEST(utils_net, is_port_listening) {
   int port = std::atoi(getenv("MYSQL_PORT"));
   EXPECT_TRUE(Net::is_port_listening("localhost", port));
+#ifndef _WIN32
+  // it's not possible to check if 0.0.0.0:port is in use on Windows,
+  // 0.0.0.0 address is not allowed
   EXPECT_TRUE(Net::is_port_listening("0.0.0.0", port));
+#endif
   EXPECT_TRUE(Net::is_port_listening("127.0.0.1", port));
 
   EXPECT_FALSE(Net::is_port_listening("localhost", 1));

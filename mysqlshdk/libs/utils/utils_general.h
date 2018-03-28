@@ -129,6 +129,9 @@ void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 OperatingSystem SHCORE_PUBLIC get_os_type();
 
 #ifdef _WIN32
+
+std::string SHCORE_PUBLIC last_error_to_string(DWORD code);
+
 // We inline these functions to avoid trouble with memory and DLL boundaries
 inline std::string win_w_to_a_string(const std::wstring &wstr, int wstrl) {
   std::string str;

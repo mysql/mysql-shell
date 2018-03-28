@@ -26,7 +26,6 @@
 
 #ifdef WIN32
 #include <Lmcons.h>
-#define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
 #include <unistd.h>
 #ifdef HAVE_GETPWUID_R
@@ -1151,4 +1150,27 @@ std::string fmttime(const char *fmt) {
 
   return buf;
 }
+
+#ifdef _WIN32
+
+std::string SHCORE_PUBLIC last_error_to_string(DWORD code) {
+  LPTSTR lpMsgBuf = nullptr;
+  std::string ret;
+
+  if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                        FORMAT_MESSAGE_FROM_SYSTEM |
+                        FORMAT_MESSAGE_IGNORE_INSERTS,
+                    nullptr, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    (LPTSTR)&lpMsgBuf, 0, nullptr) > 0) {
+    ret = lpMsgBuf;
+    LocalFree(lpMsgBuf);
+  } else {
+    ret = str_format("Unknown error code: %lu", code);
+  }
+
+  return ret;
+}
+
+#endif  // _WIN32
+
 }  // namespace shcore

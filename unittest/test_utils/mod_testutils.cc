@@ -392,27 +392,18 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
   }
   argv.push_back(nullptr);
   shcore::Process dump(&argv[0]);
+  dump.redirect_file_to_stdin(path);
   dump.start();
-  dump.start_output_reader();
 
-  std::ifstream ifile;
-  ifile.open(path);
-  if (!ifile.good())
-    throw std::runtime_error(path + ": " + shcore::errno_to_string(errno));
-
+  char c;
   std::string output;
-  char buffer[4098];
-  while (!dump.check() && !ifile.eof()) {
-    while (dump.has_output(true)) output.append(dump.read_line());
-
-    ifile.read(buffer, sizeof(buffer));
-    if (dump.write(buffer, ifile.gcount()) < ifile.gcount()) {
-      throw std::runtime_error("error writing dump data to mysql client");
-    }
+  // Reads all produced output, until stdout is closed
+  while (dump.read(&c, 1) > 0) {
+    output += c;
   }
-  dump.close_write_fd();
+
   int rc = dump.wait();
-  while (dump.has_output(false)) output.append(dump.read_line());
+
   if (rc != 0) {
     throw std::runtime_error("mysql exited with code " + std::to_string(rc) +
                              ": " + output);

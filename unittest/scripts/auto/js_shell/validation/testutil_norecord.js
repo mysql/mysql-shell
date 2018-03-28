@@ -21,7 +21,7 @@
 ]
 
 //@! importData badfile
-||badfile.sql: No such file or directory (RuntimeError)
+||badfile.sql: Input file does not exist (RuntimeError)
 
 //@! importData badpass
 ||mysql exited with code 1: mysql: [Warning] Using a password on the command line interface can be insecure.

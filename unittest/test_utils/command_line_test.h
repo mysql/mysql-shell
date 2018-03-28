@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -74,7 +74,7 @@ class Command_line_test : public Shell_base_test {
   std::string _output;
   std::mutex _output_mutex;
   int execute(const std::vector<const char *> &args,
-              const char *password = NULL);
+              const char *password = NULL, const char *input_file = nullptr);
 
   void send_ctrlc();
 };

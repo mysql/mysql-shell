@@ -37,7 +37,6 @@
 #include <ShlObj.h>
 #include <comdef.h>
 #include <direct.h>
-#define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
 #include <dirent.h>
 #include <errno.h>
@@ -559,37 +558,11 @@ void remove_directory(const std::string &path, bool recursive) {
 std::string get_last_error() {
 #ifdef WIN32
   DWORD dwCode = GetLastError();
-  LPTSTR lpMsgBuf;
-
-  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                    FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL, dwCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR)&lpMsgBuf, 0, NULL);
-  std::string msgerr = "SystemError: ";
-  msgerr += lpMsgBuf;
-  msgerr += "(code %d)";
-  std::string fmt = str_format(msgerr.c_str(), dwCode);
-  return fmt;
+  return "SystemError: " + last_error_to_string(dwCode) +
+         str_format(" (code %lu)", dwCode);
 #else
-  char sys_err[64];
   int errnum = errno;
-
-#if ((defined _POSIX_C_SOURCE && (_POSIX_C_SOURCE >= 200112L)) || \
-     (defined _XOPEN_SOURCE && (_XOPEN_SOURCE >= 600))) &&        \
-    !defined _GNU_SOURCE
-  int r = strerror_r(errno, sys_err, sizeof(sys_err));
-  (void)r;  // silence unused variable;
-#elif defined _GNU_SOURCE
-  const char *r = strerror_r(errno, sys_err, sizeof(sys_err));
-  (void)r;  // silence unused variable;
-#else
-  strerror_r(errno, sys_err, sizeof(sys_err));
-#endif
-
-  std::string s = sys_err;
-  s += " (errno %d)";
-  std::string fmt = str_format(s.c_str(), errnum);
-  return fmt;
+  return errno_to_string(errnum) + str_format(" (errno %d)", errnum);
 #endif
 }
 
@@ -621,9 +594,7 @@ bool load_text_file(const std::string &path, std::string &data) {
 std::string SHCORE_PUBLIC get_text_file(const std::string &path) {
   std::string data;
   if (!load_text_file(path, data)) {
-    char sys_err[64];
-    (void)strerror_r(errno, sys_err, sizeof(sys_err));
-    throw std::runtime_error(path + ": " + sys_err);
+    throw std::runtime_error(path + ": " + errno_to_string(errno));
   }
   return data;
 }
