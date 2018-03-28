@@ -73,3 +73,7 @@ target_link_libraries(mysqlshdk-static
           ${MYSQLX_LIBRARIES}
           ${PROTOBUF_LIBRARIES}
           ${SSL_LIBRARIES})
+
+if (NOT WIN32)
+  target_link_libraries(mysqlshdk-static util)
+endif()

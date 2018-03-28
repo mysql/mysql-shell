@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -551,5 +551,92 @@ TEST_F(ShellRunScript, py_stream) {
     MY_EXPECT_STDERR_CONTAINS("Exception");
   }
 }
+
+TEST_F(ShellExeRunScript, file_from_stdin) {
+  static const char *good_js_output = R"(1
+2
+3
+end)";
+
+  {
+    wipe_out();
+    int rc =
+        execute({_mysqlsh, _uri.c_str(), "--js", nullptr}, nullptr, "good.js");
+    // no error, exit code 0
+    EXPECT_EQ(0, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
+  }
+}
+
+#ifndef _WIN32
+// writing the password to terminal is not reliable on Windows, if someone
+// is using the keybord while the tests are running, it may mess up the input
+
+TEST_F(ShellExeRunScript, file_prompt_password) {
+  static const char *good_js_output = R"(1
+2
+3
+end)";
+
+  {
+    wipe_out();
+    int rc = execute(
+        {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
+        _pwd.c_str());
+    // no error, exit code 0
+    EXPECT_EQ(0, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
+  }
+
+  {
+    wipe_out();
+    std::string password_followed_by_whitespace = _pwd + " ";
+    int rc = execute(
+        {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
+        password_followed_by_whitespace.c_str());
+    // wrong password, exit code 1
+    EXPECT_EQ(1, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid user or password");
+  }
+
+  {
+    wipe_out();
+    std::string wrong_password = _pwd + "zaq12WSX";
+    int rc = execute(
+        {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
+        wrong_password.c_str());
+    // wrong password, exit code 1
+    EXPECT_EQ(1, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid user or password");
+  }
+}
+
+TEST_F(ShellExeRunScript, file_prompt_password_cancel) {
+  wipe_out();
+  int rc = execute(
+      {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
+      "pass\x03");
+  // cancelled, exit code 1
+  EXPECT_EQ(1, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Cancelled");
+}
+
+TEST_F(ShellExeRunScript, file_from_stdin_prompt_password) {
+  static const char *good_js_output = R"(1
+2
+3
+end)";
+
+  {
+    wipe_out();
+    int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), "--js", nullptr},
+                     _pwd.c_str(), "good.js");
+    // no error, exit code 0
+    EXPECT_EQ(0, rc);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
+  }
+}
+
+#endif  // ! _WIN32
 
 }  // namespace shellcore

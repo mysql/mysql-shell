@@ -146,18 +146,8 @@ void get_this_host_addresses(bool prefer_name,
   }
 
   if ((ret = GetIpAddrTable(addr_table, &size, 0)) != NO_ERROR) {
-    LPVOID msgbuf;
-
-    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL, ret, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR)&msgbuf, 0, NULL)) {
-      std::string tmp(static_cast<char *>(msgbuf));
-      LocalFree(msgbuf);
-      throw std::runtime_error(tmp);
-    }
-    throw std::runtime_error("Error on call to GetIpAddrTable()");
+    throw std::runtime_error("Error on call to GetIpAddrTable(): " +
+                             shcore::last_error_to_string(ret));
   }
 
   for (DWORD i = 0; i < addr_table->dwNumEntries; i++) {
@@ -404,13 +394,23 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
       closesocket(sock);
       return true;
     }
-    int err = errno;
+#ifdef _WIN32
+    const int err = WSAGetLastError();
+    const int connection_refused = WSAECONNREFUSED;
+#else
+    const int err = errno;
+    const int connection_refused = ECONNREFUSED;
+#endif
     closesocket(sock);
 
-    if (err == ECONNREFUSED) {
+    if (err == connection_refused) {
       return false;
     }
+#ifdef _WIN32
+    throw net_error(shcore::last_error_to_string(err));
+#else
     throw net_error(shcore::errno_to_string(err));
+#endif
   }
   throw std::runtime_error("Could not resolve address");
 }

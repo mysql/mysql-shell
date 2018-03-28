@@ -69,7 +69,6 @@ class Process {
     if (is_alive) {
       close();
     }
-    stop_output_reader();
   }
 
 #ifdef _WIN32
@@ -78,29 +77,6 @@ class Process {
 
   /** Launches the child process, and makes pipes available for read/write. */
   void start();
-
-  /**
-   * Starts threads for reading from stdout/stderr into a buffer.
-   * For use cases where stdin writing and stdout/err reading needs to happen
-   * concurrently (as opposed to writing to stdin and forgetting until the end).
-   *
-   * read* methods become non-blocking once this is called.
-   *
-   * Use has_output() to determine whether the read* can be called without
-   * blocking.
-   *
-   * Note: currently does not support separate reading from stderr.
-   */
-  void start_output_reader();
-
-  /*
-   * Returns true if there's stdout or stderr output from the process waiting
-   * to be read. Must be used in conjunction with start_output_reader().
-   *
-   * @param full_line if true, it will true only if a linebreak is in the read
-   *  buffer
-   */
-  bool has_output(bool full_line = false);
 
   /**
    * Reads a single line from stdout
@@ -118,15 +94,25 @@ class Process {
   int read(char *buf, size_t count);
 
   /**
-   * Writes several butes into stdin of child process.
+   * Writes several bytes into stdin of child process.
    * Returns an shcore::Exception in case of error when writing.
    */
   int write(const char *buf, size_t count);
 
   /**
-   * Close the stdin pipe to the child process.
+   * Writes bytes into terminal of the child process.
+   *
+   * This method is not available on Windows.
+   *
+   * @param buf Buffer containing bytes to be written.
+   * @param count Size of the buffer.
+   *
+   * @return Number of bytes written.
+   * @throws std::system_error in case of writing error.
+   * @throws std::logic_error if enable_child_terminal() was not called before
+   *         starting the child process
    */
-  void close_write_fd();
+  int write_to_terminal(const char *buf, size_t count);
 
   /**
    * Kills the child process.
@@ -159,63 +145,62 @@ class Process {
   int wait();
 
   /**
-   * Returns the file descriptor write handle (to write child's stdin).
-   * In Linux this needs to be cast to int, in Windows to cast to HANDLE.
+   * The given file is going to be used as standard input of the launched
+   * process. Needs to be called before starting the child process.
+   *
+   * @param input_file File to be redirected to standard input of the launched
+   *        process.
+   *
+   * @throws std::runtime_error if input file does not exist
+   * @throws std::logic_error if child process is already running
    */
-#ifdef _WIN32
-  HANDLE get_fd_write();
-#else
-  int get_fd_write();
-#endif
+  void redirect_file_to_stdin(const std::string &input_file);
 
   /**
-   * Returns the file descriptor read handle (to read child's stdout).
-   * In Linux this needs to be cast to int, in Windows to cast to HANDLE.
+   * Enables writing to child terminal using write_to_terminal(). Needs to be
+   * called before staring the process.
+   *
+   * This method is not available on Windows.
+   *
+   * @throws std::logic_error if child process is already running
    */
-#ifdef _WIN32
-  HANDLE get_fd_read();
-#else
-  int get_fd_read();
-#endif
+  void enable_child_terminal();
 
   /** Perform Windows specific quoting of args and build a command line */
   static std::string make_windows_cmdline(const char *const *argv);
 
  private:
-  /**
-   * Throws an exception with the specified message, if msg == NULL, the
-   * exception's message is specific of the platform error. (errno in Linux /
-   * GetLastError in Windows).
-   */
-  void report_error(const char *msg);
   /** Closes child process */
   void close();
+
+  int do_read(char *buf, size_t count);
+
+  bool is_write_allowed() const;
+
+  void ensure_write_is_allowed() const;
 
   const char *const *argv;
   bool is_alive;
 #ifdef WIN32
-  HANDLE child_in_rd;
-  HANDLE child_in_wr;
-  HANDLE child_out_rd;
-  HANDLE child_out_wr;
+  HANDLE child_in_rd = nullptr;
+  HANDLE child_in_wr = nullptr;
+  HANDLE child_out_rd = nullptr;
+  HANDLE child_out_wr = nullptr;
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
   bool create_process_group = false;
 #else
   pid_t childpid;
-  int fd_in[2];
-  int fd_out[2];
+  int fd_in[2] = {-1, -1};
+  int fd_out[2] = {-1, -1};
+  int m_master_device = -1;
+  bool m_use_pseudo_tty = false;
 #endif
-  std::unique_ptr<std::thread> _reader_thread;
-  std::mutex _read_buffer_mutex;
-  std::deque<char> _read_buffer;
   int _pstatus = 0;
   bool _wait_pending = false;
   bool redirect_stderr;
 
-  void stop_output_reader();
-
-  int do_read(char *buf, size_t count);
+  std::string m_input_file;
 };
 
 using Process_launcher = Process;

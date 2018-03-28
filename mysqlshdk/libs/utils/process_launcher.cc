@@ -38,8 +38,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <unistd.h>
 #endif
 
@@ -47,7 +49,134 @@
 #include <sys/prctl.h>
 #endif
 
-#include "mysqlshdk/libs/utils/utils_string.h"
+// openpty():
+#ifdef __FreeBSD__
+#include <libutil.h>
+#elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
+#include <util.h>
+#elif !defined(WIN32)
+#include <pty.h>
+#endif
+
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+
+namespace {
+
+/**
+ * Throws an exception with the specified message, if msg == NULL, the
+ * exception's message is specific of the platform error. (errno in Linux /
+ * GetLastError in Windows).
+ */
+void report_error(const char *msg) {
+#ifdef WIN32
+  DWORD error_code = GetLastError();
+#else
+  int error_code = errno;
+#endif
+
+  if (msg == nullptr) {
+    throw std::system_error(error_code, std::generic_category(),
+                            shcore::get_last_error());
+  } else {
+    throw std::system_error(error_code, std::generic_category(), msg);
+  }
+}
+
+#ifndef WIN32
+
+int write_fd(int fd, const char *buf, size_t count) {
+  int n;
+  if ((n = ::write(fd, buf, count)) >= 0) return n;
+  if (errno == EPIPE) return 0;
+  report_error(NULL);
+  return -1;
+}
+
+void change_controlling_terminal(int new_ctty) {
+  // detach from current controlling terminal (if there's one)
+  int fd = open("/dev/tty", O_RDWR | O_NOCTTY);
+
+  if (fd >= 0) {
+    if (ioctl(fd, TIOCNOTTY, 0) < 0) {
+      report_error("ioctl(TIOCNOTTY)");
+    }
+
+    ::close(fd);
+  }
+
+  // move process to a new session
+  if (setsid() < 0) {
+    // EPERM means process was already a session leader - not an error;
+    if (EPERM != errno) {
+      report_error("setsid()");
+    }
+  }
+
+  // make sure there is no controlling terminal
+  fd = open("/dev/tty", O_RDWR | O_NOCTTY);
+  if (fd >= 0) {
+    ::close(fd);
+    report_error("Process should not have controlling terminal");
+  }
+
+  // make pseudo terminal the new controlling terminal
+  if (ioctl(new_ctty, TIOCSCTTY, 0) < 0) {
+    report_error("ioctl(TIOCSCTTY)");
+  }
+
+  char device_name[255];
+
+  if (ttyname_r(new_ctty, device_name, sizeof(device_name)) != 0) {
+    report_error("ttyname_r()");
+  }
+
+  // open tty, this will also set the controlling terminal
+  fd = open(device_name, O_RDONLY);
+  if (fd < 0) {
+    report_error("open() slave by name");
+  } else {
+    ::close(fd);
+  }
+
+  // verify if everything's OK
+  fd = open("/dev/tty", O_RDONLY | O_NOCTTY);
+  if (fd < 0) {
+    report_error("open() controlling terminal");
+  } else {
+    ::close(fd);
+  }
+}
+
+void redirect_fd(int from, int to) {
+  while (dup2(from, to) == -1) {
+    if (errno == EINTR)
+      continue;
+    else
+      report_error("redirect_fd()");
+  }
+}
+
+void redirect_input_output(int fd_in[2], int fd_out[2], bool redirect_stderr) {
+  // connect pipes to stdin, stdout and stderr
+  ::close(fd_out[0]);
+  ::close(fd_in[1]);
+
+  redirect_fd(fd_out[1], STDOUT_FILENO);
+
+  if (redirect_stderr) {
+    redirect_fd(fd_out[1], STDERR_FILENO);
+  }
+
+  redirect_fd(fd_in[0], STDIN_FILENO);
+
+  fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
+  fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
+}
+
+#endif
+
+}  // namespace
 
 namespace shcore {
 
@@ -111,41 +240,28 @@ std::string Process::make_windows_cmdline(const char *const *argv) {
   return cmd;
 }
 
-void Process::start_output_reader() {
-  if (_reader_thread)
-    throw std::logic_error("start_output_reader() was already called");
+bool Process::is_write_allowed() const { return m_input_file.empty(); }
 
-  _reader_thread.reset(new std::thread([this]() {
-    char c;
-    try {
-      while (do_read(&c, 1) > 0) {
-        std::lock_guard<std::mutex> lock(_read_buffer_mutex);
-        _read_buffer.push_back(c);
-      }
-    } catch (std::system_error) {
-    }
-  }));
-}
-
-void Process::stop_output_reader() {
-  if (_reader_thread) {
-    // This function is supposed to be called after close() kills the process
-    _reader_thread->join();
-    _reader_thread.reset();
+void Process::ensure_write_is_allowed() const {
+  if (!is_write_allowed()) {
+    throw std::logic_error(
+        "Writing is not allowed as process is using file "
+        "for input");
   }
 }
 
-bool Process::has_output(bool full_line) {
-  if (!_reader_thread)
-    throw std::logic_error("start_output_reader() must be called first");
-
-  std::lock_guard<std::mutex> lock(_read_buffer_mutex);
-  if (full_line) {
-    return (std::find(_read_buffer.begin(), _read_buffer.end(), '\n') !=
-            _read_buffer.end());
-  } else {
-    return !_read_buffer.empty();
+void Process::redirect_file_to_stdin(const std::string &input_file) {
+  if (is_alive) {
+    throw std::logic_error(
+        "This method needs to be called before starting "
+        "the child process.");
   }
+
+  if (!shcore::file_exists(input_file)) {
+    throw std::runtime_error(input_file + ": Input file does not exist");
+  }
+
+  m_input_file = input_file;
 }
 
 #ifdef WIN32
@@ -167,11 +283,19 @@ void Process::start() {
   DWORD mode = PIPE_NOWAIT;
   // BOOL res = SetNamedPipeHandleState(child_out_rd, &mode, NULL, NULL);
 
-  if (!CreatePipe(&child_in_rd, &child_in_wr, &saAttr, 0))
-    report_error("Failed to create child_in_rd");
+  if (is_write_allowed()) {
+    if (!CreatePipe(&child_in_rd, &child_in_wr, &saAttr, 0))
+      report_error("Failed to create child_in pipe");
 
-  if (!SetHandleInformation(child_in_wr, HANDLE_FLAG_INHERIT, 0))
-    report_error("Failed to created child_in_wr");
+    if (!SetHandleInformation(child_in_wr, HANDLE_FLAG_INHERIT, 0))
+      report_error("Failed to disable inheritance of child_in_wr");
+  } else {
+    child_in_rd = CreateFile(m_input_file.c_str(), GENERIC_READ, 0, &saAttr,
+                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (INVALID_HANDLE_VALUE == child_in_rd) {
+      report_error("CreateFile(m_input_file)");
+    }
+  }
 
   // Create Process
   std::string cmd = make_windows_cmdline(argv);
@@ -269,7 +393,7 @@ void Process::close() {
   if (!CloseHandle(pi.hProcess)) report_error(NULL);
   if (!CloseHandle(pi.hThread)) report_error(NULL);
 
-  if (!CloseHandle(child_out_rd)) report_error(NULL);
+  if (child_out_rd && !CloseHandle(child_out_rd)) report_error(NULL);
   if (child_in_wr && !CloseHandle(child_in_wr)) report_error(NULL);
 
   is_alive = false;
@@ -293,6 +417,8 @@ int Process::do_read(char *buf, size_t count) {
 }
 
 int Process::write(const char *buf, size_t count) {
+  ensure_write_is_allowed();
+
   DWORD dwBytesWritten;
   BOOL bSuccess = FALSE;
   bSuccess = WriteFile(child_in_wr, buf, count, &dwBytesWritten, NULL);
@@ -306,46 +432,46 @@ int Process::write(const char *buf, size_t count) {
   return 0;  // so the compiler does not cry
 }
 
-void Process::close_write_fd() {
-  if (child_in_wr) CloseHandle(child_in_wr);
-  child_in_wr = 0;
+void Process::enable_child_terminal() {
+  throw std::runtime_error("This method is not available on Windows.");
 }
 
-void Process::report_error(const char *msg) {
-  DWORD dwCode = GetLastError();
-  LPTSTR lpMsgBuf;
-
-  if (msg != NULL) {
-    throw std::system_error(dwCode, std::generic_category(), msg);
-  } else {
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                      FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL, dwCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR)&lpMsgBuf, 0, NULL);
-    std::string msgerr = "SystemError: ";
-    msgerr += lpMsgBuf;
-    msgerr += " with error code %d.";
-    std::string fmt = str_format(msgerr.c_str(), dwCode);
-    throw std::system_error(dwCode, std::generic_category(), fmt);
-  }
+int Process::write_to_terminal(const char *buf, size_t count) {
+  throw std::runtime_error("This method is not available on Windows.");
 }
-
-HANDLE Process::get_fd_write() { return child_in_wr; }
-
-HANDLE Process::get_fd_read() { return child_out_rd; }
 
 #else  // !WIN32
 
 void Process::start() {
   assert(!is_alive);
 
-  if (pipe(fd_in) < 0) {
-    report_error(NULL);
+  if (is_write_allowed()) {
+    if (pipe(fd_in) < 0) {
+      report_error("pipe(fd_in)");
+    }
+  } else {
+    fd_in[0] = open(m_input_file.c_str(), O_RDONLY);
   }
+
   if (pipe(fd_out) < 0) {
     ::close(fd_in[0]);
     ::close(fd_in[1]);
-    report_error(NULL);
+    report_error("pipe(fd_out)");
+  }
+
+  int slave_device = 0;
+
+  if (m_use_pseudo_tty) {
+    // create pseudo terminal which is going to be used as controlling terminal
+    // of the new process
+    if (openpty(&m_master_device, &slave_device, nullptr, nullptr, nullptr) <
+        0) {
+      ::close(fd_in[0]);
+      ::close(fd_in[1]);
+      ::close(fd_out[0]);
+      ::close(fd_out[1]);
+      report_error("openpty()");
+    }
   }
 
   childpid = fork();
@@ -354,7 +480,9 @@ void Process::start() {
     ::close(fd_in[1]);
     ::close(fd_out[0]);
     ::close(fd_out[1]);
-    report_error(NULL);
+    ::close(m_master_device);
+    ::close(slave_device);
+    report_error("fork()");
   }
 
   if (childpid == 0) {
@@ -362,38 +490,29 @@ void Process::start() {
     prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
 
-    ::close(fd_out[0]);
-    ::close(fd_in[1]);
-    while (dup2(fd_out[1], STDOUT_FILENO) == -1) {
-      if (errno == EINTR)
-        continue;
-      else
-        report_error(NULL);
-    }
+    try {
+      if (m_use_pseudo_tty) {
+        change_controlling_terminal(slave_device);
 
-    if (redirect_stderr) {
-      while (dup2(fd_out[1], STDERR_FILENO) == -1) {
-        if (errno == EINTR)
-          continue;
-        else
-          report_error(NULL);
+        // close the file descriptors, they're not needed anymore
+        ::close(m_master_device);
+        ::close(slave_device);
       }
-    }
-    while (dup2(fd_in[0], STDIN_FILENO) == -1) {
-      if (errno == EINTR)
-        continue;
-      else
-        report_error(NULL);
-    }
 
-    fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
-    fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
+      redirect_input_output(fd_in, fd_out, redirect_stderr);
+    } catch (std::exception &e) {
+      fprintf(stderr, "Exception while preparing the child process: %s\n",
+              e.what());
+      fflush(stderr);
+      exit(128);
+    }
 
     execvp(argv[0], (char *const *)argv);
 
     int my_errno = errno;
     fprintf(stderr, "%s could not be executed: %s (errno %d)\n", argv[0],
             strerror(my_errno), my_errno);
+    fflush(stderr);
 
     // we need to identify an ENOENT and since some programs return 2 as
     // exit-code we need to return a non-existent code, 128 is a general
@@ -405,6 +524,23 @@ void Process::start() {
   } else {
     ::close(fd_out[1]);
     ::close(fd_in[0]);
+
+    if (m_use_pseudo_tty) {
+      ::close(slave_device);
+
+#ifdef __APPLE__
+      // need to drain output from controlling terminal, otherwise launched
+      // process will hang on exit
+      int master_fd = m_master_device;
+      std::thread{[master_fd]() {
+        char c;
+        while (::read(master_fd, &c, 1) > 0)
+          ;
+      }}
+          .detach();
+#endif  // __APPLE__
+    }
+
     is_alive = true;
     _wait_pending = true;
   }
@@ -414,6 +550,7 @@ void Process::close() {
   is_alive = false;
   ::close(fd_out[0]);
   if (fd_in[1] >= 0) ::close(fd_in[1]);
+  ::close(m_master_device);
 
   if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH) report_error(NULL);
   if (errno != ESRCH) {
@@ -435,30 +572,29 @@ int Process::do_read(char *buf, size_t count) {
 }
 
 int Process::write(const char *buf, size_t count) {
-  int n;
-  if ((n = ::write(fd_in[1], buf, count)) >= 0) return n;
-  if (errno == EPIPE) return 0;
-  report_error(NULL);
-  return -1;
+  ensure_write_is_allowed();
+
+  return write_fd(fd_in[1], buf, count);
 }
 
-void Process::close_write_fd() {
-  if (fd_in[1] >= 0) ::close(fd_in[1]);
-  fd_in[1] = -1;
-}
-
-void Process::report_error(const char *msg) {
-  char sys_err[128];
-  int errnum = errno;
-  if (msg == NULL) {
-    strerror_r(errno, sys_err, sizeof(sys_err));
-    std::string s = sys_err;
-    s += " with errno %d.";
-    std::string fmt = str_format(s.c_str(), errnum);
-    throw std::system_error(errnum, std::generic_category(), fmt);
-  } else {
-    throw std::system_error(errnum, std::generic_category(), msg);
+void Process::enable_child_terminal() {
+  if (is_alive) {
+    throw std::logic_error(
+        "This method needs to be called before starting "
+        "the child process.");
   }
+
+  m_use_pseudo_tty = true;
+}
+
+int Process::write_to_terminal(const char *buf, size_t count) {
+  if (!m_use_pseudo_tty) {
+    throw std::logic_error(
+        "Call enable_child_terminal() before calling this "
+        "method.");
+  }
+
+  return write_fd(m_master_device, buf, count);
 }
 
 pid_t Process::get_pid() { return childpid; }
@@ -498,25 +634,11 @@ int Process::wait() {
     return WTERMSIG(_pstatus) + 128;
 }
 
-int Process::get_fd_write() { return fd_in[1]; }
-
-int Process::get_fd_read() { return fd_out[0]; }
-
 #endif  // !_WIN32
 
 void Process::kill() { close(); }
 
-int Process::read(char *buf, size_t count) {
-  if (_reader_thread) {
-    std::lock_guard<std::mutex> lock(_read_buffer_mutex);
-    count = std::min(_read_buffer.size(), count);
-    std::copy(_read_buffer.begin(), _read_buffer.begin() + count, buf);
-    _read_buffer.erase(_read_buffer.begin(), _read_buffer.begin() + count);
-    return static_cast<int>(count);
-  } else {
-    return do_read(buf, count);
-  }
-}
+int Process::read(char *buf, size_t count) { return do_read(buf, count); }
 
 std::string Process::read_line(bool *eof) {
   std::string s;

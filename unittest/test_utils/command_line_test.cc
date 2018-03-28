@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #endif
 #include <system_error>
 #include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace tests {
@@ -48,7 +49,7 @@ void Command_line_test::SetUp() {
  *
  */
 int Command_line_test::execute(const std::vector<const char *> &args,
-                               const char *password) {
+                               const char *password, const char *input_file) {
   // There MUST be arguments (at least _mysqlsh, and the last must be NULL
   assert(args.size() > 0);
   assert(args[args.size() - 1] == NULL);
@@ -63,9 +64,21 @@ int Command_line_test::execute(const std::vector<const char *> &args,
               << "\n";
   }
 
+  bool needs_child_terminal =
+      password &&
+      std::find_if(args.begin(), args.end(), [](const char *value) -> bool {
+        return value && 0 == strcmp(value, "--passwords-from-stdin");
+      }) == args.end();
+
   {
     std::lock_guard<std::mutex> lock(_process_mutex);
     _process = new shcore::Process_launcher(&args[0]);
+    if (input_file) {
+      _process->redirect_file_to_stdin(input_file);
+    }
+    if (needs_child_terminal) {
+      _process->enable_child_terminal();
+    }
   }
 #ifdef _WIN32
   _process->set_create_process_group();
@@ -77,9 +90,17 @@ int Command_line_test::execute(const std::vector<const char *> &args,
     // The password should be provided when it is expected that the Shell
     // will prompt for it, in such case, we give it on the stdin
     if (password) {
+      // sleep before providing a password
+      shcore::sleep_ms(500);
+
       std::string pwd(password);
       pwd.append("\n");
-      _process->write(pwd.c_str(), pwd.size());
+
+      if (needs_child_terminal) {
+        _process->write_to_terminal(pwd.c_str(), pwd.size());
+      } else {
+        _process->write(pwd.c_str(), pwd.size());
+      }
     }
 
     // Reads all produced output, until stdout is closed
