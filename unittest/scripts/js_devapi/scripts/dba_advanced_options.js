@@ -48,6 +48,15 @@ function stop_sandbox(port) {
 
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
+//BUG#27758041: SHELL PICKS RANDOM PORTS IF GR LOCAL ADDRESS PORT IS BUSY
+//@ Create cluster fails because port default GR local address port is already in use. {!__replaying}
+var __busy_port = __mysql_sandbox_port1 * 10 + 1;
+var __valid_portx = (__mysql_sandbox_port1 * 10 + 9).toString();
+testutil.deploySandbox(__busy_port, "root", {"loose_mysqlx_port": __valid_portx});
+var cluster = dba.createCluster('test');
+// Free "busy" port before continuing with the test (otherwise it will fail).
+testutil.destroySandbox(__busy_port);
+
 //@ Create cluster errors using localAddress option
 // FR1-TS-1-5 (GR issues an error if the hostname or IP address is invalid)
 var c = dba.createCluster('test', {localAddress: "1a"});

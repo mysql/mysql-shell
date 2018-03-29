@@ -153,7 +153,7 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
     :param server_port: The port that the MySQL server is using.
     :type server_port:  string
 
-    :raise GadgetError:  If could not found a free port.
+    :raise GadgetError:  If the local address port is not valid or not free.
 
     :return: A tuple with host and port.
     :rtype:  tuple
@@ -177,14 +177,11 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
             # Raise an error if the specified port part is invalid.
             raise GadgetError(
                 _ERROR_INVALID_LOCAL_ADDRESS_PORT.format(local_port))
-        else:
-            is_port_specified = True
 
     # Try to get the port only
     elif gr_host.isdigit():
         local_port = gr_host
         gr_host = server_host
-        is_port_specified = True
         # Raise an error if the specified port is invalid (out of range).
         if int(local_port) <= 0 or int(local_port) > 65535:
             raise GadgetError(
@@ -203,25 +200,9 @@ def resolve_gr_local_address(gr_host, server_host, server_port):
         # gr_host is host address
 
     # verify the port is not in use.
-    tries = 1
-    port_found = False
-    while tries < 5 and not port_found:
-        tries += 1
-        if not is_listening(server_host, int(local_port)):
-            port_found = True
-        else:
-            if is_port_specified:
-                raise GadgetError(
-                    _ERROR_LOCAL_ADDRESS_PORT_IN_USE.format(local_port))
-            else:
-                local_port = str(random.randint(10000, 65535))
-
-    if not port_found:
-        raise GadgetError("Unable to find an available port on which the "
-                          "member will expose itself to be contacted by the "
-                          "other members of the group. Specify an available "
-                          "port to be used with localAddress option or free "
-                          "port {0}.".format(str(int(server_port) * 10 + 1)))
+    if is_listening(server_host, int(local_port)):
+        raise GadgetError(
+            _ERROR_LOCAL_ADDRESS_PORT_IN_USE.format(local_port))
 
     return gr_host, local_port
 

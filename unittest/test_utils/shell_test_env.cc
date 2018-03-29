@@ -390,6 +390,7 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
+    _replaying = true;
     // Some environmental or random data can change between recording and
     // replay time. Such data must be ensured to match between both.
     try {

@@ -160,6 +160,13 @@ class Auto_script_js : public Shell_js_script_tester,
 
     code = "var __system_user = '" + shcore::get_system_user() + "';";
     exec_and_out_equals(code);
+
+    if (_replaying)
+      code = "var __replaying = true;";
+    else
+    code = "var __replaying = false;";
+    exec_and_out_equals(code);
+
   }
 };
 

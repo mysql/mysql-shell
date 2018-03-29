@@ -168,6 +168,7 @@ class Shell_test_env : public ::testing::Test {
   std::string _current_entry_point;
   std::vector<std::string> _current_entry_point_stacktrace;
   bool _recording_enabled = false;
+  bool _replaying = false;
 
   std::map<std::string, std::string>
       _output_tokens;  //!< Tokens for string resolution

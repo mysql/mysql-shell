@@ -225,6 +225,12 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     code =
         "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
     exec_and_out_equals(code);
+
+    if (_replaying)
+      code = "var __replaying = true;";
+    else
+      code = "var __replaying = false;";
+    exec_and_out_equals(code);
   }
 
   virtual void validate_interactive(const std::string &f) {
