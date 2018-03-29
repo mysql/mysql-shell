@@ -502,6 +502,12 @@ static PySequenceMethods PyShObject_as_sequence =
   0  // ssizeargfunc sq_inplace_repeat;
 };
 
+static PyMappingMethods PyShObjMappingMethods = {
+  (lenfunc)NULL,   // PyMappingMethods.mp_length
+  (getattrofunc)object_getattro,   // PyMappingMethods.mp_subscript
+  (setattrofunc)object_setattro,   // PyMappingMethods.mp_ass_subscript
+};
+
 static PyTypeObject PyShObjObjectType =
 {
   PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
@@ -522,7 +528,7 @@ static PyTypeObject PyShObjObjectType =
 
   0,  // PyNumberMethods *tp_as_number;
   0,  // PySequenceMethods *tp_as_sequence;
-  0,  //  PyMappingMethods *tp_as_mapping;
+  &PyShObjMappingMethods,  //  PyMappingMethods *tp_as_mapping;
 
   /* More standard operations (here for binary compatibility) */
 

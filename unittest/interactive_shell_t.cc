@@ -1828,6 +1828,18 @@ TEST_F(Interactive_shell_test, reconnect_command) {
 }
 
 TEST_F(Interactive_shell_test, mod_shell_options) {
+  execute("\\py");
+  ASSERT_TRUE(_options->wizards);
+  execute("shell.options[\"useWizards\"]");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_NE(std::string::npos, output_handler.std_out.find("true"));
+
+  execute("shell.options[\"useWizards\"] = False");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_FALSE(_options->wizards);
+  _options->wizards = true;
+  wipe_all();
+
   execute("\\js");
   wipe_all();
 
