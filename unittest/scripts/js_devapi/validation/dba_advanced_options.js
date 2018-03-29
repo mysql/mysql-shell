@@ -1,6 +1,9 @@
 //@ Initialization
 ||
 
+//@ Create cluster fails because port default GR local address port is already in use. {!__replaying}
+||Dba.createCluster: ERROR: Error starting cluster: The port '<<<__busy_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__busy_port>>>'. (RuntimeError)
+
 //@ Create cluster errors using localAddress option
 ||ERROR: Error starting cluster: '<<<localhost>>>:<<<__mysql_sandbox_port1>>>'
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)

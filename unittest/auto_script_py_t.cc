@@ -138,6 +138,12 @@ class Auto_script_py : public Shell_py_script_tester,
 
     code = "__system_user = '" + shcore::get_system_user() + "';";
     exec_and_out_equals(code);
+
+    if (_replaying)
+      code = "__replaying = True;";
+    else
+      code = "__replaying = False;";
+    exec_and_out_equals(code);
   }
 };
 
