@@ -1,8 +1,8 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2157","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"35","connection_info":"localhost via TCP/IP","server_info":"8.0.11","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2277","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"35","connection_info":"localhost via TCP/IP","server_info":"8.0.11-commercial","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT member_id FROM performance_schema.replication_group_members"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"performance_schema","table_name":"replication_group_members","table_label":"replication_group_members","column_name":"MEMBER_ID","column_label":"member_id","length":144,"fractional":0,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":true}],"rows":[["abbd0b25-31d4-11e8-a9b2-0010e08a7b78"],["ac9833d3-31d4-11e8-ba49-0010e08a7b78"]]},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"performance_schema","table_name":"replication_group_members","table_label":"replication_group_members","column_name":"MEMBER_ID","column_label":"member_id","length":144,"fractional":0,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":true}],"rows":[["4c40a658-377c-11e8-8a68-0010e08a7b78"],["4de359de-377c-11e8-9fed-0010e08a7b78"]]},
 {"type":"request","subtype":"CLOSE","index":5},
 {"type":"response","subtype":"OK","index":6},
 null]

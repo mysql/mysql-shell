@@ -532,7 +532,6 @@ int main(int argc, char **argv) {
   bool listing_tests = false;
   bool show_all_skipped = false;
   bool got_filter = false;
-  std::string target_version = g_target_server_version.get_base();
   std::string tracedir;
   std::string target;
 
