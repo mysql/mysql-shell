@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "87",
+    "connection_id": "86",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
@@ -403,7 +403,7 @@
         ],
         [
             "group_replication_group_name",
-            "1933fd88-2de7-11e8-a06c-b86b230042b9"
+            "c8f3a80c-3970-11e8-aa2c-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -499,7 +499,7 @@
         ],
         [
             "gtid_executed",
-            "1933fd88-2de7-11e8-a06c-b86b230042b9:1-19,\ncd59deba-2de6-11e8-a06c-b86b230042b9:1-26,\nd4cf60d0-2de6-11e8-a06c-b86b230042b9:1-19,\nf6247730-2de6-11e8-a06c-b86b230042b9:1-19"
+            "83677c19-3970-11e8-aa2c-34028662c087:1-26,\n86906c9c-3970-11e8-aa2c-34028662c087:1-19,\na7a521bc-3970-11e8-aa2c-34028662c087:1-19,\nc8f3a80c-3970-11e8-aa2c-34028662c087:1-19"
         ],
         [
             "gtid_executed_compression_period",
@@ -2003,7 +2003,7 @@
         ],
         [
             "server_uuid",
-            "cf912b60-2de6-11e8-a396-b86b230042b9"
+            "841332c6-3970-11e8-ad5a-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2243,7 +2243,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3117,7 +3117,7 @@
             36937,
             "",
             "",
-            "1933fd88-2de7-11e8-a06c-b86b230042b9:1-19,\ncd59deba-2de6-11e8-a06c-b86b230042b9:1-26,\nd4cf60d0-2de6-11e8-a06c-b86b230042b9:1-19,\nf6247730-2de6-11e8-a06c-b86b230042b9:1-19"
+            "83677c19-3970-11e8-aa2c-34028662c087:1-26,\n86906c9c-3970-11e8-aa2c-34028662c087:1-19,\na7a521bc-3970-11e8-aa2c-34028662c087:1-19,\nc8f3a80c-3970-11e8-aa2c-34028662c087:1-19"
         ]
     ]
 },
@@ -3286,7 +3286,7 @@
     "rows": [
         [
             "server_uuid",
-            "cf912b60-2de6-11e8-a396-b86b230042b9"
+            "841332c6-3970-11e8-ad5a-34028662c087"
         ]
     ]
 },

@@ -403,7 +403,7 @@
         ],
         [
             "group_replication_group_name",
-            "9fcd8d51-2deb-11e8-aa2d-b86b230042b9"
+            "e7ee5731-3974-11e8-ab59-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -499,7 +499,7 @@
         ],
         [
             "gtid_executed",
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9:1-20,\n9fcd8d51-2deb-11e8-aa2d-b86b230042b9:1-3"
+            "e4ee658f-3974-11e8-ab59-34028662c087:1-20,\ne7ee5731-3974-11e8-ab59-34028662c087:1-3"
         ],
         [
             "gtid_executed_compression_period",
@@ -2003,7 +2003,7 @@
         ],
         [
             "server_uuid",
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9"
+            "e4ee658f-3974-11e8-ab59-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2243,7 +2243,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2487,7 +2487,7 @@
             14855,
             "",
             "",
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9:1-20,\n9fcd8d51-2deb-11e8-aa2d-b86b230042b9:1-3"
+            "e4ee658f-3974-11e8-ab59-34028662c087:1-20,\ne7ee5731-3974-11e8-ab59-34028662c087:1-3"
         ]
     ]
 },
@@ -2656,7 +2656,7 @@
     "rows": [
         [
             "server_uuid",
-            "9b0b3e23-2deb-11e8-aa2d-b86b230042b9"
+            "e4ee658f-3974-11e8-ab59-34028662c087"
         ]
     ]
 },

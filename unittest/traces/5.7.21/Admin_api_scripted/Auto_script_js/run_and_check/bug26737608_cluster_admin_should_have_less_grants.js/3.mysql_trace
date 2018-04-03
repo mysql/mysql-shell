@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -1973,7 +1973,7 @@
         ],
         [
             "server_uuid",
-            "feae5345-2dc6-11e8-b192-b86b230042b9"
+            "741889c6-3926-11e8-9ad5-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2213,7 +2213,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2576,11 +2576,6 @@
     ],
     "rows": [
         [
-            "DELETE",
-            "YES",
-            "mysql"
-        ],
-        [
             "SELECT",
             "YES",
             "mysql"
@@ -2596,29 +2591,9 @@
             "mysql"
         ],
         [
-            "SHOW VIEW",
+            "DELETE",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "SELECT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "TRIGGER",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "UPDATE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "CREATE",
@@ -2682,6 +2657,31 @@
         ],
         [
             "EXECUTE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SHOW VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "TRIGGER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "UPDATE",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "27",
+    "connection_id": "28",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "f41daa58-2de9-11e8-91ba-b86b230042b9"
+            "5dbbf5b2-3973-11e8-8bfd-34028662c087"
         ]
     ]
 },
@@ -245,7 +245,7 @@
     ],
     "rows": [
         [
-            "f41daa58-2de9-11e8-91ba-b86b230042b9"
+            "5dbbf5b2-3973-11e8-8bfd-34028662c087"
         ]
     ]
 },

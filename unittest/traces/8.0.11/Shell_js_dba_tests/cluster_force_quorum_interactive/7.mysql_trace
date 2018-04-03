@@ -79,7 +79,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -1615,7 +1615,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -1927,7 +1927,7 @@
         ],
         [
             "server_uuid",
-            "11bf60c3-2cfc-11e8-b7a6-b86b230042b9"
+            "8367fff1-3916-11e8-aa10-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2183,7 +2183,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3286,7 +3286,7 @@
     "rows": [
         [
             "server_uuid",
-            "11bf60c3-2cfc-11e8-b7a6-b86b230042b9"
+            "8367fff1-3916-11e8-aa10-34028662c087"
         ]
     ]
 },

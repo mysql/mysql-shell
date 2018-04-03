@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "80",
+    "connection_id": "79",
     "connection_info": "tecra via TCP/IP",
     "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",

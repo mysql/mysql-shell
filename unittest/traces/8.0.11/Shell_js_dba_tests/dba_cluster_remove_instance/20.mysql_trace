@@ -585,7 +585,7 @@
         ],
         [
             "group_replication_group_name",
-            "0e59e951-2cfa-11e8-adc4-b86b230042b9"
+            "732f7c90-3914-11e8-b105-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -689,7 +689,7 @@
         ],
         [
             "gtid_executed",
-            "06ed00eb-2cfa-11e8-adc4-b86b230042b9:1-14,\n0e59e951-2cfa-11e8-adc4-b86b230042b9:1-27"
+            "6ae8450e-3914-11e8-b105-34028662c087:1-14,\n732f7c90-3914-11e8-b105-34028662c087:1-27"
         ],
         [
             "gtid_executed_compression_period",
@@ -1905,7 +1905,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2217,7 +2217,7 @@
         ],
         [
             "server_uuid",
-            "06ed00eb-2cfa-11e8-adc4-b86b230042b9"
+            "6ae8450e-3914-11e8-b105-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2473,7 +2473,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3423,10 +3423,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            22639,
+            22514,
             "",
             "",
-            "06ed00eb-2cfa-11e8-adc4-b86b230042b9:1-14,\n0e59e951-2cfa-11e8-adc4-b86b230042b9:1-27"
+            "6ae8450e-3914-11e8-b105-34028662c087:1-14,\n732f7c90-3914-11e8-b105-34028662c087:1-27"
         ]
     ]
 },
@@ -3517,7 +3517,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '+.K~4+J3y^f&}~^,].T4t~|{?&_c<,D]' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '|/U^{-6X9p3+*:o%L,@_f(?/|%$m-D:<' /*)*/ "
 },
 {
     "type": "response",
@@ -3532,7 +3532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '+.K~4+J3y^f&}~^,].T4t~|{?&_c<,D]' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '|/U^{-6X9p3+*:o%L,@_f(?/|%$m-D:<' /*)*/ "
 },
 {
     "type": "response",
@@ -3920,7 +3920,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 3, '06ed00eb-2cfa-11e8-adc4-b86b230042b9', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 3, '6ae8450e-3914-11e8-b105-34028662c087', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
@@ -4013,7 +4013,7 @@
     ],
     "rows": [
         [
-            "06ed00eb-2cfa-11e8-adc4-b86b230042b9",
+            "6ae8450e-3914-11e8-b105-34028662c087",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4054,7 +4054,7 @@
     ],
     "rows": [
         [
-            "2abe84d1-2cfa-11e8-adc4-b86b230042b9"
+            "8fa17a5a-3914-11e8-b105-34028662c087"
         ]
     ]
 },
@@ -4062,7 +4062,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '2abe84d1-2cfa-11e8-adc4-b86b230042b9') WHERE replicaset_id = 3"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '8fa17a5a-3914-11e8-b105-34028662c087') WHERE replicaset_id = 3"
 },
 {
     "type": "response",

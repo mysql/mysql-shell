@@ -71,7 +71,7 @@
         ],
         [
             "auto_increment_offset",
-            "5"
+            "3"
         ],
         [
             "autocommit",
@@ -1863,7 +1863,7 @@
         ],
         [
             "server_uuid",
-            "ad392655-2d19-11e8-92f8-b86b230042b9"
+            "9f4a8104-3922-11e8-9b9d-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2103,7 +2103,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3142,7 +3142,7 @@
     "rows": [
         [
             "server_uuid",
-            "ad392655-2d19-11e8-92f8-b86b230042b9"
+            "9f4a8104-3922-11e8-9b9d-34028662c087"
         ]
     ]
 },

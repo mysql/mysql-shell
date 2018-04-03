@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "44",
+    "connection_id": "45",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
@@ -233,8 +233,8 @@
     ],
     "rows": [
         [
-            "4c3ee91c-2c5f-11e8-adc3-b86b230042b9",
-            "4c3ee91c-2c5f-11e8-adc3-b86b230042b9"
+            "0b6eb407-38fb-11e8-a09c-b86b230042b9",
+            "0b6eb407-38fb-11e8-a09c-b86b230042b9"
         ]
     ]
 },
@@ -242,7 +242,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 15,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4c3ee91c-2c5f-11e8-adc3-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '0b6eb407-38fb-11e8-a09c-b86b230042b9'"
 },
 {
     "type": "response",

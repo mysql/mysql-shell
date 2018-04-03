@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -1973,7 +1973,7 @@
         ],
         [
             "server_uuid",
-            "d9fc8336-2de9-11e8-8075-b86b230042b9"
+            "4a2b00f2-3973-11e8-b335-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2213,7 +2213,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2504,6 +2504,16 @@
     ],
     "rows": [
         [
+            "SELECT",
+            "YES",
+            "mysql"
+        ],
+        [
+            "UPDATE",
+            "YES",
+            "mysql"
+        ],
+        [
             "INSERT",
             "YES",
             "mysql"
@@ -2514,14 +2524,19 @@
             "mysql"
         ],
         [
-            "SELECT",
+            "LOCK TABLES",
             "YES",
-            "mysql"
+            "mysql_innodb_cluster_metadata"
         ],
         [
-            "UPDATE",
+            "CREATE VIEW",
             "YES",
-            "mysql"
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
         ],
         [
             "EVENT",
@@ -2595,21 +2610,6 @@
         ],
         [
             "ALTER",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "LOCK TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE VIEW",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE ROUTINE",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

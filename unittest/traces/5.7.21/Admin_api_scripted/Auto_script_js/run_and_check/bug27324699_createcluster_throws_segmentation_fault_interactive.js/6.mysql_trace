@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -469,7 +469,7 @@
         ],
         [
             "gtid_executed",
-            "7164a5ff-2dc6-11e8-b5ed-b86b230042b9:1-3"
+            "f7326789-3925-11e8-81bc-34028662c087:1-3"
         ],
         [
             "gtid_executed_compression_period",
@@ -1973,7 +1973,7 @@
         ],
         [
             "server_uuid",
-            "7164a5ff-2dc6-11e8-b5ed-b86b230042b9"
+            "f7326789-3925-11e8-81bc-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2213,7 +2213,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2508,6 +2508,11 @@
     ],
     "rows": [
         [
+            "SELECT",
+            "YES",
+            "mysql"
+        ],
+        [
             "UPDATE",
             "YES",
             "mysql"
@@ -2519,11 +2524,6 @@
         ],
         [
             "DELETE",
-            "YES",
-            "mysql"
-        ],
-        [
-            "SELECT",
             "YES",
             "mysql"
         ]

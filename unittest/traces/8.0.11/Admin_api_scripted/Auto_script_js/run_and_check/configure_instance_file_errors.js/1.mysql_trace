@@ -1725,7 +1725,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2037,7 +2037,7 @@
         ],
         [
             "server_uuid",
-            "21159895-2c5d-11e8-87cd-b86b230042b9"
+            "2ef33cb5-38f9-11e8-92f3-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -2293,7 +2293,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",

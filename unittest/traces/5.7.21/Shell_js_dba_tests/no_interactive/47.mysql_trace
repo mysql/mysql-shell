@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -2113,7 +2113,7 @@
         ],
         [
             "server_uuid",
-            "7dc18588-2dec-11e8-8d54-b86b230042b9"
+            "b4c1dde5-3975-11e8-9d1a-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2353,7 +2353,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3207,6 +3207,16 @@
     ],
     "rows": [
         [
+            "INSERT",
+            "YES",
+            "mysql"
+        ],
+        [
+            "DELETE",
+            "YES",
+            "mysql"
+        ],
+        [
             "SELECT",
             "YES",
             "mysql"
@@ -3215,51 +3225,6 @@
             "UPDATE",
             "YES",
             "mysql"
-        ],
-        [
-            "INSERT",
-            "YES",
-            "mysql"
-        ],
-        [
-            "DELETE",
-            "YES",
-            "mysql"
-        ],
-        [
-            "LOCK TABLES",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE VIEW",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "CREATE ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "EVENT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "INSERT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "DELETE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "DROP",
-            "YES",
-            "mysql_innodb_cluster_metadata"
         ],
         [
             "INDEX",
@@ -3313,6 +3278,41 @@
         ],
         [
             "ALTER",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "LOCK TABLES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "CREATE ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "EVENT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "INSERT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "DELETE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "DROP",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

@@ -471,7 +471,7 @@
         ],
         [
             "group_replication_group_name",
-            "87e80ba9-2cfd-11e8-a9c3-b86b230042b9"
+            "09ea2770-3918-11e8-a6a9-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -575,7 +575,7 @@
         ],
         [
             "gtid_executed",
-            "7ffde3df-2cfd-11e8-a9c3-b86b230042b9:1-14,\n87e80ba9-2cfd-11e8-a9c3-b86b230042b9:1-22"
+            "01a8fbcd-3918-11e8-a6a9-34028662c087:1-14,\n09ea2770-3918-11e8-a6a9-34028662c087:1-22"
         ],
         [
             "gtid_executed_compression_period",
@@ -1791,7 +1791,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2103,7 +2103,7 @@
         ],
         [
             "server_uuid",
-            "850dc370-2cfd-11e8-9157-b86b230042b9"
+            "06b8a9ed-3918-11e8-8ce9-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2359,7 +2359,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3294,10 +3294,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            19455,
+            19382,
             "",
             "",
-            "7ffde3df-2cfd-11e8-a9c3-b86b230042b9:1-14,\n87e80ba9-2cfd-11e8-a9c3-b86b230042b9:1-22"
+            "01a8fbcd-3918-11e8-a6a9-34028662c087:1-14,\n09ea2770-3918-11e8-a6a9-34028662c087:1-22"
         ]
     ]
 },
@@ -3466,7 +3466,7 @@
     "rows": [
         [
             "server_uuid",
-            "850dc370-2cfd-11e8-9157-b86b230042b9"
+            "06b8a9ed-3918-11e8-8ce9-34028662c087"
         ]
     ]
 },

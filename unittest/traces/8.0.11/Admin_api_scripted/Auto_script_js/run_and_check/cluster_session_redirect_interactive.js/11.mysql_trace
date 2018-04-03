@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "79b0db07-2c5d-11e8-8c92-b86b230042b9",
-            "7726d3a1-2c5d-11e8-9a9e-b86b230042b9"
+            "7467bc9b-38f9-11e8-bbcf-b86b230042b9",
+            "72797742-38f9-11e8-ae6d-b86b230042b9"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '79b0db07-2c5d-11e8-8c92-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7467bc9b-38f9-11e8-bbcf-b86b230042b9'"
 },
 {
     "type": "response",
@@ -426,44 +426,6 @@
     ],
     "rows": [
         [
-            "RECOVERING"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 23,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 24,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "performance_schema",
-            "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
-            "column_name": "MEMBER_STATE",
-            "column_label": "member_state",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             "ONLINE"
         ]
     ]
@@ -471,11 +433,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 25
+    "index": 23
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 26
+    "index": 24
 },
 null]

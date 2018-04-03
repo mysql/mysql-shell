@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "42",
+    "connection_id": "43",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
@@ -50,7 +50,7 @@
     ],
     "rows": [
         [
-            "adfd375a-2c5e-11e8-a28b-b86b230042b9"
+            "8855533f-38fa-11e8-9e55-b86b230042b9"
         ]
     ]
 },
@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "a5c9bad4-2c5e-11e8-a28b-b86b230042b9"
+            "8249ccd1-38fa-11e8-9e55-b86b230042b9"
         ]
     ]
 },
@@ -246,10 +246,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            18299,
+            18142,
             "",
             "",
-            "a5c9bad4-2c5e-11e8-a28b-b86b230042b9:1-14,\nadfd375a-2c5e-11e8-a28b-b86b230042b9:1-18"
+            "8249ccd1-38fa-11e8-9e55-b86b230042b9:1-14,\n8855533f-38fa-11e8-9e55-b86b230042b9:1-18"
         ]
     ]
 },

@@ -79,7 +79,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -1615,7 +1615,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2183,7 +2183,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2428,7 +2428,7 @@
     "rows": [
         [
             "tecra-bin.000003",
-            10794,
+            10721,
             "",
             "",
             "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee:1-14"

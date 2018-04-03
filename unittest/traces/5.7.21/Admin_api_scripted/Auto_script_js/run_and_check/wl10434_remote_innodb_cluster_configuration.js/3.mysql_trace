@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "2",
+    "connection_id": "3",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
@@ -1933,7 +1933,7 @@
         ],
         [
             "report_host",
-            "10.172.234.37"
+            "192.168.1.94"
         ],
         [
             "report_password",
@@ -1973,7 +1973,7 @@
         ],
         [
             "server_uuid",
-            "bb1fba1c-2ddd-11e8-b1a0-b86b230042b9"
+            "292ee6fe-3924-11e8-8040-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2213,7 +2213,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",

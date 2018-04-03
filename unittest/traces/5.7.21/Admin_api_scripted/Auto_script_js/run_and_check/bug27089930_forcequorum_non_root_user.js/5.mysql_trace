@@ -88,7 +88,7 @@
     ],
     "rows": [
         [
-            "RECOVERING"
+            "ONLINE"
         ]
     ]
 },
@@ -96,7 +96,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 7,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -134,7 +134,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 9,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -392,7 +392,7 @@
     ],
     "rows": [
         [
-            "ONLINE"
+            "UNREACHABLE"
         ]
     ]
 },
@@ -428,17 +428,13 @@
             "binary": true
         }
     ],
-    "rows": [
-        [
-            "UNREACHABLE"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -466,7 +462,11 @@
             "binary": true
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "ONLINE"
+        ]
+    ]
 },
 {
     "type": "request",
@@ -692,44 +692,6 @@
     ],
     "rows": [
         [
-            "ONLINE"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 39,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 40,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "performance_schema",
-            "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
-            "column_name": "MEMBER_STATE",
-            "column_label": "member_state",
-            "length": 64,
-            "fractional": 0,
-            "type": "String",
-            "collation": "latin1_swedish_ci",
-            "charset": "latin1",
-            "collation_id": 8,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             "UNREACHABLE"
         ]
     ]
@@ -737,11 +699,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 41
+    "index": 39
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 42
+    "index": 40
 },
 null]

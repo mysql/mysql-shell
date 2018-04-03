@@ -3,7 +3,7 @@ port = 3316
 protocol = TCP
 user = root
 [mysqld]
-report_host = 10.172.237.31
+report_host = 192.168.1.94
 general_log = 1
 report_port = 3316
 loose_mysqlx_port = 33160
@@ -26,7 +26,7 @@ enforce_gtid_consistency = ON
 gtid_mode = ON
 innodb_data_file_path = ibdata1:10M:autoextend
 socket = mysqld.sock
-auto_increment_offset = 6
+auto_increment_offset = 1
 basedir = /home/miguel/work/mysql-server/8.0.11
 log_bin
 loose_mysqlx_socket = mysqlx.sock

@@ -156,12 +156,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "member_state",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -169,9 +169,9 @@
     ],
     "rows": [
         [
-            "473d6d9e-2c5d-11e8-b6c9-b86b230042b9",
+            "4fa8377f-38f9-11e8-bf64-b86b230042b9",
             1,
-            "3fa09f9a-2c5d-11e8-b6c9-b86b230042b9",
+            "48e12512-38f9-11e8-bf64-b86b230042b9",
             "ONLINE"
         ]
     ]
@@ -229,12 +229,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "my_state",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -290,7 +290,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '473d6d9e-2c5d-11e8-b6c9-b86b230042b9'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '4fa8377f-38f9-11e8-bf64-b86b230042b9'"
 },
 {
     "type": "response",
@@ -384,14 +384,14 @@
     ],
     "rows": [
         [
-            "3fa09f9a-2c5d-11e8-b6c9-b86b230042b9",
+            "48e12512-38f9-11e8-bf64-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "localhost:33160"
         ],
         [
-            "4222c9fd-2c5d-11e8-8a0c-b86b230042b9",
+            "4abfc4ed-38f9-11e8-8c89-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326",
@@ -420,12 +420,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_ID",
             "column_label": "member_id",
-            "length": 108,
+            "length": 144,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -436,12 +436,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "member_state",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -452,12 +452,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_HOST",
             "column_label": "member_host",
-            "length": 180,
+            "length": 240,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -484,12 +484,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_ROLE",
             "column_label": "member_role",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -497,14 +497,14 @@
     ],
     "rows": [
         [
-            "3fa09f9a-2c5d-11e8-b6c9-b86b230042b9",
+            "48e12512-38f9-11e8-bf64-b86b230042b9",
             "ONLINE",
             "tecra",
             3316,
             "PRIMARY"
         ],
         [
-            "4222c9fd-2c5d-11e8-8a0c-b86b230042b9",
+            "4abfc4ed-38f9-11e8-8c89-b86b230042b9",
             "ONLINE",
             "tecra",
             3326,

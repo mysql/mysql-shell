@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "root:root@10.172.237.31:3336",
+    "uri": "root:root@192.168.1.94:3336",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "18",
-    "connection_info": "10.172.237.31 via TCP/IP",
+    "connection_info": "192.168.1.94 via TCP/IP",
     "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"

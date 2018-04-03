@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "36664afa-2d02-11e8-b427-b86b230042b9",
-            "36664afa-2d02-11e8-b427-b86b230042b9"
+            "5edb704c-38f7-11e8-bacb-b86b230042b9",
+            "5edb704c-38f7-11e8-bacb-b86b230042b9"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '36664afa-2d02-11e8-b427-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5edb704c-38f7-11e8-bacb-b86b230042b9'"
 },
 {
     "type": "response",

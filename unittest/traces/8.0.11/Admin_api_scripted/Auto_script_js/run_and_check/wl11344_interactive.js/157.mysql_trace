@@ -523,8 +523,8 @@
     ],
     "rows": [
         [
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9",
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9"
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9",
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9"
         ]
     ]
 },
@@ -532,7 +532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 21,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c30cf0ed-2d02-11e8-853d-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'eb9b4b91-38f7-11e8-a7e6-b86b230042b9'"
 },
 {
     "type": "response",
@@ -785,8 +785,8 @@
     ],
     "rows": [
         [
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9",
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9"
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9",
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9"
         ]
     ]
 },
@@ -794,7 +794,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 33,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c30cf0ed-2d02-11e8-853d-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'eb9b4b91-38f7-11e8-a7e6-b86b230042b9'"
 },
 {
     "type": "response",
@@ -1047,8 +1047,8 @@
     ],
     "rows": [
         [
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9",
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9"
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9",
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9"
         ]
     ]
 },
@@ -1056,7 +1056,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c30cf0ed-2d02-11e8-853d-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'eb9b4b91-38f7-11e8-a7e6-b86b230042b9'"
 },
 {
     "type": "response",
@@ -1280,7 +1280,7 @@
     ],
     "rows": [
         [
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9",
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -1916,7 +1916,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "c30cf0ed-2d02-11e8-853d-b86b230042b9"
+            "eb9b4b91-38f7-11e8-a7e6-b86b230042b9"
         ]
     ]
 },

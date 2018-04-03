@@ -189,7 +189,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -1725,7 +1725,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2037,7 +2037,7 @@
         ],
         [
             "server_uuid",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -2293,7 +2293,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3484,7 +3484,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 59,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'%' IDENTIFIED BY /*(*/ '6<:@+O.&/t/=*:p_~H.9(:$|#&+5~O=<' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'%' IDENTIFIED BY /*(*/ 'n*,&=A*%9+@y-b6#B+v]D(~-@8;~{^%/' /*)*/ "
 },
 {
     "type": "response",
@@ -3499,7 +3499,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 61,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost' IDENTIFIED BY /*(*/ '6<:@+O.&/t/=*:p_~H.9(:$|#&+5~O=<' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000001'@'localhost' IDENTIFIED BY /*(*/ 'n*,&=A*%9+@y-b6#B+v]D(~-@8;~{^%/' /*)*/ "
 },
 {
     "type": "response",
@@ -3896,7 +3896,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 89,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '6e147eb1-2c5e-11e8-ac3a-b86b230042b9', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '4e3b1b44-38fa-11e8-ab6d-b86b230042b9', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
@@ -3989,7 +3989,7 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4030,7 +4030,7 @@
     ],
     "rows": [
         [
-            "772d975d-2c5e-11e8-ac3a-b86b230042b9"
+            "57408ab3-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -4038,7 +4038,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 95,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '772d975d-2c5e-11e8-ac3a-b86b230042b9') WHERE replicaset_id = 1"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '57408ab3-38fa-11e8-ab6d-b86b230042b9') WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -4228,8 +4228,8 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -4237,7 +4237,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 107,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6e147eb1-2c5e-11e8-ac3a-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e3b1b44-38fa-11e8-ab6d-b86b230042b9'"
 },
 {
     "type": "response",
@@ -4522,7 +4522,7 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4578,7 +4578,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 125,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '-Q]?#*b{3k[o<[_?0T?$%F/7:n?B}$,/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'%' IDENTIFIED BY /*(*/ '[-*5:#y>*^*c%(^t]}+8(G.1z=%~[J;:' /*)*/ "
 },
 {
     "type": "response",
@@ -4593,7 +4593,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 127,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '-Q]?#*b{3k[o<[_?0T?$%F/7:n?B}$,/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000002'@'localhost' IDENTIFIED BY /*(*/ '[-*5:#y>*^*c%(^t]}+8(G.1z=%~[J;:' /*)*/ "
 },
 {
     "type": "response",
@@ -4700,7 +4700,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -4786,7 +4786,7 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4875,7 +4875,7 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4973,7 +4973,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 145,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '70aac331-2c5e-11e8-9f88-b86b230042b9', 'localhost:3326', 'HA', json_object('mysqlClassic', 'localhost:3326', 'mysqlX', 'localhost:33260', 'grLocal', 'localhost:33261'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '5110bc56-38fa-11e8-9f34-b86b230042b9', 'localhost:3326', 'HA', json_object('mysqlClassic', 'localhost:3326', 'mysqlX', 'localhost:33260', 'grLocal', 'localhost:33261'))"
 },
 {
     "type": "response",
@@ -5081,13 +5081,13 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326"
@@ -5258,8 +5258,8 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -5267,7 +5267,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 159,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6e147eb1-2c5e-11e8-ac3a-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e3b1b44-38fa-11e8-ab6d-b86b230042b9'"
 },
 {
     "type": "response",
@@ -5552,13 +5552,13 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326"
@@ -5614,7 +5614,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 177,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '=~Q,;2^+>_<i{8=f.@z/L+,%(6<+/P#/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ 'P^-2>}y?g-+]>*a7>b@A]_^~+(<0(K]@' /*)*/ "
 },
 {
     "type": "response",
@@ -5629,7 +5629,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 179,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '=~Q,;2^+>_<i{8=f.@z/L+,%(6<+/P#/' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ 'P^-2>}y?g-+]>*a7>b@A]_^~+(<0(K]@' /*)*/ "
 },
 {
     "type": "response",
@@ -5736,7 +5736,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -5822,13 +5822,13 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326"
@@ -5917,13 +5917,13 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326"
@@ -6021,7 +6021,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 197,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '72904d6a-2c5e-11e8-b37e-b86b230042b9', 'localhost:3336', 'HA', json_object('mysqlClassic', 'localhost:3336', 'mysqlX', 'localhost:33360', 'grLocal', 'localhost:33361'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '53990984-38fa-11e8-96ad-b86b230042b9', 'localhost:3336', 'HA', json_object('mysqlClassic', 'localhost:3336', 'mysqlX', 'localhost:33360', 'grLocal', 'localhost:33361'))"
 },
 {
     "type": "response",
@@ -6129,19 +6129,19 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326"
         ],
         [
-            "72904d6a-2c5e-11e8-b37e-b86b230042b9",
+            "53990984-38fa-11e8-96ad-b86b230042b9",
             "localhost:3336",
             "HA",
             "localhost:3336"
@@ -6312,8 +6312,8 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -6321,7 +6321,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 211,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6e147eb1-2c5e-11e8-ac3a-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e3b1b44-38fa-11e8-ab6d-b86b230042b9'"
 },
 {
     "type": "response",
@@ -6499,7 +6499,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -6639,21 +6639,21 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326",
             "ONLINE"
         ],
         [
-            "72904d6a-2c5e-11e8-b37e-b86b230042b9",
+            "53990984-38fa-11e8-96ad-b86b230042b9",
             "localhost:3336",
             "HA",
             "localhost:3336",
@@ -6825,8 +6825,8 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -6834,7 +6834,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 231,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6e147eb1-2c5e-11e8-ac3a-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e3b1b44-38fa-11e8-ab6d-b86b230042b9'"
 },
 {
     "type": "response",
@@ -7043,7 +7043,7 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -7214,8 +7214,8 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -7223,7 +7223,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 247,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '6e147eb1-2c5e-11e8-ac3a-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4e3b1b44-38fa-11e8-ab6d-b86b230042b9'"
 },
 {
     "type": "response",
@@ -7401,7 +7401,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9"
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9"
         ]
     ]
 },
@@ -7541,21 +7541,21 @@
     ],
     "rows": [
         [
-            "6e147eb1-2c5e-11e8-ac3a-b86b230042b9",
+            "4e3b1b44-38fa-11e8-ab6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "ONLINE"
         ],
         [
-            "70aac331-2c5e-11e8-9f88-b86b230042b9",
+            "5110bc56-38fa-11e8-9f34-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326",
             null
         ],
         [
-            "72904d6a-2c5e-11e8-b37e-b86b230042b9",
+            "53990984-38fa-11e8-96ad-b86b230042b9",
             "localhost:3336",
             "HA",
             "localhost:3336",

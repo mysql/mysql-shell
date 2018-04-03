@@ -585,7 +585,7 @@
         ],
         [
             "group_replication_group_name",
-            "67dee617-2cf6-11e8-b7c7-b86b230042b9"
+            "43f0e36c-3910-11e8-a765-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -689,7 +689,7 @@
         ],
         [
             "gtid_executed",
-            "6109f79b-2cf6-11e8-b7c7-b86b230042b9:1-29"
+            "3caea01e-3910-11e8-a765-34028662c087:1-29"
         ],
         [
             "gtid_executed_compression_period",
@@ -1905,7 +1905,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2217,7 +2217,7 @@
         ],
         [
             "server_uuid",
-            "6109f79b-2cf6-11e8-b7c7-b86b230042b9"
+            "3caea01e-3910-11e8-a765-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2473,7 +2473,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3408,10 +3408,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            14719,
+            14638,
             "",
             "",
-            "6109f79b-2cf6-11e8-b7c7-b86b230042b9:1-29"
+            "3caea01e-3910-11e8-a765-34028662c087:1-29"
         ]
     ]
 },
@@ -3502,7 +3502,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '0J>T@=%]_r[a*]_I2(-0$k$(>l}S/?]*' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ 'F>T=/.e&;7:|*%|?+%)0|2u@=b=~M;,>' /*)*/ "
 },
 {
     "type": "response",
@@ -3517,7 +3517,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '0J>T@=%]_r[a*]_I2(-0$k$(>l}S/?]*' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ 'F>T=/.e&;7:|*%|?+%)0|2u@=b=~M;,>' /*)*/ "
 },
 {
     "type": "response",

@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "53",
+    "connection_id": "52",
     "connection_info": "localhost via TCP/IP",
     "server_info": "5.7.21-debug-log",
     "server_version": "5.7.21",
@@ -403,7 +403,7 @@
         ],
         [
             "group_replication_group_name",
-            "ebbe3b96-2dea-11e8-a8f1-b86b230042b9"
+            "3ff7bb4e-3974-11e8-86fe-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -499,7 +499,7 @@
         ],
         [
             "gtid_executed",
-            "e4181a9b-2dea-11e8-a8f1-b86b230042b9:1-20,\nebbe3b96-2dea-11e8-a8f1-b86b230042b9:1-25"
+            "3b2db520-3974-11e8-86fe-34028662c087:1-20,\n3ff7bb4e-3974-11e8-86fe-34028662c087:1-25"
         ],
         [
             "gtid_executed_compression_period",
@@ -2003,7 +2003,7 @@
         ],
         [
             "server_uuid",
-            "e4181a9b-2dea-11e8-a8f1-b86b230042b9"
+            "3b2db520-3974-11e8-86fe-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2243,7 +2243,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2487,7 +2487,7 @@
             21004,
             "",
             "",
-            "e4181a9b-2dea-11e8-a8f1-b86b230042b9:1-20,\nebbe3b96-2dea-11e8-a8f1-b86b230042b9:1-25"
+            "3b2db520-3974-11e8-86fe-34028662c087:1-20,\n3ff7bb4e-3974-11e8-86fe-34028662c087:1-25"
         ]
     ]
 },
@@ -2656,7 +2656,7 @@
     "rows": [
         [
             "server_uuid",
-            "e4181a9b-2dea-11e8-a8f1-b86b230042b9"
+            "3b2db520-3974-11e8-86fe-34028662c087"
         ]
     ]
 },

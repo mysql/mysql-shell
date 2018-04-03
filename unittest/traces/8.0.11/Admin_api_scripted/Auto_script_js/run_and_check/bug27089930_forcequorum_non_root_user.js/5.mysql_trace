@@ -164,7 +164,7 @@
     ],
     "rows": [
         [
-            "RECOVERING"
+            "ONLINE"
         ]
     ]
 },
@@ -172,7 +172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -202,7 +202,7 @@
     ],
     "rows": [
         [
-            "ONLINE"
+            "RECOVERING"
         ]
     ]
 },
@@ -882,6 +882,44 @@
     ],
     "rows": [
         [
+            "ONLINE"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 49,
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 50,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
             "UNREACHABLE"
         ]
     ]
@@ -889,11 +927,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 49
+    "index": 51
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 50
+    "index": 52
 },
 null]

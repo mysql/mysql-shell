@@ -204,12 +204,12 @@
             "table_label": "global_status",
             "column_name": "VARIABLE_VALUE",
             "column_label": "VARIABLE_VALUE",
-            "length": 3072,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -217,8 +217,8 @@
     ],
     "rows": [
         [
-            "4222c9fd-2c5d-11e8-8a0c-b86b230042b9",
-            "3fa09f9a-2c5d-11e8-b6c9-b86b230042b9"
+            "4abfc4ed-38f9-11e8-8c89-b86b230042b9",
+            "48e12512-38f9-11e8-bf64-b86b230042b9"
         ]
     ]
 },
@@ -226,7 +226,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4222c9fd-2c5d-11e8-8a0c-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '4abfc4ed-38f9-11e8-8c89-b86b230042b9'"
 },
 {
     "type": "response",
@@ -243,12 +243,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "MEMBER_STATE",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -429,12 +429,12 @@
             "table_label": "session_status",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -445,12 +445,12 @@
             "table_label": "session_status",
             "column_name": "Value",
             "column_label": "Value",
-            "length": 3072,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -641,12 +641,12 @@
             "table_label": "global_status",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -657,12 +657,12 @@
             "table_label": "global_status",
             "column_name": "Value",
             "column_label": "Value",
-            "length": 3072,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -671,7 +671,7 @@
     "rows": [
         [
             "Uptime",
-            "31"
+            "25"
         ]
     ]
 },

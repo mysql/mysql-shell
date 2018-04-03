@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "a23c165e-2d02-11e8-88ca-b86b230042b9",
-            "a23c165e-2d02-11e8-88ca-b86b230042b9"
+            "cbb15eaa-38f7-11e8-b816-b86b230042b9",
+            "cbb15eaa-38f7-11e8-b816-b86b230042b9"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'a23c165e-2d02-11e8-88ca-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'cbb15eaa-38f7-11e8-b816-b86b230042b9'"
 },
 {
     "type": "response",
@@ -426,7 +426,7 @@
     ],
     "rows": [
         [
-            "RECOVERING"
+            "ONLINE"
         ]
     ]
 },
@@ -434,7 +434,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -464,7 +464,7 @@
     ],
     "rows": [
         [
-            "ONLINE"
+            "RECOVERING"
         ]
     ]
 },
@@ -578,6 +578,44 @@
     ],
     "rows": [
         [
+            "RECOVERING"
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 31,
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 32,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "performance_schema",
+            "table_name": "replication_group_members",
+            "table_label": "replication_group_members",
+            "column_name": "MEMBER_STATE",
+            "column_label": "member_state",
+            "length": 256,
+            "fractional": 0,
+            "type": "String",
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
             "ONLINE"
         ]
     ]
@@ -585,11 +623,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 31
+    "index": 33
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 32
+    "index": 34
 },
 null]

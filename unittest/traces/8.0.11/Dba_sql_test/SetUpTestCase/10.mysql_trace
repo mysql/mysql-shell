@@ -10,7 +10,7 @@
     "type": "response",
     "subtype": "CONNECT_OK",
     "index": 2,
-    "connection_id": "32",
+    "connection_id": "33",
     "connection_info": "localhost via TCP/IP",
     "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
@@ -67,7 +67,7 @@
     "rows": [
         [
             "server_uuid",
-            "61d08685-2d01-11e8-9f50-b86b230042b9"
+            "c425eb20-391f-11e8-a6b9-34028662c087"
         ]
     ]
 },
@@ -122,7 +122,7 @@
     "rows": [
         [
             "group_replication_group_name",
-            "688a49da-2d01-11e8-9f50-b86b230042b9"
+            "cc955421-391f-11e8-a6b9-34028662c087"
         ]
     ]
 },

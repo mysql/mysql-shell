@@ -471,7 +471,7 @@
         ],
         [
             "group_replication_group_name",
-            "3cc164bd-2cfa-11e8-a00f-b86b230042b9"
+            "a3a4b193-3914-11e8-8335-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -575,7 +575,7 @@
         ],
         [
             "gtid_executed",
-            "36be2fd1-2cfa-11e8-a00f-b86b230042b9:1-14,\n3b80788a-2cfa-11e8-86c6-b86b230042b9:1-6,\n3cc164bd-2cfa-11e8-a00f-b86b230042b9:1-13:1000009-1000014"
+            "9c7f5730-3914-11e8-8335-34028662c087:1-14,\na15ac19f-3914-11e8-a9e0-34028662c087:1-6,\na3a4b193-3914-11e8-8335-34028662c087:1-13:1000009-1000014"
         ],
         [
             "gtid_executed_compression_period",
@@ -1791,7 +1791,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2103,7 +2103,7 @@
         ],
         [
             "server_uuid",
-            "3b80788a-2cfa-11e8-86c6-b86b230042b9"
+            "a15ac19f-3914-11e8-a9e0-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2359,7 +2359,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2604,10 +2604,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            20311,
+            20198,
             "",
             "",
-            "36be2fd1-2cfa-11e8-a00f-b86b230042b9:1-14,\n3b80788a-2cfa-11e8-86c6-b86b230042b9:1-6,\n3cc164bd-2cfa-11e8-a00f-b86b230042b9:1-13:1000009-1000014"
+            "9c7f5730-3914-11e8-8335-34028662c087:1-14,\na15ac19f-3914-11e8-a9e0-34028662c087:1-6,\na3a4b193-3914-11e8-8335-34028662c087:1-13:1000009-1000014"
         ]
     ]
 },
@@ -2776,7 +2776,7 @@
     "rows": [
         [
             "server_uuid",
-            "3b80788a-2cfa-11e8-86c6-b86b230042b9"
+            "a15ac19f-3914-11e8-a9e0-34028662c087"
         ]
     ]
 },

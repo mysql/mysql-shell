@@ -3,7 +3,7 @@ port = 3316
 protocol = TCP
 user = root
 [mysqld]
-report_host = 10.172.234.37
+report_host = 192.168.1.94
 general_log = 1
 report_port = 3316
 loose_mysqlx_port = 33160
@@ -16,7 +16,7 @@ port = 3316
 transaction_write_set_extraction = XXHASH64
 binlog_checksum = NONE
 gtid_mode = ON
-auto_increment_offset = 4
+auto_increment_offset = 3
 basedir = /home/miguel/work/mysql-server/5.7.21
 log_bin
 loose_mysqlx_socket = mysqlx.sock

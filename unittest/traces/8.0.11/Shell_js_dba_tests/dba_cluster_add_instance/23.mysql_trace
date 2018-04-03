@@ -585,7 +585,7 @@
         ],
         [
             "group_replication_group_name",
-            "3cc164bd-2cfa-11e8-a00f-b86b230042b9"
+            "a3a4b193-3914-11e8-8335-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -689,7 +689,7 @@
         ],
         [
             "gtid_executed",
-            "36be2fd1-2cfa-11e8-a00f-b86b230042b9:1-14,\n3cc164bd-2cfa-11e8-a00f-b86b230042b9:1-13:1000009-1000014"
+            "9c7f5730-3914-11e8-8335-34028662c087:1-14,\na3a4b193-3914-11e8-8335-34028662c087:1-13:1000009-1000014"
         ],
         [
             "gtid_executed_compression_period",
@@ -1905,7 +1905,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2217,7 +2217,7 @@
         ],
         [
             "server_uuid",
-            "3b80788a-2cfa-11e8-86c6-b86b230042b9"
+            "a15ac19f-3914-11e8-a9e0-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2473,7 +2473,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3423,10 +3423,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            18688,
+            18575,
             "",
             "",
-            "36be2fd1-2cfa-11e8-a00f-b86b230042b9:1-14,\n3cc164bd-2cfa-11e8-a00f-b86b230042b9:1-13:1000009-1000014"
+            "9c7f5730-3914-11e8-8335-34028662c087:1-14,\na3a4b193-3914-11e8-8335-34028662c087:1-13:1000009-1000014"
         ]
     ]
 },
@@ -3517,7 +3517,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ ';}C_#8)Y?=_z6(*e(Q|;%{.b^?w@K9@^' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'%' IDENTIFIED BY /*(*/ '/W|<~:6}&(0(b.~@#]S2:~v?.(p[M@.-' /*)*/ "
 },
 {
     "type": "response",
@@ -3532,7 +3532,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ ';}C_#8)Y?=_z6(*e(Q|;%{.b^?w@K9@^' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000004'@'localhost' IDENTIFIED BY /*(*/ '/W|<~:6}&(0(b.~@#]S2:~v?.(p[M@.-' /*)*/ "
 },
 {
     "type": "response",
@@ -3920,7 +3920,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 71,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 2, '3b80788a-2cfa-11e8-86c6-b86b230042b9', 'localhost:3336', 'HA', json_object('mysqlClassic', 'localhost:3336', 'mysqlX', 'localhost:33360', 'grLocal', 'localhost:33361'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 2, 'a15ac19f-3914-11e8-a9e0-34028662c087', 'localhost:3336', 'HA', json_object('mysqlClassic', 'localhost:3336', 'mysqlX', 'localhost:33360', 'grLocal', 'localhost:33361'))"
 },
 {
     "type": "response",
@@ -4013,7 +4013,7 @@
     ],
     "rows": [
         [
-            "3b80788a-2cfa-11e8-86c6-b86b230042b9",
+            "a15ac19f-3914-11e8-a9e0-34028662c087",
             "localhost:3336",
             "HA",
             "localhost:3336"
@@ -4054,7 +4054,7 @@
     ],
     "rows": [
         [
-            "589a03f7-2cfa-11e8-86c6-b86b230042b9"
+            "c0ed6823-3914-11e8-a9e0-34028662c087"
         ]
     ]
 },
@@ -4062,7 +4062,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 77,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '589a03f7-2cfa-11e8-86c6-b86b230042b9') WHERE replicaset_id = 2"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', 'c0ed6823-3914-11e8-a9e0-34028662c087') WHERE replicaset_id = 2"
 },
 {
     "type": "response",

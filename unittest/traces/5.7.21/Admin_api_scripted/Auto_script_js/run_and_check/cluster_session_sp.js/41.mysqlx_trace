@@ -217,8 +217,8 @@
     ],
     "rows": [
         [
-            "7448a1cd-2dc5-11e8-b56f-b86b230042b9",
-            "7448a1cd-2dc5-11e8-b56f-b86b230042b9"
+            "f03b2d0d-3924-11e8-b8c5-34028662c087",
+            "f03b2d0d-3924-11e8-b8c5-34028662c087"
         ]
     ]
 },
@@ -226,7 +226,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '7448a1cd-2dc5-11e8-b56f-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'f03b2d0d-3924-11e8-b8c5-34028662c087'"
 },
 {
     "type": "response",
@@ -671,7 +671,7 @@
     "rows": [
         [
             "Uptime",
-            "29"
+            "33"
         ]
     ]
 },

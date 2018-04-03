@@ -71,7 +71,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -1863,7 +1863,7 @@
         ],
         [
             "server_uuid",
-            "5bcfa858-2dc6-11e8-a31d-b86b230042b9"
+            "e2dd27bd-3925-11e8-b66a-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2103,7 +2103,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2452,6 +2452,11 @@
             "mysql"
         ],
         [
+            "INSERT",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
             "DELETE",
             "YES",
             "mysql_innodb_cluster_metadata"
@@ -2533,11 +2538,6 @@
         ],
         [
             "EVENT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "INSERT",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],
@@ -3233,7 +3233,7 @@
     "rows": [
         [
             "server_uuid",
-            "5bcfa858-2dc6-11e8-a31d-b86b230042b9"
+            "e2dd27bd-3925-11e8-b66a-34028662c087"
         ]
     ]
 },

@@ -2073,7 +2073,7 @@
         ],
         [
             "report_host",
-            "10.172.234.37"
+            "192.168.1.94"
         ],
         [
             "report_password",
@@ -2105,7 +2105,7 @@
         ],
         [
             "server_id",
-            "602523604"
+            "205490259"
         ],
         [
             "server_id_bits",
@@ -2113,7 +2113,7 @@
         ],
         [
             "server_uuid",
-            "5e3c52d3-2dc5-11e8-9a73-b86b230042b9"
+            "d8df7e60-3924-11e8-a271-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2353,7 +2353,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",

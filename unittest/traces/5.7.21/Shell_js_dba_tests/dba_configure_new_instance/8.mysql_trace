@@ -71,7 +71,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -1855,7 +1855,7 @@
         ],
         [
             "server_id",
-            "3800564305"
+            "1511188318"
         ],
         [
             "server_id_bits",
@@ -1863,7 +1863,7 @@
         ],
         [
             "server_uuid",
-            "024a0552-2de8-11e8-ac11-b86b230042b9"
+            "9f61332e-3971-11e8-8ffb-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2103,7 +2103,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3142,7 +3142,7 @@
     "rows": [
         [
             "server_uuid",
-            "024a0552-2de8-11e8-ac11-b86b230042b9"
+            "9f61332e-3971-11e8-8ffb-34028662c087"
         ]
     ]
 },

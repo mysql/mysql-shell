@@ -181,7 +181,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -2113,7 +2113,7 @@
         ],
         [
             "server_uuid",
-            "9d6bb4e2-2deb-11e8-ad96-b86b230042b9"
+            "e5bd9bd2-3974-11e8-adfb-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2353,7 +2353,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3249,16 +3249,6 @@
     ],
     "rows": [
         [
-            "INSERT",
-            "YES",
-            "mysql"
-        ],
-        [
-            "DELETE",
-            "YES",
-            "mysql"
-        ],
-        [
             "SELECT",
             "YES",
             "mysql"
@@ -3269,24 +3259,14 @@
             "mysql"
         ],
         [
-            "EXECUTE",
+            "INSERT",
             "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
-            "SHOW VIEW",
+            "DELETE",
             "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "ALTER ROUTINE",
-            "YES",
-            "mysql_innodb_cluster_metadata"
-        ],
-        [
-            "SELECT",
-            "YES",
-            "mysql_innodb_cluster_metadata"
+            "mysql"
         ],
         [
             "TRIGGER",
@@ -3355,6 +3335,26 @@
         ],
         [
             "CREATE TEMPORARY TABLES",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "EXECUTE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SHOW VIEW",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "ALTER ROUTINE",
+            "YES",
+            "mysql_innodb_cluster_metadata"
+        ],
+        [
+            "SELECT",
             "YES",
             "mysql_innodb_cluster_metadata"
         ],

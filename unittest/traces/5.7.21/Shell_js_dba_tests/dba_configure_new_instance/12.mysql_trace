@@ -71,7 +71,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -1855,7 +1855,7 @@
         ],
         [
             "server_id",
-            "974562598"
+            "2642229069"
         ],
         [
             "server_id_bits",
@@ -1863,7 +1863,7 @@
         ],
         [
             "server_uuid",
-            "031bde18-2de8-11e8-afdb-b86b230042b9"
+            "a02ca591-3971-11e8-9244-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2103,7 +2103,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3142,7 +3142,7 @@
     "rows": [
         [
             "server_uuid",
-            "031bde18-2de8-11e8-afdb-b86b230042b9"
+            "a02ca591-3971-11e8-9244-34028662c087"
         ]
     ]
 },
@@ -3252,7 +3252,7 @@
     "rows": [
         [
             "group_replication_group_seeds",
-            "localhost:33261,localhost:33161"
+            "localhost:33161,localhost:33261"
         ]
     ]
 },
@@ -3260,7 +3260,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 39,
-    "sql": "SET GLOBAL `group_replication_group_seeds` = 'localhost:33261,localhost:33161'"
+    "sql": "SET GLOBAL `group_replication_group_seeds` = 'localhost:33161,localhost:33261'"
 },
 {
     "type": "response",

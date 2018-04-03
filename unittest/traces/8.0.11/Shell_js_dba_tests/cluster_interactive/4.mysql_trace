@@ -79,7 +79,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -399,7 +399,7 @@
         ],
         [
             "gtid_executed",
-            "fd20aa4c-2cfc-11e8-ba8e-b86b230042b9:1-14"
+            "73ed92b0-3917-11e8-abb7-34028662c087:1-14"
         ],
         [
             "gtid_executed_compression_period",
@@ -1615,7 +1615,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -1883,7 +1883,7 @@
         ],
         [
             "report_host",
-            "10.172.237.31"
+            "192.168.1.94"
         ],
         [
             "report_password",
@@ -1927,7 +1927,7 @@
         ],
         [
             "server_uuid",
-            "fd20aa4c-2cfc-11e8-ba8e-b86b230042b9"
+            "73ed92b0-3917-11e8-abb7-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2183,7 +2183,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2428,10 +2428,10 @@
     "rows": [
         [
             "tecra-bin.000003",
-            10798,
+            10724,
             "",
             "",
-            "fd20aa4c-2cfc-11e8-ba8e-b86b230042b9:1-14"
+            "73ed92b0-3917-11e8-abb7-34028662c087:1-14"
         ]
     ]
 },
@@ -2600,7 +2600,7 @@
     "rows": [
         [
             "server_uuid",
-            "fd20aa4c-2cfc-11e8-ba8e-b86b230042b9"
+            "73ed92b0-3917-11e8-abb7-34028662c087"
         ]
     ]
 },

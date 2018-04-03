@@ -208,9 +208,9 @@
     ],
     "rows": [
         [
-            "7e72f81f-2c5d-11e8-9a9e-b86b230042b9",
+            "79950bb5-38f9-11e8-ae6d-b86b230042b9",
             1,
-            "79b0db07-2c5d-11e8-8c92-b86b230042b9",
+            "7467bc9b-38f9-11e8-bbcf-b86b230042b9",
             "ONLINE"
         ]
     ]
@@ -291,7 +291,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '7e72f81f-2c5d-11e8-9a9e-b86b230042b9'"
+    "sql": "SELECT i.mysql_server_uuid, i.instance_name, i.role,     i.addresses->>'$.mysqlClassic' as endpoint,     i.addresses->>'$.mysqlX' as xendpoint FROM mysql_innodb_cluster_metadata.instances as i JOIN mysql_innodb_cluster_metadata.replicasets as rs     ON i.replicaset_id = rs.replicaset_id WHERE rs.attributes->>'$.group_replication_group_name' = '79950bb5-38f9-11e8-ae6d-b86b230042b9'"
 },
 {
     "type": "response",
@@ -385,14 +385,14 @@
     ],
     "rows": [
         [
-            "7726d3a1-2c5d-11e8-9a9e-b86b230042b9",
+            "72797742-38f9-11e8-ae6d-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316",
             "localhost:33160"
         ],
         [
-            "79b0db07-2c5d-11e8-8c92-b86b230042b9",
+            "7467bc9b-38f9-11e8-bbcf-b86b230042b9",
             "localhost:3326",
             "HA",
             "localhost:3326",
@@ -498,14 +498,14 @@
     ],
     "rows": [
         [
-            "7726d3a1-2c5d-11e8-9a9e-b86b230042b9",
+            "72797742-38f9-11e8-ae6d-b86b230042b9",
             "ONLINE",
             "tecra",
             3316,
             "PRIMARY"
         ],
         [
-            "79b0db07-2c5d-11e8-8c92-b86b230042b9",
+            "7467bc9b-38f9-11e8-bbcf-b86b230042b9",
             "ONLINE",
             "tecra",
             3326,

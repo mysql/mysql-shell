@@ -218,8 +218,8 @@
     ],
     "rows": [
         [
-            "63e30ff9-2d02-11e8-9ba8-b86b230042b9",
-            "63e30ff9-2d02-11e8-9ba8-b86b230042b9"
+            "8d3e7fb4-38f7-11e8-b8c4-b86b230042b9",
+            "8d3e7fb4-38f7-11e8-b8c4-b86b230042b9"
         ]
     ]
 },
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '63e30ff9-2d02-11e8-9ba8-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '8d3e7fb4-38f7-11e8-b8c4-b86b230042b9'"
 },
 {
     "type": "response",
@@ -540,7 +540,7 @@
     ],
     "rows": [
         [
-            "RECOVERING"
+            "ONLINE"
         ]
     ]
 },
@@ -548,7 +548,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 29,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -690,17 +690,13 @@
             "binary": true
         }
     ],
-    "rows": [
-        [
-            "ONLINE"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 37,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -728,7 +724,11 @@
             "binary": true
         }
     ],
-    "rows": []
+    "rows": [
+        [
+            "ONLINE"
+        ]
+    ]
 },
 {
     "type": "request",
@@ -838,17 +838,13 @@
             "binary": true
         }
     ],
-    "rows": [
-        [
-            "ONLINE"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
     "subtype": "QUERY",
     "index": 45,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
 },
 {
     "type": "response",
@@ -1018,7 +1014,7 @@
     ],
     "rows": [
         [
-            "RECOVERING"
+            "ONLINE"
         ]
     ]
 },
@@ -1026,7 +1022,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 55,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3326"
+    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
 },
 {
     "type": "response",
@@ -1054,11 +1050,7 @@
             "binary": true
         }
     ],
-    "rows": [
-        [
-            "ONLINE"
-        ]
-    ]
+    "rows": []
 },
 {
     "type": "request",
@@ -1200,44 +1192,6 @@
     ],
     "rows": [
         [
-            "RECOVERING"
-        ]
-    ]
-},
-{
-    "type": "request",
-    "subtype": "QUERY",
-    "index": 65,
-    "sql": "SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 3336"
-},
-{
-    "type": "response",
-    "subtype": "RESULT",
-    "index": 66,
-    "auto_increment_value": 0,
-    "affected_rows": 18446744073709551615,
-    "warning_count": 0,
-    "info": "",
-    "columns": [
-        {
-            "schema": "performance_schema",
-            "table_name": "replication_group_members",
-            "table_label": "replication_group_members",
-            "column_name": "MEMBER_STATE",
-            "column_label": "member_state",
-            "length": 256,
-            "fractional": 0,
-            "type": "String",
-            "collation": "utf8mb4_0900_ai_ci",
-            "charset": "utf8mb4",
-            "collation_id": 255,
-            "unsigned": false,
-            "zerofill": false,
-            "binary": true
-        }
-    ],
-    "rows": [
-        [
             "ONLINE"
         ]
     ]
@@ -1245,11 +1199,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 67
+    "index": 65
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 68
+    "index": 66
 },
 null]

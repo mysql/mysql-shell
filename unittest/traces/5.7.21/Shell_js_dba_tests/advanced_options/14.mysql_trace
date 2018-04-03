@@ -517,7 +517,7 @@
         ],
         [
             "group_replication_group_name",
-            "e5bf2f87-2de5-11e8-831c-b86b230042b9"
+            "970c48f4-396f-11e8-85a3-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -613,7 +613,7 @@
         ],
         [
             "gtid_executed",
-            "dab01548-2de5-11e8-831c-b86b230042b9:1-36"
+            "845f1717-396f-11e8-85a3-34028662c087:1-36"
         ],
         [
             "gtid_executed_compression_period",
@@ -2117,7 +2117,7 @@
         ],
         [
             "server_uuid",
-            "dab01548-2de5-11e8-831c-b86b230042b9"
+            "845f1717-396f-11e8-85a3-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2357,7 +2357,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3231,7 +3231,7 @@
             15463,
             "",
             "",
-            "dab01548-2de5-11e8-831c-b86b230042b9:1-36"
+            "845f1717-396f-11e8-85a3-34028662c087:1-36"
         ]
     ]
 },
@@ -3322,7 +3322,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'%' IDENTIFIED BY /*(*/ '?&b-E:@;.2)3L8/-]{F%]/-r~)&X%c({' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'%' IDENTIFIED BY /*(*/ '#(k$^1=A}~,5])R/^>P&@~w?-;0L:|#p' /*)*/ "
 },
 {
     "type": "response",
@@ -3337,7 +3337,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost' IDENTIFIED BY /*(*/ '?&b-E:@;.2)3L8/-]{F%]/-r~)&X%c({' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000005'@'localhost' IDENTIFIED BY /*(*/ '#(k$^1=A}~,5])R/^>P&@~w?-;0L:|#p' /*)*/ "
 },
 {
     "type": "response",

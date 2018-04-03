@@ -103,7 +103,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "CREATE USER 'root'@'10.172.234.37' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'192.168.1.94' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -118,7 +118,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'10.172.234.37' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'192.168.1.94' WITH GRANT OPTION"
 },
 {
     "type": "response",
@@ -308,8 +308,8 @@
     ],
     "rows": [
         [
-            "5bffb6f2-2de7-11e8-95b5-b86b230042b9",
-            "5bffb6f2-2de7-11e8-95b5-b86b230042b9"
+            "0a151ee1-3971-11e8-aa4e-34028662c087",
+            "0a151ee1-3971-11e8-aa4e-34028662c087"
         ]
     ]
 },
@@ -317,7 +317,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 25,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '5bffb6f2-2de7-11e8-95b5-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = '0a151ee1-3971-11e8-aa4e-34028662c087'"
 },
 {
     "type": "response",

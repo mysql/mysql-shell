@@ -164,7 +164,7 @@
     ],
     "rows": [
         [
-            0
+            1
         ]
     ]
 },
@@ -172,7 +172,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = 'mysql_innodb_cluster_metadata') AND (TABLE_NAME = 'instances')"
+    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3336'"
 },
 {
     "type": "response",
@@ -202,7 +202,7 @@
     ],
     "rows": [
         [
-            1
+            0
         ]
     ]
 },
@@ -430,6 +430,44 @@
     ],
     "rows": [
         [
+            0
+        ]
+    ]
+},
+{
+    "type": "request",
+    "subtype": "QUERY",
+    "index": 25,
+    "sql": "select count(*) from mysql_innodb_cluster_metadata.instances where instance_name = 'localhost:3336'"
+},
+{
+    "type": "response",
+    "subtype": "RESULT",
+    "index": 26,
+    "auto_increment_value": 0,
+    "affected_rows": 18446744073709551615,
+    "warning_count": 0,
+    "info": "",
+    "columns": [
+        {
+            "schema": "",
+            "table_name": "",
+            "table_label": "",
+            "column_name": "",
+            "column_label": "count(*)",
+            "length": 21,
+            "fractional": 0,
+            "type": "Integer",
+            "collation": "binary",
+            "charset": "binary",
+            "collation_id": 63,
+            "unsigned": false,
+            "zerofill": false,
+            "binary": true
+        }
+    ],
+    "rows": [
+        [
             1
         ]
     ]
@@ -437,11 +475,11 @@
 {
     "type": "request",
     "subtype": "CLOSE",
-    "index": 25
+    "index": 27
 },
 {
     "type": "response",
     "subtype": "OK",
-    "index": 26
+    "index": 28
 },
 null]

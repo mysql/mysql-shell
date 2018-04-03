@@ -26,7 +26,7 @@ enforce_gtid_consistency = ON
 gtid_mode = ON
 innodb_data_file_path = ibdata1:10M:autoextend
 socket = mysqld.sock
-auto_increment_offset = 6
+auto_increment_offset = 1
 basedir = /home/miguel/work/mysql-server/8.0.11
 log_bin
 loose_mysqlx_socket = mysqlx.sock

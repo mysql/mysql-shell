@@ -189,7 +189,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -1725,7 +1725,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2037,7 +2037,7 @@
         ],
         [
             "server_uuid",
-            "0498d32c-2c5d-11e8-a37a-b86b230042b9"
+            "1554c93d-38f9-11e8-8bf8-b86b230042b9"
         ],
         [
             "session_track_gtids",
@@ -2293,7 +2293,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3468,7 +3468,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 61,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '?B8~/e$@u1<])o}{%|g)#O.:2|J-_<N?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '3:C5+]%j>*#4*.}c:k~[(_$H,*-A;]*I' /*)*/ "
 },
 {
     "type": "response",
@@ -3483,7 +3483,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 63,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '?B8~/e$@u1<])o}{%|g)#O.:2|J-_<N?' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '3:C5+]%j>*#4*.}c:k~[(_$H,*-A;]*I' /*)*/ "
 },
 {
     "type": "response",
@@ -3880,7 +3880,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 91,
-    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '0498d32c-2c5d-11e8-a37a-b86b230042b9', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
+    "sql": "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (1, 1, '1554c93d-38f9-11e8-8bf8-b86b230042b9', 'localhost:3316', 'HA', json_object('mysqlClassic', 'localhost:3316', 'mysqlX', 'localhost:33160', 'grLocal', 'localhost:33161'))"
 },
 {
     "type": "response",
@@ -3973,7 +3973,7 @@
     ],
     "rows": [
         [
-            "0498d32c-2c5d-11e8-a37a-b86b230042b9",
+            "1554c93d-38f9-11e8-8bf8-b86b230042b9",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -4014,7 +4014,7 @@
     ],
     "rows": [
         [
-            "07025e94-2c5d-11e8-a37a-b86b230042b9"
+            "178dc961-38f9-11e8-8bf8-b86b230042b9"
         ]
     ]
 },
@@ -4022,7 +4022,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 97,
-    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '07025e94-2c5d-11e8-a37a-b86b230042b9') WHERE replicaset_id = 1"
+    "sql": "UPDATE mysql_innodb_cluster_metadata.replicasets SET attributes = json_set(attributes, '$.group_replication_group_name', '178dc961-38f9-11e8-8bf8-b86b230042b9') WHERE replicaset_id = 1"
 },
 {
     "type": "response",
@@ -4099,7 +4099,7 @@
     "rows": [
         [
             "group_replication_primary_member",
-            "0498d32c-2c5d-11e8-a37a-b86b230042b9"
+            "1554c93d-38f9-11e8-8bf8-b86b230042b9"
         ]
     ]
 },

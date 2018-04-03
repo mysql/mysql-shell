@@ -71,7 +71,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -1823,7 +1823,7 @@
         ],
         [
             "report_host",
-            "10.172.234.37"
+            "192.168.1.94"
         ],
         [
             "report_password",
@@ -1863,7 +1863,7 @@
         ],
         [
             "server_uuid",
-            "f20bfeed-2de9-11e8-9688-b86b230042b9"
+            "5b8bea2c-3973-11e8-9201-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2103,7 +2103,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3142,7 +3142,7 @@
     "rows": [
         [
             "server_uuid",
-            "f20bfeed-2de9-11e8-9688-b86b230042b9"
+            "5b8bea2c-3973-11e8-9201-34028662c087"
         ]
     ]
 },

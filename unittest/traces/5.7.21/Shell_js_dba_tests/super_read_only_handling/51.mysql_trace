@@ -71,7 +71,7 @@
         ],
         [
             "auto_increment_offset",
-            "4"
+            "3"
         ],
         [
             "autocommit",
@@ -499,7 +499,7 @@
         ],
         [
             "gtid_executed",
-            "b175e9e4-2de7-11e8-9db6-b86b230042b9:1-14,\nb8ee577b-2de7-11e8-9db6-b86b230042b9:1-19"
+            "593a8cc7-3971-11e8-99d3-34028662c087:1-14,\n5dcb7505-3971-11e8-99d3-34028662c087:1-19"
         ],
         [
             "gtid_executed_compression_period",
@@ -2003,7 +2003,7 @@
         ],
         [
             "server_uuid",
-            "b175e9e4-2de7-11e8-9db6-b86b230042b9"
+            "593a8cc7-3971-11e8-99d3-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2243,7 +2243,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -2487,7 +2487,7 @@
             230,
             "",
             "",
-            "b175e9e4-2de7-11e8-9db6-b86b230042b9:1-14,\nb8ee577b-2de7-11e8-9db6-b86b230042b9:1-19"
+            "593a8cc7-3971-11e8-99d3-34028662c087:1-14,\n5dcb7505-3971-11e8-99d3-34028662c087:1-19"
         ]
     ]
 },
@@ -2656,7 +2656,7 @@
     "rows": [
         [
             "server_uuid",
-            "b175e9e4-2de7-11e8-9db6-b86b230042b9"
+            "593a8cc7-3971-11e8-99d3-34028662c087"
         ]
     ]
 },

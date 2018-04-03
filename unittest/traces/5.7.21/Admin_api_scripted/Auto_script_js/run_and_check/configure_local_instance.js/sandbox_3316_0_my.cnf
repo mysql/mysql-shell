@@ -3,7 +3,7 @@ port = 3316
 protocol = TCP
 user = root
 [mysqld]
-report_host = 10.172.234.37
+report_host = 192.168.1.94
 general_log = 1
 loose_mysqlx_port = 33160
 secure_file_priv = /tmp/miguel/3316/mysql-files

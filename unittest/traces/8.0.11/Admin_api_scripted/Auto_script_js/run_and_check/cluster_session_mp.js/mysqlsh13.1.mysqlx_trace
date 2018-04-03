@@ -156,12 +156,12 @@
             "table_label": "replication_group_members",
             "column_name": "MEMBER_STATE",
             "column_label": "member_state",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -169,9 +169,9 @@
     ],
     "rows": [
         [
-            "cf4d04f1-2c5d-11e8-a977-b86b230042b9",
+            "c1d4c5db-38f9-11e8-9a4c-b86b230042b9",
             0,
-            "c9b5efe2-2c5d-11e8-9cad-b86b230042b9",
+            "bc7be817-38f9-11e8-a5a8-b86b230042b9",
             "ONLINE"
         ]
     ]
@@ -229,12 +229,12 @@
             "table_label": "",
             "column_name": "",
             "column_label": "my_state",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_bin",
-            "charset": "utf8",
-            "collation_id": 83,
+            "collation": "utf8mb4_bin",
+            "charset": "utf8mb4",
+            "collation_id": 46,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -362,12 +362,12 @@
             "table_label": "session_status",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -378,12 +378,12 @@
             "table_label": "session_status",
             "column_name": "Value",
             "column_label": "Value",
-            "length": 3072,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -574,12 +574,12 @@
             "table_label": "global_status",
             "column_name": "Variable_name",
             "column_label": "Variable_name",
-            "length": 192,
+            "length": 256,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -590,12 +590,12 @@
             "table_label": "global_status",
             "column_name": "Value",
             "column_label": "Value",
-            "length": 3072,
+            "length": 4096,
             "fractional": 0,
             "type": "String",
-            "collation": "utf8_general_ci",
-            "charset": "utf8",
-            "collation_id": 33,
+            "collation": "utf8mb4_0900_ai_ci",
+            "charset": "utf8mb4",
+            "collation_id": 255,
             "unsigned": false,
             "zerofill": false,
             "binary": false
@@ -604,7 +604,7 @@
     "rows": [
         [
             "Uptime",
-            "31"
+            "26"
         ]
     ]
 },

@@ -471,7 +471,7 @@
         ],
         [
             "group_replication_group_name",
-            "97a8050b-2d00-11e8-9ba2-b86b230042b9"
+            "8f1f314b-3911-11e8-8c2a-34028662c087"
         ],
         [
             "group_replication_group_seeds",
@@ -575,7 +575,7 @@
         ],
         [
             "gtid_executed",
-            "4f3d66e3-2d00-11e8-9ba2-b86b230042b9:1-26,\n57598dc4-2d00-11e8-9ba2-b86b230042b9:1-19,\n7d01ef07-2d00-11e8-9ba2-b86b230042b9:1-19,\n97a8050b-2d00-11e8-9ba2-b86b230042b9:1-18"
+            "47326904-3911-11e8-8c2a-34028662c087:1-26,\n4ed2523e-3911-11e8-8c2a-34028662c087:1-19,\n7420a478-3911-11e8-8c2a-34028662c087:1-19,\n8f1f314b-3911-11e8-8c2a-34028662c087:1-18"
         ],
         [
             "gtid_executed_compression_period",
@@ -1791,7 +1791,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2103,7 +2103,7 @@
         ],
         [
             "server_uuid",
-            "54ffcc96-2d00-11e8-aacc-b86b230042b9"
+            "4c0fe9ae-3911-11e8-92ba-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2359,7 +2359,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
@@ -3297,7 +3297,7 @@
             311,
             "",
             "",
-            "4f3d66e3-2d00-11e8-9ba2-b86b230042b9:1-26,\n57598dc4-2d00-11e8-9ba2-b86b230042b9:1-19,\n7d01ef07-2d00-11e8-9ba2-b86b230042b9:1-19,\n97a8050b-2d00-11e8-9ba2-b86b230042b9:1-18"
+            "47326904-3911-11e8-8c2a-34028662c087:1-26,\n4ed2523e-3911-11e8-8c2a-34028662c087:1-19,\n7420a478-3911-11e8-8c2a-34028662c087:1-19,\n8f1f314b-3911-11e8-8c2a-34028662c087:1-18"
         ]
     ]
 },
@@ -3466,7 +3466,7 @@
     "rows": [
         [
             "server_uuid",
-            "54ffcc96-2d00-11e8-aacc-b86b230042b9"
+            "4c0fe9ae-3911-11e8-92ba-34028662c087"
         ]
     ]
 },

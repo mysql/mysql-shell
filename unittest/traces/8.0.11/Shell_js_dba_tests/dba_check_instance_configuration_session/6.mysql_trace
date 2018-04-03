@@ -3,7 +3,7 @@
     "type": "request",
     "subtype": "CONNECT",
     "index": 1,
-    "uri": "test_user:@10.172.237.31:3316",
+    "uri": "test_user:@192.168.1.94:3316",
     "protocol": "classic"
 },
 {
@@ -11,7 +11,7 @@
     "subtype": "CONNECT_OK",
     "index": 2,
     "connection_id": "13",
-    "connection_info": "10.172.237.31 via TCP/IP",
+    "connection_info": "192.168.1.94 via TCP/IP",
     "server_info": "8.0.11-debug",
     "server_version": "8.0.11",
     "ssl_cipher": "DHE-RSA-AES128-GCM-SHA256"
@@ -27,7 +27,7 @@
     "subtype": "ERROR",
     "index": 4,
     "code": "1142",
-    "msg": "SELECT command denied to user 'test_user'@'dhcp-10-172-237-31.pt.oracle.com' for table 'threads'",
+    "msg": "SELECT command denied to user 'test_user'@'192.168.1.94' for table 'threads'",
     "sqlstate": "42000"
 },
 {
@@ -41,7 +41,7 @@
     "subtype": "ERROR",
     "index": 6,
     "code": "1142",
-    "msg": "SELECT command denied to user 'test_user'@'dhcp-10-172-237-31.pt.oracle.com' for table 'replication_group_members'",
+    "msg": "SELECT command denied to user 'test_user'@'192.168.1.94' for table 'replication_group_members'",
     "sqlstate": "42000"
 },
 {
@@ -141,7 +141,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -1677,7 +1677,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -1989,7 +1989,7 @@
         ],
         [
             "server_uuid",
-            "dc8f86f6-2cfe-11e8-a202-b86b230042b9"
+            "3ded2dfc-3919-11e8-a136-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2245,7 +2245,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",

@@ -218,7 +218,7 @@
     ],
     "rows": [
         [
-            "c9b5efe2-2c5d-11e8-9cad-b86b230042b9",
+            "bc7be817-38f9-11e8-a5a8-b86b230042b9",
             ""
         ]
     ]
@@ -227,7 +227,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'c9b5efe2-2c5d-11e8-9cad-b86b230042b9'"
+    "sql": "SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID = 'bc7be817-38f9-11e8-a5a8-b86b230042b9'"
 },
 {
     "type": "response",

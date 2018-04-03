@@ -103,7 +103,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 11,
-    "sql": "CREATE USER 'root'@'10.172.237.31' IDENTIFIED BY 'root'"
+    "sql": "CREATE USER 'root'@'192.168.1.94' IDENTIFIED BY 'root'"
 },
 {
     "type": "response",
@@ -118,7 +118,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 13,
-    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'10.172.237.31' WITH GRANT OPTION"
+    "sql": "GRANT ALL PRIVILEGES ON *.* to 'root'@'192.168.1.94' WITH GRANT OPTION"
 },
 {
     "type": "response",

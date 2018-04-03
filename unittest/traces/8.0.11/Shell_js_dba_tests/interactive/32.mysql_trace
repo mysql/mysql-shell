@@ -189,7 +189,7 @@
         ],
         [
             "auto_increment_offset",
-            "6"
+            "1"
         ],
         [
             "autocommit",
@@ -1901,7 +1901,7 @@
         ],
         [
             "performance_schema_error_size",
-            "4372"
+            "4376"
         ],
         [
             "performance_schema_events_stages_history_long_size",
@@ -2213,7 +2213,7 @@
         ],
         [
             "server_uuid",
-            "5c4be64e-2cfd-11e8-b0b8-b86b230042b9"
+            "de17e457-3917-11e8-9bc8-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2469,7 +2469,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",

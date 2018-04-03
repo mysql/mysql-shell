@@ -207,7 +207,7 @@
         [
             "default",
             "pm",
-            "c3919b14-2dc4-11e8-9600-b86b230042b9"
+            "362dfb66-3924-11e8-956e-34028662c087"
         ]
     ]
 },
@@ -331,7 +331,7 @@
     ],
     "rows": [
         [
-            "c1cdf231-2dc4-11e8-9600-b86b230042b9",
+            "34806055-3924-11e8-956e-34028662c087",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -534,7 +534,7 @@
     ],
     "rows": [
         [
-            "c1cdf231-2dc4-11e8-9600-b86b230042b9",
+            "34806055-3924-11e8-956e-34028662c087",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -623,7 +623,7 @@
     ],
     "rows": [
         [
-            "c1cdf231-2dc4-11e8-9600-b86b230042b9",
+            "34806055-3924-11e8-956e-34028662c087",
             "localhost:3316",
             "HA",
             "localhost:3316"
@@ -664,7 +664,7 @@
     ],
     "rows": [
         [
-            "c1cdf231-2dc4-11e8-9600-b86b230042b9:1-20,\nc3919b14-2dc4-11e8-9600-b86b230042b9:1-3"
+            "34806055-3924-11e8-956e-34028662c087:1-20,\n362dfb66-3924-11e8-956e-34028662c087:1-3"
         ]
     ]
 },
@@ -672,7 +672,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 23,
-    "sql": "SELECT GTID_SUBSET('c1cdf231-2dc4-11e8-9600-b86b230042b9:1-20,\\nc3919b14-2dc4-11e8-9600-b86b230042b9:1-3', 'c1cdf231-2dc4-11e8-9600-b86b230042b9:1-20,\\nc3919b14-2dc4-11e8-9600-b86b230042b9:1-3')"
+    "sql": "SELECT GTID_SUBSET('34806055-3924-11e8-956e-34028662c087:1-20,\\n362dfb66-3924-11e8-956e-34028662c087:1-3', '34806055-3924-11e8-956e-34028662c087:1-20,\\n362dfb66-3924-11e8-956e-34028662c087:1-3')"
 },
 {
     "type": "response",
@@ -688,7 +688,7 @@
             "table_name": "",
             "table_label": "",
             "column_name": "",
-            "column_label": "GTID_SUBSET('c1cdf231-2dc4-11e8-9600-b86b230042b9:1-20,\\nc3919b14-2dc4-11e8-9600-b86b230042b9:1-3', 'c1cdf231-2dc4-11e8-9600-b86b230042b9:1-20,\\nc3919b14-2dc4-11e8-9600-b86b230042b9:1-3')",
+            "column_label": "GTID_SUBSET('34806055-3924-11e8-956e-34028662c087:1-20,\\n362dfb66-3924-11e8-956e-34028662c087:1-3', '34806055-3924-11e8-956e-34028662c087:1-20,\\n362dfb66-3924-11e8-956e-34028662c087:1-3')",
             "length": 21,
             "fractional": 0,
             "type": "Integer",
@@ -966,7 +966,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 41,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '+|)5^n_7(:t*{9c.o-+O.^|>%}S=.U(&' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'%' IDENTIFIED BY /*(*/ '_#4#b?9w#{@(2#}r,[^v)>F]*-D(-F<#' /*)*/ "
 },
 {
     "type": "response",
@@ -981,7 +981,7 @@
     "type": "request",
     "subtype": "QUERY",
     "index": 43,
-    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '+|)5^n_7(:t*{9c.o-+O.^|>%}S=.U(&' /*)*/ "
+    "sql": "CREATE USER IF NOT EXISTS 'mysql_innodb_cluster_r0000000003'@'localhost' IDENTIFIED BY /*(*/ '_#4#b?9w#{@(2#}r,[^v)>F]*-D(-F<#' /*)*/ "
 },
 {
     "type": "response",
@@ -1119,7 +1119,7 @@
     ],
     "rows": [
         [
-            "c1cdf231-2dc4-11e8-9600-b86b230042b9",
+            "34806055-3924-11e8-956e-34028662c087",
             "localhost:3316",
             "HA",
             "localhost:3316"

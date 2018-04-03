@@ -1933,7 +1933,7 @@
         ],
         [
             "report_host",
-            "10.172.234.37"
+            "192.168.1.94"
         ],
         [
             "report_password",
@@ -1973,7 +1973,7 @@
         ],
         [
             "server_uuid",
-            "c8b90bae-2ddd-11e8-8aab-b86b230042b9"
+            "d49bd9ec-3924-11e8-9c75-34028662c087"
         ],
         [
             "session_track_gtids",
@@ -2213,7 +2213,7 @@
         ],
         [
             "system_time_zone",
-            "WET"
+            "WEST"
         ],
         [
             "table_definition_cache",
