@@ -26,6 +26,6 @@ gtid_mode = ON
 innodb_data_file_path = ibdata1:10M:autoextend
 socket = mysqld.sock
 auto_increment_offset = 5
-basedir = /export/home/shell-test-trace-building/target-mysql/mysql-8.0.11-linux-glibc2.12-x86_64
+basedir = /var/lib/jenkins/shell-deps/traces-mysql-8.0.11-mysql-commercial_8.0.11-1ubuntu16.04_amd64/usr
 log_bin
 loose_mysqlx_socket = mysqlx.sock

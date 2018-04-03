@@ -1,6 +1,6 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://root:root@localhost:22990","protocol":"x"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"17","connection_info":"localhost via TCP/IP","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://root:root@localhost:20790","protocol":"x"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"17","connection_info":"localhost via TCP/IP","server_version":"8.0.11-commercial","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"COUNT(*)","length":21,"fractional":0,"type":"Integer","collation":"?","charset":"?","collation_id":0,"unsigned":false,"zerofill":false,"binary":false}],"rows":[[0]]},
 {"type":"request","subtype":"QUERY","index":5,"sql":"select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"},

@@ -1,6 +1,6 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2067","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"4","connection_info":"localhost via TCP/IP","server_info":"5.7.21-log","server_version":"5.7.21","ssl_cipher":"DHE-RSA-AES256-SHA"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2237","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"4","connection_info":"localhost via TCP/IP","server_info":"5.7.21-log","server_version":"5.7.21","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},
 null]
