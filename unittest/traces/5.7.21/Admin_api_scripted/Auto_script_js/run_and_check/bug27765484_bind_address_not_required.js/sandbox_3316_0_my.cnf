@@ -1,0 +1,33 @@
+[client]
+port = 3316
+protocol = TCP
+user = root
+[mysqld]
+report_host = 10.172.234.37
+bind_address = 0.0.0.0
+general_log = 1
+report_port = 3316
+loose_mysqlx_port = 33160
+secure_file_priv = /tmp/miguel/3316/mysql-files
+pid_file = /tmp/miguel/3316/3316.pid
+log_error = /tmp/miguel/3316/sandboxdata/error.log
+datadir = /tmp/miguel/3316/sandboxdata
+server_id = 15661
+port = 3316
+log_slave_updates = ON
+innodb_log_buffer_size = 1M
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+transaction_write_set_extraction = XXHASH64
+binlog_format = ROW
+log_syslog = OFF
+binlog_checksum = NONE
+enforce_gtid_consistency = ON
+gtid_mode = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+auto_increment_offset = 1
+basedir = /home/miguel/work/mysql-server/8.0.11
+log_bin
+loose_mysqlx_socket = mysqlx.sock
