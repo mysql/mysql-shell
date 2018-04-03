@@ -80,7 +80,6 @@ _FOUR_COLS = "{{0:<{0}}}  {{1:<{1}}}  {{2:<{2}}}  {{3:<{3}}}".format(_C1, _C2,
 
 _TWO_COLS = "{{0:<{0}}}  {{1:<{1}}}".format(_C1, _C2)
 DISABLED_STORAGE_ENGINES = "disabled_storage_engines"
-BIND_ADDRESS = "bind_address"
 AUTO_INCREMENT_INCREMENT = "auto_increment_increment"
 AUTO_INCREMENT_OFFSET = "auto_increment_offset"
 
@@ -227,9 +226,6 @@ GR_REQUIRED_CONFIG = {
     # Hash used for extract what writes were made during a transaction.
     TRANSACTION_WRITE_SET_EXTRACTION: {
         ONE_OF: ("XXHASH64", "2", "MURMUR32", "1")},
-
-    # options related to network
-    BIND_ADDRESS: {ONE_OF: ("*", )},
 }
 # List of server dynamic variables (do not require restart to be updated).
 # NOTE: gtid_mode and enforce_gtid_consistency are dynamic variables their
@@ -251,7 +247,7 @@ DYNAMIC_SERVER_VARS = frozenset(("binlog_format",
 
 # Set of sever variables that we check but that cannot be persisted even using
 # set persist_only
-CANNOT_PERSIST_VARS = frozenset(("log_bin", BIND_ADDRESS, ))
+CANNOT_PERSIST_VARS = frozenset(("log_bin", ))
 
 # Required configuration on MySQL option file
 GR_REQUIRED_OPTIONS = {
@@ -263,9 +259,6 @@ GR_REQUIRED_OPTIONS = {
     "log_bin": {NOT_IN: ("OFF", "0", "<not set>"), DEFAULT: "<no value>"},
     "binlog_format": {ONE_OF: ("ROW",)},
     "binlog_checksum": {ONE_OF: ("NONE",)},
-
-    # options related to network
-    BIND_ADDRESS: {ONE_OF: ("*", "<not set>"), DEFAULT: "*"},
 
     # Options related with GTids
     "gtid_mode": {ONE_OF: ("ON", "1")},
