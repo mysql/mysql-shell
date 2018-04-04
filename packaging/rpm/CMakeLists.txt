@@ -50,12 +50,13 @@ if(NOT RPM_RELEASE)
   endif()
 endif()
 
-file(STRINGS "${ROOT_PROJECT_DIR}/LICENSE" COM_LIC
-     LIMIT_COUNT 1 LIMIT_INPUT 500 NEWLINE_CONSUME
-     REGEX "commercial release of MySQL"
-)
+# Distinguish between community and non-community builds, with the
+# default being a community build. This does not impact the feature
+# set that will be compiled in; it's merely provided as a hint to
+# custom packaging steps.
+option(COMMUNITY_BUILD "Set to true if this is a community build" ON) 
 
-if(COM_LIC)
+if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(LICENSE_TYPE   "Commercial")
   # We add ".1" to RPM release if commercial
