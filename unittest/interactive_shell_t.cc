@@ -43,6 +43,10 @@ class Interactive_shell_test : public Shell_core_test_wrapper {
   }
 };
 
+TEST_F(Interactive_shell_test, shell_get_session_BUG27809310) {
+  EXPECT_NO_THROW(execute("shell.getSession()"));
+}
+
 TEST_F(Interactive_shell_test, shell_command_connect_node) {
   execute("\\connect -mx " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +

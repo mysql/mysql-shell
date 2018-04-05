@@ -460,17 +460,29 @@ Value::Value(bool b)
 
 Value::Value(std::shared_ptr<Function_base> f)
   : type(Function) {
-  value.func = new std::shared_ptr<Function_base>(f);
+  if (f) {
+    value.func = new std::shared_ptr<Function_base>(f);
+  } else {
+    type = shcore::Null;
+  }
 }
 
 Value::Value(std::shared_ptr<Object_bridge> n)
   : type(Object) {
-  value.o = new std::shared_ptr<Object_bridge>(n);
+  if (n) {
+    value.o = new std::shared_ptr<Object_bridge>(n);
+  } else {
+    type = shcore::Null;
+  }
 }
 
 Value::Value(Map_type_ref n)
   : type(Map) {
-  value.map = new std::shared_ptr<Map_type>(n);
+  if (n) {
+    value.map = new std::shared_ptr<Map_type>(n);
+  } else {
+    type = shcore::Null;
+  }
 }
 
 Value::Value(std::weak_ptr<Map_type> n)
@@ -480,7 +492,11 @@ Value::Value(std::weak_ptr<Map_type> n)
 
 Value::Value(Array_type_ref n)
   : type(Array) {
-  value.array = new std::shared_ptr<Array_type>(n);
+  if (n) {
+    value.array = new std::shared_ptr<Array_type>(n);
+  } else {
+    type = shcore::Null;
+  }
 }
 
 Value &Value::operator= (const Value &other) {
