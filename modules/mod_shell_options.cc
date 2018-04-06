@@ -86,9 +86,9 @@ REGISTER_HELP(OPTIONS_SET_PARAM1, "@param value new value for the option.");
  * $(OPTIONS_SET_PARAM1)
  */
 #if DOXYGEN_JS
-Undefined Options::set(optionName, value);
+Undefined Options::set(String optionName, Value value);
 #elif DOXYGEN_PY
-None Options::set(optionName, value);
+None Options::set(str optionName, value value);
 #endif
 
 shcore::Value Options::set(const shcore::Argument_list &args) {
@@ -116,9 +116,9 @@ REGISTER_HELP(OPTIONS_SET_PERSIST_PARAM1,
  * $(OPTIONS_SET_PERSIST_PARAM1)
  */
 #if DOXYGEN_JS
-Undefined Options::set_persist(optionName, value);
+Undefined Options::set_persist(String optionName, Value value);
 #elif DOXYGEN_PY
-None Options::set_persist(optionName, value);
+None Options::set_persist(str optionName, value value);
 #endif
 
 shcore::Value Options::set_persist(const shcore::Argument_list &args) {
@@ -142,9 +142,9 @@ REGISTER_HELP(OPTIONS_UNSET_PARAM,
  * $(OPTIONS_UNSET_PARAM)
  */
 #if DOXYGEN_JS
-Undefined Options::unset(optionName);
+Undefined Options::unset(String optionName);
 #elif DOXYGEN_PY
-None Options::unset(optionName);
+None Options::unset(str optionName);
 #endif
 
 shcore::Value Options::unset(const shcore::Argument_list &args) {
@@ -170,9 +170,9 @@ REGISTER_HELP(OPTIONS_UNSET_PERSIST_PARAM,
  * $(OPTIONS_UNSET_PERSIST_PARAM)
  */
 #if DOXYGEN_JS
-Undefined Options::unset_persist(optionName);
+Undefined Options::unset_persist(String optionName);
 #elif DOXYGEN_PY
-None Options::unset_persist(optionName);
+None Options::unset_persist(str optionName);
 #endif
 
 shcore::Value Options::unset_persist(const shcore::Argument_list &args) {

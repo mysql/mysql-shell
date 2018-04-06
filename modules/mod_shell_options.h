@@ -63,15 +63,15 @@ class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
                             int quote_strings = 0) const override;
 
 #if DOXYGEN_JS
-  Undefined set(optionName, value);
-  Undefined set_persist(optionName, value);
-  Undefined unset(optionName);
-  Undefined unset_persist(optionName);
+  Undefined set(String optionName, Value value);
+  Undefined set_persist(String optionName, Value value);
+  Undefined unset(String optionName);
+  Undefined unset_persist(String optionName);
 #elif DOXYGEN_PY
-  None set(optionName, value);
-  None set_persist(optionName, value);
-  None unset(optionName);
-  None unset_persist(optionName);
+  None set(str optionName, value value);
+  None set_persist(str optionName, value value);
+  None unset(str optionName);
+  None unset_persist(str optionName);
 #endif
 
   shcore::Value set(const shcore::Argument_list &args);
