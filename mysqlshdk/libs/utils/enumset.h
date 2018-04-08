@@ -34,12 +34,10 @@ class Enum_set {
  public:
   Enum_set() : _value(0) {}
 
-  explicit Enum_set(Enum value) : _value(1 << static_cast<uint32_t>(value)) {}
+  explicit Enum_set(Enum value) : _value(ord(value)) {}
 
   static Enum_set any() {
-    Enum_set tmp;
-    tmp._value = (1 << (static_cast<uint32_t>(last_value) + 1)) - 1;
-    return tmp;
+    return all();
   }
 
   static Enum_set all() {
@@ -49,7 +47,7 @@ class Enum_set {
   }
 
   Enum_set &set(Enum value) {
-    _value = _value | (1 << static_cast<uint32_t>(value));
+    _value = _value | ord(value);
     return *this;
   }
 
@@ -59,7 +57,7 @@ class Enum_set {
   }
 
   Enum_set &unset(Enum value) {
-    _value = _value & ~(1 << static_cast<uint32_t>(value));
+    _value = _value & ~ord(value);
     return *this;
   }
 
@@ -69,7 +67,7 @@ class Enum_set {
   }
 
   bool is_set(Enum value) const {
-    return _value & (1 << static_cast<uint32_t>(value));
+    return _value & ord(value);
   }
 
   bool empty() const { return _value == 0; }
@@ -77,14 +75,33 @@ class Enum_set {
   bool matches_any(Enum_set set) const { return (_value & set._value) != 0; }
 
   Enum_set &operator|=(Enum value) { return set(value); }
+  Enum_set &operator=(Enum value) { return clear().set(value); }
 
-  bool operator&(Enum value) const { return is_set(value); }
+  operator bool() const { return !empty(); }
+
+  Enum_set operator&(Enum value) const {
+    return Enum_set(_value & ord(value));
+  }
+
+  Enum_set operator|(Enum value) const {
+    return Enum_set(_value | ord(value));
+  }
 
   bool operator==(Enum_set set) const { return _value == set._value; }
+
+  bool operator==(Enum value) const {
+    return _value == ord(value);
+  }
 
   bool operator!=(Enum_set set) const { return _value != set._value; }
 
  private:
+  explicit Enum_set(uint32_t v) : _value(v) {}
+
+  inline uint32_t ord(Enum value) const {
+    return 1 << static_cast<uint32_t>(value);
+  }
+
   uint32_t _value;
 };
 

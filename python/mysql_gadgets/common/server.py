@@ -969,6 +969,7 @@ class Server(object):
                 q_killer.start()
             # Execute query.
             cur = None
+
             if params == ():
                 if query_to_log:
                     _LOGGER.debug("MySQL query: %s", query_to_log)

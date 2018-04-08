@@ -1,6 +1,6 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2157","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"8","connection_info":"localhost via TCP/IP","server_info":"8.0.11-commercial","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2147","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"7","connection_info":"localhost via TCP/IP","server_info":"8.0.11-commercial","server_version":"8.0.11","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SET GLOBAL `require_secure_transport` = 'ON'"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":5,"sql":"SELECT @@global.have_ssl"},

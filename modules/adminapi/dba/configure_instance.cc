@@ -336,9 +336,9 @@ void Configure_instance::create_admin_user() {
         log_info("Cloning current user account %s@%s as %s",
                  m_current_user.c_str(), m_current_host.c_str(),
                  m_cluster_admin.c_str());
-        mysqlshdk::mysql::clone_current_user(m_target_instance->get_session(),
-                                             admin_user, admin_user_host,
-                                             m_cluster_admin_password);
+        mysqlshdk::mysql::clone_user(m_target_instance->get_session(),
+                                     m_current_user, m_current_host, admin_user,
+                                     admin_user_host, m_cluster_admin_password);
       } else {
         log_info("Creating new cluster admin account %s",
                  m_cluster_admin.c_str());

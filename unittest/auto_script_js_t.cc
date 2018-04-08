@@ -162,6 +162,11 @@ class Auto_script_js : public Shell_js_script_tester,
     else
       code = "var __replaying = false;";
     exec_and_out_equals(code);
+    if (_recording)
+      code = "var __recording = true;";
+    else
+      code = "var __recording = false;";
+    exec_and_out_equals(code);
   }
 };
 

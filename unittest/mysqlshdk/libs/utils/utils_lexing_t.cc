@@ -146,6 +146,17 @@ TEST(Utils_lexing, SQL_string_iterator) {
   SQL_string_iterator it2(ts2);
   EXPECT_EQ(ts2.length(), it2);
   EXPECT_THROW(++it2, std::out_of_range);
+
+  std::string ts3("/* foo; bar */a-- 'foo'\nb 'foo\"'`bar'\"z`c d");
+  SQL_string_iterator it3(ts3);
+
+  EXPECT_EQ('a', *(it3++));
+  EXPECT_EQ('b', *(it3++));
+  EXPECT_EQ(' ', *(it3++));
+  EXPECT_EQ('c', *(it3++));
+  EXPECT_EQ(' ', *(it3++));
+  EXPECT_EQ('d', *(it3++));
+  EXPECT_THROW(++it3, std::out_of_range);
 }
 
 }  // namespace utils

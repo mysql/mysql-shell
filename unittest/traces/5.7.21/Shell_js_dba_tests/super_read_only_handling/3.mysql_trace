@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2139?ssl-mode=required","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2219?ssl-mode=required","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"3","connection_info":"localhost via TCP/IP","server_info":"5.7.21-log","server_version":"5.7.21","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SET GLOBAL super_read_only = 0"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},

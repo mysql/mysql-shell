@@ -148,7 +148,7 @@ class Trace {
 
   mysqlshdk::db::Connection_options expected_connect();
   void expected_close();
-  std::string expected_query();
+  std::string expected_query(const std::string &query);
 
   void expected_connect_status(std::map<std::string, std::string> *out_info);
   void expected_status();
@@ -169,7 +169,8 @@ class Trace {
   void unserialize_result_rows(
       rapidjson::Value *rlist, std::shared_ptr<Result_mysqlx> result,
       std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
-  void expect_request(rapidjson::Value *doc, const char *subtype);
+  void expect_request(rapidjson::Value *doc, const char *subtype,
+                      const char *detail = nullptr);
   rapidjson::Document _doc;
   rapidjson::SizeType _index;
   std::string _trace_path;

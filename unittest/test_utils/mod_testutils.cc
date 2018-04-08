@@ -957,11 +957,16 @@ static int os_file_lock(int fd) {
 
 void Testutils::wait_sandbox_dead(int port) {
   // wait until classic, x and Xcom ports are free
-  while (mysqlshdk::utils::Net::is_port_listening("localhost", port * 10 + 1)) {
-    shcore::sleep_ms(500);
+  if (port * 10 + 1 < 65535) {
+    while (
+        mysqlshdk::utils::Net::is_port_listening("localhost", port * 10 + 1)) {
+      shcore::sleep_ms(500);
+    }
   }
-  while (mysqlshdk::utils::Net::is_port_listening("localhost", port * 10)) {
-    shcore::sleep_ms(500);
+  if (port * 10 < 65535) {
+    while (mysqlshdk::utils::Net::is_port_listening("localhost", port * 10)) {
+      shcore::sleep_ms(500);
+    }
   }
   while (mysqlshdk::utils::Net::is_port_listening("localhost", port)) {
     shcore::sleep_ms(500);

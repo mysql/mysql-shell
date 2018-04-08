@@ -141,6 +141,11 @@ class Auto_script_py : public Shell_py_script_tester,
     else
       code = "__replaying = False;";
     exec_and_out_equals(code);
+    if (_recording)
+      code = "__recording = True;";
+    else
+      code = "__recording = False;";
+    exec_and_out_equals(code);
   }
 };
 

@@ -30,6 +30,8 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <utility>
 #include <vector>
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/version.h"
 #include "unittest/gtest_clean.h"
@@ -166,6 +168,7 @@ class Shell_test_env : public ::testing::Test {
   std::vector<std::string> _current_entry_point_stacktrace;
   bool _recording_enabled = false;
   bool _replaying = false;
+  bool _recording = false;
 
   std::map<std::string, std::string>
       _output_tokens;  //!< Tokens for string resolution
@@ -173,6 +176,11 @@ class Shell_test_env : public ::testing::Test {
 
   void SetUp() override;
   void TearDown() override;
+
+  std::shared_ptr<mysqlshdk::db::mysql::Session> create_mysql_session(
+      const std::string &uri = "");
+  std::shared_ptr<mysqlshdk::db::mysqlx::Session> create_mysqlx_session(
+      const std::string &uri = "");
 
  public:
   static std::string get_path_to_mysqlsh();

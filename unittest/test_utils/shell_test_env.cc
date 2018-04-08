@@ -415,6 +415,7 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
     test_net_utilities.inject(m_hostname, m_hostname_ip, m_real_hostname,
                               m_real_host_is_loopback);
   } else if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Record) {
+    _recording = true;
     std::map<std::string, std::string> info;
 
     info["sandbox_port1"] = std::to_string(_mysql_sandbox_port1);
@@ -580,6 +581,38 @@ void Shell_test_env::on_session_close(
     }
   }
   assert(0);
+}
+
+std::shared_ptr<mysqlshdk::db::mysql::Session>
+Shell_test_env::create_mysql_session(const std::string &uri) {
+  mysqlshdk::db::Connection_options cnx_opt;
+  if (uri.empty()) {
+    cnx_opt.set_user("root");
+    cnx_opt.set_password("");
+    cnx_opt.set_host("127.0.0.1");
+    cnx_opt.set_port(_mysql_port_number);
+  } else {
+    cnx_opt = mysqlshdk::db::Connection_options(uri);
+  }
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(cnx_opt);
+  return session;
+}
+
+std::shared_ptr<mysqlshdk::db::mysqlx::Session>
+Shell_test_env::create_mysqlx_session(const std::string &uri) {
+  mysqlshdk::db::Connection_options cnx_opt;
+  if (uri.empty()) {
+    cnx_opt.set_user("root");
+    cnx_opt.set_password("");
+    cnx_opt.set_host("127.0.0.1");
+    cnx_opt.set_port(_port_number);
+  } else {
+    cnx_opt = mysqlshdk::db::Connection_options(uri);
+  }
+  auto session = mysqlshdk::db::mysqlx::Session::create();
+  session->connect(cnx_opt);
+  return session;
 }
 
 }  // namespace tests
