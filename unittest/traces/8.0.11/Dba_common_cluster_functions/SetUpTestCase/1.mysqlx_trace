@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2277","protocol":"x"},
-{"type":"response","subtype":"ERROR","index":2,"code":"2027","msg":"Requested session assumes MySQL X Protocol but 'localhost:2277' seems to speak the classic MySQL protocol (Unexpected response received from server\n)","sqlstate":""},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2017","protocol":"x"},
+{"type":"response","subtype":"ERROR","index":2,"code":"2027","msg":"Requested session assumes MySQL X Protocol but 'localhost:2017' seems to speak the classic MySQL protocol (Unexpected response received from server\n)","sqlstate":""},
 null]

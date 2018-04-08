@@ -52,5 +52,31 @@ TEST(Enumset, test) {
   fruitset2.unset(Cantaloupe);
   EXPECT_FALSE(fruitset2.is_set(Cantaloupe));
 }
+
+TEST(Enumset, operators) {
+  enum class Attrib {
+    Color,
+    Width,
+    Height
+  };
+  using Attribs = Enum_set<Attrib, Attrib::Height>;
+
+  Attribs a;
+  EXPECT_FALSE(a);
+
+  a = Attrib::Color;
+  EXPECT_TRUE(a.is_set(Attrib::Color));
+  EXPECT_FALSE(a.is_set(Attrib::Width));
+  EXPECT_FALSE(a.is_set(Attrib::Height));
+
+  EXPECT_TRUE(a & Attrib::Color);
+  EXPECT_FALSE(a & Attrib::Height);
+  EXPECT_TRUE(a == Attrib::Color);
+  EXPECT_FALSE(a == Attrib::Height);
+  EXPECT_TRUE((a | Attrib::Width) != (a | Attrib::Height));
+  EXPECT_TRUE((a | Attrib::Width | Attrib::Height) & Attrib::Height);
+  EXPECT_TRUE((a | Attrib::Width | Attrib::Height) & Attrib::Color);
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

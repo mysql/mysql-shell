@@ -401,7 +401,8 @@ void Trace::next(rapidjson::Value *entry) {
 
 std::map<std::string, std::string> Trace::get_metadata() { return {}; }
 
-void Trace::expect_request(rapidjson::Value *doc, const char *subtype) {
+void Trace::expect_request(rapidjson::Value *doc, const char *subtype,
+                           const char *detail) {
   if (_got_error)
     throw sequence_error("Session " + _trace_path + " is invalidated");
 
@@ -414,10 +415,17 @@ void Trace::expect_request(rapidjson::Value *doc, const char *subtype) {
   }
   if (strcmp((*doc)["subtype"].GetString(), subtype) != 0) {
     _got_error = true;
-    throw sequence_error(
-        shcore::str_format("Attempting a '%s' but replayed session %s has %s",
-                           subtype, _trace_path.c_str(), to_json(doc).c_str())
-            .c_str());
+    if (detail)
+      throw sequence_error(
+          shcore::str_format(
+              "Attempting '%s' (%s) but replayed session %s has %s", subtype,
+              detail, _trace_path.c_str(), to_json(doc).c_str())
+              .c_str());
+    else
+      throw sequence_error(
+          shcore::str_format("Attempting '%s' but replayed session %s has %s",
+                             subtype, _trace_path.c_str(), to_json(doc).c_str())
+              .c_str());
   }
 }
 
@@ -439,11 +447,11 @@ void Trace::expected_close() {
   expect_request(&obj, "CLOSE");
 }
 
-std::string Trace::expected_query() {
+std::string Trace::expected_query(const std::string &expected) {
   rapidjson::Value obj;
   next(&obj);
 
-  expect_request(&obj, "QUERY");
+  expect_request(&obj, "QUERY", expected.c_str());
   std::string query = obj["sql"].GetString();
   if (_print_traces > 1)
     std::cerr << shcore::path::basename(_trace_path) << ": " << query << "\n";

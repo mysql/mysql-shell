@@ -27,14 +27,22 @@
 #include <memory>
 #include <string>
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlshdk {
 namespace mysql {
 
-void clone_current_user(std::shared_ptr<db::ISession> session,
-                        const std::string &account_user,
-                        const std::string &account_host,
-                        const std::string &password);
+enum class Account_attribute { Grants };
+
+using Account_attribute_set =
+    utils::Enum_set<Account_attribute, Account_attribute::Grants>;
+
+void clone_user(std::shared_ptr<db::ISession> session,
+                const std::string &orig_user, const std::string &orig_host,
+                const std::string &new_user, const std::string &new_host,
+                const std::string &password,
+                Account_attribute_set flags =
+                    Account_attribute_set(Account_attribute::Grants));
 
 }  // namespace mysql
 }  // namespace mysqlshdk

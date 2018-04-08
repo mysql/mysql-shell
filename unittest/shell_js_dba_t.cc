@@ -227,6 +227,11 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     else
       code = "var __replaying = false;";
     exec_and_out_equals(code);
+    if (_recording)
+      code = "var __recording = true;";
+    else
+      code = "var __recording = false;";
+    exec_and_out_equals(code);
   }
 
   virtual void validate_interactive(const std::string &f) {

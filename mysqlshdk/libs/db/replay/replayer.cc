@@ -89,7 +89,7 @@ class Replayer_impl {
     std::string sql = sql_;
     if (g_replay_query_hook) sql = g_replay_query_hook(sql_);
 
-    std::string expected = _trace->expected_query();
+    std::string expected = _trace->expected_query(sql_);
     if (shcore::str_ibeginswith(sql, "grant ") ||
         shcore::str_ibeginswith(sql, "create user ") ||
         shcore::str_ibeginswith(sql, "drop user ") ||

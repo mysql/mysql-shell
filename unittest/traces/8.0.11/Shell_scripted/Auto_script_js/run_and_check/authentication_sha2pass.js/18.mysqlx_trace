@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_pass:pass@localhost:20770?ssl-mode=REQUIRED","protocol":"x"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_pass:pass@localhost:21670?ssl-mode=REQUIRED","protocol":"x"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"31","connection_info":"localhost via TCP/IP","server_version":"8.0.11-commercial","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},
