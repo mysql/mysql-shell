@@ -53,12 +53,10 @@ static std::vector<std::string> k_builtin_keywords = {
 class Placeholder_wrapper : public Object {
  public:
   explicit Placeholder_wrapper(std::shared_ptr<Object> object)
-      : real_object_(object) {
-  }
+      : real_object_(object) {}
 
   std::string get_type() const override {
-    if (auto obj = real_object_.lock())
-      return obj->get_type();
+    if (auto obj = real_object_.lock()) return obj->get_type();
     return "";
   }
 
@@ -105,9 +103,7 @@ class PyObject_proxy : public Object {
     Py_XINCREF(obj);
   }
 
-  ~PyObject_proxy() {
-    Py_XDECREF(pyobj_);
-  }
+  ~PyObject_proxy() { Py_XDECREF(pyobj_); }
 
   std::string get_type() const override {
     WillEnterPython lock;
@@ -193,8 +189,7 @@ class PyObject_proxy : public Object {
 
 Provider_python::Provider_python(std::shared_ptr<Object_registry> registry,
                                  std::shared_ptr<Python_context> context)
-    : Provider_script(registry), context_(context) {
-}
+    : Provider_script(registry), context_(context) {}
 
 Completion_list Provider_python::complete_chain(const Chain &chain_a) {
   // handle globals/toplevel keywords
@@ -348,8 +343,7 @@ Provider_script::Chain Provider_python::parse_until(const std::string &s,
       case '}':
       case ')':
       case ']':
-        if (s[p] == close_char)
-          return chain;
+        if (s[p] == close_char) return chain;
         chain.clear();
         identifier.clear();
         // unexpected closing thingy, probably bad syntax, but we don't care

@@ -45,8 +45,7 @@ Completion_list Completer::complete(IShell_core::Mode mode,
         *compl_offset = old_compl_offs;
       } else {
         std::copy(tmp.begin(), tmp.end(), std::back_inserter(list));
-        if (old_compl_offs != *compl_offset)
-          break;
+        if (old_compl_offs != *compl_offset) break;
       }
     }
   }
@@ -63,9 +62,7 @@ void Completer::add_provider(IShell_core::Mode_mask mode_mask,
   }
 }
 
-void Completer::reset() {
-  providers_.clear();
-}
+void Completer::reset() { providers_.clear(); }
 
 }  // namespace completer
 }  // namespace shcore

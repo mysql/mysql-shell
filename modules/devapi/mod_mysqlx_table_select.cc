@@ -25,13 +25,12 @@
 #include <string>
 #include <vector>
 #include "db/mysqlx/mysqlx_parser.h"
+#include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
-#include "modules/devapi/base_constants.h"
-#include "scripting/common.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "scripting/common.h"
 #include "shellcore/utils_help.h"
-
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
@@ -57,18 +56,33 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
              std::bind(&TableSelect::lock_exclusive, this, _1));
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::select,F::_empty);
+  register_dynamic_function(F::select, F::_empty);
   register_dynamic_function(F::where, F::select);
   register_dynamic_function(F::groupBy, F::select | F::where);
   register_dynamic_function(F::having, F::groupBy);
-  register_dynamic_function(F::orderBy, F::select | F::where | F::groupBy | F::having);
-  register_dynamic_function(F::limit, F::select | F::where | F::groupBy | F::having | F::orderBy);
+  register_dynamic_function(F::orderBy,
+                            F::select | F::where | F::groupBy | F::having);
+  register_dynamic_function(
+      F::limit, F::select | F::where | F::groupBy | F::having | F::orderBy);
   register_dynamic_function(F::offset, F::limit);
-  register_dynamic_function(F::lockShared, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit);
-  register_dynamic_function(F::lockExclusive, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit);
-  register_dynamic_function(F::bind, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit | F::lockShared | F::lockExclusive | F::bind);
-  register_dynamic_function(F::execute, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit | F::lockShared | F::lockExclusive | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::select | F::where | F::groupBy | F::having | F::orderBy | F::offset | F::limit | F::lockShared | F::lockExclusive | F::bind);
+  register_dynamic_function(F::lockShared, F::select | F::where | F::groupBy |
+                                               F::having | F::orderBy |
+                                               F::offset | F::limit);
+  register_dynamic_function(F::lockExclusive,
+                            F::select | F::where | F::groupBy | F::having |
+                                F::orderBy | F::offset | F::limit);
+  register_dynamic_function(F::bind, F::select | F::where | F::groupBy |
+                                         F::having | F::orderBy | F::offset |
+                                         F::limit | F::lockShared |
+                                         F::lockExclusive | F::bind);
+  register_dynamic_function(F::execute, F::select | F::where | F::groupBy |
+                                            F::having | F::orderBy | F::offset |
+                                            F::limit | F::lockShared |
+                                            F::lockExclusive | F::bind);
+  register_dynamic_function(
+      F::__shell_hook__, F::select | F::where | F::groupBy | F::having |
+                             F::orderBy | F::offset | F::limit | F::lockShared |
+                             F::lockExclusive | F::bind);
 
   // Initial function update
   update_functions(F::_empty);
@@ -84,22 +98,22 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
 //! columns to be retrieved, alias support is enabled on these fields.
 #endif
 /**
-* \return This TableSelect object.
-*
-* The TableSelect handler will only retrieve the columns that were included on
-* the filter, if no filter was set then all the columns will be included.
-*
-* Calling this function is allowed only for the first time and it is done
-* automatically when Table.select() is called.
-*
-* #### Method Chaining
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - where(String searchCriteria)
-* - groupBy(List searchExprStr)
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
+ * \return This TableSelect object.
+ *
+ * The TableSelect handler will only retrieve the columns that were included on
+ * the filter, if no filter was set then all the columns will be included.
+ *
+ * Calling this function is allowed only for the first time and it is done
+ * automatically when Table.select() is called.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - where(String searchCriteria)
+ * - groupBy(List searchExprStr)
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
  */
 #if DOXYGEN_JS
 /**
@@ -108,7 +122,7 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  */
@@ -119,14 +133,14 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::select(List searchExprStr) {}
 #elif DOXYGEN_PY
@@ -171,23 +185,23 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
 //! retrieved.
 #endif
 /**
-* if not specified all the records will be retrieved from the table unless a
-* limit is set.
-* \return This TableSelect object.
-*
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - select(List columns)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - groupBy(List searchExprStr)
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
+ * if not specified all the records will be retrieved from the table unless a
+ * limit is set.
+ * \return This TableSelect object.
+ *
+ * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - select(List columns)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - groupBy(List searchExprStr)
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
  */
 #if DOXYGEN_JS
 /**
@@ -196,7 +210,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  */
@@ -207,14 +221,14 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::where(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -243,22 +257,22 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
 //! criteria.
 #endif
 /**
-* \return This TableSelect object.
-*
-* If used, the TableSelect handler will group the records using the stablished
-* criteria.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-* - select(List projectedSearchExprStr)
-* - where(String searchCondition)
-*
-* After this function invocation the following functions can be invoked:
-*
-* - having(String searchCondition)
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
+ * \return This TableSelect object.
+ *
+ * If used, the TableSelect handler will group the records using the stablished
+ * criteria.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ * - select(List projectedSearchExprStr)
+ * - where(String searchCondition)
+ *
+ * After this function invocation the following functions can be invoked:
+ *
+ * - having(String searchCondition)
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
  */
 #if DOXYGEN_JS
 /**
@@ -267,7 +281,7 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  */
@@ -278,14 +292,14 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::groupBy(List searchExprStr) {}
 #elif DOXYGEN_PY
@@ -325,23 +339,23 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
 //! grouping criteria.
 #endif
 /**
-* \return This TableSelect object.
-*
-* If used the TableSelect operation will only consider the records matching the
-* stablished criteria.
-*
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - groupBy(List searchExprStr)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
+ * \return This TableSelect object.
+ *
+ * If used the TableSelect operation will only consider the records matching the
+ * stablished criteria.
+ *
+ * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - groupBy(List searchExprStr)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
  */
 #if DOXYGEN_JS
 /**
@@ -350,7 +364,7 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  */
@@ -361,14 +375,14 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::having(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -398,27 +412,27 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
 //! for the returned records.
 #endif
 /**
-* \return This TableSelect object.
-*
-* If used the TableSelect handler will return the records sorted with the
-* defined criteria.
-*
-* The elements of sortExprStr list are strings defining the column name on which
-* the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
-* If no order criteria is specified, ascending will be used by default.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - select(List projectedSearchExprStr)
-* - where(String searchCondition)
-* - groupBy(List searchExprStr)
-* - having(String searchCondition)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - limit(Integer numberOfRows)
+ * \return This TableSelect object.
+ *
+ * If used the TableSelect handler will return the records sorted with the
+ * defined criteria.
+ *
+ * The elements of sortExprStr list are strings defining the column name on
+ * which the sorting will be based in the form of "columnIdentifier [ ASC | DESC
+ * ]". If no order criteria is specified, ascending will be used by default.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - select(List projectedSearchExprStr)
+ * - where(String searchCondition)
+ * - groupBy(List searchExprStr)
+ * - having(String searchCondition)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - limit(Integer numberOfRows)
  */
 #if DOXYGEN_JS
 /**
@@ -427,7 +441,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  */
@@ -438,14 +452,14 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::orderBy(List sortExprStr) {}
 #elif DOXYGEN_PY
@@ -482,23 +496,23 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
 //! \param numberOfRows: The maximum number of records to be retrieved.
 #endif
 /**
-* \return This TableSelect object.
-*
-* If used, the TableSelect operation will return at most numberOfRows records.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - select(List projectedSearchExprStr)
-* - where(String searchCondition)
-* - groupBy(List searchExprStr)
-* - having(String searchCondition)
-* - orderBy(List sortExprStr)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - offset(Integer limitOffset)
+ * \return This TableSelect object.
+ *
+ * If used, the TableSelect operation will return at most numberOfRows records.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - select(List projectedSearchExprStr)
+ * - where(String searchCondition)
+ * - groupBy(List searchExprStr)
+ * - having(String searchCondition)
+ * - orderBy(List sortExprStr)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - offset(Integer limitOffset)
  */
 #if DOXYGEN_JS
 /**
@@ -507,7 +521,7 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  */
@@ -518,14 +532,14 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
@@ -554,21 +568,21 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
 //! them on the Resultset.
 #endif
 /**
-* \return This TableSelect object.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - limit(Integer numberOfRows)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableSelect object.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - limit(Integer numberOfRows)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::offset(Integer limitOffset) {}
 #elif DOXYGEN_PY
@@ -602,11 +616,12 @@ void TableSelect::set_lock_contention(const shcore::Argument_list &args) {
     if (!shcore::str_casecmp(lock_contention.c_str(), "nowait")) {
       message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_NOWAIT);
     } else if (!shcore::str_casecmp(lock_contention.c_str(), "skip_locked")) {
-      message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
+      message_.set_locking_options(
+          Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
     } else if (shcore::str_casecmp(lock_contention.c_str(), "default")) {
-        throw shcore::Exception::argument_error(
-            "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
-            "SKIP_LOCKED");
+      throw shcore::Exception::argument_error(
+          "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
+          "SKIP_LOCKED");
     }
   }
 }
@@ -712,7 +727,7 @@ REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL14,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -723,11 +738,9 @@ REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL14,
  */
 //@{
 #if DOXYGEN_JS
-TableSelect TableSelect::lockShared(String lockContention) {
-}
+TableSelect TableSelect::lockShared(String lockContention) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::lock_shared(str lockContention) {
-}
+TableSelect TableSelect::lock_shared(str lockContention) {}
 #endif
 //@}
 shcore::Value TableSelect::lock_shared(const shcore::Argument_list &args) {
@@ -845,7 +858,7 @@ REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL14,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -856,11 +869,9 @@ REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL14,
  */
 //@{
 #if DOXYGEN_JS
-TableSelect TableSelect::lockExclusive(String lockContention) {
-}
+TableSelect TableSelect::lockExclusive(String lockContention) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::lock_exclusive(str lockContention) {
-}
+TableSelect TableSelect::lock_exclusive(str lockContention) {}
 #endif
 //@}
 shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
@@ -888,25 +899,25 @@ shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
 //! \param value: The value to be bound on the placeholder.
 #endif
 /**
-* \return This TableSelect object.
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times right before calling execute:
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* An error will be raised if the placeholder indicated by name does not exist.
-*
-* This function must be called once for each used placeohlder or an error will
-* be
-* raised when the execute method is called.
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableSelect object.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times right before calling execute:
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * An error will be raised if the placeholder indicated by name does not exist.
+ *
+ * This function must be called once for each used placeohlder or an error will
+ * be
+ * raised when the execute method is called.
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableSelect TableSelect::bind(String name, Value value) {}
 #elif DOXYGEN_PY
@@ -927,31 +938,31 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args) {
 }
 
 /**
-* Executes the Find operation with all the configured options and returns.
-* \return RowResult A Row result object that can be used to traverse the records
-* returned by rge select operation.
-*
-* #### Method Chaining
-*
-* This function can be invoked after any other function on this class.
-*/
+ * Executes the Find operation with all the configured options and returns.
+ * \return RowResult A Row result object that can be used to traverse the
+ * records returned by rge select operation.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked after any other function on this class.
+ */
 #if DOXYGEN_JS
 /**
-*
-* #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_table_select.js"
-* \skip //@ Table.Select All
-* \until print('Select Binding Name:', records[0].my_name, '\n');
-*/
+ *
+ * #### Examples
+ * \dontinclude "js_devapi/scripts/mysqlx_table_select.js"
+ * \skip //@ Table.Select All
+ * \until print('Select Binding Name:', records[0].my_name, '\n');
+ */
 RowResult TableSelect::execute() {}
 #elif DOXYGEN_PY
 /**
-*
-* #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_table_select.py"
-* \skip #@ Table.Select All
-* \until print 'Select Binding Name:', records[0].name, '\n'
-*/
+ *
+ * #### Examples
+ * \dontinclude "py_devapi/scripts/mysqlx_table_select.py"
+ * \skip #@ Table.Select All
+ * \until print 'Select Binding Name:', records[0].name, '\n'
+ */
 RowResult TableSelect::execute() {}
 #endif
 shcore::Value TableSelect::execute(const shcore::Argument_list &args) {

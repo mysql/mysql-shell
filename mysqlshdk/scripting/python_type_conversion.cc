@@ -21,17 +21,17 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "scripting/python_type_conversion.h"
 #include "scripting/python_array_wrapper.h"
+#include "scripting/python_function_wrapper.h"
 #include "scripting/python_map_wrapper.h"
 #include "scripting/python_object_wrapper.h"
-#include "scripting/python_function_wrapper.h"
-#include "scripting/python_type_conversion.h"
 #include "scripting/types_python.h"
 
 using namespace shcore;
 
 Python_type_bridger::Python_type_bridger(Python_context *context)
-  : _owner(context) {}
+    : _owner(context) {}
 
 Python_type_bridger::~Python_type_bridger() {}
 
@@ -44,13 +44,13 @@ PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
 */
 
 Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
-  // Some numeric conversions yield errors, in that case the string representation of the
-  // python object is returned
+  // Some numeric conversions yield errors, in that case the string
+  // representation of the python object is returned
   Value retval;
 
   if (!py || py == Py_None) {
     return Value::Null();
-  } else if (py == Py_False){
+  } else if (py == Py_False) {
     return Value(false);
   } else if (py == Py_True) {
     return Value(true);
@@ -70,8 +70,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
         if (obj_repr) {
           const char *s = PyString_AsString(obj_repr);
 
-          if (s)
-            retval = Value(s);
+          if (s) retval = Value(s);
 
           Py_DECREF(obj_repr);
         }
@@ -91,8 +90,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       if (obj_repr) {
         const char *s = PyString_AsString(obj_repr);
 
-        if (s)
-          retval = Value(s);
+        if (s) retval = Value(s);
 
         Py_DECREF(obj_repr);
       }
@@ -106,12 +104,13 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
   else if (PyString_Check(py))
     return Value(PyString_AsString(py), PyString_Size(py));
   else if (PyUnicode_Check(py)) {
-    // TODO: In case of error calls ourself using NULL, either handle here before calling
-    // recursively or always allow NULL
+    // TODO: In case of error calls ourself using NULL, either handle here
+    // before calling recursively or always allow NULL
     PyObject *ref = PyUnicode_AsUTF8String(py);
     retval = pyobj_to_shcore_value(ref);
     Py_DECREF(ref);
-  }  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object) {
+  }  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime ||
+     // generic_object) {
   else if (PyList_Check(py)) {
     std::shared_ptr<Value::Array_type> array(new Value::Array_type);
 
@@ -137,7 +136,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
     while (PyDict_Next(py, &pos, &key, &value)) {
       // The key may be anything (not necesarily a string)
       // so we get the string representation of whatever it is
-      PyObject* key_repr = PyObject_Str(key);
+      PyObject *key_repr = PyObject_Str(key);
       (*map)[PyString_AsString(key_repr)] = pyobj_to_shcore_value(value);
 
       Py_DECREF(key_repr);
@@ -145,7 +144,8 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
 
     return Value(map);
   } else if (PyFunction_Check(py)) {
-    std::shared_ptr<shcore::Python_function> function(new shcore::Python_function(_owner, py));
+    std::shared_ptr<shcore::Python_function> function(
+        new shcore::Python_function(_owner, py));
     return Value(std::dynamic_pointer_cast<Function_base>(function));
   } else {
     std::shared_ptr<Value::Array_type> array;
@@ -166,15 +166,15 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       const char *s = PyString_AsString(obj_repr);
       Value ret_val;
 
-      if (s)
-        ret_val = Value(s);
+      if (s) ret_val = Value(s);
 
       Py_DECREF(obj_repr);
 
       if (ret_val)
         return ret_val;
       else
-        throw std::invalid_argument("Cannot convert Python value to internal value");
+        throw std::invalid_argument(
+            "Cannot convert Python value to internal value");
     }
   }
 

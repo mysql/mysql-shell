@@ -19,8 +19,8 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
+#include "unittest/gtest_clean.h"
 
 #ifndef MY_EXPECT_THROW
 #define MY_EXPECT_THROW(e, m, c)         \
@@ -28,7 +28,7 @@
       {                                  \
         try {                            \
           c;                             \
-        } catch (const e& error) {       \
+        } catch (const e &error) {       \
           EXPECT_STREQ(m, error.what()); \
           throw;                         \
         }                                \
@@ -36,9 +36,9 @@
       e)
 #endif
 
-using mysqlshdk::utils::nullable_options::Set_mode;
-using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::Nullable_options;
+using mysqlshdk::utils::nullable_options::Comparison_mode;
+using mysqlshdk::utils::nullable_options::Set_mode;
 namespace testing {
 
 // This tests ensures variables are handled in a

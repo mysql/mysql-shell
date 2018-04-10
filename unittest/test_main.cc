@@ -83,10 +83,10 @@ const char *g_mysqlsh_argv0;
 char *g_mppath = nullptr;
 bool g_profile_test_scripts = false;
 
-std::vector<std::pair<std::string, std::string> > g_skipped_tests;
-std::vector<std::pair<std::string, std::string> > g_skipped_chunks;
-std::vector<std::pair<std::string, std::string> > g_skipped_validations;
-std::vector<std::pair<std::string, std::string> > g_pending_fixes;
+std::vector<std::pair<std::string, std::string>> g_skipped_tests;
+std::vector<std::pair<std::string, std::string>> g_skipped_chunks;
+std::vector<std::pair<std::string, std::string>> g_skipped_validations;
+std::vector<std::pair<std::string, std::string>> g_pending_fixes;
 
 static std::string make_socket_absolute_path(const std::string &datadir,
                                              const std::string &socket) {
@@ -421,7 +421,7 @@ void setup_test_environment() {
 
   if (!getenv("MYSQLSH_USER_CONFIG_HOME")) {
     // Override the configuration home for tests, to not mess with custom data
-    if (putenv(const_cast<char*>("MYSQLSH_USER_CONFIG_HOME=.")) != 0) {
+    if (putenv(const_cast<char *>("MYSQLSH_USER_CONFIG_HOME=.")) != 0) {
       std::cerr << "MYSQLSH_USER_CONFIG_HOME could not be set with putenv\n";
     }
   }

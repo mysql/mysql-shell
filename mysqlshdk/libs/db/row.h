@@ -27,22 +27,21 @@
 #ifndef MYSQLSHDK_LIBS_DB_ROW_H_
 #define MYSQLSHDK_LIBS_DB_ROW_H_
 
+#include <mysqlxclient/xdatetime.h>
 #include <cstdint>
 #include <set>
 #include <string>
 #include <utility>
-#include <mysqlxclient/xdatetime.h>
 
-#include "mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace db {
 
 class SHCORE_PUBLIC IRow {
  public:
-  IRow() {
-  }
+  IRow() {}
   // non-copiable
   IRow(const IRow &) = delete;
   void operator=(const IRow &) = delete;
@@ -62,8 +61,7 @@ class SHCORE_PUBLIC IRow {
       uint32_t index) const = 0;
   virtual uint64_t get_bit(uint32_t index) const = 0;
 
-  virtual ~IRow() {
-  }
+  virtual ~IRow() {}
 };
 }  // namespace db
 }  // namespace mysqlshdk

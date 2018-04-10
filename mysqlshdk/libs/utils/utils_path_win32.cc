@@ -67,7 +67,6 @@ class Known_folder_path {
 };
 }  // namespace detail
 
-
 /*
  * Join two or more pathname components, inserting '\\' as needed.
  * If any component is an absolute path, all previous path components
@@ -79,8 +78,8 @@ class Known_folder_path {
  *         following each non-empty part except the last, meaning that the
  *         result will only end in a separator if the last part is empty.
  */
-std::string SHCORE_PUBLIC join_path(const std::vector<std::string>
-                                    &components) {
+std::string SHCORE_PUBLIC
+join_path(const std::vector<std::string> &components) {
   std::string result, result_drive, result_path;
   std::string p_drive, p_path, lp_drive, lresult_drive;
   if (!components.empty())
@@ -92,8 +91,7 @@ std::string SHCORE_PUBLIC join_path(const std::vector<std::string>
     std::tie(p_drive, p_path) = splitdrive(components.at(i));
     if (!p_path.empty() && (p_path.front() == '\\' || p_path.front() == '/')) {
       // second path is absolute, so forget about first
-      if (!p_drive.empty() || result_drive.empty())
-        result_drive = p_drive;
+      if (!p_drive.empty() || result_drive.empty()) result_drive = p_drive;
       result_path = p_path;
       continue;
     } else if (!p_drive.empty() && p_drive != result_drive) {
@@ -101,8 +99,8 @@ std::string SHCORE_PUBLIC join_path(const std::vector<std::string>
       // TODO(nelson): This will fail for non unicode characters
       lp_drive.assign(p_drive);
       lresult_drive.assign(result_drive);
-      std::transform(p_drive.begin(), p_drive.end(),
-                     lp_drive.begin(), ::tolower);
+      std::transform(p_drive.begin(), p_drive.end(), lp_drive.begin(),
+                     ::tolower);
       std::transform(result_drive.begin(), result_drive.end(),
                      lresult_drive.begin(), ::tolower);
 
@@ -155,8 +153,8 @@ std::string SHCORE_PUBLIC join_path(const std::vector<std::string>
  *         or empty string. On Unix systems drive will always be empty string.
  *
  */
-std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
-    const std::string &path) {
+std::pair<std::string, std::string> SHCORE_PUBLIC
+splitdrive(const std::string &path) {
   if (path.size() > 1) {
     std::string norm_path = path;
     // replace all '/' with '\' character
@@ -178,13 +176,11 @@ std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
       if (index == std::string::npos) {
         return std::make_pair("", path);
       }
-      auto index2 = norm_path.find('\\', index+1);
+      auto index2 = norm_path.find('\\', index + 1);
       // a UNC path can't have two slashes in a row
       // (after the initial two)
-      if (index2 == index + 1)
-        return std::make_pair("", path);
-      if (index2 == std::string::npos)
-        index2 = path.size();
+      if (index2 == index + 1) return std::make_pair("", path);
+      if (index2 == std::string::npos) index2 = path.size();
       return std::make_pair(path.substr(0, index2), path.substr(index2));
     }
     if (norm_path.at(1) == ':')
@@ -243,8 +239,7 @@ std::string SHCORE_PUBLIC dirname(const std::string &path) {
   std::string drive, dir;
   std::tie(drive, dir) = splitdrive(path);
   size_t xx = detail::span_dirname(dir);
-  if (xx == std::string::npos)
-    return drive.empty() ? "." : drive;
+  if (xx == std::string::npos) return drive.empty() ? "." : drive;
   return drive + dir.substr(0, xx);
 }
 
@@ -260,12 +255,11 @@ std::string SHCORE_PUBLIC basename(const std::string &path) {
   if (p == std::string::npos || p == dir.size() || p == 0 || p == end)
     return dir.substr(0, end);
   size_t pp = dir.find_first_not_of(k_valid_path_separators, p);
-  if (pp != std::string::npos)
-    p = pp;
+  if (pp != std::string::npos) p = pp;
   return dir.substr(p, end - p);
 }
 
-bool exists(const std::string& filename) {
+bool exists(const std::string &filename) {
   DWORD dwAttrib = GetFileAttributesA(filename.c_str());
   return dwAttrib != INVALID_FILE_ATTRIBUTES;
 }

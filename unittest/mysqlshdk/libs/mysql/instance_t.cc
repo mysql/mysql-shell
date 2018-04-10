@@ -20,10 +20,10 @@
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/shell_base_test.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 
 using mysqlshdk::db::Type;
 namespace testing {
@@ -64,15 +64,15 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Get string system variable with SESSION scope.
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables "
           "where `variable_name` in ('character_set_server')")
-      .then_return(
-          {{"show SESSION variables "
-            "where `variable_name` in ('character_set_server')",
-            {"Variable_name", "Value"},
-            {Type::String, Type::String},
-            {{"character_set_server", "latin1"}}}});
+      .then_return({{"show SESSION variables "
+                     "where `variable_name` in ('character_set_server')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"character_set_server", "latin1"}}}});
   mysqlshdk::utils::nullable<std::string> char_set_server =
       instance.get_sysvar_string("character_set_server",
                                  mysqlshdk::mysql::Var_qualifier::SESSION);
@@ -80,15 +80,15 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
   EXPECT_STREQ("latin1", (*char_set_server).c_str());
 
   // Get string system variable with GLOBAL scope.
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables "
           "where `variable_name` in ('character_set_server')")
-      .then_return(
-          {{"show GLOBAL variables "
-            "where `variable_name` in ('character_set_server')",
-            {"Variable_name", "Value"},
-            {Type::String, Type::String},
-            {{"character_set_server", "latin1"}}}});
+      .then_return({{"show GLOBAL variables "
+                     "where `variable_name` in ('character_set_server')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"character_set_server", "latin1"}}}});
   char_set_server = instance.get_sysvar_string(
       "character_set_server", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_FALSE(char_set_server.is_null());
@@ -102,17 +102,17 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('unexisting_variable')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('unexisting_variable')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {}  // No Records...
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('unexisting_variable')")
+      .then_return({{
+          "show SESSION variables where `variable_name` in"
+          " ('unexisting_variable')",
+          {"Variable_name", "Value"},
+          {Type::String, Type::String},
+          {}  // No Records...
+      }});
 
   mysqlshdk::mysql::Instance instance(_session);
   mysqlshdk::utils::nullable<std::string> server_uuid =
@@ -130,19 +130,15 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('sql_warnings')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('sql_warnings')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {
-          { "sql_warnings", "OFF" }
-        }
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('sql_warnings')")
+      .then_return({{"show SESSION variables where `variable_name` in"
+                     " ('sql_warnings')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"sql_warnings", "OFF"}}}});
   mysqlshdk::utils::nullable<bool> sql_warnings =
       instance.get_sysvar_bool("sql_warnings");
   // The value was not modified
@@ -150,7 +146,8 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
   EXPECT_FALSE(*sql_warnings);
 
   // Get boolean system variable with SESSION scope.
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables where `variable_name` in ('sql_warnings')")
       .then_return({{"show SESSION variables "
                      "where `variable_name` in ('sql_warnings')",
@@ -163,7 +160,8 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
   EXPECT_FALSE(*sql_warnings);
 
   // Get boolean system variable with GLOBAL scope.
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('sql_warnings')")
       .then_return({{"show GLOBAL variables "
                      "where `variable_name` in ('sql_warnings')",
@@ -183,17 +181,17 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('unexisting_variable')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('unexisting_variable')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {}  // No Records...
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('unexisting_variable')")
+      .then_return({{
+          "show SESSION variables where `variable_name` in"
+          " ('unexisting_variable')",
+          {"Variable_name", "Value"},
+          {Type::String, Type::String},
+          {}  // No Records...
+      }});
 
   mysqlshdk::mysql::Instance instance(_session);
   mysqlshdk::utils::nullable<bool> sql_warnings =
@@ -210,19 +208,16 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('server_uuid')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('server_uuid')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {
-          { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }
-        }
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('server_uuid')")
+      .then_return(
+          {{"show SESSION variables where `variable_name` in"
+            " ('server_uuid')",
+            {"Variable_name", "Value"},
+            {Type::String, Type::String},
+            {{"server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00"}}}});
 
   mysqlshdk::mysql::Instance instance(_session);
   EXPECT_ANY_THROW(instance.get_sysvar_bool("server_uuid"));
@@ -236,19 +231,15 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('server_id')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('server_id')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {
-          { "server_id", "0" }
-        }
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('server_id')")
+      .then_return({{"show SESSION variables where `variable_name` in"
+                     " ('server_id')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"server_id", "0"}}}});
   mysqlshdk::utils::nullable<int64_t> server_id =
       instance.get_sysvar_int("server_id");
   // The value was not modified
@@ -256,7 +247,8 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
   EXPECT_EQ(0, *server_id);
 
   // Get integer system variable with SESSION scope.
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables "
           "where `variable_name` in ('wait_timeout')")
       .then_return({{"show SESSION variables "
@@ -270,7 +262,8 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
   EXPECT_EQ(28800, *wait_timeout);
 
   // Get integer system variable with GLOBAL scope.
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables "
           "where `variable_name` in ('wait_timeout')")
       .then_return({{"show GLOBAL variables "
@@ -291,17 +284,17 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('unexisting_variable')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('unexisting_variable')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {}  // No Records...
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('unexisting_variable')")
+      .then_return({{
+          "show SESSION variables where `variable_name` in"
+          " ('unexisting_variable')",
+          {"Variable_name", "Value"},
+          {Type::String, Type::String},
+          {}  // No Records...
+      }});
 
   mysqlshdk::mysql::Instance instance(_session);
   mysqlshdk::utils::nullable<int64_t> server_id =
@@ -318,19 +311,16 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('server_uuid')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('server_uuid')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {
-          { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }
-        }
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('server_uuid')")
+      .then_return(
+          {{"show SESSION variables where `variable_name` in"
+            " ('server_uuid')",
+            {"Variable_name", "Value"},
+            {Type::String, Type::String},
+            {{"server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00"}}}});
 
   mysqlshdk::mysql::Instance instance(_session);
   EXPECT_ANY_THROW(instance.get_sysvar_int("server_uuid"));
@@ -352,21 +342,19 @@ TEST_F(Instance_test, get_sysvar_invalid_qualifier) {
       instance.get_sysvar_string("character_set_server",
                                  mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
       std::runtime_error);
-  EXPECT_THROW(
-      instance.get_sysvar_bool("sql_warnings",
-                               mysqlshdk::mysql::Var_qualifier::PERSIST),
-      std::runtime_error);
+  EXPECT_THROW(instance.get_sysvar_bool(
+                   "sql_warnings", mysqlshdk::mysql::Var_qualifier::PERSIST),
+               std::runtime_error);
   EXPECT_THROW(
       instance.get_sysvar_bool("sql_warnings",
                                mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
       std::runtime_error);
+  EXPECT_THROW(instance.get_sysvar_int(
+                   "wait_timeout", mysqlshdk::mysql::Var_qualifier::PERSIST),
+               std::runtime_error);
   EXPECT_THROW(
       instance.get_sysvar_int("wait_timeout",
-                              mysqlshdk::mysql::Var_qualifier::PERSIST),
-      std::runtime_error);
-  EXPECT_THROW(
-      instance.get_sysvar_int("wait_timeout",
-                               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
+                              mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
       std::runtime_error);
 
   EXPECT_CALL(session, close());
@@ -381,7 +369,8 @@ TEST_F(Instance_test, set_sysvar) {
   // Test set string system variable with different scopes (GLOBAL and SESSION).
   EXPECT_CALL(session, execute("SET SESSION `lc_messages` = 'fr_FR'"));
   instance.set_sysvar("lc_messages", (std::string) "fr_FR");
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables where `variable_name` in ('lc_messages')")
       .then_return({{"show SESSION variables "
                      "where `variable_name` in ('lc_messages')",
@@ -394,7 +383,8 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET GLOBAL `lc_messages` = 'pt_PT'"));
   instance.set_sysvar("lc_messages", (std::string) "pt_PT",
                       mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('lc_messages')")
       .then_return({{"show GLOBAL variables "
                      "where `variable_name` in ('lc_messages')",
@@ -407,7 +397,8 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET SESSION `lc_messages` = 'es_MX'"));
   instance.set_sysvar("lc_messages", (std::string) "es_MX",
                       mysqlshdk::mysql::Var_qualifier::SESSION);
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables where `variable_name` in ('lc_messages')")
       .then_return({{"show SESSION variables "
                      "where `variable_name` in ('lc_messages')",
@@ -420,8 +411,9 @@ TEST_F(Instance_test, set_sysvar) {
 
   // Test set int system variable with different scopes (GLOBAL and SESSION).
   EXPECT_CALL(session, execute("SET SESSION `lock_wait_timeout` = 86400"));
-  instance.set_sysvar("lock_wait_timeout", (int64_t) 86400);
-  session.expect_query(
+  instance.set_sysvar("lock_wait_timeout", (int64_t)86400);
+  session
+      .expect_query(
           "show SESSION variables "
           "where `variable_name` in ('lock_wait_timeout')")
       .then_return({{"show SESSION variables "
@@ -429,13 +421,14 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lock_wait_timeout", "86400"}}}});
-  mysqlshdk::utils::nullable<int64_t> new_i_value = instance.get_sysvar_int(
-      "lock_wait_timeout");
+  mysqlshdk::utils::nullable<int64_t> new_i_value =
+      instance.get_sysvar_int("lock_wait_timeout");
   EXPECT_EQ(86400, *new_i_value);
   EXPECT_CALL(session, execute("SET GLOBAL `lock_wait_timeout` = 172800"));
-  instance.set_sysvar("lock_wait_timeout", (int64_t) 172800,
+  instance.set_sysvar("lock_wait_timeout", (int64_t)172800,
                       mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables "
           "where `variable_name` in ('lock_wait_timeout')")
       .then_return({{"show GLOBAL variables "
@@ -447,9 +440,10 @@ TEST_F(Instance_test, set_sysvar) {
       "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_EQ(172800, *new_i_value);
   EXPECT_CALL(session, execute("SET SESSION `lock_wait_timeout` = 43200"));
-  instance.set_sysvar("lock_wait_timeout", (int64_t) 43200,
+  instance.set_sysvar("lock_wait_timeout", (int64_t)43200,
                       mysqlshdk::mysql::Var_qualifier::SESSION);
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables "
           "where `variable_name` in ('lock_wait_timeout')")
       .then_return({{"show SESSION variables "
@@ -464,20 +458,22 @@ TEST_F(Instance_test, set_sysvar) {
   // Test set bool system variable with different scopes (GLOBAL and SESSION).
   EXPECT_CALL(session, execute("SET SESSION `sql_log_off` = 'ON'"));
   instance.set_sysvar("sql_log_off", true);
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show SESSION variables "
                      "where `variable_name` in ('sql_log_off')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_log_off", "ON"}}}});
-  mysqlshdk::utils::nullable<bool> new_b_value = instance.get_sysvar_bool(
-      "sql_log_off");
+  mysqlshdk::utils::nullable<bool> new_b_value =
+      instance.get_sysvar_bool("sql_log_off");
   EXPECT_TRUE(*new_b_value);
   EXPECT_CALL(session, execute("SET GLOBAL `sql_log_off` = 'ON'"));
   instance.set_sysvar("sql_log_off", true,
                       mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show GLOBAL variables "
                      "where `variable_name` in ('sql_log_off')",
@@ -490,7 +486,8 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET SESSION `sql_log_off` = 'OFF'"));
   instance.set_sysvar("sql_log_off", false,
                       mysqlshdk::mysql::Var_qualifier::SESSION);
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show SESSION variables "
                      "where `variable_name` in ('sql_log_off')",
@@ -507,10 +504,11 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET PERSIST_ONLY `lc_messages` = 'en_US'"));
   instance.set_sysvar("lc_messages", (std::string) "en_US",
                       mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('lc_messages')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('lc_messages')",
+                     "where `variable_name` in ('lc_messages')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "pt_PT"}}}});
@@ -535,10 +533,11 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET PERSIST `lc_messages` = 'en_US'"));
   instance.set_sysvar("lc_messages", (std::string) "en_US",
                       mysqlshdk::mysql::Var_qualifier::PERSIST);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('lc_messages')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('lc_messages')",
+                     "where `variable_name` in ('lc_messages')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "en_US"}}}});
@@ -556,15 +555,16 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
   session.execute("RESET PERSIST lc_messages");
   // Set int with PERSIST_ONLY.
-  EXPECT_CALL(session, execute(
-      "SET PERSIST_ONLY `lock_wait_timeout` = 172801"));
-  instance.set_sysvar("lock_wait_timeout", (int64_t) 172801,
+  EXPECT_CALL(session,
+              execute("SET PERSIST_ONLY `lock_wait_timeout` = 172801"));
+  instance.set_sysvar("lock_wait_timeout", (int64_t)172801,
                       mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables "
-              "where `variable_name` in ('lock_wait_timeout')")
+          "where `variable_name` in ('lock_wait_timeout')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('lock_wait_timeout')",
+                     "where `variable_name` in ('lock_wait_timeout')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lock_wait_timeout", "172800"}}}});
@@ -587,13 +587,14 @@ TEST_F(Instance_test, set_sysvar) {
   session.execute("RESET PERSIST lock_wait_timeout");
   // Set int with PERSIST.
   EXPECT_CALL(session, execute("SET PERSIST `lock_wait_timeout` = 172801"));
-  instance.set_sysvar("lock_wait_timeout", (int64_t) 172801,
+  instance.set_sysvar("lock_wait_timeout", (int64_t)172801,
                       mysqlshdk::mysql::Var_qualifier::PERSIST);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables "
-              "where `variable_name` in ('lock_wait_timeout')")
+          "where `variable_name` in ('lock_wait_timeout')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('lock_wait_timeout')",
+                     "where `variable_name` in ('lock_wait_timeout')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lock_wait_timeout", "172801"}}}});
@@ -614,10 +615,11 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET PERSIST_ONLY `sql_log_off` = 'OFF'"));
   instance.set_sysvar("sql_log_off", false,
                       mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('sql_log_off')",
+                     "where `variable_name` in ('sql_log_off')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_log_off", "ON"}}}});
@@ -642,10 +644,11 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("SET PERSIST `sql_log_off` = 'OFF'"));
   instance.set_sysvar("sql_log_off", false,
                       mysqlshdk::mysql::Var_qualifier::PERSIST);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('sql_log_off')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('sql_log_off')",
+                     "where `variable_name` in ('sql_log_off')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_log_off", "OFF"}}}});
@@ -675,11 +678,12 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, execute("SET SESSION `max_user_connections` = DEFAULT"));
   instance.set_sysvar_default("max_user_connections",
                               mysqlshdk::mysql::Var_qualifier::SESSION);
-  session.expect_query(
+  session
+      .expect_query(
           "show SESSION variables where `variable_name` in "
           "('max_user_connections')")
       .then_return({{"show SESSION variables "
-                         "where `variable_name` in ('max_user_connections')",
+                     "where `variable_name` in ('max_user_connections')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"max_user_connections", "0"}}}});
@@ -692,17 +696,17 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, execute("SET GLOBAL `max_user_connections` = DEFAULT"));
   instance.set_sysvar_default("max_user_connections",
                               mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in "
-              "('max_user_connections')")
+          "('max_user_connections')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('max_user_connections')",
+                     "where `variable_name` in ('max_user_connections')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"max_user_connections", "0"}}}});
   new_value = instance.get_sysvar_string(
-      "max_user_connections",
-      mysqlshdk::mysql::Var_qualifier::GLOBAL);
+      "max_user_connections", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_STREQ("0", (*new_value).c_str());
 
   // NOTE: Tests using PERSIST and PERSIST_ONLY are only supported by server
@@ -711,10 +715,11 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, execute("SET PERSIST_ONLY `lc_messages` = DEFAULT"));
   instance.set_sysvar_default("lc_messages",
                               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('lc_messages')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('lc_messages')",
+                     "where `variable_name` in ('lc_messages')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "en_US"}}}});
@@ -723,8 +728,8 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_STREQ("en_US", (*new_value).c_str());
   std::string persisted_var_value_stmt =
       "SELECT VARIABLE_VALUE "
-          "FROM performance_schema.persisted_variables "
-          "WHERE VARIABLE_NAME = 'lc_messages'";
+      "FROM performance_schema.persisted_variables "
+      "WHERE VARIABLE_NAME = 'lc_messages'";
   session.expect_query(persisted_var_value_stmt)
       .then_return({{persisted_var_value_stmt,
                      {"VARIABLE_VALUE"},
@@ -739,10 +744,11 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, execute("SET PERSIST `lc_messages` = DEFAULT"));
   instance.set_sysvar_default("lc_messages",
                               mysqlshdk::mysql::Var_qualifier::PERSIST);
-  session.expect_query(
+  session
+      .expect_query(
           "show GLOBAL variables where `variable_name` in ('lc_messages')")
       .then_return({{"show GLOBAL variables "
-                         "where `variable_name` in ('lc_messages')",
+                     "where `variable_name` in ('lc_messages')",
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "en_US"}}}});
@@ -768,20 +774,17 @@ TEST_F(Instance_test, get_system_variables) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
 
-  session.expect_query("show SESSION variables where `variable_name` in"
-                       " ('server_id', 'server_uuid', 'unexisting_variable')").
-    then_return({
-      {
-        "show SESSION variables where `variable_name` in"
-        " ('server_id', 'server_uuid', 'unexisting_variable')",
-        { "Variable_name", "Value" },
-        { Type::String, Type::String },
-        {
-          { "server_id", "0" },
-          { "server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00" }
-        }
-      }
-  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in"
+          " ('server_id', 'server_uuid', 'unexisting_variable')")
+      .then_return(
+          {{"show SESSION variables where `variable_name` in"
+            " ('server_id', 'server_uuid', 'unexisting_variable')",
+            {"Variable_name", "Value"},
+            {Type::String, Type::String},
+            {{"server_id", "0"},
+             {"server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00"}}}});
 
   mysqlshdk::mysql::Instance instance(_session);
   auto variables = instance.get_system_variables(
@@ -803,51 +806,40 @@ TEST_F(Instance_test, install_plugin) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Install plugin on Windows
-  session.expect_query("show SESSION variables where `variable_name` in "
-                       "('version_compile_os')").
-      then_return({
-                      { "",
-                        {"Variable_name", "Value"},
-                        {Type::String, Type::String},
-                        {
-                            {"version_compile_os", "Win64"}
-                        }
-                      }
-                  });
-  EXPECT_CALL(session,
-              execute("INSTALL PLUGIN `validate_password` SONAME "
-                          "'validate_password.dll'"));
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in "
+          "('version_compile_os')")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"version_compile_os", "Win64"}}}});
+  EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
+                               "'validate_password.dll'"));
   instance.install_plugin("validate_password");
 
   // Install plugin on Non-Windows
-  session.expect_query("show SESSION variables where `variable_name` in "
-                       "('version_compile_os')").
-    then_return({
-      { "",
-        {"Variable_name", "Value"},
-        {Type::String, Type::String},
-        {
-            {"version_compile_os", "linux-glibc2.5"}
-        }
-      }
-    });
-  EXPECT_CALL(session,
-              execute("INSTALL PLUGIN `validate_password` SONAME "
-                      "'validate_password.so'"));
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in "
+          "('version_compile_os')")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"version_compile_os", "linux-glibc2.5"}}}});
+  EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
+                               "'validate_password.so'"));
   instance.install_plugin("validate_password");
 
   // Second install fails because plugin is already installed.
-  session.expect_query("show SESSION variables where `variable_name` in "
-                           "('version_compile_os')").
-      then_return({
-                      {   "",
-                          {"Variable_name", "Value"},
-                          {Type::String, Type::String},
-                          {
-                              {"version_compile_os", "linux-glibc2.5"}
-                          }
-                      }
-                  });
+  session
+      .expect_query(
+          "show SESSION variables where `variable_name` in "
+          "('version_compile_os')")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"version_compile_os", "linux-glibc2.5"}}}});
   EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
                                "'validate_password.so'"))
       .Times(1)
@@ -864,32 +856,32 @@ TEST_F(Instance_test, get_plugin_status) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Test plugin ACTIVE
-  session.expect_query(
+  session
+      .expect_query(
           "SELECT plugin_status FROM information_schema.plugins "
           "WHERE plugin_name = 'validate_password'")
-      .then_return(
-          {{"", {"plugin_status"}, {Type::String}, {{"ACTIVE"}}}});
+      .then_return({{"", {"plugin_status"}, {Type::String}, {{"ACTIVE"}}}});
   mysqlshdk::utils::nullable<std::string> res =
       instance.get_plugin_status("validate_password");
   ASSERT_FALSE(res.is_null());
   EXPECT_STREQ("ACTIVE", (*res).c_str());
 
   // Test plugin DISABLED
-  session.expect_query(
+  session
+      .expect_query(
           "SELECT plugin_status FROM information_schema.plugins "
           "WHERE plugin_name = 'validate_password'")
-      .then_return(
-          {{"", {"plugin_status"}, {Type::String}, {{"DISABLED"}}}});
+      .then_return({{"", {"plugin_status"}, {Type::String}, {{"DISABLED"}}}});
   res = instance.get_plugin_status("validate_password");
   ASSERT_FALSE(res.is_null());
   EXPECT_STREQ("DISABLED", (*res).c_str());
 
   // Test plugin not available
-  session.expect_query(
+  session
+      .expect_query(
           "SELECT plugin_status FROM information_schema.plugins "
           "WHERE plugin_name = 'validate_password'")
-      .then_return(
-          {{"", {"plugin_status"}, {Type::String}, {}}});
+      .then_return({{"", {"plugin_status"}, {Type::String}, {}}});
   res = instance.get_plugin_status("validate_password");
   ASSERT_TRUE(res.is_null());
 
@@ -934,25 +926,23 @@ TEST_F(Instance_test, create_user) {
 
   // Create user with SELECT, INSERT, UPDATE on test_db.* and DELETE on
   // test_db.t1.
-  EXPECT_CALL(session,
+  EXPECT_CALL(
+      session,
       execute("CREATE USER 'test_user'@'test_host' IDENTIFIED BY 'test_pwd'"));
-  EXPECT_CALL(session,
-              execute("GRANT SELECT, INSERT, UPDATE ON test_db.* "
-                      "TO 'test_user'@'test_host'"));
+  EXPECT_CALL(session, execute("GRANT SELECT, INSERT, UPDATE ON test_db.* "
+                               "TO 'test_user'@'test_host'"));
   EXPECT_CALL(session,
               execute("GRANT DELETE ON test_db.t1 TO 'test_user'@'test_host'"));
-  EXPECT_CALL(session,
-              execute("GRANT ALTER,DROP ON test_db.t2 "
-                      "TO 'test_user'@'test_host' WITH GRANT OPTION"));
-  EXPECT_CALL(session,
-              execute("GRANT SELECT ON test_db2.* "
-                      "TO 'test_user'@'test_host' WITH GRANT OPTION"));
+  EXPECT_CALL(session, execute("GRANT ALTER,DROP ON test_db.t2 "
+                               "TO 'test_user'@'test_host' WITH GRANT OPTION"));
+  EXPECT_CALL(session, execute("GRANT SELECT ON test_db2.* "
+                               "TO 'test_user'@'test_host' WITH GRANT OPTION"));
   EXPECT_CALL(session, execute("COMMIT"));
-  std::vector<std::tuple<std::string, std::string, bool>> test_priv =
-      {std::make_tuple("SELECT, INSERT, UPDATE", "test_db.*", false),
-       std::make_tuple("DELETE", "test_db.t1", false),
-       std::make_tuple("ALTER,DROP", "test_db.t2", true),
-       std::make_tuple("SELECT", "test_db2.*", true)};
+  std::vector<std::tuple<std::string, std::string, bool>> test_priv = {
+      std::make_tuple("SELECT, INSERT, UPDATE", "test_db.*", false),
+      std::make_tuple("DELETE", "test_db.t1", false),
+      std::make_tuple("ALTER,DROP", "test_db.t2", true),
+      std::make_tuple("SELECT", "test_db2.*", true)};
   instance.create_user("test_user", "test_host", "test_pwd", test_priv);
   // Create user with ALL on *.* WITH GRANT OPTION.
   EXPECT_CALL(
@@ -962,8 +952,8 @@ TEST_F(Instance_test, create_user) {
       session,
       execute("GRANT ALL ON *.* TO 'dba_user'@'dba_host' WITH GRANT OPTION"));
   EXPECT_CALL(session, execute("COMMIT"));
-  std::vector<std::tuple<std::string, std::string, bool>> dba_priv =
-      {std::make_tuple("ALL", "*.*", true)};
+  std::vector<std::tuple<std::string, std::string, bool>> dba_priv = {
+      std::make_tuple("ALL", "*.*", true)};
   instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv);
 
   // Second create users fail because they already exist.
@@ -973,18 +963,18 @@ TEST_F(Instance_test, create_user) {
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_CALL(session, execute("ROLLBACK"));
-  EXPECT_THROW(instance.create_user("test_user", "test_host", "test_pwd",
-                                    test_priv),
-               std::exception);
+  EXPECT_THROW(
+      instance.create_user("test_user", "test_host", "test_pwd", test_priv),
+      std::exception);
   EXPECT_CALL(
       session,
       execute("CREATE USER 'dba_user'@'dba_host' IDENTIFIED BY 'dba_pwd'"))
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_CALL(session, execute("ROLLBACK"));
-  EXPECT_THROW(instance.create_user("dba_user", "dba_host", "dba_pwd",
-                                    dba_priv),
-               std::exception);
+  EXPECT_THROW(
+      instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv),
+      std::exception);
   EXPECT_CALL(session, close());
   _session->close();
 }
@@ -996,9 +986,10 @@ TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
 
   // Check non existing user.
   session
-      .expect_query("SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-                    "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-                    "WHERE GRANTEE = '\\'notexist_user\\'@\\'notexist_host\\''")
+      .expect_query(
+          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
+          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+          "WHERE GRANTEE = '\\'notexist_user\\'@\\'notexist_host\\''")
       .then_return({{
           "",
           {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
@@ -1021,23 +1012,30 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // user with some privileges
-  session.expect_query("SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-                       "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-                       "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\''")
-      .then_return({{"", {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
+  session
+      .expect_query(
+          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
+          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\''")
+      .then_return({{"",
+                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
                      {Type::String, Type::String},
                      {{"USAGE", "NO"}}}});
-  session.expect_query("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-                       "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-                       "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-                       "ORDER BY TABLE_SCHEMA")
-      .then_return({{"", {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
+  session
+      .expect_query(
+          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
+          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
+          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
+          "ORDER BY TABLE_SCHEMA")
+      .then_return({{"",
+                     {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
                      {Type::String, Type::String, Type::String},
                      {{"INSERT", "NO", "test_db"},
                       {"SELECT", "NO", "test_db"},
                       {"UPDATE", "NO", "test_db"},
                       {"SELECT", "YES", "test_db2"}}}});
-  session.expect_query(
+  session
+      .expect_query(
           "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
           "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
           "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
@@ -1045,8 +1043,7 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
       .then_return(
           {{"",
             {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-            {Type::String, Type::String, Type::String,
-             Type::String},
+            {Type::String, Type::String, Type::String, Type::String},
             {{"DELETE", "NO", "test_db", "t1"},
              {"DROP", "YES", "test_db", "t2"},
              {"ALTER", "YES", "test_db", "t2"}}}});
@@ -1103,51 +1100,53 @@ TEST_F(Instance_test, drop_users_with_regexp) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Create test users with a matching pattern name.
-  EXPECT_CALL(session, execute(
-      "CREATE USER 'test_user_r1729041275'@'localhost' "
-      "IDENTIFIED BY '1729041275'"));
+  EXPECT_CALL(session,
+              execute("CREATE USER 'test_user_r1729041275'@'localhost' "
+                      "IDENTIFIED BY '1729041275'"));
   _session->execute(
       "CREATE USER 'test_user_r1729041275'@'localhost' "
       "IDENTIFIED BY '1729041275'");
-  EXPECT_CALL(session, execute(
-      "CREATE USER 'test_user_r1729041275'@'%' "
-          "IDENTIFIED BY '1729041275'"));
+  EXPECT_CALL(session, execute("CREATE USER 'test_user_r1729041275'@'%' "
+                               "IDENTIFIED BY '1729041275'"));
   _session->execute(
       "CREATE USER 'test_user_r1729041275'@'%' "
-          "IDENTIFIED BY '1729041275'");
-  EXPECT_CALL(session, execute(
-      "CREATE USER 'test_user_r1729237509'@'localhost' "
-          "IDENTIFIED BY '1729237509'"));
+      "IDENTIFIED BY '1729041275'");
+  EXPECT_CALL(session,
+              execute("CREATE USER 'test_user_r1729237509'@'localhost' "
+                      "IDENTIFIED BY '1729237509'"));
   _session->execute(
       "CREATE USER 'test_user_r1729237509'@'localhost' "
-          "IDENTIFIED BY '1729237509'");
-  EXPECT_CALL(session, execute(
-      "CREATE USER 'test_user_r1729237509'@'%' "
-          "IDENTIFIED BY '1729237509'"));
+      "IDENTIFIED BY '1729237509'");
+  EXPECT_CALL(session, execute("CREATE USER 'test_user_r1729237509'@'%' "
+                               "IDENTIFIED BY '1729237509'"));
   _session->execute(
       "CREATE USER 'test_user_r1729237509'@'%' "
-          "IDENTIFIED BY '1729237509'");
+      "IDENTIFIED BY '1729237509'");
 
   // Drop all previous test user matching a regular expression.
-  session.expect_query(
+  session
+      .expect_query(
           "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
           "WHERE GRANTEE REGEXP '\\'test_user_r[0-9]{10}.*'")
       .then_return({{"",
                      {"GRANTEE"},
-                     {Type::String,},
+                     {
+                         Type::String,
+                     },
                      {{"'test_user_r1729041275'@'localhost'"},
                       {"'test_user_r1729237509'@'localhost'"},
                       {"'test_user_r1729041275'@'%'"},
-                      {"'test_user_r1729237509'@'%'"}}
-                    }});
-  EXPECT_CALL(session, execute(
-      "DROP USER IF EXISTS 'test_user_r1729041275'@'localhost'"));
-  EXPECT_CALL(session, execute(
-      "DROP USER IF EXISTS 'test_user_r1729237509'@'localhost'"));
-  EXPECT_CALL(session, execute(
-      "DROP USER IF EXISTS 'test_user_r1729041275'@'%'"));
-  EXPECT_CALL(session, execute(
-      "DROP USER IF EXISTS 'test_user_r1729237509'@'%'"));
+                      {"'test_user_r1729237509'@'%'"}}}});
+  EXPECT_CALL(
+      session,
+      execute("DROP USER IF EXISTS 'test_user_r1729041275'@'localhost'"));
+  EXPECT_CALL(
+      session,
+      execute("DROP USER IF EXISTS 'test_user_r1729237509'@'localhost'"));
+  EXPECT_CALL(session,
+              execute("DROP USER IF EXISTS 'test_user_r1729041275'@'%'"));
+  EXPECT_CALL(session,
+              execute("DROP USER IF EXISTS 'test_user_r1729237509'@'%'"));
   instance.drop_users_with_regexp("'test_user_r[0-9]{10}.*");
 
   EXPECT_CALL(session, close());
@@ -1159,14 +1158,11 @@ TEST_F(Instance_test, cached_sysvars) {
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
-  session
-      .expect_query("SHOW GLOBAL VARIABLES")
-      .then_return({{
-          "",
-          {"Variable_name", "Value"},
-          {Type::String, Type::String},
-          {{"autocommit", "ON"}, {"warning_count", "0"}}
-      }});
+  session.expect_query("SHOW GLOBAL VARIABLES")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"autocommit", "ON"}, {"warning_count", "0"}}}});
 
   instance.cache_global_sysvars();
   EXPECT_EQ("ON", *instance.get_cached_global_sysvar("autocommit"));

@@ -30,16 +30,16 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
-#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace db {
-using utils::nullable_options::Comparison_mode;
-using utils::nullable;
 using utils::Nullable_options;
+using utils::nullable;
+using utils::nullable_options::Comparison_mode;
 enum Transport_type { Tcp, Socket, Pipe };
 std::string to_string(Transport_type type);
 
@@ -49,31 +49,29 @@ constexpr int k_default_mysql_x_port = 33060;
 class SHCORE_PUBLIC Connection_options
     : public mysqlshdk::utils::Nullable_options {
  public:
-  explicit Connection_options(Comparison_mode mode =
-    Comparison_mode::CASE_INSENSITIVE);
-  Connection_options(const std::string& uri,
+  explicit Connection_options(
+      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+  Connection_options(const std::string &uri,
                      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
   void set_login_options_from(const Connection_options &options);
   void set_ssl_connection_options_from(const Ssl_options &options);
   void set_ssl_options(const Ssl_options &options);
 
-  const std::string& get_scheme() const { return get_value(kScheme); }
-  const std::string& get_user() const { return get_value(kUser); }
-  const std::string& get_password() const { return get_value(kPassword); }
-  const std::string& get_host() const { return get_value(kHost); }
-  const std::string& get_schema() const { return get_value(kSchema); }
-  const std::string& get_socket() const { return get_value(kSocket); }
-  const std::string& get_pipe() const { return get_value(kSocket); }
+  const std::string &get_scheme() const { return get_value(kScheme); }
+  const std::string &get_user() const { return get_value(kUser); }
+  const std::string &get_password() const { return get_value(kPassword); }
+  const std::string &get_host() const { return get_value(kHost); }
+  const std::string &get_schema() const { return get_value(kSchema); }
+  const std::string &get_socket() const { return get_value(kSocket); }
+  const std::string &get_pipe() const { return get_value(kSocket); }
   int get_port() const;
   Transport_type get_transport_type() const;
 
-  const std::string& get(const std::string& name) const;
+  const std::string &get(const std::string &name) const;
 
-  const Ssl_options& get_ssl_options() const { return _ssl_options; }
-  Ssl_options& get_ssl_options() {
-    return _ssl_options;
-  }
+  const Ssl_options &get_ssl_options() const { return _ssl_options; }
+  Ssl_options &get_ssl_options() { return _ssl_options; }
 
   bool has_data() const;
   bool has_scheme() const { return has_value(kScheme); }
@@ -86,20 +84,20 @@ class SHCORE_PUBLIC Connection_options
   bool has_pipe() const { return has_value(kSocket); }
   bool has_transport_type() const { return !_transport_type.is_null(); }
 
-  bool has(const std::string& name) const;
-  bool has_value(const std::string& name) const;
+  bool has(const std::string &name) const;
+  bool has_value(const std::string &name) const;
 
-  void set_scheme(const std::string& scheme) { _set_fixed(kScheme, scheme); }
-  void set_user(const std::string& user) { _set_fixed(kUser, user); }
-  void set_password(const std::string& pwd) { _set_fixed(kPassword, pwd); }
-  void set_host(const std::string& host);
+  void set_scheme(const std::string &scheme) { _set_fixed(kScheme, scheme); }
+  void set_user(const std::string &user) { _set_fixed(kUser, user); }
+  void set_password(const std::string &pwd) { _set_fixed(kPassword, pwd); }
+  void set_host(const std::string &host);
   void set_port(int port);
-  void set_schema(const std::string& schema) { _set_fixed(kSchema, schema); }
-  void set_socket(const std::string& socket);
-  void set_pipe(const std::string& pipe);
+  void set_schema(const std::string &schema) { _set_fixed(kSchema, schema); }
+  void set_socket(const std::string &socket);
+  void set_pipe(const std::string &pipe);
 
-  void set(const std::string& attribute,
-           const std::vector<std::string>& values);
+  void set(const std::string &attribute,
+           const std::vector<std::string> &values);
 
   void clear_scheme() { clear_value(kScheme); }
   void clear_user() { clear_value(kUser); }
@@ -110,22 +108,22 @@ class SHCORE_PUBLIC Connection_options
   void clear_socket();
   void clear_pipe();
 
-  void remove(const std::string& name);
+  void remove(const std::string &name);
 
-  bool operator==(const Connection_options& other) const;
-  bool operator!=(const Connection_options& other) const;
+  bool operator==(const Connection_options &other) const;
+  bool operator!=(const Connection_options &other) const;
 
   std::string as_uri(
       uri::Tokens_mask format = uri::formats::full_no_password()) const;
 
-  const Nullable_options& get_extra_options() const { return _extra_options; }
+  const Nullable_options &get_extra_options() const { return _extra_options; }
 
  private:
-  void _set_fixed(const std::string& key, const std::string& val);
-  void _clear_fixed(const std::string& key);
-  std::string get_iname(const std::string& name) const;
+  void _set_fixed(const std::string &key, const std::string &val);
+  void _clear_fixed(const std::string &key);
+  std::string get_iname(const std::string &name) const;
 
-  void raise_connection_type_error(const std::string& source);
+  void raise_connection_type_error(const std::string &source);
 
   nullable<int> _port;
   nullable<Transport_type> _transport_type;

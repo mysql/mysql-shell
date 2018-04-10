@@ -44,5 +44,4 @@
 #pragma GCC diagnostic pop
 #endif
 
-
 #endif  // UNITTEST_MOCKS_GMOCK_CLEAN_H_

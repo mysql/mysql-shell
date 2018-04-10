@@ -25,12 +25,12 @@
 #define MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_CPP_H_
 
 #include <cassert>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <functional>
 
 #include "scripting/types.h"
 #include "scripting/types_common.h"
@@ -149,7 +149,7 @@ struct Type_info<const std::vector<std::string> &> {
 };
 
 template <>
-struct Type_info<const shcore::Dictionary_t&> {
+struct Type_info<const shcore::Dictionary_t &> {
   static shcore::Dictionary_t to_native(const shcore::Value &in) {
     return in.as_map();
   }
@@ -169,7 +169,7 @@ struct Type_info<shcore::Dictionary_t> {
 };
 
 template <>
-struct Type_info<const shcore::Array_t&> {
+struct Type_info<const shcore::Array_t &> {
   static shcore::Array_t to_native(const shcore::Value &in) {
     return in.as_array();
   }
@@ -278,19 +278,18 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   Metadata _meta_tmp;  // temporary memory for legacy versions of Cpp_function
 };
 
-
 namespace internal {
-template<typename R>
+template <typename R>
 struct Result_wrapper {
-  template<typename F>
+  template <typename F>
   static inline shcore::Value call(F f) {
     return shcore::Value(f());
   }
 };
 
-template<>
+template <>
 struct Result_wrapper<void> {
-  template<typename F>
+  template <typename F>
   static inline shcore::Value call(F f) {
     f();
     return shcore::Value();
@@ -310,8 +309,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     ~ScopedStyle() { _target->naming_style = _old_style; }
 
    private:
-     NamingStyle _old_style;
-     const Cpp_object_bridge *_target;
+    NamingStyle _old_style;
+    const Cpp_object_bridge *_target;
   };
 
  protected:
@@ -435,9 +434,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         name.substr(0, name.find("|")),
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md, [this, func](const shcore::Argument_list &) -> shcore::Value {
-              return internal::Result_wrapper<R>::call([this, func]() {
-                return (static_cast<C *>(this)->*func)();
-              });
+              return internal::Result_wrapper<R>::call(
+                  [this, func]() { return (static_cast<C *>(this)->*func)(); });
             }))));
   }
 
@@ -518,19 +516,19 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def, a2def,
              a3def](const shcore::Argument_list &args) -> shcore::Value {
-               const A1 &&a1 = args.size() == 0
-                                   ? a1def
-                                   : Type_info<A1>::to_native(args.at(0));
-               const A2 &&a2 = args.size() <= 1
-                                   ? a2def
-                                   : Type_info<A2>::to_native(args.at(1));
-               const A3 &&a3 = args.size() <= 2
-                                   ? a3def
-                                   : Type_info<A3>::to_native(args.at(2));
-               return internal::Result_wrapper<R>::call(
-                   [this, func, a1, a2, a3]() {
-                     return (static_cast<C *>(this)->*func)(a1, a2, a3);
-                   });
+              const A1 &&a1 = args.size() == 0
+                                  ? a1def
+                                  : Type_info<A1>::to_native(args.at(0));
+              const A2 &&a2 = args.size() <= 1
+                                  ? a2def
+                                  : Type_info<A2>::to_native(args.at(1));
+              const A3 &&a3 = args.size() <= 2
+                                  ? a3def
+                                  : Type_info<A3>::to_native(args.at(2));
+              return internal::Result_wrapper<R>::call(
+                  [this, func, a1, a2, a3]() {
+                    return (static_cast<C *>(this)->*func)(a1, a2, a3);
+                  });
             }))));
   }
 
@@ -574,30 +572,29 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def, a2def, a3def,
              a4def](const shcore::Argument_list &args) -> shcore::Value {
-               const A1 &&a1 = args.size() == 0
-                                   ? a1def
-                                   : Type_info<A1>::to_native(args.at(0));
-               const A2 &&a2 = args.size() <= 1
-                                   ? a2def
-                                   : Type_info<A2>::to_native(args.at(1));
-               const A3 &&a3 = args.size() <= 2
-                                   ? a3def
-                                   : Type_info<A3>::to_native(args.at(2));
-               const A4 &&a4 = args.size() <= 3
-                                   ? a4def
-                                   : Type_info<A4>::to_native(args.at(3));
-               return internal::Result_wrapper<R>::call(
-                   [this, func, a1, a2, a3, a4]() {
-                     return (static_cast<C *>(this)->*func)(a1, a2, a3, a4);
-                   });
+              const A1 &&a1 = args.size() == 0
+                                  ? a1def
+                                  : Type_info<A1>::to_native(args.at(0));
+              const A2 &&a2 = args.size() <= 1
+                                  ? a2def
+                                  : Type_info<A2>::to_native(args.at(1));
+              const A3 &&a3 = args.size() <= 2
+                                  ? a3def
+                                  : Type_info<A3>::to_native(args.at(2));
+              const A4 &&a4 = args.size() <= 3
+                                  ? a4def
+                                  : Type_info<A4>::to_native(args.at(3));
+              return internal::Result_wrapper<R>::call(
+                  [this, func, a1, a2, a3, a4]() {
+                    return (static_cast<C *>(this)->*func)(a1, a2, a3, a4);
+                  });
             }))));
   }
 
  protected:
   // delme
-  void add_method_(
-      const std::string &name, Cpp_function::Function func,
-      std::vector<std::pair<std::string, Value_type>> *signature);
+  void add_method_(const std::string &name, Cpp_function::Function func,
+                   std::vector<std::pair<std::string, Value_type>> *signature);
 
   inline void add_method(const std::string &name, Cpp_function::Function func) {
     std::vector<std::pair<std::string, Value_type>> signature;
@@ -614,8 +611,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   }
 
   inline void add_method(const std::string &name, Cpp_function::Function func,
-                         const char *arg1_name,
-                         Value_type arg1_type,
+                         const char *arg1_name, Value_type arg1_type,
                          const char *arg2_name,
                          Value_type arg2_type = shcore::Undefined) {
     assert(arg1_name);

@@ -38,17 +38,17 @@ class Collection;
 class DocResult;
 
 /**
-* \ingroup XDevAPI
-* Handler for document selection on a Collection.
-*
-* This object provides the necessary functions to allow selecting document data
-* from a collection.
-*
-* This object should only be created by calling the find function on the
-* collection object from which the documents will be retrieved.
-*
-* \sa Collection
-*/
+ * \ingroup XDevAPI
+ * Handler for document selection on a Collection.
+ *
+ * This object provides the necessary functions to allow selecting document data
+ * from a collection.
+ *
+ * This object should only be created by calling the find function on the
+ * collection object from which the documents will be retrieved.
+ *
+ * \sa Collection
+ */
 class CollectionFind : public Collection_crud_definition,
                        public std::enable_shared_from_this<CollectionFind> {
  public:
@@ -101,7 +101,7 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value bind_(const shcore::Argument_list &args);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
-  CollectionFind &set_filter(const std::string& filter);
+  CollectionFind &set_filter(const std::string &filter);
   CollectionFind &bind(const std::string &name, shcore::Value value);
   std::unique_ptr<DocResult> execute();
 
@@ -127,19 +127,45 @@ class CollectionFind : public Collection_crud_definition,
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("" == s) { return F::_empty; }
-    if ("find" == s) { return F::find; }
-    if ("fields" == s) { return F::fields; }
-    if ("groupBy" == s) { return F::groupBy; }
-    if ("having" == s) { return F::having; }
-    if ("sort" == s) { return F::sort; }
-    if ("limit" == s) { return F::limit; }
-    if ("skip" == s) { return F::skip; }
-    if ("lockShared" == s) { return F::lockShared; }
-    if ("lockExclusive" == s) { return F::lockExclusive; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("find" == s) {
+      return F::find;
+    }
+    if ("fields" == s) {
+      return F::fields;
+    }
+    if ("groupBy" == s) {
+      return F::groupBy;
+    }
+    if ("having" == s) {
+      return F::having;
+    }
+    if ("sort" == s) {
+      return F::sort;
+    }
+    if ("limit" == s) {
+      return F::limit;
+    }
+    if ("skip" == s) {
+      return F::skip;
+    }
+    if ("lockShared" == s) {
+      return F::lockShared;
+    }
+    if ("lockExclusive" == s) {
+      return F::lockExclusive;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
 };

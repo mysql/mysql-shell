@@ -25,9 +25,9 @@
 
 using namespace shcore;
 
-Proxy_object::Proxy_object(const std::function<Value(const std::string&)> &delegate)
-  : _delegate(delegate) {
-}
+Proxy_object::Proxy_object(
+    const std::function<Value(const std::string &)> &delegate)
+    : _delegate(delegate) {}
 
 Value Proxy_object::get_member(const std::string &prop) const {
   return _delegate(prop);

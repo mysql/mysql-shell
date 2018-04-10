@@ -26,22 +26,22 @@
 #include <vector>
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
-#include "scripting/common.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "scripting/common.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 /*
-* Class constructor represents the call to the first method on the
-* call chain, on this case insert.
-* It will reveive not only the parameter documented on the insert function
-* but also other initialization data for the object:
-* - The connection represents the intermediate class in charge of actually
-*   creating the message.
-* - Message information that is not provided through the different functions
-*/
+ * Class constructor represents the call to the first method on the
+ * call chain, on this case insert.
+ * It will reveive not only the parameter documented on the insert function
+ * but also other initialization data for the object:
+ * - The connection represents the intermediate class in charge of actually
+ *   creating the message.
+ * - Message information that is not provided through the different functions
+ */
 TableInsert::TableInsert(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   message_.mutable_collection()->set_schema(owner->schema()->name());
@@ -54,8 +54,10 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
   // Registers the dynamic function behavior
   register_dynamic_function(F::insert, F::_empty);
   register_dynamic_function(F::values, F::insert | F::insertFields | F::values);
-  register_dynamic_function(F::execute, F::insertFieldsAndValues | F::values | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::insertFieldsAndValues | F::values | F::bind);
+  register_dynamic_function(F::execute,
+                            F::insertFieldsAndValues | F::values | F::bind);
+  register_dynamic_function(F::__shell_hook__,
+                            F::insertFieldsAndValues | F::values | F::bind);
 
   // Initial function update
   update_functions(F::_empty);
@@ -84,20 +86,20 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
  */
 #else
 /**
-* Initializes the record insertion handler.
-* \return This TableInsert object.
-*
-* This function is called automatically when Table.insert() is called.
-*
-* #### Method Chaining
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - values(Value value1, Value value2, ...)
-* - execute().
-*
-* \sa Usage examples at execute().
-*/
+ * Initializes the record insertion handler.
+ * \return This TableInsert object.
+ *
+ * This function is called automatically when Table.insert() is called.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - values(Value value1, Value value2, ...)
+ * - execute().
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableInsert TableInsert::insert() {}
 #elif DOXYGEN_PY
@@ -105,21 +107,21 @@ TableInsert TableInsert::insert() {}
 #endif
 
 /**
-* Initializes the record insertion handler with the received column list.
-* \return This TableInsert object.
-*
-* This function is called automatically when Table.insert(List columns) is
-* called.
-*
-* #### Method Chaining
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - values(Value value1, Value value2, ...)
-* - execute().
-*
-* \sa Usage examples at execute().
-*/
+ * Initializes the record insertion handler with the received column list.
+ * \return This TableInsert object.
+ *
+ * This function is called automatically when Table.insert(List columns) is
+ * called.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - values(Value value1, Value value2, ...)
+ * - execute().
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableInsert TableInsert::insert(List columns) {}
 #elif DOXYGEN_PY
@@ -127,26 +129,26 @@ TableInsert TableInsert::insert(list columns) {}
 #endif
 
 /**
-* Initializes the record insertion handler with the received column list.
-* \param col1 The first column name.
-* \param col2 The second column name.
-* \return This TableInsert object.
-*
-* This function is called automatically when Table.insert(String col1, String
-* col2, ...) is called.
-*
-* A string parameter should be specified for each column to be included on the
-* insertion process.
-*
-* #### Method Chaining
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - values(Value value1, Value value2, ...)
-* - execute().
-*
-* \sa Usage examples at execute().
-*/
+ * Initializes the record insertion handler with the received column list.
+ * \param col1 The first column name.
+ * \param col2 The second column name.
+ * \return This TableInsert object.
+ *
+ * This function is called automatically when Table.insert(String col1, String
+ * col2, ...) is called.
+ *
+ * A string parameter should be specified for each column to be included on the
+ * insertion process.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - values(Value value1, Value value2, ...)
+ * - execute().
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableInsert TableInsert::insert(String col1, String col2, ...) {}
 #elif DOXYGEN_PY
@@ -179,7 +181,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
           else if (args[0].type == Map) {
             path = "FieldsAndValues";
 
-            Mysqlx::Crud::Insert_TypedRow* row = message_.mutable_row()->Add();
+            Mysqlx::Crud::Insert_TypedRow *row = message_.mutable_row()->Add();
             for (auto &iter : *args[0].as_map()) {
               message_.mutable_projection()->Add()->set_name(iter.first);
               encode_expression_value(row->mutable_field()->Add(), iter.second);
@@ -222,46 +224,46 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
 //! And so on.
 #endif
 /**
-* \return This TableInsert object.
-*
-* Each column value comes as a parameter on this function call.
-*
-* The number of parameters must match the length of the column list defined on
-* the called insert function.
-* If no column list was defined the number of parameters must match the number
-* of columns defined on the Table where the records will be inserted.
-*
-* The values must be positioned on the list in a way they match the column list
-* defined on the called insert function.
-* If no column list was defined the fields must match the column definition of
-* the Table where the records will be inserted.
-*
-* #### Using Expressions for Values
-*
-* Tipically, the received values are inserted into the table in a literal way.
-*
-* An additional option is to pass an explicit expression which is evaluated on
-* the server, the resulting value is inserted on the table.
-*
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-* - insert()
-* - insert(List columns)
-* - insert(String col1, String col2, ...)
-* - values(Value value1, Value value2, ...)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - execute().
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableInsert object.
+ *
+ * Each column value comes as a parameter on this function call.
+ *
+ * The number of parameters must match the length of the column list defined on
+ * the called insert function.
+ * If no column list was defined the number of parameters must match the number
+ * of columns defined on the Table where the records will be inserted.
+ *
+ * The values must be positioned on the list in a way they match the column list
+ * defined on the called insert function.
+ * If no column list was defined the fields must match the column definition of
+ * the Table where the records will be inserted.
+ *
+ * #### Using Expressions for Values
+ *
+ * Tipically, the received values are inserted into the table in a literal way.
+ *
+ * An additional option is to pass an explicit expression which is evaluated on
+ * the server, the resulting value is inserted on the table.
+ *
+ * To define an expression use:
+ * \code{.py}
+ * mysqlx.expr(expression)
+ * \endcode
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ * - insert()
+ * - insert(List columns)
+ * - insert(String col1, String col2, ...)
+ * - values(Value value1, Value value2, ...)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - execute().
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableInsert TableInsert::values(Value value1, Value value2, ...) {}
 #elif DOXYGEN_PY
@@ -272,7 +274,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args) {
   args.ensure_at_least(1, get_function_name("values").c_str());
 
   try {
-    Mysqlx::Crud::Insert_TypedRow* row = message_.mutable_row()->Add();
+    Mysqlx::Crud::Insert_TypedRow *row = message_.mutable_row()->Add();
     for (size_t index = 0; index < args.size(); index++) {
       encode_expression_value(row->mutable_field()->Add(), args[index]);
     }
@@ -286,32 +288,32 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args) {
 }
 
 /**
-* Executes the record insertion.
-* \return Result A result object that can be used to retrieve the results of the
-* insertion operation.
-*
-* #### Method Chaining
-*
-* This function can be invoked after:
-* - values(Value value1, Value value2, ...)
-*/
+ * Executes the record insertion.
+ * \return Result A result object that can be used to retrieve the results of
+ * the insertion operation.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked after:
+ * - values(Value value1, Value value2, ...)
+ */
 #if DOXYGEN_JS
 /**
-*
-* #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_table_insert.js"
-* \skip //@ Table.insert execution
-* \until print("Affected Rows Document:", result.affectedItemCount, "\n");
-*/
+ *
+ * #### Examples
+ * \dontinclude "js_devapi/scripts/mysqlx_table_insert.js"
+ * \skip //@ Table.insert execution
+ * \until print("Affected Rows Document:", result.affectedItemCount, "\n");
+ */
 Result TableInsert::execute() {}
 #elif DOXYGEN_PY
 /**
-*
-* #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_table_insert.py"
-* \skip #@ Table.insert execution
-* \until print "Affected Rows Document:", result.affected_item_count, "\n"
-*/
+ *
+ * #### Examples
+ * \dontinclude "py_devapi/scripts/mysqlx_table_insert.py"
+ * \skip #@ Table.insert execution
+ * \until print "Affected Rows Document:", result.affected_item_count, "\n"
+ */
 Result TableInsert::execute() {}
 #endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
@@ -322,8 +324,8 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
     insert_bound_values(message_.mutable_args());
     timer.stage_begin("TableInsert::execute");
     if (message_.mutable_row()->size()) {
-      result.reset(new mysqlsh::mysqlx::Result(
-          safe_exec([this]() { return session()->session()->execute_crud(message_); })));
+      result.reset(new mysqlsh::mysqlx::Result(safe_exec(
+          [this]() { return session()->session()->execute_crud(message_); })));
     } else {
       result.reset(new mysqlsh::mysqlx::Result({}));
     }

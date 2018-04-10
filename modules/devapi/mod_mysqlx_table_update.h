@@ -36,17 +36,17 @@ namespace mysqlx {
 class Table;
 
 /**
-* \ingroup XDevAPI
-* Handler for record update operations on a Table.
-*
-* This object provides the necessary functions to allow updating records on a
-* table.
-*
-* This object should only be created by calling the update function on the table
-* object on which the records will be updated.
-*
-* \sa Table
-*/
+ * \ingroup XDevAPI
+ * Handler for record update operations on a Table.
+ *
+ * This object provides the necessary functions to allow updating records on a
+ * table.
+ *
+ * This object should only be created by calling the update function on the
+ * table object on which the records will be updated.
+ *
+ * \sa Table
+ */
 class TableUpdate : public Table_crud_definition,
                     public std::enable_shared_from_this<TableUpdate> {
  public:
@@ -79,8 +79,9 @@ class TableUpdate : public Table_crud_definition,
   shcore::Value bind(const shcore::Argument_list &args);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
-private:
-   Mysqlx::Crud::Update message_;
+
+ private:
+  Mysqlx::Crud::Update message_;
 
   struct F {
     static constexpr Allowed_function_mask _empty = 1 << 0;
@@ -96,15 +97,33 @@ private:
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("update" == s) { return F::update; }
-    if ("set" == s) { return F::set; }
-    if ("where" == s) { return F::where; }
-    if ("orderBy" == s) { return F::orderBy; }
-    if ("limit" == s) { return F::limit; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("update" == s) {
+      return F::update;
+    }
+    if ("set" == s) {
+      return F::set;
+    }
+    if ("where" == s) {
+      return F::where;
+    }
+    if ("orderBy" == s) {
+      return F::orderBy;
+    }
+    if ("limit" == s) {
+      return F::limit;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
 };

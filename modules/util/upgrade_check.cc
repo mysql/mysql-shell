@@ -34,15 +34,12 @@
 
 namespace mysqlsh {
 
-std::string to_string(const Upgrade_issue& problem) {
+std::string to_string(const Upgrade_issue &problem) {
   std::stringstream ss;
   ss << problem.schema;
-  if (!problem.table.empty())
-    ss << "." << problem.table;
-  if (!problem.column.empty())
-    ss << "." << problem.column;
-  if (!problem.description.empty())
-    ss << " - " << problem.description;
+  if (!problem.table.empty()) ss << "." << problem.table;
+  if (!problem.column.empty()) ss << "." << problem.column;
+  if (!problem.description.empty()) ss << " - " << problem.description;
   return ss.str();
 }
 
@@ -59,7 +56,7 @@ std::string Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
 }
 
 std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
-    const std::string& src_ver, const std::string& dst_ver) {
+    const std::string &src_ver, const std::string &dst_ver) {
   using mysqlshdk::utils::Version;
   Version src_version(src_ver);
   Version dst_version(dst_ver);
@@ -90,10 +87,10 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
 }
 
 Sql_upgrade_check::Sql_upgrade_check(
-    const char* name, std::vector<std::string>&& queries,
-    Upgrade_issue::Level level = Upgrade_issue::WARNING, const char* advice,
-    std::forward_list<std::string>&& set_up,
-    std::forward_list<std::string>&& clean_up)
+    const char *name, std::vector<std::string> &&queries,
+    Upgrade_issue::Level level = Upgrade_issue::WARNING, const char *advice,
+    std::forward_list<std::string> &&set_up,
+    std::forward_list<std::string> &&clean_up)
     : Upgrade_check(name),
       queries(queries),
       set_up(set_up),
@@ -106,41 +103,35 @@ Sql_upgrade_check::Sql_upgrade_check(
 
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     std::shared_ptr<mysqlshdk::db::ISession> session) {
-  for (const auto& stm : set_up)
-    session->execute(stm);
+  for (const auto &stm : set_up) session->execute(stm);
 
   std::vector<Upgrade_issue> issues;
-  for (const auto& query : queries) {
+  for (const auto &query : queries) {
     //    puts(query.c_str());
     auto result = session->query(query);
-    const mysqlshdk::db::IRow* row = nullptr;
+    const mysqlshdk::db::IRow *row = nullptr;
     while ((row = result->fetch_one()) != nullptr) {
       Upgrade_issue issue = parse_row(row);
-      if (!issue.empty())
-        issues.emplace_back(std::move(issue));
+      if (!issue.empty()) issues.emplace_back(std::move(issue));
     }
   }
 
-  for (const auto& stm : clean_up)
-    session->execute(stm);
+  for (const auto &stm : clean_up) session->execute(stm);
 
   return issues;
 }
 
-const char* Sql_upgrade_check::get_long_advice() const {
-  if (advice.empty())
-    return nullptr;
+const char *Sql_upgrade_check::get_long_advice() const {
+  if (advice.empty()) return nullptr;
   return advice.c_str();
 }
 
-Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow* row) {
+Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
   Upgrade_issue problem;
   auto fields_count = row->num_fields();
   problem.schema = row->get_as_string(0);
-  if (fields_count > 2)
-    problem.table = row->get_as_string(1);
-  if (fields_count > 3)
-    problem.column = row->get_as_string(2);
+  if (fields_count > 2) problem.table = row->get_as_string(1);
+  if (fields_count > 3) problem.column = row->get_as_string(2);
   if (fields_count > 1)
     problem.description = row->get_as_string(3 - (4 - fields_count));
   problem.level = level;
@@ -331,17 +322,11 @@ Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
-  const std::array<const char*, 9> modes = {{"DB2",
-                                            "MSSQL",
-                                            "MYSQL323",
-                                            "MYSQL40",
-                                            "NO_FIELD_OPTIONS",
-                                            "NO_KEY_OPTIONS",
-                                            "NO_TABLE_OPTIONS",
-                                            "ORACLE",
-                                            "POSTGRESQL"}};
+  const std::array<const char *, 9> modes = {
+      {"DB2", "MSSQL", "MYSQL323", "MYSQL40", "NO_FIELD_OPTIONS",
+       "NO_KEY_OPTIONS", "NO_TABLE_OPTIONS", "ORACLE", "POSTGRESQL"}};
   std::vector<std::string> queries;
-  for (const char* mode : modes) {
+  for (const char *mode : modes) {
     queries.emplace_back(shcore::str_format(
         "select routine_schema, routine_name, concat(routine_type, ' uses "
         "obsolete %s sql_mode') from information_schema.routines where "
@@ -384,7 +369,7 @@ Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
 
 class Removed_functions_check : public Sql_upgrade_check {
  private:
-  const std::array<std::pair<std::string, const char*>, 71> functions{
+  const std::array<std::pair<std::string, const char *>, 71> functions{
       {{"ENCODE", "AES_ENCRYPT and AES_DECRYPT"},
        {"DECODE", "AES_ENCRYPT and AES_DECRYPT"},
        {"ENCRYPT", "SHA2"},
@@ -471,26 +456,22 @@ class Removed_functions_check : public Sql_upgrade_check {
             Upgrade_issue::ERROR,
             "Following DB objects make use of functions that have "
             "been removed in version 8.0. Please make sure to update them to "
-            "use supported alternatives before upgrade.") {
-  }
+            "use supported alternatives before upgrade.") {}
 
  protected:
-  std::size_t find_function(const std::string& str, const std::string& function,
+  std::size_t find_function(const std::string &str, const std::string &function,
                             std::size_t it = 0) {
     std::size_t pos = 0;
     do {
       pos = str.find(function, it);
-      if (pos == std::string::npos)
-        return pos;
+      if (pos == std::string::npos) return pos;
       if (pos != 0 && std::isalnum(str[pos - 1])) {
         it = pos + 1;
       } else {
         std::size_t after = pos + function.size();
         if (after < str.size()) {
-          while (std::isspace(str[after]))
-            ++after;
-          if (str[after] != '(')
-            it = after;
+          while (std::isspace(str[after])) ++after;
+          if (str[after] != '(') it = after;
         }
       }
     } while (it > pos);
@@ -498,31 +479,27 @@ class Removed_functions_check : public Sql_upgrade_check {
     return pos;
   }
 
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow* row) override {
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue res;
-    std::vector<const std::pair<std::string, const char*>*> flagged_functions;
+    std::vector<const std::pair<std::string, const char *> *> flagged_functions;
     std::string definition = row->get_as_string(4);
-    for (const auto& func : functions) {
+    for (const auto &func : functions) {
       std::size_t pos = find_function(definition, func.first);
 
       mysqlshdk::utils::SQL_string_iterator it(definition);
       while (pos != std::string::npos && it < pos) {
         ++it;
-        if (it > pos)
-          pos = find_function(definition, func.first, it);
+        if (it > pos) pos = find_function(definition, func.first, it);
       }
 
-      if (pos != std::string::npos)
-        flagged_functions.push_back(&func);
+      if (pos != std::string::npos) flagged_functions.push_back(&func);
     }
 
-    if (flagged_functions.empty())
-      return res;
+    if (flagged_functions.empty()) return res;
 
     std::stringstream ss;
     ss << row->get_as_string(3) << " uses removed function";
-    if (flagged_functions.size() > 1)
-      ss << "s";
+    if (flagged_functions.size() > 1) ss << "s";
     for (std::size_t i = 0; i < flagged_functions.size(); ++i)
       ss << (i > 0 ? ", " : " ") << flagged_functions[i]->first
          << " (consider using " << flagged_functions[i]->second << " instead)";
@@ -542,8 +519,7 @@ Sql_upgrade_check::get_removed_functions_check() {
 }
 
 Check_table_command::Check_table_command()
-    : Upgrade_check("Issues reported by 'check table x for upgrade' command") {
-}
+    : Upgrade_check("Issues reported by 'check table x for upgrade' command") {}
 
 std::vector<Upgrade_issue> Check_table_command::run(
     std::shared_ptr<mysqlshdk::db::ISession> session) {
@@ -555,20 +531,19 @@ std::vector<Upgrade_issue> Check_table_command::run(
       "SELECT TABLE_SCHEMA, TABLE_NAME FROM "
       "INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA not in "
       "('information_schema', 'performance_schema')");
-  const mysqlshdk::db::IRow* pair = nullptr;
+  const mysqlshdk::db::IRow *pair = nullptr;
   while ((pair = result->fetch_one()) != nullptr)
     tables.push_back(std::pair<std::string, std::string>(pair->get_string(0),
                                                          pair->get_string(1)));
 
   std::vector<Upgrade_issue> issues;
-  for (const auto& pair : tables) {
+  for (const auto &pair : tables) {
     auto check_result =
         session->query(shcore::sqlstring("CHECK TABLE !.! FOR UPGRADE;", 0)
                        << pair.first << pair.second);
-    const mysqlshdk::db::IRow* row = nullptr;
+    const mysqlshdk::db::IRow *row = nullptr;
     while ((row = check_result->fetch_one()) != nullptr) {
-      if (row->get_string(2) == "status")
-        continue;
+      if (row->get_string(2) == "status") continue;
       Upgrade_issue issue;
       std::string type = row->get_string(2);
       if (type == "warning")

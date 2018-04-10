@@ -34,7 +34,7 @@ namespace mysqlshdk {
 namespace db {
 namespace uri {
 
-std::string Uri_encoder::encode_uri(const Connection_options& info,
+std::string Uri_encoder::encode_uri(const Connection_options &info,
                                     Tokens_mask format) {
   std::string ret_val;
   if (format.is_set(Tokens::Scheme) && info.has_scheme())
@@ -47,8 +47,7 @@ std::string Uri_encoder::encode_uri(const Connection_options& info,
       ret_val.append(":").append(encode_userinfo(info.get_password()));
   }
 
-  if (!ret_val.empty())
-    ret_val.append("@");
+  if (!ret_val.empty()) ret_val.append("@");
 
   if (format.is_set(Tokens::Transport)) {
     if (info.has_transport_type()) {
@@ -107,7 +106,7 @@ std::string Uri_encoder::encode_uri(const Connection_options& info,
   return ret_val;
 }
 
-std::string Uri_encoder::encode_scheme(const std::string& data) {
+std::string Uri_encoder::encode_scheme(const std::string &data) {
   std::string ret_val;
 
   _tokenizer.reset();
@@ -152,7 +151,7 @@ std::string Uri_encoder::encode_scheme(const std::string& data) {
   return ret_val;
 }
 
-std::string Uri_encoder::encode_userinfo(const std::string& data) {
+std::string Uri_encoder::encode_userinfo(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -163,7 +162,7 @@ std::string Uri_encoder::encode_userinfo(const std::string& data) {
   return process(data);
 }
 
-std::string Uri_encoder::encode_host(const std::string& data) {
+std::string Uri_encoder::encode_host(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -189,7 +188,7 @@ std::string Uri_encoder::encode_port(int port) {
   return std::to_string(port);
 }
 
-std::string Uri_encoder::encode_port(const std::string& data) {
+std::string Uri_encoder::encode_port(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(false);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -218,7 +217,7 @@ std::string Uri_encoder::encode_port(const std::string& data) {
   return encode_port(std::stoi(port_token.get_text()));
 }
 
-std::string Uri_encoder::encode_socket(const std::string& data) {
+std::string Uri_encoder::encode_socket(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -228,13 +227,12 @@ std::string Uri_encoder::encode_socket(const std::string& data) {
 
   std::string ret_val = process(data);
 
-  if (ret_val.find("%2F") == 0)
-    ret_val.replace(0, 3, "/");
+  if (ret_val.find("%2F") == 0) ret_val.replace(0, 3, "/");
 
   return ret_val;
 }
 
-std::string Uri_encoder::encode_schema(const std::string& data) {
+std::string Uri_encoder::encode_schema(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -246,7 +244,7 @@ std::string Uri_encoder::encode_schema(const std::string& data) {
   return process(data);
 }
 
-std::string Uri_encoder::encode_attribute(const std::string& data) {
+std::string Uri_encoder::encode_attribute(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -257,28 +255,25 @@ std::string Uri_encoder::encode_attribute(const std::string& data) {
   return process(data);
 }
 
-std::string Uri_encoder::encode_values(const std::vector<std::string>& values,
+std::string Uri_encoder::encode_values(const std::vector<std::string> &values,
                                        bool force_array) {
   std::string ret_val;
 
   bool is_array = force_array || values.size() > 1;
 
-  if (is_array)
-    ret_val += "[";
+  if (is_array) ret_val += "[";
 
   std::vector<std::string> encoded_values;
-  for (auto value : values)
-    encoded_values.push_back(encode_value(value));
+  for (auto value : values) encoded_values.push_back(encode_value(value));
 
   ret_val += shcore::str_join(encoded_values, ",");
 
-  if (is_array)
-    ret_val += "]";
+  if (is_array) ret_val += "]";
 
   return ret_val;
 }
 
-std::string Uri_encoder::encode_value(const std::string& data) {
+std::string Uri_encoder::encode_value(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -289,7 +284,7 @@ std::string Uri_encoder::encode_value(const std::string& data) {
   return process(data);
 }
 
-std::string Uri_encoder::pct_encode(const std::string& data) {
+std::string Uri_encoder::pct_encode(const std::string &data) {
   std::string ret_val;
 
   for (auto c : data) {
@@ -308,7 +303,7 @@ std::string Uri_encoder::pct_encode(const std::string& data) {
   return ret_val;
 }
 
-std::string Uri_encoder::process(const std::string& data) {
+std::string Uri_encoder::process(const std::string &data) {
   std::string ret_val;
 
   _tokenizer.set_input(data);

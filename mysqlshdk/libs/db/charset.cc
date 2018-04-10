@@ -331,7 +331,7 @@ std::string collation_name_from_collation_id(uint32_t id) {
   return result;
 }
 
-uint32_t collation_id_from_collation_name(const std::string& collation_name) {
+uint32_t collation_id_from_collation_name(const std::string &collation_name) {
   uint32_t result = 0;
 
   for (size_t i = 0; i < sizeof(k_charsets_info) / sizeof(k_charsets_info[0]);

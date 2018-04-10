@@ -35,24 +35,24 @@ namespace db {
 namespace uri {
 class SHCORE_PUBLIC Uri_encoder {
  public:
-  std::string encode_uri(const Connection_options& info,
+  std::string encode_uri(const Connection_options &info,
                          Tokens_mask format = formats::full_no_password());
-  std::string encode_scheme(const std::string& data);
-  std::string encode_socket(const std::string& socket);
-  std::string encode_userinfo(const std::string& data);
-  std::string encode_host(const std::string& data);
+  std::string encode_scheme(const std::string &data);
+  std::string encode_socket(const std::string &socket);
+  std::string encode_userinfo(const std::string &data);
+  std::string encode_host(const std::string &data);
   std::string encode_port(int port);
-  std::string encode_port(const std::string& data);
-  std::string encode_schema(const std::string& data);
-  std::string encode_attribute(const std::string& data);
-  std::string encode_values(const std::vector<std::string>& values,
+  std::string encode_port(const std::string &data);
+  std::string encode_schema(const std::string &data);
+  std::string encode_attribute(const std::string &data);
+  std::string encode_values(const std::vector<std::string> &values,
                             bool force_array = false);
-  std::string encode_value(const std::string& data);
+  std::string encode_value(const std::string &data);
 
  private:
   shcore::BaseTokenizer _tokenizer;
-  std::string pct_encode(const std::string& data);
-  std::string process(const std::string& data);
+  std::string pct_encode(const std::string &data);
+  std::string process(const std::string &data);
 };
 }  // namespace uri
 }  // namespace db

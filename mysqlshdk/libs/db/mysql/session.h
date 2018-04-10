@@ -76,38 +76,32 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   // Utility functions to retriev session status
   uint64_t get_thread_id() {
     _prev_result.reset();
-    if (_mysql)
-      return mysql_thread_id(_mysql);
+    if (_mysql) return mysql_thread_id(_mysql);
     return 0;
   }
   uint64_t get_protocol_info() {
     _prev_result.reset();
-    if (_mysql)
-      return mysql_get_proto_info(_mysql);
+    if (_mysql) return mysql_get_proto_info(_mysql);
     return 0;
   }
   const char *get_connection_info() {
     _prev_result.reset();
-    if (_mysql)
-      return mysql_get_host_info(_mysql);
+    if (_mysql) return mysql_get_host_info(_mysql);
     return nullptr;
   }
   const char *get_server_info() {
     _prev_result.reset();
-    if (_mysql)
-      return mysql_get_server_info(_mysql);
+    if (_mysql) return mysql_get_server_info(_mysql);
     return nullptr;
   }
   const char *get_stats() {
     _prev_result.reset();
-    if (_mysql)
-      return mysql_stat(_mysql);
+    if (_mysql) return mysql_stat(_mysql);
     return nullptr;
   }
   const char *get_ssl_cipher() {
     _prev_result.reset();
-    if (_mysql)
-      return mysql_get_ssl_cipher(_mysql);
+    if (_mysql) return mysql_get_ssl_cipher(_mysql);
     return nullptr;
   }
 
@@ -120,19 +114,16 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return mysqlshdk::utils::Version();
   }
 
-  bool is_open() const { return _mysql ? true: false; }
+  bool is_open() const { return _mysql ? true : false; }
 
-  const char* get_last_error(int* out_code, const char** out_sqlstate) {
-    if (out_code)
-      *out_code = mysql_errno(_mysql);
-    if (out_sqlstate)
-      *out_sqlstate = mysql_sqlstate(_mysql);
+  const char *get_last_error(int *out_code, const char **out_sqlstate) {
+    if (out_code) *out_code = mysql_errno(_mysql);
+    if (out_sqlstate) *out_sqlstate = mysql_sqlstate(_mysql);
 
     return mysql_error(_mysql);
   }
 
-
-  const mysqlshdk::db::Connection_options & get_connection_options() const {
+  const mysqlshdk::db::Connection_options &get_connection_options() const {
     return _connection_options;
   }
 
@@ -175,39 +166,28 @@ class SHCORE_PUBLIC Session : public ISession,
   virtual const char *get_ssl_cipher() const { return _impl->get_ssl_cipher(); }
   virtual bool is_open() const { return _impl->is_open(); }
 
-  virtual uint64_t get_connection_id() const {
-    return _impl->get_thread_id();
-  }
+  virtual uint64_t get_connection_id() const { return _impl->get_thread_id(); }
 
-  virtual uint64_t get_protocol_info() {
-    return _impl->get_protocol_info();
-  }
+  virtual uint64_t get_protocol_info() { return _impl->get_protocol_info(); }
 
   virtual const char *get_connection_info() {
     return _impl->get_connection_info();
   }
 
-  virtual const char *get_server_info() {
-    return _impl->get_server_info();
-  }
+  virtual const char *get_server_info() { return _impl->get_server_info(); }
 
-  virtual const char *get_stats() {
-    return _impl->get_stats();
-  }
+  virtual const char *get_stats() { return _impl->get_stats(); }
 
   virtual mysqlshdk::utils::Version get_server_version() const {
     return _impl->get_server_version();
   }
 
   virtual ~Session() {
-    if (_impl)
-      _impl->close();
+    if (_impl) _impl->close();
   }
 
  protected:
-  Session() {
-    _impl.reset(new Session_impl());
-  }
+  Session() { _impl.reset(new Session_impl()); }
 
  private:
   std::shared_ptr<Session_impl> _impl;

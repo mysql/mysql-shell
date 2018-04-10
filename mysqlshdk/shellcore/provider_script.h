@@ -79,9 +79,7 @@ class Provider_script : public Provider {
   Completion_list complete(const std::string &text,
                            size_t *compl_offset) override;
 
-  std::shared_ptr<Object_registry> object_registry() const {
-    return registry_;
-  }
+  std::shared_ptr<Object_registry> object_registry() const { return registry_; }
 
  public:
   /** A chain of properties/method calls/objects that can be completed */
@@ -89,24 +87,19 @@ class Provider_script : public Provider {
    public:
     enum Type { Variable, Function, Literal };
 
-    Chain() {
-    }
+    Chain() {}
     Chain(const Chain &c)
-        : parts_(c.parts_), has_dot_(c.has_dot_), invalid_(c.invalid_) {
-    }
+        : parts_(c.parts_), has_dot_(c.has_dot_), invalid_(c.invalid_) {}
 
     void clear() {
       parts_.clear();
       has_dot_ = false;
     }
 
-    void add_dot() {
-      has_dot_ = true;
-    }
+    void add_dot() { has_dot_ = true; }
 
     bool add_variable(const std::string &s) {
-      if ((!empty() && peek_type() == Literal) || !has_dot_)
-        clear();
+      if ((!empty() && peek_type() == Literal) || !has_dot_) clear();
       has_dot_ = false;
       if (!s.empty() || !parts_.empty()) {
         parts_.push_back({Variable, s});
@@ -117,8 +110,7 @@ class Provider_script : public Provider {
     }
 
     bool add_method(const std::string &s) {
-      if ((!empty() && peek_type() == Literal) || !has_dot_)
-        clear();
+      if ((!empty() && peek_type() == Literal) || !has_dot_) clear();
       has_dot_ = false;
       parts_.push_back({Function, s});
       // true if this is the 1st element of the chain
@@ -132,13 +124,9 @@ class Provider_script : public Provider {
       return true;
     }
 
-    void operator=(const Chain &o) {
-      parts_ = o.parts_;
-    }
+    void operator=(const Chain &o) { parts_ = o.parts_; }
 
-    Type peek_type() const {
-      return parts_.front().first;
-    }
+    Type peek_type() const { return parts_.front().first; }
 
     std::pair<Type, std::string> next() {
       auto tmp(parts_.front());
@@ -146,20 +134,12 @@ class Provider_script : public Provider {
       return tmp;
     }
 
-    bool empty() const {
-      return parts_.empty();
-    }
-    size_t size() const {
-      return parts_.size();
-    }
+    bool empty() const { return parts_.empty(); }
+    size_t size() const { return parts_.size(); }
 
-    bool invalid() const {
-      return invalid_;
-    }
+    bool invalid() const { return invalid_; }
 
-    void invalidate() {
-      invalid_ = true;
-    }
+    void invalidate() { invalid_ = true; }
 
     const std::pair<Type, std::string> &operator[](size_t i) const {
       return parts_[i];

@@ -42,8 +42,7 @@ class Shell_history : public ::testing::Test {
  public:
   Shell_history()
       : _options_file(
-            Shell_core_test_wrapper::get_options_file_name("history_test")) {
-  }
+            Shell_core_test_wrapper::get_options_file_name("history_test")) {}
 
   virtual void SetUp() {
     remove(_options_file.c_str());
@@ -99,7 +98,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
 
   // TS_CV#9
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*",
-      shell.get_options()->get("history.sql.ignorePattern").descr());
+            shell.get_options()->get("history.sql.ignorePattern").descr());
 
   EXPECT_EQ(0, linenoiseHistorySize());
 
@@ -283,7 +282,8 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   // because we do not call the approriate API
   linenoiseHistorySetMaxLen(100);
 
-  char *args[] = {const_cast<char*>("ut"), const_cast<char*>("--sql"), nullptr};
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(2, args, _options_file));
 
@@ -1082,7 +1082,8 @@ TEST_F(Shell_history, history_delete_range) {
     SCOPED_TRACE(range);                                                       \
     shell.process_line("\\history del " range);                                \
     shell._history.dump([&dump](const std::string &s) { dump.push_back(s); }); \
-    for (std::vector<std::string>::size_type i = 0; i < expected.size(); ++i){ \
+    for (std::vector<std::string>::size_type i = 0; i < expected.size();       \
+         ++i) {                                                                \
       EXPECT_TRUE(i < dump.size());                                            \
       EXPECT_EQ(expected[i], shcore::str_strip(dump[i]));                      \
     }                                                                          \

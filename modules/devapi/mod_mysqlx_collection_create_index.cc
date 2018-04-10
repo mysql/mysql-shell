@@ -22,11 +22,11 @@
  */
 
 #include "modules/devapi/mod_mysqlx_collection_create_index.h"
+#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "db/mysqlx/mysqlx_parser.h"
 #include "shellcore/utils_help.h"
 
 #include <iomanip>
@@ -41,12 +41,13 @@ using namespace shcore;
 // Documentation of CollectionCreateIndex class
 REGISTER_HELP(COLLECTIONCREATEINDEX_BRIEF,
               "Handler for index creation on a Collection.");
-REGISTER_HELP(
-    COLLECTIONCREATEINDEX_DETAIL,
-    "This object provides the necessary functions to allow adding an index into a collection.");
-REGISTER_HELP(
-    COLLECTIONCREATEINDEX_DETAIL1,
-    "This object should only be created by calling any of the createIndex functions on the collection object where the index will be created.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_DETAIL,
+              "This object provides the necessary functions to allow adding an "
+              "index into a collection.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_DETAIL1,
+              "This object should only be created by calling any of the "
+              "createIndex functions on the collection object where the index "
+              "will be created.");
 
 CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
     : _owner(owner) {
@@ -81,12 +82,12 @@ REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_RETURNS,
               "@returns This CollectionCreateIndex object.");
 
 /**
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF)
-*
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM)
-*
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_RETURNS)
-*/
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF)
+ *
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM)
+ *
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_RETURNS)
+ */
 #if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName) {}
 #elif DOXYGEN_PY
@@ -96,21 +97,21 @@ CollectionCreateIndex CollectionCreateIndex::create_index(str indexName) {}
 REGISTER_HELP(
     COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1,
     "Sets the name for the creation of a unique index on the collection.");
-REGISTER_HELP(
-    COLLECTIONCREATEINDEX_CREATEINDEX_PARAM1,
-    "@param type The type of the index to be created, only supported type for the moment is mysqlx.IndexUnique.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM1,
+              "@param type The type of the index to be created, only supported "
+              "type for the moment is mysqlx.IndexUnique.");
 
 /**
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1)
-*
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM)
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM1)
-*
-* $(COLLECTIONCREATEINDEX_CREATEINDEX_RETURNS)
-*
-* #### Method Chaining
-*
-*/
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_BRIEF1)
+ *
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM)
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_PARAM1)
+ *
+ * $(COLLECTIONCREATEINDEX_CREATEINDEX_RETURNS)
+ *
+ * #### Method Chaining
+ *
+ */
 #if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName,
                                                          IndexType type) {}
@@ -165,34 +166,34 @@ shcore::Value CollectionCreateIndex::create_index(
 // Documentation of field function
 REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_BRIEF,
               "Adds column to be part of the collection index being created.");
-REGISTER_HELP(
-    COLLECTIONCREATEINDEX_FIELD_PARAM,
-    "@param documentPath The document path to the field to be added into the index.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_PARAM,
+              "@param documentPath The document path to the field to be added "
+              "into the index.");
 REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_PARAM1,
               "@param type A string defining a valid MySQL data type.");
-REGISTER_HELP(
-    COLLECTIONCREATEINDEX_FIELD_PARAM2,
-    "@param isRequired a flag that indicates whether the field is required or not.");
+REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_PARAM2,
+              "@param isRequired a flag that indicates whether the field is "
+              "required or not.");
 REGISTER_HELP(COLLECTIONCREATEINDEX_FIELD_RETURNS, "@returns A Result object.");
 
 /**
-* $(COLLECTIONCREATEINDEX_FIELD_BRIEF)
-*
-* $(COLLECTIONCREATEINDEX_FIELD_PARAM)
-* $(COLLECTIONCREATEINDEX_FIELD_PARAM1)
-* $(COLLECTIONCREATEINDEX_FIELD_PARAM2)
-*
-* $(COLLECTIONCREATEINDEX_FIELD_RETURNS)
-*
-* #### Method Chaining
-*
-* This function can be invoked many times, every time it is called the received
-* information will be added to the index definition.
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - execute()
-*/
+ * $(COLLECTIONCREATEINDEX_FIELD_BRIEF)
+ *
+ * $(COLLECTIONCREATEINDEX_FIELD_PARAM)
+ * $(COLLECTIONCREATEINDEX_FIELD_PARAM1)
+ * $(COLLECTIONCREATEINDEX_FIELD_PARAM2)
+ *
+ * $(COLLECTIONCREATEINDEX_FIELD_RETURNS)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked many times, every time it is called the received
+ * information will be added to the index definition.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - execute()
+ */
 #if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath,
                                                    IndexColumnType type,
@@ -232,16 +233,16 @@ REGISTER_HELP(COLLECTIONCREATEINDEX_EXECUTE_RETURNS,
               "@returns A Result object.");
 
 /**
-* $(COLLECTIONCREATEINDEX_EXECUTE_BRIEF)
-*
-* $(COLLECTIONCREATEINDEX_EXECUTE_RETURNS)
-*
-* #### Method Chaining
-*
-* This function can be invoked once after:
-* - add(Document document)
-* - add(List documents)
-*/
+ * $(COLLECTIONCREATEINDEX_EXECUTE_BRIEF)
+ *
+ * $(COLLECTIONCREATEINDEX_EXECUTE_RETURNS)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked once after:
+ * - add(Document document)
+ * - add(List documents)
+ */
 #if DOXYGEN_JS
 Result CollectionCreateIndex::execute() {}
 #elif DOXYGEN_PY

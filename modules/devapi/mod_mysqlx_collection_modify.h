@@ -37,15 +37,15 @@ namespace mysqlx {
 class Collection;
 class Result;
 /**
-* \ingroup XDevAPI
-* $(COLLECTIONMODIFY_BRIEF)
-*
-* $(COLLECTIONMODIFY_DETAIL)
-*
-* $(COLLECTIONMODIFY_DETAIL1)
-*
-* \sa Collection
-*/
+ * \ingroup XDevAPI
+ * $(COLLECTIONMODIFY_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_DETAIL1)
+ *
+ * \sa Collection
+ */
 class CollectionModify : public Collection_crud_definition,
                          public std::enable_shared_from_this<CollectionModify> {
  public:
@@ -86,7 +86,8 @@ class CollectionModify : public Collection_crud_definition,
   std::string class_name() const override { return "CollectionModify"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
-private:
+
+ private:
   shcore::Value modify(const shcore::Argument_list &args);
   shcore::Value set(const shcore::Argument_list &args);
   shcore::Value unset(const shcore::Argument_list &args);
@@ -103,7 +104,7 @@ private:
   shcore::Value execute();
   friend class Collection;
   Mysqlx::Crud::Update message_;
-  CollectionModify &set_filter(const std::string& filter);
+  CollectionModify &set_filter(const std::string &filter);
   CollectionModify &bind(const std::string &name, shcore::Value value);
   void set_operation(int type, const std::string &path,
                      const shcore::Value &value, bool validate_array = false);
@@ -128,24 +129,53 @@ private:
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("operation" == s) { return F::operation; }
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("modify" == s) { return F::modify; }
-    if ("set" == s) { return F::set; }
-    if ("unset" == s) { return F::unset; }
-    if ("merge" == s) { return F::merge; }
-    if ("patch" == s) { return F::patch; }
-    if ("arrayInsert" == s) { return F::arrayInsert; }
-    if ("arrayAppend" == s) { return F::arrayAppend; }
-    if ("arrayDelete" == s) { return F::arrayDelete; }
-    if ("sort" == s) { return F::sort; }
-    if ("limit" == s) { return F::limit; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("operation" == s) {
+      return F::operation;
+    }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("modify" == s) {
+      return F::modify;
+    }
+    if ("set" == s) {
+      return F::set;
+    }
+    if ("unset" == s) {
+      return F::unset;
+    }
+    if ("merge" == s) {
+      return F::merge;
+    }
+    if ("patch" == s) {
+      return F::patch;
+    }
+    if ("arrayInsert" == s) {
+      return F::arrayInsert;
+    }
+    if ("arrayAppend" == s) {
+      return F::arrayAppend;
+    }
+    if ("arrayDelete" == s) {
+      return F::arrayDelete;
+    }
+    if ("sort" == s) {
+      return F::sort;
+    }
+    if ("limit" == s) {
+      return F::limit;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
-
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

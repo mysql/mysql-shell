@@ -43,35 +43,35 @@ namespace replay {
 class Trace_writer {
  public:
   ~Trace_writer();
-  static Trace_writer* create(const std::string& path, int print_traces);
+  static Trace_writer *create(const std::string &path, int print_traces);
 
-  void set_metadata(const std::map<std::string, std::string>& meta);
+  void set_metadata(const std::map<std::string, std::string> &meta);
 
-  void serialize_connect(const mysqlshdk::db::Connection_options& data,
+  void serialize_connect(const mysqlshdk::db::Connection_options &data,
                          const std::string &protocol);
   void serialize_close();
-  void serialize_query(const std::string& sql);
+  void serialize_query(const std::string &sql);
 
   void serialize_connect_ok(const std::map<std::string, std::string> &info);
   void serialize_ok();
   void serialize_result(std::shared_ptr<db::IResult> result);
-  void serialize_error(const db::Error& e);
-  void serialize_error(const std::runtime_error& e);
+  void serialize_error(const db::Error &e);
+  void serialize_error(const std::runtime_error &e);
 
   const std::string &trace_path() const { return _path; }
   int trace_index() const { return _idx; }
 
  private:
-  Trace_writer(const std::string& path, int print_traces);
+  Trace_writer(const std::string &path, int print_traces);
   std::string _path;
   std::ofstream _stream;
   int _idx = 0;
   int _print_traces = 0;
 };
 
-void save_info(const std::string& path,
-               const std::map<std::string, std::string>& state);
-std::map<std::string, std::string> load_info(const std::string& path);
+void save_info(const std::string &path,
+               const std::map<std::string, std::string> &state);
+std::map<std::string, std::string> load_info(const std::string &path);
 
 class sequence_error : public db::Error {
  public:
@@ -81,12 +81,9 @@ class sequence_error : public db::Error {
 class Row_hook : public db::IRow {
  public:
   explicit Row_hook(std::unique_ptr<db::IRow> source)
-      : _source(std::move(source)) {
-  }
+      : _source(std::move(source)) {}
 
-  uint32_t num_fields() const override {
-    return _source->num_fields();
-  }
+  uint32_t num_fields() const override { return _source->num_fields(); }
 
   Type get_type(uint32_t index) const override {
     return _source->get_type(index);
@@ -120,7 +117,7 @@ class Row_hook : public db::IRow {
     return _source->get_double(index);
   }
 
-  std::pair<const char*, size_t> get_string_data(
+  std::pair<const char *, size_t> get_string_data(
       uint32_t index) const override {
     return _source->get_string_data(index);
   }
@@ -136,7 +133,7 @@ class Row_hook : public db::IRow {
 using Query_hook = std::function<std::string(const std::string &)>;
 
 using Result_row_hook = std::function<std::unique_ptr<db::IRow>(
-    const mysqlshdk::db::Connection_options&, const std::string&,
+    const mysqlshdk::db::Connection_options &, const std::string &,
     std::unique_ptr<db::IRow>)>;
 
 class Result_mysql;
@@ -144,7 +141,7 @@ class Result_mysqlx;
 
 class Trace {
  public:
-  Trace(const std::string& path, int print_traces);
+  Trace(const std::string &path, int print_traces);
   ~Trace();
 
   std::map<std::string, std::string> get_metadata();
@@ -160,23 +157,19 @@ class Trace {
   std::shared_ptr<Result_mysqlx> expected_result_x(
       std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
 
-  const std::string& trace_path() const {
-    return _trace_path;
-  }
+  const std::string &trace_path() const { return _trace_path; }
 
-  size_t trace_index() const {
-    return static_cast<size_t>(_index);
-  }
+  size_t trace_index() const { return static_cast<size_t>(_index); }
 
  private:
-  void next(rapidjson::Value* entry);
+  void next(rapidjson::Value *entry);
   void unserialize_result_rows(
-      rapidjson::Value* rlist, std::shared_ptr<Result_mysql> result,
+      rapidjson::Value *rlist, std::shared_ptr<Result_mysql> result,
       std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
   void unserialize_result_rows(
-      rapidjson::Value* rlist, std::shared_ptr<Result_mysqlx> result,
+      rapidjson::Value *rlist, std::shared_ptr<Result_mysqlx> result,
       std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept);
-  void expect_request(rapidjson::Value* doc, const char* subtype);
+  void expect_request(rapidjson::Value *doc, const char *subtype);
   rapidjson::Document _doc;
   rapidjson::SizeType _index;
   std::string _trace_path;

@@ -78,7 +78,7 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
                std::invalid_argument);
   EXPECT_THROW(Upgrade_check::create_checklist("5.7.19", "8.1.0"),
                std::invalid_argument);
-  std::vector<std::unique_ptr<Upgrade_check> > checks;
+  std::vector<std::unique_ptr<Upgrade_check>> checks;
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7.19", "8.0.3"));
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7.17", "8.0"));
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7", "8.0.4"));
@@ -104,8 +104,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       Sql_upgrade_check::get_reserved_keywords_check();
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
-  for (auto& warning : issues)
-    puts(to_string(warning).c_str());
+  for (auto &warning : issues) puts(to_string(warning).c_str());
   EXPECT_TRUE(issues.empty());
 
   PrepareTestDatabase("grouping");
@@ -195,8 +194,7 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   EXPECT_TRUE(issues.empty());
-  for (auto& warning : issues)
-    puts(to_string(warning).c_str());
+  for (auto &warning : issues) puts(to_string(warning).c_str());
 
   ASSERT_NO_THROW(session->execute(
       "create table compact (i integer) row_format=compact engine=innodb;"));
@@ -316,7 +314,7 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
   ASSERT_NO_THROW(
       session->execute("create table Clone(COMPONENT integer, cube int);"));
 
-  for (const std::string& mode : modes) {
+  for (const std::string &mode : modes) {
     std::size_t issues_count = issues.size();
     issues.clear();
     ASSERT_NO_THROW(session->execute(
@@ -379,8 +377,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
       Sql_upgrade_check::get_removed_functions_check();
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
-  for (const auto& issue : issues)
-    puts(to_string(issue).c_str());
+  for (const auto &issue : issues) puts(to_string(issue).c_str());
   ASSERT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(session->execute(
@@ -453,7 +450,7 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   args.push_back(shcore::Value(_mysql_uri));
   try {
     util.check_for_server_upgrade(args);
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }

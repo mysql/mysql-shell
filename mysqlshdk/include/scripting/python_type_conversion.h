@@ -43,6 +43,6 @@ struct Python_type_bridger {
 
   Python_context *_owner;
 };
-}
+}  // namespace shcore
 
 #endif

@@ -32,25 +32,26 @@
 
 namespace shcore {
 class JScript_function : public Function_base {
-public:
-  JScript_function(JScript_context* context, v8::Handle<v8::Function> function);
+ public:
+  JScript_function(JScript_context *context, v8::Handle<v8::Function> function);
   virtual ~JScript_function() {}
 
   const std::string &name() const override;
 
-  const std::vector<std::pair<std::string, Value_type> > &signature() const override;
+  const std::vector<std::pair<std::string, Value_type>> &signature()
+      const override;
 
   Value_type return_type() const override;
 
-  bool operator == (const Function_base &other) const override;
+  bool operator==(const Function_base &other) const override;
 
-  bool operator != (const Function_base &other) const;
+  bool operator!=(const Function_base &other) const;
 
   Value invoke(const Argument_list &args) override;
 
   bool has_var_args() override { return false; }
 
-private:
+ private:
   JScript_context *_js;
   v8::Persistent<v8::Function> _function;
 };

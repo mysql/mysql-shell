@@ -181,9 +181,7 @@ void Interrupts::init(Interrupt_helper *helper) {
   _main_thread_id = std::this_thread::get_id();
 }
 
-void Interrupts::ignore_thread() {
-  _ignore_current_thread = true;
-}
+void Interrupts::ignore_thread() { _ignore_current_thread = true; }
 
 void Interrupts::setup() {
   if (_helper) {
@@ -198,8 +196,7 @@ bool Interrupts::in_main_thread() {
 void Interrupts::push_handler(std::function<bool()> handler) {
   // The interrupt handler can be disabled by thread,
   // if that's the case this is a no-op
-  if (_ignore_current_thread)
-    return;
+  if (_ignore_current_thread) return;
 
   // Only allow cancellation handlers registered in the main thread.
   // We don't want background threads to be affected directly by ^C
@@ -228,8 +225,7 @@ void Interrupts::push_handler(std::function<bool()> handler) {
 void Interrupts::pop_handler() {
   // The interrupt handler can be disabled by thread,
   // if that's the case this is a no-op
-  if (_ignore_current_thread)
-    return;
+  if (_ignore_current_thread) return;
 
   if (!in_main_thread()) {
     throw std::logic_error("Interrupt handler pop ignored for non-main thread");
@@ -247,8 +243,7 @@ void Interrupts::pop_handler() {
 void Interrupts::interrupt() {
   // The interrupt handler can be disabled by thread,
   // if that's the case this is a no-op
-  if (_ignore_current_thread)
-    return;
+  if (_ignore_current_thread) return;
 
   Block_interrupts block_ints;
   std::lock_guard<std::mutex> lock(_handler_mutex);
@@ -256,8 +251,7 @@ void Interrupts::interrupt() {
   if (n > 0) {
     for (int i = n - 1; i >= 0; --i) {
       try {
-        if (!_handlers[i]())
-          break;
+        if (!_handlers[i]()) break;
       } catch (std::exception &e) {
         log_error("Unexpected exception in interruption handler: %s", e.what());
         assert(0);
@@ -272,17 +266,13 @@ void Interrupts::set_propagate_interrupt(bool flag) {
   _propagates_interrupt = flag;
 }
 
-bool Interrupts::propagates_interrupt() {
-  return _propagates_interrupt;
-}
+bool Interrupts::propagates_interrupt() { return _propagates_interrupt; }
 
 void Interrupts::block() {
-  if (_helper)
-    _helper->block();
+  if (_helper) _helper->block();
 }
 
 void Interrupts::unblock(bool clear_pending) {
-  if (_helper)
-    _helper->unblock(clear_pending);
+  if (_helper) _helper->unblock(clear_pending);
 }
 }  // namespace shcore

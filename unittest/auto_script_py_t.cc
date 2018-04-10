@@ -54,17 +54,14 @@ class Auto_script_py : public Shell_py_script_tester,
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (connection_options.has_user())
-      user = connection_options.get_user();
+    if (connection_options.has_user()) user = connection_options.get_user();
 
-    if (connection_options.has_host())
-      host = connection_options.get_host();
+    if (connection_options.has_host()) host = connection_options.get_host();
 
     if (connection_options.has_password())
       password = connection_options.get_password();
 
-    if (_port.empty())
-      _port = "33060";
+    if (_port.empty()) _port = "33060";
 
     if (_port.empty()) {
       _port = "33060";
@@ -176,14 +173,12 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
                                        const std::string &ext) {
   std::string path = shcore::path::join_path(g_test_home, "scripts", "auto",
                                              subdir, "scripts");
-  if (!shcore::is_folder(path))
-    return {};
+  if (!shcore::is_folder(path)) return {};
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
   for (auto &s : tests) {
-    if (shcore::str_endswith(s, ext))
-      s = subdir + "/" + s;
+    if (shcore::str_endswith(s, ext)) s = subdir + "/" + s;
   }
   return tests;
 }

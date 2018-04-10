@@ -48,24 +48,24 @@ class Replayer_mysql : public mysql::Session {
 
   explicit Replayer_mysql(int print_traces);
 
-  void connect(const mysqlshdk::db::Connection_options& data) override;
+  void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string& sql,
+  std::shared_ptr<IResult> query(const std::string &sql,
                                  bool buffered) override;
 
-  void execute(const std::string& sql) override;
+  void execute(const std::string &sql) override;
 
   void close() override;
 
   bool is_open() const override;
 
   uint64_t get_connection_id() const override;
-  const char* get_ssl_cipher() const override;
+  const char *get_ssl_cipher() const override;
   const char *get_connection_info() override;
   const char *get_server_info() override;
   mysqlshdk::utils::Version get_server_version() const override;
 
-  const mysqlshdk::db::Connection_options& get_connection_options()
+  const mysqlshdk::db::Connection_options &get_connection_options()
       const override;
 
   ~Replayer_mysql();
@@ -78,25 +78,18 @@ class Replayer_mysql : public mysql::Session {
 class Result_mysql : public db::mysql::Result {
  public:
   Result_mysql(uint64_t affected_rows, unsigned int warning_count,
-               uint64_t last_insert_id, const char* info);
+               uint64_t last_insert_id, const char *info);
 
-  const db::IRow* fetch_one() override {
-    if (_rows.size() > _fetched_row_count)
-      return &_rows[_fetched_row_count++];
+  const db::IRow *fetch_one() override {
+    if (_rows.size() > _fetched_row_count) return &_rows[_fetched_row_count++];
     return nullptr;
   }
 
-  bool next_resultset() override {
-    return false;
-  }
+  bool next_resultset() override { return false; }
 
-  std::unique_ptr<db::Warning> fetch_one_warning() override {
-    return {};
-  }
+  std::unique_ptr<db::Warning> fetch_one_warning() override { return {}; }
 
-  bool has_resultset() override {
-    return _has_resultset;
-  }
+  bool has_resultset() override { return _has_resultset; }
 
  private:
   friend class Trace;
@@ -110,53 +103,52 @@ class Result_mysql : public db::mysql::Result {
 
 // ---
 
-
 class Replayer_mysqlx : public mysqlx::Session {
  public:
   using super = mysqlx::Session;
 
   explicit Replayer_mysqlx(int print_traces);
 
-  void connect(const mysqlshdk::db::Connection_options& data) override;
+  void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string& sql,
+  std::shared_ptr<IResult> query(const std::string &sql,
                                  bool buffered) override;
 
-  void execute(const std::string& sql) override;
+  void execute(const std::string &sql) override;
 
   void close() override;
 
   bool is_open() const override;
 
   uint64_t get_connection_id() const override;
-  const char* get_ssl_cipher() const override;
+  const char *get_ssl_cipher() const override;
   const std::string &get_connection_info() const override;
   mysqlshdk::utils::Version get_server_version() const override;
 
-  const mysqlshdk::db::Connection_options& get_connection_options()
+  const mysqlshdk::db::Connection_options &get_connection_options()
       const override;
 
-  std::shared_ptr<IResult> execute_stmt(
-      const std::string& ns, const std::string& stmt,
-      const ::xcl::Arguments& args) override;
+  std::shared_ptr<IResult> execute_stmt(const std::string &ns,
+                                        const std::string &stmt,
+                                        const ::xcl::Arguments &args) override;
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Insert& /*msg*/) override {
+      const ::Mysqlx::Crud::Insert & /*msg*/) override {
     throw std::logic_error("not implemented for replaying");
   }
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Update& /*msg*/) override {
+      const ::Mysqlx::Crud::Update & /*msg*/) override {
     throw std::logic_error("not implemented for replaying");
   }
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Delete& /*msg*/) override {
+      const ::Mysqlx::Crud::Delete & /*msg*/) override {
     throw std::logic_error("not implemented for replaying");
   }
 
   std::shared_ptr<IResult> execute_crud(
-      const ::Mysqlx::Crud::Find& /*msg*/) override {
+      const ::Mysqlx::Crud::Find & /*msg*/) override {
     throw std::logic_error("not implemented for replaying");
   }
 
@@ -167,33 +159,23 @@ class Replayer_mysqlx : public mysqlx::Session {
   int _print_traces = 0;
 };
 
-
 class Result_mysqlx : public db::mysqlx::Result {
  public:
   Result_mysqlx(uint64_t affected_rows, unsigned int warning_count,
-               uint64_t last_insert_id, const char* info);
+                uint64_t last_insert_id, const char *info);
 
-  const db::IRow* fetch_one() override {
-    if (_rows.size() > _fetched_row_count)
-      return &_rows[_fetched_row_count++];
+  const db::IRow *fetch_one() override {
+    if (_rows.size() > _fetched_row_count) return &_rows[_fetched_row_count++];
     return nullptr;
   }
 
-  bool next_resultset() override {
-    return false;
-  }
+  bool next_resultset() override { return false; }
 
-  std::unique_ptr<db::Warning> fetch_one_warning() override {
-    return {};
-  }
+  std::unique_ptr<db::Warning> fetch_one_warning() override { return {}; }
 
-  bool has_resultset() override {
-    return _has_resultset;
-  }
+  bool has_resultset() override { return _has_resultset; }
 
-  int64_t get_auto_increment_value() const override {
-    return _last_insert_id;
-  }
+  int64_t get_auto_increment_value() const override { return _last_insert_id; }
 
  private:
   friend class Trace;

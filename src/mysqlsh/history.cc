@@ -31,9 +31,7 @@
 
 namespace mysqlsh {
 
-History::History() {
-  linenoiseHistoryFree();
-}
+History::History() { linenoiseHistoryFree(); }
 
 bool History::load(const std::string &path) {
   clear();
@@ -77,14 +75,12 @@ void History::dump(const std::function<void(const std::string &)> &print) {
 }
 
 uint32_t History::first_entry() const {
-  if (_serials.empty())
-    return 0;
+  if (_serials.empty()) return 0;
   return _serials.front();
 }
 
 uint32_t History::last_entry() const {
-  if (_serials.empty())
-    return 0;
+  if (_serials.empty()) return 0;
   return _serials.back();
 }
 
@@ -106,8 +102,7 @@ void History::add(const std::string &s) {
         _serials.pop_front();
       }
     } else {
-      if (linenoiseHistoryAdd(s.c_str()))
-        _serials.push_back(++_serial);
+      if (linenoiseHistoryAdd(s.c_str())) _serials.push_back(++_serial);
     }
   }
 }
@@ -126,8 +121,7 @@ void History::set_limit(uint32_t limit) {
     int del_count = linenoiseHistorySize() - limit;
     // shrinking history so delete whatever will be pushed out
     _serials.erase(_serials.begin(), _serials.begin() + del_count);
-    for (int i = 0; i < del_count; i++)
-      linenoiseHistoryDelete(0);
+    for (int i = 0; i < del_count; i++) linenoiseHistoryDelete(0);
   }
   _limit = limit;
   linenoiseHistorySetMaxLen(static_cast<int>(limit + 1));
@@ -143,8 +137,7 @@ void History::del(uint32_t serial_first, uint32_t serial_last) {
     auto iter = std::find(_serials.begin(), _serials.end(), ser);
     if (iter != _serials.end()) {
       int index = iter - _serials.begin();
-      if (!linenoiseHistoryDelete(index))
-        break;
+      if (!linenoiseHistoryDelete(index)) break;
       _serials.erase(iter);
     }
   }

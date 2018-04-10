@@ -19,13 +19,13 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "unittest/gtest_clean.h"
 
-using mysqlshdk::db::uri::Uri_parser;
 using mysqlshdk::db::Transport_type;
+using mysqlshdk::db::uri::Uri_parser;
 namespace testing {
 mysqlshdk::utils::nullable<const char *> no_string;
 mysqlshdk::utils::nullable<int> no_int;
@@ -79,7 +79,7 @@ void validate_uri(
     const mysqlshdk::utils::nullable<const char *> &sock,
     const mysqlshdk::utils::nullable<const char *> &db, bool has_password,
     bool has_port, Transport_type target_type,
-    const std::map<std::string, std::vector<std::string> > *attributes = 0) {
+    const std::map<std::string, std::vector<std::string>> *attributes = 0) {
   SCOPED_TRACE(connstring);
 
   Uri_parser parser;
@@ -635,7 +635,7 @@ TEST(Uri_parser, parse_path) {
 // But the produced Connection_options does not allow them since they
 // are not required by the current connection specs
 TEST(Uri_parser, parse_query) {
-  std::map<std::string, std::vector<std::string> > atts;
+  std::map<std::string, std::vector<std::string>> atts;
   atts[mysqlshdk::db::kSslCa] = {"value"};
   atts[mysqlshdk::db::kAuthMethod] = {"my space"};
   // atts[mysqlshdk::db::kSslCert] = {};
@@ -649,7 +649,8 @@ TEST(Uri_parser, parse_query) {
   // HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, &atts);
   validate_uri(
       "mysqlx://user@10.150.123.45:2845/"
-      "world?ssl-ca=value&auth-method=my%20space&ssl-cert=cert&ssl-capath=ca_path&"
+      "world?ssl-ca=value&auth-method=my%20space&ssl-cert=cert&ssl-capath=ca_"
+      "path&"
       "ssl-cipher=(/what/e/ver)",
       "mysqlx", "user", NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world",
       HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, &atts);

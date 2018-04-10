@@ -28,9 +28,7 @@
 #include <functional>
 #include <map>
 #include <set>
-#include <functional>
 #include <string>
-#include <functional>
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -112,7 +110,7 @@ class Debug_object_info {
   bool fatal_leaks = false;
   std::set<void *> instances;
   std::map<void *, std::string> instance_tags;
-  std::function<std::string(void*)> get_debug;
+  std::function<std::string(void *)> get_debug;
   void dump();
 
  public:
@@ -129,9 +127,7 @@ Debug_object_info *debug_object_enable_fatal(const char *name);
 template <typename C>
 class Debug_object_for {
  public:
-  Debug_object_for() {
-    debug_object_enable(typeid(C).name())->on_alloc(this);
-  }
+  Debug_object_for() { debug_object_enable(typeid(C).name())->on_alloc(this); }
 
   virtual ~Debug_object_for() {
     debug_object_enable(typeid(C).name())->on_dealloc(this);
@@ -153,10 +149,11 @@ bool debug_object_dump_report(bool verbose);
   } while (0)
 
 #define DEBUG_OBJ_ALLOC2(name, get_debug) \
-  do {} while (0)
+  do {                                    \
+  } while (0)
 
 #define DEBUG_OBJ_ALLOC_N(name, n) \
-  do {                        \
+  do {                             \
   } while (0)
 
 #define DEBUG_OBJ_DEALLOC(name) \

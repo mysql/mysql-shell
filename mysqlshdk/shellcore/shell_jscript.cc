@@ -22,20 +22,20 @@
  */
 
 #include "shellcore/shell_jscript.h"
+#include "modules/devapi/mod_mysqlx_session.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "scripting/jscript_context.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
-#include "modules/devapi/mod_mysqlx_session.h"
-#include "mysqlshdk/include/shellcore/base_shell.h"
 
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
     : Shell_language(shcore),
-      _js(new JScript_context(shcore->registry(), shcore->get_delegate())) {
-}
+      _js(new JScript_context(shcore->registry(), shcore->get_delegate())) {}
 
-void Shell_javascript::handle_input(std::string &code, Input_state &state,
+void Shell_javascript::handle_input(
+    std::string &code, Input_state &state,
     std::function<void(shcore::Value)> result_processor) {
   // Undefined to be returned in case of errors
   Value result;
@@ -49,7 +49,8 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
     result = _js->execute_interactive(code, state);
   else {
     try {
-      result = _js->execute(code, _owner->get_input_source(), _owner->get_input_args());
+      result = _js->execute(code, _owner->get_input_source(),
+                            _owner->get_input_args());
     } catch (std::exception &exc) {
       _owner->print_error(exc.what());
     }

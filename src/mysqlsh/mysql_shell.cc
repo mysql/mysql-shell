@@ -32,27 +32,27 @@
 #include "modules/devapi/mod_mysqlx.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "modules/util/mod_util.h"
 #include "modules/mod_mysql.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
+#include "modules/util/mod_util.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/innodbcluster/cluster.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
 #include "src/interactive/interactive_dba_cluster.h"
 #include "src/interactive/interactive_global_dba.h"
 #include "src/interactive/interactive_global_shell.h"
+#include "src/mysqlsh/shell_console.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "mysqlshdk/libs/utils/strformat.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/innodbcluster/cluster.h"
-#include "src/mysqlsh/shell_console.h"
 
 DEBUG_OBJ_ENABLE(Mysql_shell);
 
@@ -60,8 +60,7 @@ namespace mysqlsh {
 
 class Shell_command_provider : public shcore::completer::Provider {
  public:
-  explicit Shell_command_provider(Mysql_shell *shell) : shell_(shell) {
-  }
+  explicit Shell_command_provider(Mysql_shell *shell) : shell_(shell) {}
 
   shcore::completer::Completion_list complete(const std::string &text,
                                               size_t *compl_offset) {
@@ -133,9 +132,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
   // Create the interaction_handler
-  _console_handler =
-      std::shared_ptr<mysqlsh::Shell_console>(
-          new mysqlsh::Shell_console(custom_delegate));
+  _console_handler = std::shared_ptr<mysqlsh::Shell_console>(
+      new mysqlsh::Shell_console(custom_delegate));
 
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
@@ -143,10 +141,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
   _global_dba = std::shared_ptr<mysqlsh::dba::Dba>(
       new mysqlsh::dba::Dba(_shell.get(), _console_handler, options()));
-  _global_util =
-      std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get(),
-                                                       _console_handler,
-                                                       options().wizards));
+  _global_util = std::shared_ptr<mysqlsh::Util>(
+      new mysqlsh::Util(_shell.get(), _console_handler, options().wizards));
 
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
@@ -287,7 +283,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect,
                     Mysql_shell::cmd_connect);
   SET_SHELL_COMMAND("\\reconnect", "Reconnect with a server.", "",
-                      Mysql_shell::cmd_reconnect);
+                    Mysql_shell::cmd_reconnect);
   SET_SHELL_COMMAND("\\option", "Manage MySQL Shell options.", cmd_help_option,
                     Mysql_shell::cmd_option);
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.",
@@ -326,9 +322,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   // clang-format on
 }
 
-Mysql_shell::~Mysql_shell() {
-  DEBUG_OBJ_DEALLOC(Mysql_shell);
-}
+Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
 
 static mysqlsh::SessionType get_session_type(
     const mysqlshdk::db::Connection_options &opt) {
@@ -357,8 +351,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Mysql_shell::create_session(
   if (type == mysqlsh::SessionType::Auto) {
     auto xsession = mysqlshdk::db::mysqlx::Session::create();
     session = xsession;
-    if (options().trace_protocol)
-      xsession->enable_protocol_trace(true);
+    if (options().trace_protocol) xsession->enable_protocol_trace(true);
     try {
       session->connect(connection_options);
       return session;
@@ -389,8 +382,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Mysql_shell::create_session(
     case mysqlsh::SessionType::X: {
       auto xsession = mysqlshdk::db::mysqlx::Session::create();
       session = xsession;
-      if (options().trace_protocol)
-        xsession->enable_protocol_trace(true);
+      if (options().trace_protocol) xsession->enable_protocol_trace(true);
       break;
     }
     case mysqlsh::SessionType::Classic:
@@ -484,15 +476,13 @@ void Mysql_shell::connect(
       return true;
     });
     session = create_session(connection_options);
-    if (cancelled)
-      throw shcore::cancelled("Cancelled");
+    if (cancelled) throw shcore::cancelled("Cancelled");
 
     new_session = set_active_session(session);
   }
 
   if (old_session && old_session->is_open()) {
-    if (options().interactive)
-      println("Closing old connection...");
+    if (options().interactive) println("Closing old connection...");
 
     old_session->close();
   }
@@ -518,8 +508,7 @@ void Mysql_shell::connect(
 
     message = "Your MySQL connection id is " +
               std::to_string(new_session->get_connection_id());
-    if (session_type == "Session")
-      message += " (X protocol)";
+    if (session_type == "Session") message += " (X protocol)";
     try {
       message += "\nServer version: " +
                  new_session->get_core_session()
@@ -547,7 +536,8 @@ void Mysql_shell::connect(
     // 1) Validation that the default schema is real
     // 2) Triggers the auto loading of the schema cache
     shcore::Object_bridge_ref default_schema;
-    auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(new_session);
+    auto x_session =
+        std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(new_session);
 
     if (!default_schema_name.empty()) {
       if (x_session && interactive_mode() != shcore::IShell_core::Mode::SQL) {
@@ -578,9 +568,9 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
     throw shcore::Exception::argument_error(
         "Invalid session type given for shell connection.");
   }
-  if (session->get_connection_options().has_schema()
-      && options().devapi_schema_object_handles
-      && new_session->update_schema_cache)
+  if (session->get_connection_options().has_schema() &&
+      options().devapi_schema_object_handles &&
+      new_session->update_schema_cache)
     new_session->update_schema_cache(
         session->get_connection_options().get_schema(), true);
 
@@ -682,15 +672,13 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
   return true;
 }
 
-
 std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
     const std::string &name) {
   std::shared_ptr<shcore::Cpp_object_bridge> dba(
       _shell->get_global("dba").as_object<shcore::Cpp_object_bridge>());
 
   shcore::Argument_list args;
-  if (!name.empty())
-    args.push_back(shcore::Value(name));
+  if (!name.empty()) args.push_back(shcore::Value(name));
 
   shcore::Value vcluster(dba->call("getCluster", args));
   _shell->set_global("cluster", vcluster,
@@ -709,7 +697,7 @@ std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
   return cluster;
 }
 
-bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
+bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
   bool printed = false;
 
   // If help came with parameter attempts to print the
@@ -748,7 +736,7 @@ bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
     println("For help on a specific command use the command as \\? <command>");
     println("");
     auto globals = _shell->get_global_objects(interactive_mode());
-    std::vector<std::pair<std::string, std::string> > global_names;
+    std::vector<std::pair<std::string, std::string>> global_names;
 
     if (globals.size()) {
       for (auto name : globals) {
@@ -866,8 +854,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   } else {
     error = true;
   }
-  if (error)
-    print_error("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  if (error) print_error("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
 
   return true;
 }
@@ -1096,8 +1083,7 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
     error = "Not connected.\n";
   }
 
-  if (!error.empty())
-    print_error(error);
+  if (!error.empty()) print_error(error);
 
   return true;
 }
@@ -1210,8 +1196,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
                 : args[args_start + 1];
         if (optname.back() == '=')
           optname = optname.substr(0, optname.length() - 1);
-        if (value[0] == '=')
-          value = value.substr(1);
+        if (value[0] == '=') value = value.substr(1);
         shell_options->set_and_notify(optname, value, persist);
       } else {
         std::size_t offset = args[args_start].find('=');
@@ -1325,8 +1310,7 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
     if (!_last_active_schema.empty() &&
         (!co.has_schema() || co.get_schema() != _last_active_schema))
       co.set_schema(_last_active_schema);
-    if (!force)
-      _shell->print("The global session got disconnected..\n");
+    if (!force) _shell->print("The global session got disconnected..\n");
     _shell->print("Attempting to reconnect to '" + co.as_uri() + "'..");
 
     shcore::sleep_ms(500);
@@ -1387,8 +1371,7 @@ void Mysql_shell::add_devapi_completions() {
   // TODO(alfredo) add a meta-class system so that these can be determined
   // dynamically/automatically
 
-  registry->add_completable_type(
-      "mysqlx", {{"getSession", "Session", true}});
+  registry->add_completable_type("mysqlx", {{"getSession", "Session", true}});
   registry->add_completable_type("mysql",
                                  {{"getClassicSession", "ClassicSession", true},
                                   {"getSession", "ClassicSession", true}});

@@ -38,8 +38,7 @@ namespace db {
 
 class Row_ref_by_name {
  public:
-  Row_ref_by_name() {
-  }
+  Row_ref_by_name() {}
 
   Row_ref_by_name(std::shared_ptr<IResult> result, const IRow *row)
       : Row_ref_by_name(result) {
@@ -48,15 +47,11 @@ class Row_ref_by_name {
 
   explicit Row_ref_by_name(Row_ref_by_name &&p)
       : _field_names(std::move(p._field_names)),
-        _row_ref(std::move(p._row_ref)) {
-  }
+        _row_ref(std::move(p._row_ref)) {}
 
-  virtual ~Row_ref_by_name() {
-  }
+  virtual ~Row_ref_by_name() {}
 
-  void operator=(const IRow *row) {
-    _row_ref = row;
-  }
+  void operator=(const IRow *row) { _row_ref = row; }
 
   Row_ref_by_name &operator=(Row_ref_by_name &&o) {
     _field_names = std::move(o._field_names);
@@ -64,9 +59,7 @@ class Row_ref_by_name {
     return *this;
   }
 
-  uint32_t num_fields() const {
-    return _row_ref->num_fields();
-  }
+  uint32_t num_fields() const { return _row_ref->num_fields(); }
 
   Type get_type(const std::string &field) const {
     return _row_ref->get_type(field_index(field));
@@ -132,8 +125,7 @@ class Row_ref_by_name {
 
 class Row_by_name : public Row_ref_by_name {
  public:
-  Row_by_name() {
-  }
+  Row_by_name() {}
 
   Row_by_name(std::shared_ptr<IResult> result, const IRow &row)
       : Row_ref_by_name(result), _row_copy(row) {

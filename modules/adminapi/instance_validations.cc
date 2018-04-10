@@ -25,8 +25,8 @@
 #include <memory>
 #include <string>
 #include "modules/adminapi/mod_dba.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 // Naming convention for validations:
 //
@@ -165,8 +165,11 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
   int page_size_value = std::stoul(page_size);
   if (page_size_value <= 4096) {
     console->print_error(
-        "Instance '" + instance->descr() + "' is using a non-supported InnoDB "
-        "page size (innodb_page_size=" + page_size + "). Only instances with "
+        "Instance '" + instance->descr() +
+        "' is using a non-supported InnoDB "
+        "page size (innodb_page_size=" +
+        page_size +
+        "). Only instances with "
         "innodb_page_size greater than 4k (4096) can be used with InnoDB "
         "Cluster.");
     throw shcore::Exception::runtime_error(
@@ -191,8 +194,7 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
  * @param  console  console to send output to
  * @return          true if the host name configuration is suitable
  */
-bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
-                           bool verbose,
+bool validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose,
                            std::shared_ptr<IConsole> console) {
   // Sanity check for the instance address
   bool report_host_set = false;
@@ -308,11 +310,10 @@ bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
            instance->descr().c_str(), mycnf_path.c_str());
   // Perform check with no update
   shcore::Value check_result;
-  check_result = mp->exec_check_ret_handler(
-      instance->get_connection_options(), mycnf_path, "", false, false);
+  check_result = mp->exec_check_ret_handler(instance->get_connection_options(),
+                                            mycnf_path, "", false, false);
 
-  if (ret_val)
-    *ret_val = check_result;
+  if (ret_val) *ret_val = check_result;
 
   log_debug("Check command returned: %s", check_result.descr().c_str());
 

@@ -33,12 +33,11 @@
 //#  include <poll.h>
 #endif
 #include <stdint.h>
-#include <memory>
-#include <string>
 #include <deque>
+#include <memory>
 #include <mutex>
+#include <string>
 #include <thread>
-
 
 namespace shcore {
 // Launches a process as child of current process and exposes the stdin & stdout
@@ -74,9 +73,7 @@ class Process {
   }
 
 #ifdef _WIN32
-  void set_create_process_group() {
-    create_process_group = true;
-  }
+  void set_create_process_group() { create_process_group = true; }
 #endif
 
   /** Launches the child process, and makes pipes available for read/write. */
@@ -142,9 +139,7 @@ class Process {
 #ifdef _WIN32
   HANDLE get_pid();
 
-  DWORD get_process_id() const {
-    return pi.dwProcessId;
-  }
+  DWORD get_process_id() const { return pi.dwProcessId; }
 #else
   pid_t get_pid();
 #endif
@@ -184,7 +179,7 @@ class Process {
 #endif
 
   /** Perform Windows specific quoting of args and build a command line */
-  static std::string make_windows_cmdline(const char * const*argv);
+  static std::string make_windows_cmdline(const char *const *argv);
 
  private:
   /**
@@ -196,7 +191,7 @@ class Process {
   /** Closes child process */
   void close();
 
-  const char * const *argv;
+  const char *const *argv;
   bool is_alive;
 #ifdef WIN32
   HANDLE child_in_rd;

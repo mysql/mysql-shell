@@ -48,7 +48,7 @@ void Command_line_test::SetUp() {
  *
  */
 int Command_line_test::execute(const std::vector<const char *> &args,
-              const char *password) {
+                               const char *password) {
   // There MUST be arguments (at least _mysqlsh, and the last must be NULL
   assert(args.size() > 0);
   assert(args[args.size() - 1] == NULL);
@@ -59,7 +59,8 @@ int Command_line_test::execute(const std::vector<const char *> &args,
 
   bool debug = getenv("TEST_DEBUG") != nullptr;
   if (debug) {
-    std::cerr << shcore::str_join(&args[0], &args[args.size()-1], " ") << "\n";
+    std::cerr << shcore::str_join(&args[0], &args[args.size() - 1], " ")
+              << "\n";
   }
 
   {
@@ -83,10 +84,8 @@ int Command_line_test::execute(const std::vector<const char *> &args,
 
     // Reads all produced output, until stdout is closed
     while (_process->read(&c, 1) > 0) {
-      if (debug)
-        std::cerr << c << std::flush;
-      if (c == '\r' && _strip_carriage_returns)
-        continue;
+      if (debug) std::cerr << c << std::flush;
+      if (c == '\r' && _strip_carriage_returns) continue;
       _output_mutex.lock();
       _output += c;
       _output_mutex.unlock();

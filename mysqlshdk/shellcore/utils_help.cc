@@ -28,50 +28,46 @@
 #include "utils/utils_string.h"
 
 namespace shcore {
-Shell_help* Shell_help::_instance = nullptr;
+Shell_help *Shell_help::_instance = nullptr;
 
-Shell_help* Shell_help::get() {
-  if (!_instance)
-    _instance = new Shell_help();
+Shell_help *Shell_help::get() {
+  if (!_instance) _instance = new Shell_help();
 
   return _instance;
 }
 
-void Shell_help::add_help(const std::string& token, const std::string& data) {
+void Shell_help::add_help(const std::string &token, const std::string &data) {
   _help_data[token] = data;
 }
 
-std::string Shell_help::get_token(const std::string& token) {
+std::string Shell_help::get_token(const std::string &token) {
   std::string ret_val;
 
-  if (_help_data.find(token) != _help_data.end())
-    ret_val = _help_data[token];
+  if (_help_data.find(token) != _help_data.end()) ret_val = _help_data[token];
 
   return ret_val;
 }
 
-Help_register::Help_register(const std::string& token,
-                             const std::string& data) {
+Help_register::Help_register(const std::string &token,
+                             const std::string &data) {
   shcore::Shell_help::get()->add_help(token, data);
 };
 
 std::vector<std::string> resolve_help_text(
-    const std::vector<std::string>& prefixes, const std::string& suffix) {
+    const std::vector<std::string> &prefixes, const std::string &suffix) {
   std::vector<std::string> help_text;
 
   for (auto help_prefix : prefixes) {
     help_text = get_help_text(help_prefix + suffix);
-    if (!help_text.empty())
-      break;
+    if (!help_text.empty()) break;
   }
 
   return help_text;
 }
 
-std::vector<std::string> get_help_text(const std::string& token) {
+std::vector<std::string> get_help_text(const std::string &token) {
   std::string real_token;
-  for (auto c : token)
-    real_token.append(1, std::toupper(c));
+  for (auto c : token) real_token.append(1, std::toupper(c));
 
   int index = 0;
   std::string text = Shell_help::get()->get_token(real_token);
@@ -93,8 +89,8 @@ std::vector<std::string> get_help_text(const std::string& token) {
 }
 
 std::string get_function_help(shcore::NamingStyle style,
-                              const std::string& class_name,
-                              const std::string& bfname) {
+                              const std::string &class_name,
+                              const std::string &bfname) {
   std::string ret_val;
 
   std::string fname = shcore::get_member_name(bfname, style);
@@ -102,8 +98,7 @@ std::string get_function_help(shcore::NamingStyle style,
   std::string parent_classes;
   std::vector<std::string> parents = get_help_text(class_name + "_PARENTS");
 
-  if (!parents.empty())
-    parent_classes = parents[0];
+  if (!parents.empty()) parent_classes = parents[0];
 
   std::vector<std::string> help_prefixes =
       shcore::split_string(parent_classes, ",");
@@ -201,8 +196,8 @@ std::string get_function_help(shcore::NamingStyle style,
 };
 
 std::string get_property_help(shcore::NamingStyle style,
-                              const std::string& class_name,
-                              const std::string& bpname) {
+                              const std::string &class_name,
+                              const std::string &bpname) {
   std::string ret_val;
 
   std::string fname = shcore::get_member_name(bpname, style);
@@ -210,8 +205,7 @@ std::string get_property_help(shcore::NamingStyle style,
   std::string parent_classes;
   std::vector<std::string> parents = get_help_text(class_name + "_PARENTS");
 
-  if (!parents.empty())
-    parent_classes = parents[0];
+  if (!parents.empty()) parent_classes = parents[0];
 
   std::vector<std::string> help_prefixes =
       shcore::split_string(parent_classes, ",");
@@ -234,8 +228,8 @@ std::string get_property_help(shcore::NamingStyle style,
 //       hierarchy and for that reason the calls to get_help_text were not
 //       replaced by calls to resolve_help_text
 std::string get_chained_function_help(shcore::NamingStyle style,
-                                      const std::string& class_name,
-                                      const std::string& bfname) {
+                                      const std::string &class_name,
+                                      const std::string &bfname) {
   std::string ret_val;
 
   auto chain_definition =
@@ -291,8 +285,7 @@ std::string get_chained_function_help(shcore::NamingStyle style,
 
       auto style_child_fname = shcore::get_member_name(child_function, style);
 
-      if (child_optional)
-        formatted_child += "[";
+      if (child_optional) formatted_child += "[";
 
       if (syntaxes.size() == 1) {
         if (child_function != style_child_fname)
@@ -304,16 +297,14 @@ std::string get_chained_function_help(shcore::NamingStyle style,
       } else
         formatted_child += "." + style_child_fname + "(...)";
 
-      if (child_optional)
-        formatted_child += "]";
+      if (child_optional) formatted_child += "]";
     }
 
     // This section will format the parent function
     auto item_syntax =
         get_help_text(tgtcname + "_" + chained_function + "_SYNTAX");
     auto style_fname = shcore::get_member_name(chained_function, style);
-    if (optional)
-      formatted_function = "[";
+    if (optional) formatted_function = "[";
 
     if (item_syntax.size() == 1) {
       if (chained_function != style_fname)
@@ -325,11 +316,9 @@ std::string get_chained_function_help(shcore::NamingStyle style,
     } else
       formatted_function += "." + style_fname + "(...)";
 
-    if (!formatted_child.empty())
-      formatted_function += formatted_child;
+    if (!formatted_child.empty()) formatted_function += formatted_child;
 
-    if (optional)
-      formatted_function += "]";
+    if (optional) formatted_function += "]";
 
     full_syntax.push_back(formatted_function);
   }

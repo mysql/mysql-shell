@@ -30,9 +30,9 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/replay/recorder.h"
 #include "mysqlshdk/libs/db/replay/replayer.h"
+#include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -42,15 +42,14 @@ enum class Mode { Direct, Record, Replay };
 
 void set_mode(Mode mode, int print_traces);
 
-void set_recording_path_prefix(const std::string& path);
-void begin_recording_context(const std::string& context);
+void set_recording_path_prefix(const std::string &path);
+void begin_recording_context(const std::string &context);
 void end_recording_context();
 
 void setup_mysql_session_injector(Mode mode, int print_traces);
 
 void set_replay_query_hook(Query_hook func);
 void set_replay_row_hook(Result_row_hook func);
-
 
 //
 // void setup_mysqlx_session_injector(Mode mode) {
@@ -67,7 +66,6 @@ void set_replay_row_hook(Result_row_hook func);
 //   }
 // }
 
-
 std::string current_recording_dir();
 
 std::string external_recording_path(const std::string &program_id);
@@ -81,6 +79,7 @@ class No_replay {
  public:
   No_replay();
   ~No_replay();
+
  private:
   Mode _old_mode;
 };

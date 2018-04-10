@@ -137,8 +137,10 @@ TEST(Shell_console, prompt) {
                            "C&ancel");
   EXPECT_EQ(Prompt_answer::NO, answer);
   EXPECT_EQ(
-      "Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ||\nPlease pick an "
-      "option out of [C]ontinue/[E]dit/C[a]ncel (default Continue): \n||Really? "
+      "Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ||\nPlease pick "
+      "an "
+      "option out of [C]ontinue/[E]dit/C[a]ncel (default Continue): "
+      "\n||Really? "
       "[C]ontinue/[E]dit/C[a]ncel (default Continue): ",
       data->output);
   data->output.clear();

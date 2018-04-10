@@ -153,8 +153,7 @@ class Test_object : public Cpp_object_bridge {
   std::string f_s_D(shcore::Dictionary_t d) { return (*d)["bla"].as_string(); }
 
   std::string f_s_a(shcore::Array_t a) {
-    if (a)
-      return (*a)[0].repr();
+    if (a) return (*a)[0].repr();
     return "null";
   }
 
@@ -212,9 +211,7 @@ class Types_cpp : public ::testing::Test {
   Test_object obj;
 };
 
-shcore::Argument_list make_args() {
-  return shcore::Argument_list();
-}
+shcore::Argument_list make_args() { return shcore::Argument_list(); }
 
 template <typename A1>
 shcore::Argument_list make_args(A1 a) {
@@ -246,7 +243,7 @@ TEST_F(Types_cpp, expose_float) {
   EXPECT_EQ(26, obj.get_members().size());
   EXPECT_DOUBLE_EQ(Value(obj.f_f_v()).as_double(),
                    obj.call("f_f_v", make_args()).as_double());
-  //EXPECT_EQ(obj.f_f_v(), obj.call("f_f_v", make_args()).as_double());
+  // EXPECT_EQ(obj.f_f_v(), obj.call("f_f_v", make_args()).as_double());
 }
 
 TEST_F(Types_cpp, expose) {
@@ -433,4 +430,4 @@ TEST_F(Types_cpp, arg_check_overload_ambiguous) {
   EXPECT_THROW_LIKE(obj.call("overload", make_args()), shcore::Exception,
                     "ambiguous");
 }
-}
+}  // namespace shcore

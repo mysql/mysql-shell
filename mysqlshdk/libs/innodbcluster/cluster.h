@@ -30,8 +30,8 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -54,8 +54,7 @@ std::string to_string(Error code);
 class cluster_error : public std::runtime_error {
  public:
   explicit cluster_error(Error code, const std::string &s)
-  : std::runtime_error(s), _code(code) {
-  }
+      : std::runtime_error(s), _code(code) {}
 
   Error code() const { return _code; }
 
@@ -71,10 +70,7 @@ class cluster_error : public std::runtime_error {
 class Replicaset;
 class Group;
 
-enum class Protocol_type {
-  X,
-  Classic
-};
+enum class Protocol_type { X, Classic };
 
 /*
  * General purpose API for clients of the InnoDB cluster.
@@ -93,9 +89,7 @@ class Cluster_group_client {
                        std::shared_ptr<db::ISession> session,
                        bool recovery_mode = false);
 
-  bool single_primary() const {
-    return _single_primary_mode;
-  }
+  bool single_primary() const { return _single_primary_mode; }
 
   std::vector<Instance_info> get_online_primaries();
   std::vector<Instance_info> get_online_secondaries();

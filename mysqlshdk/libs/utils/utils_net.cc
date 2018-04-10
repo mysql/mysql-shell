@@ -375,9 +375,7 @@ bool Net::is_local_address_impl(const std::string &name) const {
 std::string Net::get_hostname_impl() const { return get_this_hostname(); }
 
 #ifndef _WIN32
-void closesocket(int sock) {
-  ::close(sock);
-}
+void closesocket(int sock) { ::close(sock); }
 #endif
 
 bool Net::is_port_listening_impl(const std::string &address, int port) const {

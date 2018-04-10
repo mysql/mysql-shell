@@ -37,7 +37,6 @@
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
 
-
 namespace shellcore {
 
 class ShellRunScript : public Shell_core_test_wrapper {
@@ -117,7 +116,6 @@ class ShellRunScript : public Shell_core_test_wrapper {
     // _interactive_shell->process_stream(stream, "STDIN", {});
   }
 };
-
 
 class ShellExeRunScript : public tests::Command_line_test {
  public:
@@ -393,7 +391,8 @@ in throw 'error'
   rc = execute({_mysqlsh, _uri.c_str(), "--js", "-f", "badsyn.js", nullptr});
   // error, exit code not-0
   EXPECT_EQ(1, rc);
-  static const char *result3 = R"(SyntaxError: Unexpected token ) at badsyn.js:1:0
+  static const char *result3 =
+      R"(SyntaxError: Unexpected token ) at badsyn.js:1:0
 in ){}
    ^)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);

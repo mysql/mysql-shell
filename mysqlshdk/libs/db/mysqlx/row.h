@@ -56,7 +56,8 @@ class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
   uint64_t get_uint(uint32_t index) const override;
   float get_float(uint32_t index) const override;
   double get_double(uint32_t index) const override;
-  std::pair<const char *, size_t> get_string_data(uint32_t index) const override;
+  std::pair<const char *, size_t> get_string_data(
+      uint32_t index) const override;
   uint64_t get_bit(uint32_t index) const override;
 
  private:

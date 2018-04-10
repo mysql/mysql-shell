@@ -29,14 +29,14 @@
 
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/mod_mysql_resultset.h"
-#include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 
 class Field_formatter {
  public:
   Field_formatter(bool align_right, size_t width,
-                  const mysqlsh::Column& column) {
+                  const mysqlsh::Column &column) {
     _allocated = std::max<size_t>(1024, width + 1);
     _zerofill = column.is_zerofill() ? column.get_length() : 0;
     _align_right = align_right;
@@ -49,11 +49,11 @@ class Field_formatter {
     _allocated = 0;
   }
 
-  Field_formatter(Field_formatter&& other) {
+  Field_formatter(Field_formatter &&other) {
     this->operator=(std::move(other));
   }
 
-  void operator=(Field_formatter&& other) {
+  void operator=(Field_formatter &&other) {
     _allocated = other._allocated;
     _zerofill = other._zerofill;
     _align_right = other._align_right;
@@ -64,11 +64,9 @@ class Field_formatter {
     other._allocated = 0;
   }
 
-  ~Field_formatter() {
-    delete[] _buffer;
-  }
+  ~Field_formatter() { delete[] _buffer; }
 
-  bool put(const shcore::Value& value) {
+  bool put(const shcore::Value &value) {
     reset();
 
     switch (value.type) {
@@ -113,16 +111,12 @@ class Field_formatter {
     return true;
   }
 
-  const char* c_str() const {
-    return _buffer;
-  }
+  const char *c_str() const { return _buffer; }
 
  private:
-  void reset() {
-    memset(_buffer, ' ', _allocated);
-  }
+  void reset() { memset(_buffer, ' ', _allocated); }
 
-  inline void append(const char* text, size_t length) {
+  inline void append(const char *text, size_t length) {
     if (_column_width > 0) {
       if (_align_right)
         memcpy(_buffer + _column_width - length, text, length);
@@ -136,7 +130,7 @@ class Field_formatter {
   }
 
  private:
-  char* _buffer;
+  char *_buffer;
   size_t _allocated;
   size_t _column_width;
   size_t _zerofill;
@@ -155,8 +149,7 @@ class Field_formatter {
 
 static bool is_numeric_type(shcore::Value value) {
   std::string id = value.descr();
-  if (id.length() > 7)
-    id = id.substr(6, id.length()-7);
+  if (id.length() > 7) id = id.substr(6, id.length() - 7);
   return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
           id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
           id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
@@ -164,7 +157,7 @@ static bool is_numeric_type(shcore::Value value) {
 
 ResultsetDumper::ResultsetDumper(
     std::shared_ptr<mysqlsh::ShellBaseResult> target,
-    shcore::Interpreter_delegate* output_handler, bool buffer_data)
+    shcore::Interpreter_delegate *output_handler, bool buffer_data)
     : _output_handler(output_handler),
       _resultset(target),
       _buffer_data(buffer_data),
@@ -200,8 +193,7 @@ void ResultsetDumper::dump() {
         "Result printing interrupted, rows may be missing from the output.\n");
 
   // Restores data
-  if (_buffer_data)
-    _resultset->rewind();
+  if (_buffer_data) _resultset->rewind();
 }
 
 void ResultsetDumper::dump_json() {
@@ -219,28 +211,23 @@ void ResultsetDumper::dump_normal() {
   if (class_name == "ClassicResult") {
     std::shared_ptr<mysqlsh::mysql::ClassicResult> resultset =
         std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(_resultset);
-    if (resultset)
-      dump_normal(resultset);
+    if (resultset) dump_normal(resultset);
   } else if (class_name == "SqlResult") {
     std::shared_ptr<mysqlsh::mysqlx::SqlResult> resultset =
         std::static_pointer_cast<mysqlsh::mysqlx::SqlResult>(_resultset);
-    if (resultset)
-      dump_normal(resultset);
+    if (resultset) dump_normal(resultset);
   } else if (class_name == "RowResult") {
     std::shared_ptr<mysqlsh::mysqlx::RowResult> resultset =
         std::static_pointer_cast<mysqlsh::mysqlx::RowResult>(_resultset);
-    if (resultset)
-      dump_normal(resultset);
+    if (resultset) dump_normal(resultset);
   } else if (class_name == "DocResult") {
     std::shared_ptr<mysqlsh::mysqlx::DocResult> resultset =
         std::static_pointer_cast<mysqlsh::mysqlx::DocResult>(_resultset);
-    if (resultset)
-      dump_normal(resultset);
+    if (resultset) dump_normal(resultset);
   } else if (class_name == "Result") {
     std::shared_ptr<mysqlsh::mysqlx::Result> resultset =
         std::static_pointer_cast<mysqlsh::mysqlx::Result>(_resultset);
-    if (resultset)
-      dump_normal(resultset);
+    if (resultset) dump_normal(resultset);
   }
 }
 
@@ -269,8 +256,7 @@ void ResultsetDumper::dump_normal(
     }
 
     // Prints the warnings if there were any
-    if (warning_count && _show_warnings)
-      dump_warnings(true);
+    if (warning_count && _show_warnings) dump_warnings(true);
   } while (result->next_data_set(shcore::Argument_list()).as_bool() &&
            !_cancelled);
 }
@@ -292,8 +278,7 @@ void ResultsetDumper::dump_normal(
       _output_handler->print(_output_handler->user_data, output.c_str());
 
       // Prints the warnings if there were any
-      if (warning_count && _show_warnings)
-        dump_warnings();
+      if (warning_count && _show_warnings) dump_warnings();
     }
   } while (result->next_data_set(shcore::Argument_list()).as_bool() &&
            !_cancelled);
@@ -312,8 +297,7 @@ void ResultsetDumper::dump_normal(
     _output_handler->print(_output_handler->user_data, output.c_str());
 
     // Prints the warnings if there were any
-    if (warning_count && _show_warnings)
-      dump_warnings();
+    if (warning_count && _show_warnings) dump_warnings();
   }
 }
 
@@ -340,8 +324,7 @@ void ResultsetDumper::dump_normal(
     _output_handler->print(_output_handler->user_data, output.c_str());
 
     // Prints the warnings if there were any
-    if (warning_count && _show_warnings)
-      dump_warnings();
+    if (warning_count && _show_warnings) dump_warnings();
   }
 }
 
@@ -355,8 +338,7 @@ void ResultsetDumper::dump_normal(
     _output_handler->print(_output_handler->user_data, output.c_str());
 
     // Prints the warnings if there were any
-    if (warning_count && _show_warnings)
-      dump_warnings();
+    if (warning_count && _show_warnings) dump_warnings();
   }
 }
 
@@ -450,8 +432,7 @@ size_t ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
       _output_handler->print(_output_handler->user_data, "\n");
     }
 
-    if (_cancelled)
-      return row_index;
+    if (_cancelled) return row_index;
   }
   return records->size();
 }
@@ -463,8 +444,7 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   std::vector<std::shared_ptr<mysqlsh::Column>> column_meta;
 
   size_t field_count = metadata->size();
-  if (field_count == 0)
-    return 0;
+  if (field_count == 0) return 0;
 
   // Updates the max_length array with the maximum length between column name,
   // min column length and column max length
@@ -493,8 +473,7 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
                              row->get_member(field_index).descr().length());
     }
   }
-  if (_cancelled)
-    return 0;
+  if (_cancelled) return 0;
 
   //-----------
 
@@ -508,8 +487,8 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
     separator.append(field_separator);
 
     if (column_meta[index]->is_zerofill()) {
-      fmt.push_back({true, static_cast<size_t>(max_lengths[index]),
-                    *column_meta[index]});
+      fmt.push_back(
+          {true, static_cast<size_t>(max_lengths[index]), *column_meta[index]});
     } else {
       fmt.push_back({is_numeric_type(column_meta[index]->get_type()),
                      static_cast<size_t>(max_lengths[index]),
@@ -561,8 +540,8 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   return row_index;
 }
 
-std::string ResultsetDumper::get_affected_stats(const std::string& member,
-                                                const std::string& legend) {
+std::string ResultsetDumper::get_affected_stats(const std::string &member,
+                                                const std::string &legend) {
   std::string output;
 
   // Some queries return -1 since affected rows do not apply to them
@@ -580,7 +559,7 @@ std::string ResultsetDumper::get_affected_stats(const std::string& member,
 }
 
 int ResultsetDumper::get_warning_and_execution_time_stats(
-    std::string& output_stats) {
+    std::string &output_stats) {
   int warning_count = 0;
 
   if (_interactive) {
@@ -599,7 +578,7 @@ int ResultsetDumper::get_warning_and_execution_time_stats(
   return warning_count;
 }
 
-void ResultsetDumper::dump_records(std::string& output_stats) {
+void ResultsetDumper::dump_records(std::string &output_stats) {
   shcore::Value records = _resultset->call("fetchAll", shcore::Argument_list());
   shcore::Value::Array_type_ref array_records = records.as_array();
 

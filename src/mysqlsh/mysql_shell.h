@@ -44,66 +44,63 @@ class Mysql_shell : public mysqlsh::Base_shell,
                     public shcore::NotificationObserver {
  public:
   Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
-              shcore::Interpreter_delegate* custom_delegate);
+              shcore::Interpreter_delegate *custom_delegate);
   ~Mysql_shell();
 
-  virtual void connect(
-      const mysqlshdk::db::Connection_options& args,
-      bool recreate_schema = false);
+  virtual void connect(const mysqlshdk::db::Connection_options &args,
+                       bool recreate_schema = false);
 
   bool redirect_session_if_needed(bool secondary);
 
   std::shared_ptr<mysqlsh::dba::Cluster> set_default_cluster(
-      const std::string& name);
+      const std::string &name);
 
-  bool cmd_print_shell_help(const std::vector<std::string>& args);
-  bool cmd_start_multiline(const std::vector<std::string>& args);
-  bool cmd_connect(const std::vector<std::string>& args);
-  bool cmd_reconnect(const std::vector<std::string>& args);
-  bool cmd_quit(const std::vector<std::string>& args);
-  bool cmd_warnings(const std::vector<std::string>& args);
-  bool cmd_nowarnings(const std::vector<std::string>& args);
-  bool cmd_status(const std::vector<std::string>& args);
-  bool cmd_use(const std::vector<std::string>& args);
-  bool cmd_rehash(const std::vector<std::string>& args);
-  bool cmd_option(const std::vector<std::string>& args);
-  virtual bool cmd_process_file(const std::vector<std::string>& params);
+  bool cmd_print_shell_help(const std::vector<std::string> &args);
+  bool cmd_start_multiline(const std::vector<std::string> &args);
+  bool cmd_connect(const std::vector<std::string> &args);
+  bool cmd_reconnect(const std::vector<std::string> &args);
+  bool cmd_quit(const std::vector<std::string> &args);
+  bool cmd_warnings(const std::vector<std::string> &args);
+  bool cmd_nowarnings(const std::vector<std::string> &args);
+  bool cmd_status(const std::vector<std::string> &args);
+  bool cmd_use(const std::vector<std::string> &args);
+  bool cmd_rehash(const std::vector<std::string> &args);
+  bool cmd_option(const std::vector<std::string> &args);
+  virtual bool cmd_process_file(const std::vector<std::string> &params);
 
-  void process_line(const std::string& line) override;
+  void process_line(const std::string &line) override;
   bool reconnect_if_needed(bool force = false);
 
   static bool sql_safe_for_logging(const std::string &sql);
 
-  shcore::Shell_command_handler* command_handler() {
+  shcore::Shell_command_handler *command_handler() {
     return &_shell_command_handler;
   }
 
-  std::shared_ptr<mysqlsh::Shell_console> console() {
-    return _console_handler;
-  }
+  std::shared_ptr<mysqlsh::Shell_console> console() { return _console_handler; }
 
  protected:
   shcore::Shell_command_handler _shell_command_handler;
   static void set_sql_safe_for_logging(const std::string &patterns);
 
   std::shared_ptr<mysqlshdk::db::ISession> create_session(
-      const mysqlshdk::db::Connection_options& connection_options);
+      const mysqlshdk::db::Connection_options &connection_options);
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_active_session(
       std::shared_ptr<mysqlshdk::db::ISession> session);
 
-  virtual bool do_shell_command(const std::string& command);
+  virtual bool do_shell_command(const std::string &command);
 
   void refresh_completion(bool force = false);
   void refresh_schema_completion(bool force = false);
   void add_devapi_completions();
 
   void print_connection_message(mysqlsh::SessionType type,
-                                const std::string& uri,
-                                const std::string& sessionid);
+                                const std::string &uri,
+                                const std::string &sessionid);
 
-  void handle_notification(const std::string& name,
-                           const shcore::Object_bridge_ref& sender,
+  void handle_notification(const std::string &name,
+                           const shcore::Object_bridge_ref &sender,
                            shcore::Value::Map_type_ref data) override;
 
   std::shared_ptr<mysqlsh::Shell> _global_shell;

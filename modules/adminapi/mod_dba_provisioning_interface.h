@@ -27,23 +27,22 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "scripting/lang_base.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "scripting/lang_base.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace dba {
 #if DOXYGEN_CPP
 /**
-* Represents an Interface to the mysqlprovision utility
-*/
+ * Represents an Interface to the mysqlprovision utility
+ */
 #endif
 class ProvisioningInterface {
  public:
-  explicit ProvisioningInterface(
-      shcore::Interpreter_delegate *deleg,
-      const std::string &provision_path);
+  explicit ProvisioningInterface(shcore::Interpreter_delegate *deleg,
+                                 const std::string &provision_path);
   ~ProvisioningInterface();
 
   int check(const mysqlshdk::db::Connection_options &connection_options,
@@ -57,10 +56,8 @@ class ProvisioningInterface {
 
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
-                     const shcore::Value &mycnf_options,
-                     bool start,
-                     bool ignore_ssl_error,
-                     int timeout,
+                     const shcore::Value &mycnf_options, bool start,
+                     bool ignore_ssl_error, int timeout,
                      shcore::Value::Array_type_ref *errors);
   int delete_sandbox(int port, const std::string &sandbox_dir,
                      shcore::Value::Array_type_ref *errors);
@@ -70,27 +67,24 @@ class ProvisioningInterface {
                    const std::string &password,
                    shcore::Value::Array_type_ref *errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
-                   shcore::Value::Array_type_ref *errors);
-  int start_replicaset(const mysqlshdk::db::Connection_options& instance,
-                 const std::string &repl_user,
-                 const std::string &super_user_password,
-                 const std::string &repl_user_password,
-                 bool multi_master, const std::string &ssl_mode,
-                 const std::string &ip_whitelist,
-                 const std::string &group_name,
-                 const std::string &gr_local_address,
-                 const std::string &gr_group_seeds,
-                 shcore::Value::Array_type_ref *errors);
-  int join_replicaset(const mysqlshdk::db::Connection_options& instance,
-                 const mysqlshdk::db::Connection_options& peer,
-                 const std::string &repl_user,
-                 const std::string &super_user_password,
-                 const std::string &repl_user_password,
-                 const std::string &ssl_mode, const std::string &ip_whitelist,
-                 const std::string &gr_local_address,
-                 const std::string &gr_group_seeds,
-                 bool skip_rpl_user,
-                 shcore::Value::Array_type_ref *errors);
+                    shcore::Value::Array_type_ref *errors);
+  int start_replicaset(
+      const mysqlshdk::db::Connection_options &instance,
+      const std::string &repl_user, const std::string &super_user_password,
+      const std::string &repl_user_password, bool multi_master,
+      const std::string &ssl_mode, const std::string &ip_whitelist,
+      const std::string &group_name, const std::string &gr_local_address,
+      const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors);
+  int join_replicaset(const mysqlshdk::db::Connection_options &instance,
+                      const mysqlshdk::db::Connection_options &peer,
+                      const std::string &repl_user,
+                      const std::string &super_user_password,
+                      const std::string &repl_user_password,
+                      const std::string &ssl_mode,
+                      const std::string &ip_whitelist,
+                      const std::string &gr_local_address,
+                      const std::string &gr_group_seeds, bool skip_rpl_user,
+                      shcore::Value::Array_type_ref *errors);
   int leave_replicaset(
       const mysqlshdk::db::Connection_options &connection_options,
       shcore::Value::Array_type_ref *errors);
@@ -106,7 +100,6 @@ class ProvisioningInterface {
   int _verbose;
   shcore::Interpreter_delegate *_delegate;
   const std::string _local_mysqlprovision_path;
-
 
   int execute_mysqlprovision(const std::string &cmd,
                              const shcore::Argument_list &args,

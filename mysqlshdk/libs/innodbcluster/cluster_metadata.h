@@ -64,6 +64,7 @@ class Metadata : public std::enable_shared_from_this<Metadata> {
   virtual ~Metadata() = default;
 
   virtual bool exists() = 0;
+
  public:
   virtual bool get_cluster_named(const std::string &name,
                                  Cluster_info *out_info) = 0;

@@ -98,8 +98,7 @@ Completion_list Provider_sql::complete(const std::string &text,
   bool db_names_only = false;
   bool back_quote = false;
 
-  if (text[0] == '\\')
-    return options;
+  if (text[0] == '\\') return options;
 
   // look for .
   auto dot_pos = text.find('.', offset);
@@ -128,9 +127,7 @@ Completion_list Provider_sql::complete(const std::string &text,
   return options;
 }
 
-void Provider_sql::interrupt_rehash() {
-  cancelled_ = true;
-}
+void Provider_sql::interrupt_rehash() { cancelled_ = true; }
 
 void Provider_sql::refresh_schema_cache(
     std::shared_ptr<mysqlsh::ShellBaseSession> session) {
@@ -186,8 +183,7 @@ void Provider_sql::refresh_name_cache(
 
     // fetch column names for each table
     for (const std::string &t : *table_names) {
-      if (cancelled_)
-        break;
+      if (cancelled_) break;
       std::vector<std::string> column_names;
       auto res = session->raw_execute_sql(
           shcore::sqlstring("show columns from !.!", 0) << current_schema << t);

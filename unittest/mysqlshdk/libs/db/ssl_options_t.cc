@@ -19,8 +19,8 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
+#include "unittest/gtest_clean.h"
 
 #ifndef MY_EXPECT_THROW
 #define MY_EXPECT_THROW(e, m, c)         \
@@ -28,7 +28,7 @@
       {                                  \
         try {                            \
           c;                             \
-        } catch (const e& error) {       \
+        } catch (const e &error) {       \
           EXPECT_STREQ(m, error.what()); \
           throw;                         \
         }                                \
@@ -39,7 +39,7 @@
 using mysqlshdk::db::Ssl_options;
 namespace testing {
 
-void test_option(const std::string& option) {
+void test_option(const std::string &option) {
   Ssl_options options;
 
   SCOPED_TRACE("SSL Testing: " + option);
@@ -235,7 +235,8 @@ TEST(Ssl_options, mode_functions) {
   msg.append(mysqlshdk::db::kSslMode);
   msg.append("' is already defined as '");
   msg.append(mysqlshdk::db::MapSslModeNameToValue::get_value(1)).append("'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.set_mode(mysqlshdk::db::Ssl_mode::Preferred));
+  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
+                  options.set_mode(mysqlshdk::db::Ssl_mode::Preferred));
   EXPECT_TRUE(options.has_mode());
   EXPECT_EQ(mysqlshdk::db::Ssl_mode::Disabled, options.get_mode());
   EXPECT_NO_THROW(options.clear_mode());

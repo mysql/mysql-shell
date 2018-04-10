@@ -23,19 +23,18 @@
 
 #include "modules/mod_shell.h"
 #include "scripting/types.h"
-#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace testing {
 
 class Mock_mysql_shell : public mysqlsh::Mysql_shell {
  public:
   Mock_mysql_shell(std::shared_ptr<mysqlsh::Shell_options> options,
-                   shcore::Interpreter_delegate* custom_delegate)
-      : mysqlsh::Mysql_shell(options, custom_delegate) {
-  }
+                   shcore::Interpreter_delegate *custom_delegate)
+      : mysqlsh::Mysql_shell(options, custom_delegate) {}
 
-  MOCK_METHOD2(connect, void(const mysqlshdk::db::Connection_options&, bool));
+  MOCK_METHOD2(connect, void(const mysqlshdk::db::Connection_options &, bool));
 };
 
 class mod_shell_test : public Shell_core_test_wrapper {

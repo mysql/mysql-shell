@@ -32,16 +32,14 @@
 
 namespace tests {
 
-//uint64_t Dba_replicaset_test::replicaset_id = 0;
+// uint64_t Dba_replicaset_test::replicaset_id = 0;
 std::shared_ptr<mysqlsh::dba::ReplicaSet> Admin_api_test::_replicaset = {};
 std::string Admin_api_test::uuid_1 = "";
 std::string Admin_api_test::uuid_2 = "";
 std::string Admin_api_test::uuid_3 = "";
 std::string Admin_api_test::group_name = "";
 
-void Admin_api_test::SetUp() {
-  Shell_core_test_wrapper::SetUp();
-}
+void Admin_api_test::SetUp() { Shell_core_test_wrapper::SetUp(); }
 
 void Admin_api_test::SetUpSampleCluster(const char *context) {
   Shell_test_wrapper shell_env;
@@ -51,7 +49,8 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   shell_env.utils()->deploy_sandbox(shell_env.sb_port2(), "root");
   shell_env.utils()->deploy_sandbox(shell_env.sb_port3(), "root");
 
-  shell_env.execute("shell.connect('root:root@localhost:" + shell_env.sb_str_port1() + "')");
+  shell_env.execute(
+      "shell.connect('root:root@localhost:" + shell_env.sb_str_port1() + "')");
 
   auto dba = shell_env.get_global<mysqlsh::dba::Dba>("dba");
   if (!dba) {
@@ -68,14 +67,16 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   args.clear();
   args.emplace_back("root:root@localhost:" + shell_env.sb_str_port2());
   cluster->add_instance(args);
-  _replicaset = cluster->get_replicaset({}).as_object<mysqlsh::dba::ReplicaSet>();
+  _replicaset =
+      cluster->get_replicaset({}).as_object<mysqlsh::dba::ReplicaSet>();
   shell_env.execute("session.close()");
 
   {
     auto session = create_session(shell_env.sb_port1());
     Instance instance(session);
     uuid_1 = *instance.get_sysvar_string("server_uuid", Var_qualifier::GLOBAL);
-    group_name = *instance.get_sysvar_string("group_replication_group_name", Var_qualifier::GLOBAL);
+    group_name = *instance.get_sysvar_string("group_replication_group_name",
+                                             Var_qualifier::GLOBAL);
     session->close();
   }
 
@@ -105,6 +106,5 @@ void Admin_api_test::TearDownSampleCluster(const char *context) {
   shell_env.utils()->destroy_sandbox(shell_env.sb_port3());
   shell_env.teardown_replayable_shell();
 }
-
 
 }  // namespace tests

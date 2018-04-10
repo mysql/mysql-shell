@@ -28,9 +28,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -46,11 +46,11 @@ enum class Comparison_mode { CASE_SENSITIVE, CASE_INSENSITIVE };
 
 }  // namespace nullable_options
 
-using nullable_options::Set_mode;
 using nullable_options::Comparison_mode;
+using nullable_options::Set_mode;
 
 typedef std::map<std::string, mysqlshdk::utils::nullable<std::string>,
-                 bool (*)(const std::string&, const std::string&)>
+                 bool (*)(const std::string &, const std::string &)>
     container;
 typedef container::const_iterator const_iterator;
 typedef container::iterator iterator;
@@ -58,25 +58,24 @@ typedef container::iterator iterator;
 class SHCORE_PUBLIC Nullable_options {
  public:
   Nullable_options(Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE,
-                   const std::string& context = "");
-  virtual ~Nullable_options() {
-  }
+                   const std::string &context = "");
+  virtual ~Nullable_options() {}
 
-  bool has(const std::string& name) const;
-  bool has_value(const std::string& name) const;
-  void set(const std::string& name, const std::string& value,
+  bool has(const std::string &name) const;
+  bool has_value(const std::string &name) const;
+  void set(const std::string &name, const std::string &value,
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
-  void set(const std::string& name, const char* value = nullptr,
+  void set(const std::string &name, const char *value = nullptr,
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
-  void remove(const std::string& name);
-  void clear_value(const std::string& name);
-  const std::string& get_value(const std::string& name) const;
+  void remove(const std::string &name);
+  void clear_value(const std::string &name);
+  const std::string &get_value(const std::string &name) const;
 
   size_t size() const { return _options.size(); }
 
-  virtual bool operator==(const Nullable_options& other) const;
-  virtual bool operator!=(const Nullable_options& other) const;
-  int compare(const std::string& lhs, const std::string& rhs) const;
+  virtual bool operator==(const Nullable_options &other) const;
+  virtual bool operator!=(const Nullable_options &other) const;
+  int compare(const std::string &lhs, const std::string &rhs) const;
 
   const_iterator begin() const { return _options.cbegin(); }
   iterator begin() { return _options.begin(); }
@@ -85,15 +84,15 @@ class SHCORE_PUBLIC Nullable_options {
   Comparison_mode get_mode() { return _mode; }
 
  protected:
-  void throw_invalid_option(const std::string& name) const;
-  void throw_no_value(const std::string& name) const;
-  void throw_already_defined_option(const std::string& name) const;
+  void throw_invalid_option(const std::string &name) const;
+  void throw_no_value(const std::string &name) const;
+  void throw_already_defined_option(const std::string &name) const;
   std::string _ctx;
   Comparison_mode _mode;
 
  private:
-  static bool comp(const std::string& lhs, const std::string& rhs);
-  static bool icomp(const std::string& lhs, const std::string& rhs);
+  static bool comp(const std::string &lhs, const std::string &rhs);
+  static bool icomp(const std::string &lhs, const std::string &rhs);
 
   container _options;
 };

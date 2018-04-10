@@ -54,10 +54,7 @@ enum class Member_state {
   MISSING
 };
 
-enum class Member_role {
-  PRIMARY,
-  SECONDARY
-};
+enum class Member_role { PRIMARY, SECONDARY };
 
 std::string to_string(const Member_state state);
 Member_state to_member_state(const std::string &state);

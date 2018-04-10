@@ -28,8 +28,8 @@
 #include <string>
 
 #include "scripting/common.h"
-#include "scripting/obj_date.h"
 #include "scripting/lang_base.h"
+#include "scripting/obj_date.h"
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "utils/utils_general.h"
@@ -76,9 +76,9 @@ Column::Column(const std::string &schema, const std::string &table_name,
 Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
     : Column(meta.get_schema(), meta.get_table_name(), meta.get_table_label(),
              meta.get_column_name(), meta.get_column_label(), type,
-             meta.get_length(), meta.get_fractional(),
-             meta.is_unsigned(), meta.get_collation_name(),
-             meta.get_charset_name(), meta.is_zerofill()) {}
+             meta.get_length(), meta.get_fractional(), meta.is_unsigned(),
+             meta.get_collation_name(), meta.get_charset_name(),
+             meta.is_zerofill()) {}
 
 bool Column::operator==(const Object_bridge &other) const {
   return this == &other;
@@ -86,8 +86,7 @@ bool Column::operator==(const Object_bridge &other) const {
 
 static bool is_numeric_type(shcore::Value value) {
   std::string id = value.descr();
-  if (id.length() > 7)
-    id = id.substr(6, id.length()-7);
+  if (id.length() > 7) id = id.substr(6, id.length() - 7);
   return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
           id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
           id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
@@ -183,8 +182,7 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
     // and not base members like length and getField
     // O on this case the values would be available as
     // row.property
-    if (shcore::is_valid_identifier(key) && !has_member(key))
-      add_property(key);
+    if (shcore::is_valid_identifier(key) && !has_member(key)) add_property(key);
 
     if (row.is_null(i)) {
       value_array.push_back(Value::Null());
@@ -244,21 +242,18 @@ std::string &Row::append_descr(std::string &s_out, int indent,
   std::string nl = (indent >= 0) ? "\n" : "";
   s_out += "[";
   for (size_t index = 0; index < value_array.size(); index++) {
-    if (index > 0)
-      s_out += ",";
+    if (index > 0) s_out += ",";
 
     s_out += nl;
 
-    if (indent >= 0)
-      s_out.append((indent + 1) * 4, ' ');
+    if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
 
     value_array[index].append_descr(s_out, indent < 0 ? indent : indent + 1,
                                     '"');
   }
 
   s_out += nl;
-  if (indent > 0)
-    s_out.append(indent * 4, ' ');
+  if (indent > 0) s_out.append(indent * 4, ' ');
 
   s_out += "]";
 
@@ -278,9 +273,7 @@ std::string &Row::append_repr(std::string &s_out) const {
   return append_descr(s_out);
 }
 
-bool Row::operator==(const Object_bridge &UNUSED(other)) const {
-  return false;
-}
+bool Row::operator==(const Object_bridge &UNUSED(other)) const { return false; }
 
 //! Returns the value of a field on the Row based on the field name.
 #if DOXYGEN_CPP
@@ -346,8 +339,7 @@ shcore::Value Row::get_member(const std::string &prop) const {
     return shcore::Value((int)value_array.size());
   } else {
     auto it = std::find(names->begin(), names->end(), prop);
-    if (it != names->end())
-      return value_array[it - names->begin()];
+    if (it != names->end()) return value_array[it - names->begin()];
   }
 
   return shcore::Cpp_object_bridge::get_member(prop);
@@ -374,6 +366,5 @@ void Row::add_item(const std::string &key, shcore::Value value) {
   // and not base members like lenght and getField
   // O on this case the values would be available as
   // row.property
-  if (shcore::is_valid_identifier(key) && !has_member(key))
-    add_property(key);
+  if (shcore::is_valid_identifier(key) && !has_member(key)) add_property(key);
 }

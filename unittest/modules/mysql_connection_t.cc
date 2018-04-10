@@ -22,8 +22,8 @@
  */
 
 #include "gtest_clean.h"
-#include "unittest/test_utils/shell_base_test.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 namespace tests {
 
@@ -66,7 +66,7 @@ TEST_F(Mysql_connection_test, connect_default_pipe) {
       auto pipe_conn = mysqlshdk::db::mysql::Session::create();
       pipe_conn->connect(connection_options);
       pipe_conn->close();
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
       if (named_pipe != "MySQL") {
         MY_EXPECT_OUTPUT_CONTAINS(
             "Can't open named pipe to host: .  pipe: MySQL", e.what());
@@ -116,7 +116,7 @@ TEST_F(Mysql_connection_test, connect_named_pipe) {
       auto pipe_conn = mysqlshdk::db::mysql::Session::create();
       pipe_conn->connect(connection_options);
       pipe_conn->close();
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
       std::string error = "Failed default named pipe connection: ";
       error.append(e.what());
       SCOPED_TRACE(error);
@@ -139,7 +139,7 @@ TEST_F(Mysql_connection_test, connect_socket) {
       auto socket_conn = mysqlshdk::db::mysql::Session::create();
       socket_conn->connect(connection_options);
       socket_conn->close();
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
       std::string error = "Failed creating a socket connection using: '";
       error.append(_mysql_socket);
       error.append("' error: ");

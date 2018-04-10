@@ -74,13 +74,9 @@ class Enum_set {
 
   bool empty() const { return _value == 0; }
 
-  bool matches_any(Enum_set set) const {
-    return (_value & set._value) != 0;
-  }
+  bool matches_any(Enum_set set) const { return (_value & set._value) != 0; }
 
-  Enum_set &operator|=(Enum value) {
-    return set(value);
-  }
+  Enum_set &operator|=(Enum value) { return set(value); }
 
   bool operator&(Enum value) const { return is_set(value); }
 

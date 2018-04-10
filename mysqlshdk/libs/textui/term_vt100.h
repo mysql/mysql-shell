@@ -24,9 +24,9 @@
 #ifndef MYSQLSHDK_LIBS_TEXTUI_TERM_VT100_H_
 #define MYSQLSHDK_LIBS_TEXTUI_TERM_VT100_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <cstring>
 #include <string>
 #if defined(WIN32) && _MSC_VER < 1900
@@ -68,29 +68,19 @@ inline void query_cursor_position(int *row, int *column) {
 #endif
 
 // Reset all terminal settings to default.
-inline void reset_device() {
-  send_escape("\033c");
-}
+inline void reset_device() { send_escape("\033c"); }
 
 // Text wraps to next line if longer than the length of the display area.
-inline void enable_line_wrap() {
-  send_escape("\033[7h");
-}
+inline void enable_line_wrap() { send_escape("\033[7h"); }
 
 // Disables line wrapping.
-inline void disable_line_wrap() {
-  send_escape("\033[7l");
-}
+inline void disable_line_wrap() { send_escape("\033[7l"); }
 
 // Set default font.
-inline void font_set_g0() {
-  send_escape("\033(");
-}
+inline void font_set_g0() { send_escape("\033("); }
 
 // Set alternate font.
-inline void font_set_g1() {
-  send_escape("\033)");
-}
+inline void font_set_g1() { send_escape("\033)"); }
 
 // Sets the cursor position where subsequent text will begin. If no row/column
 // parameters are provided (ie. <ESC>[H), the cursor will move to the home
@@ -137,29 +127,19 @@ inline void force_cursor_position(int row, int column) {
 }
 
 // Save current cursor position.
-inline void save_cursor() {
-  send_escape("\033[s");
-}
+inline void save_cursor() { send_escape("\033[s"); }
 
 // Restores cursor position after a Save Cursor.
-inline void unsave_cursor() {
-  send_escape("\033[u");
-}
+inline void unsave_cursor() { send_escape("\033[u"); }
 
 // Save current cursor position.
-inline void save_cursor_and_attrs() {
-  send_escape("\0337");
-}
+inline void save_cursor_and_attrs() { send_escape("\0337"); }
 
 // Restores cursor position after a Save Cursor.
-inline void restore_cursor_and_attrs() {
-  send_escape("\0338");
-}
+inline void restore_cursor_and_attrs() { send_escape("\0338"); }
 
 // Enable scrolling for entire display.
-inline void scroll_screen() {
-  send_escape("\033[r");
-}
+inline void scroll_screen() { send_escape("\033[r"); }
 
 // Enable scrolling from row {start} to row {end}.
 inline void scroll_screen(int start, int end) {
@@ -169,59 +149,37 @@ inline void scroll_screen(int start, int end) {
 }
 
 // Scroll display down one line.
-inline void scroll_down() {
-  send_escape("\033[D");
-}
+inline void scroll_down() { send_escape("\033[D"); }
 
 // Scroll display up one line.
-inline void scroll_up() {
-  send_escape("\033[M");
-}
+inline void scroll_up() { send_escape("\033[M"); }
 
 // Sets a tab at the current position.
-inline void set_tab() {
-  send_escape("\033H");
-}
+inline void set_tab() { send_escape("\033H"); }
 
 // Clears tab at the current position.
-inline void clear_tab() {
-  send_escape("\033[g");
-}
+inline void clear_tab() { send_escape("\033[g"); }
 
 // Clears all tabs.
-inline void clear_all_tabs() {
-  send_escape("\033[3g");
-}
+inline void clear_all_tabs() { send_escape("\033[3g"); }
 
 // Erases from the current cursor position to the end of the current line.
-inline void erase_end_of_line() {
-  send_escape("\033[K");
-}
+inline void erase_end_of_line() { send_escape("\033[K"); }
 
 // Erases from the current cursor position to the start of the current line.
-inline void erase_start_of_line() {
-  send_escape("\033[1K");
-}
+inline void erase_start_of_line() { send_escape("\033[1K"); }
 
 // Erases the entire current line.
-inline void erase_line() {
-  send_escape("\033[2K");
-}
+inline void erase_line() { send_escape("\033[2K"); }
 
 // Erases the screen from the current line down to the bottom of the screen.
-inline void erase_down() {
-  send_escape("\033[J");
-}
+inline void erase_down() { send_escape("\033[J"); }
 
 // Erases the screen from the current line up to the top of the screen.
-inline void erase_up() {
-  send_escape("\033[1J");
-}
+inline void erase_up() { send_escape("\033[1J"); }
 
 // Erases the screen with the background colour and moves the cursor to home.
-inline void erase_screen() {
-  send_escape("\033[2J");
-}
+inline void erase_screen() { send_escape("\033[2J"); }
 
 const int ResetAllAttributes = 0;
 const int Bright = 1;
@@ -237,24 +195,15 @@ inline std::string attr(int fgcolor = -1, int bgcolor = -1, int attrs = 0) {
   } else {
     std::string buffer;
     buffer = "\033[";
-    if (attrs & Bright)
-      buffer.append("1;");
-    if (attrs & Dim)
-      buffer.append("2;");
-    if (attrs & Underline)
-      buffer.append("4;");
-    if (attrs & Blink)
-      buffer.append("5;");
-    if (attrs & Reverse)
-      buffer.append("7;");
-    if (attrs & Hidden)
-      buffer.append("8;");
-    if (fgcolor >= 0)
-      buffer.append(std::to_string(30 + fgcolor)).append(";");
-    if (bgcolor >= 0)
-      buffer.append(std::to_string(40 + bgcolor)).append(";");
-    if (buffer.back() == ';')
-      buffer.pop_back();
+    if (attrs & Bright) buffer.append("1;");
+    if (attrs & Dim) buffer.append("2;");
+    if (attrs & Underline) buffer.append("4;");
+    if (attrs & Blink) buffer.append("5;");
+    if (attrs & Reverse) buffer.append("7;");
+    if (attrs & Hidden) buffer.append("8;");
+    if (fgcolor >= 0) buffer.append(std::to_string(30 + fgcolor)).append(";");
+    if (bgcolor >= 0) buffer.append(std::to_string(40 + bgcolor)).append(";");
+    if (buffer.back() == ';') buffer.pop_back();
     buffer.append("m");
     return buffer;
   }

@@ -26,16 +26,16 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <vector>
 #include "modules/adminapi/mod_dba_common.h"
-#include "mysqlshdk/libs/utils/nullable.h"
-#include "unittest/test_utils.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "unittest/test_utils/shell_test_wrapper.h"
 #include "src/interactive/interactive_global_dba.h"
+#include "unittest/test_utils.h"
+#include "unittest/test_utils/shell_test_wrapper.h"
 
-using mysqlshdk::utils::nullable;
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
+using mysqlshdk::utils::nullable;
 
 namespace tests {
 /**
@@ -49,8 +49,8 @@ namespace tests {
 class Admin_api_test : public Shell_core_test_wrapper {
  public:
   virtual void SetUp();
-  static std::shared_ptr<mysqlshdk::db::ISession>
-    create_session(int port, std::string user = "root") {
+  static std::shared_ptr<mysqlshdk::db::ISession> create_session(
+      int port, std::string user = "root") {
     auto session = mysqlshdk::db::mysql::Session::create();
 
     auto connection_options = shcore::get_connection_options(
@@ -65,12 +65,12 @@ class Admin_api_test : public Shell_core_test_wrapper {
 
  public:
   std::shared_ptr<mysqlshdk::db::ISession> get_classic_session() {
-    return _interactive_shell->shell_context()->get_dev_session()->get_core_session();
+    return _interactive_shell->shell_context()
+        ->get_dev_session()
+        ->get_core_session();
   }
 
-  std::shared_ptr<mysqlshdk::db::ISession> create_local_session(
-      int port) {
-
+  std::shared_ptr<mysqlshdk::db::ISession> create_local_session(int port) {
     mysqlshdk::db::Connection_options session_args;
     session_args.set_scheme("mysql");
     session_args.set_host("localhost");

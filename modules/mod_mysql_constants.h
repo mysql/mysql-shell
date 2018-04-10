@@ -36,31 +36,31 @@
 namespace mysqlsh {
 namespace mysql {
 /**
-* \ingroup mysql
-* Constants to represent data types on Column objects
-*
-* Supported Data Types
-*
-*  - BIT
-*  - TINYINT
-*  - SMALLINT
-*  - MEDIUMINT
-*  - INT
-*  - BIGINT
-*  - FLOAT
-*  - DECIMAL
-*  - DOUBLE
-*  - JSON
-*  - STRING
-*  - BYTES
-*  - TIME
-*  - DATE
-*  - DATETIME
-*  - TIMESTAMP
-*  - SET
-*  - ENUM
-*  - GEOMETRY
-*/
+ * \ingroup mysql
+ * Constants to represent data types on Column objects
+ *
+ * Supported Data Types
+ *
+ *  - BIT
+ *  - TINYINT
+ *  - SMALLINT
+ *  - MEDIUMINT
+ *  - INT
+ *  - BIGINT
+ *  - FLOAT
+ *  - DECIMAL
+ *  - DOUBLE
+ *  - JSON
+ *  - STRING
+ *  - BYTES
+ *  - TIME
+ *  - DATE
+ *  - DATETIME
+ *  - TIMESTAMP
+ *  - SET
+ *  - ENUM
+ *  - GEOMETRY
+ */
 class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge {
  public:
   Type();

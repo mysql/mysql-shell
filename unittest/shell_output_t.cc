@@ -25,24 +25,24 @@
 #include <string>
 
 #include "gtest_clean.h"
-#include "scripting/types.h"
-#include "scripting/lang_base.h"
-#include "scripting/types_cpp.h"
 #include "scripting/common.h"
+#include "scripting/lang_base.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
-#include "shellcore/shell_core.h"
-#include "shellcore/shell_sql.h"
-#include "shellcore/base_session.h"
 #include "modules/devapi/base_resultset.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "shellcore/base_session.h"
+#include "shellcore/shell_core.h"
 #include "shellcore/shell_resultset_dumper.h"
+#include "shellcore/shell_sql.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
 
 namespace shcore {
 namespace Shell_output_tests {
 class Shell_output_test : public Shell_core_test_wrapper {
-protected:
+ protected:
   std::string _file_name;
   int _ret_val;
 
@@ -52,8 +52,10 @@ protected:
     _interactive_shell->process_line("\\sql");
     _interactive_shell->process_line("\\connect -mc " + _mysql_uri);
     if (!output_handler.std_err.empty()) {
-      std::cerr << "ERROR connecting to "<<_mysql_uri<<":"<<output_handler.std_err<<"\n";
-      std::cerr << "Test environment is probably wrong. Please check values of MYSQL_URI, MYSQL_PORT, MYSQL_PWD environment variables.\n";
+      std::cerr << "ERROR connecting to " << _mysql_uri << ":"
+                << output_handler.std_err << "\n";
+      std::cerr << "Test environment is probably wrong. Please check values of "
+                   "MYSQL_URI, MYSQL_PORT, MYSQL_PWD environment variables.\n";
       FAIL();
     }
     wipe_all();
@@ -70,7 +72,7 @@ TEST_F(Shell_output_test, table_output) {
   EXPECT_EQ(0, _ret_val);
 
   std::string expected_output =
-R"(+----+----+
+      R"(+----+----+
 | a  | b  |
 +----+----+
 | 11 | 22 |
@@ -84,7 +86,7 @@ TEST_F(Shell_output_test, vertical_output) {
   EXPECT_EQ(0, _ret_val);
 
   std::string expected_output =
-R"(*************************** 1. row ***************************
+      R"(*************************** 1. row ***************************
 a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
@@ -95,12 +97,12 @@ TEST_F(Shell_output_test, mixed_output) {
   EXPECT_EQ(0, _ret_val);
 
   std::string expected_output =
-R"(*************************** 1. row ***************************
+      R"(*************************** 1. row ***************************
 a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   expected_output =
-R"(+----+
+      R"(+----+
 | b  |
 +----+
 | 12 |
@@ -114,7 +116,7 @@ TEST_F(Shell_output_test, vertical_output_column_align) {
   EXPECT_EQ(0, _ret_val);
 
   std::string expected_output =
-R"(*************************** 1. row ***************************
+      R"(*************************** 1. row ***************************
      a: 11
 second: 12
  third: 1234)";
@@ -127,7 +129,7 @@ TEST_F(Shell_output_test, vertical_output_result_with_newline) {
   EXPECT_EQ(0, _ret_val);
 
   std::string expected_output =
-R"(*************************** 1. row ***************************
+      R"(*************************** 1. row ***************************
 a: te
 st)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
@@ -140,7 +142,7 @@ TEST_F(Shell_output_test, output_format_option) {
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
 
   std::string expected_output =
-R"(*************************** 1. row ***************************
+      R"(*************************** 1. row ***************************
 a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
@@ -151,7 +153,7 @@ a: 11)";
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
 
   expected_output =
-R"(+----+
+      R"(+----+
 | a  |
 +----+
 | 12 |
@@ -165,10 +167,10 @@ R"(+----+
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
 
   expected_output =
-R"(*************************** 1. row ***************************
+      R"(*************************** 1. row ***************************
 a: 13)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 }
 
-} //namespace Shell_output_tests
-} //namespace shcore
+}  // namespace Shell_output_tests
+}  // namespace shcore

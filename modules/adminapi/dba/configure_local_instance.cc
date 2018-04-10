@@ -83,9 +83,9 @@ void Configure_local_instance::prepare() {
   // Parameters validation for the case we only need to persist GR options
   if (m_instance_type == GRInstanceType::InnoDBCluster) {
     m_console->println("The instance '" +
-                     m_target_instance->get_connection_options().as_uri(
-                         mysqlshdk::db::uri::formats::only_transport()) +
-                     "' belongs to an InnoDB cluster.");
+                       m_target_instance->get_connection_options().as_uri(
+                           mysqlshdk::db::uri::formats::only_transport()) +
+                       "' belongs to an InnoDB cluster.");
     if (m_target_instance->get_version() >=
         mysqlshdk::utils::Version(8, 0, 5)) {
       m_console->print_info(

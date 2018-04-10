@@ -66,13 +66,13 @@ class IInstance {
       const std::string &name) const = 0;
 
   virtual utils::nullable<bool> get_sysvar_bool(
-      const std::string& name,
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual utils::nullable<std::string> get_sysvar_string(
-      const std::string& name,
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual utils::nullable<int64_t> get_sysvar_int(
-      const std::string& name,
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
   virtual void set_sysvar(
       const std::string &name, const std::string &value,
@@ -83,7 +83,8 @@ class IInstance {
   virtual void set_sysvar(
       const std::string &name, const bool value,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
-  virtual void set_sysvar_default(const std::string &name,
+  virtual void set_sysvar_default(
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
@@ -127,13 +128,13 @@ class Instance : public IInstance {
       const std::string &name) const override;
 
   utils::nullable<bool> get_sysvar_bool(
-      const std::string& name,
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const override;
   utils::nullable<std::string> get_sysvar_string(
-      const std::string& name,
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const override;
   utils::nullable<int64_t> get_sysvar_int(
-      const std::string& name,
+      const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const override;
   void set_sysvar(
       const std::string &name, const std::string &value,
@@ -144,31 +145,32 @@ class Instance : public IInstance {
   void set_sysvar(
       const std::string &name, const bool value,
       const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
-  void set_sysvar_default(const std::string &name,
+  void set_sysvar_default(
+      const std::string &name,
       const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;
   }
   void close_session() const override { _session->close(); }
-  std::map<std::string, utils::nullable<std::string> > get_system_variables(
-      const std::vector<std::string>& names,
+  std::map<std::string, utils::nullable<std::string>> get_system_variables(
+      const std::vector<std::string> &names,
       const Var_qualifier scope = Var_qualifier::SESSION) const;
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
   utils::nullable<std::string> get_plugin_status(
       const std::string &plugin_name) const override;
-  void create_user(
-      const std::string &user, const std::string &host, const std::string &pwd,
-      const std::vector<std::tuple<std::string, std::string, bool>> &grants)
-      const override;
+  void create_user(const std::string &user, const std::string &host,
+                   const std::string &pwd,
+                   const std::vector<std::tuple<std::string, std::string, bool>>
+                       &grants) const override;
   void drop_user(const std::string &user,
                  const std::string &host) const override;
   void drop_users_with_regexp(const std::string &regexp) const override;
   mysqlshdk::db::Connection_options get_connection_options() const override {
     return _session->get_connection_options();
   }
-  std::unique_ptr<User_privileges> get_user_privileges(const std::string &user,
-      const std::string &host) const override;
+  std::unique_ptr<User_privileges> get_user_privileges(
+      const std::string &user, const std::string &host) const override;
 
   bool is_read_only(bool super) const override;
   utils::Version get_version() const override;

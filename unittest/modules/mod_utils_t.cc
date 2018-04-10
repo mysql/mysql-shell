@@ -68,7 +68,7 @@ TEST(modules_mod_utils, get_connection_data_invalid_uri) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
 
     EXPECT_EQ(0, error.find("Invalid URI: "));
@@ -82,7 +82,7 @@ TEST(modules_mod_utils, get_connection_data_invalid_connection_data) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
 
     EXPECT_EQ(
@@ -99,7 +99,7 @@ TEST(modules_mod_utils, get_connection_data_empty_uri_connection_data) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
 
     EXPECT_EQ("Invalid URI: empty.", error);
@@ -114,7 +114,7 @@ TEST(modules_mod_utils, get_connection_data_empty_options_connection_data) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
 
     EXPECT_EQ("Invalid connection options, no options provided.", error);
@@ -249,7 +249,7 @@ TEST(modules_mod_utils, get_connection_data_invalid_password_param) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("Argument #2 is expected to be a string", error);
   }
@@ -263,7 +263,7 @@ TEST(modules_mod_utils, get_connection_data_invalid_options_param) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("Argument #2 is expected to be a map", error);
   }
@@ -281,7 +281,7 @@ TEST(modules_mod_utils, get_connection_data_invalid_connection_options) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("Invalid values in connection options: invalid_option", error);
   }
@@ -299,7 +299,7 @@ TEST(modules_mod_utils, get_connection_data_conflicting_password_db_password) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ(
         "The connection option 'password' is already defined as "
@@ -320,7 +320,7 @@ TEST(modules_mod_utils, get_connection_data_conflicting_user_db_user) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("The connection option 'user' is already defined as 'root'.",
               error);
@@ -339,7 +339,7 @@ TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
   try {
     auto options =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ(
         "Conflicting connection options: port and socket defined"
@@ -386,7 +386,7 @@ TEST(modules_mod_utils,
 
   try {
     mysqlsh::resolve_connection_credentials(&connection_options);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("Missing password for 'root@localhost'", error);
   }
@@ -403,7 +403,7 @@ TEST(modules_mod_utils,
     output_handler.passwords.push_back({"*", "<<<CANCEL>>>"});
     mysqlsh::resolve_connection_credentials_deleg(&connection_options,
                                                   &output_handler.deleg);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::string error(e.what());
     EXPECT_EQ("Missing password for 'root@localhost'", error);
   }
@@ -519,7 +519,7 @@ TEST(modules_mod_utils, unpack_options_validation) {
 }
 
 TEST(modules_mod_utils, unpack_options_types) {
-  auto maked = [](const std::string& name, shcore::Value value) {
+  auto maked = [](const std::string &name, shcore::Value value) {
     shcore::Dictionary_t options = shcore::make_dict();
     (*options)[name] = value;
     return options;

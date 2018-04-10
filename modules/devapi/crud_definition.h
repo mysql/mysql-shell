@@ -32,10 +32,10 @@
 #include <string>
 #include <vector>
 
+#include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/dynamic_object.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "scripting/common.h"
-#include "db/mysqlx/mysqlxclient_clean.h"
 
 namespace mysqlsh {
 class DatabaseObject;
@@ -57,6 +57,7 @@ class Crud_definition : public Dynamic_object {
 
   // The last step on CRUD operations
   virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
+
  protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> safe_exec(
       std::function<std::shared_ptr<mysqlshdk::db::IResult>()> func);

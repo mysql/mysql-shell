@@ -26,10 +26,10 @@
 
 // Environment variables only
 
+#include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <string>
-#include <condition_variable>
 
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
@@ -45,11 +45,11 @@ class Shell_test_wrapper {
  public:
   Shell_test_wrapper(bool disable_dummy_sandboxes = false);
   void reset();
-    // This can be use to reinitialize the interactive shell with different
+  // This can be use to reinitialize the interactive shell with different
   // options First set the options on _options
   void reset_options();
-  Shell_test_output_handler& get_output_handler();
-  void execute(const std::string& line);
+  Shell_test_output_handler &get_output_handler();
+  void execute(const std::string &line);
   std::shared_ptr<mysqlsh::Shell_options> get_options();
   void trace_protocol();
   void enable_debug();
@@ -67,20 +67,19 @@ class Shell_test_wrapper {
   std::string setup_recorder(const char *sub_test_name);
   void teardown_recorder();
   void reset_replayable_shell(const char *sub_test_name);
-  void teardown_replayable_shell() {
-    teardown_recorder();
-  }
+  void teardown_replayable_shell() { teardown_recorder(); }
 
   template <class T>
-  std::shared_ptr<T>get_global(const std::string& name) {
+  std::shared_ptr<T> get_global(const std::string &name) {
     shcore::Value ret_val;
     ret_val = _interactive_shell->shell_context()->get_global(name);
     return ret_val.as_object<T>();
   }
+
  private:
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
-  mysqlsh::Shell_options::Storage* _options;
+  mysqlsh::Shell_options::Storage *_options;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
   std::shared_ptr<tests::Testutils> _testutil;
   std::string _sandbox_dir;
@@ -100,7 +99,7 @@ class Shell_test_wrapper {
   int _mysql_sandbox_nport2;
   int _mysql_sandbox_nport3;
 
-  std::string _hostname;  //!< TBD
+  std::string _hostname;     //!< TBD
   std::string _hostname_ip;  //!< TBD
 };
 
@@ -117,7 +116,7 @@ class Thread_queue {
     return item;
   }
 
-  void push(const T& item) {
+  void push(const T &item) {
     std::unique_lock<std::mutex> mlock(_mutex);
     _queue.push(item);
     mlock.unlock();

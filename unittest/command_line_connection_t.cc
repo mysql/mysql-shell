@@ -29,14 +29,14 @@ namespace tests {
 
 class Command_line_connection_test : public Command_line_test {
  protected:
-  int execute_in_session(const std::string& uri,
-                         const std::string& session_type,
-                         const std::string& command = "",
-                         const std::string& mode = "--sql") {
+  int execute_in_session(const std::string &uri,
+                         const std::string &session_type,
+                         const std::string &command = "",
+                         const std::string &mode = "--sql") {
     std::string used_uri = uri.empty() ? _mysql_uri : uri;
 
     std::string pwd_param = "--password=" + _pwd;
-    std::vector<const char*> args = {
+    std::vector<const char *> args = {
         _mysqlsh,
         session_type.c_str(),
         mode.c_str(),
@@ -50,16 +50,15 @@ class Command_line_connection_test : public Command_line_test {
     return execute(args);
   }
 
-  int test_classic_connection(const std::vector<const char*>& additional_args,
-                              const char* password = NULL) {
+  int test_classic_connection(const std::vector<const char *> &additional_args,
+                              const char *password = NULL) {
     std::string pwd_param = "--password=" + _pwd;
-    std::vector<const char*> args = {
+    std::vector<const char *> args = {
         _mysqlsh,          "-mc", "--interactive=full",
         pwd_param.c_str(), "-e",  "\\status",
     };
 
-    for (auto arg : additional_args)
-      args.emplace_back(arg);
+    for (auto arg : additional_args) args.emplace_back(arg);
 
     args.push_back(NULL);
 
@@ -67,7 +66,7 @@ class Command_line_connection_test : public Command_line_test {
   }
 
   void test_classic_connection_attempt(
-      bool expected, const std::vector<const char*>& cmdline_args) {
+      bool expected, const std::vector<const char *> &cmdline_args) {
     test_classic_connection(cmdline_args);
 
     if (expected)
@@ -83,8 +82,8 @@ class Command_line_connection_test : public Command_line_test {
 TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
   int ret_val = test_classic_connection({"-u", _user.c_str()});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" +
-                                _user + "@localhost'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" + _user +
+                                "@localhost'");
 
 #ifdef _WIN32
   // On windows a tcp connection is expected
@@ -112,8 +111,8 @@ TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
 TEST_F(Command_line_connection_test, classic_port) {
   test_classic_connection({"-u", _user.c_str(), "-P", _mysql_port.c_str()});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" +
-                                _user + "@localhost:" + _mysql_port + "'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to '" + _user +
+                                "@localhost:" + _mysql_port + "'");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Your MySQL connection id is");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
@@ -292,8 +291,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
   // Default ssl-mode as required must work regardless if the server has or not
   // SSL enabled (i.e. commercial vs gpl)
   execute_in_session(_mysql_uri, "--mysql", "show variables like 'have_ssl';");
-  if (_output.find("YES") != std::string::npos)
-    have_ssl = true;
+  if (_output.find("YES") != std::string::npos) have_ssl = true;
 
   _output.clear();
 
@@ -349,8 +347,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
   // Default ssl-mode as required must work regardless if the server has or not
   // SSL enabled (i.e. commercial vs gpl)
   execute_in_session(_mysql_uri, "--mysql", "show variables like 'have_ssl';");
-  if (_output.find("YES") != std::string::npos)
-    have_ssl = true;
+  if (_output.find("YES") != std::string::npos) have_ssl = true;
 
   _output.clear();
 
@@ -377,8 +374,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
     if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "Invalid authentication method PLAIN");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid authentication method PLAIN");
     } else {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
           "MySQL Error 1045: Secure transport required. To log in you must use "
@@ -404,7 +400,7 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
 }
 
 TEST_F(Command_line_connection_test, basic_ssl_check_x) {
-  const char* ssl_check =
+  const char *ssl_check =
       "SELECT IF(VARIABLE_VALUE='', 'SSL_OFF', 'SSL_ON')"
       " FROM performance_schema.session_status"
       " WHERE variable_name='mysqlx_ssl_cipher';";
@@ -438,7 +434,7 @@ TEST_F(Command_line_connection_test, basic_ssl_check_x) {
 }
 
 TEST_F(Command_line_connection_test, basic_ssl_check_classic) {
-  const char* ssl_check =
+  const char *ssl_check =
       "SELECT IF(VARIABLE_VALUE='', 'SSL_OFF', 'SSL_ON')"
       " FROM performance_schema.session_status"
       " WHERE variable_name='ssl_cipher';";

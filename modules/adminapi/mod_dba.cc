@@ -196,9 +196,7 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL4,
 Dba::Dba(shcore::IShell_core *owner,
          std::shared_ptr<mysqlsh::IConsole> console_handler,
          const Shell_options::Storage &options)
-    : _shell_core(owner),
-      m_console(console_handler),
-      m_options(options) {
+    : _shell_core(owner), m_console(console_handler), m_options(options) {
   init();
 }
 
@@ -433,7 +431,8 @@ REGISTER_HELP(DBA_GETCLUSTER_THROWS6, "@li If the Cluster does not exist.");
 
 REGISTER_HELP(DBA_GETCLUSTER_THROWS7,
               "RuntimeError in the following scenarios:");
-REGISTER_HELP(DBA_GETCLUSTER_THROWS8, "@li If the current connection cannot be "
+REGISTER_HELP(DBA_GETCLUSTER_THROWS8,
+              "@li If the current connection cannot be "
               "used for Group Replication.");
 
 REGISTER_HELP(DBA_GETCLUSTER_RETURNS,
@@ -590,7 +589,6 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
   return cluster;
 }
-
 
 REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM,
@@ -1101,8 +1099,6 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_THROWS3,
               "@li If the current connection cannot be used "
               "for Group Replication.");
 
-
-
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_RETURNS, "@returns Nothing.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL,
               "The options dictionary may contain the following options:");
@@ -1239,10 +1235,10 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL4,
               "@li mycnfPath: Optional path to the MySQL configuration file "
               "for the instance. Alias for verifyMyCnf");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL5,
-            "@li verifyMyCnf: Optional path to the MySQL configuration file "
-            "for the instance. If this option is given, the configuration "
-            "file will be verified for the expected option values, in "
-            "addition to the global MySQL system variables.");
+              "@li verifyMyCnf: Optional path to the MySQL configuration file "
+              "for the instance. If this option is given, the configuration "
+              "file will be verified for the expected option values, in "
+              "addition to the global MySQL system variables.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL6,
               "@li password: The password to get connected to the instance.");
 
@@ -1288,57 +1284,57 @@ REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL19,
               "@li Restart the server.");
 
 /**
-* $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_PARAM)
-* $(DBA_CHECKINSTANCECONFIGURATION_PARAM1)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS1)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS2)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS3)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS4)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS5)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS6)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS7)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS8)
-* $(DBA_CHECKINSTANCECONFIGURATION_THROWS9)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_RETURNS)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
-*
-* Detailed description of the connection data format is available at \ref
-* connection_data.
-*
-* Only TCP/IP connections are allowed for this function.
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL10)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL11)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL12)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL13)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL14)
-*
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL15)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL16)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL17)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL18)
-* $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
-*/
+ * $(DBA_CHECKINSTANCECONFIGURATION_BRIEF)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_PARAM)
+ * $(DBA_CHECKINSTANCECONFIGURATION_PARAM1)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS1)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS2)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS3)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS4)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS5)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS6)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS7)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS8)
+ * $(DBA_CHECKINSTANCECONFIGURATION_THROWS9)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_RETURNS)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL1)
+ *
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
+ *
+ * Only TCP/IP connections are allowed for this function.
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL3)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL4)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL5)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL6)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL7)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL8)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL9)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL10)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL11)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL12)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL13)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL14)
+ *
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL15)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL16)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL17)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL18)
+ * $(DBA_CHECKINSTANCECONFIGURATION_DETAIL19)
+ */
 #if DOXYGEN_JS
-JSON Dba::checkInstanceConfiguration(InstanceDef instance,
-                                          Dictionary options) {}
+JSON Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {
+}
 #elif DOXYGEN_PY
 JSON Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
@@ -2804,11 +2800,10 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       std::string current_group_replication_group_name =
           default_replicaset->get_group_name();
 
-      default_replicaset->add_instance(current_session_options, new_args,
-                                       replication_user,
-                                       replication_user_password, true,
-                                       current_group_replication_group_name,
-                                       true);
+      default_replicaset->add_instance(
+          current_session_options, new_args, replication_user,
+          replication_user_password, true, current_group_replication_group_name,
+          true);
     }
 
     // 7. Update the Metadata Schema information

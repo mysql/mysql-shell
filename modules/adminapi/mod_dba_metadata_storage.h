@@ -47,8 +47,8 @@ namespace mysqlsh {
 namespace dba {
 #if DOXYGEN_CPP
 /**
-* Represents a session to a Metadata Storage
-*/
+ * Represents a session to a Metadata Storage
+ */
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
  protected:
@@ -85,7 +85,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void set_replicaset_group_name(std::shared_ptr<ReplicaSet> replicaset,
                                  const std::string &group_name);
   virtual void load_cluster(const std::string &cluster_name,
-                           std::shared_ptr<Cluster> cluster);
+                            std::shared_ptr<Cluster> cluster);
   virtual void load_default_cluster(std::shared_ptr<Cluster> cluster);
   bool has_default_cluster();
 
@@ -139,8 +139,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
     ~Transaction() {
       try {
-        if (_md)
-          _md->rollback();
+        if (_md) _md->rollback();
       } catch (std::exception &e) {
         log_error("Error implicitly rolling back transaction: %s", e.what());
       }

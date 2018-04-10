@@ -22,24 +22,24 @@
  */
 
 #include "shellcore/base_shell.h"
+#include "modules/devapi/base_resultset.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "shellcore/base_session.h"
-#include "utils/utils_file.h"
-#include "utils/utils_path.h"
-#include "utils/utils_general.h"
-#include "utils/utils_string.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
-#include "modules/devapi/base_resultset.h"
 #include "shellcore/shell_resultset_dumper.h"
-#include "mysqlshdk/libs/utils/logger.h"
+#include "utils/utils_file.h"
+#include "utils/utils_general.h"
+#include "utils/utils_path.h"
+#include "utils/utils_string.h"
 #ifdef HAVE_V8
-#include "shellcore/shell_jscript.h"
 #include "mysqlshdk/shellcore/provider_javascript.h"
+#include "shellcore/shell_jscript.h"
 #endif
 #ifdef HAVE_PYTHON
-#include "shellcore/shell_python.h"
 #include "mysqlshdk/shellcore/provider_python.h"
+#include "shellcore/shell_python.h"
 #endif
 
 namespace mysqlsh {
@@ -49,11 +49,11 @@ std::shared_ptr<mysqlsh::Shell_options> Base_shell::shell_options;
 Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
                        shcore::Interpreter_delegate *custom_delegate)
     : _deferred_output(new std::string()) {
-  Base_shell::shell_options =  cmdline_options;
+  Base_shell::shell_options = cmdline_options;
   shcore::Interrupts::setup();
 
-  std::string log_path = shcore::path::join_path(shcore::get_user_config_path(),
-        "mysqlsh.log");
+  std::string log_path =
+      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
 
   ngcommon::Logger::setup_instance(log_path.c_str(), options().log_to_stderr,
                                    options().log_level);
@@ -93,7 +93,8 @@ void Base_shell::finish_init() {
   init_scripts(_shell->interactive_mode());
 }
 
-// load scripts for standard locations in order to be able to implement standard routines
+// load scripts for standard locations in order to be able to implement standard
+// routines
 void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   std::string extension;
 
@@ -113,8 +114,7 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
     std::string path = shcore::get_global_config_path();
     path.append("shellrc");
     path.append(extension);
-    if (shcore::file_exists(path))
-      scripts_paths.push_back(path);
+    if (shcore::file_exists(path)) scripts_paths.push_back(path);
 
     // Checks existence of startup script at MYSQLSH_HOME
     // Or the binary location if not a standard installation
@@ -126,15 +126,13 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       path.append("/mysqlshrc");
     }
     path.append(extension);
-    if (shcore::file_exists(path))
-      scripts_paths.push_back(path);
+    if (shcore::file_exists(path)) scripts_paths.push_back(path);
 
     // Checks existence of user startup script
     path = shcore::get_user_config_path();
     path.append("mysqlshrc");
     path.append(extension);
-    if (shcore::file_exists(path))
-      scripts_paths.push_back(path);
+    if (shcore::file_exists(path)) scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin();
          i != scripts_paths.end(); ++i) {
@@ -207,8 +205,7 @@ std::map<std::string, std::string> *Base_shell::prompt_variables() {
 void Base_shell::update_prompt_variables(bool reconnected) {
   _update_variables_pending = 0;
 
-  if (reconnected)
-    _prompt_variables.clear();
+  if (reconnected) _prompt_variables.clear();
 
   auto session = _shell->get_dev_session();
   if (reconnected || _prompt_variables.empty()) {
@@ -226,8 +223,7 @@ void Base_shell::update_prompt_variables(bool reconnected) {
 
       if (session->get_member("__connection_info").descr().find("TCP") !=
           std::string::npos) {
-        port =
-            options.has_port() ? std::to_string(options.get_port()) : "";
+        port = options.has_port() ? std::to_string(options.get_port()) : "";
       } else {
         if (options.has_socket())
           socket = options.get_socket();
@@ -236,11 +232,9 @@ void Base_shell::update_prompt_variables(bool reconnected) {
       }
       if (session->session_type() == mysqlsh::SessionType::Classic) {
         _prompt_variables["session"] = "c";
-        if (socket.empty() && port.empty())
-          port = "3306";
+        if (socket.empty() && port.empty()) port = "3306";
       } else {
-        if (socket.empty() && port.empty())
-          port = "33060";
+        if (socket.empty() && port.empty()) port = "33060";
         _prompt_variables["session"] = "x";
       }
       _prompt_variables["port"] = port;
@@ -284,10 +278,9 @@ void Base_shell::update_prompt_variables(bool reconnected) {
   }
 }
 
-bool Base_shell::switch_shell_mode(
-    shcore::Shell_core::Mode mode,
-    const std::vector<std::string> &/*args*/,
-    bool initializing) {
+bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
+                                   const std::vector<std::string> & /*args*/,
+                                   bool initializing) {
   shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
 
@@ -351,9 +344,7 @@ bool Base_shell::switch_shell_mode(
   return lang_initialized;
 }
 
-void Base_shell::println(const std::string &str) {
-  _shell->println(str);
-}
+void Base_shell::println(const std::string &str) { _shell->println(str); }
 
 /**
  * Print output after the shell initialization is done (after Copyright info)
@@ -385,8 +376,7 @@ void Base_shell::process_line(const std::string &line) {
   _input_buffer.append(_shell->preprocess_input_line(line));
 
   // Appends the new line if anything has been added to the buffer
-  if (!_input_buffer.empty())
-    _input_buffer.append("\n");
+  if (!_input_buffer.empty()) _input_buffer.append("\n");
 
   if (_input_mode != shcore::Input_state::ContinuedBlock &&
       !_input_buffer.empty()) {
@@ -410,18 +400,17 @@ void Base_shell::process_line(const std::string &line) {
     // TODO: Do we need this cleanup? i.e. in case of exceptions above??
     // Clears the buffer if OK, if continued, buffer will contain
     // the non executed code
-    if (_input_mode == shcore::Input_state::Ok)
-      _input_buffer.clear();
+    if (_input_mode == shcore::Input_state::Ok) _input_buffer.clear();
   }
 
-  if (!to_history.empty())
-    notify_executed_statement(to_history);
+  if (!to_history.empty()) notify_executed_statement(to_history);
 }
 
-void Base_shell::notify_executed_statement(const std::string& line) {
-    shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
-    (*data)["statement"] = shcore::Value(line);
-    shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
+void Base_shell::notify_executed_statement(const std::string &line) {
+  shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
+  (*data)["statement"] = shcore::Value(line);
+  shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr,
+                                            data);
 }
 
 void Base_shell::process_result(shcore::Value result) {
@@ -447,17 +436,23 @@ void Base_shell::process_result(shcore::Value result) {
       // If the function is not found the values still needs to be printed
       if (!shell_hook) {
         // Resultset objects get printed
-        if (object && object->class_name().find("Result") != std::string::npos) {
-          std::shared_ptr<mysqlsh::ShellBaseResult> resultset = std::static_pointer_cast<mysqlsh::ShellBaseResult> (object);
+        if (object &&
+            object->class_name().find("Result") != std::string::npos) {
+          std::shared_ptr<mysqlsh::ShellBaseResult> resultset =
+              std::static_pointer_cast<mysqlsh::ShellBaseResult>(object);
 
-          // Result buffering will be done ONLY if on any of the scripting interfaces
-          ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);
+          // Result buffering will be done ONLY if on any of the scripting
+          // interfaces
+          ResultsetDumper dumper(
+              resultset, _shell->get_delegate(),
+              _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);
           dumper.dump();
         } else {
-          // In JSON mode: the json representation is used for Object, Array and Map
-          // For anything else a map is printed with the "value" key
+          // In JSON mode: the json representation is used for Object, Array and
+          // Map For anything else a map is printed with the "value" key
           std::string tag;
-          if (result.type != shcore::Object && result.type != shcore::Array && result.type != shcore::Map)
+          if (result.type != shcore::Object && result.type != shcore::Array &&
+              result.type != shcore::Map)
             tag = "value";
 
           _shell->print_value(result, tag);
@@ -467,11 +462,11 @@ void Base_shell::process_result(shcore::Value result) {
   }
 
   // Return value of undefined implies an error processing
-  if (result.type == shcore::Undefined)
-  _shell->set_error_processing();
+  if (result.type == shcore::Undefined) _shell->set_error_processing();
 }
 
-int Base_shell::process_file(const std::string &path, const std::vector<std::string> &argv) {
+int Base_shell::process_file(const std::string &path,
+                             const std::vector<std::string> &argv) {
   // Default return value will be 1 indicating there were errors
   int ret_val = 1;
 
@@ -479,44 +474,43 @@ int Base_shell::process_file(const std::string &path, const std::vector<std::str
     print_error("Invalid filename");
   else if (_shell->is_module(path))
     _shell->execute_module(path, _result_processor, argv);
-  else
-  {
+  else {
     std::string file = shcore::path::expand_user(path);
     if (shcore::is_folder(file)) {
-        print_error(shcore::str_format("Failed to open file: '%s' is a "
-            "directory\n", file.c_str()));
-        return ret_val;
+      print_error(
+          shcore::str_format("Failed to open file: '%s' is a "
+                             "directory\n",
+                             file.c_str()));
+      return ret_val;
     }
 
     std::ifstream s(file.c_str());
     if (!s.fail()) {
-
       // The return value now depends on the stream processing
       ret_val = process_stream(s, file, argv);
 
       // When force is used, we do not care of the processing
       // errors
-      if (options().force)
-        ret_val = 0;
+      if (options().force) ret_val = 0;
 
       s.close();
     } else {
       // TODO: add a log entry once logging is
       print_error(shcore::str_format("Failed to open file '%s', error: %s\n",
-        file.c_str(), std::strerror(errno)));
+                                     file.c_str(), std::strerror(errno)));
     }
   }
 
   return ret_val;
 }
 
-int Base_shell::process_stream(std::istream & stream, const std::string& source,
-    const std::vector<std::string> &argv, bool force_batch) {
-  // If interactive is set, it means that the shell was started with the option to
-  // Emulate interactive mode while processing the stream
+int Base_shell::process_stream(std::istream &stream, const std::string &source,
+                               const std::vector<std::string> &argv,
+                               bool force_batch) {
+  // If interactive is set, it means that the shell was started with the option
+  // to Emulate interactive mode while processing the stream
   if (!force_batch && options().interactive) {
-    if (options().full_interactive)
-      _shell->print(prompt());
+    if (options().full_interactive) _shell->print(prompt());
 
     bool comment_first_js_line =
         _shell->interactive_mode() == shcore::IShell_core::Mode::JavaScript;
@@ -525,20 +519,20 @@ int Base_shell::process_stream(std::istream & stream, const std::string& source,
 
       std::getline(stream, line);
 
-      // When processing JavaScript files, validates the very first line to start with #!
-      // If that's the case, it is replaced by a comment indicator //
-      if (comment_first_js_line && line.size() > 1 && line[0] == '#' && line[1] == '!')
+      // When processing JavaScript files, validates the very first line to
+      // start with #! If that's the case, it is replaced by a comment indicator
+      // //
+      if (comment_first_js_line && line.size() > 1 && line[0] == '#' &&
+          line[1] == '!')
         line.replace(0, 2, "//");
 
       comment_first_js_line = false;
 
-      if (options().full_interactive)
-        println(line);
+      if (options().full_interactive) println(line);
 
       process_line(line);
 
-      if (options().full_interactive)
-        _shell->print(prompt());
+      if (options().full_interactive) _shell->print(prompt());
     }
 
     // Being interactive, we do not care about the return value

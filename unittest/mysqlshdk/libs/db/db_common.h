@@ -41,9 +41,7 @@ class Db_tests : public tests::Shell_test_env {
 
   std::shared_ptr<mysqlshdk::db::ISession> make_session();
 
-  static void SetUpTestCase() {
-    first_test = true;
-  }
+  static void SetUpTestCase() { first_test = true; }
 
   static void TearDownTestCase();
 
@@ -51,9 +49,7 @@ class Db_tests : public tests::Shell_test_env {
 
   bool switch_proto();
 
-  const std::string &uri() {
-    return is_classic ? _mysql_uri : _uri;
-  }
+  const std::string &uri() { return is_classic ? _mysql_uri : _uri; }
 
   const std::string &uri_nopass() {
     return is_classic ? _mysql_uri_nopasswd : _uri_nopasswd;

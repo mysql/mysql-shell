@@ -34,11 +34,11 @@
 #undef HAVE_GETPASS
 #endif
 
-#include <cstring>
-#include <cstdio>
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <cstdio>
+#include <cstring>
 
 #include "mysqlsh/get_password.h"
 
@@ -50,21 +50,21 @@
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif /* HAVE_PWD_H */
-#else /* ! HAVE_GETPASS */
+#else  /* ! HAVE_GETPASS */
 #ifndef _WIN32
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
-#ifdef HAVE_TERMIOS_H				/* For tty-password */
-#include	<termios.h>
-#define TERMIO	struct termios
+#ifdef HAVE_TERMIOS_H /* For tty-password */
+#include <termios.h>
+#define TERMIO struct termios
 #else
-#ifdef HAVE_TERMIO_H				/* For tty-password */
-#include	<termio.h>
-#define TERMIO	struct termio
+#ifdef HAVE_TERMIO_H /* For tty-password */
+#include <termio.h>
+#define TERMIO struct termio
 #else
-#include	<sgtty.h>
-#define TERMIO	struct sgttyb
+#include <sgtty.h>
+#define TERMIO struct sgttyb
 #endif
 #endif
 #else
@@ -72,14 +72,14 @@
 #endif /* _WIN32 */
 #endif /* HAVE_GETPASS */
 
-#ifdef HAVE_GETPASSPHRASE			/* For Solaris */
+#ifdef HAVE_GETPASSPHRASE /* For Solaris */
 #define getpass(A) getpassphrase(A)
 #endif
 
 #ifdef _WIN32
 /* were just going to fake it here and get input from
    the keyboard */
-#define ETX 3 // Ctrl+C
+#define ETX 3  // Ctrl+C
 char *mysh_get_tty_password(const char *opt_message) {
   char to[80];
   char *pos = to, *end = to + sizeof(to) - 1;
@@ -92,8 +92,7 @@ char *mysh_get_tty_password(const char *opt_message) {
 
     // A second call must be read with control arrows
     // and control keys
-    if (tmp == 0 || tmp == 0xE0)
-      tmp = _getch();
+    if (tmp == 0 || tmp == 0xE0) tmp = _getch();
 
     if (tmp == '\b' || (int)tmp == 127) {
       if (pos != to) {
@@ -102,15 +101,13 @@ char *mysh_get_tty_password(const char *opt_message) {
         continue;
       }
     }
-    if (tmp == '\n' || tmp == '\r' || tmp == ETX)
-      break;
-    if (iscntrl(tmp) || pos == end)
-      continue;
+    if (tmp == '\n' || tmp == '\r' || tmp == ETX) break;
+    if (iscntrl(tmp) || pos == end) continue;
     _cputs("*");
     *(pos++) = tmp;
   }
   while (pos != to && isspace(pos[-1]) == ' ')
-    pos--;					/* Allow dummy space at end */
+    pos--; /* Allow dummy space at end */
   *pos = 0;
   _cputs("\n");
 
@@ -120,7 +117,7 @@ char *mysh_get_tty_password(const char *opt_message) {
     return nullptr;
 }
 
-#else // !_WIN32
+#else  // !_WIN32
 
 #ifndef HAVE_GETPASS
 /*
@@ -129,65 +126,53 @@ char *mysh_get_tty_password(const char *opt_message) {
 *  to will not include the eol characters.
 */
 
-static int get_password(char *to, int length, int fd, bool echo)
-{
-  char *pos=to,*end=to+length;
+static int get_password(char *to, int length, int fd, bool echo) {
+  char *pos = to, *end = to + length;
 
-  for (;;)
-  {
+  for (;;) {
     char tmp;
-    if (read(fd,&tmp,1) != 1)
-      break;
-    if (tmp == '\b' || (int) tmp == 127)
-    {
-      if (pos != to)
-      {
-        if (echo)
-        {
-          fputs("\b \b",stderr);
+    if (read(fd, &tmp, 1) != 1) break;
+    if (tmp == '\b' || (int)tmp == 127) {
+      if (pos != to) {
+        if (echo) {
+          fputs("\b \b", stderr);
           fflush(stderr);
         }
         pos--;
         continue;
       }
     }
-    if (tmp == '\n' || tmp == '\r')
-      break;
-    if (tmp == 3)
-      return -1;
-    if (iscntrl(tmp) || pos == end)
-      continue;
-    if (echo)
-    {
-      fputc('*',stderr);
+    if (tmp == '\n' || tmp == '\r') break;
+    if (tmp == 3) return -1;
+    if (iscntrl(tmp) || pos == end) continue;
+    if (echo) {
+      fputc('*', stderr);
       fflush(stderr);
     }
     *(pos++) = tmp;
   }
   while (pos != to && isspace(pos[-1]) == ' ')
-    pos--;					/* Allow dummy space at end */
-  *pos=0;
+    pos--; /* Allow dummy space at end */
+  *pos = 0;
   return 0;
 }
 
 #endif /* ! HAVE_GETPASS */
 
-char *my_stpnmov(char *dst, const char *src, size_t n)
-{
+char *my_stpnmov(char *dst, const char *src, size_t n) {
   while (n-- != 0) {
     if (!(*dst++ = *src++)) {
-      return (char*) dst-1;
+      return (char *)dst - 1;
     }
   }
   return dst;
 }
 
-char *mysh_get_tty_password(const char *opt_message)
-{
+char *mysh_get_tty_password(const char *opt_message) {
 #ifdef HAVE_GETPASS
   char *passbuff;
-#else /* ! HAVE_GETPASS */
-  TERMIO org,tmp;
+#else  /* ! HAVE_GETPASS */
+  TERMIO org, tmp;
 #endif /* HAVE_GETPASS */
   char buff[80];
 
@@ -200,9 +185,8 @@ char *mysh_get_tty_password(const char *opt_message)
   memset(passbuff, 0, _PASSWORD_LEN);
 #endif
 #else
-  if (isatty(fileno(stderr)))
-  {
-    fputs(opt_message ? opt_message : "Enter password: ",stderr);
+  if (isatty(fileno(stderr))) {
+    fputs(opt_message ? opt_message : "Enter password: ", stderr);
     fflush(stderr);
   }
 #if defined(HAVE_TERMIOS_H)
@@ -212,34 +196,33 @@ char *mysh_get_tty_password(const char *opt_message)
   tmp.c_cc[VMIN] = 1;
   tmp.c_cc[VTIME] = 0;
   tcsetattr(fileno(stdin), TCSADRAIN, &tmp);
-  if (get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)))
-      < 0)
+  if (get_password(buff, sizeof(buff) - 1, fileno(stdin),
+                   isatty(fileno(stderr))) < 0)
     return nullptr;
   tcsetattr(fileno(stdin), TCSADRAIN, &org);
 #elif defined(HAVE_TERMIO_H)
-  ioctl(fileno(stdin), (int) TCGETA, &org);
-  tmp=org;
+  ioctl(fileno(stdin), (int)TCGETA, &org);
+  tmp = org;
   tmp.c_lflag &= ~(ECHO | ISIG | ICANON);
   tmp.c_cc[VMIN] = 1;
-  tmp.c_cc[VTIME]= 0;
-  ioctl(fileno(stdin),(int) TCSETA, &tmp);
-  if (get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)))
-      < 0)
+  tmp.c_cc[VTIME] = 0;
+  ioctl(fileno(stdin), (int)TCSETA, &tmp);
+  if (get_password(buff, sizeof(buff) - 1, fileno(stdin),
+                   isatty(fileno(stderr))) < 0)
     return nullptr;
-  ioctl(fileno(stdin),(int) TCSETA, &org);
+  ioctl(fileno(stdin), (int)TCSETA, &org);
 #else
   gtty(fileno(stdin), &org);
-  tmp=org;
+  tmp = org;
   tmp.sg_flags &= ~ECHO;
   tmp.sg_flags |= RAW;
   stty(fileno(stdin), &tmp);
-  if (get_password(buff, sizeof(buff)-1, fileno(stdin), isatty(fileno(stderr)))
-      < 0)
+  if (get_password(buff, sizeof(buff) - 1, fileno(stdin),
+                   isatty(fileno(stderr))) < 0)
     return nullptr;
   stty(fileno(stdin), &org);
 #endif
-  if (isatty(fileno(stderr)))
-    fputc('\n',stderr);
+  if (isatty(fileno(stderr))) fputc('\n', stderr);
 #endif /* HAVE_GETPASS */
 
   return strdup(buff);
@@ -248,14 +231,14 @@ char *mysh_get_tty_password(const char *opt_message)
 #endif /* !_WIN32 */
 
 extern "C" {
-  char *yassl_mysql_get_tty_password_ext(const char *opt_message,
-                             strdup_handler_t strdup_function) {
-    char *tmp = mysh_get_tty_password(opt_message);
-    if (tmp) {
-      char *tmp2 = strdup_function(tmp, 0);
-      free(tmp);
-      return tmp2;
-    }
-    return NULL;
+char *yassl_mysql_get_tty_password_ext(const char *opt_message,
+                                       strdup_handler_t strdup_function) {
+  char *tmp = mysh_get_tty_password(opt_message);
+  if (tmp) {
+    char *tmp2 = strdup_function(tmp, 0);
+    free(tmp);
+    return tmp2;
   }
+  return NULL;
+}
 }

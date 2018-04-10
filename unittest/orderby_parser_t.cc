@@ -22,22 +22,22 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <string>
-#include <sstream>
-#include <vector>
 #include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
-#include "gtest_clean.h"
-#include "db/mysqlx/orderby_parser.h"
-#include "scripting/types_cpp.h"
-#include "scripting/common.h"
 #include "db/mysqlx/mysqlxclient_clean.h"
+#include "db/mysqlx/orderby_parser.h"
+#include "gtest_clean.h"
+#include "scripting/common.h"
+#include "scripting/types_cpp.h"
 
 using namespace mysqlx;
 
 namespace shcore {
 namespace Orderby_parser_tests {
-void print_tokens(const Orderby_parser& p, std::stringstream& out) {
+void print_tokens(const Orderby_parser &p, std::stringstream &out) {
   bool first = true;
   out << "[";
   for (std::vector<Token>::const_iterator it = p.begin(); it != p.end(); ++it) {
@@ -50,13 +50,16 @@ void print_tokens(const Orderby_parser& p, std::stringstream& out) {
   out << "]";
 }
 
-void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed, bool document_mode = false) {
+void parse_and_assert_expr(const std::string &input,
+                           const std::string &token_list,
+                           const std::string &unparsed,
+                           bool document_mode = false) {
   std::stringstream out, out_tokens;
   Orderby_parser p(input, document_mode);
   print_tokens(p, out_tokens);
   std::string token_list2 = out_tokens.str();
   ASSERT_TRUE(token_list == token_list2);
-  google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Order> cols;
+  google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Order> cols;
   p.parse(cols);
   std::string s = Expr_unparser::order_list_to_string(cols);
   out << s;
@@ -69,7 +72,8 @@ TEST(Orderby_parser_tests, simple) {
   parse_and_assert_expr("col1 asc", "[19, 57]", "orderby (col1 asc)");
   parse_and_assert_expr("a", "[19]", "orderby (a asc)");
   EXPECT_ANY_THROW(parse_and_assert_expr("a asc, col1 desc, b asc",
-    "[19, 57, 24, 19, 58, 24, 19, 57]", "orderby (a asc, col1 desc, b asc)"));
+                                         "[19, 57, 24, 19, 58, 24, 19, 57]",
+                                         "orderby (a asc, col1 desc, b asc)"));
 }
-};
-};
+};  // namespace Orderby_parser_tests
+};  // namespace shcore

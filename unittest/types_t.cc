@@ -84,9 +84,7 @@ TEST(ValueTests, SimpleBool) {
   EXPECT_FALSE(Value::False() == Value::Null());
 }
 
-TEST(ValueTests, SimpleDouble) {
-  EXPECT_EQ(Value(1.1234).as_double(), 1.1234);
-}
+TEST(ValueTests, SimpleDouble) { EXPECT_EQ(Value(1.1234).as_double(), 1.1234); }
 
 TEST(ValueTests, Conversion) {
   // OK conversions

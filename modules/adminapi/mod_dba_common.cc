@@ -1014,14 +1014,15 @@ bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
       auto session_address =
           session_options.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
-      console->print_error("The MySQL instance at '" + session_address +
-                "' currently has "
-                "the super_read_only system variable set to protect it from "
-                "inadvertent updates from applications. You must first unset it to "
-                "be "
-                "able to perform any changes to this instance. "
-                "For more information see: https://dev.mysql.com/doc/refman/en/"
-                "server-system-variables.html#sysvar_super_read_only.");
+      console->print_error(
+          "The MySQL instance at '" + session_address +
+          "' currently has "
+          "the super_read_only system variable set to protect it from "
+          "inadvertent updates from applications. You must first unset it to "
+          "be "
+          "able to perform any changes to this instance. "
+          "For more information see: https://dev.mysql.com/doc/refman/en/"
+          "server-system-variables.html#sysvar_super_read_only.");
 
       // Get the list of open session to the instance
       std::vector<std::pair<std::string, int>> open_sessions;
@@ -1262,8 +1263,7 @@ std::string prompt_cnf_path(
       console_handler->println(
           "Found configuration file at standard location: " + value);
 
-      if (console_handler->confirm(
-              "Do you want to modify this file?") ==
+      if (console_handler->confirm("Do you want to modify this file?") ==
           Prompt_answer::YES) {
         cnfPath = value;
         break;
@@ -1758,12 +1758,10 @@ void print_validation_results(
     std::shared_ptr<mysqlsh::IConsole> console_handler, bool print_note) {
   auto errors = result->get_array("errors");
 
-  for (auto error : *errors)
-    console_handler->print_error(error.as_string());
+  for (auto error : *errors) console_handler->print_error(error.as_string());
 
   if (result->has_key("config_errors")) {
-    console_handler->print_note(
-        "Some configuration options need to be fixed:");
+    console_handler->print_note("Some configuration options need to be fixed:");
 
     auto config_errors = result->get_array("config_errors");
 
@@ -1832,11 +1830,12 @@ std::string get_canonical_instance_address(
   throw std::logic_error("Unable to query instance address");
 }
 
-
-void validate_connection_options(const Connection_options &options,
+void validate_connection_options(
+    const Connection_options &options,
     std::function<shcore::Exception(const std::string &)> factory) {
   auto throw_exception = [&options, &factory](const std::string &error) {
-    throw factory("Connection '" +
+    throw factory(
+        "Connection '" +
         options.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
         "' is not valid: " + error + ".");
   };
@@ -1844,8 +1843,9 @@ void validate_connection_options(const Connection_options &options,
   if (options.has_transport_type() &&
       options.get_transport_type() != mysqlshdk::db::Tcp) {
     // TODO(ak) this restriction should be lifted and sockets allowed
-    throw_exception("a MySQL session through TCP/IP is required to perform "
-                    "this operation");
+    throw_exception(
+        "a MySQL session through TCP/IP is required to perform "
+        "this operation");
   }
 
   if (options.has_host()) {
@@ -1853,7 +1853,9 @@ void validate_connection_options(const Connection_options &options,
     const std::string &host = options.get_host();
 
     if (mysqlshdk::utils::Net::is_ipv6(host))
-      throw_exception(host + " is an IPv6 address, which is not supported by "
+      throw_exception(
+          host +
+          " is an IPv6 address, which is not supported by "
           "the Group Replication. Please ensure an IPv4 address is used when "
           "setting up an InnoDB cluster");
 

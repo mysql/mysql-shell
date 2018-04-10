@@ -129,11 +129,10 @@ bool Check_instance::check_configuration() {
   bool config_file_change;
   bool dynamic_sysvar_change;
 
-  if (!checks::validate_configuration(m_target_instance, m_mycnf_path,
-                                      m_console, m_provisioning_interface,
-                                      &restart, &config_file_change,
-                                      &dynamic_sysvar_change, &fatal_errors,
-                                      &m_ret_val)) {
+  if (!checks::validate_configuration(
+          m_target_instance, m_mycnf_path, m_console, m_provisioning_interface,
+          &restart, &config_file_change, &dynamic_sysvar_change, &fatal_errors,
+          &m_ret_val)) {
     // If there are fatal errors, abort immediately
     if (fatal_errors) {
       m_console->print_note("Please fix issues and try again.");

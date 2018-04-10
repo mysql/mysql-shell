@@ -64,12 +64,9 @@ class Generic_option {
                  std::vector<std::string> &&command_line_names,
                  const char *help);
 
-  virtual ~Generic_option() {
-  }
+  virtual ~Generic_option() {}
 
-  void set(const std::string &new_value) {
-    set(new_value, Source::User);
-  }
+  void set(const std::string &new_value) { set(new_value, Source::User); }
 
   virtual std::string get_value_as_string() const {
     assert(false);  // unimplemented
@@ -89,27 +86,17 @@ class Generic_option {
 
   virtual std::vector<std::string> get_cmdline_names();
 
-  bool accepts_null_argument() const {
-    return accept_null;
-  }
-  bool accepts_no_cmdline_value() const {
-    return no_cmdline_value;
-  }
+  bool accepts_null_argument() const { return accept_null; }
+  bool accepts_no_cmdline_value() const { return no_cmdline_value; }
 
   std::vector<std::string> get_cmdline_help(std::size_t options_width,
                                             std::size_t help_width) const;
 
-  const std::string &get_name() const {
-    return name;
-  }
+  const std::string &get_name() const { return name; }
 
-  Source get_source() const {
-    return source;
-  }
+  Source get_source() const { return source; }
 
-  const char *get_help() const {
-    return help;
-  }
+  const char *get_help() const { return help; }
 
  protected:
   virtual void set(const std::string &new_value, Source source) = 0;
@@ -178,9 +165,7 @@ class Concrete_option : public Generic_option {
     set(value, Source::Command_line);
   }
 
-  const T &get() const {
-    return *landing_spot;
-  }
+  const T &get() const { return *landing_spot; }
 
  protected:
   T *landing_spot;
@@ -232,16 +217,14 @@ Proxy_option::Handler assign_value(T *landing_spot, S value) {
 template <class T>
 T convert(const std::string &data) {
   // assuming that option specification turns it on
-  if (data.empty())
-    return static_cast<T>(1);
+  if (data.empty()) return static_cast<T>(1);
   T t;
   std::istringstream iss(data);
   iss >> t;
   if (iss.fail()) {
     iss.clear();
     iss >> std::boolalpha >> t;
-    if (iss.fail())
-      throw std::invalid_argument("Incorrect option value.");
+    if (iss.fail()) throw std::invalid_argument("Incorrect option value.");
   } else if (!iss.eof()) {
     throw std::invalid_argument("Malformed option value.");
   }
@@ -265,9 +248,7 @@ std::string serialize(const std::string &val);
 /// Validator that does some standard type conversion
 template <class T>
 struct Basic_type {
-  T operator()(const std::string &data, Source) {
-    return convert<T>(data);
-  }
+  T operator()(const std::string &data, Source) { return convert<T>(data); }
 };
 
 /// Wrapper for validator that prohibits user from setting option value
@@ -283,14 +264,11 @@ struct Read_only : public Basic_type<T> {
 /// Extension of Basic_type validator to enable range checks
 template <class T>
 struct Range : public Basic_type<T> {
-  Range(T min, T max) : min(min), max(max) {
-    assert(max >= min);
-  }
+  Range(T min, T max) : min(min), max(max) { assert(max >= min); }
 
   T operator()(const std::string &data, Source source) {
     T t = Basic_type<T>::operator()(data, source);
-    if (t < min || t > max)
-      throw std::out_of_range("value out of range");
+    if (t < min || t > max) throw std::out_of_range("value out of range");
     return t;
   }
 
@@ -303,8 +281,7 @@ class Options {
   using NamedOptions = std::map<std::string, opts::Generic_option *>;
 
   struct Add_named_option_helper {
-    explicit Add_named_option_helper(Options &options) : parent(options) {
-    }
+    explicit Add_named_option_helper(Options &options) : parent(options) {}
 
     template <class T, class S>
     Add_named_option_helper &operator()(
@@ -350,8 +327,7 @@ class Options {
   };
 
   struct Add_startup_option_helper {
-    explicit Add_startup_option_helper(Options &options) : parent(options) {
-    }
+    explicit Add_startup_option_helper(Options &options) : parent(options) {}
 
     template <class T, class S>
     Add_startup_option_helper &operator()(
@@ -403,8 +379,7 @@ class Options {
                                     bool accept_null = false) noexcept;
 
   explicit Options(const std::string &config_file = "");
-  virtual ~Options() {
-  }
+  virtual ~Options() {}
 
   Options(const Options &) = delete;
   Options &operator=(const Options &) = delete;
@@ -476,7 +451,7 @@ class Options {
   NamedOptions::const_iterator find_option(
       const std::string &option_name) const;
 
-  std::vector<std::unique_ptr<opts::Generic_option> > options;
+  std::vector<std::unique_ptr<opts::Generic_option>> options;
   NamedOptions named_options;
   std::map<std::string, opts::Generic_option *, Command_line_comparator>
       cmdline_options;

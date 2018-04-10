@@ -31,11 +31,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "db/column.h"
+#include "db/row.h"
 #include "modules/mod_common.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "db/column.h"
-#include "db/row.h"
 
 namespace mysqlsh {
 // This is the Shell Common Base Class for all the resultset classes
@@ -49,17 +49,16 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
 };
 
 /**
-* \ingroup ShellAPI
-* Represents the a Column definition on a result.
-*/
+ * \ingroup ShellAPI
+ * Represents the a Column definition on a result.
+ */
 class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
  public:
   Column(const std::string &schema, const std::string &org_table,
          const std::string &table, const std::string &org_name,
          const std::string &name, shcore::Value type, uint32_t length,
-         int fractional, bool is_unsigned,
-         const std::string &collation, const std::string &charset,
-         bool zerofill);
+         int fractional, bool is_unsigned, const std::string &collation,
+         const std::string &charset, bool zerofill);
 
   Column(const mysqlshdk::db::Column &meta, shcore::Value type);
 
@@ -249,9 +248,9 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 };
 
 /**
-* \ingroup ShellAPI
-* Represents the a Row in a Result.
-*/
+ * \ingroup ShellAPI
+ * Represents the a Row in a Result.
+ */
 #if !DOXYGEN_CPP
 /**
  * \b Dynamic \b Properties

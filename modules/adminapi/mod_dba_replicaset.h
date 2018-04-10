@@ -29,15 +29,15 @@
 #define JSON_TOPOLOGY_OUTPUT 2
 #define JSON_RESCAN_OUTPUT 3
 
-#include <string>
 #include <set>
+#include <string>
 #include <vector>
 
+#include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -46,8 +46,8 @@ class Cluster;
 
 #if DOXYGEN_CPP
 /**
-* Represents a ReplicaSet
-*/
+ * Represents a ReplicaSet
+ */
 #endif
 class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                    public shcore::Cpp_object_bridge {
@@ -64,7 +64,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   virtual std::string class_name() const { return "ReplicaSet"; }
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
                                     int quote_strings = 0) const;
-  virtual bool operator == (const Object_bridge &other) const;
+  virtual bool operator==(const Object_bridge &other) const;
 
   virtual shcore::Value get_member(const std::string &prop) const;
 
@@ -79,9 +79,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   std::string get_topology_type() const { return _topology_type; }
 
-  const std::string &get_group_name() const {
-    return _group_name;
-  }
+  const std::string &get_group_name() const { return _group_name; }
 
   void set_group_name(const std::string &group_name);
 
@@ -103,7 +101,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const mysqlshdk::db::Connection_options &cnx_opt,
       const std::vector<std::string> &ignore_instances_vector,
       std::function<void(std::shared_ptr<mysqlshdk::db::ISession> session)>
-      functor);
+          functor);
 
   static char const *kTopologyPrimaryMaster;
   static char const *kTopologyMultiMaster;
@@ -144,9 +142,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
-  shcore::Value rejoin_instance
-    (mysqlshdk::db::Connection_options *instance_def,
-     const shcore::Value::Map_type_ref &options);
+  shcore::Value rejoin_instance(mysqlshdk::db::Connection_options *instance_def,
+                                const shcore::Value::Map_type_ref &options);
   shcore::Value remove_instance_(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
@@ -157,8 +154,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of_(
       const shcore::Argument_list &args);
-  shcore::Value get_status(
-      const mysqlsh::dba::Cluster_check_info &state) const;
+  shcore::Value get_status(const mysqlsh::dba::Cluster_check_info &state) const;
 
   void remove_instances_from_gr(
       const std::vector<Instance_definition> &instances);
@@ -166,7 +162,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                                const mysqlshdk::db::Connection_options &data);
   Cluster_check_info check_preconditions(
       std::shared_ptr<mysqlshdk::db::ISession> group_session,
-      const std::string& function_name) const;
+      const std::string &function_name) const;
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
@@ -205,11 +201,11 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       std::shared_ptr<mysqlshdk::db::ISession> session,
       const std::string &hostname, int port);
   void validate_server_uuid(
-    std::shared_ptr<mysqlshdk::db::ISession> instance_session);
+      std::shared_ptr<mysqlshdk::db::ISession> instance_session);
 
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
   std::string get_cluster_group_seeds(
-      std::shared_ptr<mysqlshdk::db::ISession> instance_session=nullptr);
+      std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);
 
   void finalize_instance_removal(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
@@ -220,7 +216,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
   std::shared_ptr<IConsole> m_console;
   std::shared_ptr<mysqlshdk::db::ISession> get_session(
-    const mysqlshdk::db::Connection_options &args);
+      const mysqlshdk::db::Connection_options &args);
 };
 }  // namespace dba
 }  // namespace mysqlsh

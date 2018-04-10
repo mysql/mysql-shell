@@ -21,7 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 #ifndef MYSQLSHDK_LIBS_UTILS_VERSION_H_
 #define MYSQLSHDK_LIBS_UTILS_VERSION_H_
 
@@ -37,33 +36,24 @@ namespace utils {
 class Version {
  public:
   Version();
-  explicit Version(const std::string& version);
+  explicit Version(const std::string &version);
   Version(int major, int minor, int patch)
-      : _major(major), _minor(minor), _patch(patch) {
-  }
+      : _major(major), _minor(minor), _patch(patch) {}
 
-  int get_major() const {
-    return _major;
-  }
-  int get_minor() const {
-    return _minor ? *_minor : 0;
-  }
-  int get_patch() const {
-    return _patch ? *_patch : 0;
-  }
-  std::string get_extra() const {
-    return _extra ? *_extra : "";
-  }
+  int get_major() const { return _major; }
+  int get_minor() const { return _minor ? *_minor : 0; }
+  int get_patch() const { return _patch ? *_patch : 0; }
+  std::string get_extra() const { return _extra ? *_extra : ""; }
 
   std::string get_base() const;
   std::string get_full() const;
 
-  bool operator<(const Version& other);
-  bool operator<=(const Version& other);
-  bool operator>(const Version& other);
-  bool operator>=(const Version& other);
-  bool operator==(const Version& other);
-  bool operator!=(const Version& other);
+  bool operator<(const Version &other);
+  bool operator<=(const Version &other);
+  bool operator>(const Version &other);
+  bool operator>=(const Version &other);
+  bool operator==(const Version &other);
+  bool operator!=(const Version &other);
 
  private:
   int _major;
@@ -71,7 +61,7 @@ class Version {
   nullable<int> _patch;
   nullable<std::string> _extra;
 
-  int parse_token(const std::string& data);
+  int parse_token(const std::string &data);
 };
 
 }  // namespace utils

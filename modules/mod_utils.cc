@@ -50,14 +50,13 @@ namespace mysqlsh {
  */
 
 mysqlshdk::db::Connection_options get_connection_options(
-    const shcore::Argument_list& args, PasswordFormat format) {
+    const shcore::Argument_list &args, PasswordFormat format) {
   mysqlshdk::db::Connection_options ret_val;
 
   try {
     if (args.size() > 0 && args[0].type == shcore::String) {
       std::string uri = args.string_at(0);
-      if (uri.empty())
-        throw std::invalid_argument("Invalid URI: empty.");
+      if (uri.empty()) throw std::invalid_argument("Invalid URI: empty.");
 
       ret_val = shcore::get_connection_options(args.string_at(0), false);
     } else if (args.size() > 0 && args[0].type == shcore::Map) {
@@ -74,7 +73,7 @@ mysqlshdk::db::Connection_options get_connection_options(
           "connection options",
           ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
 
-      for (auto& option : *options) {
+      for (auto &option : *options) {
         if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0)
           ret_val.set_port(connection_map.int_at(option.first));
         else
@@ -97,7 +96,7 @@ mysqlshdk::db::Connection_options get_connection_options(
         ret_val.set_password(args.string_at(1));
       }
     }
-  } catch (const std::invalid_argument& error) {
+  } catch (const std::invalid_argument &error) {
     throw shcore::Exception::argument_error(error.what());
   }
 
@@ -105,7 +104,7 @@ mysqlshdk::db::Connection_options get_connection_options(
 }
 
 void SHCORE_PUBLIC set_password_from_map(
-    Connection_options* options, const shcore::Value::Map_type_ref& map) {
+    Connection_options *options, const shcore::Value::Map_type_ref &map) {
   bool override_pwd = false;
   std::string key;
   for (auto option : *map) {
@@ -113,8 +112,7 @@ void SHCORE_PUBLIC set_password_from_map(
         !options->compare(option.first, mysqlshdk::db::kDbPassword)) {
       // Will allow one override, a second means the password option was
       // duplicate on the second map, let the error raise
-      if (!override_pwd)
-        options->clear_password();
+      if (!override_pwd) options->clear_password();
 
       options->set_password(option.second.as_string());
       key = option.first;
@@ -124,12 +122,11 @@ void SHCORE_PUBLIC set_password_from_map(
 
   // Removes the password from the map if found, this is because password is
   // case insensitive and the rest of the options are not
-  if (override_pwd)
-    map->erase(key);
+  if (override_pwd) map->erase(key);
 }
 
-void SHCORE_PUBLIC set_user_from_map(Connection_options* options,
-                                     const shcore::Value::Map_type_ref& map) {
+void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
+                                     const shcore::Value::Map_type_ref &map) {
   bool override_user = false;
   std::string key;
   for (auto option : *map) {
@@ -137,8 +134,7 @@ void SHCORE_PUBLIC set_user_from_map(Connection_options* options,
         !options->compare(option.first, mysqlshdk::db::kDbUser)) {
       // Will allow one override, a second means the password option was
       // duplicate on the second map, let the error raise
-      if (!override_user)
-        options->clear_user();
+      if (!override_user) options->clear_user();
 
       options->set_user(option.second.as_string());
       key = option.first;
@@ -148,12 +144,11 @@ void SHCORE_PUBLIC set_user_from_map(Connection_options* options,
 
   // Removes the password from the map if found, this is because password is
   // case insensitive and the rest of the options are not
-  if (override_user)
-    map->erase(key);
+  if (override_user) map->erase(key);
 }
 
 shcore::Value::Map_type_ref get_connection_map(
-    const mysqlshdk::db::Connection_options& connection_options) {
+    const mysqlshdk::db::Connection_options &connection_options) {
   shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
 
   if (connection_options.has_scheme())
@@ -218,7 +213,7 @@ shcore::Value::Map_type_ref get_connection_map(
           shcore::Value(ssl.get_tls_version());
   }
 
-  for (auto& option : connection_options.get_extra_options()) {
+  for (auto &option : connection_options.get_extra_options()) {
     if (option.second.is_null())
       (*map)[option.first] = shcore::Value();
     else
@@ -289,7 +284,7 @@ shcore::Value(ssl.get_tls_version());
  *   a delegate is provided, the password will be retrieved through the delegate
  */
 void resolve_connection_credentials(
-    mysqlshdk::db::Connection_options* options,
+    mysqlshdk::db::Connection_options *options,
     std::shared_ptr<mysqlsh::IConsole> console_handler) {
   // Sets a default user if not specified
   // TODO(rennox): Why is it setting root when it should actually be the
@@ -297,8 +292,7 @@ void resolve_connection_credentials(
   // Maybe not for the interactives??
   // Maybe the default user should be passed as parameters and use system if
   // empty oO
-  if (!options->has_user())
-    options->set_user("root");
+  if (!options->has_user()) options->set_user("root");
 
   if (!options->has_password()) {
     std::string uri =
@@ -323,16 +317,15 @@ void resolve_connection_credentials(
 }
 
 void resolve_connection_credentials_deleg(
-    mysqlshdk::db::Connection_options* options,
-    shcore::Interpreter_delegate* delegate) {
+    mysqlshdk::db::Connection_options *options,
+    shcore::Interpreter_delegate *delegate) {
   // Sets a default user if not specified
   // TODO(rennox): Why is it setting root when it should actually be the
   // system user???
   // Maybe not for the interactives??
   // Maybe the default user should be passed as parameters and use system if
   // empty oO
-  if (!options->has_user())
-    options->set_user("root");
+  if (!options->has_user()) options->set_user("root");
 
   if (!options->has_password()) {
     std::string uri =

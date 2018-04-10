@@ -22,9 +22,9 @@
  */
 
 #include <cstring>
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 
 extern "C" const char *g_test_home;
 
@@ -34,16 +34,18 @@ namespace tests {
 
 class Mysqlsh_fieldtypes_all : public Command_line_test {
  public:
-  static int prepare_data(const std::string& shell_binary,
-                          const std::string& uri) {
+  static int prepare_data(const std::string &shell_binary,
+                          const std::string &uri) {
     // Set up test database
     std::stringstream cmd;
-    cmd << shell_binary << " " << uri << " --sql -f " << shcore::path::join_path(g_test_home, "data", "sql", "fieldtypes_all.sql").c_str();
+    cmd << shell_binary << " " << uri << " --sql -f "
+        << shcore::path::join_path(g_test_home, "data", "sql",
+                                   "fieldtypes_all.sql")
+               .c_str();
     return system(cmd.str().c_str());
   }
 
-  Mysqlsh_fieldtypes_all() {
-  }
+  Mysqlsh_fieldtypes_all() {}
 
   static void TearDownTestCase() {
     if (_cleanup_cmd) {
@@ -80,8 +82,7 @@ TEST_F(Mysqlsh_fieldtypes_all, Integer_types_X) {
            "SELECT * FROM t_tinyint;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
       "SELECT * FROM t_tinyint;",
-      multiline({"c1\tc2", "-128\t0", "-1\t1", "0\t127", "1\t200",
-                 "127\t255"}),
+      multiline({"c1\tc2", "-128\t0", "-1\t1", "0\t127", "1\t200", "127\t255"}),
       _output);
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
@@ -96,8 +97,8 @@ TEST_F(Mysqlsh_fieldtypes_all, Integer_types_X) {
            "SELECT * FROM t_mediumint;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
       "SELECT * FROM t_mediumint;",
-      multiline({"c1\tc2", "-8388608\t0", "-1\t1", "0\t8388607",
-                 "1\t16777214", "8388607\t16777215"}),
+      multiline({"c1\tc2", "-8388608\t0", "-1\t1", "0\t8388607", "1\t16777214",
+                 "8388607\t16777215"}),
       _output);
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
@@ -123,8 +124,7 @@ TEST_F(Mysqlsh_fieldtypes_all, Integer_types_classic) {
            "SELECT * FROM t_tinyint;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
       "SELECT * FROM t_tinyint;",
-      multiline({"c1\tc2", "-128\t0", "-1\t1", "0\t127", "1\t200",
-                 "127\t255"}),
+      multiline({"c1\tc2", "-128\t0", "-1\t1", "0\t127", "1\t200", "127\t255"}),
       _output);
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
@@ -139,8 +139,8 @@ TEST_F(Mysqlsh_fieldtypes_all, Integer_types_classic) {
            "SELECT * FROM t_mediumint;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
       "SELECT * FROM t_mediumint;",
-      multiline({"c1\tc2", "-8388608\t0", "-1\t1", "0\t8388607",
-                 "1\t16777214", "8388607\t16777215"}),
+      multiline({"c1\tc2", "-8388608\t0", "-1\t1", "0\t8388607", "1\t16777214",
+                 "8388607\t16777215"}),
       _output);
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
@@ -164,101 +164,93 @@ TEST_F(Mysqlsh_fieldtypes_all, Integer_types_classic) {
 TEST_F(Mysqlsh_fieldtypes_all, Fixed_point_types_X) {
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_decimal1;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_decimal1;",
-                             multiline({"c1\tc2", "-1.1\t0.0",
-                                        "-9.9\t9.8", "9.9\t9.9"}),
-                             _output);
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "SELECT * FROM t_decimal1;",
+      multiline({"c1\tc2", "-1.1\t0.0", "-9.9\t9.8", "9.9\t9.9"}), _output);
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_decimal2;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_decimal2;",
-      multiline({"c1\tc2",
-                 "-1234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "1234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "0.000000000000000000000000000000\t"
-                 "0.000000000000000000000000000000"}),
-      _output);
-
-  execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
-           "SELECT * FROM t_numeric1;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_numeric1;",
-                             multiline({"c1\tc2", "-1.1\t0.0",
-                                        "-9.9\t9.8", "9.9\t9.9"}),
+  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_decimal2;",
+                             multiline({"c1\tc2",
+                                        "-1234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "1234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "0.000000000000000000000000000000\t"
+                                        "0.000000000000000000000000000000"}),
                              _output);
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
-           "SELECT * FROM t_numeric2;", NULL});
+           "SELECT * FROM t_numeric1;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_numeric2;",
-      multiline({"c1\tc2",
-                 "-1234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "1234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "0.000000000000000000000000000000\t"
-                 "0.000000000000000000000000000000"}),
-      _output);
+      "SELECT * FROM t_numeric1;",
+      multiline({"c1\tc2", "-1.1\t0.0", "-9.9\t9.8", "9.9\t9.9"}), _output);
+
+  execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
+           "SELECT * FROM t_numeric2;", NULL});
+  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_numeric2;",
+                             multiline({"c1\tc2",
+                                        "-1234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "1234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "0.000000000000000000000000000000\t"
+                                        "0.000000000000000000000000000000"}),
+                             _output);
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Fixed_point_types_classic) {
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_decimal1;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_decimal1;",
-                             multiline({"c1\tc2", "-1.1\t0.0",
-                                        "-9.9\t9.8", "9.9\t9.9"}),
-                             _output);
+  MY_EXPECT_MULTILINE_OUTPUT(
+      "SELECT * FROM t_decimal1;",
+      multiline({"c1\tc2", "-1.1\t0.0", "-9.9\t9.8", "9.9\t9.9"}), _output);
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_decimal2;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_decimal2;",
-      multiline({"c1\tc2",
-                 "-1234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "1234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "0.000000000000000000000000000000\t"
-                 "0.000000000000000000000000000000"}),
-      _output);
-
-  execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
-           "SELECT * FROM t_numeric1;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_numeric1;",
-                             multiline({"c1\tc2", "-1.1\t0.0",
-                                        "-9.9\t9.8", "9.9\t9.9"}),
+  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_decimal2;",
+                             multiline({"c1\tc2",
+                                        "-1234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "1234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "0.000000000000000000000000000000\t"
+                                        "0.000000000000000000000000000000"}),
                              _output);
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
-           "SELECT * FROM t_numeric2;", NULL});
+           "SELECT * FROM t_numeric1;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_numeric2;",
-      multiline({"c1\tc2",
-                 "-1234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "1234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234\t"
-                 "9234567890123456789012345678901234."
-                 "567890123456789012345678901234",
-                 "0.000000000000000000000000000000\t"
-                 "0.000000000000000000000000000000"}),
-      _output);
+      "SELECT * FROM t_numeric1;",
+      multiline({"c1\tc2", "-1.1\t0.0", "-9.9\t9.8", "9.9\t9.9"}), _output);
+
+  execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
+           "SELECT * FROM t_numeric2;", NULL});
+  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_numeric2;",
+                             multiline({"c1\tc2",
+                                        "-1234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "1234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234\t"
+                                        "9234567890123456789012345678901234."
+                                        "567890123456789012345678901234",
+                                        "0.000000000000000000000000000000\t"
+                                        "0.000000000000000000000000000000"}),
+                             _output);
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_X) {
@@ -273,11 +265,10 @@ TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_X) {
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_float;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_float;",
-      multiline({"c1\tc2", "-1220220\t0.0001", "-1.02323\t1.2333",
-                 "123523\t112353"}),
-      _output);
+  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_float;",
+                             multiline({"c1\tc2", "-1220220\t0.0001",
+                                        "-1.02323\t1.2333", "123523\t112353"}),
+                             _output);
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_double;", NULL});
@@ -301,11 +292,10 @@ TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_classic) {
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_float;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_float;",
-      multiline({"c1\tc2", "-1220220\t0.0001", "-1.02323\t1.2333",
-                 "123523\t112353"}),
-      _output);
+  MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_float;",
+                             multiline({"c1\tc2", "-1220220\t0.0001",
+                                        "-1.02323\t1.2333", "123523\t112353"}),
+                             _output);
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_double;", NULL});
@@ -401,8 +391,7 @@ TEST_F(Mysqlsh_fieldtypes_all, Other_types_X) {
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_set;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_set;",
-                             multiline({"c1\tc2", "v1,v2\t", "\t"}),
-                             _output);
+                             multiline({"c1\tc2", "v1,v2\t", "\t"}), _output);
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Other_types_classic) {
@@ -423,7 +412,6 @@ TEST_F(Mysqlsh_fieldtypes_all, Other_types_classic) {
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_set;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_set;",
-                             multiline({"c1\tc2", "v1,v2\t", "\t"}),
-                             _output);
+                             multiline({"c1\tc2", "v1,v2\t", "\t"}), _output);
 }
 }  // namespace tests

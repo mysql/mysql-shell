@@ -25,27 +25,27 @@
 #include <string>
 
 #include "gtest_clean.h"
-#include "scripting/types.h"
-#include "scripting/lang_base.h"
-#include "scripting/types_cpp.h"
 #include "scripting/common.h"
+#include "scripting/lang_base.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
-#include "shellcore/shell_core.h"
-#include "shellcore/shell_sql.h"
-#include "shellcore/base_session.h"
 #include "modules/devapi/base_resultset.h"
 #include "modules/mod_shell_options.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "shellcore/base_session.h"
+#include "shellcore/shell_core.h"
 #include "shellcore/shell_resultset_dumper.h"
+#include "shellcore/shell_sql.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 
 extern "C" const char *g_test_home;
 
 namespace shcore {
 namespace shell_core_tests {
 class Shell_core_test : public Shell_core_test_wrapper {
-protected:
+ protected:
   std::string _file_name;
   int _ret_val;
 
@@ -58,20 +58,21 @@ protected:
   void connect() {
     _interactive_shell->process_line("\\connect -mc " + _mysql_uri);
     if (!output_handler.std_err.empty()) {
-      std::cerr << "ERROR connecting to "<<_mysql_uri<<":"<<output_handler.std_err<<"\n";
-      std::cerr << "Test environment is probably wrong. Please check values of MYSQL_URI, MYSQL_PORT, MYSQL_PWD environment variables.\n";
+      std::cerr << "ERROR connecting to " << _mysql_uri << ":"
+                << output_handler.std_err << "\n";
+      std::cerr << "Test environment is probably wrong. Please check values of "
+                   "MYSQL_URI, MYSQL_PORT, MYSQL_PWD environment variables.\n";
       FAIL();
     }
   }
 
-  void process(const std::string& path) {
+  void process(const std::string &path) {
     wipe_all();
 
     _file_name = shcore::path::join_path(g_test_home, "data", path);
 
     std::ifstream stream(_file_name.c_str());
-    if (stream.fail())
-      FAIL();
+    if (stream.fail()) FAIL();
 
     _ret_val = _interactive_shell->process_stream(stream, _file_name, {});
     stream.close();
@@ -133,7 +134,8 @@ TEST_F(Shell_core_test, test_process_js_file_with_params) {
 
   _interactive_shell->process_line("\\js");
 
-  std::string file_name = shcore::path::join_path(g_test_home, "data", "js", "script.js");
+  std::string file_name =
+      shcore::path::join_path(g_test_home, "data", "js", "script.js");
 
   _file_name = file_name + " one two";
   _interactive_shell->process_line("\\. " + _file_name);
@@ -166,7 +168,8 @@ TEST_F(Shell_core_test, test_process_py_file_with_params) {
 
   _interactive_shell->process_line("\\py");
 
-  std::string file_name = shcore::path::join_path(g_test_home, "data", "py", "script.py");
+  std::string file_name =
+      shcore::path::join_path(g_test_home, "data", "py", "script.py");
 
   _file_name = file_name + " one two";
   _interactive_shell->process_line("\\. " + _file_name);
@@ -211,16 +214,14 @@ TEST_F(Shell_core_test, python_dictionary_key_handling) {
   wipe_all();
 }
 
-
 TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   connect();
 
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
   _options->wizards = false;
   _interactive_shell->shell_context()->set_global(
-      "session",
-      Value(std::static_pointer_cast<Object_bridge>(
-          std::make_shared<mysqlsh::Options>(get_options()))));
+      "session", Value(std::static_pointer_cast<Object_bridge>(
+                     std::make_shared<mysqlsh::Options>(get_options()))));
   _options->wizards = true;
   EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
 

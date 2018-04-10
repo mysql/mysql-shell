@@ -120,9 +120,7 @@ using FunctionEntry = std::pair<std::string, std::shared_ptr<Cpp_function>>;
 
 std::map<std::string, Cpp_function::Metadata> Cpp_object_bridge::mdtable;
 
-void Cpp_object_bridge::clear_metadata() {
-  mdtable.clear();
-}
+void Cpp_object_bridge::clear_metadata() { mdtable.clear(); }
 
 Cpp_function::Metadata &Cpp_object_bridge::get_metadata(
     const std::string &name) {
@@ -132,7 +130,6 @@ Cpp_function::Metadata &Cpp_object_bridge::get_metadata(
 void Cpp_object_bridge::set_metadata(
     Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,
     const std::vector<std::pair<std::string, Value_type>> &ptypes) {
-
   bool found_optional = false;
   // validate optional parameter sanity
   // func(p1, p2=opt, p3=opt) is ok
@@ -280,8 +277,7 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const {
 
 bool Cpp_object_bridge::has_member_advanced(const std::string &prop,
                                             const NamingStyle &style) const {
-  if (lookup_function(prop, style))
-    return true;
+  if (lookup_function(prop, style)) return true;
 
   auto prop_index = std::find_if(_properties.begin(), _properties.end(),
                                  [prop, style](const Cpp_property_name &p) {
@@ -291,8 +287,7 @@ bool Cpp_object_bridge::has_member_advanced(const std::string &prop,
 }
 
 bool Cpp_object_bridge::has_member(const std::string &prop) const {
-  if (lookup_function(prop, NamingStyle::LowerCamelCase))
-    return true;
+  if (lookup_function(prop, NamingStyle::LowerCamelCase)) return true;
 
   auto prop_index = std::find_if(
       _properties.begin(), _properties.end(),
@@ -320,9 +315,7 @@ void Cpp_object_bridge::set_member(const std::string &prop, Value) {
   throw Exception::attrib_error("Can't set object member " + prop);
 }
 
-bool Cpp_object_bridge::is_indexed() const {
-  return false;
-}
+bool Cpp_object_bridge::is_indexed() const { return false; }
 
 Value Cpp_object_bridge::get_member(size_t) const {
   throw Exception::attrib_error("Can't access object members using an index");
@@ -340,8 +333,7 @@ bool Cpp_object_bridge::has_method(const std::string &name) const {
 
 bool Cpp_object_bridge::has_method_advanced(const std::string &name,
                                             const NamingStyle &style) const {
-  if (lookup_function(name, style))
-    return true;
+  if (lookup_function(name, style)) return true;
   return false;
 }
 
@@ -387,9 +379,8 @@ void Cpp_object_bridge::add_property(const std::string &name,
                                      const std::string &getter) {
   _properties.push_back(Cpp_property_name(name));
   if (!getter.empty())
-    add_method(getter,
-               std::bind(&Cpp_object_bridge::get_member_method, this, _1,
-                         getter, name));
+    add_method(getter, std::bind(&Cpp_object_bridge::get_member_method, this,
+                                 _1, getter, name));
 }
 
 void Cpp_object_bridge::delete_property(const std::string &name,
@@ -400,8 +391,7 @@ void Cpp_object_bridge::delete_property(const std::string &name,
   if (prop_index != _properties.end()) {
     _properties.erase(prop_index);
 
-    if (!getter.empty())
-      _funcs.erase(getter);
+    if (!getter.empty()) _funcs.erase(getter);
   }
 }
 
@@ -428,8 +418,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
   // mechanism is improved
   std::multimap<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
   for (i = _funcs.begin(); i != _funcs.end(); ++i) {
-    if (i->second->name(style) == method)
-      break;
+    if (i->second->name(style) == method) break;
   }
   if (i == _funcs.end()) {
     return std::shared_ptr<Cpp_function>(nullptr);
@@ -445,8 +434,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
   // mechanism is improved
   std::multimap<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
   for (i = _funcs.begin(); i != _funcs.end(); ++i) {
-    if (i->second->name(style) == method)
-      break;
+    if (i->second->name(style) == method) break;
   }
   if (i == _funcs.end()) {
     throw Exception::attrib_error("Invalid object function " + method);
@@ -463,8 +451,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
 
   std::vector<std::pair<int, std::shared_ptr<Cpp_function>>> candidates;
   while (i != _funcs.end() && i->second->name(style) == method) {
-    if (i->second->is_legacy)
-      return i->second;
+    if (i->second->is_legacy) return i->second;
 
     bool match;
     int score;
@@ -496,8 +483,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
                                   get_function_name(method, true) +
                                   " has ambiguous candidates.");
   }
-  throw Exception::attrib_error("Call to " +
-                                get_function_name(method, true) +
+  throw Exception::attrib_error("Call to " + get_function_name(method, true) +
                                 " has wrong parameter count/types.");
 }
 
@@ -518,15 +504,13 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   std::string parent_classes;
   std::vector<std::string> parents = get_help_text(prefix + "_PARENTS");
 
-  if (!parents.empty())
-    parent_classes = parents[0];
+  if (!parents.empty()) parent_classes = parents[0];
 
-  std::vector<std::string> help_prefixes = shcore::split_string(parent_classes,
-                                                                ",");
+  std::vector<std::string> help_prefixes =
+      shcore::split_string(parent_classes, ",");
   help_prefixes.insert(help_prefixes.begin(), prefix);
 
-  if (args.size() == 1)
-    item = args.string_at(0);
+  if (args.size() == 1) item = args.string_at(0);
 
   ret_val += "\n";
 
@@ -545,15 +529,15 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
     std::string suffix = "_" + base_name;
 
-    auto briefs = resolve_help_text(help_prefixes,  suffix + "_BRIEF");
+    auto briefs = resolve_help_text(help_prefixes, suffix + "_BRIEF");
 
     if (!briefs.empty()) {
       ret_val += shcore::format_text(briefs, 80, 0, true);
       ret_val += "\n";  // Second \n
     }
 
-    auto chain_definition = resolve_help_text(help_prefixes, suffix +
-                                              "_CHAINED");
+    auto chain_definition =
+        resolve_help_text(help_prefixes, suffix + "_CHAINED");
 
     std::string additional_help;
     if (chain_definition.empty()) {
@@ -568,17 +552,14 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
           naming_style, class_name(), base_name);
     }
 
-    if (!additional_help.empty())
-      ret_val += "\n" + additional_help;
+    if (!additional_help.empty()) ret_val += "\n" + additional_help;
 
   } else {
     auto details = get_help_text(prefix + "_DETAIL");
     // If there are no details at least includes the brief description
-    if (details.empty())
-      details = get_help_text(prefix + "_BRIEF");
+    if (details.empty()) details = get_help_text(prefix + "_BRIEF");
 
-    if (!details.empty())
-      ret_val += shcore::format_markup_text(details, 80, 0);
+    if (!details.empty()) ret_val += shcore::format_markup_text(details, 80, 0);
 
     if (_properties.size()) {
       size_t text_col = 0;
@@ -597,8 +578,8 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         std::string pname = property.name(shcore::NamingStyle::LowerCamelCase);
 
         // Assuming briefs are one liners for now
-        auto help_text = resolve_help_text(help_prefixes, "_" + pname
-                                           + "_BRIEF");
+        auto help_text =
+            resolve_help_text(help_prefixes, "_" + pname + "_BRIEF");
 
         std::string text = " - " + name;
 
@@ -633,16 +614,15 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         std::string name = function.second->_meta->name[naming_style];
 
         // Skips non public functions
-        if (name.find("__") == 0)
-          continue;
+        if (name.find("__") == 0) continue;
 
         std::string fname =
             function.second->_meta->name[shcore::NamingStyle::LowerCamelCase];
 
         std::string member_suffix = "_" + fname;
 
-        auto help_text = resolve_help_text(help_prefixes, member_suffix
-                                           + "_BRIEF");
+        auto help_text =
+            resolve_help_text(help_prefixes, member_suffix + "_BRIEF");
 
         std::string text = " - " + name;
 
@@ -742,9 +722,7 @@ const std::vector<std::pair<std::string, Value_type>> &Cpp_function::signature()
   return _meta->param_types;
 }
 
-Value_type Cpp_function::return_type() const {
-  return _meta->return_type;
-}
+Value_type Cpp_function::return_type() const { return _meta->return_type; }
 
 bool Cpp_function::operator==(const Function_base &UNUSED(other)) const {
   throw Exception::logic_error("Cannot compare function objects");
@@ -755,8 +733,7 @@ static std::string num_args_expected(
     const std::vector<std::pair<std::string, Value_type>> &argt) {
   size_t min_args = argt.size();
   for (auto i = argt.rbegin(); i != argt.rend(); ++i) {
-    if (i->first[0] == '?' || i->first[0] == '*')
-      --min_args;
+    if (i->first[0] == '?' || i->first[0] == '*') --min_args;
   }
   if (min_args != argt.size()) {
     return std::to_string(min_args) + " to " + std::to_string(argt.size());

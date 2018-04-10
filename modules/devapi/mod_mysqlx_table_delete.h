@@ -36,9 +36,9 @@ namespace mysqlx {
 class Table;
 
 /**
-* \ingroup XDevAPI
-* Handler for Delete operation on Tables.
-*/
+ * \ingroup XDevAPI
+ * Handler for Delete operation on Tables.
+ */
 class TableDelete : public Table_crud_definition,
                     public std::enable_shared_from_this<TableDelete> {
  public:
@@ -70,7 +70,7 @@ class TableDelete : public Table_crud_definition,
   TableDelete bind(str name, Value value);
   Result execute();
 #endif
-private:
+ private:
   Mysqlx::Crud::Delete message_;
 
   struct F {
@@ -85,17 +85,32 @@ private:
   };
 
   uint32_t function_name_to_bitmask(const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("delete" == s) { return F::delete_; }
-    if ("where" == s) { return F::where; }
-    if ("orderBy" == s) { return F::orderBy; }
-    if ("limit" == s) { return F::limit; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("delete" == s) {
+      return F::delete_;
+    }
+    if ("where" == s) {
+      return F::where;
+    }
+    if ("orderBy" == s) {
+      return F::orderBy;
+    }
+    if ("limit" == s) {
+      return F::limit;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
-
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

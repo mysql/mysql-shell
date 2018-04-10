@@ -44,9 +44,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Shell(mysqlsh::Mysql_shell *owner);
   virtual ~Shell();
 
-  virtual std::string class_name() const {
-    return "Shell";
-  }
+  virtual std::string class_name() const { return "Shell"; }
   virtual bool operator==(const Object_bridge &other) const;
 
   virtual void set_member(const std::string &prop, shcore::Value value);

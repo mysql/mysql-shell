@@ -33,7 +33,7 @@ namespace charset {
 
 std::string charset_name_from_collation_id(uint32_t id);
 std::string collation_name_from_collation_id(uint32_t id);
-uint32_t collation_id_from_collation_name(const std::string& collation_name);
+uint32_t collation_id_from_collation_name(const std::string &collation_name);
 
 }  // namespace charset
 }  // namespace db

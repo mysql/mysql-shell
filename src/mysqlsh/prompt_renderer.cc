@@ -42,16 +42,16 @@
 inline std::wstring from_utf8(const std::string &s) {
   std::wstring ws;
   const linenoise_ng::UTF8 *start =
-    reinterpret_cast<const linenoise_ng::UTF8 *>(s.data());
+      reinterpret_cast<const linenoise_ng::UTF8 *>(s.data());
 
   ws.resize(s.size());
   linenoise_ng::UTF16 *target_start =
-    reinterpret_cast<linenoise_ng::UTF16 *>(&ws[0]);
+      reinterpret_cast<linenoise_ng::UTF16 *>(&ws[0]);
   linenoise_ng::UTF16 *new_target_start = target_start;
   if (linenoise_ng::ConvertUTF8toUTF16(
-    &start, start + s.size(), &new_target_start,
-    new_target_start + ws.size(),
-    linenoise_ng::lenientConversion) != linenoise_ng::conversionOK) {
+          &start, start + s.size(), &new_target_start,
+          new_target_start + ws.size(),
+          linenoise_ng::lenientConversion) != linenoise_ng::conversionOK) {
     throw std::logic_error("Could not convert from utf8 string");
   }
   ws.resize(new_target_start - target_start);
@@ -86,17 +86,17 @@ inline size_t utf8_length(const std::string &s) {
 inline std::string to_utf8(const std::wstring &s) {
   std::string ns;
   const linenoise_ng::UTF16 *start =
-    reinterpret_cast<const linenoise_ng::UTF16 *>(s.data());
+      reinterpret_cast<const linenoise_ng::UTF16 *>(s.data());
 
   ns.resize(s.size() * 4);
   linenoise_ng::UTF8 *target_start =
-    reinterpret_cast<linenoise_ng::UTF8 *>(&ns[0]);
+      reinterpret_cast<linenoise_ng::UTF8 *>(&ns[0]);
   linenoise_ng::UTF8 *new_target_start = target_start;
 
   if (linenoise_ng::ConvertUTF16toUTF8(
-    &start, start + s.length(), &new_target_start,
-    new_target_start + ns.size(),
-    linenoise_ng::lenientConversion) != linenoise_ng::conversionOK) {
+          &start, start + s.length(), &new_target_start,
+          new_target_start + ns.size(),
+          linenoise_ng::lenientConversion) != linenoise_ng::conversionOK) {
     throw std::logic_error("Could not convert to utf8 string");
   }
   ns.resize(new_target_start - target_start);
@@ -126,9 +126,9 @@ inline std::string to_utf8(const std::wstring &s) {
 
 namespace mysqlsh {
 
-const char* Prompt_renderer::k_symbol_sep_right_pl = u8"\ue0b0";
-const char* Prompt_renderer::k_symbol_sep_right_hollow_pl = u8"\ue0b1";
-const char* Prompt_renderer::k_symbol_ellipsis_pl = u8"\u2026";
+const char *Prompt_renderer::k_symbol_sep_right_pl = u8"\ue0b0";
+const char *Prompt_renderer::k_symbol_sep_right_hollow_pl = u8"\ue0b1";
+const char *Prompt_renderer::k_symbol_ellipsis_pl = u8"\u2026";
 
 class Prompt_segment {
  public:
@@ -146,8 +146,7 @@ class Prompt_segment {
         ellipsis_(ellipsis) {
     text_ = text;
     hidden_ = false;
-    if (separator)
-      separator_.reset(new std::string(*separator));
+    if (separator) separator_.reset(new std::string(*separator));
   }
 
   int effective_width() const { return hidden_ ? 0 : shrunk_width_; }
@@ -182,7 +181,8 @@ class Prompt_segment {
         size_t pos = a.find_last_of('.', until);
         size_t prev = pos;
         size_t non_negative_length = ((length < 0) ? 0 : length);
-        while (pos != std::string::npos && (a.length() - pos) < non_negative_length) {
+        while (pos != std::string::npos &&
+               (a.length() - pos) < non_negative_length) {
           until = pos - 1;
           prev = pos;
           pos = a.find_last_of('.', until);
@@ -245,9 +245,7 @@ Prompt_renderer::Prompt_renderer(int min_empty_space)
   sep_alt_ = " ";
 }
 
-Prompt_renderer::~Prompt_renderer() {
-  clear();
-}
+Prompt_renderer::~Prompt_renderer() { clear(); }
 
 void Prompt_renderer::clear() {
   for (auto x : segments_) {
@@ -281,7 +279,7 @@ void Prompt_renderer::add_segment(const std::string &text,
 }
 
 void Prompt_renderer::shrink_to_fit() {
-  std::set<Prompt_segment*> hidden_segments;
+  std::set<Prompt_segment *> hidden_segments;
   int usable_space = width_ - min_empty_space_;
 
   for (;;) {
@@ -310,8 +308,7 @@ void Prompt_renderer::shrink_to_fit() {
           if (shrinked > 0) {
             total_width -= shrinked;
           }
-          if (total_width <= usable_space)
-            break;
+          if (total_width <= usable_space) break;
         }
       }
       if (total_width > usable_space) {
@@ -325,8 +322,7 @@ void Prompt_renderer::shrink_to_fit() {
           }
         }
         // nothing else left to shrink
-        if (!ok)
-          break;
+        if (!ok) break;
       } else {
         break;
       }
@@ -348,8 +344,7 @@ std::string Prompt_renderer::render_prompt_line() {
       std::string prompt_str(padding < 0 ? 0 : padding, ' ');
       prompt_str.append(cont_text_);
       line.append(cont_style_).append(prompt_str);
-      if (cont_style_)
-        needs_reset = true;
+      if (cont_style_) needs_reset = true;
     }
   } else {
     shrink_to_fit();
@@ -401,8 +396,7 @@ std::string Prompt_renderer::render_prompt_line() {
           line.append(mysqlshdk::textui::Style::clear());
           needs_reset = false;
         }
-        if (seg->style())
-          needs_reset = true;
+        if (seg->style()) needs_reset = true;
         line.append(seg->style()).append(seg_text);
         last_segment_ = seg;
         last_prompt_width_ += utf8_length(seg_text);
@@ -430,12 +424,10 @@ std::string Prompt_renderer::render_prompt_line() {
       cont_style_ = style;
       line.append(style).append(prompt);
 
-      if (style)
-        needs_reset = true;
+      if (style) needs_reset = true;
     }
   }
-  if (needs_reset)
-    line.append(mysqlshdk::textui::Style::clear());
+  if (needs_reset) line.append(mysqlshdk::textui::Style::clear());
   return line;
 }
 
@@ -455,8 +447,6 @@ void Prompt_renderer::set_width(int width) {
   width_override_ = true;
 }
 
-void Prompt_renderer::set_is_continuing(bool flag) {
-  continued_prompt_ = flag;
-}
+void Prompt_renderer::set_is_continuing(bool flag) { continued_prompt_ = flag; }
 
 }  // namespace mysqlsh

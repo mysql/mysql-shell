@@ -49,17 +49,15 @@ namespace db {
       throw FIELD_ERROR(index, "index out of bounds"); \
   } while (0)
 
-#define GET_VALIDATE_TYPE(index, TYPE_CHECK)         \
-  if (index >= num_fields())                         \
-    throw FIELD_ERROR(index, "index out of bounds"); \
-  if (_data->fields[index] == nullptr)               \
-    throw FIELD_ERROR(index, "field is NULL");       \
-  ftype = get_type(index);                           \
-  if (!(TYPE_CHECK))                                 \
+#define GET_VALIDATE_TYPE(index, TYPE_CHECK)                                  \
+  if (index >= num_fields()) throw FIELD_ERROR(index, "index out of bounds"); \
+  if (_data->fields[index] == nullptr)                                        \
+    throw FIELD_ERROR(index, "field is NULL");                                \
+  ftype = get_type(index);                                                    \
+  if (!(TYPE_CHECK))                                                          \
     throw FIELD_ERROR1(index, "field type is %s", to_string(ftype).c_str());
 
-Row_copy::Row_copy() {
-}
+Row_copy::Row_copy() {}
 
 Row_copy::Row_copy(const IRow &row) {
   _data = std::make_shared<Data>();
@@ -131,9 +129,7 @@ Row_copy::Row_copy(const IRow &row) {
   }
 }
 
-Row_copy::Row_copy(const Row_copy &row) : IRow() {
-  _data = row._data;
-}
+Row_copy::Row_copy(const Row_copy &row) : IRow() { _data = row._data; }
 
 Row_copy &Row_copy::operator=(const Row_copy &row) {
   if (this != &row) {
@@ -142,8 +138,7 @@ Row_copy &Row_copy::operator=(const Row_copy &row) {
   return *this;
 }
 
-Row_copy::~Row_copy() {
-}
+Row_copy::~Row_copy() {}
 
 Type Row_copy::get_type(uint32_t index) const {
   VALIDATE_INDEX(index);
@@ -157,8 +152,7 @@ uint32_t Row_copy::num_fields() const {
 std::string Row_copy::get_as_string(uint32_t index) const {
   VALIDATE_INDEX(index);
 
-  if (is_null(index))
-    return "NULL";
+  if (is_null(index)) return "NULL";
 
   switch (get_type(index)) {
     case Type::Null:

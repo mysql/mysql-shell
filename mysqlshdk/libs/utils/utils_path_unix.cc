@@ -160,8 +160,7 @@ std::string SHCORE_PUBLIC normalize(const std::string &path) {
 
 std::string SHCORE_PUBLIC dirname(const std::string &path) {
   size_t xx = detail::span_dirname(path);
-  if (xx == std::string::npos)
-    return ".";
+  if (xx == std::string::npos) return ".";
   return path.substr(0, xx);
 }
 
@@ -174,15 +173,11 @@ std::string SHCORE_PUBLIC basename(const std::string &path) {
   if (p == std::string::npos || p == path.size() || p == 0 || p == end)
     return path.substr(0, end);
   size_t pp = path.find_first_not_of(k_valid_path_separators, p);
-  if (pp != std::string::npos)
-    p = pp;
+  if (pp != std::string::npos) p = pp;
   return path.substr(p, end - p);
 }
 
-bool exists(const std::string &path) {
-  return access(path.c_str(), F_OK) == 0;
-}
-
+bool exists(const std::string &path) { return access(path.c_str(), F_OK) == 0; }
 
 }  // namespace path
 }  // namespace shcore

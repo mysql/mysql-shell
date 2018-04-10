@@ -35,12 +35,12 @@ namespace mysqlsh {
 namespace mysqlx {
 class Session;
 /**
-* \ingroup XDevAPI
-* $(SQLEXECUTE_BRIEF)
-*
-* $(SQLEXECUTE_DETAIL)
-* \sa Session
-*/
+ * \ingroup XDevAPI
+ * $(SQLEXECUTE_BRIEF)
+ *
+ * $(SQLEXECUTE_DETAIL)
+ * \sa Session
+ */
 class SqlExecute : public Dynamic_object,
                    public std::enable_shared_from_this<SqlExecute> {
  public:
@@ -76,14 +76,23 @@ class SqlExecute : public Dynamic_object,
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("sql" == s) { return F::sql; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("sql" == s) {
+      return F::sql;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
-
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

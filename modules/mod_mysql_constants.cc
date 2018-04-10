@@ -37,7 +37,6 @@
 #pragma clang diagnostic pop
 #endif
 
-
 REGISTER_HELP(MYSQL_TYPE_BRIEF, "Data type constants");
 
 namespace mysqlsh {
@@ -69,8 +68,7 @@ shcore::Value Type::get_member(const std::string &prop) const {
   shcore::Value ret_val = mysqlsh::Constant::get_constant(
       "mysql", "Type", prop, shcore::Argument_list());
 
-  if (!ret_val)
-    ret_val = Cpp_object_bridge::get_member(prop);
+  if (!ret_val) ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
 }

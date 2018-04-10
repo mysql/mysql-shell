@@ -26,7 +26,7 @@ using Version = mysqlshdk::utils::Version;
 namespace mysqlshdk {
 namespace db {
 
-#define TABLE(table)                                                \
+#define TABLE(table)                                          \
   auto result = session->query("select * from xtest." table); \
   const std::vector<Column> &columns = result->get_metadata();
 
@@ -190,7 +190,7 @@ TEST_F(Db_tests, metadata_columns_alltypes) {
           CHECK(0, Type::Enum, 8, false, false, false);
         }
       } else {
-          // X Protocol: SQL Type ENUM doesn't have .length
+        // X Protocol: SQL Type ENUM doesn't have .length
         CHECK(0, Type::Enum, 0, false, false, false);
       }
       CHECK(1, Type::Enum, 0, false, false, false);

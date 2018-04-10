@@ -21,9 +21,9 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/db/mysqlx/row.h"
 #include <cerrno>
 #include "mysqlshdk/libs/db/mysqlx/result.h"
+#include "mysqlshdk/libs/db/mysqlx/row.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -49,17 +49,13 @@ namespace mysqlx {
     Type ftype = get_type(index);                                              \
     if (!(TYPE_CHECK))                                                         \
       throw FIELD_ERROR1(index, "field type is %s", to_string(ftype).c_str()); \
-    if (_row->is_null(index))                                                  \
-      throw FIELD_ERROR(index, "field is null");                               \
+    if (_row->is_null(index)) throw FIELD_ERROR(index, "field is null");       \
     throw FIELD_ERROR(index, "could not get field value");                     \
   } while (0)
 
-Row::Row(const Result *owner) : _owner(owner), _row(nullptr) {
-}
+Row::Row(const Result *owner) : _owner(owner), _row(nullptr) {}
 
-void Row::reset(const xcl::XRow *row) {
-  _row = row;
-}
+void Row::reset(const xcl::XRow *row) { _row = row; }
 
 bool Row::is_null(uint32_t index) const {
   assert(_row);
@@ -149,8 +145,7 @@ std::string Row::get_string(uint32_t index) const {
   switch (type) {
     case Type::Date: {
       ::xcl::DateTime date;
-      if (!_row->get_datetime(index, &date))
-        FAILED_GET_TYPE(index, (true));
+      if (!_row->get_datetime(index, &date)) FAILED_GET_TYPE(index, (true));
       // FIXME workaround for libmysqlxclient bug that always returns a
       // DateTime object with time
       date = xcl::DateTime(date.year(), date.month(), date.day());
@@ -160,27 +155,23 @@ std::string Row::get_string(uint32_t index) const {
     }
     case Type::DateTime: {
       ::xcl::DateTime date;
-      if (!_row->get_datetime(index, &date))
-        FAILED_GET_TYPE(index, (true));
+      if (!_row->get_datetime(index, &date)) FAILED_GET_TYPE(index, (true));
       // FIXME remove the replace once libmysqlx is fixed
       return shcore::str_replace(date.to_string(), "/", "-");
     }
     case Type::Time: {
       ::xcl::Time time;
-      if (!_row->get_time(index, &time))
-        FAILED_GET_TYPE(index, (true));
+      if (!_row->get_time(index, &time)) FAILED_GET_TYPE(index, (true));
       return time.to_string();
     }
     case Type::Enum: {
       std::string enu;
-      if (!_row->get_enum(index, &enu))
-        FAILED_GET_TYPE(index, (true));
+      if (!_row->get_enum(index, &enu)) FAILED_GET_TYPE(index, (true));
       return enu;
     }
     case Type::Set: {
       std::set<std::string> set;
-      if (!_row->get_set(index, &set))
-        FAILED_GET_TYPE(index, (true));
+      if (!_row->get_set(index, &set)) FAILED_GET_TYPE(index, (true));
       return shcore::str_join(set.begin(), set.end(), ",");
     }
     case Type::Geometry:
@@ -188,8 +179,7 @@ std::string Row::get_string(uint32_t index) const {
     case Type::Bytes:
     case Type::String: {
       std::string value;
-      if (!_row->get_string(index, &value))
-        FAILED_GET_TYPE(index, (true));
+      if (!_row->get_string(index, &value)) FAILED_GET_TYPE(index, (true));
       return value;
     }
     case Type::Null:

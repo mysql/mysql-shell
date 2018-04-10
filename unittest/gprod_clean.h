@@ -30,10 +30,10 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 #ifdef WITH_GTEST
-  #include <gtest/gtest_prod.h>
+#include <gtest/gtest_prod.h>
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
-#endif  // UNITTEST_GPROD_CLEAN_H_ 
+#endif  // UNITTEST_GPROD_CLEAN_H_

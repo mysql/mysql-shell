@@ -30,7 +30,7 @@
       {                                  \
         try {                            \
           c;                             \
-        } catch (const e& error) {       \
+        } catch (const e &error) {       \
           EXPECT_STREQ(m, error.what()); \
           throw;                         \
         }                                \
@@ -38,9 +38,9 @@
       e)
 
 using mysqlshdk::db::Connection_options;
-using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::db::Transport_type;
 using mysqlshdk::db::uri_connection_attributes;
+using mysqlshdk::utils::nullable_options::Comparison_mode;
 namespace testing {
 
 TEST(Connection_options, default_initialization) {
@@ -233,7 +233,8 @@ TEST(Connection_options, uri_constructor) {
   const std::string hosts[][2] = {{"localhost", "localhost"}, {"[::1]", "::1"}};
 
   for (const auto &test : hosts) {
-    std::string uri = "mysqlx://user:password@" + test[0] + ":3300/"
+    std::string uri = "mysqlx://user:password@" + test[0] +
+                      ":3300/"
                       "myschema?ssl-mode=REQUIRED";
 
     SCOPED_TRACE(uri);
@@ -279,11 +280,10 @@ TEST(Connection_options, uri_constructor) {
 }
 
 void combine(
-    const std::string& input, const std::string& twisted, size_t index,
-    std::function<void(const std::string&, const std::string)> callback) {
+    const std::string &input, const std::string &twisted, size_t index,
+    std::function<void(const std::string &, const std::string)> callback) {
   std::string my_string(twisted);
-  if (my_string.empty())
-    my_string = shcore::str_lower(input);
+  if (my_string.empty()) my_string = shcore::str_lower(input);
 
   if (index >= my_string.size()) {
     callback(input, my_string);
@@ -298,8 +298,8 @@ void combine(
 }
 
 namespace case_insensitive {
-auto callback = [](const std::string& property, const std::string& twisted,
-                   const std::string& arg_value) {
+auto callback = [](const std::string &property, const std::string &twisted,
+                   const std::string &arg_value) {
   std::string uri = "mysql://root@host?" + twisted + "=" + arg_value;
   mysqlshdk::db::Connection_options data(uri);
   if (!data.has(property)) {
@@ -522,7 +522,7 @@ TEST(Connection_options, set_socket) {
 TEST(Connection_options, case_insensitive_duplicated_attribute) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters on ssl-mode
-  auto callback = [](const std::string& property, const std::string& twisted) {
+  auto callback = [](const std::string &property, const std::string &twisted) {
     mysqlshdk::db::Connection_options data;
     data.set(mysqlshdk::db::kAuthMethod, {"Value"});
 
@@ -540,7 +540,7 @@ TEST(Connection_options, case_insensitive_duplicated_attribute) {
 TEST(Connection_options, invalid_options_after_WL10912) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters for each property
-  auto callback = [](const std::string& property, const std::string& twisted) {
+  auto callback = [](const std::string &property, const std::string &twisted) {
     std::string uri = "mysql://root@host?" + twisted + "=whatever";
     std::string message =
         "Invalid URI: Invalid connection option '" + twisted + "'.";
@@ -550,11 +550,10 @@ TEST(Connection_options, invalid_options_after_WL10912) {
   };
 
   std::set<std::string> invalid_options = {
-      "sslMode",    "sslCa",   "sslCaPath", "sslCrl",     "sslCrlPath",
+      "sslMode",   "sslCa",   "sslCaPath", "sslCrl",     "sslCrlPath",
       "sslCipher", "sslCert", "sslKey",    "authMethod", "sslTlsVersion"};
 
-  for (auto property : invalid_options)
-    combine(property, "", 0, callback);
+  for (auto property : invalid_options) combine(property, "", 0, callback);
 }
 
 }  // namespace testing

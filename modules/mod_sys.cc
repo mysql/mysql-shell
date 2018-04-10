@@ -21,21 +21,18 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <algorithm>
 #include "modules/mod_sys.h"
+#include <algorithm>
 #include "modules/mysqlxtest_utils.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 
-
 namespace mysqlsh {
 
 REGISTER_HELP(SYS_BRIEF, "Gives access to system specific parameters.");
 
-Sys::Sys(shcore::IShell_core* owner) {
-  init();
-}
+Sys::Sys(shcore::IShell_core *owner) { init(); }
 
 void Sys::init() {
   _argv.reset(new shcore::Value::Array_type());
@@ -43,11 +40,9 @@ void Sys::init() {
 
   // Searches for MYSQLX_HOME
   std::string path = shcore::get_mysqlx_home_path();
-  if (!path.empty())
-    path.append("/share/mysqlsh/modules/js");
+  if (!path.empty()) path.append("/share/mysqlsh/modules/js");
   // If MYSQLX_HOME not found, sets the current directory as a valid module path
-  else
-  {
+  else {
     path = shcore::get_binary_folder();
     if (!path.empty())
       path.append("/modules/js");
@@ -59,11 +54,9 @@ void Sys::init() {
 
   // Finally sees if there are additional configured paths
   char *custom_paths = getenv("MYSQLSH_JS_MODULE_PATH");
-  if (custom_paths)
-  {
+  if (custom_paths) {
     auto paths = shcore::split_string(custom_paths, ";");
-    for(auto custom_path: paths)
-      _path->push_back(shcore::Value(custom_path));
+    for (auto custom_path : paths) _path->push_back(shcore::Value(custom_path));
   }
 
   add_property("argv");
@@ -72,7 +65,7 @@ void Sys::init() {
 
 Sys::~Sys() {}
 
-bool Sys::operator == (const Object_bridge &other) const {
+bool Sys::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
@@ -85,40 +78,42 @@ void Sys::set_member(const std::string &prop, shcore::Value value) {
       _argv = value.as_array();
       error.clear();
     }
-  }
-  else if (prop == "path") {
+  } else if (prop == "path") {
     error = "The sys.path property must be an array of strings";
     if (value.type == shcore::Array) {
       auto tmp = value.as_array();
 
-      if (std::find_if(tmp->begin(), tmp->end(), [](const shcore::Value& data) {return data.type != shcore::String;}) != tmp->end())
+      if (std::find_if(tmp->begin(), tmp->end(), [](const shcore::Value &data) {
+            return data.type != shcore::String;
+          }) != tmp->end())
         error = "The sys.path property must be an array of strings";
       else {
         _path = tmp;
         error.clear();
       }
     }
-  }
-  else
-      Cpp_object_bridge::set_member(prop, value);
+  } else
+    Cpp_object_bridge::set_member(prop, value);
 
-  if (!error.empty())
-    throw shcore::Exception::argument_error(error);
+  if (!error.empty()) throw shcore::Exception::argument_error(error);
 }
 
-REGISTER_HELP(SYS_ARGV_BRIEF, "Contains the list of arguments available during a script processing.");
-REGISTER_HELP(SYS_PATH_BRIEF, "Lists the search paths to load JavaScript modules.");
+REGISTER_HELP(
+    SYS_ARGV_BRIEF,
+    "Contains the list of arguments available during a script processing.");
+REGISTER_HELP(SYS_PATH_BRIEF,
+              "Lists the search paths to load JavaScript modules.");
 
 /**
-  * $(SHELL_ARGV_BRIEF)
-  */
+ * $(SHELL_ARGV_BRIEF)
+ */
 #if DOXYGEN_JS
 Array Sys::argv;
 #endif
 
 /**
-  * $(SHELL_PATH_BRIEF)
-  */
+ * $(SHELL_PATH_BRIEF)
+ */
 #if DOXYGEN_JS
 Array Sys::path;
 #endif

@@ -32,8 +32,8 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
-#include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
+#include "modules/devapi/mod_mysqlx_session.h"
 
 namespace mysqlsh {
 
@@ -69,10 +69,8 @@ class Completer_frontend : public Shell_core_test_wrapper {
   const char *breakChars = " =+-/\\*?\"'`&<>;|@{([])}";
 
   // just stubs to let completeLine() compile
-  void beep() {
-  }
-  void freeCompletions(linenoiseCompletions *) {
-  }
+  void beep() {}
+  void freeCompletions(linenoiseCompletions *) {}
   using Utf8String = std::string;
   int buflen = 1024;
 
@@ -198,8 +196,9 @@ class Completer_frontend : public Shell_core_test_wrapper {
     _options->db_name_cache = true;
 
     _interactive_shell.reset(new mysqlsh::Command_line_shell(
-        get_options(), std::unique_ptr<shcore::Interpreter_delegate>(
-                   new shcore::Interpreter_delegate(output_handler.deleg))));
+        get_options(),
+        std::unique_ptr<shcore::Interpreter_delegate>(
+            new shcore::Interpreter_delegate(output_handler.deleg))));
 
     execute("\\py");
     execute("import sys");
@@ -241,8 +240,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
     if (_interactive_shell->shell_context()->interactive_mode() ==
         shcore::IShell_core::Mode::Python) {
       execute_noerr("callable(checkvar." + member + ")");
-      if (output_handler.std_out == "True\n")
-        return true;
+      if (output_handler.std_out == "True\n") return true;
       assert(output_handler.std_out == "False\n");
       return false;
     } else {
@@ -250,8 +248,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
           "['Function', 'm.Function']."
           "indexOf(type(checkvar." +
           member + ")) >= 0");
-      if (output_handler.std_out == "true\n")
-        return true;
+      if (output_handler.std_out == "true\n") return true;
       assert(output_handler.std_out == "false\n");
       return false;
     }
@@ -339,8 +336,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
     for (auto &s : completions) {
       // strip ()
       auto pos = s.find('(');
-      if (pos != std::string::npos)
-        s = s.substr(0, pos);
+      if (pos != std::string::npos) s = s.substr(0, pos);
     }
 
     wipe_all();
@@ -351,8 +347,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
       wipe_all();
       execute_noerr("'shell.Object' in str(type(tmpvar))");
       shcore::Value result = shcore::Value::parse(output_handler.std_out);
-      if (result.descr() == "False")
-        return;
+      if (result.descr() == "False") return;
     } else {
       execute_noerr("var tmpvar = " + expr);
       ASSERT_EQ("", output_handler.std_err);
@@ -361,8 +356,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
           "'Boolean'].indexOf(type(tmpvar)) >= 0");
       shcore::Value result = shcore::Value::parse(output_handler.std_out);
       // don't need to check non-object types
-      if (result.as_bool())
-        return;
+      if (result.as_bool()) return;
     }
 
     wipe_all();
@@ -678,9 +672,8 @@ TEST_F(Completer_frontend, js_adminapi) {
       strv({"checkInstanceConfiguration()", "configureInstance()",
             "configureLocalInstance()", "createCluster()",
             "deleteSandboxInstance()", "deploySandboxInstance()",
-            "dropMetadataSchema()", "getCluster()",
-            "help()", "killSandboxInstance()",
-            "rebootClusterFromCompleteOutage()",
+            "dropMetadataSchema()", "getCluster()", "help()",
+            "killSandboxInstance()", "rebootClusterFromCompleteOutage()",
             "startSandboxInstance()", "stopSandboxInstance()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploySandboxInstance()");
 }
@@ -808,9 +801,9 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   EXPECT_AFTER_TAB_TAB(
       "people.",
       strv({"add()", "addOrReplaceOne()", "createIndex()", "dropIndex()",
-        "existsInDatabase()", "find()", "getName()", "getOne()", "getSchema()",
-        "getSession()", "help()", "modify()", "name", "remove()", "removeOne()",
-        "replaceOne()", "schema", "session"}));
+            "existsInDatabase()", "find()", "getName()", "getOne()",
+            "getSchema()", "getSession()", "help()", "modify()", "name",
+            "remove()", "removeOne()", "replaceOne()", "schema", "session"}));
   EXPECT_AFTER_TAB("people.f", "people.find()");
   EXPECT_AFTER_TAB("people.find().e", "people.find().execute()");
   EXPECT_AFTER_TAB("var f = people.find().b", "var f = people.find().bind()");
@@ -1025,10 +1018,17 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
   CHECK_OBJECT_MEMBER_COMPLETIONS("db", db_calls);
 
   std::vector<std::pair<std::string, std::string>> collection_calls{
-      {"add", "({})"}, {"addOrReplaceOne", "('0', {})"},  {"modify", "('0')"},
-      {"remove", "('0')"}, {"removeOne", "('0')"}, {"replaceOne", "('0', {})"},
-      {"getOne", "('0')"}, {"find", "('0')"}, {"createIndex", "('x', {fields:[{field:'$.field'}]})"},
-      {"dropIndex", "('x')"}, {"help", ""}};
+      {"add", "({})"},
+      {"addOrReplaceOne", "('0', {})"},
+      {"modify", "('0')"},
+      {"remove", "('0')"},
+      {"removeOne", "('0')"},
+      {"replaceOne", "('0', {})"},
+      {"getOne", "('0')"},
+      {"find", "('0')"},
+      {"createIndex", "('x', {fields:[{field:'$.field'}]})"},
+      {"dropIndex", "('x')"},
+      {"help", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("db.getCollection('people')",
                                   collection_calls);  // collection
 
@@ -1046,7 +1046,8 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
   execute("\\use actest");
 
   std::vector<std::pair<std::string, std::string>> mysql_calls{
-      {"help", ""}, {"getClassicSession", "('" + _mysql_uri + "')"},
+      {"help", ""},
+      {"getClassicSession", "('" + _mysql_uri + "')"},
       {"getSession", "('" + _mysql_uri + "')"}};
 
   CHECK_OBJECT_MEMBER_COMPLETIONS("mysql", mysql_calls);
@@ -1154,11 +1155,10 @@ TEST_F(Completer_frontend, py_adminapi) {
       "dba.",
       strv({"check_instance_configuration()", "configure_instance()",
             "configure_local_instance()", "create_cluster()",
-            "delete_sandbox_instance()",  "deploy_sandbox_instance()",
+            "delete_sandbox_instance()", "deploy_sandbox_instance()",
             "drop_metadata_schema()", "get_cluster()", "help()",
             "kill_sandbox_instance()", "reboot_cluster_from_complete_outage()",
-            "start_sandbox_instance()", "stop_sandbox_instance()",
-            "verbose"}));
+            "start_sandbox_instance()", "stop_sandbox_instance()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploy_sandbox_instance()");
 }
 
@@ -1281,9 +1281,9 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB_TAB(
       "people.",
       strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()",
-        "exists_in_database()", "find()", "get_name()", "get_one()",
-        "get_schema()", "get_session()", "help()", "modify()", "name",
-        "remove()", "remove_one()", "replace_one()", "schema", "session"}));
+            "exists_in_database()", "find()", "get_name()", "get_one()",
+            "get_schema()", "get_session()", "help()", "modify()", "name",
+            "remove()", "remove_one()", "replace_one()", "schema", "session"}));
   EXPECT_AFTER_TAB("people.f", "people.find()");
   EXPECT_AFTER_TAB("people.find().e", "people.find().execute()");
   EXPECT_AFTER_TAB("f = people.find().b", "f = people.find().bind()");

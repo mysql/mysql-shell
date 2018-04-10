@@ -44,7 +44,7 @@ bool Shell_options::Storage::has_connection_data() const {
 }
 
 static mysqlsh::SessionType get_session_type(
-    const mysqlshdk::db::Connection_options& opt) {
+    const mysqlshdk::db::Connection_options &opt) {
   if (!opt.has_scheme()) {
     return mysqlsh::SessionType::Auto;
   } else {
@@ -91,8 +91,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
             "The given URI conflicts with the --mysqlx session type "
             "option.";
     }
-    if (!error.empty())
-      throw shcore::Exception::argument_error(error);
+    if (!error.empty()) throw shcore::Exception::argument_error(error);
   } else {
     switch (session_type) {
       case mysqlsh::SessionType::Auto:
@@ -114,7 +113,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
 }
 
 static std::string hide_password_in_uri(std::string uri,
-                                        const std::string& username) {
+                                        const std::string &username) {
   std::size_t pwd_start = uri.find(username) + username.length() + 1;
   std::size_t pwd_size = uri.find('@', pwd_start) - pwd_start;
   return uri.replace(pwd_start, pwd_size, pwd_size, '*');
@@ -137,15 +136,15 @@ static std::string get_session_type_name(mysqlsh::SessionType type) {
   return label;
 }
 
+using mysqlshdk::db::Ssl_options;
+using shcore::opts::assign_value;
+using shcore::opts::cmdline;
+using shcore::opts::deprecated;
 using std::placeholders::_1;
 using std::placeholders::_2;
-using mysqlshdk::db::Ssl_options;
-using shcore::opts::deprecated;
-using shcore::opts::cmdline;
-using shcore::opts::assign_value;
 
-Shell_options::Shell_options(int argc, char** argv,
-                             const std::string& configuration_file)
+Shell_options::Shell_options(int argc, char **argv,
+                             const std::string &configuration_file)
     : Options(configuration_file) {
   std::string home = shcore::get_home_dir();
 #ifdef WIN32
@@ -416,8 +415,7 @@ Shell_options::Shell_options(int argc, char** argv,
 
   try {
     handle_environment_options();
-    if (!configuration_file.empty())
-      handle_persisted_options();
+    if (!configuration_file.empty()) handle_persisted_options();
     handle_cmdline_options(
         argc, argv, false,
         std::bind(&Shell_options::custom_cmdline_handler, this, _1, _2));
@@ -430,27 +428,27 @@ Shell_options::Shell_options(int argc, char** argv,
     check_port_conflicts();
     check_socket_conflicts();
     check_port_socket_conflicts();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     storage.exit_code = 1;
   }
 }
 
-static inline std::string value_to_string(const shcore::Value& value) {
+static inline std::string value_to_string(const shcore::Value &value) {
   return value.type == shcore::Value_type::String ? value.as_string()
                                                   : value.repr();
 }
 
-void Shell_options::set(const std::string& option, const shcore::Value& value) {
+void Shell_options::set(const std::string &option, const shcore::Value &value) {
   try {
     shcore::Options::set(option, value_to_string(value));
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     throw shcore::Exception::argument_error(e.what());
   }
 }
 
-void Shell_options::set_and_notify(const std::string& option,
-                                   const std::string& value,
+void Shell_options::set_and_notify(const std::string &option,
+                                   const std::string &value,
                                    bool save_to_file) {
   try {
     Options::set(option, value);
@@ -459,53 +457,48 @@ void Shell_options::set_and_notify(const std::string& option,
     (*info)["value"] = get(option);
     shcore::ShellNotifications::get()->notify(SN_SHELL_OPTION_CHANGED, nullptr,
                                               info);
-    if (save_to_file)
-      save(option);
-  } catch (const std::exception& e) {
+    if (save_to_file) save(option);
+  } catch (const std::exception &e) {
     throw shcore::Exception::argument_error(e.what());
   }
 }
 
-void Shell_options::set_and_notify(const std::string& option,
-                                   const shcore::Value& value,
+void Shell_options::set_and_notify(const std::string &option,
+                                   const shcore::Value &value,
                                    bool save_to_file) {
   set_and_notify(option, value_to_string(value), save_to_file);
 }
 
-void Shell_options::unset(const std::string& option, bool save_to_file) {
-  if (save_to_file)
-    unsave(option);
+void Shell_options::unset(const std::string &option, bool save_to_file) {
+  if (save_to_file) unsave(option);
   find_option(option)->second->reset_to_default_value();
 }
 
-shcore::Value Shell_options::get(const std::string& option) {
+shcore::Value Shell_options::get(const std::string &option) {
   using shcore::opts::Concrete_option;
   auto it = named_options.find(option);
   if (it == named_options.end())
     throw std::invalid_argument("No option registered under name: " + option);
-  Concrete_option<bool>* opt_bool =
-      dynamic_cast<Concrete_option<bool>*>(it->second);
-  if (opt_bool != nullptr)
-    return shcore::Value(opt_bool->get());
+  Concrete_option<bool> *opt_bool =
+      dynamic_cast<Concrete_option<bool> *>(it->second);
+  if (opt_bool != nullptr) return shcore::Value(opt_bool->get());
 
-  Concrete_option<int>* opt_int =
-      dynamic_cast<Concrete_option<int>*>(it->second);
-  if (opt_int != nullptr)
-    return shcore::Value(opt_int->get());
+  Concrete_option<int> *opt_int =
+      dynamic_cast<Concrete_option<int> *>(it->second);
+  if (opt_int != nullptr) return shcore::Value(opt_int->get());
 
   return shcore::Value(get_value_as_string(option));
 }
 
 std::vector<std::string> Shell_options::get_named_options() {
   std::vector<std::string> res;
-  for (const auto& op : named_options)
-    res.push_back(op.first);
+  for (const auto &op : named_options) res.push_back(op.first);
   return res;
 }
 
-bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
+bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
   int arg_format = 0;
-  char* value = nullptr;
+  char *value = nullptr;
 
   if (strcmp(argv[*argi], "-VV") == 0) {
     print_cmd_line_version = true;
@@ -538,8 +531,7 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
       std::string nopwd_uri = hide_password_in_uri(value, uri_data.get_user());
 
       // Required replacement when --uri=<value>
-      if (arg_format == 3)
-        nopwd_uri = "--uri=" + nopwd_uri;
+      if (arg_format == 3) nopwd_uri = "--uri=" + nopwd_uri;
 
       strncpy(argv[*argi], nopwd_uri.c_str(), strlen(argv[*argi]) + 1);
     }
@@ -561,8 +553,7 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
 
     if (!value) {
       // --password=
-      if (arg_format == 3)
-        storage.password = storage.pwd.c_str();
+      if (arg_format == 3) storage.password = storage.pwd.c_str();
       // --password
       else
         storage.prompt_password = true;
@@ -597,8 +588,7 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
 
     if (!value) {
       // --password=
-      if (arg_format == 3)
-        storage.password = storage.pwd.c_str();
+      if (arg_format == 3) storage.password = storage.pwd.c_str();
       // --password
       else
         storage.prompt_password = true;
@@ -621,8 +611,8 @@ bool Shell_options::custom_cmdline_handler(char** argv, int* argi) {
   return true;
 }
 
-void Shell_options::override_session_type(const std::string& option,
-                                          const char* value) {
+void Shell_options::override_session_type(const std::string &option,
+                                          const char *value) {
   if (value != nullptr)
     throw std::runtime_error("Option " + option + " does not support value");
 
@@ -661,7 +651,7 @@ void Shell_options::override_session_type(const std::string& option,
   storage.default_session_type = false;
 }
 
-void Shell_options::set_ssl_mode(const std::string& option, const char* value) {
+void Shell_options::set_ssl_mode(const std::string &option, const char *value) {
   int mode = mysqlshdk::db::MapSslModeNameToValue::get_value(value);
 
   if (mode == 0) {

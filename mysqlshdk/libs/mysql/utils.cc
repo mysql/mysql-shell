@@ -59,8 +59,7 @@ std::string replace_grantee(const std::string &grant,
     // 5.7 syntax with 'user'@'host'
     p = s.find('\'');
     if (p != std::string::npos) {
-      std::string::size_type e =
-          mysqlshdk::utils::span_quoted_string_sq(s, p);
+      std::string::size_type e = mysqlshdk::utils::span_quoted_string_sq(s, p);
       if (e == std::string::npos || s[e] != '@')
         throw std::logic_error("Could not parse GRANT string: " + grant);
       e = mysqlshdk::utils::span_quoted_string_sq(s, e + 1);
@@ -93,8 +92,7 @@ void clone_current_user(std::shared_ptr<db::ISession> session,
     assert(shcore::str_beginswith(grant, "GRANT "));
 
     // Ignore GRANT PROXY
-    if (shcore::str_beginswith(grant, "GRANT PROXY"))
-      continue;
+    if (shcore::str_beginswith(grant, "GRANT PROXY")) continue;
 
     // replace original user with new one
     grants.push_back(replace_grantee(grant, account));

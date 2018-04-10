@@ -66,7 +66,7 @@ std::string to_string(Type type) {
   throw std::logic_error("Unknown type");
 }
 
-Type string_to_type(const std::string& type) {
+Type string_to_type(const std::string &type) {
   if (type == "Null")
     return Type::Null;
   else if (type == "String")
@@ -103,9 +103,9 @@ Type string_to_type(const std::string& type) {
     throw std::logic_error("Unknown type " + type);
 }
 
-Column::Column(const std::string& schema, const std::string& table_name,
-               const std::string& table_label, const std::string& column_name,
-               const std::string& column_label, uint32_t length, int fractional,
+Column::Column(const std::string &schema, const std::string &table_name,
+               const std::string &table_label, const std::string &column_name,
+               const std::string &column_label, uint32_t length, int fractional,
                Type type, uint32_t collation_id, bool unsigned_, bool zerofill,
                bool binary)
     : _schema(schema),
@@ -119,8 +119,7 @@ Column::Column(const std::string& schema, const std::string& table_name,
       _type(type),
       _unsigned(unsigned_),
       _zerofill(zerofill),
-      _binary(binary) {
-}
+      _binary(binary) {}
 
 std::string Column::get_collation_name() const {
   return charset::collation_name_from_collation_id(_collation_id);

@@ -94,7 +94,7 @@ void parse_table_column_list_with_alias(Container &container,
   Proj_parser parser(source, false, true);
   parser.parse(container);
 }
-}
-}
+}  // namespace parser
+}  // namespace mysqlx
 
 #endif

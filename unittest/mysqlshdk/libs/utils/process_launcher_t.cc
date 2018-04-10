@@ -35,7 +35,8 @@ namespace shcore {
 
 #ifdef WIN32
 static void check_argv(const char **argv, const std::string &cmd) {
-  std::wstring wstr = shcore::win_a_to_w_string(const_cast<char *>(cmd.c_str()));
+  std::wstring wstr =
+      shcore::win_a_to_w_string(const_cast<char *>(cmd.c_str()));
   int nargs;
   LPWSTR *parsed_argv = CommandLineToArgvW(&wstr[0], &nargs);
 

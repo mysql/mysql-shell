@@ -36,16 +36,15 @@ namespace shcore {
 class Shell_application_log_tests : public Shell_core_test_wrapper {
  protected:
   static int i;
-  ngcommon::Logger* _logger;
+  ngcommon::Logger *_logger;
 
   static std::string error;
 
-  static void my_hook(const char* message, ngcommon::Logger::LOG_LEVEL level,
-                      const char* domain) {
+  static void my_hook(const char *message, ngcommon::Logger::LOG_LEVEL level,
+                      const char *domain) {
     std::string message_s(message);
     EXPECT_TRUE(message_s.find(error) != std::string::npos);
-    if (getenv("TEST_DEBUG"))
-      std::cout << "LOG:" << message << "\n";
+    if (getenv("TEST_DEBUG")) std::cout << "LOG:" << message << "\n";
     i++;
   }
 
@@ -68,9 +67,7 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
                         "');");
   }
 
-  virtual void TearDown() {
-    _logger->detach_log_hook(my_hook);
-  }
+  virtual void TearDown() { _logger->detach_log_hook(my_hook); }
 };
 
 std::string Shell_application_log_tests::error = "";

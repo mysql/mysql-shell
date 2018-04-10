@@ -37,15 +37,15 @@ namespace mysqlx {
 class Collection;
 
 /**
-* \ingroup XDevAPI
-* $(COLLECTIONREMOVE_BRIEF)
-*
-* $(COLLECTIONREMOVE_DETAIL)
-*
-* $(COLLECTIONREMOVE_DETAIL1)
-*
-* \sa Collection
-*/
+ * \ingroup XDevAPI
+ * $(COLLECTIONREMOVE_BRIEF)
+ *
+ * $(COLLECTIONREMOVE_DETAIL)
+ *
+ * $(COLLECTIONREMOVE_DETAIL1)
+ *
+ * \sa Collection
+ */
 class CollectionRemove : public Collection_crud_definition,
                          public std::enable_shared_from_this<CollectionRemove> {
  public:
@@ -68,6 +68,7 @@ class CollectionRemove : public Collection_crud_definition,
   std::string class_name() const override { return "CollectionRemove"; }
   static std::shared_ptr<shcore::Object_bridge> create(
       const shcore::Argument_list &args);
+
  private:
   shcore::Value remove(const shcore::Argument_list &args);
   shcore::Value sort(const shcore::Argument_list &args);
@@ -78,7 +79,7 @@ class CollectionRemove : public Collection_crud_definition,
   shcore::Value execute();
 
   friend class Collection;
-  CollectionRemove &set_filter(const std::string& filter);
+  CollectionRemove &set_filter(const std::string &filter);
   CollectionRemove &bind(const std::string &name, shcore::Value value);
   Mysqlx::Crud::Delete message_;
 
@@ -94,16 +95,29 @@ class CollectionRemove : public Collection_crud_definition,
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("" == s) { return F::_empty; }
-    if ("remove" == s) { return F::remove; }
-    if ("sort" == s) { return F::sort; }
-    if ("limit" == s) { return F::limit; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("remove" == s) {
+      return F::remove;
+    }
+    if ("sort" == s) {
+      return F::sort;
+    }
+    if ("limit" == s) {
+      return F::limit;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
-
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

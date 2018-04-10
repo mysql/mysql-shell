@@ -55,13 +55,13 @@ void on_session_close(std::shared_ptr<mysqlshdk::db::ISession> session) {
 }
 }  // namespace
 
-void handle_debug_options(int* argc, char*** argv) {
+void handle_debug_options(int *argc, char ***argv) {
   int print_traces = 0;
 
-  if (const char* debug = getenv("TEST_DEBUG")) {
+  if (const char *debug = getenv("TEST_DEBUG")) {
     print_traces = atoi(debug);
   }
-  if (const char* mode = getenv("MYSQLSH_RECORDER_MODE")) {
+  if (const char *mode = getenv("MYSQLSH_RECORDER_MODE")) {
     if (strcasecmp(mode, "direct") == 0 || !*mode) {
       mysqlshdk::db::replay::set_mode(Mode::Direct, 0);
       puts("Disabled classic session recording");
@@ -147,7 +147,7 @@ void finalize_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
   mysqlshdk::db::replay::on_recorder_connect_hook = {};
   mysqlshdk::db::replay::on_recorder_close_hook = {};
 
-  for (const auto& s : g_open_sessions) {
+  for (const auto &s : g_open_sessions) {
     if (auto session = s.lock()) {
       session->close();
     }

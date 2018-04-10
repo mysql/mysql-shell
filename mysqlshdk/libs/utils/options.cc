@@ -58,20 +58,17 @@ Generic_option::Generic_option(const std::string &name,
     : name(name),
       environment_variable(environment_variable),
       command_line_names(std::move(command_line_names)),
-      help(help) {
-}
+      help(help) {}
 
 void Generic_option::handle_environment_variable() {
   if (environment_variable != nullptr) {
     const char *val = getenv(environment_variable);
-    if (val != nullptr)
-      set(val, Source::Environment_variable);
+    if (val != nullptr) set(val, Source::Environment_variable);
   }
 }
 
 void Generic_option::handle_persisted_value(const char *value) {
-  if (value != nullptr)
-    set(value, Source::Configuration_file);
+  if (value != nullptr) set(value, Source::Configuration_file);
 }
 
 std::vector<std::string> Generic_option::get_cmdline_names() {
@@ -95,8 +92,7 @@ std::vector<std::string> Generic_option::get_cmdline_names() {
 std::vector<std::string> Generic_option::get_cmdline_help(
     std::size_t options_width, std::size_t help_width) const {
   std::vector<std::string> result;
-  if (command_line_names.empty() || help == nullptr)
-    return result;
+  if (command_line_names.empty() || help == nullptr) return result;
 
   for (const auto &n : command_line_names)
     if (n.length() >= options_width)
@@ -159,8 +155,7 @@ void Proxy_option::handle_command_line_input(const std::string &option,
 }
 
 std::vector<std::string> Proxy_option::get_cmdline_names() {
-  if (handler == nullptr)
-    return {};
+  if (handler == nullptr) return {};
   return Generic_option::get_cmdline_names();
 }
 
@@ -219,13 +214,11 @@ Proxy_option::Handler deprecated(
           }
         } else {
           // If no value is provided and a default value is, it gets used
-          if (def)
-            final_val.assign(def);
+          if (def) final_val.assign(def);
         }
 
         ss << " (Option has been processed as " << replacement;
-        if (!final_val.empty())
-          ss << "=" << final_val;
+        if (!final_val.empty()) ss << "=" << final_val;
         ss << ").";
 
         target(replacement, (value || def) ? final_val.c_str() : value);
@@ -303,14 +296,12 @@ int Options::cmdline_arg_with_value(char **argv, int *argi, const char *arg,
   }
 
   // Option requires an argument
-  if (ret_val && !*value && !accept_null)
-    ret_val = 0;
+  if (ret_val && !*value && !accept_null) ret_val = 0;
 
   return ret_val;
 }
 
-Options::Options(const std::string &config_file) : config_file(config_file) {
-}
+Options::Options(const std::string &config_file) : config_file(config_file) {}
 
 void Options::set(const std::string &option_name,
                   const std::string &new_value) {
@@ -324,8 +315,7 @@ std::string Options::get_value_as_string(const std::string &option_name) {
 }
 
 void Options::handle_environment_options() {
-  for (auto &opt : options)
-    opt->handle_environment_variable();
+  for (auto &opt : options) opt->handle_environment_variable();
 }
 
 static std::unique_ptr<rapidjson::Document> read_json_from_file(
@@ -350,8 +340,7 @@ static std::unique_ptr<rapidjson::Document> read_json_from_file(
                              "for reading: " + strerror(errno));
   }
 
-  if (!d->IsObject())
-    d->SetObject();
+  if (!d->IsObject()) d->SetObject();
 
   return d;
 }
@@ -431,8 +420,7 @@ void Options::handle_cmdline_options(
     int argc, char **argv, bool allow_unregistered_options,
     Custom_cmdline_handler custom_cmdline_handler) {
   for (int i = 1; i < argc; i++) {
-    if (custom_cmdline_handler && custom_cmdline_handler(argv, &i))
-      continue;
+    if (custom_cmdline_handler && custom_cmdline_handler(argv, &i)) continue;
 
     std::string opt(argv[i]);
     std::size_t epos = opt.find('=');
@@ -487,8 +475,7 @@ std::vector<std::string> Options::get_options_description(
     for (std::size_t i = opt->get_name().length(); i < first_column_width; i++)
       ss.put(' ');
     ss << opt->get_value_as_string();
-    if (show_origin)
-      ss << " (" << to_string(opt->get_source()) << ")";
+    if (show_origin) ss << " (" << to_string(opt->get_source()) << ")";
     res.emplace_back(ss.str());
   }
   return res;
@@ -501,8 +488,7 @@ std::string Options::get_named_help(const std::string &filter,
 
   std::size_t first_column_width = 0;
   for (const auto &it : named_options) {
-    if (!filter.empty() && it.first.find(filter) == std::string::npos)
-      continue;
+    if (!filter.empty() && it.first.find(filter) == std::string::npos) continue;
     if (first_column_width < it.first.length())
       first_column_width = it.first.length();
   }
@@ -511,8 +497,7 @@ std::string Options::get_named_help(const std::string &filter,
   std::size_t second_column_width = output_width - first_column_width;
 
   for (const auto &it : named_options) {
-    if (!filter.empty() && it.first.find(filter) == std::string::npos)
-      continue;
+    if (!filter.empty() && it.first.find(filter) == std::string::npos) continue;
     opts::Generic_option *opt = it.second;
     const char *help = opt->get_help();
     std::string first_column(first_column_width, ' ');
@@ -533,8 +518,7 @@ bool Options::Command_line_comparator::operator()(
     const std::string &lhs, const std::string &rhs) const {
   // in case of single '-' parameters we have to consider -name<value> format
   if (lhs[1] != '-' && rhs[1] != '-') {
-    if (lhs.length() < rhs.length())
-      return rhs.compare(0, lhs.size(), lhs) > 0;
+    if (lhs.length() < rhs.length()) return rhs.compare(0, lhs.size(), lhs) > 0;
     if (lhs.length() > rhs.length())
       return lhs.compare(0, rhs.length(), rhs) < 0;
   }

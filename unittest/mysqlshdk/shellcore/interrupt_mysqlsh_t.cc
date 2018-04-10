@@ -23,8 +23,8 @@
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 
-#include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_resultset.h"
+#include "modules/mod_mysql_session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils.h"
@@ -186,8 +186,7 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
       }
 
       while (!grep_stdout("ready")) {
-        if (!_process)
-          return;
+        if (!_process) return;
         shcore::sleep_ms(200);
       }
       shcore::sleep_ms(200);
@@ -208,11 +207,9 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
   }
 
   void TearDown() override {
-    if (kill_thread.joinable())
-      kill_thread.join();
+    if (kill_thread.joinable()) kill_thread.join();
 
-    if (session)
-      session->close();
+    if (session) session->close();
     session.reset();
 
     tests::Command_line_test::TearDown();
@@ -277,8 +274,7 @@ TEST_F(Interrupt_mysqlsh, js_cli) {
         execute({_mysqlsh, uri, "--interactive", lang, "-f", file, nullptr}); \
     EXPECT_EQ(exitcode, rc);                                                  \
     MY_EXPECT_CMD_OUTPUT_CONTAINS(expect);                                    \
-    if (unexpect)                                                             \
-      MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(unexpect);                            \
+    if (unexpect) MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(unexpect);                \
     TearDown();                                                               \
   }
 
@@ -303,8 +299,7 @@ TEST_F(Interrupt_mysqlsh, js_cli) {
                       "\\source " file, nullptr});                \
     EXPECT_EQ(exitcode, rc);                                      \
     MY_EXPECT_CMD_OUTPUT_CONTAINS(expect);                        \
-    if (unexpect)                                                 \
-      MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(unexpect);                \
+    if (unexpect) MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(unexpect);    \
     TearDown();                                                   \
   }
 
@@ -406,7 +401,7 @@ TEST_F(Interrupt_mysqlsh, js_file_batch) {
   TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--js", "test_queryc.js");
 }
 
-//------------------------------------------------------------------------------
+  //------------------------------------------------------------------------------
 
 #if 0
 // Not feasible because signal is sent to the shell, not mp

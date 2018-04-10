@@ -30,20 +30,24 @@ namespace shcore {
 class Python_context;
 
 class Shell_python : public Shell_language {
-public:
+ public:
   Shell_python(Shell_core *shcore);
 
   virtual void set_global(const std::string &name, const Value &value);
 
   virtual std::string preprocess_input_line(const std::string &s);
-  virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
+  virtual void handle_input(
+      std::string &code, Input_state &state,
+      std::function<void(shcore::Value)> result_processor);
 
-  virtual bool is_module(const std::string& file_name);
-  virtual void execute_module(const std::string& file_name, std::function<void(shcore::Value)> result_processor);
+  virtual bool is_module(const std::string &file_name);
+  virtual void execute_module(
+      const std::string &file_name,
+      std::function<void(shcore::Value)> result_processor);
 
   std::shared_ptr<Python_context> python_context() { return _py; }
 
-private:
+ private:
   static int check_signals(void *);
   std::shared_ptr<Python_context> _py;
   long _pending_interrupt_thread;
@@ -51,6 +55,6 @@ private:
 
   void abort(long tid) noexcept;
 };
-};
+};  // namespace shcore
 
 #endif

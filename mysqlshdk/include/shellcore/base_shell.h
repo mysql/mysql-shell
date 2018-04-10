@@ -23,13 +23,13 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SHELL_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_BASE_SHELL_H_
 
-#include "shellcore/shell_options.h"
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
-#include "shellcore/shell_core.h"
-#include "shellcore/completer.h"
 #include "mysqlshdk/shellcore/provider_script.h"
 #include "mysqlshdk/shellcore/provider_sql.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
+#include "shellcore/completer.h"
+#include "shellcore/shell_core.h"
+#include "shellcore/shell_options.h"
 
 #include <map>
 #include <memory>
@@ -39,9 +39,7 @@
 namespace mysqlsh {
 class SHCORE_PUBLIC Base_shell {
  public:
-  static std::shared_ptr<Shell_options> get_options() {
-    return shell_options;
-  }
+  static std::shared_ptr<Shell_options> get_options() { return shell_options; }
 
   static const Shell_options::Storage &options() {
     return shell_options->get();
@@ -52,12 +50,14 @@ class SHCORE_PUBLIC Base_shell {
 
   virtual ~Base_shell() {}
 
-  int process_stream(std::istream & stream, const std::string& source,
-                     const std::vector<std::string> &argv, bool force_batch = false);
-  int process_file(const std::string &path, const std::vector<std::string> &argv);
+  int process_stream(std::istream &stream, const std::string &source,
+                     const std::vector<std::string> &argv,
+                     bool force_batch = false);
+  int process_file(const std::string &path,
+                   const std::vector<std::string> &argv);
 
-  /** Finalize initialization steps after basic init of the shell is already done
-      Does things like loading init scripts.
+  /** Finalize initialization steps after basic init of the shell is already
+     done Does things like loading init scripts.
    */
   virtual void finish_init();
 
@@ -70,13 +70,15 @@ class SHCORE_PUBLIC Base_shell {
 
   void print_error(const std::string &error);
 
-  shcore::IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
+  shcore::IShell_core::Mode interactive_mode() const {
+    return _shell->interactive_mode();
+  }
 
   virtual void process_line(const std::string &line);
   shcore::Input_state input_state() const { return _input_mode; }
   void clear_input();
 
-  void notify_executed_statement(const std::string& line);
+  void notify_executed_statement(const std::string &line);
   virtual std::string prompt();
   std::map<std::string, std::string> *prompt_variables();
 

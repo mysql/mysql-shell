@@ -52,31 +52,26 @@ struct WillEnterPython {
   PyGILState_STATE state;
   bool locked;
 
-  WillEnterPython()
-  : state(PyGILState_Ensure()), locked(true) {}
+  WillEnterPython() : state(PyGILState_Ensure()), locked(true) {}
 
   ~WillEnterPython() {
-    if (locked)
-      PyGILState_Release(state);
+    if (locked) PyGILState_Release(state);
   }
 
   void release() {
-    if (locked)
-      PyGILState_Release(state);
+    if (locked) PyGILState_Release(state);
     locked = false;
   }
 };
 
-// Must be placed when non-python code will be called from a Python handler/callback
+// Must be placed when non-python code will be called from a Python
+// handler/callback
 struct WillLeavePython {
   PyThreadState *save;
 
-  WillLeavePython()
-  : save(PyEval_SaveThread()) {}
+  WillLeavePython() : save(PyEval_SaveThread()) {}
 
-  ~WillLeavePython() {
-    PyEval_RestoreThread(save);
-  }
+  ~WillLeavePython() { PyEval_RestoreThread(save); }
 };
 
 #endif

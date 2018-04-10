@@ -22,13 +22,13 @@
  */
 
 #include <utility>
-#include "unittest/test_utils/shell_base_test.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 namespace testing {
 
@@ -59,8 +59,6 @@ class Group_replication_Test : public tests::Shell_base_test {
   bool _gr_req_not_meet = false;
 };
 
-
-
 TEST_F(Group_replication_Test, plugin_installation) {
   using mysqlshdk::utils::nullable;
 
@@ -83,8 +81,7 @@ TEST_F(Group_replication_Test, plugin_installation) {
   if (!init_plugin_state.is_null() &&
       (*init_plugin_state).compare(mysqlshdk::gr::kPluginDisabled) == 0) {
     // An exception is expected if the plugin was disabled.
-    EXPECT_THROW(mysqlshdk::gr::install_plugin(*instance),
-                 std::runtime_error);
+    EXPECT_THROW(mysqlshdk::gr::install_plugin(*instance), std::runtime_error);
   } else {
     // Requirements to install the GR plugin:
     // - server_id != 0
@@ -95,7 +92,7 @@ TEST_F(Group_replication_Test, plugin_installation) {
       SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
     }
     nullable<std::string> master_info_repository =
-      instance->get_sysvar_string("master_info_repository");
+        instance->get_sysvar_string("master_info_repository");
     if ((*master_info_repository).compare("TABLE") != 0) {
       SKIP_TEST(
           "Test server does not meet GR requirements: master_info_repository "
@@ -105,7 +102,8 @@ TEST_F(Group_replication_Test, plugin_installation) {
         instance->get_sysvar_string("relay_log_info_repository");
     if ((*relay_log_info_repository).compare("TABLE") != 0) {
       SKIP_TEST(
-          "Test server does not meet GR requirements: relay_log_info_repository "
+          "Test server does not meet GR requirements: "
+          "relay_log_info_repository "
           "must be 'TABLE'.");
     }
 
@@ -120,7 +118,7 @@ TEST_F(Group_replication_Test, plugin_installation) {
     // Test installing the plugin when already installed.
     res = mysqlshdk::gr::install_plugin(*instance);
     EXPECT_FALSE(res)
-              << "GR plugin was installed (expected to be already available).";
+        << "GR plugin was installed (expected to be already available).";
     plugin_state = instance->get_plugin_status(mysqlshdk::gr::kPluginName);
     EXPECT_STREQ(mysqlshdk::gr::kPluginActive, (*plugin_state).c_str());
   }
@@ -149,8 +147,8 @@ TEST_F(Group_replication_Test, generate_group_name) {
 
 TEST_F(Group_replication_Test, replication_user) {
   // Confirm that there is no replication user.
-  auto res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user",
-                                                   "%");
+  auto res =
+      mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
   EXPECT_FALSE(res.user_exists());
   EXPECT_EQ(std::set<std::string>{"REPLICATION SLAVE"},
             res.get_missing_privileges());
@@ -179,9 +177,9 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   // additional execution time to run similar test cases.
   // NOTE: START and STOP GROUP_REPLICATION is slow.
 
-  using mysqlshdk::utils::nullable;
-  using mysqlshdk::mysql::Var_qualifier;
   using mysqlshdk::gr::Member_state;
+  using mysqlshdk::mysql::Var_qualifier;
+  using mysqlshdk::utils::nullable;
 
   // Check if used server meets the requirements.
   nullable<int64_t> server_id = instance->get_sysvar_int("server_id");
@@ -273,8 +271,8 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   mysqlshdk::gr::start_group_replication(*instance, true);
 
   // SUPER READ ONLY must be OFF (verify wait for it to be disable).
-  nullable<bool> read_only = instance->get_sysvar_bool("super_read_only",
-                                                       Var_qualifier::GLOBAL);
+  nullable<bool> read_only =
+      instance->get_sysvar_bool("super_read_only", Var_qualifier::GLOBAL);
   EXPECT_FALSE(*read_only);
 
   // Test: member is part of GR group, state must be RECOVERING or ONLINE.
@@ -419,8 +417,9 @@ TEST_F(Group_replication_Test, get_replication_user) {
   nullable<bool> log_slave_updates =
       instance->get_sysvar_bool("log_slave_updates");
   if (*log_slave_updates != true) {
-    SKIP_TEST("Test server does not meet GR requirements: log_slave_updates "
-              "must be ON.");
+    SKIP_TEST(
+        "Test server does not meet GR requirements: log_slave_updates "
+        "must be ON.");
   }
   nullable<std::string> binlog_format =
       instance->get_sysvar_string("binlog_format");
@@ -459,8 +458,9 @@ TEST_F(Group_replication_Test, get_replication_user) {
   // Clean up (restore initial server state).
   if (session)
     // Set user to empty value.
-    session->execute("CHANGE MASTER TO MASTER_USER = '' "
-                     "FOR CHANNEL 'group_replication_recovery'");
+    session->execute(
+        "CHANGE MASTER TO MASTER_USER = '' "
+        "FOR CHANNEL 'group_replication_recovery'");
   if (init_plugin_state.is_null()) {
     mysqlshdk::gr::uninstall_plugin(*instance);
   }
@@ -473,27 +473,17 @@ TEST_F(Group_replication_Test, is_group_replication_delayed_starting) {
   mysqlshdk::mysql::Instance instance{mock_session};
 
   mock_session
-    ->expect_query(
-        "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
-        "'thread/group_rpl/THD_delayed_initialization'")
-    .then_return({{
-        "",
-        {"COUNT(*)"},
-        {Type::UInteger},
-        {{"1"}}
-    }});
+      ->expect_query(
+          "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+          "'thread/group_rpl/THD_delayed_initialization'")
+      .then_return({{"", {"COUNT(*)"}, {Type::UInteger}, {{"1"}}}});
   EXPECT_TRUE(mysqlshdk::gr::is_group_replication_delayed_starting(instance));
 
   mock_session
-    ->expect_query(
-        "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
-        "'thread/group_rpl/THD_delayed_initialization'")
-    .then_return({{
-        "",
-        {"COUNT(*)"},
-        {Type::UInteger},
-        {{"0"}}
-    }});
+      ->expect_query(
+          "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
+          "'thread/group_rpl/THD_delayed_initialization'")
+      .then_return({{"", {"COUNT(*)"}, {Type::UInteger}, {{"0"}}}});
   EXPECT_FALSE(mysqlshdk::gr::is_group_replication_delayed_starting(instance));
 }
 

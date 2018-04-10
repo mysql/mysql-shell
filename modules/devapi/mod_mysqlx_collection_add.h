@@ -37,17 +37,17 @@ namespace mysqlx {
 class Collection;
 
 /**
-* \ingroup XDevAPI
-* Handler for document addition on a Collection.
-*
-* This object provides the necessary functions to allow adding documents into a
-* collection.
-*
-* This object should only be created by calling any of the add functions on the
-* collection object where the documents will be added.
-*
-* \sa Collection
-*/
+ * \ingroup XDevAPI
+ * Handler for document addition on a Collection.
+ *
+ * This object provides the necessary functions to allow adding documents into a
+ * collection.
+ *
+ * This object should only be created by calling any of the add functions on the
+ * collection object where the documents will be added.
+ *
+ * \sa Collection
+ */
 class CollectionAdd : public Collection_crud_definition,
                       public std::enable_shared_from_this<CollectionAdd> {
  public:
@@ -78,9 +78,9 @@ class CollectionAdd : public Collection_crud_definition,
 
   struct F {
     static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask _empty         = 1 << 1;
-    static constexpr Allowed_function_mask add            = 1 << 2;
-    static constexpr Allowed_function_mask execute        = 1 << 3;
+    static constexpr Allowed_function_mask _empty = 1 << 1;
+    static constexpr Allowed_function_mask add = 1 << 2;
+    static constexpr Allowed_function_mask execute = 1 << 3;
   };
 
   Allowed_function_mask function_name_to_bitmask(

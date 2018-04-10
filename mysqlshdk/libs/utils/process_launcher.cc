@@ -23,8 +23,8 @@
 
 #include <algorithm>
 #include <cassert>
-#include <string>
 #include <mutex>
+#include <string>
 #include <system_error>
 
 #ifdef WIN32
@@ -67,7 +67,7 @@ Process::Process(const char *const *argv, bool redirect_stderr)
 
   https://msdn.microsoft.com/en-us/library/17w5ykft(v=vs.85).aspx
  */
-std::string Process::make_windows_cmdline(const char * const*argv) {
+std::string Process::make_windows_cmdline(const char *const *argv) {
   assert(argv[0]);
   std::string cmd = argv[0];
 
@@ -148,7 +148,6 @@ bool Process::has_output(bool full_line) {
   }
 }
 
-
 #ifdef WIN32
 
 void Process::start() {
@@ -180,15 +179,13 @@ void Process::start() {
   DWORD creation_flags = 0;
   BOOL bSuccess = FALSE;
 
-  if (create_process_group)
-    creation_flags |= CREATE_NEW_PROCESS_GROUP;
+  if (create_process_group) creation_flags |= CREATE_NEW_PROCESS_GROUP;
 
   ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 
   ZeroMemory(&si, sizeof(STARTUPINFO));
   si.cb = sizeof(STARTUPINFO);
-  if (redirect_stderr)
-    si.hStdError = child_out_wr;
+  if (redirect_stderr) si.hStdError = child_out_wr;
   si.hStdOutput = child_out_wr;
   si.hStdInput = child_in_rd;
   si.dwFlags |= STARTF_USESTDHANDLES;
@@ -213,21 +210,17 @@ void Process::start() {
   CloseHandle(child_out_wr);
   CloseHandle(child_in_rd);
 
-  //DWORD res1 = WaitForInputIdle(pi.hProcess, 100);
-  //res1 = WaitForSingleObject(pi.hThread, 100);
+  // DWORD res1 = WaitForInputIdle(pi.hProcess, 100);
+  // res1 = WaitForSingleObject(pi.hThread, 100);
 }
 
-HANDLE Process::get_pid() {
-  return pi.hProcess;
-}
+HANDLE Process::get_pid() { return pi.hProcess; }
 
 bool Process::check() {
   DWORD dwExit = 0;
-  if (!_wait_pending)
-    return true;
+  if (!_wait_pending) return true;
   if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
-    if (dwExit == STILL_ACTIVE)
-      return false;
+    if (dwExit == STILL_ACTIVE) return false;
     _wait_pending = false;
     _pstatus = dwExit;
     return true;
@@ -238,8 +231,7 @@ bool Process::check() {
 }
 
 int Process::wait() {
-  if (!_wait_pending)
-    return _pstatus;
+  if (!_wait_pending) return _pstatus;
   DWORD dwExit = 0;
 
   // wait_loop will be set to true only if the process is
@@ -249,8 +241,7 @@ int Process::wait() {
   do {
     if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
       wait_loop = (dwExit == STILL_ACTIVE);
-      if (wait_loop)
-        WaitForSingleObject(pi.hProcess, INFINITE);
+      if (wait_loop) WaitForSingleObject(pi.hProcess, INFINITE);
     } else {
       DWORD dwError = GetLastError();
       if (dwError != ERROR_INVALID_HANDLE)  // not closed already?
@@ -267,25 +258,19 @@ void Process::close() {
   DWORD dwExit;
   if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
     if (dwExit == STILL_ACTIVE) {
-      if (!TerminateProcess(pi.hProcess, 0))
-        report_error(NULL);
+      if (!TerminateProcess(pi.hProcess, 0)) report_error(NULL);
       // TerminateProcess is async, wait for process to end.
       WaitForSingleObject(pi.hProcess, INFINITE);
     }
   } else {
-    if (is_alive)
-      report_error(NULL);
+    if (is_alive) report_error(NULL);
   }
 
-  if (!CloseHandle(pi.hProcess))
-    report_error(NULL);
-  if (!CloseHandle(pi.hThread))
-    report_error(NULL);
+  if (!CloseHandle(pi.hProcess)) report_error(NULL);
+  if (!CloseHandle(pi.hThread)) report_error(NULL);
 
-  if (!CloseHandle(child_out_rd))
-    report_error(NULL);
-  if (child_in_wr && !CloseHandle(child_in_wr))
-    report_error(NULL);
+  if (!CloseHandle(child_out_rd)) report_error(NULL);
+  if (child_in_wr && !CloseHandle(child_in_wr)) report_error(NULL);
 
   is_alive = false;
 }
@@ -297,8 +282,7 @@ int Process::do_read(char *buf, size_t count) {
 
   while (!(bSuccess = ReadFile(child_out_rd, buf, count, &dwBytesRead, NULL))) {
     dwCode = GetLastError();
-    if (dwCode == ERROR_NO_DATA)
-      continue;
+    if (dwCode == ERROR_NO_DATA) continue;
     if (dwCode == ERROR_BROKEN_PIPE)
       return EOF;
     else
@@ -323,8 +307,7 @@ int Process::write(const char *buf, size_t count) {
 }
 
 void Process::close_write_fd() {
-  if (child_in_wr)
-    CloseHandle(child_in_wr);
+  if (child_in_wr) CloseHandle(child_in_wr);
   child_in_wr = 0;
 }
 
@@ -347,13 +330,9 @@ void Process::report_error(const char *msg) {
   }
 }
 
-HANDLE Process::get_fd_write() {
-  return child_in_wr;
-}
+HANDLE Process::get_fd_write() { return child_in_wr; }
 
-HANDLE Process::get_fd_read() {
-  return child_out_rd;
-}
+HANDLE Process::get_fd_read() { return child_out_rd; }
 
 #else  // !WIN32
 
@@ -410,7 +389,7 @@ void Process::start() {
     fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
     fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
 
-    execvp(argv[0], (char * const *)argv);
+    execvp(argv[0], (char *const *)argv);
 
     int my_errno = errno;
     fprintf(stderr, "%s could not be executed: %s (errno %d)\n", argv[0],
@@ -420,8 +399,7 @@ void Process::start() {
     // exit-code we need to return a non-existent code, 128 is a general
     // convention used to indicate a failure to execute another program in a
     // subprocess
-    if (my_errno == 2)
-      my_errno = 128;
+    if (my_errno == 2) my_errno = 128;
 
     exit(my_errno);
   } else {
@@ -435,27 +413,21 @@ void Process::start() {
 void Process::close() {
   is_alive = false;
   ::close(fd_out[0]);
-  if (fd_in[1] >= 0)
-    ::close(fd_in[1]);
+  if (fd_in[1] >= 0) ::close(fd_in[1]);
 
-  if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH)
-    report_error(NULL);
+  if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH) report_error(NULL);
   if (errno != ESRCH) {
     sleep(1);
-    if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH)
-      report_error(NULL);
+    if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH) report_error(NULL);
   }
 }
 
 int Process::do_read(char *buf, size_t count) {
   int n;
   do {
-    if ((n = ::read(fd_out[0], buf, count)) >= 0)
-      return n;
-    if (errno == EAGAIN || errno == EINTR)
-      continue;
-    if (errno == EPIPE)
-      return 0;
+    if ((n = ::read(fd_out[0], buf, count)) >= 0) return n;
+    if (errno == EAGAIN || errno == EINTR) continue;
+    if (errno == EPIPE) return 0;
     break;
   } while (true);
   report_error(NULL);
@@ -464,17 +436,14 @@ int Process::do_read(char *buf, size_t count) {
 
 int Process::write(const char *buf, size_t count) {
   int n;
-  if ((n = ::write(fd_in[1], buf, count)) >= 0)
-    return n;
-  if (errno == EPIPE)
-    return 0;
+  if ((n = ::write(fd_in[1], buf, count)) >= 0) return n;
+  if (errno == EPIPE) return 0;
   report_error(NULL);
   return -1;
 }
 
 void Process::close_write_fd() {
-  if (fd_in[1] >= 0)
-    ::close(fd_in[1]);
+  if (fd_in[1] >= 0) ::close(fd_in[1]);
   fd_in[1] = -1;
 }
 
@@ -492,15 +461,11 @@ void Process::report_error(const char *msg) {
   }
 }
 
-pid_t Process::get_pid() {
-  return childpid;
-}
+pid_t Process::get_pid() { return childpid; }
 
 bool Process::check() {
-  if (!_wait_pending)
-    return true;
-  if (waitpid(childpid, &_pstatus, WNOHANG) <= 0)
-    return false;
+  if (!_wait_pending) return true;
+  if (waitpid(childpid, &_pstatus, WNOHANG) <= 0) return false;
   _wait_pending = false;
   return true;
 }
@@ -533,19 +498,13 @@ int Process::wait() {
     return WTERMSIG(_pstatus) + 128;
 }
 
-int Process::get_fd_write() {
-  return fd_in[1];
-}
+int Process::get_fd_write() { return fd_in[1]; }
 
-int Process::get_fd_read() {
-  return fd_out[0];
-}
+int Process::get_fd_read() { return fd_out[0]; }
 
 #endif  // !_WIN32
 
-void Process::kill() {
-  close();
-}
+void Process::kill() { close(); }
 
 int Process::read(char *buf, size_t count) {
   if (_reader_thread) {
@@ -566,8 +525,7 @@ std::string Process::read_line(bool *eof) {
   while ((s.empty() || s.back() != '\n') && (c = read(buf, 1)) > 0) {
     s.push_back(buf[0]);
   }
-  if (c <= 0 && eof)
-    *eof = true;
+  if (c <= 0 && eof) *eof = true;
   return s;
 }
 

@@ -24,37 +24,36 @@
 #ifndef MODULES_ADMINAPI_MOD_DBA_H_
 #define MODULES_ADMINAPI_MOD_DBA_H_
 
-#include <set>
 #include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
-#include <string>
 
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/mod_common.h"
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_options.h"
-#include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "modules/adminapi/mod_dba_common.h"
-#include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
-#include "mysqlshdk/include/shellcore/console.h"
 
 namespace mysqlsh {
 namespace dba {
 /**
-* \ingroup AdminAPI
-* $(DBA_BRIEF)
-*/
+ * \ingroup AdminAPI
+ * $(DBA_BRIEF)
+ */
 class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
                           public std::enable_shared_from_this<Dba> {
  public:
 #if DOXYGEN_JS
   Integer verbose;
-  JSON checkInstanceConfiguration(InstanceDef instance,
-                                       Dictionary options);
+  JSON checkInstanceConfiguration(InstanceDef instance, Dictionary options);
   Undefined configureLocalInstance(InstanceDef instance, Dictionary options);
   Undefined configureInstance(InstanceDef instance, Dictionary options);
   Cluster createCluster(String name, Dictionary options);
@@ -96,7 +95,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   virtual std::string class_name() const { return "Dba"; }
 
-  virtual bool operator == (const Object_bridge &other) const;
+  virtual bool operator==(const Object_bridge &other) const;
 
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
@@ -105,13 +104,13 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       std::shared_ptr<mysqlshdk::db::ISession> group_session,
       const std::string &function_name) const;
 
-  shcore::IShell_core* get_owner() { return _shell_core; }
+  shcore::IShell_core *get_owner() { return _shell_core; }
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_active_shell_session()
       const;
 
   virtual void connect_to_target_group(
-    std::shared_ptr<mysqlshdk::db::ISession> target_member_session,
+      std::shared_ptr<mysqlshdk::db::ISession> target_member_session,
       std::shared_ptr<MetadataStorage> *out_metadata,
       std::shared_ptr<mysqlshdk::db::ISession> *out_group_session,
       bool connect_to_primary) const;
@@ -153,9 +152,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const shcore::Argument_list &args);
 
   virtual std::vector<std::pair<std::string, std::string>>
-      get_replicaset_instances_status(
-          std::shared_ptr<Cluster> cluster,
-          const shcore::Value::Map_type_ref &options);
+  get_replicaset_instances_status(std::shared_ptr<Cluster> cluster,
+                                  const shcore::Value::Map_type_ref &options);
 
   virtual void validate_instances_status_reboot_cluster(
       std::shared_ptr<Cluster> cluster,

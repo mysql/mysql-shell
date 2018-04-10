@@ -29,8 +29,8 @@
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
-#include "scripting/common.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "scripting/common.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
@@ -51,41 +51,44 @@ TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
   add_method("bind", std::bind(&TableUpdate::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::update,F::_empty);
+  register_dynamic_function(F::update, F::_empty);
   register_dynamic_function(F::set, F::update | F::set);
   register_dynamic_function(F::where, F::set);
   register_dynamic_function(F::orderBy, F::set | F::where);
   register_dynamic_function(F::limit, F::set | F::where | F::orderBy);
-  register_dynamic_function(F::bind, F::set | F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(F::execute, F::set | F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::set | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(
+      F::bind, F::set | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(
+      F::execute, F::set | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(
+      F::__shell_hook__, F::set | F::where | F::orderBy | F::limit | F::bind);
 
   // Initial function update
   update_functions(F::_empty);
 }
 
 /**
-* Initializes this record update handler.
-* \return This TableUpdate object.
-*
-* This function is called automatically when Table.update() is called.
-*
-* The actual update of the records will occur only when the execute method is
-* called.
-*
-* #### Method Chaining
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - where(String searchCriteria)
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * Initializes this record update handler.
+ * \return This TableUpdate object.
+ *
+ * This function is called automatically when Table.update() is called.
+ *
+ * The actual update of the records will occur only when the execute method is
+ * called.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - where(String searchCriteria)
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableUpdate TableUpdate::update() {}
 #elif DOXYGEN_PY
@@ -118,45 +121,45 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
 //! \param value The value to be set on the specified column.
 #endif
 /**
-* \return This TableUpdate object.
-*
-* Adds an opertion into the update handler to update a column value in on the
-* records that were included on the selection filter and limit.
-*
-* The update will be done on the table's records once the execute method is
-* called.
-*
-* #### Using Expressions for Values
-*
-* Tipically, the received values are inserted into the table in a literal way.
-*
-* An additional option is to pass an explicit expression which is evaluated on
-* the server, the resulting value is inserted on the table.
-*
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
-*
-* The expression also can be used for \a [Parameter
-* Binding](param_binding.html).
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-* - update()
-* - set(String attribute, Value value)
-*
-* After this function invocation, the following functions can be invoked:
-* - set(String attribute, Value value)
-* - where(String searchCriteria)
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableUpdate object.
+ *
+ * Adds an opertion into the update handler to update a column value in on the
+ * records that were included on the selection filter and limit.
+ *
+ * The update will be done on the table's records once the execute method is
+ * called.
+ *
+ * #### Using Expressions for Values
+ *
+ * Tipically, the received values are inserted into the table in a literal way.
+ *
+ * An additional option is to pass an explicit expression which is evaluated on
+ * the server, the resulting value is inserted on the table.
+ *
+ * To define an expression use:
+ * \code{.py}
+ * mysqlx.expr(expression)
+ * \endcode
+ *
+ * The expression also can be used for \a [Parameter
+ * Binding](param_binding.html).
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ * - update()
+ * - set(String attribute, Value value)
+ *
+ * After this function invocation, the following functions can be invoked:
+ * - set(String attribute, Value value)
+ * - where(String searchCriteria)
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableUpdate TableUpdate::set(String attribute, Value value) {}
 #elif DOXYGEN_PY
@@ -180,7 +183,8 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
         expr_data = expression->get_data();
       } else {
         std::stringstream str;
-        str << "TableUpdate.set: Unsupported value received for table update operation on field \""
+        str << "TableUpdate.set: Unsupported value received for table update "
+               "operation on field \""
             << field << "\", received: " << args[1].descr();
         throw shcore::Exception::argument_error(str.str());
       }
@@ -218,29 +222,28 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
 //! updated.
 #endif
 /**
-* Sets the search condition to filter the records to be updated on the owner
-* Table.
-* if not specified all the records will be updated from the table unless a limit
-* is set.
-* \return This TableUpdate object.
-*
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - set(String attribute, Value value)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * Sets the search condition to filter the records to be updated on the owner
+ * Table.
+ * if not specified all the records will be updated from the table unless a
+ * limit is set. \return This TableUpdate object.
+ *
+ * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - set(String attribute, Value value)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableUpdate TableUpdate::where(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -272,28 +275,28 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
 //! the update will be done following the order defined by this criteria.
 #endif
 /**
-* \return This TableUpdate object.
-*
-* The elements of sortExprStr list are strings defining the column name on which
-* the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
-* If no order criteria is specified, ascending will be used by default.
-*
-* This method is usually used in combination with limit to fix the amount of
-* records to be updated.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - set(String attribute, Value value)
-* - where(String searchCondition)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*/
+ * \return This TableUpdate object.
+ *
+ * The elements of sortExprStr list are strings defining the column name on
+ * which the sorting will be based in the form of "columnIdentifier [ ASC | DESC
+ * ]". If no order criteria is specified, ascending will be used by default.
+ *
+ * This method is usually used in combination with limit to fix the amount of
+ * records to be updated.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - set(String attribute, Value value)
+ * - where(String searchCondition)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ */
 #if DOXYGEN_JS
 TableUpdate TableUpdate::orderBy(List sortExprStr) {}
 #elif DOXYGEN_PY
@@ -328,26 +331,26 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args) {
 //! \param numberOfRows the number of records to be updated.
 #endif
 /**
-* \return This TableUpdate object.
-*
-* This method is usually used in combination with sort to fix the amount of
-* records to be updated.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - set(String attribute, Value value)
-* - where(String searchCondition)
-* - orderBy(List sortExprStr)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableUpdate object.
+ *
+ * This method is usually used in combination with sort to fix the amount of
+ * records to be updated.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - set(String attribute, Value value)
+ * - where(String searchCondition)
+ * - orderBy(List sortExprStr)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableUpdate TableUpdate::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
@@ -376,25 +379,25 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args) {
 //! \param value: The value to be bound on the placeholder.
 #endif
 /**
-* \return This TableUpdate object.
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times right before calling execute:
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* An error will be raised if the placeholder indicated by name does not exist.
-*
-* This function must be called once for each used placeohlder or an error will
-* be
-* raised when the execute method is called.
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableUpdate object.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times right before calling execute:
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * An error will be raised if the placeholder indicated by name does not exist.
+ *
+ * This function must be called once for each used placeohlder or an error will
+ * be
+ * raised when the execute method is called.
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableUpdate TableUpdate::bind(String name, Value value) {}
 #elif DOXYGEN_PY
@@ -414,32 +417,32 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args) {
 }
 
 /**
-* Executes the record update with the configured filter and limit.
-* \return Result A result object that can be used to retrieve the results of the
-* update operation.
-*
-* #### Method Chaining
-*
-* This function can be invoked after any other function on this class except
-* update().
-*/
+ * Executes the record update with the configured filter and limit.
+ * \return Result A result object that can be used to retrieve the results of
+ * the update operation.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked after any other function on this class except
+ * update().
+ */
 #if DOXYGEN_JS
 /**
-*
-* #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_table_update.js"
-* \skip //@# TableUpdate: simple test
-* \until print('All Females:', records.length, '\n');
-*/
+ *
+ * #### Examples
+ * \dontinclude "js_devapi/scripts/mysqlx_table_update.js"
+ * \skip //@# TableUpdate: simple test
+ * \until print('All Females:', records.length, '\n');
+ */
 Result TableUpdate::execute() {}
 #elif DOXYGEN_PY
 /**
-*
-* #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_table_update.py"
-* \skip #@# TableUpdate: simple test
-* \until print 'All Females:', len(records), '\n'
-*/
+ *
+ * #### Examples
+ * \dontinclude "py_devapi/scripts/mysqlx_table_update.py"
+ * \skip #@# TableUpdate: simple test
+ * \until print 'All Females:', len(records), '\n'
+ */
 Result TableUpdate::execute() {}
 #endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
@@ -450,8 +453,8 @@ shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
     mysqlshdk::utils::Profile_timer timer;
     insert_bound_values(message_.mutable_args());
     timer.stage_begin("TableUpdate::execute");
-    result.reset(new mysqlx::Result(
-        safe_exec([this]() { return session()->session()->execute_crud(message_); })));
+    result.reset(new mysqlx::Result(safe_exec(
+        [this]() { return session()->session()->execute_crud(message_); })));
     timer.stage_end();
     result->set_execution_time(timer.total_seconds_ellapsed());
   }

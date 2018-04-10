@@ -1,5 +1,5 @@
 /*
-  * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,8 +42,7 @@
 namespace mysqlshdk {
 namespace utils {
 
-void init_stacktrace() {
-}
+void init_stacktrace() {}
 
 #ifdef _WIN32
 
@@ -52,7 +51,7 @@ void print_stacktrace() {
   USHORT nframes = CaptureStackBackTrace(0, MAX_STACK_DEPTH, callstack, NULL);
   HANDLE process = GetCurrentProcess();
   SymInitialize(process, NULL, TRUE);
-  SYMBOL_INFO *symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 1024);
+  SYMBOL_INFO *symbol = (SYMBOL_INFO *)malloc(sizeof(SYMBOL_INFO) + 1024);
   symbol->MaxNameLen = 1023;
   symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -72,7 +71,7 @@ std::vector<std::string> get_stacktrace() {
   USHORT nframes = CaptureStackBackTrace(0, MAX_STACK_DEPTH, callstack, NULL);
   HANDLE process = GetCurrentProcess();
   SymInitialize(process, NULL, TRUE);
-  SYMBOL_INFO *symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 1024);
+  SYMBOL_INFO *symbol = (SYMBOL_INFO *)malloc(sizeof(SYMBOL_INFO) + 1024);
   symbol->MaxNameLen = 1023;
   symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -99,8 +98,7 @@ static std::string demangle(const char *line) {
       std::string tmp(shcore::str_format("%-4s %s  %s + %s", parts[0].c_str(),
                                          parts[2].c_str(), buffer,
                                          parts[5].c_str()));
-      if (buffer)
-        free(buffer);
+      if (buffer) free(buffer);
       return tmp;
     }
   }
@@ -132,12 +130,9 @@ std::vector<std::string> get_stacktrace() {
 
 #else  // !__APPLE__
 
-void print_stacktrace() {
-}
+void print_stacktrace() {}
 
-std::vector<std::string> get_stacktrace() {
-  return {};
-}
+std::vector<std::string> get_stacktrace() { return {}; }
 #endif
 
 }  // namespace utils

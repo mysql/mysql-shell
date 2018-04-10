@@ -34,12 +34,11 @@ class Python_context;
  * Wraps an array object as a Python sequence object
  */
 struct PyShListObject {
-  PyObject_HEAD
-  shcore::Value::Array_type_ref *array;
+  PyObject_HEAD shcore::Value::Array_type_ref *array;
 };
 
 PyObject *wrap(std::shared_ptr<Value::Array_type> array);
 bool unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_array);
-};
+};  // namespace shcore
 
 #endif

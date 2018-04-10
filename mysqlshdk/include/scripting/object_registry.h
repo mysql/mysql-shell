@@ -24,31 +24,35 @@
 #ifndef _OBJECT_REGISTRY_H_
 #define _OBJECT_REGISTRY_H_
 
-#include "scripting/types.h"
 #include <list>
+#include "scripting/types.h"
 
 namespace shcore {
 class SHCORE_PUBLIC Object_registry {
-public:
-  typedef std::list<std::shared_ptr<Object_bridge> > Object_list;
+ public:
+  typedef std::list<std::shared_ptr<Object_bridge>> Object_list;
 
   Object_registry();
 
   void set_reg(const std::string &name, const Value &value);
   Value &get_reg(const std::string &name);
 
-  void add_to_reg_list(const std::string &list_name, const std::shared_ptr<Object_bridge> &object);
+  void add_to_reg_list(const std::string &list_name,
+                       const std::shared_ptr<Object_bridge> &object);
   void add_to_reg_list(const std::string &list_name, const Value &object);
-  void remove_from_reg_list(const std::string &list_name, const std::shared_ptr<Object_bridge> &object);
-  void remove_from_reg_list(const std::string &list_name, Value::Array_type::iterator iterator);
-  std::shared_ptr<Value::Array_type> &get_reg_list(const std::string &list_name);
+  void remove_from_reg_list(const std::string &list_name,
+                            const std::shared_ptr<Object_bridge> &object);
+  void remove_from_reg_list(const std::string &list_name,
+                            Value::Array_type::iterator iterator);
+  std::shared_ptr<Value::Array_type> &get_reg_list(
+      const std::string &list_name);
 
-private:
+ private:
   friend class JScript_context;
   friend class Python_context;
 
-  std::shared_ptr<Value::Map_type> _registry; // map of values
+  std::shared_ptr<Value::Map_type> _registry;  // map of values
 };
-};
+};  // namespace shcore
 
 #endif

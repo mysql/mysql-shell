@@ -25,8 +25,8 @@
 #include <sstream>
 #include <vector>
 
-#include "utils/utils_general.h"
 #include <mysql_version.h>
+#include "utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -39,8 +39,7 @@ void Session_impl::throw_on_connection_fail() {
   throw exception;
 }
 
-Session_impl::Session_impl() : _mysql(NULL) {
-}
+Session_impl::Session_impl() : _mysql(NULL) {}
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
@@ -55,7 +54,7 @@ void Session_impl::connect(
       (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
        _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
     _connection_options.set(mysqlshdk::db::kSslMode,
-                           {mysqlshdk::db::kSslModeVerifyCA});
+                            {mysqlshdk::db::kSslModeVerifyCA});
   }
 
   setup_ssl(_connection_options.get_ssl_options());
@@ -95,20 +94,25 @@ void Session_impl::connect(
   }
 #endif
 
-  if (!mysql_real_connect(_mysql,
-                          _connection_options.has_host() ?
-                          _connection_options.get_host().c_str() : NULL,
-                          _connection_options.has_user() ?
-                          _connection_options.get_user().c_str() : NULL,
-                          _connection_options.has_password() ?
-                          _connection_options.get_password().c_str() : NULL,
-                          _connection_options.has_schema() ?
-                          _connection_options.get_schema().c_str() : NULL,
-                          _connection_options.has_port() ?
-                          _connection_options.get_port() : 0,
-                          _connection_options.has_socket() ?
-                          _connection_options.get_socket().c_str() : NULL,
-                          flags)) {
+  if (!mysql_real_connect(
+          _mysql,
+          _connection_options.has_host()
+              ? _connection_options.get_host().c_str()
+              : NULL,
+          _connection_options.has_user()
+              ? _connection_options.get_user().c_str()
+              : NULL,
+          _connection_options.has_password()
+              ? _connection_options.get_password().c_str()
+              : NULL,
+          _connection_options.has_schema()
+              ? _connection_options.get_schema().c_str()
+              : NULL,
+          _connection_options.has_port() ? _connection_options.get_port() : 0,
+          _connection_options.has_socket()
+              ? _connection_options.get_socket().c_str()
+              : NULL,
+          flags)) {
     throw_on_connection_fail();
   }
 
@@ -124,8 +128,8 @@ void Session_impl::connect(
     if (connection_info.find("via TCP/IP") != std::string::npos) {
       _connection_options.set_port(MYSQL_PORT);
     } else {
-      // If connection was not through TCP/IP it means either the default socket
-      // path or windows named pipe was used
+    // If connection was not through TCP/IP it means either the default socket
+    // path or windows named pipe was used
 #ifdef _WIN32
       _connection_options.set_pipe("MySQL");
 #else
@@ -169,7 +173,8 @@ bool Session_impl::setup_ssl(
                     (ssl_options.get_tls_version().c_str()));
 
     if (ssl_options.has_cert())
-      mysql_options(_mysql, MYSQL_OPT_SSL_CERT, (ssl_options.get_cert().c_str()));
+      mysql_options(_mysql, MYSQL_OPT_SSL_CERT,
+                    (ssl_options.get_cert().c_str()));
 
     if (ssl_options.has_key())
       mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (ssl_options.get_key().c_str()));
@@ -188,11 +193,9 @@ bool Session_impl::setup_ssl(
 void Session_impl::close() {
   // This should be logged, for now commenting to
   // avoid having unneeded output on the script mode
-  if (_prev_result)
-    _prev_result.reset();
+  if (_prev_result) _prev_result.reset();
 
-  if (_mysql)
-    mysql_close(_mysql);
+  if (_mysql) mysql_close(_mysql);
   _mysql = nullptr;
 }
 
@@ -207,8 +210,7 @@ void Session_impl::execute(const std::string &sql) {
 
 std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
                                                bool buffered) {
-  if (_mysql == nullptr)
-    throw std::runtime_error("Not connected");
+  if (_mysql == nullptr) throw std::runtime_error("Not connected");
   if (_prev_result) {
     _prev_result.reset();
   } else {
@@ -244,8 +246,7 @@ static void free_result(T *result) {
 }
 
 bool Session_impl::next_resultset() {
-  if (_prev_result)
-    _prev_result.reset();
+  if (_prev_result) _prev_result.reset();
 
   return mysql_next_result(_mysql) == 0;
 }
@@ -275,7 +276,6 @@ Session_impl::~Session_impl() {
   close();
 }
 
-
 std::function<std::shared_ptr<Session>()> g_session_factory;
 
 void Session::set_factory_function(
@@ -284,8 +284,7 @@ void Session::set_factory_function(
 }
 
 std::shared_ptr<Session> Session::create() {
-  if (g_session_factory)
-    return g_session_factory();
+  if (g_session_factory) return g_session_factory();
   return std::shared_ptr<Session>(new Session());
 }
 

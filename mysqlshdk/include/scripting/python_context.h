@@ -26,38 +26,37 @@
 
 #include "python_utils.h"
 
-#include "scripting/types_common.h"
-#include "scripting/types.h"
 #include "scripting/lang_base.h"
+#include "scripting/types.h"
+#include "scripting/types_common.h"
 #include "utils/utils_file.h"
 
-#include "scripting/python_type_conversion.h"
 #include <list>
 #include <string>
 #include <utility>
-
+#include "scripting/python_type_conversion.h"
 
 namespace shcore {
 class AutoPyObject {
-private:
+ private:
   PyObject *object;
   bool autorelease;
-public:
-  AutoPyObject()
-    : object(0), autorelease(false) {}
 
-  // Assigning another auto object always makes this one ref-counting as they share
-  // now the same object. Same for the assignment operator.
+ public:
+  AutoPyObject() : object(0), autorelease(false) {}
+
+  // Assigning another auto object always makes this one ref-counting as they
+  // share now the same object. Same for the assignment operator.
   AutoPyObject(const AutoPyObject &other)
-    : object(other.object), autorelease(true) {
+      : object(other.object), autorelease(true) {
     Py_XINCREF(object);
   }
 
-  AutoPyObject(PyObject *py, bool retain = true)
-  : object(py) {
+  AutoPyObject(PyObject *py, bool retain = true) : object(py) {
     autorelease = retain;
     if (autorelease) {
-      // Leave the braces in place, even though this is a one liner. They will silence LLVM.
+      // Leave the braces in place, even though this is a one liner. They will
+      // silence LLVM.
       Py_XINCREF(object);
     }
   }
@@ -68,13 +67,13 @@ public:
     }
   }
 
-  AutoPyObject &operator= (PyObject *other) {
-    if (object == other) // Ignore assignments of the same object.
+  AutoPyObject &operator=(PyObject *other) {
+    if (object == other)  // Ignore assignments of the same object.
       return *this;
 
     // Auto release only if we actually have increased its ref count.
-    // Always make this auto object auto-releasing after that as we get an object that might
-    // be shared by another instance.
+    // Always make this auto object auto-releasing after that as we get an
+    // object that might be shared by another instance.
     if (autorelease) {
       Py_XDECREF(object);
     }
@@ -86,23 +85,17 @@ public:
     return *this;
   }
 
-  operator bool() {
-    return object != 0;
-  }
+  operator bool() { return object != 0; }
 
-  operator PyObject*() {
-    return object;
-  }
+  operator PyObject *() { return object; }
 
-  PyObject* operator->() {
-    return object;
-  }
+  PyObject *operator->() { return object; }
 };
 
 struct Interpreter_delegate;
 
 class TYPES_COMMON_PUBLIC Python_context {
-public:
+ public:
   Python_context(Interpreter_delegate *deleg, bool redirect_stdio);
   ~Python_context();
 
@@ -113,8 +106,8 @@ public:
   PyObject *get_shell_stdin_module();
   PyObject *get_shell_python_support_module();
 
-  Value execute(const std::string &code, const std::string& source = "",
-      const std::vector<std::string> &argv = {});
+  Value execute(const std::string &code, const std::string &source = "",
+                const std::vector<std::string> &argv = {});
   Value execute_interactive(const std::string &code,
                             Input_state &r_state) noexcept;
 
@@ -122,22 +115,27 @@ public:
   static void get_members_of(
       PyObject *object, std::vector<std::pair<bool, std::string>> *out_keys);
 
-  bool is_module(const std::string& file_name);
-  Value execute_module(const std::string& file_name, const std::vector<std::string> &argv);
+  bool is_module(const std::string &file_name);
+  Value execute_module(const std::string &file_name,
+                       const std::vector<std::string> &argv);
 
   Value pyobj_to_shcore_value(PyObject *value);
   PyObject *shcore_value_to_pyobj(const Value &value);
 
   Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
-  void set_global_item(const std::string &global_name, const std::string &item_name, const Value &value);
+  void set_global_item(const std::string &global_name,
+                       const std::string &item_name, const Value &value);
 
   PyObject *get_global_py(const std::string &value);
 
-  static void set_python_error(const shcore::Exception &exc, const std::string &location = "");
-  static void set_python_error(const std::exception &exc, const std::string &location = "");
+  static void set_python_error(const shcore::Exception &exc,
+                               const std::string &location = "");
+  static void set_python_error(const std::exception &exc,
+                               const std::string &location = "");
   static void set_python_error(PyObject *obj, const std::string &location);
-  bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert = false);
+  bool pystring_to_string(PyObject *strobject, std::string &ret_string,
+                          bool convert = false);
 
   AutoPyObject get_shell_list_class();
   AutoPyObject get_shell_dict_class();
@@ -149,8 +147,9 @@ public:
 
   PyObject *db_error() { return _db_error; }
 
-private:
-  static PyObject *shell_print(PyObject *self, PyObject *args, const std::string& stream);
+ private:
+  static PyObject *shell_print(PyObject *self, PyObject *args,
+                               const std::string &stream);
   static PyObject *shell_flush(PyObject *self, PyObject *args);
   static PyObject *shell_flush_stderr(PyObject *self, PyObject *args);
   static PyObject *shell_stdout(PyObject *self, PyObject *args);
@@ -169,7 +168,8 @@ private:
   static PyMethodDef ShellStdOutMethods[];
   static PyMethodDef ShellStdInMethods[];
   static PyMethodDef ShellPythonSupportMethods[];
-private:
+
+ private:
   PyObject *_global_namespace;
   PyObject *_globals;
   PyObject *_locals;
@@ -187,10 +187,11 @@ private:
   PyObject *_shell_stdin_module;
   PyObject *_shell_python_support_module;
 
-  std::map<PyObject*, std::shared_ptr<shcore::Object_bridge> > _modules;
+  std::map<PyObject *, std::shared_ptr<shcore::Object_bridge>> _modules;
 
   void register_mysqlsh_module();
-  PyObject *call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name);
+  PyObject *call_module_function(PyObject *self, PyObject *args,
+                                 PyObject *keywords, const std::string &name);
 
   void register_shell_stderr_module();
   void register_shell_stdout_module();
@@ -206,13 +207,13 @@ private:
 
   std::list<AutoPyObject> _captured_eval_result;
 
-protected:
+ protected:
   AutoPyObject _shell_list_class;
   AutoPyObject _shell_dict_class;
   AutoPyObject _shell_object_class;
   AutoPyObject _shell_indexed_object_class;
   AutoPyObject _shell_function_class;
 };
-}
+}  // namespace shcore
 
 #endif

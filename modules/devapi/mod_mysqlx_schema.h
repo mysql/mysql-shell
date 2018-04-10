@@ -46,17 +46,17 @@ class Table;
 class Collection;
 
 /**
-* \ingroup XDevAPI
-* $(SCHEMA_BRIEF)
-*
-* $(SCHEMA_DETAIL)
-*
-* $(SCHEMA_DETAIL1)
-*
-* $(SCHEMA_DETAIL2)
-*
-* $(SCHEMA_DETAIL3)
-*/
+ * \ingroup XDevAPI
+ * $(SCHEMA_BRIEF)
+ *
+ * $(SCHEMA_DETAIL)
+ *
+ * $(SCHEMA_DETAIL1)
+ *
+ * $(SCHEMA_DETAIL2)
+ *
+ * $(SCHEMA_DETAIL3)
+ */
 class SHCORE_PUBLIC Schema : public DatabaseObject,
                              public std::enable_shared_from_this<Schema> {
  public:
@@ -99,7 +99,8 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   shcore::Value get_collection(const shcore::Argument_list &args);
   shcore::Value get_collection_as_table(const shcore::Argument_list &args);
   shcore::Value create_collection(const shcore::Argument_list &args);
-  shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string &type);
+  shcore::Value drop_schema_object(const shcore::Argument_list &args,
+                                   const std::string &type);
 
  private:
   void init();

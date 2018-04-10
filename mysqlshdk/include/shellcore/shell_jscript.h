@@ -30,18 +30,21 @@ namespace shcore {
 class JScript_context;
 
 class Shell_javascript : public Shell_language {
-public:
+ public:
   Shell_javascript(Shell_core *shcore);
 
   virtual void set_global(const std::string &name, const Value &value);
 
-  virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor);
+  virtual void handle_input(
+      std::string &code, Input_state &state,
+      std::function<void(shcore::Value)> result_processor);
 
   std::shared_ptr<JScript_context> javascript_context() { return _js; }
-private:
+
+ private:
   void abort() noexcept;
   std::shared_ptr<JScript_context> _js;
 };
-};
+};  // namespace shcore
 
 #endif

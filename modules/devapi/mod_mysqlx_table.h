@@ -43,9 +43,9 @@ namespace mysqlx {
 class Schema;
 
 /**
-* \ingroup XDevAPI
-* $(TABLE_BRIEF)
-*/
+ * \ingroup XDevAPI
+ * $(TABLE_BRIEF)
+ */
 class Table : public DatabaseObject,
               public std::enable_shared_from_this<Table> {
  public:
@@ -88,7 +88,7 @@ class Table : public DatabaseObject,
  private:
   void init();
 
-private:
+ private:
   bool _is_view;
 
   // Allows initial functions on the CRUD operations

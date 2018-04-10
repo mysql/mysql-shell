@@ -205,10 +205,11 @@ class User_privileges_result {
    * @param schema The schema to check.
    * @param table The table to check.
    */
-  User_privileges_result(const User_privileges &privileges,
-                         const std::set<std::string> &required_privileges,
-                         const std::string &schema = User_privileges::k_wildcard,
-                         const std::string &table = User_privileges::k_wildcard);
+  User_privileges_result(
+      const User_privileges &privileges,
+      const std::set<std::string> &required_privileges,
+      const std::string &schema = User_privileges::k_wildcard,
+      const std::string &table = User_privileges::k_wildcard);
 
   /**
    * Checks if the given user account exists.

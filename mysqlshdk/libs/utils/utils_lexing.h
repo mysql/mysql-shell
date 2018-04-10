@@ -25,9 +25,9 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_LEXING_H_
 
 #include <cassert>
-#include <string>
-#include <stdexcept>
 #include <cctype>
+#include <stdexcept>
+#include <string>
 
 namespace mysqlshdk {
 namespace utils {
@@ -178,11 +178,9 @@ inline size_t span_keyword(const std::string &s, size_t offset) {
   }
 }
 
-
 inline size_t span_to_eol(const std::string &s, size_t offset) {
   offset = s.find('\n', offset);
-  if (offset == std::string::npos)
-    return s.length();
+  if (offset == std::string::npos) return s.length();
   return offset + 1;
 }
 
@@ -192,8 +190,7 @@ inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
 
   offset += 2;
   size_t p = s.find("*/", offset);
-  if (p == std::string::npos)
-    return std::string::npos;
+  if (p == std::string::npos) return std::string::npos;
   return p + 2;
 }
 
@@ -223,39 +220,27 @@ class SQL_string_iterator {
     return ans;
   }
 
-  void advance() {
-    ++(*this);
-  }
+  void advance() { ++(*this); }
 
   std::string::value_type get_char() const {
     assert(m_offset < m_s.length());
     return m_s[m_offset];
   }
 
-  std::string::value_type operator*() const {
-    return get_char();
-  }
+  std::string::value_type operator*() const { return get_char(); }
 
   bool operator==(const SQL_string_iterator &a) const {
     return m_offset == a.m_offset && m_s == a.m_s;
   }
 
-  bool operator!=(const SQL_string_iterator &a) const {
-    return !(*this == a);
-  }
+  bool operator!=(const SQL_string_iterator &a) const { return !(*this == a); }
 
-  operator std::string::size_type() const {
-    return m_offset;
-  }
+  operator std::string::size_type() const { return m_offset; }
 
-  std::string::size_type position() const {
-    return m_offset;
-  }
+  std::string::size_type position() const { return m_offset; }
 
   /** Is iterator pointing to valid character inside SQL string */
-  bool valid() const {
-    return m_offset < m_s.length();
-  }
+  bool valid() const { return m_offset < m_s.length(); }
 
  private:
   const std::string &m_s;

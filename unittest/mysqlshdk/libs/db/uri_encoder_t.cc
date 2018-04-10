@@ -23,13 +23,13 @@
 #include <stdexcept>
 #include "mysqlshdk/libs/db/uri_encoder.h"
 
-using mysqlshdk::db::uri::Uri_encoder;
-using mysqlshdk::db::uri::SUBDELIMITERS;
 using mysqlshdk::db::uri::ALPHANUMERIC;
 using mysqlshdk::db::uri::DELIMITERS;
-using mysqlshdk::db::uri::UNRESERVED;
-using mysqlshdk::db::uri::HEXDIG;
 using mysqlshdk::db::uri::DIGIT;
+using mysqlshdk::db::uri::HEXDIG;
+using mysqlshdk::db::uri::SUBDELIMITERS;
+using mysqlshdk::db::uri::UNRESERVED;
+using mysqlshdk::db::uri::Uri_encoder;
 
 namespace testing {
 
@@ -38,7 +38,7 @@ namespace testing {
       {                                  \
         try {                            \
           c;                             \
-        } catch (const e& error) {       \
+        } catch (const e &error) {       \
           EXPECT_STREQ(m, error.what()); \
           throw;                         \
         }                                \

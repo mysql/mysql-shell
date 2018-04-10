@@ -31,20 +31,19 @@
 #include "expr_parser.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-
 namespace mysqlx {
 class Proj_parser : public Expr_parser {
  public:
-  Proj_parser(const std::string& expr_str, bool document_mode = false,
+  Proj_parser(const std::string &expr_str, bool document_mode = false,
               bool allow_alias = true);
 
   template <typename Container>
-  void parse(Container& result) {
-    Mysqlx::Crud::Projection* colid = result.Add();
+  void parse(Container &result) {
+    Mysqlx::Crud::Projection *colid = result.Add();
     source_expression(*colid);
 
     if (_tokenizer.tokens_available()) {
-      const mysqlx::Token& tok = _tokenizer.peek_token();
+      const mysqlx::Token &tok = _tokenizer.peek_token();
       throw Parser_error(
           shcore::str_format("Projection parser: Expression '%s' has "
                              "unexpected token '%s' at position %d",
@@ -53,8 +52,8 @@ class Proj_parser : public Expr_parser {
     }
   }
 
-  const std::string& id();
-  void source_expression(Mysqlx::Crud::Projection& column);
+  const std::string &id();
+  void source_expression(Mysqlx::Crud::Projection &column);
 };
-};
+};  // namespace mysqlx
 #endif

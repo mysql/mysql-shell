@@ -26,13 +26,13 @@
 #include <string>
 #include <vector>
 #include "db/mysqlx/mysqlx_parser.h"
-#include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/base_constants.h"
+#include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
-#include "mysqlshdk/libs/utils/profiling.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -63,14 +63,29 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   register_dynamic_function(F::fields, F::find);
   register_dynamic_function(F::groupBy, F::find | F::fields);
   register_dynamic_function(F::having, F::groupBy);
-  register_dynamic_function(F::sort, F::find | F::fields | F::groupBy | F::having);
-  register_dynamic_function(F::limit, F::find | F::fields | F::groupBy | F::having | F::sort);
+  register_dynamic_function(F::sort,
+                            F::find | F::fields | F::groupBy | F::having);
+  register_dynamic_function(
+      F::limit, F::find | F::fields | F::groupBy | F::having | F::sort);
   register_dynamic_function(F::skip, F::limit);
-  register_dynamic_function(F::lockShared, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit);
-  register_dynamic_function(F::lockExclusive, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit);
-  register_dynamic_function(F::bind, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit | F::lockShared | F::lockExclusive | F::bind);
-  register_dynamic_function(F::execute, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit | F::lockShared | F::lockExclusive | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::find | F::fields | F::groupBy | F::having | F::sort | F::skip | F::limit | F::lockShared | F::lockExclusive | F::bind);
+  register_dynamic_function(F::lockShared, F::find | F::fields | F::groupBy |
+                                               F::having | F::sort | F::skip |
+                                               F::limit);
+  register_dynamic_function(F::lockExclusive, F::find | F::fields | F::groupBy |
+                                                  F::having | F::sort |
+                                                  F::skip | F::limit);
+  register_dynamic_function(F::bind, F::find | F::fields | F::groupBy |
+                                         F::having | F::sort | F::skip |
+                                         F::limit | F::lockShared |
+                                         F::lockExclusive | F::bind);
+  register_dynamic_function(F::execute, F::find | F::fields | F::groupBy |
+                                            F::having | F::sort | F::skip |
+                                            F::limit | F::lockShared |
+                                            F::lockExclusive | F::bind);
+  register_dynamic_function(F::__shell_hook__,
+                            F::find | F::fields | F::groupBy | F::having |
+                                F::sort | F::skip | F::limit | F::lockShared |
+                                F::lockExclusive | F::bind);
 
   // Initial function update
   update_functions(F::_empty);
@@ -118,7 +133,7 @@ REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1,
 #elif DOXYGEN_PY
 /**
  * - group_by(List searchExprStr)
-*/
+ */
 #endif
 /**
  * - sort(List sortExprStr)
@@ -131,7 +146,7 @@ REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -140,7 +155,7 @@ REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -148,11 +163,9 @@ REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::find(String searchCondition) {
-}
+CollectionFind CollectionFind::find(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::find(str searchCondition) {
-}
+CollectionFind CollectionFind::find(str searchCondition) {}
 #endif
 //@}
 shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
@@ -168,8 +181,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
       if (args.size()) {
         search_condition = args.string_at(0);
 
-        if (!search_condition.empty())
-          set_filter(search_condition);
+        if (!search_condition.empty()) set_filter(search_condition);
       }
       // Updates the exposed functions
       update_functions(F::find);
@@ -180,14 +192,12 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-CollectionFind &CollectionFind::set_filter(const std::string& filter) {
+CollectionFind &CollectionFind::set_filter(const std::string &filter) {
   message_.set_allocated_criteria(
-      ::mysqlx::parser::parse_collection_filter(filter,
-                                                &_placeholders));
+      ::mysqlx::parser::parse_collection_filter(filter, &_placeholders));
 
   return *this;
 }
-
 
 REGISTER_HELP(COLLECTIONFIND_FIELDS_BRIEF,
               "Sets the fields to be retrieved from each document matching the "
@@ -251,7 +261,7 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5,
 #elif DOXYGEN_PY
 /**
  * - group_by(List searchExprStr)
-*/
+ */
 #endif
 /**
  * - sort(List sortExprStr)
@@ -264,7 +274,7 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -273,7 +283,7 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -282,17 +292,13 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5,
 //@{
 #if DOXYGEN_JS
 CollectionFind CollectionFind::fields(
-    String fieldDefinition[, String fieldDefinition, ...]) {
-}
-CollectionFind CollectionFind::fields(List fieldDefinition) {
-}
+    String fieldDefinition[, String fieldDefinition, ...]) {}
+CollectionFind CollectionFind::fields(List fieldDefinition) {}
 CollectionFind CollectionFind::fields(DocExpression fieldDefinition);
 #elif DOXYGEN_PY
 CollectionFind CollectionFind::fields(
-    str fieldDefinition[, str fieldDefinition, ...]) {
-}
-CollectionFind CollectionFind::fields(list fieldDefinition) {
-}
+    str fieldDefinition[, str fieldDefinition, ...]) {}
+CollectionFind CollectionFind::fields(list fieldDefinition) {}
 CollectionFind CollectionFind::fields(DocExpression fieldDefinition);
 #endif
 //@}
@@ -392,7 +398,7 @@ REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -401,7 +407,7 @@ REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -409,17 +415,13 @@ REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::groupBy(List groupCriteria) {
-}
+CollectionFind CollectionFind::groupBy(List groupCriteria) {}
 CollectionFind CollectionFind::groupBy(
-    String groupCriteria[, String groupCriteria, ...]) {
-}
+    String groupCriteria[, String groupCriteria, ...]) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::group_by(list groupCriteria) {
-}
+CollectionFind CollectionFind::group_by(list groupCriteria) {}
 CollectionFind CollectionFind::group_by(
-    str groupCriteria[, str groupCriteria, ...]) {
-}
+    str groupCriteria[, str groupCriteria, ...]) {}
 #endif
 //@}
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
@@ -479,7 +481,7 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - group_by(List searchExprStr)
-*/
+ */
 #endif
 /**
  *
@@ -495,7 +497,7 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -504,7 +506,7 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -512,11 +514,9 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::having(String searchCondition) {
-}
+CollectionFind CollectionFind::having(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::having(str searchCondition) {
-}
+CollectionFind CollectionFind::having(str searchCondition) {}
 #endif
 //@}
 shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
@@ -582,7 +582,7 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
 #elif DOXYGEN_PY
 /**
  * - group_by(List searchExprStr)
-*/
+ */
 #endif
 /**
  * - having(String searchCondition)
@@ -598,7 +598,7 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -607,7 +607,7 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -615,14 +615,11 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::sort(List sortCriteria) {
-}
+CollectionFind CollectionFind::sort(List sortCriteria) {}
 CollectionFind CollectionFind::sort(
-    String sortCriteria[, String sortCriteria, ...]) {
-}
+    String sortCriteria[, String sortCriteria, ...]) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::sort(list sortCriteria) {
-}
+CollectionFind CollectionFind::sort(list sortCriteria) {}
 CollectionFind CollectionFind::sort(str sortCriteria[, str sortCriteria, ...]) {
 }
 #endif
@@ -685,7 +682,7 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - group_by(List searchExprStr)
-*/
+ */
 #endif
 /**
  * - having(String searchCondition)
@@ -702,7 +699,7 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -711,7 +708,7 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -719,11 +716,9 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::limit(Integer numberOfRows) {
-}
+CollectionFind CollectionFind::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::limit(int numberOfRows) {
-}
+CollectionFind CollectionFind::limit(int numberOfRows) {}
 #endif
 //@}
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
@@ -777,7 +772,7 @@ REGISTER_HELP(
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 #if DOXYGEN_JS
 /**
@@ -786,7 +781,7 @@ REGISTER_HELP(
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -794,11 +789,9 @@ REGISTER_HELP(
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::skip(Integer offset) {
-}
+CollectionFind CollectionFind::skip(Integer offset) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::skip(int offset) {
-}
+CollectionFind CollectionFind::skip(int offset) {}
 #endif
 //@}
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
@@ -829,24 +822,25 @@ void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
     if (!shcore::str_casecmp(lock_contention.c_str(), "nowait")) {
       message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_NOWAIT);
     } else if (!shcore::str_casecmp(lock_contention.c_str(), "skip_locked")) {
-      message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
+      message_.set_locking_options(
+          Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
     } else if (shcore::str_casecmp(lock_contention.c_str(), "default")) {
-        throw shcore::Exception::argument_error(
-            "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
-            "SKIP_LOCKED");
+      throw shcore::Exception::argument_error(
+          "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
+          "SKIP_LOCKED");
     }
   }
 }
 
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_BRIEF,
-    "Instructs the server to acquire shared row locks in documents "
-    "matched by this find operation.");
+              "Instructs the server to acquire shared row locks in documents "
+              "matched by this find operation.");
 REGISTER_HELP(
     COLLECTIONFIND_LOCKSHARED_PARAM,
     "@param lockContention optional parameter to indicate how to handle "
     "documents that are already locked.");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_RETURNS,
-    "@returns This CollectionFind object.");
+              "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL,
               "When this function is called, the selected documents will be"
               "locked for write operations, they may be retrieved on a "
@@ -938,7 +932,7 @@ REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL14,
 #elif DOXYGEN_PY
 /**
  * - lock_exclusive(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -949,11 +943,9 @@ REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_DETAIL14,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::lockShared(String lockContention) {
-}
+CollectionFind CollectionFind::lockShared(String lockContention) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::lock_shared(str lockContention) {
-}
+CollectionFind CollectionFind::lock_shared(str lockContention) {}
 #endif
 //@}
 shcore::Value CollectionFind::lock_shared(const shcore::Argument_list &args) {
@@ -1071,7 +1063,7 @@ REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL14,
 #elif DOXYGEN_PY
 /**
  * - lock_shared(str lockContention)
-*/
+ */
 #endif
 /**
  * - bind(String name, Value value)
@@ -1082,11 +1074,9 @@ REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL14,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::lockExclusive(String lockContention) {
-}
+CollectionFind CollectionFind::lockExclusive(String lockContention) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::lock_exclusive(str lockContention) {
-}
+CollectionFind CollectionFind::lock_exclusive(str lockContention) {}
 #endif
 //@}
 shcore::Value CollectionFind::lock_exclusive(
@@ -1153,11 +1143,9 @@ REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::bind(String name, Value value) {
-}
+CollectionFind CollectionFind::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::bind(str name, Value value) {
-}
+CollectionFind CollectionFind::bind(str name, Value value) {}
 #endif
 //@}
 shcore::Value CollectionFind::bind_(const shcore::Argument_list &args) {
@@ -1178,7 +1166,6 @@ CollectionFind &CollectionFind::bind(const std::string &name,
   bind_value(name, value);
   return *this;
 }
-
 
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_BRIEF,
               "Executes the find operation with all the configured options.");
@@ -1226,8 +1213,7 @@ REGISTER_HELP(COLLECTIONFIND_EXECUTE_SYNTAX, "execute()");
  * #### Parameter Binding
  * \snippet mysqlx_collection_find.js CollectionFind: Parameter Binding
  */
-DocResult CollectionFind::execute() {
-}
+DocResult CollectionFind::execute() {}
 #elif DOXYGEN_PY
 /**
  * #### Retrieving All Documents
@@ -1255,8 +1241,7 @@ DocResult CollectionFind::execute() {
  * #### Parameter Binding
  * \snippet mysqlx_collection_find.py CollectionFind: Parameter Binding
  */
-DocResult CollectionFind::execute() {
-}
+DocResult CollectionFind::execute() {}
 #endif
 //@}
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {

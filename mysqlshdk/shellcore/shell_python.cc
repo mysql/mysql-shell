@@ -37,27 +37,25 @@ using namespace shcore;
 Shell_python::Shell_python(Shell_core *shcore)
     : Shell_language(shcore),
       _py(new Python_context(shcore->get_delegate(),
-          mysqlsh::Base_shell::options().interactive)) {
-}
+                             mysqlsh::Base_shell::options().interactive)) {}
 
 std::string Shell_python::preprocess_input_line(const std::string &s) {
   const char *p = s.c_str();
-  while (*p && isblank(*p))
-    ++p;
-  if (*p == '#')
-    return std::string();
+  while (*p && isblank(*p)) ++p;
+  if (*p == '#') return std::string();
   return s;
 }
 
 /*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
+ * Helper function to ensure the exceptions generated on the mysqlx_connector
+ * are properly translated to the corresponding shcore::Exception type
+ */
 
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Input_state &state,
+void Shell_python::handle_input(
+    std::string &code, Input_state &state,
     std::function<void(shcore::Value)> result_processor) {
   Value result;
 
@@ -89,8 +87,7 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
   _last_handled = code;
 
   // Only processes the result when full statements are executed
-  if (state == Input_state::Ok)
-    result_processor(result);
+  if (state == Input_state::Ok) result_processor(result);
 }
 
 /*
@@ -101,7 +98,7 @@ void Shell_python::set_global(const std::string &name, const Value &value) {
 }
 
 int Shell_python::check_signals(void *thread_id) {
-  Shell_python *self = static_cast<Shell_python*>(thread_id);
+  Shell_python *self = static_cast<Shell_python *>(thread_id);
   if (self->_aborted) {
     PyThreadState_SetAsyncExc(self->_pending_interrupt_thread,
                               PyExc_KeyboardInterrupt);
@@ -112,13 +109,13 @@ int Shell_python::check_signals(void *thread_id) {
 void Shell_python::abort(long thread_id) noexcept {
   _pending_interrupt_thread = thread_id;
   if (Py_AddPendingCall(&Shell_python::check_signals,
-                        static_cast<void*>(this)) < 0)
+                        static_cast<void *>(this)) < 0)
     log_warning("Could not interrupt Python");
   else
     log_info("User aborted Python execution (^C)");
 }
 
-bool Shell_python::is_module(const std::string& file_name) {
+bool Shell_python::is_module(const std::string &file_name) {
   bool ret_val = false;
 
   try {
@@ -126,14 +123,18 @@ bool Shell_python::is_module(const std::string& file_name) {
 
     ret_val = _py->is_module(file_name);
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception while loading ").
-        append(file_name).append(": ").append(exc.what()));
+    _owner->print_error(std::string("Exception while loading ")
+                            .append(file_name)
+                            .append(": ")
+                            .append(exc.what()));
   }
 
   return ret_val;
 }
 
-void Shell_python::execute_module(const std::string& file_name, std::function<void(shcore::Value)> result_processor) {
+void Shell_python::execute_module(
+    const std::string &file_name,
+    std::function<void(shcore::Value)> result_processor) {
   shcore::Value ret_val;
   try {
     WillEnterPython lock;
@@ -142,8 +143,10 @@ void Shell_python::execute_module(const std::string& file_name, std::function<vo
 
     result_processor(ret_val);
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception while loading ").
-        append(file_name).append(": ").append(exc.what()));
+    _owner->print_error(std::string("Exception while loading ")
+                            .append(file_name)
+                            .append(": ")
+                            .append(exc.what()));
     // Should shcore::Exceptions bubble up??
   }
 }

@@ -27,36 +27,36 @@
 #ifndef _MOD_RESULT_H_
 #define _MOD_RESULT_H_
 
-#include <vector>
-#include<string>
 #include <list>
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
+#include <string>
+#include <vector>
 #include "modules/devapi/base_resultset.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/mysql/row.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 namespace mysql {
 
 /**
-* \ingroup ShellAPI
-* $(CLASSICRESULT_BRIEF)
-*
-* $(CLASSICRESULT_DETAIL)
-*/
+ * \ingroup ShellAPI
+ * $(CLASSICRESULT_BRIEF)
+ *
+ * $(CLASSICRESULT_DETAIL)
+ */
 class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
-public:
+ public:
   explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);
 
   // TODO(rennox): This function should be removed, the callers of this function
   // should either use the low level implementation (ISession) or the high level
   // implementation ClassicResult as exposed to the user API.
-  const mysqlshdk::db::IRow* fetch_one() const;
+  const mysqlshdk::db::IRow *fetch_one() const;
 
   virtual std::string class_name() const { return "ClassicResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;
-  virtual void append_json(shcore::JSON_dumper& dumper) const;
+  virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   shcore::Value has_data(const shcore::Argument_list &args) const;
   virtual shcore::Value fetch_one(const shcore::Argument_list &args) const;
@@ -75,17 +75,16 @@ public:
   std::shared_ptr<std::vector<std::string>> _column_names;
   mutable shcore::Value::Array_type_ref _columns;
 
-
 #if DOXYGEN_JS
-  Integer affectedRowCount; //!< Same as getAffectedItemCount()
-  Integer columnCount; //!< Same as getColumnCount()
-  List columnNames; //!< Same as getColumnNames()
-  List columns; //!< Same as getColumns()
-  String executionTime; //!< Same as getExecutionTime()
-  String info; //!< Same as getInfo()
-  Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
-  List warnings; //!< Same as getWarnings()
-  Integer warningCount; //!< Same as getWarningCount()
+  Integer affectedRowCount;    //!< Same as getAffectedItemCount()
+  Integer columnCount;         //!< Same as getColumnCount()
+  List columnNames;            //!< Same as getColumnNames()
+  List columns;                //!< Same as getColumns()
+  String executionTime;        //!< Same as getExecutionTime()
+  String info;                 //!< Same as getInfo()
+  Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
+  List warnings;               //!< Same as getWarnings()
+  Integer warningCount;        //!< Same as getWarningCount()
 
   Row fetchOne();
   List fetchAll();
@@ -101,15 +100,15 @@ public:
   List getWarnings();
   Bool nextDataSet();
 #elif DOXYGEN_PY
-  int affected_row_count; //!< Same as get_affected_item_count()
-  int column_count; //!< Same as get_column_count()
-  list column_names; //!< Same as get_column_names()
-  list columns; //!< Same as get_columns()
-  str execution_time; //!< Same as get_execution_time()
-  str info; //!< Same as get_info()
-  int auto_increment_value; //!< Same as get_auto_increment_value()
-  list warnings; //!< Same as get_warnings()
-  int warning_count; //!< Same as get_warning_count()
+  int affected_row_count;    //!< Same as get_affected_item_count()
+  int column_count;          //!< Same as get_column_count()
+  list column_names;         //!< Same as get_column_names()
+  list columns;              //!< Same as get_columns()
+  str execution_time;        //!< Same as get_execution_time()
+  str info;                  //!< Same as get_info()
+  int auto_increment_value;  //!< Same as get_auto_increment_value()
+  list warnings;             //!< Same as get_warnings()
+  int warning_count;         //!< Same as get_warning_count()
 
   Row fetch_one();
   list fetch_all();
@@ -126,7 +125,7 @@ public:
   bool next_data_set();
 #endif
 };
-}
-};
+}  // namespace mysql
+};  // namespace mysqlsh
 
 #endif

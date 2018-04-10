@@ -35,11 +35,11 @@ class SHCORE_PUBLIC Shell_help {
   virtual ~Shell_help() {}
 
   // Retrieves the options directly, to be used from C++
-  static Shell_help* get();
+  static Shell_help *get();
 
-  std::string get_token(const std::string& help);
+  std::string get_token(const std::string &help);
 
-  void add_help(const std::string& token, const std::string& data);
+  void add_help(const std::string &token, const std::string &data);
 
  private:
   // Private constructor since this is a singleton
@@ -49,25 +49,25 @@ class SHCORE_PUBLIC Shell_help {
   std::map<std::string, std::string> _help_data;
 
   // The only available instance
-  static Shell_help* _instance;
+  static Shell_help *_instance;
 };
 
 struct Help_register {
-  Help_register(const std::string& token, const std::string& data);
+  Help_register(const std::string &token, const std::string &data);
 };
 
 std::vector<std::string> SHCORE_PUBLIC resolve_help_text(
-    const std::vector<std::string>& prefixes, const std::string& suffix);
-std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token);
+    const std::vector<std::string> &prefixes, const std::string &suffix);
+std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string &token);
 std::string get_function_help(shcore::NamingStyle style,
-                                            const std::string& class_name,
-                                            const std::string& bfname);
+                              const std::string &class_name,
+                              const std::string &bfname);
 std::string get_property_help(shcore::NamingStyle style,
-                                            const std::string& class_name,
-                                            const std::string& bfname);
-std::string get_chained_function_help(
-    shcore::NamingStyle style, const std::string& class_name,
-    const std::string& bfname);
+                              const std::string &class_name,
+                              const std::string &bfname);
+std::string get_chained_function_help(shcore::NamingStyle style,
+                                      const std::string &class_name,
+                                      const std::string &bfname);
 };  // namespace shcore
 
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)

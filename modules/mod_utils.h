@@ -44,9 +44,9 @@ enum class PasswordFormat {
 };
 
 Connection_options SHCORE_PUBLIC
-get_connection_options(const shcore::Value& args);
+get_connection_options(const shcore::Value &args);
 Connection_options SHCORE_PUBLIC get_connection_options(
-    const shcore::Argument_list& args, PasswordFormat format);
+    const shcore::Argument_list &args, PasswordFormat format);
 
 /**
  * Unpack an options dictionary.
@@ -71,14 +71,14 @@ class Unpack_options : public shcore::Option_unpacker {
   explicit Unpack_options(shcore::Dictionary_t options)
       : shcore::Option_unpacker(options) {}
 
-  shcore::Option_unpacker& optional_obj(const char* name,
-                                        Connection_options* out_value) {
+  shcore::Option_unpacker &optional_obj(const char *name,
+                                        Connection_options *out_value) {
     shcore::Value value = get_optional(name, shcore::Undefined);
     if (value) {
       if (value.type == shcore::String) {
         try {
           *out_value = Connection_options(value.as_string());
-        } catch (std::exception& e) {
+        } catch (std::exception &e) {
           throw shcore::Exception::argument_error(
               std::string("Invalid value for option ") + name + ": " +
               e.what());
@@ -102,22 +102,22 @@ class Unpack_options : public shcore::Option_unpacker {
 };
 
 void SHCORE_PUBLIC set_password_from_map(
-    Connection_options* options, const shcore::Value::Map_type_ref& map);
-void SHCORE_PUBLIC set_user_from_map(Connection_options* options,
-                                     const shcore::Value::Map_type_ref& map);
+    Connection_options *options, const shcore::Value::Map_type_ref &map);
+void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
+                                     const shcore::Value::Map_type_ref &map);
 
 shcore::Value::Map_type_ref SHCORE_PUBLIC
-get_connection_map(const Connection_options& connection_options);
+get_connection_map(const Connection_options &connection_options);
 
 void SHCORE_PUBLIC resolve_connection_credentials(
-    Connection_options* options,
+    Connection_options *options,
     std::shared_ptr<mysqlsh::IConsole> console_handler = nullptr);
 
 // To be removed and replaced with resolve_connection_credentials
 // as soon as the full move to IConsole is done
 void SHCORE_PUBLIC resolve_connection_credentials_deleg(
-    Connection_options* options,
-    shcore::Interpreter_delegate* delegate = nullptr);
+    Connection_options *options,
+    shcore::Interpreter_delegate *delegate = nullptr);
 
 }  // namespace mysqlsh
 

@@ -67,8 +67,7 @@ shcore::Value Type::get_member(const std::string &prop) const {
   shcore::Value ret_val = mysqlsh::Constant::get_constant(
       "mysqlx", "Type", prop, shcore::Argument_list());
 
-  if (!ret_val)
-    ret_val = Cpp_object_bridge::get_member(prop);
+  if (!ret_val) ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
 }
@@ -82,8 +81,6 @@ std::shared_ptr<shcore::Object_bridge> Type::create(
   return ret_val;
 }
 
-
-
 REGISTER_HELP(MYSQLX_LOCKCONTENTION_BRIEF, "Lock contention types");
 
 LockContention::LockContention() {
@@ -96,8 +93,7 @@ shcore::Value LockContention::get_member(const std::string &prop) const {
   shcore::Value ret_val = mysqlsh::Constant::get_constant(
       "mysqlx", "LockContention", prop, shcore::Argument_list());
 
-  if (!ret_val)
-    ret_val = Cpp_object_bridge::get_member(prop);
+  if (!ret_val) ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
 }

@@ -56,8 +56,7 @@ std::string expand_user(const std::string &path, const std::string &sep) {
 }
 
 size_t span_dirname(const std::string &path) {
-  if (path.empty())
-    return std::string::npos;
+  if (path.empty()) return std::string::npos;
 
   // trailing / is ignored
   size_t end = path.size();
@@ -70,8 +69,7 @@ size_t span_dirname(const std::string &path) {
       std::find_first_of(
           path.begin(), path.end() - end, k_valid_path_separators,
           k_valid_path_separators + strlen(k_valid_path_separators)));
-  if (start == std::string::npos)
-    return std::string::npos;
+  if (start == std::string::npos) return std::string::npos;
 
   // absolute path
   if (start == 0) {
@@ -79,11 +77,9 @@ size_t span_dirname(const std::string &path) {
     start = path.find_first_not_of(k_valid_path_separators, start) - 1;
 
     size_t p = path.find_last_of(k_valid_path_separators, end);
-    if (p == start)
-      return 1;
+    if (p == start) return 1;
     p = path.find_last_not_of(k_valid_path_separators, p);  // merge repeated /
-    if (p == start)
-      return 1;
+    if (p == start) return 1;
 
     // /foo/bar -> /foo or /foo/bar/ -> /foo
     return p + 1;
@@ -103,7 +99,6 @@ std::string search_stdpath(const std::string &name) {
   return search_path_list(name, path);
 }
 
-
 std::string search_path_list(const std::string &name,
                              const std::string &pathlist,
                              const char separator) {
@@ -122,8 +117,7 @@ std::string search_path_list(const std::string &name,
   }
   for (const std::string &dir : str_split(pathlist, sep)) {
     std::string tmp = join_path(dir, fname);
-    if (exists(tmp))
-      return tmp;
+    if (exists(tmp)) return tmp;
   }
   return "";
 }

@@ -32,17 +32,17 @@
 
 #include "scripting/common.h"
 
-#include <type_traits>
 #include <stdexcept>
+#include <type_traits>
 
 namespace shcore {
-enum SqlStringFlags {
-  QuoteOnlyIfNeeded = 1 << 0,
-  UseAnsiQuotes = 1 << 1
-};
+enum SqlStringFlags { QuoteOnlyIfNeeded = 1 << 0, UseAnsiQuotes = 1 << 1 };
 
-SHCORE_PUBLIC std::string escape_sql_string(const std::string &string, bool wildcards = false); // "strings" or 'strings'
-SHCORE_PUBLIC std::string escape_backticks(const std::string &string);  // `identifier`
+SHCORE_PUBLIC std::string escape_sql_string(
+    const std::string &string,
+    bool wildcards = false);  // "strings" or 'strings'
+SHCORE_PUBLIC std::string escape_backticks(
+    const std::string &string);  // `identifier`
 /**
  * Escapes the SQL wildcard characters ('%', '_') in the given string.
  *
@@ -51,17 +51,19 @@ SHCORE_PUBLIC std::string escape_backticks(const std::string &string);  // `iden
  * @return The input string with all the wildcard characters escaped.
  */
 SHCORE_PUBLIC std::string escape_wildcards(const std::string &string);
-SHCORE_PUBLIC std::string quote_identifier(const std::string& identifier, const char quote_char);
-SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident, const char quote_char);
+SHCORE_PUBLIC std::string quote_identifier(const std::string &identifier,
+                                           const char quote_char);
+SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident,
+                                                     const char quote_char);
 
 class SHCORE_PUBLIC sqlstring {
-public:
+ public:
   struct sqlstringformat {
     int _flags;
     sqlstringformat(const int flags) : _flags(flags) {}
   };
 
-private:
+ private:
   std::string _formatted;
   std::string _format_string_left;
   sqlstringformat _format;
@@ -69,12 +71,13 @@ private:
   std::string consume_until_next_escape();
   int next_escape();
 
-  sqlstring& append(const std::string &s);
-public:
+  sqlstring &append(const std::string &s);
+
+ public:
   static const sqlstring null;
 
   sqlstring();
-  sqlstring(const char* format_string, const sqlstringformat format);
+  sqlstring(const char *format_string, const sqlstringformat format);
   sqlstring(const std::string &format_string, const sqlstringformat format);
   sqlstring(const sqlstring &copy);
   void done() const;
@@ -83,40 +86,41 @@ public:
   std::string str() const;
 
   //! modifies formatting options
-  sqlstring &operator <<(const sqlstringformat);
+  sqlstring &operator<<(const sqlstringformat);
 
   //! replaces a ? in the format string with any integer numeric value
-  template<typename T>
+  template <typename T>
   typename std::enable_if<std::is_integral<T>::value, sqlstring &>::type
-  operator <<(const T value) {
+  operator<<(const T value) {
     int esc = next_escape();
     if (esc != '?')
-        throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
+      throw std::invalid_argument(
+          "Error formatting SQL query: invalid escape for numeric argument");
     append(std::to_string(value));
     append(consume_until_next_escape());
     return *this;
   }
   //! replaces a ? in the format string with a float numeric value
-  sqlstring &operator <<(const float val) { return operator<<((double)val); }
+  sqlstring &operator<<(const float val) { return operator<<((double)val); }
   //! replaces a ? in the format string with a double numeric value
-  sqlstring &operator <<(const double);
-  //! replaces a ? in the format string with a quoted string value or ! with a back-quoted identifier value
-  sqlstring &operator <<(const std::string&);
-  //! replaces a ? in the format string with a quoted string value or ! with a back-quoted identifier value
-  //! is the value is NULL, ? will be replaced with a NULL. ! will raise an exception
-  sqlstring &operator <<(const char*);
+  sqlstring &operator<<(const double);
+  //! replaces a ? in the format string with a quoted string value or ! with a
+  //! back-quoted identifier value
+  sqlstring &operator<<(const std::string &);
+  //! replaces a ? in the format string with a quoted string value or ! with a
+  //! back-quoted identifier value is the value is NULL, ? will be replaced with
+  //! a NULL. ! will raise an exception
+  sqlstring &operator<<(const char *);
   //! replaces a ? or ! with the content of the other string verbatim
-  sqlstring &operator <<(const sqlstring&);
+  sqlstring &operator<<(const sqlstring &);
 };
 
 namespace detail {
 
-inline void sqlformat(sqlstring *sqls) {
-  sqls->done();
-}
+inline void sqlformat(sqlstring *sqls) { sqls->done(); }
 
-template<typename Arg, typename... Args>
-inline void sqlformat(sqlstring *sqls, const Arg &arg, const Args& ...args) {
+template <typename Arg, typename... Args>
+inline void sqlformat(sqlstring *sqls, const Arg &arg, const Args &... args) {
   *sqls << arg;
   sqlformat(sqls, args...);
 }
@@ -130,8 +134,8 @@ inline void sqlformat(sqlstring *sqls, const Arg &arg, const Args& ...args) {
  *
  * @return query string with placeholders substituted
  */
-template<typename... Args>
-inline std::string sqlformat(const std::string &s, const Args& ...args) {
+template <typename... Args>
+inline std::string sqlformat(const std::string &s, const Args &... args) {
   sqlstring sqls(s, 0);
   detail::sqlformat(&sqls, args...);
   return sqls.str();

@@ -35,7 +35,7 @@ using namespace mysqlx;
 
 namespace shcore {
 namespace expr_parser_tests {
-void print_tokens(const Expr_parser& p, std::stringstream& out) {
+void print_tokens(const Expr_parser &p, std::stringstream &out) {
   bool first = true;
   out << "[";
   for (std::vector<Token>::const_iterator it = p.begin(); it != p.end(); ++it) {
@@ -48,11 +48,11 @@ void print_tokens(const Expr_parser& p, std::stringstream& out) {
   out << "]";
 }
 
-void parse_and_assert_expr(const std::string& input,
-                           const std::string& token_list,
-                           const std::string& unparsed,
+void parse_and_assert_expr(const std::string &input,
+                           const std::string &token_list,
+                           const std::string &unparsed,
                            bool document_mode = false,
-                           Mysqlx::Expr::Expr** expr = NULL) {
+                           Mysqlx::Expr::Expr **expr = NULL) {
   std::stringstream out, out_tokens;
   std::unique_ptr<Expr_parser> p;
   SCOPED_TRACE(input);
@@ -62,19 +62,18 @@ void parse_and_assert_expr(const std::string& input,
   std::unique_ptr<Mysqlx::Expr::Expr> e;
   e = p->expr();
   std::string s = Expr_unparser::expr_to_string(*(e.get()));
-  if (expr != NULL)
-    *expr = e.release();
+  if (expr != NULL) *expr = e.release();
   out << s;
   EXPECT_EQ(unparsed, out.str());
 }
 
-void assert_member_type(Mysqlx::Expr::Expr* expr,
+void assert_member_type(Mysqlx::Expr::Expr *expr,
                         Mysqlx::Expr::DocumentPathItem_Type type_expected) {
   EXPECT_TRUE(expr->has_identifier());
-  const Mysqlx::Expr::ColumnIdentifier& colid = expr->identifier();
+  const Mysqlx::Expr::ColumnIdentifier &colid = expr->identifier();
   EXPECT_TRUE(colid.document_path_size() == 1);
   for (int i = 0; i < colid.document_path_size(); i++) {
-    const Mysqlx::Expr::DocumentPathItem& item = colid.document_path(i);
+    const Mysqlx::Expr::DocumentPathItem &item = colid.document_path(i);
     Mysqlx::Expr::DocumentPathItem_Type type = item.type();
     EXPECT_EQ(type, type_expected);
   }
@@ -270,7 +269,7 @@ TEST(Expr_parser_tests, x_test_4) {
   parse_and_assert_expr(".\"foo\"", "[22, 20]", "$.foo", true);
   parse_and_assert_expr(".*", "[22, 38]", "$.*", true);
 
-  Mysqlx::Expr::Expr* expr;
+  Mysqlx::Expr::Expr *expr;
   parse_and_assert_expr(".*", "[22, 38]", "$.*", true, &expr);
   assert_member_type(expr, Mysqlx::Expr::DocumentPathItem_Type_MEMBER_ASTERISK);
 

@@ -101,8 +101,7 @@ class Placeholder : public Object {
 void Object_registry::add_completable_type(
     const std::string &type_name,
     const std::vector<Object_registry::Member> &members) {
-  placeholders_[type_name].reset(
-      new Placeholder(this, type_name, members));
+  placeholders_[type_name].reset(new Placeholder(this, type_name, members));
 }
 
 std::shared_ptr<Object> Object_registry::lookup(
@@ -133,8 +132,7 @@ Provider_script::Chain Provider_script::process_input(const std::string &s,
   size_t p = 0;
   size_t offset = 0;
   Chain chain = parse_until(s, &p, 0, &offset);
-  if (compl_offset)
-    *compl_offset = offset;
+  if (compl_offset) *compl_offset = offset;
   return chain;
 }
 

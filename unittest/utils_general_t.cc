@@ -1,31 +1,31 @@
 /*
-* Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2.0,
-* as published by the Free Software Foundation.
-*
-* This program is also distributed with certain software (including
-* but not limited to OpenSSL) that is licensed under separate terms, as
-* designated in a particular file or component or in included license
-* documentation.  The authors of MySQL hereby grant you an additional
-* permission to link the program and your derivative works with the
-* separately licensed software that they have included with MySQL.
-* This program is distributed in the hope that it will be useful,  but
-* WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
-* the GNU General Public License, version 2.0, for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software Foundation, Inc.,
-* 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <string>
 #include <stack>
+#include <string>
 
 #include "gtest_clean.h"
 #include "utils/utils_general.h"
@@ -46,50 +46,50 @@ TEST(utils_general, split_account) {
     const char *host;
   };
   static std::vector<Case> good_cases_no_auto_quote{
-    {"foo@bar", "foo", "bar"},
-    {"'foo'@bar", "foo", "bar"},
-    {"'foo'@'bar'", "foo", "bar"},
-    {"\"foo\"@\"bar\"", "foo", "bar"},
-    {"'fo\"o'@bar", "fo\"o", "bar"},
-    {"'fo\\'o'@bar", "fo'o", "bar"},
-    {"'fo''o'@bar", "fo'o", "bar"},
-    {"\"foo\"\"bar\"@'bar'", "foo\"bar", "bar"},
-    {"\"foo\\\"bar\"@'bar'", "foo\"bar", "bar"},
-    {"'fo%o'@'bar%'", "fo%o", "bar%"},
-    {"_foo@'bar'", "_foo", "bar"},
-    {"$foo@'bar'", "$foo", "bar"},
-    {"foo_@'bar'", "foo_", "bar"},
-    {"foo123@'bar'", "foo123", "bar"},
-    {"'foo@123'@'bar'", "foo@123", "bar"},
-    {"'foo@123'", "foo@123", ""},
-    {"'foo'@", "foo", ""},
-    {"'fo\\no'@", "fo\no", ""},
-    {"'foo'", "foo", ""},
-    {"'foo'''", "foo'", ""},
-    {"''''''''", "'''", ""},
-    {"foo@", "foo", ""},
-    {"foo@''", "foo", ""},
-    {"foo@'::1'", "foo", "::1"},
-    {"foo@'ho\\'\\'st'", "foo", "ho\'\'st"},
-    {"foo@'\\'host'", "foo", "\'host"},
-    {"foo@'\\'ho\\'st'", "foo", "\'ho\'st"},
-    {"root@'ho\\'st'", "root", "ho\'st"},
-    {"foo@'host\\''", "foo", "host\'"},
-    {"foo@'192.167.1.___'", "foo", "192.167.1.___"},
-    {"foo@'192.168.1.%'", "foo", "192.168.1.%"},
-    {"foo@'192.58.197.0/255.255.255.0'", "foo", "192.58.197.0/255.255.255.0"},
-    {"foo@' .::1lol\\t\\n\\r\\b\\'\"&$%'", "foo", " .::1lol\t\n\r\b'\"&$%"},
-    {"`foo@`@`nope`", "foo@", "nope"},
-    {"foo@`'ho'st`", "foo", "'ho'st"},
-    {"foo@`1234`", "foo", "1234"},
-    {"foo@```1234`", "foo", "`1234"},
-    {"`foo`@```1234`", "foo", "`1234"},
-    {"```foo`@```1234`", "`foo", "`1234"},
-    {"foo@` .::1lol\\t\\n\\r\\b\\0'\"&$%`", "foo", " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
-    {"root@foo.bar.warblegarble.com", "root", "foo.bar.warblegarble.com"},
-    {"root@192.168.0.3", "root", "192.168.0.3"},
-    {"root@%", "root", "%"}
-  };
+      {"foo@bar", "foo", "bar"},
+      {"'foo'@bar", "foo", "bar"},
+      {"'foo'@'bar'", "foo", "bar"},
+      {"\"foo\"@\"bar\"", "foo", "bar"},
+      {"'fo\"o'@bar", "fo\"o", "bar"},
+      {"'fo\\'o'@bar", "fo'o", "bar"},
+      {"'fo''o'@bar", "fo'o", "bar"},
+      {"\"foo\"\"bar\"@'bar'", "foo\"bar", "bar"},
+      {"\"foo\\\"bar\"@'bar'", "foo\"bar", "bar"},
+      {"'fo%o'@'bar%'", "fo%o", "bar%"},
+      {"_foo@'bar'", "_foo", "bar"},
+      {"$foo@'bar'", "$foo", "bar"},
+      {"foo_@'bar'", "foo_", "bar"},
+      {"foo123@'bar'", "foo123", "bar"},
+      {"'foo@123'@'bar'", "foo@123", "bar"},
+      {"'foo@123'", "foo@123", ""},
+      {"'foo'@", "foo", ""},
+      {"'fo\\no'@", "fo\no", ""},
+      {"'foo'", "foo", ""},
+      {"'foo'''", "foo'", ""},
+      {"''''''''", "'''", ""},
+      {"foo@", "foo", ""},
+      {"foo@''", "foo", ""},
+      {"foo@'::1'", "foo", "::1"},
+      {"foo@'ho\\'\\'st'", "foo", "ho\'\'st"},
+      {"foo@'\\'host'", "foo", "\'host"},
+      {"foo@'\\'ho\\'st'", "foo", "\'ho\'st"},
+      {"root@'ho\\'st'", "root", "ho\'st"},
+      {"foo@'host\\''", "foo", "host\'"},
+      {"foo@'192.167.1.___'", "foo", "192.167.1.___"},
+      {"foo@'192.168.1.%'", "foo", "192.168.1.%"},
+      {"foo@'192.58.197.0/255.255.255.0'", "foo", "192.58.197.0/255.255.255.0"},
+      {"foo@' .::1lol\\t\\n\\r\\b\\'\"&$%'", "foo", " .::1lol\t\n\r\b'\"&$%"},
+      {"`foo@`@`nope`", "foo@", "nope"},
+      {"foo@`'ho'st`", "foo", "'ho'st"},
+      {"foo@`1234`", "foo", "1234"},
+      {"foo@```1234`", "foo", "`1234"},
+      {"`foo`@```1234`", "foo", "`1234"},
+      {"```foo`@```1234`", "`foo", "`1234"},
+      {"foo@` .::1lol\\t\\n\\r\\b\\0'\"&$%`", "foo",
+       " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
+      {"root@foo.bar.warblegarble.com", "root", "foo.bar.warblegarble.com"},
+      {"root@192.168.0.3", "root", "192.168.0.3"},
+      {"root@%", "root", "%"}};
   for (auto &t : good_cases_no_auto_quote) {
     a.clear();
     b.clear();
@@ -99,12 +99,11 @@ TEST(utils_general, split_account) {
     EXPECT_EQ(t.host, b);
   }
   static std::vector<Case> good_cases_auto_quote{
-    {"foo@%", "foo", "%"},
-    {"ic@192.168.%", "ic", "192.168.%"},     // Regression test for BUG#25528695
-    {"foo@192.168.1.%", "foo", "192.168.1.%"},
-    {"foo@192.58.197.0/255.255.255.0", "foo", "192.58.197.0/255.255.255.0"},
-    {"root@foo-bar.com", "root", "foo-bar.com"}
-  };
+      {"foo@%", "foo", "%"},
+      {"ic@192.168.%", "ic", "192.168.%"},  // Regression test for BUG#25528695
+      {"foo@192.168.1.%", "foo", "192.168.1.%"},
+      {"foo@192.58.197.0/255.255.255.0", "foo", "192.58.197.0/255.255.255.0"},
+      {"root@foo-bar.com", "root", "foo-bar.com"}};
   for (auto &t : good_cases_auto_quote) {
     a.clear();
     b.clear();
@@ -114,34 +113,34 @@ TEST(utils_general, split_account) {
     EXPECT_EQ(t.host, b);
   }
   static std::vector<std::string> bad_cases{
-    "'foo",
-    "'foo'bar",
-    "'foo'@@bar",
-    "'foo@bar",
-    "''foo",
-    "123@bar",
-    "\"foo'@bar",
-    "@@@",
-    "'foo'x",
-    "'foo'bar",
-    "'foo'@'bar'z",
-    "foo@\"bar\".",
-    "\"foo\"-",
-    "''foo''@",
-    "@",
-    "''foo''@",
-    "foo@'",
-    "foo@''nope",
-    "foo@@'stuf'",
-    "foo@''host''",
-    "foo@'ho''st",
-    "foo@'host",
-    "foo@'ho'st",
-    "foo@ho'st",
-    "foo@host'",
-    "foo@ .::1lol\\t\\n\\'\"&$%",
-    "`foo@bar",
-    "foo@`bar",
+      "'foo",
+      "'foo'bar",
+      "'foo'@@bar",
+      "'foo@bar",
+      "''foo",
+      "123@bar",
+      "\"foo'@bar",
+      "@@@",
+      "'foo'x",
+      "'foo'bar",
+      "'foo'@'bar'z",
+      "foo@\"bar\".",
+      "\"foo\"-",
+      "''foo''@",
+      "@",
+      "''foo''@",
+      "foo@'",
+      "foo@''nope",
+      "foo@@'stuf'",
+      "foo@''host''",
+      "foo@'ho''st",
+      "foo@'host",
+      "foo@'ho'st",
+      "foo@ho'st",
+      "foo@host'",
+      "foo@ .::1lol\\t\\n\\'\"&$%",
+      "`foo@bar",
+      "foo@`bar",
   };
   for (auto &t : bad_cases) {
     SCOPED_TRACE(t);
@@ -157,13 +156,12 @@ TEST(utils_general, make_account) {
     const char *host;
   };
   static std::vector<Case> good_cases{
-    {"'foo'@'bar'", "foo", "bar"},
-    {"'\\'foo\\''@'bar'", "'foo'", "bar"},
-    {"'\\\"foo\\\"'@'bar%'", "\"foo\"", "bar%"},
-    {"'a@b'@'bar'", "a@b", "bar"},
-    {"'a@b'@'bar'", "a@b", "bar"},
-    {"''@''", "", ""}
-  };
+      {"'foo'@'bar'", "foo", "bar"},
+      {"'\\'foo\\''@'bar'", "'foo'", "bar"},
+      {"'\\\"foo\\\"'@'bar%'", "\"foo\"", "bar%"},
+      {"'a@b'@'bar'", "a@b", "bar"},
+      {"'a@b'@'bar'", "a@b", "bar"},
+      {"''@''", "", ""}};
   for (auto &t : good_cases) {
     SCOPED_TRACE(t.account);
     EXPECT_EQ(t.account, make_account(t.user, t.host));
@@ -171,28 +169,33 @@ TEST(utils_general, make_account) {
 }
 
 TEST(utils_general, split_string_chars) {
-  std::vector<std::string> strs = split_string_chars("aaaa-vvvvv>bbbbb", "->", true);
+  std::vector<std::string> strs =
+      split_string_chars("aaaa-vvvvv>bbbbb", "->", true);
   EXPECT_EQ("aaaa", strs[0]);
   EXPECT_EQ("vvvvv", strs[1]);
   EXPECT_EQ("bbbbb", strs[2]);
 
-  std::vector<std::string> strs1 = split_string_chars("aaaa->bbbbb", "->", true);
+  std::vector<std::string> strs1 =
+      split_string_chars("aaaa->bbbbb", "->", true);
   EXPECT_EQ("aaaa", strs1[0]);
   EXPECT_EQ("bbbbb", strs1[1]);
 
-  std::vector<std::string> strs2 = split_string_chars("aaaa->bbbbb", "->", false);
+  std::vector<std::string> strs2 =
+      split_string_chars("aaaa->bbbbb", "->", false);
   EXPECT_EQ("aaaa", strs2[0]);
   EXPECT_EQ("", strs2[1]);
   EXPECT_EQ("bbbbb", strs2[2]);
 
-  std::vector<std::string> strs3 = split_string_chars(",aaaa-bbb-bb," , "-,", true);
+  std::vector<std::string> strs3 =
+      split_string_chars(",aaaa-bbb-bb,", "-,", true);
   EXPECT_EQ("", strs3[0]);
   EXPECT_EQ("aaaa", strs3[1]);
   EXPECT_EQ("bbb", strs3[2]);
   EXPECT_EQ("bb", strs3[3]);
   EXPECT_EQ("", strs3[4]);
 
-  std::vector<std::string> strs4 = split_string_chars("aa;a\\a-bbb-bb," , "\\-;", true);
+  std::vector<std::string> strs4 =
+      split_string_chars("aa;a\\a-bbb-bb,", "\\-;", true);
   EXPECT_EQ("aa", strs4[0]);
   EXPECT_EQ("a", strs4[1]);
   EXPECT_EQ("a", strs4[2]);
@@ -275,4 +278,4 @@ TEST(utils_general, match_glob) {
   EXPECT_TRUE(match_glob("a*b*c*", "abdcd"));
   EXPECT_THROW(match_glob("\\", "x"), std::logic_error);
 }
-}
+}  // namespace shcore

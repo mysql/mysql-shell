@@ -21,18 +21,18 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "unittest/test_utils/shell_test_wrapper.h"
+#include <map>
 #include <memory>
 #include <vector>
-#include <map>
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "shellcore/interrupt_handler.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "unittest/test_utils/shell_test_env.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/trandom.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "shellcore/interrupt_handler.h"
+#include "unittest/test_utils/shell_test_env.h"
 
-extern char* g_mppath;
+extern char *g_mppath;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
 
@@ -60,18 +60,17 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
     _sandbox_dir = shcore::get_binary_folder();
   }
 
-  _dummy_sandboxes = disable_dummy_sandboxes ? false :
-                     g_test_recording_mode == TestingMode::Replay;
+  _dummy_sandboxes = disable_dummy_sandboxes
+                         ? false
+                         : g_test_recording_mode == TestingMode::Replay;
 
-  _recording_enabled =
-    g_test_recording_mode == TestingMode::Record;
+  _recording_enabled = g_test_recording_mode == TestingMode::Record;
 
   const char *port = getenv("MYSQL_PORT");
   if (port) {
     _mysql_port_number = atoi(port);
     _mysql_port.assign(port);
   }
-
 
   const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
   if (sandbox_port1)
@@ -107,7 +106,7 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
 // options First set the options on _options
 void Shell_test_wrapper::reset_options() {
   _opts.reset(new mysqlsh::Shell_options());
-  _options = const_cast<mysqlsh::Shell_options::Storage*>(&_opts->get());
+  _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
   _options->gadgets_path = g_mppath;
   _options->db_name_cache = false;
 
@@ -131,14 +130,12 @@ void Shell_test_wrapper::reset() {
 /**
  * Turns on debugging on the inner Shell_test_output_handler
  */
-void Shell_test_wrapper::enable_debug() {
-  output_handler.debug = true;
-}
+void Shell_test_wrapper::enable_debug() { output_handler.debug = true; }
 
 /**
  * Returns the inner instance of the Shell_test_output_handler
  */
-Shell_test_output_handler& Shell_test_wrapper::get_output_handler() {
+Shell_test_output_handler &Shell_test_wrapper::get_output_handler() {
   return output_handler;
 }
 
@@ -147,9 +144,8 @@ Shell_test_output_handler& Shell_test_wrapper::get_output_handler() {
  * @param line the instruction to be executed as would be given i.e. using
  * the mysqlsh application.
  */
-void Shell_test_wrapper::execute(const std::string& line) {
-  if (output_handler.debug)
-    std::cout << line << std::endl;
+void Shell_test_wrapper::execute(const std::string &line) {
+  if (output_handler.debug) std::cout << line << std::endl;
 
   _interactive_shell->process_line(line);
 }
@@ -158,8 +154,7 @@ void Shell_test_wrapper::execute(const std::string& line) {
  * Returns a reference to the options that configure the inner Mysql_shell
  */
 std::shared_ptr<mysqlsh::Shell_options> Shell_test_wrapper::get_options() {
-  if (!_opts)
-    reset_options();
+  if (!_opts) reset_options();
 
   return _opts;
 }
@@ -175,9 +170,9 @@ void Shell_test_wrapper::trace_protocol() {
 void Shell_test_wrapper::enable_testutil() {
   // Dummy sandboxes may be used i.e. while replying tests, unless it is
   // specified that they should never be used
-  _testutil.reset(new tests::Testutils(
-      _sandbox_dir, _dummy_sandboxes,
-      _interactive_shell, Shell_test_env::get_path_to_mysqlsh()));
+  _testutil.reset(new tests::Testutils(_sandbox_dir, _dummy_sandboxes,
+                                       _interactive_shell,
+                                       Shell_test_env::get_path_to_mysqlsh()));
   _testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text) {
         output_handler.prompts.push_back({prompt, text});
@@ -236,8 +231,7 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
       context.append(test_info->name());
     }
   } else {
-    if (sub_test_name)
-      context.append(sub_test_name);
+    if (sub_test_name) context.append(sub_test_name);
   }
 
   tracedir = shcore::path::join_path(
@@ -338,14 +332,13 @@ void Shell_test_wrapper::teardown_recorder() {
     // If the test failed during recording mode, put a fail marker in the
     // trace dir, no conditions set right now
     shcore::delete_file(mysqlshdk::db::replay::current_recording_dir() +
-                          "/FAILED");
+                        "/FAILED");
   }
   mysqlshdk::db::replay::end_recording_context();
 }
 
-
 static int find_column_in_select_stmt(const std::string &sql,
-  const std::string &column) {
+                                      const std::string &column) {
   std::string s = shcore::str_rstrip(shcore::str_lower(sql), ";");
   // sanity checks for things we don't support
   assert(s.find(" from ") == std::string::npos);
@@ -378,8 +371,7 @@ static int find_column_in_select_stmt(const std::string &sql,
 
   int i = 0;
   for (const auto &c : columns) {
-    if (shcore::str_strip(c) == column)
-      return i;
+    if (shcore::str_strip(c) == column) return i;
     ++i;
   }
   return -1;
@@ -390,7 +382,7 @@ void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
   reset();
 
 #ifdef _WIN32
-  mysqlshdk::db::replay::set_replay_query_hook([](const std::string& sql) {
+  mysqlshdk::db::replay::set_replay_query_hook([](const std::string &sql) {
     return shcore::str_replace(sql, ".dll", ".so");
   });
 #endif
@@ -398,9 +390,9 @@ void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
   // Intercept queries and hack their results so that we can have
   // recorded local sessions that match the actual local environment
   mysqlshdk::db::replay::set_replay_row_hook(
-      [this](const mysqlshdk::db::Connection_options& target,
-              const std::string& sql,
-              std::unique_ptr<mysqlshdk::db::IRow> source)
+      [this](const mysqlshdk::db::Connection_options &target,
+             const std::string &sql,
+             std::unique_ptr<mysqlshdk::db::IRow> source)
           -> std::unique_ptr<mysqlshdk::db::IRow> {
         int datadir_column = -1;
 

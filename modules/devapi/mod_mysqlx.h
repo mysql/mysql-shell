@@ -30,46 +30,46 @@
 namespace mysqlsh {
 
 /**
-  *\defgroup mysqlx mysqlx
-  *\ingroup XDevAPI
-  * $(MYSQLX_BRIEF)
-  *
-  * $(MYSQLX_DETAIL)
-  *
-  * $(MYSQLX_DETAIL1)
-  *
-  * $(MYSQLX_DETAIL2)
-  *
-  * $(MYSQLX_DETAIL3)
-  *
-  * \if DOXYGEN_JS
-  * \code
-  * mysql-js> var mysqlx = require('mysqlx');
-  *
-  * // Then you can use the module functions and properties
-  * // for example to create a session
-  * mysql-js> var mySession = mysqlx.getSession('admin@localhost');
-  * \endcode
-  * \elseif DOXYGEN_PY
-  * \code
-  * mysql-py> from mysqlsh import mysqlx
-  *
-  * // Then you can use the module functions and properties
-  * // for example to create a session
-  * mysql-py> mySession = mysqlx.get_session('admin@localhost')
-  * \endcode
-  * \endif
-  *
-  * $(MYSQLX_DETAIL4)
-  */
+ *\defgroup mysqlx mysqlx
+ *\ingroup XDevAPI
+ * $(MYSQLX_BRIEF)
+ *
+ * $(MYSQLX_DETAIL)
+ *
+ * $(MYSQLX_DETAIL1)
+ *
+ * $(MYSQLX_DETAIL2)
+ *
+ * $(MYSQLX_DETAIL3)
+ *
+ * \if DOXYGEN_JS
+ * \code
+ * mysql-js> var mysqlx = require('mysqlx');
+ *
+ * // Then you can use the module functions and properties
+ * // for example to create a session
+ * mysql-js> var mySession = mysqlx.getSession('admin@localhost');
+ * \endcode
+ * \elseif DOXYGEN_PY
+ * \code
+ * mysql-py> from mysqlsh import mysqlx
+ *
+ * // Then you can use the module functions and properties
+ * // for example to create a session
+ * mysql-py> mySession = mysqlx.get_session('admin@localhost')
+ * \endcode
+ * \endif
+ *
+ * $(MYSQLX_DETAIL4)
+ */
 namespace mysqlx {
 
 #if DOXYGEN_JS
-Types Types;          //!< $(MYSQLX_TYPE_BRIEF)
+Types Types;  //!< $(MYSQLX_TYPE_BRIEF)
 Session getSession(ConnectionData connectionData, String password);
 Expression expr(String expressionStr);
 #elif DOXYGEN_PY
-Types Types;          //!< $(MYSQLX_TYPE_BRIEF)
+Types Types;  //!< $(MYSQLX_TYPE_BRIEF)
 Session get_session(ConnectionData connectionData, str password);
 Expression expr(str expressionStr);
 #endif

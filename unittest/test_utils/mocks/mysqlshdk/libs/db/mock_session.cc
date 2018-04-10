@@ -21,14 +21,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <memory>
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
-#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
+#include <memory>
 #include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 
 namespace testing {
 
-Mock_session& Mock_session::expect_query(const std::string& query) {
+Mock_session &Mock_session::expect_query(const std::string &query) {
   _last_query = _queries.size();
   _queries.push_back(query);
   _throws.push_back(false);
@@ -36,7 +36,7 @@ Mock_session& Mock_session::expect_query(const std::string& query) {
   return *this;
 }
 
-void Mock_session::then_return(const std::vector<Fake_result_data>& data) {
+void Mock_session::then_return(const std::vector<Fake_result_data> &data) {
   if (_last_query < _queries.size()) {
     auto result = std::shared_ptr<Mock_result>(new Mock_result());
 
@@ -56,7 +56,7 @@ void Mock_session::then_throw() {
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> Mock_session::query(
-    const std::string& sql, bool /*buffered*/) {
+    const std::string &sql, bool /*buffered*/) {
   // Ensures the expected query got received
   EXPECT_EQ(sql, _queries[0]);
 

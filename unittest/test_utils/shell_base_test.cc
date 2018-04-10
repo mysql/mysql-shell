@@ -19,25 +19,22 @@
    along with this program; if not, write to the Free Software Foundation, Inc.,
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include <fstream>
 #include "unittest/test_utils/shell_base_test.h"
+#include <fstream>
 #include "mysqlshdk/include/scripting/types.h"
+#include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_json.h"
-#include "utils/utils_file.h"
 #include "utils/utils_string.h"
 
 namespace tests {
 
-Shell_base_test::Shell_base_test() {
-}
+Shell_base_test::Shell_base_test() {}
 
-void Shell_base_test::TearDown() {
-  Shell_test_env::TearDown();
-}
+void Shell_base_test::TearDown() { Shell_test_env::TearDown(); }
 
-void Shell_base_test::create_file(const std::string& name,
-                                  const std::string& content) {
+void Shell_base_test::create_file(const std::string &name,
+                                  const std::string &content) {
   if (!shcore::create_file(name, content)) {
     SCOPED_TRACE("Error Creating File: " + name);
     ADD_FAILURE();
@@ -63,9 +60,9 @@ void Shell_base_test::create_file(const std::string& name,
  *
  * In any other case no failures will be added.
  */
-void Shell_base_test::check_string_expectation(const char* file, int line,
-                                               const std::string& expected_str,
-                                               const std::string& actual,
+void Shell_base_test::check_string_expectation(const char *file, int line,
+                                               const std::string &expected_str,
+                                               const std::string &actual,
                                                bool expected) {
   std::string resolved_str = resolve_string(expected_str);
 
@@ -100,9 +97,8 @@ void Shell_base_test::check_string_expectation(const char* file, int line,
  * In any other case no failures will be added.
  */
 void Shell_base_test::check_string_list_expectation(
-    const char *file, int line,
-    const std::vector<std::string>& expected_strs, const std::string& actual,
-    bool expected) {
+    const char *file, int line, const std::vector<std::string> &expected_strs,
+    const std::string &actual, bool expected) {
   bool found = false;
   for (const auto &expected_str : expected_strs) {
     std::string resolved_str = resolve_string(expected_str);
@@ -138,7 +134,7 @@ void Shell_base_test::check_string_list_expectation(
  * My text line is full
  * \endcode
  */
-bool Shell_base_test::multi_value_compare(const std::string& expected,
+bool Shell_base_test::multi_value_compare(const std::string &expected,
                                           const std::string &actual) {
   bool ret_val = false;
 
@@ -158,8 +154,7 @@ bool Shell_base_test::multi_value_compare(const std::string& expected,
 
     for (auto item : options) {
       std::string exp = pre + item + post;
-      if ((ret_val = (exp == actual)))
-        break;
+      if ((ret_val = (exp == actual))) break;
     }
   } else {
     ret_val = (expected == actual);
@@ -202,9 +197,9 @@ bool Shell_base_test::multi_value_compare(const std::string& expected,
  *
  * In any other case no failures will be added.
  */
-bool Shell_base_test::check_multiline_expect(const std::string& context,
+bool Shell_base_test::check_multiline_expect(const std::string &context,
                                              const std::string &stream,
-                                             const std::string& expected,
+                                             const std::string &expected,
                                              const std::string &actual,
                                              int srcline, int valline) {
   bool ret_val = true;
@@ -237,14 +232,14 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
         SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
         expected_lines[expected_index] += makeyellow("<------ MISSING");
         SCOPED_TRACE(makeyellow(stream + " expected lines missing: ") +
-            shcore::str_join(expected_lines, "\n"));
+                     shcore::str_join(expected_lines, "\n"));
         ADD_FAILURE();
         ret_val = false;
         break;
       }
 
-      auto act_str = shcore::str_rstrip(actual_lines[actual_index +
-          expected_index]);
+      auto act_str =
+          shcore::str_rstrip(actual_lines[actual_index + expected_index]);
 
       auto exp_str = shcore::str_rstrip(expected_lines[expected_index]);
       if (!multi_value_compare(exp_str, act_str)) {
@@ -253,7 +248,7 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
         expected_lines[expected_index] += makeyellow("<------ INCONSISTENCY");
 
         SCOPED_TRACE(makeyellow(stream + " expected: ") +
-            shcore::str_join(expected_lines, "\n"));
+                     shcore::str_join(expected_lines, "\n"));
         SCOPED_TRACE(makeblue("Executing: " + context) +
                      ", validation at line " + std::to_string(valline));
         ADD_FAILURE();
@@ -262,16 +257,16 @@ bool Shell_base_test::check_multiline_expect(const std::string& context,
       }
     }
   } else {
-      SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
+    SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
 
-      expected_lines[0] += makeyellow("<------ INCONSISTENCY");
+    expected_lines[0] += makeyellow("<------ INCONSISTENCY");
 
-      SCOPED_TRACE(makeyellow(stream + " expected: ") +
-                   shcore::str_join(expected_lines, "\n"));
-      SCOPED_TRACE(makeblue("Executing: " + context) + ", validation at line " +
-                   std::to_string(valline));
-      ADD_FAILURE();
-      ret_val = false;
+    SCOPED_TRACE(makeyellow(stream + " expected: ") +
+                 shcore::str_join(expected_lines, "\n"));
+    SCOPED_TRACE(makeblue("Executing: " + context) + ", validation at line " +
+                 std::to_string(valline));
+    ADD_FAILURE();
+    ret_val = false;
   }
 
   return ret_val;

@@ -89,16 +89,12 @@ inline Tokens_mask no_scheme_no_password() {
       .set(Tokens::Schema)
       .set(Tokens::Query);
 }
-inline Tokens_mask only_transport() {
-  return Tokens_mask(Tokens::Transport);
-}
+inline Tokens_mask only_transport() { return Tokens_mask(Tokens::Transport); }
 inline Tokens_mask user_transport() {
   return Tokens_mask(Tokens::User).set(Tokens::Transport);
 }
 inline Tokens_mask scheme_user_transport() {
-  return Tokens_mask(Tokens::Scheme)
-    .set(Tokens::User)
-    .set(Tokens::Transport);
+  return Tokens_mask(Tokens::Scheme).set(Tokens::User).set(Tokens::Transport);
 }
 }  // namespace formats
 }  // namespace uri

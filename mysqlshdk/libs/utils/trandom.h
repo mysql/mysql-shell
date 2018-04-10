@@ -33,8 +33,7 @@ namespace utils {
 
 class Random {
  public:
-  virtual ~Random() {
-  }
+  virtual ~Random() {}
 
   virtual std::string get_time_string();
 

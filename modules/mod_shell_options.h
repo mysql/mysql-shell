@@ -39,16 +39,13 @@ namespace mysqlsh {
 class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
  public:
   explicit Options(std::shared_ptr<mysqlsh::Shell_options> options);
-  virtual ~Options() {
-  }
+  virtual ~Options() {}
 
   // Exposes the object to JS/PY to allow custom validations on options
   static std::shared_ptr<Options> get_instance();
   static void reset_instance();
 
-  std::string class_name() const override {
-    return "Options";
-  }
+  std::string class_name() const override { return "Options"; }
 
   bool operator==(const Object_bridge &other) const override;
   std::vector<std::string> get_members() const override {

@@ -37,8 +37,8 @@ TEST_F(Command_line_test, bug26102807) {
     std::string uri = "--uri=" + _uri;
     execute({_mysqlsh, uri.c_str(), "--sqlx", "--interactive=full", "-f",
              "bug26102807.sql", NULL});
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Creating an X protocol session to '" + _uri_nopasswd + "'");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to '" +
+                                  _uri_nopasswd + "'");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "drop database if exists bug26102807;\nQuery OK");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("create schema bug26102807;\nQuery OK");

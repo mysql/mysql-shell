@@ -27,11 +27,11 @@
 #ifndef MODULES_DEVAPI_COLLECTION_CRUD_DEFINITION_H_
 #define MODULES_DEVAPI_COLLECTION_CRUD_DEFINITION_H_
 
+#include "db/mysqlx/expr_parser.h"
 #include "modules/devapi/crud_definition.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/types_cpp.h"
-#include "db/mysqlx/expr_parser.h"
 
 #include <memory>
 #include <set>

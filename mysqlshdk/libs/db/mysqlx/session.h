@@ -56,9 +56,9 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
  private:
   XSession_impl();
-  void connect(const mysqlshdk::db::Connection_options& data);
+  void connect(const mysqlshdk::db::Connection_options &data);
 
-  const mysqlshdk::db::Connection_options & get_connection_options() {
+  const mysqlshdk::db::Connection_options &get_connection_options() {
     return _connection_options;
   }
 
@@ -77,21 +77,15 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
       std::unique_ptr<xcl::XQuery_result> result, bool buffered = false);
 
   // Utility functions to retriev session status
-  uint64_t get_thread_id() const {
-    return _connection_id;
-  }
+  uint64_t get_thread_id() const { return _connection_id; }
 
-  const std::string &get_connection_info() const {
-    return _connection_info;
-  }
+  const std::string &get_connection_info() const { return _connection_info; }
 
   const char *get_ssl_cipher() const {
     return _ssl_cipher.empty() ? nullptr : _ssl_cipher.c_str();
   }
 
-  mysqlshdk::utils::Version get_server_version() const {
-    return _version;
-  }
+  mysqlshdk::utils::Version get_server_version() const { return _version; }
 
   std::shared_ptr<IResult> execute_stmt(const std::string &ns,
                                         const std::string &stmt,
@@ -127,7 +121,7 @@ class SHCORE_PUBLIC Session : public ISession,
 
   static std::shared_ptr<Session> create();
 
-  void connect(const mysqlshdk::db::Connection_options& data) override {
+  void connect(const mysqlshdk::db::Connection_options &data) override {
     _impl->connect(data);
   }
 
@@ -136,13 +130,9 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_connection_options();
   }
 
-  void close() override {
-    _impl->close();
-  }
+  void close() override { _impl->close(); }
 
-  virtual uint64_t get_connection_id() const {
-    return _impl->get_thread_id();
-  }
+  virtual uint64_t get_connection_id() const { return _impl->get_thread_id(); }
 
   const char *get_ssl_cipher() const override {
     return _impl->get_ssl_cipher();
@@ -156,18 +146,14 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_server_version();
   }
 
-  void enable_protocol_trace(bool flag) {
-    _impl->enable_trace(flag);
-  }
+  void enable_protocol_trace(bool flag) { _impl->enable_trace(flag); }
 
   std::shared_ptr<IResult> query(const std::string &sql,
                                  bool buffered = false) override {
     return _impl->query(sql, buffered);
   }
 
-  void execute(const std::string &sql) override {
-    _impl->execute(sql);
-  }
+  void execute(const std::string &sql) override { _impl->execute(sql); }
 
   virtual std::shared_ptr<IResult> execute_stmt(const std::string &ns,
                                                 const std::string &stmt,
@@ -195,23 +181,15 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->execute_crud(msg);
   }
 
-  bool is_open() const override {
-    return _impl->valid();
-  };
+  bool is_open() const override { return _impl->valid(); };
 
-  ~Session() {
-    close();
-  }
+  ~Session() { close(); }
 
  public:
-  xcl::XSession *get_driver_obj() {
-    return _impl->_mysql.get();
-  }
+  xcl::XSession *get_driver_obj() { return _impl->_mysql.get(); }
 
  protected:
-  Session() {
-    _impl.reset(new XSession_impl());
-  }
+  Session() { _impl.reset(new XSession_impl()); }
 
  private:
   std::shared_ptr<XSession_impl> _impl;

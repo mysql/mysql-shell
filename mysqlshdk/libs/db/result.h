@@ -58,7 +58,7 @@ class SHCORE_PUBLIC IResult {
    * To keep a long-living reference to a Row object, copy it into a
    * Row_copy object.
    */
-  virtual const IRow* fetch_one() = 0;
+  virtual const IRow *fetch_one() = 0;
   virtual bool next_resultset() = 0;
 
   /**
@@ -79,10 +79,9 @@ class SHCORE_PUBLIC IResult {
   virtual uint64_t get_warning_count() const = 0;
   virtual std::string get_info() const = 0;
 
-  virtual const std::vector<Column>& get_metadata() const = 0;
+  virtual const std::vector<Column> &get_metadata() const = 0;
 
-  virtual ~IResult() {
-  }
+  virtual ~IResult() {}
 };
 }  // namespace db
 }  // namespace mysqlshdk

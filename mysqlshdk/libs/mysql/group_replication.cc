@@ -37,11 +37,11 @@
 
 #include "mysql/group_replication.h"
 
-#include "mysqlshdk/libs/utils/uuid_gen.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/uuid_gen.h"
 
 namespace {
 const char *kErrorPluginDisabled =
@@ -245,15 +245,13 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
     throw std::runtime_error("Target member appears to not be in a group");
   }
   if (row->get_string(2) != "ONLINE") {
-    throw std::runtime_error("Target member is in state "+row->get_string(2));
+    throw std::runtime_error("Target member is in state " + row->get_string(2));
   }
   int unreachable = row->get_int(0);
   int total = row->get_int(1);
-  if (out_unreachable)
-    *out_unreachable = unreachable;
-  if (out_total)
-    *out_total = total;
-  return (total - unreachable) > total/2;
+  if (out_unreachable) *out_unreachable = unreachable;
+  if (out_total) *out_total = total;
+  return (total - unreachable) > total / 2;
 }
 
 /**
@@ -385,12 +383,10 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
         " WHERE member_id = @@server_uuid"));
     const db::IRow *row = result->fetch_one();
     if (row && !row->is_null(0)) {
-      if (out_group_name)
-        *out_group_name = row->get_string(0);
+      if (out_group_name) *out_group_name = row->get_string(0);
       if (!row->is_null(1) && out_single_primary_mode)
         *out_single_primary_mode = (row->get_int(1) != 0);
-      if (out_member_id)
-        *out_member_id = row->get_string(2);
+      if (out_member_id) *out_member_id = row->get_string(2);
       if (out_member_state)
         *out_member_state = to_member_state(row->get_string(3));
       return true;
@@ -589,8 +585,7 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
           "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
     }
     // Throw an error is SUPPER READ ONLY is ON.
-    if (*read_only)
-      throw std::runtime_error(kErrorReadOnlyTimeout);
+    if (*read_only) throw std::runtime_error(kErrorReadOnlyTimeout);
   }
 }
 
@@ -679,8 +674,7 @@ std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance) {
       "SELECT User_name FROM mysql.slave_master_info "
       "WHERE Channel_name = 'group_replication_recovery'"));
   auto row = result->fetch_one();
-  if (row)
-    rpl_user = row->get_string(0);
+  if (row) rpl_user = row->get_string(0);
   return rpl_user;
 }
 
@@ -729,10 +723,13 @@ std::map<std::string, std::string> check_server_variables(
 bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance) {
   try {
-    return instance.get_session()->query(
-        "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = "
-        "'thread/group_rpl/THD_delayed_initialization'")->fetch_one()
-            ->get_uint(0) != 0;
+    return instance.get_session()
+               ->query(
+                   "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME "
+                   "= "
+                   "'thread/group_rpl/THD_delayed_initialization'")
+               ->fetch_one()
+               ->get_uint(0) != 0;
   } catch (std::exception &e) {
     log_warning("Error checking GR state: %s", e.what());
     return false;

@@ -26,8 +26,8 @@
 
 #include <map>
 #include <string>
-#include "mysqlshdk_export.h"  // NOLINT
 #include "mysqlshdk/libs/textui/term_vt100.h"
+#include "mysqlshdk_export.h"  // NOLINT
 
 namespace mysqlshdk {
 namespace textui {
@@ -133,8 +133,7 @@ inline std::string strip_colors(const std::string &text) {
   while (pos != std::string::npos) {
     s.append(text.substr(p, pos - p));
     auto end = text.find("m", pos);
-    if (end == std::string::npos)
-      break;
+    if (end == std::string::npos) break;
     p = end + 1;
     pos = text.find("\033[", p);
   }
@@ -149,8 +148,7 @@ inline size_t strip_color_length(const std::string &text) {
   while (pos != std::string::npos) {
     len += pos - p;
     auto end = text.find("m", pos);
-    if (end == std::string::npos)
-      break;
+    if (end == std::string::npos) break;
     p = end + 1;
     pos = text.find("\033[", p);
   }
@@ -159,32 +157,27 @@ inline size_t strip_color_length(const std::string &text) {
 }
 
 inline std::string bold(const std::string &text) {
-  if (!has_color())
-    return text;
+  if (!has_color()) return text;
   return vt100::attr(-1, -1, vt100::Bright) + text + vt100::attr();
 }
 
 inline std::string error(const std::string &text) {
-  if (!has_color())
-    return text;
+  if (!has_color()) return text;
   return vt100::attr(1, -1) + text + vt100::attr();
 }
 
 inline std::string alert(const std::string &text) {
-  if (!has_color())
-    return text;
+  if (!has_color()) return text;
   return vt100::attr(1, -1) + text + vt100::attr();
 }
 
 inline std::string warning(const std::string &text) {
-  if (!has_color())
-    return text;
+  if (!has_color()) return text;
   return vt100::attr(3, -1) + text + vt100::attr();
 }
 
 inline std::string notice(const std::string &text) {
-  if (!has_color())
-    return text;
+  if (!has_color()) return text;
   return vt100::attr(6, -1) + text + vt100::attr();
 }
 

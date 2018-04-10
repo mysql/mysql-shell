@@ -33,8 +33,8 @@ namespace mysqlshdk {
 namespace db {
 class ISession;
 class IRow;
-}
-}
+}  // namespace db
+}  // namespace mysqlshdk
 
 namespace mysqlsh {
 
@@ -48,36 +48,28 @@ struct Upgrade_issue {
   std::string description;
   Level level = ERROR;
 
-  bool empty() {
-    return schema.empty();
-  }
+  bool empty() { return schema.empty(); }
 };
 
-std::string to_string(const Upgrade_issue& problem);
+std::string to_string(const Upgrade_issue &problem);
 
 class Upgrade_check {
  public:
-  static std::vector<std::unique_ptr<Upgrade_check> > create_checklist(
-      const std::string& src_ver, const std::string& dst_ver);
+  static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(
+      const std::string &src_ver, const std::string &dst_ver);
 
-  explicit Upgrade_check(const char* name) : name(name) {
-  }
-  virtual ~Upgrade_check() {
-  }
+  explicit Upgrade_check(const char *name) : name(name) {}
+  virtual ~Upgrade_check() {}
 
-  const char* get_name() const {
-    return name;
-  }
+  const char *get_name() const { return name; }
 
-  virtual const char* get_long_advice() const {
-    return nullptr;
-  }
+  virtual const char *get_long_advice() const { return nullptr; }
 
   virtual std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session) = 0;
 
  protected:
-  const char* name;
+  const char *name;
 };
 
 class Sql_upgrade_check : public Upgrade_check {
@@ -95,20 +87,20 @@ class Sql_upgrade_check : public Upgrade_check {
   get_partitioned_tables_in_shared_tablespaces_check();
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
 
-  Sql_upgrade_check(const char* name, std::vector<std::string>&& queries,
-                    Upgrade_issue::Level level, const char* advice = "",
-                    std::forward_list<std::string>&& set_up =
+  Sql_upgrade_check(const char *name, std::vector<std::string> &&queries,
+                    Upgrade_issue::Level level, const char *advice = "",
+                    std::forward_list<std::string> &&set_up =
                         std::forward_list<std::string>(),
-                    std::forward_list<std::string>&& clean_up =
+                    std::forward_list<std::string> &&clean_up =
                         std::forward_list<std::string>());
 
   std::vector<Upgrade_issue> run(
       std::shared_ptr<mysqlshdk::db::ISession> session) override;
 
-  const char* get_long_advice() const override;
+  const char *get_long_advice() const override;
 
  protected:
-  virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow* row);
+  virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
   std::vector<std::string> queries;
   std::forward_list<std::string> set_up;
   std::forward_list<std::string> clean_up;

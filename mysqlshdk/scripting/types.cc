@@ -23,7 +23,6 @@
 
 #include "scripting/types.h"
 #include <rapidjson/prettywriter.h>
-#include <stdexcept>
 #include <cfloat>
 #include <cstdarg>
 #include <cstdio>
@@ -31,10 +30,11 @@
 #include <limits>
 #include <locale>
 #include <sstream>
+#include <stdexcept>
 #include "mysqlshdk/libs/utils/logger.h"
+#include "utils/dtoa.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
-#include "utils/dtoa.h"
 
 #ifdef WIN32
 #ifdef max
@@ -52,19 +52,19 @@
 #define T true
 #define F false
 const bool shcore::kTypeConvertible[12][12] = {
-// Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun
-  {T,   F,   F,   F,   F,   F,   F,   F,   F,   F,   F,   F},  // Undefined
-  {F,   T,   F,   F,   F,   F,   F,   T,   T,   T,   T,   T},  // Null
-  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // Bool
-  {F,   F,   F,   T,   F,   F,   F,   F,   F,   F,   F,   F},  // String
-  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // Integer
-  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // UInteger
-  {F,   F,   T,   F,   T,   T,   T,   F,   F,   F,   F,   F},  // Float
-  {F,   F,   F,   F,   F,   F,   F,   T,   F,   F,   F,   F},  // Object
-  {F,   F,   F,   F,   F,   F,   F,   F,   T,   F,   F,   F},  // Array
-  {F,   F,   F,   F,   F,   F,   F,   F,   F,   T,   T,   F},  // Map
-  {F,   F,   F,   F,   F,   F,   F,   F,   F,   T,   T,   F},  // MapRef
-  {F,   F,   F,   F,   F,   F,   F,   F,   F,   F,   F,   T},  // Function
+    // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun
+    {T, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
+    {F, T, F, F, F, F, F, T, T, T, T, T},  // Null
+    {F, F, T, F, T, T, T, F, F, F, F, F},  // Bool
+    {F, F, F, T, F, F, F, F, F, F, F, F},  // String
+    {F, F, T, F, T, T, T, F, F, F, F, F},  // Integer
+    {F, F, T, F, T, T, T, F, F, F, F, F},  // UInteger
+    {F, F, T, F, T, T, T, F, F, F, F, F},  // Float
+    {F, F, F, F, F, F, F, T, F, F, F, F},  // Object
+    {F, F, F, F, F, F, F, F, T, F, F, F},  // Array
+    {F, F, F, F, F, F, F, F, F, T, T, F},  // Map
+    {F, F, F, F, F, F, F, F, F, T, T, F},  // MapRef
+    {F, F, F, F, F, F, F, F, F, F, F, T},  // Function
 };
 #undef T
 #undef F
@@ -76,29 +76,25 @@ const bool shcore::kTypeConvertible[12][12] = {
  * value
  */
 static const uint32_t ascii_to_hex[256] = {
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  1,  2,
-    3,  4,  5,  6, 7, 8, 9, 0, 0, 0, 0, 0, 0,  0,  10, 11, 12,
-    13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14,
-    15, 0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,
-    0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0
-};
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  1,  2,  3, 4, 5, 6, 7, 8, 9,  0,  0,
+    0,  0,  0,  0, 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 10, 11, 12,
+    13, 14, 15, 0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
+    0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0};
 
 namespace shcore {
 
 // --
 
-Exception::Exception(const std::shared_ptr<Value::Map_type> e)
-  : _error(e) {
+Exception::Exception(const std::shared_ptr<Value::Map_type> e) : _error(e) {
   log_error("%s", what());
 }
 
@@ -166,7 +162,8 @@ Exception Exception::metadata_error(const std::string &message) {
   return e;
 }
 
-Exception Exception::error_with_code(const std::string &type, const std::string &message, int code) {
+Exception Exception::error_with_code(const std::string &type,
+                                     const std::string &message, int code) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
@@ -175,7 +172,9 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
   return e;
 }
 
-Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate) {
+Exception Exception::error_with_code_and_state(const std::string &type,
+                                               const std::string &message,
+                                               int code, const char *sqlstate) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
@@ -224,25 +223,15 @@ bool Exception::is_attribute() const {
   return strcmp(type(), "AttributeError") == 0;
 }
 
-bool Exception::is_value() const {
-  return strcmp(type(), "ValueError") == 0;
-}
+bool Exception::is_value() const { return strcmp(type(), "ValueError") == 0; }
 
-bool Exception::is_type() const {
-  return strcmp(type(), "TypeError") == 0;
-}
+bool Exception::is_type() const { return strcmp(type(), "TypeError") == 0; }
 
-bool Exception::is_server() const {
-  return strcmp(type(), "Server") == 0;
-}
+bool Exception::is_server() const { return strcmp(type(), "Server") == 0; }
 
-bool Exception::is_mysql() const {
-  return strcmp(type(), "MySQL Error") == 0;
-}
+bool Exception::is_mysql() const { return strcmp(type(), "MySQL Error") == 0; }
 
-bool Exception::is_parser() const {
-  return strcmp(type(), "ParserError") == 0;
-}
+bool Exception::is_parser() const { return strcmp(type(), "ParserError") == 0; }
 
 std::string Exception::format() {
   std::string error_message;
@@ -254,22 +243,18 @@ std::string Exception::format() {
   std::string error_location = _error->get_string("location", "");
 
   if (!message.empty()) {
-    if (!type.empty())
-      error_message += type;
+    if (!type.empty()) error_message += type;
 
     if (code != -1) {
       error_message += " " + std::to_string(code);
-      if (!state.empty())
-        error_message += " (" + state + ")";
+      if (!state.empty()) error_message += " (" + state + ")";
     }
 
-    if (!error_message.empty())
-      error_message += ": ";
+    if (!error_message.empty()) error_message += ": ";
 
     error_message += message;
 
-    if (!error_location.empty())
-      error_message += " at " + error_location;
+    if (!error_location.empty()) error_message += " at " + error_location;
 
     error_message += "\n";
   }
@@ -314,89 +299,78 @@ std::string type_name(Value_type type) {
 
 Value_type Value::Map_type::get_type(const std::string &k) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return Undefined;
+  if (iter == end()) return Undefined;
   return iter->second.type;
 }
 
-std::string Value::Map_type::get_string(const std::string &k, const std::string &def) const {
+std::string Value::Map_type::get_string(const std::string &k,
+                                        const std::string &def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(String);
   return iter->second.as_string();
 }
 
 bool Value::Map_type::get_bool(const std::string &k, bool def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(Bool);
   return iter->second.as_bool();
 }
 
 int64_t Value::Map_type::get_int(const std::string &k, int64_t def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(Integer);
   return iter->second.as_int();
 }
 
 uint64_t Value::Map_type::get_uint(const std::string &k, uint64_t def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(UInteger);
   return iter->second.as_uint();
 }
 
 double Value::Map_type::get_double(const std::string &k, double def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(Float);
   return iter->second.as_double();
 }
 
-std::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
-  std::shared_ptr<Map_type> def) const {
+std::shared_ptr<Value::Map_type> Value::Map_type::get_map(
+    const std::string &k, std::shared_ptr<Map_type> def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(Map);
   return iter->second.as_map();
 }
 
-std::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
-  std::shared_ptr<Array_type> def) const {
+std::shared_ptr<Value::Array_type> Value::Map_type::get_array(
+    const std::string &k, std::shared_ptr<Array_type> def) const {
   const_iterator iter = find(k);
-  if (iter == end())
-    return def;
+  if (iter == end()) return def;
   iter->second.check_type(Array);
   return iter->second.as_array();
 }
 
-void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source, bool overwrite) {
+void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source,
+                                     bool overwrite) {
   Value::Map_type::const_iterator iter;
   for (iter = source->begin(); iter != source->end(); ++iter) {
     std::string k = iter->first;
     Value v = iter->second;
 
-    if (!overwrite && this->has_key(k))
-      continue;
+    if (!overwrite && this->has_key(k)) continue;
 
     (*this)[k] = v;
   }
 }
 
-Value::Value(const Value &copy)
-  : type(shcore::Null) {
-  operator=(copy);
-}
+Value::Value(const Value &copy) : type(shcore::Null) { operator=(copy); }
 
-Value::Value(const std::string &s)
-  : type(String) {
+Value::Value(const std::string &s) : type(String) {
   value.s = new std::string(s);
 }
 
@@ -418,28 +392,15 @@ Value::Value(const char *s, size_t n) {
   }
 }
 
-Value::Value(int i)
-  : type(Integer) {
-  value.i = i;
-}
+Value::Value(int i) : type(Integer) { value.i = i; }
 
-Value::Value(unsigned int ui)
-  : type(UInteger) {
-  value.ui = ui;
-}
+Value::Value(unsigned int ui) : type(UInteger) { value.ui = ui; }
 
-Value::Value(int64_t i)
-  : type(Integer) {
-  value.i = i;
-}
+Value::Value(int64_t i) : type(Integer) { value.i = i; }
 
-Value::Value(uint64_t ui)
-  : type(UInteger) {
-  value.ui = ui;
-}
+Value::Value(uint64_t ui) : type(UInteger) { value.ui = ui; }
 
-Value::Value(float f)
-  : type(Float) {
+Value::Value(float f) : type(Float) {
   // direct typecast from float to double works by just appending 0s to the
   // binary IEEE representation, which will result in a different number
   // So we convert through decimal instead
@@ -448,18 +409,11 @@ Value::Value(float f)
   value.d = std::stod(buffer);
 }
 
-Value::Value(double d)
-  : type(Float) {
-  value.d = d;
-}
+Value::Value(double d) : type(Float) { value.d = d; }
 
-Value::Value(bool b)
-  : type(Bool) {
-  value.b = b;
-}
+Value::Value(bool b) : type(Bool) { value.b = b; }
 
-Value::Value(std::shared_ptr<Function_base> f)
-  : type(Function) {
+Value::Value(std::shared_ptr<Function_base> f) : type(Function) {
   if (f) {
     value.func = new std::shared_ptr<Function_base>(f);
   } else {
@@ -467,8 +421,7 @@ Value::Value(std::shared_ptr<Function_base> f)
   }
 }
 
-Value::Value(std::shared_ptr<Object_bridge> n)
-  : type(Object) {
+Value::Value(std::shared_ptr<Object_bridge> n) : type(Object) {
   if (n) {
     value.o = new std::shared_ptr<Object_bridge>(n);
   } else {
@@ -476,8 +429,7 @@ Value::Value(std::shared_ptr<Object_bridge> n)
   }
 }
 
-Value::Value(Map_type_ref n)
-  : type(Map) {
+Value::Value(Map_type_ref n) : type(Map) {
   if (n) {
     value.map = new std::shared_ptr<Map_type>(n);
   } else {
@@ -485,13 +437,11 @@ Value::Value(Map_type_ref n)
   }
 }
 
-Value::Value(std::weak_ptr<Map_type> n)
-  : type(MapRef) {
+Value::Value(std::weak_ptr<Map_type> n) : type(MapRef) {
   value.mapref = new std::weak_ptr<Map_type>(n);
 }
 
-Value::Value(Array_type_ref n)
-  : type(Array) {
+Value::Value(Array_type_ref n) : type(Array) {
   if (n) {
     value.array = new std::shared_ptr<Array_type>(n);
   } else {
@@ -499,7 +449,7 @@ Value::Value(Array_type_ref n)
   }
 }
 
-Value &Value::operator= (const Value &other) {
+Value &Value::operator=(const Value &other) {
   if (type == other.type) {
     switch (type) {
       case Undefined:
@@ -623,28 +573,30 @@ Value Value::parse_map(const char **pc) {
 
     Value key, value;
     if (**pc != '"' && **pc != '\'')
-      throw Exception::parser_error("Error parsing map, unexpected character reading key.");
+      throw Exception::parser_error(
+          "Error parsing map, unexpected character reading key.");
     else {
       key = parse_string(pc, **pc);
 
       // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
       if (**pc != ':')
-        throw Exception::parser_error("Error parsing map, unexpected item value separator.");
+        throw Exception::parser_error(
+            "Error parsing map, unexpected item value separator.");
 
       // skips the :
       ++*pc;
 
       // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
       value = parse(pc);
 
       (*map)[key.as_string()] = value;
 
       // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
       if (**pc == '}') {
         done = true;
@@ -654,10 +606,11 @@ Value Value::parse_map(const char **pc) {
       } else if (**pc == ',')
         ++*pc;
       else
-        throw Exception::parser_error("Error parsing map, unexpected item separator.");
+        throw Exception::parser_error(
+            "Error parsing map, unexpected item separator.");
 
       // Skips the spaces
-      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
     }
   }
 
@@ -671,18 +624,17 @@ Value Value::parse_array(const char **pc) {
   ++*pc;
 
   // Skips the spaces
-  while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+  while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
   bool done = false;
   while (!done) {
     // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
-    if (**pc != ']')
-      array->push_back(parse(pc));
+    if (**pc != ']') array->push_back(parse(pc));
 
     // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
 
     if (**pc == ']') {
       done = true;
@@ -692,10 +644,11 @@ Value Value::parse_array(const char **pc) {
     } else if (**pc == ',')
       ++*pc;
     else
-      throw Exception::parser_error("Error parsing array, unexpected value separator.");
+      throw Exception::parser_error(
+          "Error parsing array, unexpected value separator.");
 
     // Skips the spaces
-    while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+    while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
   }
 
   return Value(array);
@@ -729,8 +682,8 @@ Value Value::parse_string(const char **pc, char quote) {
 
   // calculate length
   while (*p && *++p != quote) {
-      // escaped char
-      if (*p == '\\') ++p;
+    // escaped char
+    if (*p == '\\') ++p;
   }
 
   int32_t len = p - *pc;
@@ -835,11 +788,11 @@ Value Value::parse_number(const char **pcc) {
   const char *pc = *pcc;
 
   // Sign can appear at the beggining
-  if (*pc == '-' || *pc == '+')
-    ++pc;
+  if (*pc == '-' || *pc == '+') ++pc;
 
   // Continues while there are digits
-  while (*pc && IS_DIGIT(*++pc)) {}
+  while (*pc && IS_DIGIT(*++pc)) {
+  }
 
   bool is_integer = true;
   if (tolower(*pc) == '.') {
@@ -849,10 +802,11 @@ Value Value::parse_number(const char **pcc) {
     ++pc;
 
     // Continues while there are digits
-    while (*pc && IS_DIGIT(*++pc)) {}
+    while (*pc && IS_DIGIT(*++pc)) {
+    }
   }
 
-  if (tolower(*pc) == 'e') // exponential
+  if (tolower(*pc) == 'e')  // exponential
   {
     is_integer = false;
 
@@ -860,11 +814,11 @@ Value Value::parse_number(const char **pcc) {
     ++pc;
 
     // Sign can appear for exponential numbers
-    if (*pc == '-' || *pc == '+')
-      ++pc;
+    if (*pc == '-' || *pc == '+') ++pc;
 
     // Continues while there are digits
-    while (*pc && IS_DIGIT(*++pc));
+    while (*pc && IS_DIGIT(*++pc))
+      ;
   }
 
   size_t len = pc - *pcc;
@@ -906,8 +860,7 @@ Value Value::parse(const std::string &s) {
 
   if (parsed_length < s.size()) {
     // ensure any leftover chars are just whitespaces
-    while (isspace(*pc))
-      ++pc;
+    while (isspace(*pc)) ++pc;
     parsed_length = pc - begin;
     if (parsed_length < s.size())
       throw Exception::parser_error(
@@ -927,15 +880,14 @@ Value Value::parse(const char **pc) {
   } else if (**pc == '\'') {
     return parse_single_quoted_string(pc);
   } else {
-    if (IS_DIGIT(**pc) || **pc == '-' || **pc == '+') // a number
+    if (IS_DIGIT(**pc) || **pc == '-' || **pc == '+')  // a number
     {
       return parse_number(pc);
-    } else // a constant between true, false, null
+    } else  // a constant between true, false, null
     {
       const char *pi = *pc;
       int n;
-      while (*pc && IS_ALPHA(**pc))
-        ++*pc;
+      while (*pc && IS_ALPHA(**pc)) ++*pc;
 
       n = *pc - pi;
       if (n == 9 && str_caseeq(pi, "undefined", n)) {
@@ -955,7 +907,7 @@ Value Value::parse(const char **pc) {
   return Value();
 }
 
-bool Value::operator == (const Value &other) const {
+bool Value::operator==(const Value &other) const {
   if (type == other.type) {
     switch (type) {
       case Undefined:
@@ -1018,7 +970,8 @@ bool Value::operator == (const Value &other) const {
           case Bool:
             return other.operator==(*this);
           case Float:
-            return value.i == (int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
+            return value.i == (int)other.value.d &&
+                   ((other.value.d - (int)other.value.d) == 0.0);
           default:
             return false;
         }
@@ -1027,7 +980,8 @@ bool Value::operator == (const Value &other) const {
           case Bool:
             return other.operator==(*this);
           case Float:
-            return value.ui == (unsigned int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
+            return value.ui == (unsigned int)other.value.d &&
+                   ((other.value.d - (int)other.value.d) == 0.0);
           default:
             return false;
         }
@@ -1059,7 +1013,7 @@ std::string Value::json(bool pprint) const {
 
 std::string Value::descr(bool pprint) const {
   std::string s;
-  append_descr(s, pprint ? 0 : -1, false); // top level strings are not quoted
+  append_descr(s, pprint ? 0 : -1, false);  // top level strings are not quoted
   return s;
 }
 
@@ -1094,8 +1048,8 @@ std::string &Value::append_descr(std::string &s_out, int indent,
     case Float: {
       char buffer[32];
       size_t len;
-      len = my_gcvt(value.d, MY_GCVT_ARG_DOUBLE,
-                    sizeof(buffer) - 1, buffer, NULL);
+      len = my_gcvt(value.d, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer,
+                    NULL);
       s_out.append(buffer, len);
       break;
     }
@@ -1111,66 +1065,55 @@ std::string &Value::append_descr(std::string &s_out, int indent,
         throw Exception::value_error("Invalid object value encountered");
       as_object()->append_descr(s_out, indent, quote_strings);
       break;
-    case Array:
-    {
+    case Array: {
       if (!value.array || !*value.array)
         throw Exception::value_error("Invalid array value encountered");
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
       s_out += "[";
       for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin)
-          s_out += ",";
+        if (iter != mybegin) s_out += ",";
         s_out += nl;
-        if (indent >= 0)
-          s_out.append((indent + 1) * 4, ' ');
+        if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
         iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
       }
 
       if (!vec->empty()) {
         s_out += nl;
-        if (indent > 0)
-          s_out.append(indent * 4, ' ');
+        if (indent > 0) s_out.append(indent * 4, ' ');
       }
 
       s_out += "]";
-    }
-    break;
-    case Map:
-    {
+    } break;
+    case Map: {
       if (!value.map || !*value.map)
         throw Exception::value_error("Invalid map value encountered");
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
       s_out += "{";
 
-      if (!map->empty())
-        s_out += nl;
+      if (!map->empty()) s_out += nl;
 
       for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin)
-          s_out += ", " + nl;
-        if (indent >= 0)
-          s_out.append((indent + 1) * 4, ' ');
+        if (iter != mybegin) s_out += ", " + nl;
+        if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
         s_out += quote_string(iter->first, '"') + ": ";
         iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
       }
 
       if (!map->empty()) {
         s_out += nl;
-        if (indent > 0)
-          s_out.append(indent * 4, ' ');
+        if (indent > 0) s_out.append(indent * 4, ' ');
       }
 
       s_out += "}";
-    }
-    break;
+    } break;
     case MapRef:
       s_out.append("mapref");
       break;
     case Function:
       // TODO:
-      //value.func->get()->append_descr(s_out, pprint);
+      // value.func->get()->append_descr(s_out, pprint);
       break;
   }
   return s_out;
@@ -1190,27 +1133,20 @@ std::string &Value::append_repr(std::string &s_out) const {
       else
         s_out += "false";
       break;
-    case Integer:
-    {
+    case Integer: {
       std::ostringstream value_i;
       value_i << value.i;
       s_out += value_i.str();
-    }
-    break;
-    case UInteger:
-    {
+    } break;
+    case UInteger: {
       std::ostringstream value_ui;
       value_ui << value.ui;
       s_out += value_ui.str();
-    }
-    break;
-    case Float:
-    {
+    } break;
+    case Float: {
       s_out += str_format("%g", value.d);
-    }
-    break;
-    case String:
-    {
+    } break;
+    case String: {
       std::string &s = *value.s;
       s_out += "\"";
       for (size_t i = 0; i < s.length(); i++) {
@@ -1260,45 +1196,38 @@ std::string &Value::append_repr(std::string &s_out) const {
         }
       }
       s_out += "\"";
-    }
-    break;
+    } break;
     case Object:
       s_out = (*value.o)->append_repr(s_out);
       break;
-    case Array:
-    {
+    case Array: {
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
       s_out += "[";
       for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin)
-          s_out += ", ";
+        if (iter != mybegin) s_out += ", ";
         iter->append_repr(s_out);
       }
       s_out += "]";
-    }
-    break;
-    case Map:
-    {
+    } break;
+    case Map: {
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
       s_out += "{";
       for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin)
-          s_out += ", ";
+        if (iter != mybegin) s_out += ", ";
         Value key(iter->first);
         key.append_repr(s_out);
         s_out += ": ";
         iter->second.append_repr(s_out);
       }
       s_out += "}";
-    }
-    break;
+    } break;
     case MapRef:
       break;
     case Function:
       // TODO:
-      //value.func->get()->append_repr(s_out);
+      // value.func->get()->append_repr(s_out);
       break;
   }
   return s_out;
@@ -1335,11 +1264,14 @@ Value::~Value() {
 }
 
 inline Exception type_conversion_error(Value_type from, Value_type expected) {
-  return Exception::type_error("Invalid typecast: "+type_name(expected)+" expected, but value is "+type_name(from));
+  return Exception::type_error("Invalid typecast: " + type_name(expected) +
+                               " expected, but value is " + type_name(from));
 }
 
 inline Exception type_range_error(Value_type from, Value_type expected) {
-  return Exception::type_error("Invalid typecast: "+type_name(expected)+" expected, but "+type_name(from)+" value is out of range");
+  return Exception::type_error("Invalid typecast: " + type_name(expected) +
+                               " expected, but " + type_name(from) +
+                               " value is out of range");
 }
 
 bool is_compatible_type(Value_type source_type, Value_type target_type) {
@@ -1347,8 +1279,7 @@ bool is_compatible_type(Value_type source_type, Value_type target_type) {
 }
 
 void Value::check_type(Value_type t) const {
-  if (!is_compatible_type(type, t))
-    throw type_conversion_error(type, t);
+  if (!is_compatible_type(type, t)) throw type_conversion_error(type, t);
 }
 
 bool Value::as_bool() const {
@@ -1392,8 +1323,7 @@ uint64_t Value::as_uint() const {
     case UInteger:
       return value.ui;
     case Integer:
-      if (value.i >= 0)
-        return static_cast<uint64_t>(value.i);
+      if (value.i >= 0) return static_cast<uint64_t>(value.i);
       throw type_range_error(type, UInteger);
     case Float:
       if (value.d >= 0.0 && value.d <= (1LL << DBL_MANT_DIG))
@@ -1440,7 +1370,8 @@ const std::string &Argument_list::string_at(unsigned int i) const {
     case String:
       return *at(i).value.s;
     default:
-      throw Exception::type_error(str_format("Argument #%u is expected to be a string", (i + 1)));
+      throw Exception::type_error(
+          str_format("Argument #%u is expected to be a string", (i + 1)));
   };
 }
 
@@ -1467,12 +1398,14 @@ int64_t Argument_list::int_at(unsigned int i) const {
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type == Integer)
     return at(i).value.i;
-  else if (at(i).type == UInteger && at(i).value.ui <= std::numeric_limits<int64_t>::max())
+  else if (at(i).type == UInteger &&
+           at(i).value.ui <= std::numeric_limits<int64_t>::max())
     return static_cast<int64_t>(at(i).value.ui);
   else if (at(i).type == Bool)
     return at(i).value.b ? 1 : 0;
   else
-    throw Exception::type_error(str_format("Argument #%u is expected to be an int", (i + 1)));
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be an int", (i + 1)));
 }
 
 uint64_t Argument_list::uint_at(unsigned int i) const {
@@ -1485,7 +1418,8 @@ uint64_t Argument_list::uint_at(unsigned int i) const {
   else if (at(i).type == Bool)
     return at(i).value.b ? 1 : 0;
   else
-    throw Exception::type_error(str_format("Argument #%u is expected to be an unsigned int", (i + 1)));
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be an unsigned int", (i + 1)));
 }
 
 double Argument_list::double_at(unsigned int i) const {
@@ -1501,14 +1435,16 @@ double Argument_list::double_at(unsigned int i) const {
   else if (at(i).type == Bool)
     return at(i).value.b ? 1.0 : 0.0;
   else
-    throw Exception::type_error(str_format("Argument #%u is expected to be a double", (i + 1)));
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be a double", (i + 1)));
 }
 
 std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Object)
-    throw Exception::type_error(str_format("Argument #%u is expected to be an object", (i + 1)));
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be an object", (i + 1)));
   return *at(i).value.o;
 }
 
@@ -1516,15 +1452,18 @@ std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Map)
-    throw Exception::type_error(str_format("Argument #%u is expected to be a map", (i + 1)));
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be a map", (i + 1)));
   return *at(i).value.map;
 }
 
-std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const {
+std::shared_ptr<Value::Array_type> Argument_list::array_at(
+    unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Array)
-    throw Exception::type_error(str_format("Argument #%u is expected to be an array", (i + 1)));
+    throw Exception::type_error(
+        str_format("Argument #%u is expected to be an array", (i + 1)));
   return *at(i).value.array;
 }
 
@@ -1532,36 +1471,34 @@ void Argument_list::ensure_count(unsigned int c, const char *context) const {
   if (c != size())
     throw Exception::argument_error(
         str_format("Invalid number of arguments in %s, expected %u but got %u",
-        context, c, static_cast<uint32_t>(size())));
+                   context, c, static_cast<uint32_t>(size())));
 }
 
-void Argument_list::ensure_count(unsigned int minc, unsigned int maxc, const char *context) const {
+void Argument_list::ensure_count(unsigned int minc, unsigned int maxc,
+                                 const char *context) const {
   if (size() < minc || size() > maxc)
     throw Exception::argument_error(str_format(
         "Invalid number of arguments in %s, expected %u to %u but got %u",
         context, minc, maxc, static_cast<uint32_t>(size())));
 }
 
-void Argument_list::ensure_at_least(unsigned int minc, const char *context) const {
+void Argument_list::ensure_at_least(unsigned int minc,
+                                    const char *context) const {
   if (size() < minc)
     throw Exception::argument_error(str_format(
         "Invalid number of arguments in %s, expected at least %u but got %u",
         context, minc, static_cast<uint32_t>(size())));
 }
 
-bool Argument_list::operator == (const Argument_list &other) const {
+bool Argument_list::operator==(const Argument_list &other) const {
   return _args == other._args;
 }
 
 //--
 
-Argument_map::Argument_map() {
+Argument_map::Argument_map() {}
 
-}
-
-Argument_map::Argument_map(const Value::Map_type &map)
-  : _map(map) {
-}
+Argument_map::Argument_map(const Value::Map_type &map) : _map(map) {}
 
 const std::string &Argument_map::string_at(const std::string &key) const {
   const Value &v(at(key));
@@ -1569,7 +1506,9 @@ const std::string &Argument_map::string_at(const std::string &key) const {
     case String:
       return *v.value.s;
     default:
-      throw Exception::type_error(std::string("Argument ").append(key).append(" is expected to be a string"));
+      throw Exception::type_error(std::string("Argument ")
+                                      .append(key)
+                                      .append(" is expected to be a string"));
   }
 }
 
@@ -1585,7 +1524,8 @@ bool Argument_map::bool_at(const std::string &key) const {
     case Float:
       return value.value.d != 0.0;
     default:
-      throw Exception::type_error(std::string("Argument '"+key+"' is expected to be a bool"));
+      throw Exception::type_error(
+          std::string("Argument '" + key + "' is expected to be a bool"));
   }
 }
 
@@ -1593,14 +1533,16 @@ int64_t Argument_map::int_at(const std::string &key) const {
   const Value &value(at(key));
   if (value.type == Integer)
     return value.value.i;
-  else if (value.type == UInteger && value.value.ui <= std::numeric_limits<int64_t>::max())
+  else if (value.type == UInteger &&
+           value.value.ui <= std::numeric_limits<int64_t>::max())
     return static_cast<int64_t>(value.value.ui);
   else if (value.type == Float)
     return static_cast<int64_t>(value.value.d);
   else if (value.type == Bool)
     return value.value.b ? 1 : 0;
   else
-    throw Exception::type_error("Argument '"+key+"' is expected to be an int");
+    throw Exception::type_error("Argument '" + key +
+                                "' is expected to be an int");
 }
 
 uint64_t Argument_map::uint_at(const std::string &key) const {
@@ -1614,7 +1556,8 @@ uint64_t Argument_map::uint_at(const std::string &key) const {
   else if (value.type == Bool)
     return value.value.b ? 1 : 0;
   else
-    throw Exception::type_error("Argument '"+key+"' is expected to be an unsigned int");
+    throw Exception::type_error("Argument '" + key +
+                                "' is expected to be an unsigned int");
 }
 
 double Argument_map::double_at(const std::string &key) const {
@@ -1628,35 +1571,42 @@ double Argument_map::double_at(const std::string &key) const {
   else if (value.type == Bool)
     return value.value.b ? 1.0 : 0.0;
   else
-    throw Exception::type_error("Argument '"+key+"' is expected to be a double");
+    throw Exception::type_error("Argument '" + key +
+                                "' is expected to be a double");
 }
 
-std::shared_ptr<Object_bridge> Argument_map::object_at(const std::string &key) const {
+std::shared_ptr<Object_bridge> Argument_map::object_at(
+    const std::string &key) const {
   const Value &value(at(key));
   if (value.type != Object)
-    throw Exception::type_error("Argument '"+key+"' is expected to be an object");
+    throw Exception::type_error("Argument '" + key +
+                                "' is expected to be an object");
   return *value.value.o;
 }
 
-std::shared_ptr<Value::Map_type> Argument_map::map_at(const std::string &key) const {
+std::shared_ptr<Value::Map_type> Argument_map::map_at(
+    const std::string &key) const {
   const Value &value(at(key));
   if (value.type != Map)
-    throw Exception::type_error("Argument '"+key+"' is expected to be a map");
+    throw Exception::type_error("Argument '" + key +
+                                "' is expected to be a map");
   return *value.value.map;
 }
 
-std::shared_ptr<Value::Array_type> Argument_map::array_at(const std::string &key) const {
+std::shared_ptr<Value::Array_type> Argument_map::array_at(
+    const std::string &key) const {
   const Value &value(at(key));
   if (value.type != Array)
-    throw Exception::type_error("Argument '"+key+"' is expected to be an array");
+    throw Exception::type_error("Argument '" + key +
+                                "' is expected to be an array");
   return *value.value.array;
 }
 
-bool Argument_map::comp(const std::string& lhs, const std::string& rhs) {
+bool Argument_map::comp(const std::string &lhs, const std::string &rhs) {
   return lhs.compare(rhs) < 0;
 }
 
-bool Argument_map::icomp(const std::string& lhs, const std::string& rhs) {
+bool Argument_map::icomp(const std::string &lhs, const std::string &rhs) {
   return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
 
@@ -1681,8 +1631,7 @@ void Argument_map::ensure_keys(const std::set<std::string> &mandatory_keys,
       msg.append("Missing values in ").append(context).append(": ");
       msg.append(str_join(missing_keys, ", "));
     }
-    if (!msg.empty())
-      throw Exception::argument_error(msg);
+    if (!msg.empty()) throw Exception::argument_error(msg);
   }
 }
 
@@ -1699,8 +1648,8 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
   missing_keys.clear();
   invalid_keys.clear();
 
-  std::set<std::string, bool (*)(const std::string&, const std::string&)>
-    optional(case_sensitive ? Argument_map::comp : Argument_map::icomp);
+  std::set<std::string, bool (*)(const std::string &, const std::string &)>
+      optional(case_sensitive ? Argument_map::comp : Argument_map::icomp);
 
   optional.insert(optional_keys.begin(), optional_keys.end());
 
@@ -1708,8 +1657,7 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
     auto aliases = split_string(key, "|");
     missing_keys.push_back(aliases[0]);
 
-    for(auto alias: aliases)
-      mandatory_aliases[alias] = aliases[0];
+    for (auto alias : aliases) mandatory_aliases[alias] = aliases[0];
   }
 
   for (auto k : _map) {
@@ -1789,9 +1737,7 @@ Value Option_unpacker::get_optional(const char *name, Value_type type,
   return Value();
 }
 
-void Option_unpacker::end() {
-  validate();
-}
+void Option_unpacker::end() { validate(); }
 
 void Option_unpacker::validate() {
   std::string msg;
@@ -1807,15 +1753,12 @@ void Option_unpacker::validate() {
     msg.append("Missing required options: ");
     msg.append(str_join(m_missing, ", "));
   }
-  if (!msg.empty())
-    throw Exception::argument_error(msg);
+  if (!msg.empty()) throw Exception::argument_error(msg);
 }
-
 
 //--
 
-void Object_bridge::append_json(JSON_dumper& dumper) const
-{
+void Object_bridge::append_json(JSON_dumper &dumper) const {
   dumper.start_object();
   dumper.append_string("class", class_name());
   dumper.end_object();

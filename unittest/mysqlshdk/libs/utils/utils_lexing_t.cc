@@ -139,8 +139,7 @@ TEST(Utils_lexing, SQL_string_iterator) {
   std::string ts1(
       "# foo * \nselect '* '/* foo*  */select \"* \" from -- * \n *");
   SQL_string_iterator it1(ts1);
-  for (std::size_t i = 0; i < 17; ++i)
-    EXPECT_NO_THROW(++it1);
+  for (std::size_t i = 0; i < 17; ++i) EXPECT_NO_THROW(++it1);
   EXPECT_THROW(++it, std::out_of_range);
 
   std::string ts2("# test");

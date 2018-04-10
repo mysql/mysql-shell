@@ -36,45 +36,52 @@ void Object_registry::set_reg(const std::string &name, const Value &value) {
 
 Value &Object_registry::get_reg(const std::string &name) {
   Value::Map_type::iterator iter = _registry->find(name);
-  if (iter != _registry->end())
-    return iter->second;
+  if (iter != _registry->end()) return iter->second;
   throw std::invalid_argument("Registry value " + name + " does not exist");
 }
 
-void Object_registry::add_to_reg_list(const std::string &list_name, const std::shared_ptr<Object_bridge> &object) {
+void Object_registry::add_to_reg_list(
+    const std::string &list_name,
+    const std::shared_ptr<Object_bridge> &object) {
   Value::Map_type::iterator liter = _registry->find(list_name);
 
   if (liter == _registry->end())
-    (*_registry)[list_name] = Value(std::shared_ptr<Value::Array_type>(new Value::Array_type()));
+    (*_registry)[list_name] =
+        Value(std::shared_ptr<Value::Array_type>(new Value::Array_type()));
   else if (liter->second.type != Array)
     throw std::invalid_argument("Registry " + list_name + " is not a list");
 
   (*liter->second.value.array)->push_back(Value(object));
 }
 
-void Object_registry::add_to_reg_list(const std::string &list_name, const Value &value) {
+void Object_registry::add_to_reg_list(const std::string &list_name,
+                                      const Value &value) {
   Value::Map_type::iterator liter = _registry->find(list_name);
 
   if (liter == _registry->end())
-    (*_registry)[list_name] = Value(std::shared_ptr<Value::Array_type>(new Value::Array_type()));
+    (*_registry)[list_name] =
+        Value(std::shared_ptr<Value::Array_type>(new Value::Array_type()));
   else if (liter->second.type != Array)
     throw std::invalid_argument("Registry " + list_name + " is not a list");
 
   (*liter->second.value.array)->push_back(value);
 }
 
-void Object_registry::remove_from_reg_list(const std::string &list_name, const std::shared_ptr<Object_bridge> &object) {
+void Object_registry::remove_from_reg_list(
+    const std::string &list_name,
+    const std::shared_ptr<Object_bridge> &object) {
   Value::Map_type::iterator liter = _registry->find(list_name);
   if (liter != _registry->end() || liter->second.type != Array)
     throw std::invalid_argument("Registry " + list_name + " is not a list");
 
   Value &list(liter->second);
-  Value::Array_type::iterator iter = std::find((*list.value.array)->begin(), (*list.value.array)->end(), Value(object));
-  if (iter != (*list.value.array)->end())
-    (*list.value.array)->erase(iter);
+  Value::Array_type::iterator iter = std::find(
+      (*list.value.array)->begin(), (*list.value.array)->end(), Value(object));
+  if (iter != (*list.value.array)->end()) (*list.value.array)->erase(iter);
 }
 
-void Object_registry::remove_from_reg_list(const std::string &list_name, Value::Array_type::iterator iterator) {
+void Object_registry::remove_from_reg_list(
+    const std::string &list_name, Value::Array_type::iterator iterator) {
   Value::Map_type::iterator liter = _registry->find(list_name);
   if (liter != _registry->end() || liter->second.type != Array)
     throw std::invalid_argument("Registry " + list_name + " is not a list");
@@ -82,7 +89,8 @@ void Object_registry::remove_from_reg_list(const std::string &list_name, Value::
   (*liter->second.value.array)->erase(iterator);
 }
 
-std::shared_ptr<Value::Array_type> &Object_registry::get_reg_list(const std::string &list_name) {
+std::shared_ptr<Value::Array_type> &Object_registry::get_reg_list(
+    const std::string &list_name) {
   Value::Map_type::iterator liter = _registry->find(list_name);
   if (liter != _registry->end() || liter->second.type != Array)
     throw std::invalid_argument("Registry " + list_name + " is not a list");

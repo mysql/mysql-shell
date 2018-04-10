@@ -19,9 +19,9 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
+#include <bitset>
 #include <cstdio>
 #include <cstdlib>
-#include <bitset>
 #include <fstream>
 #include <stack>
 #include <string>
@@ -65,9 +65,9 @@ TEST(UtilsString, format) {
   EXPECT_EQ("abab\t%", str_format("%s\t%%", "abab"));
   EXPECT_EQ("afoo  bar", str_format("%c%s%5s", 'a', "foo", "bar"));
   EXPECT_EQ("a b", str_format("%s %s", "a", "b"));
-  EXPECT_EQ("-1152921504606846976 9223372036854775808",
-            str_format("%lli %llu", -1152921504606846976LL,
-                               9223372036854775808ULL));
+  EXPECT_EQ(
+      "-1152921504606846976 9223372036854775808",
+      str_format("%lli %llu", -1152921504606846976LL, 9223372036854775808ULL));
 
   EXPECT_EQ(
       "string with over 256charsstring with over 256charsstring with over "
@@ -333,8 +333,7 @@ TEST(UtilsString, replace) {
   EXPECT_EQ("barfoo", str_replace("barfoo", "", ""));
   EXPECT_EQ("baro", str_replace("barfoo", "fo", ""));
   EXPECT_EQ("barbaro", str_replace("barfoo", "fo", "bar"));
-  EXPECT_EQ("barbbarabarrbarfbarobarobar",
-            str_replace("barfoo", "", "bar"));
+  EXPECT_EQ("barbbarabarrbarfbarobarobar", str_replace("barfoo", "", "bar"));
 
   EXPECT_EQ("barfo", str_replace("barfo", "", ""));
   EXPECT_EQ("bar", str_replace("barfo", "fo", ""));
@@ -354,10 +353,10 @@ TEST(UtilsString, replace) {
 
 #define MAKE_BITS(strvalue) std::bitset<sizeof(strvalue) - 1>(strvalue)
 
-#define TEST_BIT(strvalue)                                          \
-  EXPECT_EQ(MAKE_BITS(strvalue).to_string(),                        \
-            bits_to_string(MAKE_BITS(strvalue).to_ullong(), \
-                                   sizeof(strvalue) - 1));
+#define TEST_BIT(strvalue)             \
+  EXPECT_EQ(                           \
+      MAKE_BITS(strvalue).to_string(), \
+      bits_to_string(MAKE_BITS(strvalue).to_ullong(), sizeof(strvalue) - 1));
 
 TEST(UtilsString, bits_to_string) {
   // preliminary tests
@@ -387,9 +386,8 @@ TEST(UtilsString, bits_to_string) {
 }
 
 #undef TEST_BIT
-#define TEST_BIT(strvalue)                           \
-  EXPECT_EQ(MAKE_BITS(strvalue).to_ullong(),         \
-            string_to_bits(strvalue).first); \
+#define TEST_BIT(strvalue)                                                    \
+  EXPECT_EQ(MAKE_BITS(strvalue).to_ullong(), string_to_bits(strvalue).first); \
   EXPECT_EQ(sizeof(strvalue) - 1, string_to_bits(strvalue).second)
 
 TEST(UtilsString, string_to_bits) {
@@ -409,7 +407,6 @@ TEST(UtilsString, string_to_bits) {
   TEST_BIT("0000111100001111000011110000111100001111000011110000111100001111");
   TEST_BIT("1111000011110000111100001111000011110000111100001111000011110000");
 }
-
 
 TEST(UtilsString, split) {
   {
@@ -434,7 +431,7 @@ TEST(UtilsString, split) {
   }
   {
     const auto s = str_split("//", "/", -1, true);
-    const std::vector<std::string> expect = { "", "" };
+    const std::vector<std::string> expect = {"", ""};
     EXPECT_EQ(expect, s);
   }
   {
@@ -444,7 +441,7 @@ TEST(UtilsString, split) {
   }
   {
     const auto s = str_split("a.b.c.d.e.f", ".", 3);
-    const std::vector<std::string> expect = { "a", "b", "c", "d.e.f" };
+    const std::vector<std::string> expect = {"a", "b", "c", "d.e.f"};
     EXPECT_EQ(expect, s);
   }
 }
@@ -474,6 +471,5 @@ TEST(UtilsString, rjust) {
   EXPECT_EQ(".......x", str_rjust("x", 8, '.'));
   EXPECT_EQ("....xxxy", str_rjust("xxxy", 8, '.'));
 }
-
 
 }  // namespace shcore

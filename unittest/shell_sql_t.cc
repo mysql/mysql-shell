@@ -29,14 +29,14 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
+#include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "scripting/common.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-#include "scripting/common.h"
 #include "unittest/test_utils.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "modules/mod_mysql_session.h"
 
 using namespace std::placeholders;
 
@@ -76,9 +76,7 @@ class Shell_sql_test : public Shell_core_test_wrapper {
     }
   }
 
-  void process_result(shcore::Value result) {
-    _returned_value = result;
-  }
+  void process_result(shcore::Value result) { _returned_value = result; }
 
   shcore::Value handle_input(std::string &query, Input_state &state) {
     env.shell_sql->handle_input(

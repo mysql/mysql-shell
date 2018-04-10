@@ -27,19 +27,18 @@
 #include <vector>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/db/replay/setup.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 
 extern const char *g_mysqlsh_argv0;
-
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
@@ -83,18 +82,17 @@ shcore::Value value_from_argmap(const shcore::Argument_map &argmap) {
 }  // namespace
 
 ProvisioningInterface::ProvisioningInterface(
-    shcore::Interpreter_delegate *deleg,
-    const std::string &provision_path)
-    : _verbose(0), _delegate(deleg),
-    _local_mysqlprovision_path(provision_path) {}
+    shcore::Interpreter_delegate *deleg, const std::string &provision_path)
+    : _verbose(0),
+      _delegate(deleg),
+      _local_mysqlprovision_path(provision_path) {}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
 int ProvisioningInterface::execute_mysqlprovision(
-    const std::string &cmd,
-    const shcore::Argument_list &args,
-    const shcore::Argument_map &kwargs,
-    shcore::Value::Array_type_ref *errors, int verbose) {
+    const std::string &cmd, const shcore::Argument_list &args,
+    const shcore::Argument_map &kwargs, shcore::Value::Array_type_ref *errors,
+    int verbose) {
   std::vector<const char *> args_script;
   std::string buf;
   char c;
@@ -108,8 +106,7 @@ int ProvisioningInterface::execute_mysqlprovision(
   });
 
   std::string log_level = "--log-level=";
-  if (mysqlsh::Base_shell::options().log_to_stderr)
-    log_level.append("@");
+  if (mysqlsh::Base_shell::options().log_to_stderr) log_level.append("@");
   log_level.append(std::to_string(
       static_cast<int>(ngcommon::Logger::singleton()->get_log_level())));
 
@@ -166,9 +163,9 @@ int ProvisioningInterface::execute_mysqlprovision(
   std::string logged_json = logged_wrapped_args.json();
 #ifndef NDEBUG
 #ifdef _WIN32
-  logged_json = "(echo(" +logged_json + "^&echo(.^&echo.)";
+  logged_json = "(echo(" + logged_json + "^&echo(.^&echo.)";
 #else
-  logged_json = "printf '" +logged_json + "\\n.\\n'";
+  logged_json = "printf '" + logged_json + "\\n.\\n'";
 #endif
 #else
   logged_json = "'" + logged_json + "\\n.\\n'";
@@ -182,10 +179,8 @@ int ProvisioningInterface::execute_mysqlprovision(
 
 #ifndef NDEBUG
   if (getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0) {
-    std::cerr << message << "\n"
-      << value_from_argmap(kwargs).repr() << "\n";
-    for (const auto &arg : args)
-      std::cerr << arg.repr() << "\n";
+    std::cerr << message << "\n" << value_from_argmap(kwargs).repr() << "\n";
+    for (const auto &arg : args) std::cerr << arg.repr() << "\n";
   }
 #endif
   if (verbose > 1) {
@@ -264,8 +259,7 @@ int ProvisioningInterface::execute_mysqlprovision(
             std::string info;
 
             if (type == "WARNING" || type == "ERROR") {
-              if (!(*errors))
-                (*errors).reset(new shcore::Value::Array_type());
+              if (!(*errors)) (*errors).reset(new shcore::Value::Array_type());
 
               (*errors)->push_back(raw_data);
               info = type + ": ";
@@ -302,8 +296,7 @@ int ProvisioningInterface::execute_mysqlprovision(
     }
 
     if (!buf.empty()) {
-      if (verbose)
-        _delegate->print(_delegate->user_data, buf.c_str());
+      if (verbose) _delegate->print(_delegate->user_data, buf.c_str());
 
       log_debug("DBA: mysqlprovision: %s", buf.c_str());
 
@@ -326,8 +319,9 @@ int ProvisioningInterface::execute_mysqlprovision(
 #ifndef NDEBUG
   if ((getenv("TEST_DEBUG") && strcmp(getenv("TEST_DEBUG"), "2") >= 0)) {
     std::cerr << "mysqlprovision exited with code " << exit_code << ":\n"
-      << "\t" << shcore::str_join(shcore::str_split(full_output, "\n"), "\n\t")
-      << "\n";
+              << "\t"
+              << shcore::str_join(shcore::str_split(full_output, "\n"), "\n\t")
+              << "\n";
   }
 #endif
   /*
@@ -337,10 +331,10 @@ int ProvisioningInterface::execute_mysqlprovision(
     throw shcore::Exception::runtime_error(
         "mysqlprovision not found. Please verify that mysqlsh is installed "
         "correctly.");
-  /*
-   * mysqlprovision returns 1 as exit-code for internal behaviour errors.
-   * The logged message starts with "ERROR: "
-   */
+    /*
+     * mysqlprovision returns 1 as exit-code for internal behaviour errors.
+     * The logged message starts with "ERROR: "
+     */
   } else if (exit_code == 1) {
     // Print full output if it wasn't already printed before because of verbose
     log_error("DBA: mysqlprovision exited with error code (%s) : %s ",
@@ -384,12 +378,9 @@ void ProvisioningInterface::set_ssl_args(
   if (instance_ssl.has_key())
     ssl_key = "--" + prefix + "-ssl-key=" + instance_ssl.get_key();
 
-  if (!ssl_ca.empty())
-    args->push_back(strdup(ssl_ca.c_str()));
-  if (!ssl_cert.empty())
-    args->push_back(strdup(ssl_cert.c_str()));
-  if (!ssl_key.empty())
-    args->push_back(strdup(ssl_key.c_str()));
+  if (!ssl_ca.empty()) args->push_back(strdup(ssl_ca.c_str()));
+  if (!ssl_cert.empty()) args->push_back(strdup(ssl_cert.c_str()));
+  if (!ssl_key.empty()) args->push_back(strdup(ssl_key.c_str()));
 }
 
 int ProvisioningInterface::check(
@@ -400,8 +391,7 @@ int ProvisioningInterface::check(
 
   {
     auto map = get_connection_map(connection_options);
-    if (map->has_key("password"))
-      (*map)["passwd"] = (*map)["password"];
+    if (map->has_key("password")) (*map)["passwd"] = (*map)["password"];
     kwargs["server"] = shcore::Value(map);
   }
   if (!cnfpath.empty()) {
@@ -500,8 +490,7 @@ shcore::Value ProvisioningInterface::exec_check_ret_handler(
                   shcore::Value::Map_type_ref option;
                   if (!server_options->has_key(option_tokens[0])) {
                     option.reset(new shcore::Value::Map_type());
-                    (*server_options)[option_tokens[0]] =
-                        shcore::Value(option);
+                    (*server_options)[option_tokens[0]] = shcore::Value(option);
                   } else {
                     option = (*server_options)[option_tokens[0]].as_map();
                   }
@@ -654,27 +643,22 @@ int ProvisioningInterface::create_sandbox(
     kwargs["opt"] = mycnf_options;
   }
 
-  if (ignore_ssl_error)
-    kwargs["ignore_ssl_error"] = shcore::Value::True();
+  if (ignore_ssl_error) kwargs["ignore_ssl_error"] = shcore::Value::True();
 
-  if (start)
-    kwargs["start"] = shcore::Value::True();
+  if (start) kwargs["start"] = shcore::Value::True();
 
-  if (!password.empty())
-    kwargs["passwd"] = shcore::Value(password);
+  if (!password.empty()) kwargs["passwd"] = shcore::Value(password);
 
-  if (timeout > 0)
-    kwargs["timeout"] = shcore::Value(timeout);
+  if (timeout > 0) kwargs["timeout"] = shcore::Value(timeout);
 
-  return exec_sandbox_op("create", port, portx, sandbox_dir, kwargs,
-                         errors);
+  return exec_sandbox_op("create", port, portx, sandbox_dir, kwargs, errors);
 }
 
 int ProvisioningInterface::delete_sandbox(
     int port, const std::string &sandbox_dir,
     shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("delete", port, 0, sandbox_dir,
-                         shcore::Argument_map(), errors);
+  return exec_sandbox_op("delete", port, 0, sandbox_dir, shcore::Argument_map(),
+                         errors);
 }
 
 int ProvisioningInterface::kill_sandbox(int port,
@@ -696,8 +680,8 @@ int ProvisioningInterface::stop_sandbox(int port,
 int ProvisioningInterface::start_sandbox(
     int port, const std::string &sandbox_dir,
     shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("start", port, 0, sandbox_dir,
-                         shcore::Argument_map(), errors);
+  return exec_sandbox_op("start", port, 0, sandbox_dir, shcore::Argument_map(),
+                         errors);
 }
 
 int ProvisioningInterface::start_replicaset(
@@ -705,10 +689,8 @@ int ProvisioningInterface::start_replicaset(
     const std::string &repl_user, const std::string &super_user_password,
     const std::string &repl_user_password, bool multi_master,
     const std::string &ssl_mode, const std::string &ip_whitelist,
-    const std::string &group_name,
-    const std::string &gr_local_address,
-    const std::string &gr_group_seeds,
-    shcore::Value::Array_type_ref *errors) {
+    const std::string &group_name, const std::string &gr_local_address,
+    const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
 
@@ -749,10 +731,9 @@ int ProvisioningInterface::join_replicaset(
     const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
     const std::string &super_user_password,
     const std::string &repl_user_password, const std::string &ssl_mode,
-    const std::string &ip_whitelist,
-    const std::string &gr_local_address,
-    const std::string &gr_group_seeds,
-    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
+    const std::string &ip_whitelist, const std::string &gr_local_address,
+    const std::string &gr_group_seeds, bool skip_rpl_user,
+    shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
 
@@ -804,8 +785,7 @@ int ProvisioningInterface::leave_replicaset(
 
   {
     auto map = get_connection_map(connection_options);
-    if (map->has_key("password"))
-      (*map)["passwd"] = (*map)["password"];
+    if (map->has_key("password")) (*map)["passwd"] = (*map)["password"];
     args.push_back(shcore::Value(map));
   }
 

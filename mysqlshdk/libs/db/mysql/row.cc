@@ -110,8 +110,7 @@ Row::Row(Result *result, MYSQL_ROW row, const unsigned long *lengths)
   do {                                                                         \
     if (index >= num_fields())                                                 \
       throw FIELD_ERROR(index, "index out of bounds");                         \
-    if (_row[index] == nullptr)                                                \
-      throw FIELD_ERROR(index, "field is NULL");                               \
+    if (_row[index] == nullptr) throw FIELD_ERROR(index, "field is NULL");     \
     Type ftype = get_type(index);                                              \
     if (!(TYPE_CHECK))                                                         \
       throw FIELD_ERROR1(index, "field type is %s", to_string(ftype).c_str()); \
