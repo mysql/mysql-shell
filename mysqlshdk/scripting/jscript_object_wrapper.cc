@@ -24,9 +24,9 @@
 #include "scripting/jscript_object_wrapper.h"
 #include <iostream>
 
-#include "scripting/jscript_context.h"
-#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/debug.h"
+#include "scripting/jscript_context.h"
 
 using namespace shcore;
 
@@ -45,23 +45,28 @@ v8::Handle<v8::Value> translate_exception(JScript_context *context) {
   }
 }
 
-
-JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool indexed)
-  : _context(context), _method_wrapper(context) {
-  v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
+JScript_object_wrapper::JScript_object_wrapper(JScript_context *context,
+                                               bool indexed)
+    : _context(context), _method_wrapper(context) {
+  v8::Handle<v8::ObjectTemplate> templ =
+      v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
 
-  templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter, &JScript_object_wrapper::handler_setter, &JScript_object_wrapper::handler_query, 0, &JScript_object_wrapper::handler_enumerator);
+  templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter,
+                                 &JScript_object_wrapper::handler_setter,
+                                 &JScript_object_wrapper::handler_query, 0,
+                                 &JScript_object_wrapper::handler_enumerator);
 
   if (indexed)
-    templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
+    templ->SetIndexedPropertyHandler(
+        &JScript_object_wrapper::handler_igetter,
+        &JScript_object_wrapper::handler_isetter, 0, 0,
+        &JScript_object_wrapper::handler_ienumerator);
 
   templ->SetInternalFieldCount(3);
 }
 
-JScript_object_wrapper::~JScript_object_wrapper() {
-  _object_template.Reset();
-}
+JScript_object_wrapper::~JScript_object_wrapper() { _object_template.Reset(); }
 
 struct shcore::JScript_object_wrapper::Collectable {
  private:
@@ -70,20 +75,17 @@ struct shcore::JScript_object_wrapper::Collectable {
  public:
   v8::Persistent<v8::Object> *persistent;
 
-  Collectable(std::shared_ptr<Object_bridge> d,
-              v8::Persistent<v8::Object> *p)
+  Collectable(std::shared_ptr<Object_bridge> d, v8::Persistent<v8::Object> *p)
       : m_data(std::move(d)), persistent(p) {
     DEBUG_OBJ_ALLOC_N(JSObjectWrapper, m_data->class_name());
   }
 
   Collectable(const Collectable &) = delete;
-  Collectable &operator = (const Collectable &) = delete;
+  Collectable &operator=(const Collectable &) = delete;
   Collectable(Collectable &&) = delete;
-  Collectable &operator = (Collectable &&) = delete;
+  Collectable &operator=(Collectable &&) = delete;
 
-  std::shared_ptr<Object_bridge> get() {
-    return m_data;
-  }
+  std::shared_ptr<Object_bridge> get() { return m_data; }
 
   ~Collectable() {
     DEBUG_OBJ_DEALLOC(JSObjectWrapper);
@@ -114,16 +116,21 @@ v8::Handle<v8::Object> JScript_object_wrapper::wrap(
   return {};
 }
 
-void JScript_object_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the object
+void JScript_object_wrapper::wrapper_deleted(
+    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
+  // the JS wrapper object was deleted, so we also free the shared-ref to the
+  // object
   v8::HandleScope hscope(data.GetIsolate());
   delete data.GetParameter();
 }
 
-void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info) {
+void JScript_object_wrapper::handler_getter(
+    v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
+      obj->GetAlignedPointerFromInternalField(2));
   std::shared_ptr<Object_bridge> object =
       static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
           ->get();
@@ -139,7 +146,8 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   std::vector<std::string> members(object->get_members());
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
-  for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i)
+  for (std::vector<std::string>::const_iterator iter = members.begin(); iter !=
+  members.end(); ++iter, ++i)
   {
   marray->Set(i, v8::String::NewFromUtf8(info.GetIsolate(), iter->c_str()));
   }
@@ -153,10 +161,12 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
       return;
     } catch (Exception &exc) {
       if (!exc.is_attribute())
-        info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+        info.GetIsolate()->ThrowException(
+            self->_context->shcore_value_to_v8_value(Value(exc.error())));
       // fallthrough
     } catch (std::exception &exc) {
-      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
+      info.GetIsolate()->ThrowException(
+          v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
     }
   }
   {
@@ -174,10 +184,13 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   }
 }
 
-void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info) {
+void JScript_object_wrapper::handler_setter(
+    v8::Local<v8::String> property, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
+      obj->GetAlignedPointerFromInternalField(2));
   std::shared_ptr<Object_bridge> object =
       static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
           ->get();
@@ -192,13 +205,17 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::
     object->set_member(*prop, self->_context->v8_value_to_shcore_value(value));
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
-    info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+    info.GetIsolate()->ThrowException(
+        self->_context->shcore_value_to_v8_value(Value(exc.error())));
   } catch (std::exception &exc) {
-    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
+    info.GetIsolate()->ThrowException(
+        v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
   }
 }
 
-void JScript_object_wrapper::handler_query(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Integer>& info) {
+void JScript_object_wrapper::handler_query(
+    v8::Local<v8::String> property,
+    const v8::PropertyCallbackInfo<v8::Integer> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   std::shared_ptr<Object_bridge> object =
@@ -213,12 +230,13 @@ void JScript_object_wrapper::handler_query(v8::Local<v8::String> property, const
   v8::String::Utf8Value prop(property);
 
   if (object->has_member(*prop)) {
-    //v8::Integer::New(info.GetIsolate(), 1);
+    // v8::Integer::New(info.GetIsolate(), 1);
     info.GetReturnValue().Set(v8::None);
   }
 }
 
-void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info) {
+void JScript_object_wrapper::handler_enumerator(
+    const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   std::shared_ptr<Object_bridge> object =
@@ -232,16 +250,19 @@ void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v
   std::vector<std::string> members(object->get_members());
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
-  for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i) {
+  for (std::vector<std::string>::const_iterator iter = members.begin();
+       iter != members.end(); ++iter, ++i) {
     marray->Set(i, v8::String::NewFromUtf8(info.GetIsolate(), iter->c_str()));
   }
   info.GetReturnValue().Set(marray);
 }
 
-void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallbackInfo<v8::Value>& info) {
+void JScript_object_wrapper::handler_igetter(
+    uint32_t i, const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
+      obj->GetAlignedPointerFromInternalField(2));
   std::shared_ptr<Object_bridge> object =
       static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
           ->get();
@@ -254,19 +275,25 @@ void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallb
   {
     try {
       Value member = object->get_member(i);
-      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
+      info.GetReturnValue().Set(
+          self->_context->shcore_value_to_v8_value(member));
     } catch (Exception &exc) {
-      info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+      info.GetIsolate()->ThrowException(
+          self->_context->shcore_value_to_v8_value(Value(exc.error())));
     } catch (std::exception &exc) {
-      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
+      info.GetIsolate()->ThrowException(
+          v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
     }
   }
 }
 
-void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info) {
+void JScript_object_wrapper::handler_isetter(
+    uint32_t i, v8::Local<v8::Value> value,
+    const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
+      obj->GetAlignedPointerFromInternalField(2));
   std::shared_ptr<Object_bridge> object =
       static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
           ->get();
@@ -280,13 +307,16 @@ void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> va
     object->set_member(i, self->_context->v8_value_to_shcore_value(value));
     info.GetReturnValue().Set(value);
   } catch (Exception &exc) {
-    info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+    info.GetIsolate()->ThrowException(
+        self->_context->shcore_value_to_v8_value(Value(exc.error())));
   } catch (std::exception &exc) {
-    info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
+    info.GetIsolate()->ThrowException(
+        v8::String::NewFromUtf8(info.GetIsolate(), exc.what()));
   }
 }
 
-void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v8::Array>& info) {
+void JScript_object_wrapper::handler_ienumerator(
+    const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   std::shared_ptr<Object_bridge> object =
@@ -300,16 +330,19 @@ void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<
   std::vector<std::string> members(object->get_members());
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
-  for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i) {
+  for (std::vector<std::string>::const_iterator iter = members.begin();
+       iter != members.end(); ++iter, ++i) {
     uint32_t x = 0;
     if (sscanf(iter->c_str(), "%u", &x) == 1)
-        marray->Set(i, v8::Integer::New(info.GetIsolate(), x));
+      marray->Set(i, v8::Integer::New(info.GetIsolate(), x));
   }
   info.GetReturnValue().Set(marray);
 }
 
-bool JScript_object_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Object_bridge> &ret_object) {
-  if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer) {
+bool JScript_object_wrapper::unwrap(
+    v8::Handle<v8::Object> value, std::shared_ptr<Object_bridge> &ret_object) {
+  if (value->InternalFieldCount() == 3 &&
+      value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
     std::shared_ptr<Object_bridge> object =
         static_cast<Collectable *>(value->GetAlignedPointerFromInternalField(1))
             ->get();
@@ -330,11 +363,10 @@ bool JScript_object_wrapper::is_object(v8::Handle<v8::Object> value) {
 
 static int magic_method_pointer = 0;
 
-
 bool JScript_object_wrapper::is_method(v8::Handle<v8::Object> value) {
   return (value->InternalFieldCount() == 3 &&
-      value->GetAlignedPointerFromInternalField(0) ==
-          static_cast<void *>(&magic_method_pointer));
+          value->GetAlignedPointerFromInternalField(0) ==
+              static_cast<void *>(&magic_method_pointer));
 }
 
 JScript_method_wrapper::JScript_method_wrapper(JScript_context *context)
@@ -346,9 +378,7 @@ JScript_method_wrapper::JScript_method_wrapper(JScript_context *context)
   templ->SetCallAsFunctionHandler(call);
 }
 
-JScript_method_wrapper::~JScript_method_wrapper() {
-  _object_template.Reset();
-}
+JScript_method_wrapper::~JScript_method_wrapper() { _object_template.Reset(); }
 
 struct shcore::JScript_method_wrapper::Collectable {
   std::shared_ptr<Object_bridge> object;

@@ -36,7 +36,7 @@ class SHCORE_PUBLIC Python_function : public Function_base {
 
   const std::string &name() const override;
 
-  const std::vector<std::pair<std::string, Value_type> > &signature()
+  const std::vector<std::pair<std::string, Value_type>> &signature()
       const override;
 
   Value_type return_type() const override;

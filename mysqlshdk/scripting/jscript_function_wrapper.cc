@@ -31,8 +31,9 @@ using namespace shcore;
 static int magic_pointer = 0;
 
 JScript_function_wrapper::JScript_function_wrapper(JScript_context *context)
-  : _context(context) {
-  v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
+    : _context(context) {
+  v8::Handle<v8::ObjectTemplate> templ =
+      v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
   templ->SetInternalFieldCount(3);
   templ->SetCallAsFunctionHandler(call);
@@ -47,8 +48,11 @@ struct shcore::JScript_function_wrapper::Collectable {
   v8::Persistent<v8::Object> handle;
 };
 
-v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_base> function) {
-  v8::Handle<v8::Object> obj(v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)->NewInstance());
+v8::Handle<v8::Object> JScript_function_wrapper::wrap(
+    std::shared_ptr<Function_base> function) {
+  v8::Handle<v8::Object> obj(
+      v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)
+          ->NewInstance());
   if (!obj.IsEmpty()) {
     obj->SetAlignedPointerInInternalField(0, &magic_pointer);
     Collectable *tmp = new Collectable();
@@ -56,23 +60,28 @@ v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_b
     obj->SetAlignedPointerInInternalField(1, tmp);
     obj->SetAlignedPointerInInternalField(2, this);
 
-    // marks the persistent instance to be garbage collectable, with a callback called on deletion
-    tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
+    // marks the persistent instance to be garbage collectable, with a callback
+    // called on deletion
+    tmp->handle.Reset(_context->isolate(),
+                      v8::Persistent<v8::Object>(_context->isolate(), obj));
     tmp->handle.SetWeak(tmp, wrapper_deleted);
     tmp->handle.MarkIndependent();
   }
   return obj;
 }
 
-void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the object
+void JScript_function_wrapper::wrapper_deleted(
+    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
+  // the JS wrapper object was deleted, so we also free the shared-ref to the
+  // object
   v8::HandleScope hscope(data.GetIsolate());
   data.GetParameter()->data.reset();
   data.GetParameter()->handle.Reset();
   delete data.GetParameter();
 }
 
-void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& args) {
+void JScript_function_wrapper::call(
+    const v8::FunctionCallbackInfo<v8::Value> &args) {
   v8::Handle<v8::Object> obj(args.Holder());
   JScript_function_wrapper *self = static_cast<JScript_function_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
@@ -89,13 +98,18 @@ void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& a
       jsexc = self->_context->shcore_value_to_v8_value(Value(exc.format()));
     args.GetIsolate()->ThrowException(jsexc);
   } catch (std::exception &exc) {
-    args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
+    args.GetIsolate()->ThrowException(
+        v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
   }
 }
 
-bool JScript_function_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_object) {
-  if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer) {
-    std::shared_ptr<Function_base> *object = static_cast<std::shared_ptr<Function_base>*>(value->GetAlignedPointerFromInternalField(1));
+bool JScript_function_wrapper::unwrap(
+    v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_object) {
+  if (value->InternalFieldCount() == 3 &&
+      value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
+    std::shared_ptr<Function_base> *object =
+        static_cast<std::shared_ptr<Function_base> *>(
+            value->GetAlignedPointerFromInternalField(1));
     ret_object = *object;
     return true;
   }

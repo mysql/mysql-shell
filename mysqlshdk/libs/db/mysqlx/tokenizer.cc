@@ -220,19 +220,16 @@ Tokenizer::Maps::Maps() {
   unary_operator_names["not"] = "not";
 }
 
-Token::Token(Token::TokenType type, const std::string& text, int cur_pos)
-    : _type(type), _text(text), _pos(cur_pos) {
-}
+Token::Token(Token::TokenType type, const std::string &text, int cur_pos)
+    : _type(type), _text(text), _pos(cur_pos) {}
 
-const std::string& Token::get_type_name() const {
+const std::string &Token::get_type_name() const {
   return TokenName.at((int)_type);
 }
 
 struct Tokenizer::Maps map;
 
-Tokenizer::Tokenizer(const std::string& input) : _input(input) {
-  _pos = 0;
-}
+Tokenizer::Tokenizer(const std::string &input) : _input(input) { _pos = 0; }
 
 bool Tokenizer::next_char_is(tokens_t::size_type i, int tok) {
   return (i + 1) < _input.size() && _input[i + 1] == tok;
@@ -240,7 +237,7 @@ bool Tokenizer::next_char_is(tokens_t::size_type i, int tok) {
 
 void Tokenizer::assert_cur_token(Token::TokenType type) {
   assert_tok_position();
-  const Token& tok = _tokens.at(_pos);
+  const Token &tok = _tokens.at(_pos);
   Token::TokenType tok_type = tok.get_type();
   if (tok_type != type) {
     std::stringstream s;
@@ -269,15 +266,15 @@ bool Tokenizer::pos_token_type_is(tokens_t::size_type pos,
   return (pos < _tokens.size()) && (_tokens[pos].get_type() == type);
 }
 
-const std::string& Tokenizer::consume_token(Token::TokenType type) {
+const std::string &Tokenizer::consume_token(Token::TokenType type) {
   assert_cur_token(type);
-  const std::string& v = _tokens[_pos++].get_text();
+  const std::string &v = _tokens[_pos++].get_text();
   return v;
 }
 
-const Token& Tokenizer::peek_token() {
+const Token &Tokenizer::peek_token() {
   assert_tok_position();
-  Token& t = _tokens[_pos];
+  Token &t = _tokens[_pos];
   return t;
 }
 
@@ -305,19 +302,16 @@ void Tokenizer::get_tokens() {
       // int -> digit +
       // expo -> 'E' | 'e'
       // sign -> '-' | '+'
-      while (i < _input.size() && std::isdigit(c = _input[i]))
-        ++i;
+      while (i < _input.size() && std::isdigit(c = _input[i])) ++i;
       if (i < _input.size() && _input[i] == '.') {
         ++i;
-        while (i < _input.size() && std::isdigit(_input[i]))
-          ++i;
+        while (i < _input.size() && std::isdigit(_input[i])) ++i;
         if (i < _input.size() && std::toupper(_input[i]) == 'E') {
           ++i;
           if (i < _input.size() && (((c = _input[i]) == '-') || (c == '+')))
             ++i;
           size_t j = i;
-          while (i < _input.size() && std::isdigit(_input[i]))
-            i++;
+          while (i < _input.size() && std::isdigit(_input[i])) i++;
           if (i == j)
             throw Parser_error(
                 "Missing exponential value for floating point at char " +
@@ -329,8 +323,7 @@ void Tokenizer::get_tokens() {
         _tokens.push_back(
             Token(Token::LINTEGER, std::string(_input, start, i - start), i));
       }
-      if (i < _input.size())
-        --i;
+      if (i < _input.size()) --i;
     } else if (!std::isalpha(c) && c != '_') {
       // # non-identifier, e.g. operator or quoted literal
       if (c == '?') {
@@ -421,15 +414,13 @@ void Tokenizer::get_tokens() {
           // nint->digit +
           // expo -> 'E' | 'e'
           // sign -> '-' | '+'
-          while (i < _input.size() && std::isdigit(_input[i]))
-            ++i;
+          while (i < _input.size() && std::isdigit(_input[i])) ++i;
           if (i < _input.size() && std::toupper(_input[i]) == 'E') {
             ++i;
             if (i < _input.size() && (((c = _input[i]) == '+') || (c == '-')))
               ++i;
             size_t j = i;
-            while (i < _input.size() && std::isdigit(_input[i]))
-              ++i;
+            while (i < _input.size() && std::isdigit(_input[i])) ++i;
             if (i == j)
               throw Parser_error(
                   "Missing exponential value for floating point at char " +
@@ -437,8 +428,7 @@ void Tokenizer::get_tokens() {
           }
           _tokens.push_back(
               Token(Token::LNUM, std::string(_input, start, i - start), i));
-          if (i < _input.size())
-            --i;
+          if (i < _input.size()) --i;
         } else {
           _tokens.push_back(Token(Token::DOT, std::string(1, c), i));
         }
@@ -464,8 +454,7 @@ void Tokenizer::get_tokens() {
           } else if ((c == quote_char) || (c == '\\' && quote_char != '`')) {
             // && quote_char != '`'
             // this quote char has to be doubled
-            if ((i + 1) >= _input.size())
-              break;
+            if ((i + 1) >= _input.size()) break;
             val.append(1, _input[++i]);
           } else {
             val.append(1, c);
@@ -501,13 +490,11 @@ void Tokenizer::get_tokens() {
   }
 }
 
-void Tokenizer::inc_pos_token() {
-  ++_pos;
-}
+void Tokenizer::inc_pos_token() { ++_pos; }
 
-const Token& Tokenizer::consume_any_token() {
+const Token &Tokenizer::consume_any_token() {
   assert_tok_position();
-  Token& tok = _tokens[_pos];
+  Token &tok = _tokens[_pos];
   ++_pos;
   return tok;
 }
@@ -518,9 +505,7 @@ void Tokenizer::assert_tok_position() {
                        " but no tokens left.");
 }
 
-bool Tokenizer::tokens_available() {
-  return _pos < _tokens.size();
-}
+bool Tokenizer::tokens_available() { return _pos < _tokens.size(); }
 
 bool Tokenizer::is_interval_units_type() {
   assert_tok_position();
@@ -528,16 +513,16 @@ bool Tokenizer::is_interval_units_type() {
   return map.interval_units.find(type) != map.interval_units.end();
 }
 
-bool Tokenizer::is_type_within_set(const std::set<Token::TokenType>& types) {
+bool Tokenizer::is_type_within_set(const std::set<Token::TokenType> &types) {
   assert_tok_position();
   Token::TokenType type = _tokens[_pos].get_type();
   return types.find(type) != types.end();
 }
 
-bool Tokenizer::Cmp_icase::operator()(const std::string& lhs,
-                                      const std::string& rhs) const {
-  const char* c_lhs = lhs.c_str();
-  const char* c_rhs = rhs.c_str();
+bool Tokenizer::Cmp_icase::operator()(const std::string &lhs,
+                                      const std::string &rhs) const {
+  const char *c_lhs = lhs.c_str();
+  const char *c_rhs = rhs.c_str();
 
   return _stricmp(c_lhs, c_rhs) < 0;
 }

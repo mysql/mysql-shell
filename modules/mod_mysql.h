@@ -29,42 +29,43 @@
 
 namespace mysqlsh {
 /**
-* \defgroup mysql mysql
-* \ingroup ShellAPI
-* $(MYSQL_BRIEF)
-*
-* $(MYSQL_DETAIL)
-*
-* $(MYSQL_DETAIL1)
-*
-* $(MYSQL_DETAIL2)
-*
-* $(MYSQL_DETAIL3)
-*
-* \if DOXYGEN_JS
-* \code
-* mysql-js> var mysql = require('mysql');
-*
-* // Then you can use the module functions and properties
-* // for example to create a session
-* mysql-js> var mySession = mysql.getClassicSession('admin@localhost');
-* \endcode
-* \elseif DOXYGEN_PY
-* \code
-* mysql-py> from mysqlsh import mysql
-*
-* // Then you can use the module functions and properties
-* // for example to create a session
-* mysql-py> mySession = mysql.get_classic_session('admin@localhost')
-* \endcode
-* \endif
-*
-* $(MYSQL_DETAIL4)
-*/
+ * \defgroup mysql mysql
+ * \ingroup ShellAPI
+ * $(MYSQL_BRIEF)
+ *
+ * $(MYSQL_DETAIL)
+ *
+ * $(MYSQL_DETAIL1)
+ *
+ * $(MYSQL_DETAIL2)
+ *
+ * $(MYSQL_DETAIL3)
+ *
+ * \if DOXYGEN_JS
+ * \code
+ * mysql-js> var mysql = require('mysql');
+ *
+ * // Then you can use the module functions and properties
+ * // for example to create a session
+ * mysql-js> var mySession = mysql.getClassicSession('admin@localhost');
+ * \endcode
+ * \elseif DOXYGEN_PY
+ * \code
+ * mysql-py> from mysqlsh import mysql
+ *
+ * // Then you can use the module functions and properties
+ * // for example to create a session
+ * mysql-py> mySession = mysql.get_classic_session('admin@localhost')
+ * \endcode
+ * \endif
+ *
+ * $(MYSQL_DETAIL4)
+ */
 namespace mysql {
 
 #if DOXYGEN_JS
-ClassicSession getClassicSession(ConnectionData connectionData, String password);
+ClassicSession getClassicSession(ConnectionData connectionData,
+                                 String password);
 ClassicSession getSession(ConnectionData connectionData, String password);
 #elif DOXYGEN_PY
 ClassicSession get_classic_session(ConnectionData connectionData, str password);
@@ -86,6 +87,6 @@ shcore::Object_bridge_ref _type;
 
 END_DECLARE_MODULE();
 }
-}
+}  // namespace mysqlsh
 
 #endif

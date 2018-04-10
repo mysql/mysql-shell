@@ -30,8 +30,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "modules/devapi/base_resultset.h"
 #include "db/mysqlx/result.h"
+#include "modules/devapi/base_resultset.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -39,11 +39,11 @@ namespace mysqlx {
 class Bufferable_result;
 
 /**
-* \ingroup XDevAPI
-* $(BASERESULT_BRIEF)
-*/
+ * \ingroup XDevAPI
+ * $(BASERESULT_BRIEF)
+ */
 class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
-public:
+ public:
   explicit BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
   virtual ~BaseResult();
 
@@ -80,27 +80,27 @@ public:
   str get_execution_time();
 #endif
 
-protected:
+ protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
   double _execution_time;
 };
 
 /**
-* \ingroup XDevAPI
-* $(RESULT_BRIEF)
-*
-* $(RESULT_DETAIL)
-*
-* $(RESULT_DETAIL1)
-* $(RESULT_DETAIL2)
-*
-* $(RESULT_DETAIL3)
-*
-* $(RESULT_DETAIL4)
-* $(RESULT_DETAIL5)
-*/
+ * \ingroup XDevAPI
+ * $(RESULT_BRIEF)
+ *
+ * $(RESULT_DETAIL)
+ *
+ * $(RESULT_DETAIL1)
+ * $(RESULT_DETAIL2)
+ *
+ * $(RESULT_DETAIL3)
+ *
+ * $(RESULT_DETAIL4)
+ * $(RESULT_DETAIL5)
+ */
 class SHCORE_PUBLIC Result : public BaseResult {
-public:
+ public:
   explicit Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   virtual std::string class_name() const { return "Result"; }
@@ -115,7 +115,7 @@ public:
 #if DOXYGEN_JS
   Integer affectedItemCount;   //!< Same as getAffectedItemCount()
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
-  List generatedIds;  //!< Same as getGeneratedIds()
+  List generatedIds;           //!< Same as getGeneratedIds()
 
   Integer getAffectedItemCount();
   Integer getAutoIncrementValue();
@@ -123,7 +123,7 @@ public:
 #elif DOXYGEN_PY
   int affected_item_count;   //!< Same as get_affected_item_count()
   int auto_increment_value;  //!< Same as get_auto_increment_value()
-  list generated_ids;      //!< Same as get_generated_ids()
+  list generated_ids;        //!< Same as get_generated_ids()
 
   int get_affected_item_count();
   int get_auto_increment_value();
@@ -132,11 +132,11 @@ public:
 };
 
 /**
-* \ingroup XDevAPI
-* $(DOCRESULT_BRIEF)
-*/
+ * \ingroup XDevAPI
+ * $(DOCRESULT_BRIEF)
+ */
 class SHCORE_PUBLIC DocResult : public BaseResult {
-public:
+ public:
   explicit DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
@@ -160,11 +160,11 @@ public:
 };
 
 /**
-* \ingroup XDevAPI
-* $(ROWRESULT_BRIEF)
-*/
+ * \ingroup XDevAPI
+ * $(ROWRESULT_BRIEF)
+ */
 class SHCORE_PUBLIC RowResult : public BaseResult {
-public:
+ public:
   explicit RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   shcore::Value fetch_one(const shcore::Argument_list &args) const;
@@ -210,11 +210,11 @@ public:
 };
 
 /**
-* \ingroup XDevAPI
-* $(SQLRESULT_BRIEF)
-*/
+ * \ingroup XDevAPI
+ * $(SQLRESULT_BRIEF)
+ */
 class SHCORE_PUBLIC SqlResult : public RowResult {
-public:
+ public:
   explicit SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
   virtual std::string class_name() const { return "SqlResult"; }
@@ -229,9 +229,9 @@ public:
   int64_t get_auto_increment_value() const;
   bool hasData();
 
-// TODO: Enable it once the way to have a reference to the unmanaged object is
-// found
-// bool nextDataSet() const;
+  // TODO: Enable it once the way to have a reference to the unmanaged object is
+  // found
+  // bool nextDataSet() const;
 
 #if DOXYGEN_JS
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()

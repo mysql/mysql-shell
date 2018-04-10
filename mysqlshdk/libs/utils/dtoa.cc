@@ -45,8 +45,8 @@
 // From mysql server code
 // Remove once becomes unnecessary
 #include "dtoa.h"
-#include <limits>
 #include <cassert>
+#include <limits>
 #ifdef HAVE_ENDIAN_H
 #include <endian.h>
 #endif
@@ -54,21 +54,20 @@
 #include <float.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
 
 #define TRUE 1
 #define FALSE 0
 
-#define NOT_FIXED_DEC           31
+#define NOT_FIXED_DEC 31
 
 #ifndef EOVERFLOW
 #define EOVERFLOW 84
 #endif
-#define MY_ALIGN(A,L)   (((A) + (L) - 1) & ~((L) - 1))
+#define MY_ALIGN(A, L) (((A) + (L)-1) & ~((L)-1))
 
 #define MAX_DECPT_FOR_F_FORMAT DBL_DIG
-
 
 /**
    Appears to suffice to not call malloc() in most cases.
@@ -149,42 +148,38 @@ static void dtoa_free(char *, char *, size_t);
 */
 
 size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
-               bool *error)
-{
+               bool *error) {
   int decpt, sign, len, exp_len;
-  char *res, *src, *end, *dst= to, *dend= dst + width;
+  char *res, *src, *end, *dst = to, *dend = dst + width;
   char buf[DTOA_BUFF_SIZE];
   bool have_space, force_e_format;
   assert(width > 0 && to != NULL);
 
   /* We want to remove '-' from equations early */
-  if (x < 0.)
-    width--;
+  if (x < 0.) width--;
 
-  res= dtoa(x, 4, type == MY_GCVT_ARG_DOUBLE ? width : std::min(width, FLT_DIG),
-            &decpt, &sign, &end, buf, sizeof(buf));
-  if (decpt == DTOA_OVERFLOW)
-  {
+  res =
+      dtoa(x, 4, type == MY_GCVT_ARG_DOUBLE ? width : std::min(width, FLT_DIG),
+           &decpt, &sign, &end, buf, sizeof(buf));
+  if (decpt == DTOA_OVERFLOW) {
     dtoa_free(res, buf, sizeof(buf));
-    *to++= '0';
-    *to= '\0';
-    if (error != NULL)
-      *error= TRUE;
+    *to++ = '0';
+    *to = '\0';
+    if (error != NULL) *error = TRUE;
     return 1;
   }
 
-  if (error != NULL)
-    *error= FALSE;
+  if (error != NULL) *error = FALSE;
 
-  src= res;
-  len= (int)(end - res);
+  src = res;
+  len = (int)(end - res);
 
   /*
     Number of digits in the exponent from the 'e' conversion.
      The sign of the exponent is taken into account separetely, we don't need
      to count it here.
    */
-  exp_len= 1 + (decpt >= 101 || decpt <= -99) + (decpt >= 11 || decpt <= -9);
+  exp_len = 1 + (decpt >= 101 || decpt <= -99) + (decpt >= 11 || decpt <= -9);
 
   /*
      Do we have enough space for all digits in the 'f' format?
@@ -195,15 +190,15 @@ size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
      2. 0 < decpt < len, i.e. we have "NNN.NNN" => F = len + 1
      3. len <= decpt, i.e. we have "NNN00" => F = decpt
   */
-  have_space= (decpt <= 0 ? len - decpt + 2 :
-               decpt > 0 && decpt < len ? len + 1 :
-               decpt) <= width;
+  have_space =
+      (decpt <= 0 ? len - decpt + 2
+                  : decpt > 0 && decpt < len ? len + 1 : decpt) <= width;
   /*
     The following is true when no significant digits can be placed with the
     specified field width using the 'f' format, and the 'e' format
     will not be truncated.
   */
-  force_e_format= (decpt <= 0 && width <= 2 - decpt && width >= 3 + exp_len);
+  force_e_format = (decpt <= 0 && width <= 2 - decpt && width >= 3 + exp_len);
   /*
     Assume that we don't have enough space to place all significant digits in
     the 'f' format. We have to choose between the 'e' format and the 'f' one
@@ -231,34 +226,30 @@ size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
        the 'e' 'one.
   */
   if ((have_space ||
-      /*
-        Not enough space, let's see if the 'f' format provides the most number
-        of significant digits.
-      */
-       ((decpt <= width && (decpt >= -1 || (decpt == -2 &&
-                                            (len > 1 || !force_e_format)))) &&
-         !force_e_format)) &&
-
        /*
-         Use the 'e' format in some cases even if we have enough space for the
-         'f' one. See comment for MAX_DECPT_FOR_F_FORMAT.
+         Not enough space, let's see if the 'f' format provides the most number
+         of significant digits.
        */
+       ((decpt <= width &&
+         (decpt >= -1 || (decpt == -2 && (len > 1 || !force_e_format)))) &&
+        !force_e_format)) &&
+
+      /*
+        Use the 'e' format in some cases even if we have enough space for the
+        'f' one. See comment for MAX_DECPT_FOR_F_FORMAT.
+      */
       (!have_space || (decpt >= -MAX_DECPT_FOR_F_FORMAT + 1 &&
-                       (decpt <= MAX_DECPT_FOR_F_FORMAT || len > decpt))))
-  {
+                       (decpt <= MAX_DECPT_FOR_F_FORMAT || len > decpt)))) {
     /* 'f' format */
     int i;
 
-    width-= (decpt < len) + (decpt <= 0 ? 1 - decpt : 0);
+    width -= (decpt < len) + (decpt <= 0 ? 1 - decpt : 0);
 
     /* Do we have to truncate any digits? */
-    if (width < len)
-    {
-      if (width < decpt)
-      {
-        if (error != NULL)
-          *error= TRUE;
-        width= decpt;
+    if (width < len) {
+      if (width < decpt) {
+        if (error != NULL) *error = TRUE;
+        width = decpt;
       }
 
       /*
@@ -267,15 +258,14 @@ size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
         number of significant digits = (len-decpt) - (len-width) = width-decpt
       */
       dtoa_free(res, buf, sizeof(buf));
-      res= dtoa(x, 5, width - decpt, &decpt, &sign, &end, buf, sizeof(buf));
-      src= res;
-      len= (int)(end - res);
+      res = dtoa(x, 5, width - decpt, &decpt, &sign, &end, buf, sizeof(buf));
+      src = res;
+      len = (int)(end - res);
     }
 
-    if (len == 0)
-    {
+    if (len == 0) {
       /* Underflow. Just print '0' and exit */
-      *dst++= '0';
+      *dst++ = '0';
       goto end;
     }
 
@@ -283,98 +273,71 @@ size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
       At this point we are sure we have enough space to put all digits
       returned by dtoa
     */
-    if (sign && dst < dend)
-      *dst++= '-';
-    if (decpt <= 0)
-    {
-      if (dst < dend)
-        *dst++= '0';
-      if (len > 0 && dst < dend)
-        *dst++= '.';
-      for (; decpt < 0 && dst < dend; decpt++)
-        *dst++= '0';
+    if (sign && dst < dend) *dst++ = '-';
+    if (decpt <= 0) {
+      if (dst < dend) *dst++ = '0';
+      if (len > 0 && dst < dend) *dst++ = '.';
+      for (; decpt < 0 && dst < dend; decpt++) *dst++ = '0';
     }
 
-    for (i= 1; i <= len && dst < dend; i++)
-    {
-      *dst++= *src++;
-      if (i == decpt && i < len && dst < dend)
-        *dst++= '.';
+    for (i = 1; i <= len && dst < dend; i++) {
+      *dst++ = *src++;
+      if (i == decpt && i < len && dst < dend) *dst++ = '.';
     }
-    while (i++ <= decpt && dst < dend)
-      *dst++= '0';
-  }
-  else
-  {
+    while (i++ <= decpt && dst < dend) *dst++ = '0';
+  } else {
     /* 'e' format */
-    int decpt_sign= 0;
+    int decpt_sign = 0;
 
-    if (--decpt < 0)
-    {
-      decpt= -decpt;
+    if (--decpt < 0) {
+      decpt = -decpt;
       width--;
-      decpt_sign= 1;
+      decpt_sign = 1;
     }
-    width-= 1 + exp_len; /* eNNN */
+    width -= 1 + exp_len; /* eNNN */
 
-    if (len > 1)
-      width--;
+    if (len > 1) width--;
 
-    if (width <= 0)
-    {
+    if (width <= 0) {
       /* Overflow */
-      if (error != NULL)
-        *error= TRUE;
-      width= 0;
+      if (error != NULL) *error = TRUE;
+      width = 0;
     }
 
     /* Do we have to truncate any digits? */
-    if (width < len)
-    {
+    if (width < len) {
       /* Yes, re-convert with a smaller width */
       dtoa_free(res, buf, sizeof(buf));
-      res= dtoa(x, 4, width, &decpt, &sign, &end, buf, sizeof(buf));
-      src= res;
-      len= (int)(end - res);
-      if (--decpt < 0)
-        decpt= -decpt;
+      res = dtoa(x, 4, width, &decpt, &sign, &end, buf, sizeof(buf));
+      src = res;
+      len = (int)(end - res);
+      if (--decpt < 0) decpt = -decpt;
     }
     /*
       At this point we are sure we have enough space to put all digits
       returned by dtoa
     */
-    if (sign && dst < dend)
-      *dst++= '-';
-    if (dst < dend)
-      *dst++= *src++;
-    if (len > 1 && dst < dend)
-    {
-      *dst++= '.';
-      while (src < end && dst < dend)
-        *dst++= *src++;
+    if (sign && dst < dend) *dst++ = '-';
+    if (dst < dend) *dst++ = *src++;
+    if (len > 1 && dst < dend) {
+      *dst++ = '.';
+      while (src < end && dst < dend) *dst++ = *src++;
     }
-    if (dst < dend)
-      *dst++= 'e';
-    if (decpt_sign && dst < dend)
-      *dst++= '-';
+    if (dst < dend) *dst++ = 'e';
+    if (decpt_sign && dst < dend) *dst++ = '-';
 
-    if (decpt >= 100 && dst < dend)
-    {
-      *dst++= decpt / 100 + '0';
-      decpt%= 100;
-      if (dst < dend)
-        *dst++= decpt / 10 + '0';
-    }
-    else if (decpt >= 10 && dst < dend)
-      *dst++= decpt / 10 + '0';
-    if (dst < dend)
-      *dst++= decpt % 10 + '0';
-
+    if (decpt >= 100 && dst < dend) {
+      *dst++ = decpt / 100 + '0';
+      decpt %= 100;
+      if (dst < dend) *dst++ = decpt / 10 + '0';
+    } else if (decpt >= 10 && dst < dend)
+      *dst++ = decpt / 10 + '0';
+    if (dst < dend) *dst++ = decpt % 10 + '0';
   }
 
 end:
   dtoa_free(res, buf, sizeof(buf));
-  *dst= '\0';
+  *dst = '\0';
 
   return dst - to;
 }
@@ -459,7 +422,6 @@ double my_atof(const char *nptr)
     the one generated on the fly.
 */
 
-
 /*
   On a machine with IEEE extended-precision registers, it is
   necessary to specify double-precision (53-bit) rounding precision
@@ -486,10 +448,13 @@ typedef uint32_t ULong;
 typedef int64_t LLong;
 typedef uint64_t ULLong;
 
-typedef union { double d; ULong L[2]; } U;
+typedef union {
+  double d;
+  ULong L[2];
+} U;
 
-#if defined(WORDS_BIGENDIAN) || (defined(__FLOAT_WORD_ORDER) &&        \
-                                 (__FLOAT_WORD_ORDER == __BIG_ENDIAN))
+#if defined(WORDS_BIGENDIAN) || \
+    (defined(__FLOAT_WORD_ORDER) && (__FLOAT_WORD_ORDER == __BIG_ENDIAN))
 #define word0(x) (x)->L[0]
 #define word1(x) (x)->L[1]
 #else
@@ -505,21 +470,21 @@ typedef union { double d; ULong L[2]; } U;
 /* Quick_max= floor((P-1)*log(FLT_RADIX)/log(10) - 1) */
 /* Int_max= floor(P*log(FLT_RADIX)/log(10) - 1) */
 
-#define Exp_shift  20
+#define Exp_shift 20
 #define Exp_shift1 20
-#define Exp_msk1    0x100000
-#define Exp_mask  0x7ff00000
+#define Exp_msk1 0x100000
+#define Exp_mask 0x7ff00000
 #define P 53
 #define Bias 1023
 #define Emin (-1022)
-#define Exp_1  0x3ff00000
+#define Exp_1 0x3ff00000
 #define Exp_11 0x3ff00000
 #define Ebits 11
-#define Frac_mask  0xfffff
+#define Frac_mask 0xfffff
 #define Frac_mask1 0xfffff
 #define Ten_pmax 22
 #define Bletch 0x10
-#define Bndry_mask  0xfffff
+#define Bndry_mask 0xfffff
 #define Bndry_mask1 0xfffff
 #define LSB 1
 #define Sign_bit 0x80000000
@@ -542,10 +507,10 @@ typedef union { double d; ULong L[2]; } U;
 #define Check_FLT_ROUNDS
 #endif
 
-#define rounded_product(a,b) a*= b
-#define rounded_quotient(a,b) a/= b
+#define rounded_product(a, b) a *= b
+#define rounded_quotient(a, b) a /= b
 
-#define Big0 (Frac_mask1 | Exp_msk1*(DBL_MAX_EXP+Bias-1))
+#define Big0 (Frac_mask1 | Exp_msk1 * (DBL_MAX_EXP + Bias - 1))
 #define Big1 0xffffffff
 #define FFFFFFFF 0xffffffffUL
 
@@ -553,28 +518,26 @@ typedef union { double d; ULong L[2]; } U;
 
 #define Kmax 15
 
-#define Bcopy(x,y) memcpy((char *)&x->sign, (char *)&y->sign,   \
-                          2*sizeof(int) + y->wds*sizeof(ULong))
+#define Bcopy(x, y)                          \
+  memcpy((char *)&x->sign, (char *)&y->sign, \
+         2 * sizeof(int) + y->wds * sizeof(ULong))
 
 /* Arbitrary-length integer */
 
-typedef struct Bigint
-{
+typedef struct Bigint {
   union {
-    ULong *x;              /* points right after this Bigint object */
-    struct Bigint *next;   /* to maintain free lists */
+    ULong *x;            /* points right after this Bigint object */
+    struct Bigint *next; /* to maintain free lists */
   } p;
-  int k;                   /* 2^k = maxwds */
-  int maxwds;              /* maximum length in 32-bit words */
-  int sign;                /* not zero if number is negative */
-  int wds;                 /* current length in 32-bit words */
+  int k;      /* 2^k = maxwds */
+  int maxwds; /* maximum length in 32-bit words */
+  int sign;   /* not zero if number is negative */
+  int wds;    /* current length in 32-bit words */
 } Bigint;
-
 
 /* A simple stack-memory based allocator for Bigints */
 
-typedef struct Stack_alloc
-{
+typedef struct Stack_alloc {
   char *begin;
   char *free;
   char *end;
@@ -582,9 +545,8 @@ typedef struct Stack_alloc
     Having list of free blocks lets us reduce maximum required amount
     of memory from ~4000 bytes to < 1680 (tested on x86).
   */
-  Bigint *freelist[Kmax+1];
+  Bigint *freelist[Kmax + 1];
 } Stack_alloc;
-
 
 /*
   Try to allocate object on stack, and resort to malloc if all
@@ -593,61 +555,51 @@ typedef struct Stack_alloc
   Bigint.
 */
 
-static Bigint *Balloc(int k, Stack_alloc *alloc)
-{
+static Bigint *Balloc(int k, Stack_alloc *alloc) {
   Bigint *rv;
   assert(k <= Kmax);
-  if (k <= Kmax &&  alloc->freelist[k])
-  {
-    rv= alloc->freelist[k];
-    alloc->freelist[k]= rv->p.next;
-  }
-  else
-  {
+  if (k <= Kmax && alloc->freelist[k]) {
+    rv = alloc->freelist[k];
+    alloc->freelist[k] = rv->p.next;
+  } else {
     int x, len;
 
-    x= 1 << k;
-    len= MY_ALIGN(sizeof(Bigint) + x * sizeof(ULong), sizeof(char*));
+    x = 1 << k;
+    len = MY_ALIGN(sizeof(Bigint) + x * sizeof(ULong), sizeof(char *));
 
-    if (alloc->free + len <= alloc->end)
-    {
-      rv= (Bigint*) alloc->free;
-      alloc->free+= len;
-    }
-    else
-      rv= (Bigint*) malloc(len);
+    if (alloc->free + len <= alloc->end) {
+      rv = (Bigint *)alloc->free;
+      alloc->free += len;
+    } else
+      rv = (Bigint *)malloc(len);
 
-    rv->k= k;
-    rv->maxwds= x;
+    rv->k = k;
+    rv->maxwds = x;
   }
-  rv->sign= rv->wds= 0;
-  rv->p.x= (ULong*) (rv + 1);
+  rv->sign = rv->wds = 0;
+  rv->p.x = (ULong *)(rv + 1);
   return rv;
 }
-
 
 /*
   If object was allocated on stack, try putting it to the free
   list. Otherwise call free().
 */
 
-static void Bfree(Bigint *v, Stack_alloc *alloc)
-{
-  char *gptr= (char*) v;                       /* generic pointer */
+static void Bfree(Bigint *v, Stack_alloc *alloc) {
+  char *gptr = (char *)v; /* generic pointer */
   if (gptr < alloc->begin || gptr >= alloc->end)
     free(gptr);
-  else if (v->k <= Kmax)
-  {
+  else if (v->k <= Kmax) {
     /*
       Maintain free lists only for stack objects: this way we don't
       have to bother with freeing lists in the end of dtoa;
       heap should not be used normally anyway.
     */
-    v->p.next= alloc->freelist[v->k];
-    alloc->freelist[v->k]= v;
+    v->p.next = alloc->freelist[v->k];
+    alloc->freelist[v->k] = v;
   }
 }
-
 
 /*
   This is to place return value of dtoa in: tries to use stack
@@ -656,66 +608,54 @@ static void Bfree(Bigint *v, Stack_alloc *alloc)
   pointer to a Bigint.
 */
 
-static char *dtoa_alloc(int i, Stack_alloc *alloc)
-{
+static char *dtoa_alloc(int i, Stack_alloc *alloc) {
   char *rv;
-  int aligned_size= MY_ALIGN(i, sizeof(char*));
-  if (alloc->free + aligned_size <= alloc->end)
-  {
-    rv= alloc->free;
-    alloc->free+= aligned_size;
-  }
-  else
-    rv= static_cast<char*>(malloc(i));
+  int aligned_size = MY_ALIGN(i, sizeof(char *));
+  if (alloc->free + aligned_size <= alloc->end) {
+    rv = alloc->free;
+    alloc->free += aligned_size;
+  } else
+    rv = static_cast<char *>(malloc(i));
   return rv;
 }
-
 
 /*
   dtoa_free() must be used to free values s returned by dtoa()
   This is the counterpart of dtoa_alloc()
 */
 
-static void dtoa_free(char *gptr, char *buf, size_t buf_size)
-{
-  if (gptr < buf || gptr >= buf + buf_size)
-    free(gptr);
+static void dtoa_free(char *gptr, char *buf, size_t buf_size) {
+  if (gptr < buf || gptr >= buf + buf_size) free(gptr);
 }
-
 
 /* Bigint arithmetic functions */
 
 /* Multiply by m and add a */
 
-static Bigint *multadd(Bigint *b, int m, int a, Stack_alloc *alloc)
-{
+static Bigint *multadd(Bigint *b, int m, int a, Stack_alloc *alloc) {
   int i, wds;
   ULong *x;
   ULLong carry, y;
   Bigint *b1;
 
-  wds= b->wds;
-  x= b->p.x;
-  i= 0;
-  carry= a;
-  do
-  {
-    y= *x * (ULLong)m + carry;
-    carry= y >> 32;
-    *x++= (ULong)(y & FFFFFFFF);
-  }
-  while (++i < wds);
-  if (carry)
-  {
-    if (wds >= b->maxwds)
-    {
-      b1= Balloc(b->k+1, alloc);
+  wds = b->wds;
+  x = b->p.x;
+  i = 0;
+  carry = a;
+  do {
+    y = *x * (ULLong)m + carry;
+    carry = y >> 32;
+    *x++ = (ULong)(y & FFFFFFFF);
+  } while (++i < wds);
+  if (carry) {
+    if (wds >= b->maxwds) {
+      b1 = Balloc(b->k + 1, alloc);
       Bcopy(b1, b);
       Bfree(b, alloc);
-      b= b1;
+      b = b1;
     }
-    b->p.x[wds++]= (ULong) carry;
-    b->wds= wds;
+    b->p.x[wds++] = (ULong)carry;
+    b->wds = wds;
   }
   return b;
 }
@@ -764,355 +704,284 @@ static Bigint *s2b(const char *s, int nd0, int nd, ULong y9, Stack_alloc *alloc)
 }
 #endif
 
-static int hi0bits(ULong x)
-{
-  int k= 0;
+static int hi0bits(ULong x) {
+  int k = 0;
 
-  if (!(x & 0xffff0000))
-  {
-    k= 16;
-    x<<= 16;
+  if (!(x & 0xffff0000)) {
+    k = 16;
+    x <<= 16;
   }
-  if (!(x & 0xff000000))
-  {
-    k+= 8;
-    x<<= 8;
+  if (!(x & 0xff000000)) {
+    k += 8;
+    x <<= 8;
   }
-  if (!(x & 0xf0000000))
-  {
-    k+= 4;
-    x<<= 4;
+  if (!(x & 0xf0000000)) {
+    k += 4;
+    x <<= 4;
   }
-  if (!(x & 0xc0000000))
-  {
-    k+= 2;
-    x<<= 2;
+  if (!(x & 0xc0000000)) {
+    k += 2;
+    x <<= 2;
   }
-  if (!(x & 0x80000000))
-  {
+  if (!(x & 0x80000000)) {
     k++;
-    if (!(x & 0x40000000))
-      return 32;
+    if (!(x & 0x40000000)) return 32;
   }
   return k;
 }
 
-
-static int lo0bits(ULong *y)
-{
+static int lo0bits(ULong *y) {
   int k;
-  ULong x= *y;
+  ULong x = *y;
 
-  if (x & 7)
-  {
-    if (x & 1)
-      return 0;
-    if (x & 2)
-    {
-      *y= x >> 1;
+  if (x & 7) {
+    if (x & 1) return 0;
+    if (x & 2) {
+      *y = x >> 1;
       return 1;
     }
-    *y= x >> 2;
+    *y = x >> 2;
     return 2;
   }
-  k= 0;
-  if (!(x & 0xffff))
-  {
-    k= 16;
-    x>>= 16;
+  k = 0;
+  if (!(x & 0xffff)) {
+    k = 16;
+    x >>= 16;
   }
-  if (!(x & 0xff))
-  {
-    k+= 8;
-    x>>= 8;
+  if (!(x & 0xff)) {
+    k += 8;
+    x >>= 8;
   }
-  if (!(x & 0xf))
-  {
-    k+= 4;
-    x>>= 4;
+  if (!(x & 0xf)) {
+    k += 4;
+    x >>= 4;
   }
-  if (!(x & 0x3))
-  {
-    k+= 2;
-    x>>= 2;
+  if (!(x & 0x3)) {
+    k += 2;
+    x >>= 2;
   }
-  if (!(x & 1))
-  {
+  if (!(x & 1)) {
     k++;
-    x>>= 1;
-    if (!x)
-      return 32;
+    x >>= 1;
+    if (!x) return 32;
   }
-  *y= x;
+  *y = x;
   return k;
 }
-
 
 /* Convert integer to Bigint number */
 
-static Bigint *i2b(int i, Stack_alloc *alloc)
-{
+static Bigint *i2b(int i, Stack_alloc *alloc) {
   Bigint *b;
 
-  b= Balloc(1, alloc);
-  b->p.x[0]= i;
-  b->wds= 1;
+  b = Balloc(1, alloc);
+  b->p.x[0] = i;
+  b->wds = 1;
   return b;
 }
 
-
 /* Multiply two Bigint numbers */
 
-static Bigint *mult(Bigint *a, Bigint *b, Stack_alloc *alloc)
-{
+static Bigint *mult(Bigint *a, Bigint *b, Stack_alloc *alloc) {
   Bigint *c;
   int k, wa, wb, wc;
   ULong *x, *xa, *xae, *xb, *xbe, *xc, *xc0;
   ULong y;
   ULLong carry, z;
 
-  if (a->wds < b->wds)
-  {
-    c= a;
-    a= b;
-    b= c;
+  if (a->wds < b->wds) {
+    c = a;
+    a = b;
+    b = c;
   }
-  k= a->k;
-  wa= a->wds;
-  wb= b->wds;
-  wc= wa + wb;
-  if (wc > a->maxwds)
-    k++;
-  c= Balloc(k, alloc);
-  for (x= c->p.x, xa= x + wc; x < xa; x++)
-    *x= 0;
-  xa= a->p.x;
-  xae= xa + wa;
-  xb= b->p.x;
-  xbe= xb + wb;
-  xc0= c->p.x;
-  for (; xb < xbe; xc0++)
-  {
-    if ((y= *xb++))
-    {
-      x= xa;
-      xc= xc0;
-      carry= 0;
-      do
-      {
-        z= *x++ * (ULLong)y + *xc + carry;
-        carry= z >> 32;
-        *xc++= (ULong) (z & FFFFFFFF);
-      }
-      while (x < xae);
-      *xc= (ULong) carry;
+  k = a->k;
+  wa = a->wds;
+  wb = b->wds;
+  wc = wa + wb;
+  if (wc > a->maxwds) k++;
+  c = Balloc(k, alloc);
+  for (x = c->p.x, xa = x + wc; x < xa; x++) *x = 0;
+  xa = a->p.x;
+  xae = xa + wa;
+  xb = b->p.x;
+  xbe = xb + wb;
+  xc0 = c->p.x;
+  for (; xb < xbe; xc0++) {
+    if ((y = *xb++)) {
+      x = xa;
+      xc = xc0;
+      carry = 0;
+      do {
+        z = *x++ * (ULLong)y + *xc + carry;
+        carry = z >> 32;
+        *xc++ = (ULong)(z & FFFFFFFF);
+      } while (x < xae);
+      *xc = (ULong)carry;
     }
   }
-  for (xc0= c->p.x, xc= xc0 + wc; wc > 0 && !*--xc; --wc) ;
-  c->wds= wc;
+  for (xc0 = c->p.x, xc = xc0 + wc; wc > 0 && !*--xc; --wc)
+    ;
+  c->wds = wc;
   return c;
 }
-
 
 /*
   Precalculated array of powers of 5: tested to be enough for
   vasting majority of dtoa_r cases.
 */
 
-static ULong powers5[]=
-{
-  625UL,
+static ULong powers5[] = {
+    625UL,
 
-  390625UL,
+    390625UL,
 
-  2264035265UL, 35UL,
+    2264035265UL, 35UL,
 
-  2242703233UL, 762134875UL,  1262UL,
+    2242703233UL, 762134875UL,  1262UL,
 
-  3211403009UL, 1849224548UL, 3668416493UL, 3913284084UL, 1593091UL,
+    3211403009UL, 1849224548UL, 3668416493UL, 3913284084UL, 1593091UL,
 
-  781532673UL,  64985353UL,   253049085UL,  594863151UL,  3553621484UL,
-  3288652808UL, 3167596762UL, 2788392729UL, 3911132675UL, 590UL,
+    781532673UL,  64985353UL,   253049085UL,  594863151UL,  3553621484UL,
+    3288652808UL, 3167596762UL, 2788392729UL, 3911132675UL, 590UL,
 
-  2553183233UL, 3201533787UL, 3638140786UL, 303378311UL, 1809731782UL,
-  3477761648UL, 3583367183UL, 649228654UL, 2915460784UL, 487929380UL,
-  1011012442UL, 1677677582UL, 3428152256UL, 1710878487UL, 1438394610UL,
-  2161952759UL, 4100910556UL, 1608314830UL, 349175UL
-};
+    2553183233UL, 3201533787UL, 3638140786UL, 303378311UL,  1809731782UL,
+    3477761648UL, 3583367183UL, 649228654UL,  2915460784UL, 487929380UL,
+    1011012442UL, 1677677582UL, 3428152256UL, 1710878487UL, 1438394610UL,
+    2161952759UL, 4100910556UL, 1608314830UL, 349175UL};
 
+static Bigint p5_a[] = {
+    /*  { x } - k - maxwds - sign - wds */
+    {{powers5}, 1, 1, 0, 1},       {{powers5 + 1}, 1, 1, 0, 1},
+    {{powers5 + 2}, 1, 2, 0, 2},   {{powers5 + 4}, 2, 3, 0, 3},
+    {{powers5 + 7}, 3, 5, 0, 5},   {{powers5 + 12}, 4, 10, 0, 10},
+    {{powers5 + 22}, 5, 19, 0, 19}};
 
-static Bigint p5_a[]=
-{
-  /*  { x } - k - maxwds - sign - wds */
-  { { powers5 }, 1, 1, 0, 1 },
-  { { powers5 + 1 }, 1, 1, 0, 1 },
-  { { powers5 + 2 }, 1, 2, 0, 2 },
-  { { powers5 + 4 }, 2, 3, 0, 3 },
-  { { powers5 + 7 }, 3, 5, 0, 5 },
-  { { powers5 + 12 }, 4, 10, 0, 10 },
-  { { powers5 + 22 }, 5, 19, 0, 19 }
-};
+#define P5A_MAX (sizeof(p5_a) / sizeof(*p5_a) - 1)
 
-#define P5A_MAX (sizeof(p5_a)/sizeof(*p5_a) - 1)
-
-static Bigint *pow5mult(Bigint *b, int k, Stack_alloc *alloc)
-{
-  Bigint *b1, *p5, *p51=NULL;
+static Bigint *pow5mult(Bigint *b, int k, Stack_alloc *alloc) {
+  Bigint *b1, *p5, *p51 = NULL;
   int i;
-  static int p05[3]= { 5, 25, 125 };
-  bool overflow= FALSE;
+  static int p05[3] = {5, 25, 125};
+  bool overflow = FALSE;
 
-  if ((i= k & 3))
-    b= multadd(b, p05[i-1], 0, alloc);
+  if ((i = k & 3)) b = multadd(b, p05[i - 1], 0, alloc);
 
-  if (!(k>>= 2))
-    return b;
-  p5= p5_a;
-  for (;;)
-  {
-    if (k & 1)
-    {
-      b1= mult(b, p5, alloc);
+  if (!(k >>= 2)) return b;
+  p5 = p5_a;
+  for (;;) {
+    if (k & 1) {
+      b1 = mult(b, p5, alloc);
       Bfree(b, alloc);
-      b= b1;
+      b = b1;
     }
-    if (!(k>>= 1))
-      break;
+    if (!(k >>= 1)) break;
     /* Calculate next power of 5 */
-    if (overflow)
-    {
-      p51= mult(p5, p5, alloc);
+    if (overflow) {
+      p51 = mult(p5, p5, alloc);
       Bfree(p5, alloc);
-      p5= p51;
-    }
-    else if (p5 < p5_a + P5A_MAX)
+      p5 = p51;
+    } else if (p5 < p5_a + P5A_MAX)
       ++p5;
-    else if (p5 == p5_a + P5A_MAX)
-    {
-      p5= mult(p5, p5, alloc);
-      overflow= TRUE;
+    else if (p5 == p5_a + P5A_MAX) {
+      p5 = mult(p5, p5, alloc);
+      overflow = TRUE;
     }
   }
-  if (p51)
-    Bfree(p51, alloc);
+  if (p51) Bfree(p51, alloc);
   return b;
 }
 
-
-static Bigint *lshift(Bigint *b, int k, Stack_alloc *alloc)
-{
+static Bigint *lshift(Bigint *b, int k, Stack_alloc *alloc) {
   int i, k1, n, n1;
   Bigint *b1;
   ULong *x, *x1, *xe, z;
 
-  n= k >> 5;
-  k1= b->k;
-  n1= n + b->wds + 1;
-  for (i= b->maxwds; n1 > i; i<<= 1)
-    k1++;
-  b1= Balloc(k1, alloc);
-  x1= b1->p.x;
-  for (i= 0; i < n; i++)
-    *x1++= 0;
-  x= b->p.x;
-  xe= x + b->wds;
-  if (k&= 0x1f)
-  {
-    k1= 32 - k;
-    z= 0;
+  n = k >> 5;
+  k1 = b->k;
+  n1 = n + b->wds + 1;
+  for (i = b->maxwds; n1 > i; i <<= 1) k1++;
+  b1 = Balloc(k1, alloc);
+  x1 = b1->p.x;
+  for (i = 0; i < n; i++) *x1++ = 0;
+  x = b->p.x;
+  xe = x + b->wds;
+  if (k &= 0x1f) {
+    k1 = 32 - k;
+    z = 0;
+    do {
+      *x1++ = *x << k | z;
+      z = *x++ >> k1;
+    } while (x < xe);
+    if ((*x1 = z)) ++n1;
+  } else
     do
-    {
-      *x1++= *x << k | z;
-      z= *x++ >> k1;
-    }
+      *x1++ = *x++;
     while (x < xe);
-    if ((*x1= z))
-      ++n1;
-  }
-  else
-    do
-      *x1++= *x++;
-    while (x < xe);
-  b1->wds= n1 - 1;
+  b1->wds = n1 - 1;
   Bfree(b, alloc);
   return b1;
 }
 
-
-static int cmp(Bigint *a, Bigint *b)
-{
+static int cmp(Bigint *a, Bigint *b) {
   ULong *xa, *xa0, *xb, *xb0;
   int i, j;
 
-  i= a->wds;
-  j= b->wds;
-  if (i-= j)
-    return i;
-  xa0= a->p.x;
-  xa= xa0 + j;
-  xb0= b->p.x;
-  xb= xb0 + j;
-  for (;;)
-  {
-    if (*--xa != *--xb)
-      return *xa < *xb ? -1 : 1;
-    if (xa <= xa0)
-      break;
+  i = a->wds;
+  j = b->wds;
+  if (i -= j) return i;
+  xa0 = a->p.x;
+  xa = xa0 + j;
+  xb0 = b->p.x;
+  xb = xb0 + j;
+  for (;;) {
+    if (*--xa != *--xb) return *xa < *xb ? -1 : 1;
+    if (xa <= xa0) break;
   }
   return 0;
 }
 
-
-static Bigint *diff(Bigint *a, Bigint *b, Stack_alloc *alloc)
-{
+static Bigint *diff(Bigint *a, Bigint *b, Stack_alloc *alloc) {
   Bigint *c;
   int i, wa, wb;
   ULong *xa, *xae, *xb, *xbe, *xc;
   ULLong borrow, y;
 
-  i= cmp(a,b);
-  if (!i)
-  {
-    c= Balloc(0, alloc);
-    c->wds= 1;
-    c->p.x[0]= 0;
+  i = cmp(a, b);
+  if (!i) {
+    c = Balloc(0, alloc);
+    c->wds = 1;
+    c->p.x[0] = 0;
     return c;
   }
-  if (i < 0)
-  {
-    c= a;
-    a= b;
-    b= c;
-    i= 1;
+  if (i < 0) {
+    c = a;
+    a = b;
+    b = c;
+    i = 1;
+  } else
+    i = 0;
+  c = Balloc(a->k, alloc);
+  c->sign = i;
+  wa = a->wds;
+  xa = a->p.x;
+  xae = xa + wa;
+  wb = b->wds;
+  xb = b->p.x;
+  xbe = xb + wb;
+  xc = c->p.x;
+  borrow = 0;
+  do {
+    y = (ULLong)*xa++ - *xb++ - borrow;
+    borrow = y >> 32 & (ULong)1;
+    *xc++ = (ULong)(y & FFFFFFFF);
+  } while (xb < xbe);
+  while (xa < xae) {
+    y = *xa++ - borrow;
+    borrow = y >> 32 & (ULong)1;
+    *xc++ = (ULong)(y & FFFFFFFF);
   }
-  else
-    i= 0;
-  c= Balloc(a->k, alloc);
-  c->sign= i;
-  wa= a->wds;
-  xa= a->p.x;
-  xae= xa + wa;
-  wb= b->wds;
-  xb= b->p.x;
-  xbe= xb + wb;
-  xc= c->p.x;
-  borrow= 0;
-  do
-  {
-    y= (ULLong)*xa++ - *xb++ - borrow;
-    borrow= y >> 32 & (ULong)1;
-    *xc++= (ULong) (y & FFFFFFFF);
-  }
-  while (xb < xbe);
-  while (xa < xae)
-  {
-    y= *xa++ - borrow;
-    borrow= y >> 32 & (ULong)1;
-    *xc++= (ULong) (y & FFFFFFFF);
-  }
-  while (!*--xc)
-    wa--;
-  c->wds= wa;
+  while (!*--xc) wa--;
+  c->wds = wa;
   return c;
 }
 
@@ -1167,8 +1036,7 @@ static double b2d(Bigint *a, int *e)
 }
 #endif
 
-static Bigint *d2b(U *d, int *e, int *bits, Stack_alloc *alloc)
-{
+static Bigint *d2b(U *d, int *e, int *bits, Stack_alloc *alloc) {
   Bigint *b;
   int de, k;
   ULong *x, y, z;
@@ -1176,40 +1044,31 @@ static Bigint *d2b(U *d, int *e, int *bits, Stack_alloc *alloc)
 #define d0 word0(d)
 #define d1 word1(d)
 
-  b= Balloc(1, alloc);
-  x= b->p.x;
+  b = Balloc(1, alloc);
+  x = b->p.x;
 
-  z= d0 & Frac_mask;
-  d0 &= 0x7fffffff;       /* clear sign bit, which we ignore */
-  if ((de= (int)(d0 >> Exp_shift)))
-    z|= Exp_msk1;
-  if ((y= d1))
-  {
-    if ((k= lo0bits(&y)))
-    {
-      x[0]= y | z << (32 - k);
-      z>>= k;
-    }
-    else
-      x[0]= y;
-    i= b->wds= (x[1]= z) ? 2 : 1;
+  z = d0 & Frac_mask;
+  d0 &= 0x7fffffff; /* clear sign bit, which we ignore */
+  if ((de = (int)(d0 >> Exp_shift))) z |= Exp_msk1;
+  if ((y = d1)) {
+    if ((k = lo0bits(&y))) {
+      x[0] = y | z << (32 - k);
+      z >>= k;
+    } else
+      x[0] = y;
+    i = b->wds = (x[1] = z) ? 2 : 1;
+  } else {
+    k = lo0bits(&z);
+    x[0] = z;
+    i = b->wds = 1;
+    k += 32;
   }
-  else
-  {
-    k= lo0bits(&z);
-    x[0]= z;
-    i= b->wds= 1;
-    k+= 32;
-  }
-  if (de)
-  {
-    *e= de - Bias - (P-1) + k;
-    *bits= P - k;
-  }
-  else
-  {
-    *e= de - Bias - (P-1) + 1 + k;
-    *bits= 32*i - hi0bits(x[i-1]);
+  if (de) {
+    *e = de - Bias - (P - 1) + k;
+    *bits = P - k;
+  } else {
+    *e = de - Bias - (P - 1) + 1 + k;
+    *bits = 32 * i - hi0bits(x[i - 1]);
   }
   return b;
 #undef d0
@@ -1235,14 +1094,11 @@ static double ratio(Bigint *a, Bigint *b)
   return dval(&da) / dval(&db);
 }
 #endif
-static const double tens[] =
-{
-  1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9,
-  1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
-  1e20, 1e21, 1e22
-};
+static const double tens[] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,
+                              1e8,  1e9,  1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
+                              1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
 
-static const double bigtens[]= { 1e16, 1e32, 1e64, 1e128, 1e256 };
+static const double bigtens[] = {1e16, 1e32, 1e64, 1e128, 1e256};
 // static const double tinytens[]=
 // { 1e-16, 1e-32, 1e-64, 1e-128,
 //   9007199254740992.*9007199254740992.e-256 /* = 2^106 * 1e-53 */
@@ -1570,7 +1426,7 @@ static double my_strtod_int(const char *s00, char **se, int *error, char *buf, s
           word0(&rv)= Exp_mask;
           word1(&rv)= 0;
         }
-#else /*Honor_FLT_ROUNDS*/
+#else  /*Honor_FLT_ROUNDS*/
         word0(&rv)= Exp_mask;
         word1(&rv)= 0;
 #endif /*Honor_FLT_ROUNDS*/
@@ -1968,64 +1824,52 @@ static double my_strtod_int(const char *s00, char **se, int *error, char *buf, s
 }
 #endif
 
-static int quorem(Bigint *b, Bigint *S)
-{
+static int quorem(Bigint *b, Bigint *S) {
   int n;
   ULong *bx, *bxe, q, *sx, *sxe;
   ULLong borrow, carry, y, ys;
 
-  n= S->wds;
-  if (b->wds < n)
-    return 0;
-  sx= S->p.x;
-  sxe= sx + --n;
-  bx= b->p.x;
-  bxe= bx + n;
-  q= *bxe / (*sxe + 1);  /* ensure q <= true quotient */
-  if (q)
-  {
-    borrow= 0;
-    carry= 0;
-    do
-    {
-      ys= *sx++ * (ULLong)q + carry;
-      carry= ys >> 32;
-      y= *bx - (ys & FFFFFFFF) - borrow;
-      borrow= y >> 32 & (ULong)1;
-      *bx++= (ULong) (y & FFFFFFFF);
-    }
-    while (sx <= sxe);
-    if (!*bxe)
-    {
-      bx= b->p.x;
-      while (--bxe > bx && !*bxe)
-        --n;
-      b->wds= n;
+  n = S->wds;
+  if (b->wds < n) return 0;
+  sx = S->p.x;
+  sxe = sx + --n;
+  bx = b->p.x;
+  bxe = bx + n;
+  q = *bxe / (*sxe + 1); /* ensure q <= true quotient */
+  if (q) {
+    borrow = 0;
+    carry = 0;
+    do {
+      ys = *sx++ * (ULLong)q + carry;
+      carry = ys >> 32;
+      y = *bx - (ys & FFFFFFFF) - borrow;
+      borrow = y >> 32 & (ULong)1;
+      *bx++ = (ULong)(y & FFFFFFFF);
+    } while (sx <= sxe);
+    if (!*bxe) {
+      bx = b->p.x;
+      while (--bxe > bx && !*bxe) --n;
+      b->wds = n;
     }
   }
-  if (cmp(b, S) >= 0)
-  {
+  if (cmp(b, S) >= 0) {
     q++;
-    borrow= 0;
-    carry= 0;
-    bx= b->p.x;
-    sx= S->p.x;
-    do
-    {
-      ys= *sx++ + carry;
-      carry= ys >> 32;
-      y= *bx - (ys & FFFFFFFF) - borrow;
-      borrow= y >> 32 & (ULong)1;
-      *bx++= (ULong) (y & FFFFFFFF);
-    }
-    while (sx <= sxe);
-    bx= b->p.x;
-    bxe= bx + n;
-    if (!*bxe)
-    {
-      while (--bxe > bx && !*bxe)
-        --n;
-      b->wds= n;
+    borrow = 0;
+    carry = 0;
+    bx = b->p.x;
+    sx = S->p.x;
+    do {
+      ys = *sx++ + carry;
+      carry = ys >> 32;
+      y = *bx - (ys & FFFFFFFF) - borrow;
+      borrow = y >> 32 & (ULong)1;
+      *bx++ = (ULong)(y & FFFFFFFF);
+    } while (sx <= sxe);
+    bx = b->p.x;
+    bxe = bx + n;
+    if (!*bxe) {
+      while (--bxe > bx && !*bxe) --n;
+      b->wds = n;
     }
   }
   return q;
@@ -2067,8 +1911,7 @@ static int quorem(Bigint *b, Bigint *S)
  */
 
 static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
-                  char **rve, char *buf, size_t buf_size)
-{
+                  char **rve, char *buf, size_t buf_size) {
   /*
     Arguments ndigits, decpt, sign are similar to those
     of ecvt and fcvt; trailing zeros are suppressed from
@@ -2104,13 +1947,13 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
     to hold the suppressed trailing zeros.
   */
 
-  int bbits, b2, b5, be, dig, i, ieps, ilim= 0, ilim0,
-    ilim1= 0, j, j1, k, k0, k_check, leftright, m2, m5, s2, s5,
-    spec_case, try_quick;
+  int bbits, b2, b5, be, dig, i, ieps, ilim = 0, ilim0, ilim1 = 0, j, j1, k, k0,
+                                       k_check, leftright, m2, m5, s2, s5,
+                                       spec_case, try_quick;
   Long L;
   int denorm;
   ULong x;
-  Bigint *b, *b1, *delta, *mlo= NULL, *mhi, *S;
+  Bigint *b, *b1, *delta, *mlo = NULL, *mhi, *S;
   U d2, eps, u;
   double ds;
   char *s, *s0;
@@ -2119,48 +1962,41 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
 #endif
   Stack_alloc alloc;
 
-  alloc.begin= alloc.free= buf;
-  alloc.end= buf + buf_size;
+  alloc.begin = alloc.free = buf;
+  alloc.end = buf + buf_size;
   memset(alloc.freelist, 0, sizeof(alloc.freelist));
 
-  u.d= dd;
-  if (word0(&u) & Sign_bit)
-  {
+  u.d = dd;
+  if (word0(&u) & Sign_bit) {
     /* set sign for everything, including 0's and NaNs */
-    *sign= 1;
-    word0(&u) &= ~Sign_bit;  /* clear sign bit */
-  }
-  else
-    *sign= 0;
+    *sign = 1;
+    word0(&u) &= ~Sign_bit; /* clear sign bit */
+  } else
+    *sign = 0;
 
   /* If infinity, set decpt to DTOA_OVERFLOW, if 0 set it to 1 */
-  if (((word0(&u) & Exp_mask) == Exp_mask && (*decpt= DTOA_OVERFLOW)) ||
-      (!dval(&u) && (*decpt= 1)))
-  {
+  if (((word0(&u) & Exp_mask) == Exp_mask && (*decpt = DTOA_OVERFLOW)) ||
+      (!dval(&u) && (*decpt = 1))) {
     /* Infinity, NaN, 0 */
-    char *res= (char*) dtoa_alloc(2, &alloc);
-    res[0]= '0';
-    res[1]= '\0';
-    if (rve)
-      *rve= res + 1;
+    char *res = (char *)dtoa_alloc(2, &alloc);
+    res[0] = '0';
+    res[1] = '\0';
+    if (rve) *rve = res + 1;
     return res;
   }
 
 #ifdef Honor_FLT_ROUNDS
-  if ((rounding= Flt_Rounds) >= 2)
-  {
+  if ((rounding = Flt_Rounds) >= 2) {
     if (*sign)
-      rounding= rounding == 2 ? 0 : 2;
-    else
-      if (rounding != 2)
-        rounding= 0;
+      rounding = rounding == 2 ? 0 : 2;
+    else if (rounding != 2)
+      rounding = 0;
   }
 #endif
 
-  b= d2b(&u, &be, &bbits, &alloc);
-  if ((i= (int)(word0(&u) >> Exp_shift1 & (Exp_mask>>Exp_shift1))))
-  {
-    dval(&d2)= dval(&u);
+  b = d2b(&u, &be, &bbits, &alloc);
+  if ((i = (int)(word0(&u) >> Exp_shift1 & (Exp_mask >> Exp_shift1)))) {
+    dval(&d2) = dval(&u);
     word0(&d2) &= Frac_mask1;
     word0(&d2) |= Exp_11;
 
@@ -2187,200 +2023,161 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
        but this is probably not worthwhile.)
     */
 
-    i-= Bias;
-    denorm= 0;
-  }
-  else
-  {
+    i -= Bias;
+    denorm = 0;
+  } else {
     /* d is denormalized */
 
-    i= bbits + be + (Bias + (P-1) - 1);
-    x= i > 32  ? word0(&u) << (64 - i) | word1(&u) >> (i - 32)
-      : word1(&u) << (32 - i);
-    dval(&d2)= x;
-    word0(&d2)-= 31*Exp_msk1; /* adjust exponent */
-    i-= (Bias + (P-1) - 1) + 1;
-    denorm= 1;
+    i = bbits + be + (Bias + (P - 1) - 1);
+    x = i > 32 ? word0(&u) << (64 - i) | word1(&u) >> (i - 32)
+               : word1(&u) << (32 - i);
+    dval(&d2) = x;
+    word0(&d2) -= 31 * Exp_msk1; /* adjust exponent */
+    i -= (Bias + (P - 1) - 1) + 1;
+    denorm = 1;
   }
-  ds= (dval(&d2)-1.5)*0.289529654602168 + 0.1760912590558 + i*0.301029995663981;
-  k= (int)ds;
-  if (ds < 0. && ds != k)
-    k--;    /* want k= floor(ds) */
-  k_check= 1;
-  if (k >= 0 && k <= Ten_pmax)
-  {
-    if (dval(&u) < tens[k])
-      k--;
-    k_check= 0;
+  ds = (dval(&d2) - 1.5) * 0.289529654602168 + 0.1760912590558 +
+       i * 0.301029995663981;
+  k = (int)ds;
+  if (ds < 0. && ds != k) k--; /* want k= floor(ds) */
+  k_check = 1;
+  if (k >= 0 && k <= Ten_pmax) {
+    if (dval(&u) < tens[k]) k--;
+    k_check = 0;
   }
-  j= bbits - i - 1;
-  if (j >= 0)
-  {
-    b2= 0;
-    s2= j;
+  j = bbits - i - 1;
+  if (j >= 0) {
+    b2 = 0;
+    s2 = j;
+  } else {
+    b2 = -j;
+    s2 = 0;
   }
-  else
-  {
-    b2= -j;
-    s2= 0;
+  if (k >= 0) {
+    b5 = 0;
+    s5 = k;
+    s2 += k;
+  } else {
+    b2 -= k;
+    b5 = -k;
+    s5 = 0;
   }
-  if (k >= 0)
-  {
-    b5= 0;
-    s5= k;
-    s2+= k;
-  }
-  else
-  {
-    b2-= k;
-    b5= -k;
-    s5= 0;
-  }
-  if (mode < 0 || mode > 9)
-    mode= 0;
+  if (mode < 0 || mode > 9) mode = 0;
 
 #ifdef Check_FLT_ROUNDS
-  try_quick= Rounding == 1;
+  try_quick = Rounding == 1;
 #else
-  try_quick= 1;
+  try_quick = 1;
 #endif
 
-  if (mode > 5)
-  {
-    mode-= 4;
-    try_quick= 0;
+  if (mode > 5) {
+    mode -= 4;
+    try_quick = 0;
   }
-  leftright= 1;
+  leftright = 1;
   switch (mode) {
-  case 0:
-  case 1:
-    ilim= ilim1= -1;
-    i= 18;
-    ndigits= 0;
-    break;
-  case 2:
-    leftright= 0;
-    // Fall through.
-  case 4:
-    if (ndigits <= 0)
-      ndigits= 1;
-    ilim= ilim1= i= ndigits;
-    break;
-  case 3:
-    leftright= 0;
-    // Fall through.
-  case 5:
-    i= ndigits + k + 1;
-    ilim= i;
-    ilim1= i - 1;
-    if (i <= 0)
-      i= 1;
+    case 0:
+    case 1:
+      ilim = ilim1 = -1;
+      i = 18;
+      ndigits = 0;
+      break;
+    case 2:
+      leftright = 0;
+      // Fall through.
+    case 4:
+      if (ndigits <= 0) ndigits = 1;
+      ilim = ilim1 = i = ndigits;
+      break;
+    case 3:
+      leftright = 0;
+      // Fall through.
+    case 5:
+      i = ndigits + k + 1;
+      ilim = i;
+      ilim1 = i - 1;
+      if (i <= 0) i = 1;
   }
-  s= s0= dtoa_alloc(i, &alloc);
+  s = s0 = dtoa_alloc(i, &alloc);
 
 #ifdef Honor_FLT_ROUNDS
-  if (mode > 1 && rounding != 1)
-    leftright= 0;
+  if (mode > 1 && rounding != 1) leftright = 0;
 #endif
 
-  if (ilim >= 0 && ilim <= Quick_max && try_quick)
-  {
+  if (ilim >= 0 && ilim <= Quick_max && try_quick) {
     /* Try to get by with floating-point arithmetic. */
-    i= 0;
-    dval(&d2)= dval(&u);
-    k0= k;
-    ilim0= ilim;
-    ieps= 2; /* conservative */
-    if (k > 0)
-    {
-      ds= tens[k&0xf];
-      j= k >> 4;
-      if (j & Bletch)
-      {
+    i = 0;
+    dval(&d2) = dval(&u);
+    k0 = k;
+    ilim0 = ilim;
+    ieps = 2; /* conservative */
+    if (k > 0) {
+      ds = tens[k & 0xf];
+      j = k >> 4;
+      if (j & Bletch) {
         /* prevent overflows */
-        j&= Bletch - 1;
-        dval(&u)/= bigtens[n_bigtens-1];
+        j &= Bletch - 1;
+        dval(&u) /= bigtens[n_bigtens - 1];
         ieps++;
       }
-      for (; j; j>>= 1, i++)
-      {
-        if (j & 1)
-        {
+      for (; j; j >>= 1, i++) {
+        if (j & 1) {
           ieps++;
-          ds*= bigtens[i];
+          ds *= bigtens[i];
         }
       }
-      dval(&u)/= ds;
-    }
-    else if ((j1= -k))
-    {
-      dval(&u)*= tens[j1 & 0xf];
-      for (j= j1 >> 4; j; j>>= 1, i++)
-      {
-        if (j & 1)
-        {
+      dval(&u) /= ds;
+    } else if ((j1 = -k)) {
+      dval(&u) *= tens[j1 & 0xf];
+      for (j = j1 >> 4; j; j >>= 1, i++) {
+        if (j & 1) {
           ieps++;
-          dval(&u)*= bigtens[i];
+          dval(&u) *= bigtens[i];
         }
       }
     }
-    if (k_check && dval(&u) < 1. && ilim > 0)
-    {
-      if (ilim1 <= 0)
-        goto fast_failed;
-      ilim= ilim1;
+    if (k_check && dval(&u) < 1. && ilim > 0) {
+      if (ilim1 <= 0) goto fast_failed;
+      ilim = ilim1;
       k--;
-      dval(&u)*= 10.;
+      dval(&u) *= 10.;
       ieps++;
     }
-    dval(&eps)= ieps*dval(&u) + 7.;
-    word0(&eps)-= (P-1)*Exp_msk1;
-    if (ilim == 0)
-    {
-      S= mhi= 0;
-      dval(&u)-= 5.;
-      if (dval(&u) > dval(&eps))
-        goto one_digit;
-      if (dval(&u) < -dval(&eps))
-        goto no_digits;
+    dval(&eps) = ieps * dval(&u) + 7.;
+    word0(&eps) -= (P - 1) * Exp_msk1;
+    if (ilim == 0) {
+      S = mhi = 0;
+      dval(&u) -= 5.;
+      if (dval(&u) > dval(&eps)) goto one_digit;
+      if (dval(&u) < -dval(&eps)) goto no_digits;
       goto fast_failed;
     }
-    if (leftright)
-    {
+    if (leftright) {
       /* Use Steele & White method of only generating digits needed. */
-      dval(&eps)= 0.5/tens[ilim-1] - dval(&eps);
-      for (i= 0;;)
-      {
-        L= (Long) dval(&u);
-        dval(&u)-= L;
-        *s++= '0' + (int)L;
-        if (dval(&u) < dval(&eps))
-          goto ret1;
-        if (1. - dval(&u) < dval(&eps))
-          goto bump_up;
-        if (++i >= ilim)
-          break;
-        dval(&eps)*= 10.;
-        dval(&u)*= 10.;
+      dval(&eps) = 0.5 / tens[ilim - 1] - dval(&eps);
+      for (i = 0;;) {
+        L = (Long)dval(&u);
+        dval(&u) -= L;
+        *s++ = '0' + (int)L;
+        if (dval(&u) < dval(&eps)) goto ret1;
+        if (1. - dval(&u) < dval(&eps)) goto bump_up;
+        if (++i >= ilim) break;
+        dval(&eps) *= 10.;
+        dval(&u) *= 10.;
       }
-    }
-    else
-    {
+    } else {
       /* Generate ilim digits, then fix them up. */
-      dval(&eps)*= tens[ilim-1];
-      for (i= 1;; i++, dval(&u)*= 10.)
-      {
-        L= (Long)(dval(&u));
-        if (!(dval(&u)-= L))
-          ilim= i;
-        *s++= '0' + (int)L;
-        if (i == ilim)
-        {
+      dval(&eps) *= tens[ilim - 1];
+      for (i = 1;; i++, dval(&u) *= 10.) {
+        L = (Long)(dval(&u));
+        if (!(dval(&u) -= L)) ilim = i;
+        *s++ = '0' + (int)L;
+        if (i == ilim) {
           if (dval(&u) > 0.5 + dval(&eps))
             goto bump_up;
-          else if (dval(&u) < 0.5 - dval(&eps))
-          {
-            while (*--s == '0');
+          else if (dval(&u) < 0.5 - dval(&eps)) {
+            while (*--s == '0')
+              ;
             s++;
             goto ret1;
           }
@@ -2389,62 +2186,54 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
       }
     }
   fast_failed:
-    s= s0;
-    dval(&u)= dval(&d2);
-    k= k0;
-    ilim= ilim0;
+    s = s0;
+    dval(&u) = dval(&d2);
+    k = k0;
+    ilim = ilim0;
   }
 
   /* Do we have a "small" integer? */
 
-  if (be >= 0 && k <= Int_max)
-  {
+  if (be >= 0 && k <= Int_max) {
     /* Yes. */
-    ds= tens[k];
-    if (ndigits < 0 && ilim <= 0)
-    {
-      S= mhi= 0;
-      if (ilim < 0 || dval(&u) <= 5*ds)
-        goto no_digits;
+    ds = tens[k];
+    if (ndigits < 0 && ilim <= 0) {
+      S = mhi = 0;
+      if (ilim < 0 || dval(&u) <= 5 * ds) goto no_digits;
       goto one_digit;
     }
-    for (i= 1;; i++, dval(&u)*= 10.)
-    {
-      L= (Long)(dval(&u) / ds);
-      dval(&u)-= L*ds;
+    for (i = 1;; i++, dval(&u) *= 10.) {
+      L = (Long)(dval(&u) / ds);
+      dval(&u) -= L * ds;
 #ifdef Check_FLT_ROUNDS
       /* If FLT_ROUNDS == 2, L will usually be high by 1 */
-      if (dval(&u) < 0)
-      {
+      if (dval(&u) < 0) {
         L--;
-        dval(&u)+= ds;
+        dval(&u) += ds;
       }
 #endif
-      *s++= '0' + (int)L;
-      if (!dval(&u))
-      {
+      *s++ = '0' + (int)L;
+      if (!dval(&u)) {
         break;
       }
-      if (i == ilim)
-      {
+      if (i == ilim) {
 #ifdef Honor_FLT_ROUNDS
-        if (mode > 1)
-        {
+        if (mode > 1) {
           switch (rounding) {
-          case 0: goto ret1;
-          case 2: goto bump_up;
+            case 0:
+              goto ret1;
+            case 2:
+              goto bump_up;
           }
         }
 #endif
-        dval(&u)+= dval(&u);
-        if (dval(&u) > ds || (dval(&u) == ds && L & 1))
-        {
-bump_up:
+        dval(&u) += dval(&u);
+        if (dval(&u) > ds || (dval(&u) == ds && L & 1)) {
+        bump_up:
           while (*--s == '9')
-            if (s == s0)
-            {
+            if (s == s0) {
               k++;
-              *s= '0';
+              *s = '0';
               break;
             }
           ++*s++;
@@ -2455,61 +2244,50 @@ bump_up:
     goto ret1;
   }
 
-  m2= b2;
-  m5= b5;
-  mhi= mlo= 0;
-  if (leftright)
-  {
-    i = denorm ? be + (Bias + (P-1) - 1 + 1) : 1 + P - bbits;
-    b2+= i;
-    s2+= i;
-    mhi= i2b(1, &alloc);
+  m2 = b2;
+  m5 = b5;
+  mhi = mlo = 0;
+  if (leftright) {
+    i = denorm ? be + (Bias + (P - 1) - 1 + 1) : 1 + P - bbits;
+    b2 += i;
+    s2 += i;
+    mhi = i2b(1, &alloc);
   }
-  if (m2 > 0 && s2 > 0)
-  {
-    i= m2 < s2 ? m2 : s2;
-    b2-= i;
-    m2-= i;
-    s2-= i;
+  if (m2 > 0 && s2 > 0) {
+    i = m2 < s2 ? m2 : s2;
+    b2 -= i;
+    m2 -= i;
+    s2 -= i;
   }
-  if (b5 > 0)
-  {
-    if (leftright)
-    {
-      if (m5 > 0)
-      {
-        mhi= pow5mult(mhi, m5, &alloc);
-        b1= mult(mhi, b, &alloc);
+  if (b5 > 0) {
+    if (leftright) {
+      if (m5 > 0) {
+        mhi = pow5mult(mhi, m5, &alloc);
+        b1 = mult(mhi, b, &alloc);
         Bfree(b, &alloc);
-        b= b1;
+        b = b1;
       }
-      if ((j= b5 - m5))
-        b= pow5mult(b, j, &alloc);
-    }
-    else
-      b= pow5mult(b, b5, &alloc);
+      if ((j = b5 - m5)) b = pow5mult(b, j, &alloc);
+    } else
+      b = pow5mult(b, b5, &alloc);
   }
-  S= i2b(1, &alloc);
-  if (s5 > 0)
-    S= pow5mult(S, s5, &alloc);
+  S = i2b(1, &alloc);
+  if (s5 > 0) S = pow5mult(S, s5, &alloc);
 
   /* Check for special case that d is a normalized power of 2. */
 
-  spec_case= 0;
+  spec_case = 0;
   if ((mode < 2 || leftright)
 #ifdef Honor_FLT_ROUNDS
       && rounding == 1
 #endif
-     )
-  {
+  ) {
     if (!word1(&u) && !(word0(&u) & Bndry_mask) &&
-        word0(&u) & (Exp_mask & ~Exp_msk1)
-       )
-    {
+        word0(&u) & (Exp_mask & ~Exp_msk1)) {
       /* The special case */
-      b2+= Log2P;
-      s2+= Log2P;
-      spec_case= 1;
+      b2 += Log2P;
+      s2 += Log2P;
+      spec_case = 1;
     }
   }
 
@@ -2521,202 +2299,168 @@ bump_up:
     a nd for all and pass them and a shift to quorem, so it
     can do shifts and ors to compute the numerator for q.
   */
-  if ((i= ((s5 ? 32 - hi0bits(S->p.x[S->wds-1]) : 1) + s2) & 0x1f))
-    i= 32 - i;
-  if (i > 4)
-  {
-    i-= 4;
-    b2+= i;
-    m2+= i;
-    s2+= i;
+  if ((i = ((s5 ? 32 - hi0bits(S->p.x[S->wds - 1]) : 1) + s2) & 0x1f))
+    i = 32 - i;
+  if (i > 4) {
+    i -= 4;
+    b2 += i;
+    m2 += i;
+    s2 += i;
+  } else if (i < 4) {
+    i += 28;
+    b2 += i;
+    m2 += i;
+    s2 += i;
   }
-  else if (i < 4)
-  {
-    i+= 28;
-    b2+= i;
-    m2+= i;
-    s2+= i;
-  }
-  if (b2 > 0)
-    b= lshift(b, b2, &alloc);
-  if (s2 > 0)
-    S= lshift(S, s2, &alloc);
-  if (k_check)
-  {
-    if (cmp(b,S) < 0)
-    {
+  if (b2 > 0) b = lshift(b, b2, &alloc);
+  if (s2 > 0) S = lshift(S, s2, &alloc);
+  if (k_check) {
+    if (cmp(b, S) < 0) {
       k--;
       /* we botched the k estimate */
-      b= multadd(b, 10, 0, &alloc);
-      if (leftright)
-        mhi= multadd(mhi, 10, 0, &alloc);
-      ilim= ilim1;
+      b = multadd(b, 10, 0, &alloc);
+      if (leftright) mhi = multadd(mhi, 10, 0, &alloc);
+      ilim = ilim1;
     }
   }
-  if (ilim <= 0 && (mode == 3 || mode == 5))
-  {
-    if (ilim < 0 || cmp(b,S= multadd(S,5,0, &alloc)) <= 0)
-    {
+  if (ilim <= 0 && (mode == 3 || mode == 5)) {
+    if (ilim < 0 || cmp(b, S = multadd(S, 5, 0, &alloc)) <= 0) {
       /* no digits, fcvt style */
-no_digits:
-      k= -1 - ndigits;
+    no_digits:
+      k = -1 - ndigits;
       goto ret;
     }
-one_digit:
-    *s++= '1';
+  one_digit:
+    *s++ = '1';
     k++;
     goto ret;
   }
-  if (leftright)
-  {
-    if (m2 > 0)
-      mhi= lshift(mhi, m2, &alloc);
+  if (leftright) {
+    if (m2 > 0) mhi = lshift(mhi, m2, &alloc);
 
     /*
       Compute mlo -- check for special case that d is a normalized power of 2.
     */
 
-    mlo= mhi;
-    if (spec_case)
-    {
-      mhi= Balloc(mhi->k, &alloc);
+    mlo = mhi;
+    if (spec_case) {
+      mhi = Balloc(mhi->k, &alloc);
       Bcopy(mhi, mlo);
-      mhi= lshift(mhi, Log2P, &alloc);
+      mhi = lshift(mhi, Log2P, &alloc);
     }
 
-    for (i= 1;;i++)
-    {
-      dig= quorem(b,S) + '0';
+    for (i = 1;; i++) {
+      dig = quorem(b, S) + '0';
       /* Do we yet have the shortest decimal string that will round to d? */
-      j= cmp(b, mlo);
-      delta= diff(S, mhi, &alloc);
-      j1= delta->sign ? 1 : cmp(b, delta);
+      j = cmp(b, mlo);
+      delta = diff(S, mhi, &alloc);
+      j1 = delta->sign ? 1 : cmp(b, delta);
       Bfree(delta, &alloc);
       if (j1 == 0 && mode != 1 && !(word1(&u) & 1)
 #ifdef Honor_FLT_ROUNDS
           && rounding >= 1
 #endif
-         )
-      {
-        if (dig == '9')
-          goto round_9_up;
-        if (j > 0)
-          dig++;
-        *s++= dig;
+      ) {
+        if (dig == '9') goto round_9_up;
+        if (j > 0) dig++;
+        *s++ = dig;
         goto ret;
       }
-      if (j < 0 || (j == 0 && mode != 1 && !(word1(&u) & 1)))
-      {
-        if (!b->p.x[0] && b->wds <= 1)
-        {
+      if (j < 0 || (j == 0 && mode != 1 && !(word1(&u) & 1))) {
+        if (!b->p.x[0] && b->wds <= 1) {
           goto accept_dig;
         }
 #ifdef Honor_FLT_ROUNDS
-        if (mode > 1)
-          switch (rounding) {
-          case 0: goto accept_dig;
-          case 2: goto keep_dig;
+        if (mode > 1) switch (rounding) {
+            case 0:
+              goto accept_dig;
+            case 2:
+              goto keep_dig;
           }
 #endif /*Honor_FLT_ROUNDS*/
-        if (j1 > 0)
-        {
-          b= lshift(b, 1, &alloc);
-          j1= cmp(b, S);
-          if ((j1 > 0 || (j1 == 0 && dig & 1))
-              && dig++ == '9')
-            goto round_9_up;
+        if (j1 > 0) {
+          b = lshift(b, 1, &alloc);
+          j1 = cmp(b, S);
+          if ((j1 > 0 || (j1 == 0 && dig & 1)) && dig++ == '9') goto round_9_up;
         }
-accept_dig:
-        *s++= dig;
+      accept_dig:
+        *s++ = dig;
         goto ret;
       }
-      if (j1 > 0)
-      {
+      if (j1 > 0) {
 #ifdef Honor_FLT_ROUNDS
-        if (!rounding)
-          goto accept_dig;
+        if (!rounding) goto accept_dig;
 #endif
-        if (dig == '9')
-        { /* possible if i == 1 */
-round_9_up:
-          *s++= '9';
+        if (dig == '9') { /* possible if i == 1 */
+        round_9_up:
+          *s++ = '9';
           goto roundoff;
         }
-        *s++= dig + 1;
+        *s++ = dig + 1;
         goto ret;
       }
 #ifdef Honor_FLT_ROUNDS
-keep_dig:
+    keep_dig:
 #endif
-      *s++= dig;
-      if (i == ilim)
-        break;
-      b= multadd(b, 10, 0, &alloc);
+      *s++ = dig;
+      if (i == ilim) break;
+      b = multadd(b, 10, 0, &alloc);
       if (mlo == mhi)
-        mlo= mhi= multadd(mhi, 10, 0, &alloc);
-      else
-      {
-        mlo= multadd(mlo, 10, 0, &alloc);
-        mhi= multadd(mhi, 10, 0, &alloc);
+        mlo = mhi = multadd(mhi, 10, 0, &alloc);
+      else {
+        mlo = multadd(mlo, 10, 0, &alloc);
+        mhi = multadd(mhi, 10, 0, &alloc);
       }
     }
-  }
-  else
-    for (i= 1;; i++)
-    {
-      *s++= dig= quorem(b,S) + '0';
-      if (!b->p.x[0] && b->wds <= 1)
-      {
+  } else
+    for (i = 1;; i++) {
+      *s++ = dig = quorem(b, S) + '0';
+      if (!b->p.x[0] && b->wds <= 1) {
         goto ret;
       }
-      if (i >= ilim)
-        break;
-      b= multadd(b, 10, 0, &alloc);
+      if (i >= ilim) break;
+      b = multadd(b, 10, 0, &alloc);
     }
 
-  /* Round off last digit */
+      /* Round off last digit */
 
 #ifdef Honor_FLT_ROUNDS
   switch (rounding) {
-  case 0: goto trimzeros;
-  case 2: goto roundoff;
+    case 0:
+      goto trimzeros;
+    case 2:
+      goto roundoff;
   }
 #endif
-  b= lshift(b, 1, &alloc);
-  j= cmp(b, S);
-  if (j > 0 || (j == 0 && dig & 1))
-  {
-roundoff:
+  b = lshift(b, 1, &alloc);
+  j = cmp(b, S);
+  if (j > 0 || (j == 0 && dig & 1)) {
+  roundoff:
     while (*--s == '9')
-      if (s == s0)
-      {
+      if (s == s0) {
         k++;
-        *s++= '1';
+        *s++ = '1';
         goto ret;
       }
     ++*s++;
-  }
-  else
-  {
+  } else {
 #ifdef Honor_FLT_ROUNDS
-trimzeros:
+  trimzeros:
 #endif
-    while (*--s == '0');
+    while (*--s == '0')
+      ;
     s++;
   }
 ret:
   Bfree(S, &alloc);
-  if (mhi)
-  {
-    if (mlo && mlo != mhi)
-      Bfree(mlo, &alloc);
+  if (mhi) {
+    if (mlo && mlo != mhi) Bfree(mlo, &alloc);
     Bfree(mhi, &alloc);
   }
 ret1:
   Bfree(b, &alloc);
-  *s= 0;
-  *decpt= k + 1;
-  if (rve)
-    *rve= s;
+  *s = 0;
+  *decpt = k + 1;
+  if (rve) *rve = s;
   return s0;
 }

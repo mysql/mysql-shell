@@ -29,8 +29,8 @@
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/base_tokenizer.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
@@ -60,42 +60,42 @@ class SHCORE_PUBLIC Uri_parser {
  public:
   Uri_parser();
   mysqlshdk::db::Connection_options parse(
-      const std::string& input,
+      const std::string &input,
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
  private:
-  mysqlshdk::db::Connection_options* _data;
+  mysqlshdk::db::Connection_options *_data;
   std::string _input;
   shcore::BaseTokenizer _tokenizer;
-  std::map<std::string, std::pair<size_t, size_t> > _chunks;
+  std::map<std::string, std::pair<size_t, size_t>> _chunks;
 
   void parse_scheme();
   void parse_userinfo();
   void parse_target();
   void parse_host();
   std::string parse_ipv4(size_t *offset);
-  void parse_ipv6(const std::pair<size_t, size_t>& range, size_t *offset);
-  void parse_port(const std::pair<size_t, size_t>& range, size_t *offset);
+  void parse_ipv6(const std::pair<size_t, size_t> &range, size_t *offset);
+  void parse_port(const std::pair<size_t, size_t> &range, size_t *offset);
 
   void parse_path();
 
   void parse_query();
-  void parse_attribute(const std::pair<size_t, size_t>& range, size_t *offset);
-  std::vector<std::string> parse_values(const std::pair<size_t, size_t>& range,
+  void parse_attribute(const std::pair<size_t, size_t> &range, size_t *offset);
+  std::vector<std::string> parse_values(const std::pair<size_t, size_t> &range,
                                         size_t *offset);
-  std::string parse_value(const std::pair<size_t, size_t>& range,
-                          size_t *offset, const std::string& finalizers);
-  std::string parse_unencoded_value(const std::pair<size_t, size_t>& range,
+  std::string parse_value(const std::pair<size_t, size_t> &range,
+                          size_t *offset, const std::string &finalizers);
+  std::string parse_unencoded_value(const std::pair<size_t, size_t> &range,
                                     size_t *offset,
-                                    const std::string& finalizers = "");
-  std::string parse_encoded_value(const std::pair<size_t, size_t>& range,
+                                    const std::string &finalizers = "");
+  std::string parse_encoded_value(const std::pair<size_t, size_t> &range,
                                   size_t *offset,
-                                  const std::string& finalizers = "");
+                                  const std::string &finalizers = "");
 
-  char percent_decode(const std::string& value);
-  std::string get_input_chunk(const std::pair<size_t, size_t>& range);
+  char percent_decode(const std::string &value);
+  std::string get_input_chunk(const std::pair<size_t, size_t> &range);
 
-  bool input_contains(const std::string& what,
+  bool input_contains(const std::string &what,
                       size_t position = std::string::npos);
 
   static std::map<char, char> hex_literals;

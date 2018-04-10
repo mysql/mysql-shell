@@ -26,17 +26,16 @@
 
 #include "types_common.h"
 
-#include <vector>
 #include <map>
 #include <memory>
 #include <set>
-#include <string>
 #include <stdexcept>
-#include <memory>
+#include <string>
+#include <vector>
 
-#include "mysqlshdk_export.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
+#include "mysqlshdk_export.h"
 
 namespace shcore {
 /** Basic types that can be passed around code in different languages.
@@ -45,17 +44,17 @@ namespace shcore {
  */
 enum Value_type {
   Undefined,  //! Undefined
-  Null,  //! Null/None value
-  Bool,  //! true or false
-  String,  //! String values, UTF-8 encoding
-  Integer,  //! 64bit integer numbers
-  UInteger,  //! unsigned 64bit integer numbers
-  Float,  //! double numbers
+  Null,       //! Null/None value
+  Bool,       //! true or false
+  String,     //! String values, UTF-8 encoding
+  Integer,    //! 64bit integer numbers
+  UInteger,   //! unsigned 64bit integer numbers
+  Float,      //! double numbers
 
   Object,  //! Native/bridged C++ object refs, may or may not be serializable
 
-  Array,  //! Array/List container
-  Map,  //! Dictionary/Map/Object container
+  Array,   //! Array/List container
+  Map,     //! Dictionary/Map/Object container
   MapRef,  //! A weak reference to a Map
 
   Function  //! A function reference, not serializable.
@@ -71,23 +70,28 @@ typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
 /** A generic value that can be used from any language we support.
 
  Anything that can be represented using this can be passed as a parameter to
- scripting functions or stored in the internal registry or anywhere. If serializable
- types are used, then they may also be stored as a JSON document.
+ scripting functions or stored in the internal registry or anywhere. If
+ serializable types are used, then they may also be stored as a JSON document.
 
  Values are exposed to scripting languages according to the following rules:
 
- - Simple types (Null, Bool, String, Integer, Float, UInteger) are converted directly to the target type, both ways
+ - Simple types (Null, Bool, String, Integer, Float, UInteger) are converted
+ directly to the target type, both ways
 
  - Arrays and Maps are converted directly to the target type, both ways
 
  - Functions are wrapped into callable objects from C++ to scripting language
- - Scripting language functions are wrapped into an instance of a language specific subclass of Function_base
+ - Scripting language functions are wrapped into an instance of a language
+ specific subclass of Function_base
 
- - C++ Objects are generically wrapped into a scripting language object, except when there's a specific native counterpart
+ - C++ Objects are generically wrapped into a scripting language object, except
+ when there's a specific native counterpart
 
- - Scripting language objects are either generically wrapped to a language specific generic object wrapper or converted to a specific C++ Object subclass
+ - Scripting language objects are either generically wrapped to a language
+ specific generic object wrapper or converted to a specific C++ Object subclass
 
- Example: JS Date object is converted to a C++ Date object and vice-versa, but Mysql_connection is wrapped generically
+ Example: JS Date object is converted to a C++ Date object and vice-versa, but
+ Mysql_connection is wrapped generically
 
  @section Implicit type conversions
 
@@ -111,7 +115,7 @@ struct SHCORE_PUBLIC Value {
   typedef std::shared_ptr<Array_type> Array_type_ref;
 
   class SHCORE_PUBLIC Map_type {
-  public:
+   public:
     typedef std::map<std::string, Value> container_type;
     typedef container_type::const_iterator const_iterator;
     typedef container_type::iterator iterator;
@@ -120,23 +124,26 @@ struct SHCORE_PUBLIC Value {
 
     Value_type get_type(const std::string &k) const;
 
-    std::string get_string(const std::string &k, const std::string &def = "") const;
+    std::string get_string(const std::string &k,
+                           const std::string &def = "") const;
     bool get_bool(const std::string &k, bool def = false) const;
     int64_t get_int(const std::string &k, int64_t def = 0) const;
     uint64_t get_uint(const std::string &k, uint64_t def = 0) const;
     double get_double(const std::string &k, double def = 0.0) const;
-    std::shared_ptr<Value::Map_type> get_map(const std::string &k,
-            std::shared_ptr<Map_type> def = std::shared_ptr<Map_type>()) const;
-    std::shared_ptr<Value::Array_type> get_array(const std::string &k,
-            std::shared_ptr<Array_type> def = std::shared_ptr<Array_type>()) const;
+    std::shared_ptr<Value::Map_type> get_map(
+        const std::string &k,
+        std::shared_ptr<Map_type> def = std::shared_ptr<Map_type>()) const;
+    std::shared_ptr<Value::Array_type> get_array(
+        const std::string &k,
+        std::shared_ptr<Array_type> def = std::shared_ptr<Array_type>()) const;
     void merge_contents(std::shared_ptr<Map_type> source, bool overwrite);
 
-    template<class C>
-    std::shared_ptr<C> get_object(const std::string &k,
-                                    std::shared_ptr<C> def = std::shared_ptr<C>()) const {
+    template <class C>
+    std::shared_ptr<C> get_object(
+        const std::string &k,
+        std::shared_ptr<C> def = std::shared_ptr<C>()) const {
       const_iterator iter = find(k);
-      if (iter == end())
-        return def;
+      if (iter == end()) return def;
       iter->second.check_type(Object);
       return iter->second.as_object<C>();
     }
@@ -153,23 +160,26 @@ struct SHCORE_PUBLIC Value {
     const_iterator end() const { return _map.end(); }
     iterator end() { return _map.end(); }
 
-    void set(const std::string &k, const shcore::Value &v) {
-      _map[k] = v;
-    }
+    void set(const std::string &k, const shcore::Value &v) { _map[k] = v; }
 
-    const container_type::mapped_type& at(const std::string &k) const { return _map.at(k); }
-    container_type::mapped_type& operator [](const std::string &k) { return _map[k]; }
-    bool operator == (const Map_type &other) const { return _map == other._map; }
+    const container_type::mapped_type &at(const std::string &k) const {
+      return _map.at(k);
+    }
+    container_type::mapped_type &operator[](const std::string &k) {
+      return _map[k];
+    }
+    bool operator==(const Map_type &other) const { return _map == other._map; }
 
     bool empty() const { return _map.empty(); }
     size_t size() const { return _map.size(); }
     size_t count(const std::string &k) const { return _map.count(k); }
 
-    template<class T> std::pair<iterator, bool> emplace(const std::string& key,
-                                                       const T& value) {
+    template <class T>
+    std::pair<iterator, bool> emplace(const std::string &key, const T &value) {
       return _map.emplace(key, Value(value));
     }
-  private:
+
+   private:
     container_type _map;
   };
   typedef std::shared_ptr<Map_type> Map_type_ref;
@@ -207,38 +217,60 @@ struct SHCORE_PUBLIC Value {
   explicit Value(Map_type_ref n);
   explicit Value(Array_type_ref n);
 
-  static Value wrap(Object_bridge *o) { return Value(std::shared_ptr<Object_bridge>(o)); }
+  static Value wrap(Object_bridge *o) {
+    return Value(std::shared_ptr<Object_bridge>(o));
+  }
 
-  template<class T>
-  static Value wrap(T *o) { return Value(std::static_pointer_cast<Object_bridge>(std::shared_ptr<T>(o))); }
+  template <class T>
+  static Value wrap(T *o) {
+    return Value(
+        std::static_pointer_cast<Object_bridge>(std::shared_ptr<T>(o)));
+  }
 
-  static Value new_array() { return Value(std::shared_ptr<Array_type>(new Array_type())); }
-  static Value new_map() { return Value(std::shared_ptr<Map_type>(new Map_type())); }
+  static Value new_array() {
+    return Value(std::shared_ptr<Array_type>(new Array_type()));
+  }
+  static Value new_map() {
+    return Value(std::shared_ptr<Map_type>(new Map_type()));
+  }
 
-  static Value Null() { Value v; v.type = shcore::Null; return v; }
-  static Value True() { Value v; v.type = shcore::Bool; v.value.b = true; return v; }
-  static Value False() { Value v; v.type = shcore::Bool; v.value.b = false; return v; }
+  static Value Null() {
+    Value v;
+    v.type = shcore::Null;
+    return v;
+  }
+  static Value True() {
+    Value v;
+    v.type = shcore::Bool;
+    v.value.b = true;
+    return v;
+  }
+  static Value False() {
+    Value v;
+    v.type = shcore::Bool;
+    v.value.b = false;
+    return v;
+  }
 
   //! parse a string returned by repr() back into a Value
   static Value parse(const std::string &s);
 
   ~Value();
 
-  Value &operator= (const Value &other);
+  Value &operator=(const Value &other);
 
-  bool operator == (const Value &other) const;
+  bool operator==(const Value &other) const;
 
-  bool operator != (const Value &other) const { return !(*this == other); }
+  bool operator!=(const Value &other) const { return !(*this == other); }
 
-  operator bool() const {
-    return type != Undefined && type != shcore::Null;
-  }
+  operator bool() const { return type != Undefined && type != shcore::Null; }
 
   //! returns a human-readable description text for the value.
   // if pprint is true, it will try to pretty-print it (like adding newlines)
   std::string descr(bool pprint = false) const;
 
-  //! returns a string representation of the serialized object, suitable to be passed to parse()
+  //! returns a string representation of the serialized object, suitable to be
+  //! passed to parse()
   std::string repr() const;
 
   //! returns a JSON representation of the object
@@ -254,11 +286,15 @@ struct SHCORE_PUBLIC Value {
   int64_t as_int() const;
   uint64_t as_uint() const;
   double as_double() const;
-  const std::string &as_string() const { check_type(String); return *value.s; }
-  template<class C>
+  const std::string &as_string() const {
+    check_type(String);
+    return *value.s;
+  }
+  template <class C>
   std::shared_ptr<C> as_object() const {
     check_type(Object);
-    return std::dynamic_pointer_cast<C>(type == shcore::Null ? nullptr : *value.o);
+    return std::dynamic_pointer_cast<C>(type == shcore::Null ? nullptr
+                                                             : *value.o);
   }
 
   std::shared_ptr<Object_bridge> as_object() const {
@@ -320,13 +356,13 @@ class SHCORE_PUBLIC Argument_list {
   uint64_t uint_at(unsigned int i) const;
   double double_at(unsigned int i) const;
 
-  template<class C>
+  template <class C>
   std::shared_ptr<C> object_at(unsigned int i) const {
     std::shared_ptr<C> ret_val;
     try {
       auto object = object_at(i);
       ret_val = std::dynamic_pointer_cast<C>(object);
-    } catch(...) {
+    } catch (...) {
       // We don't care, return value will be empty
     }
     return ret_val;
@@ -337,34 +373,34 @@ class SHCORE_PUBLIC Argument_list {
   std::shared_ptr<Value::Array_type> array_at(unsigned int i) const;
 
   void ensure_count(unsigned int c, const char *context) const;
-  void ensure_count(unsigned int minc, unsigned  int maxc, const char *context) const;
+  void ensure_count(unsigned int minc, unsigned int maxc,
+                    const char *context) const;
   void ensure_at_least(unsigned int minc, const char *context) const;
 
   void push_back(const Value &value) { _args.push_back(value); }
   void pop_back() { _args.pop_back(); }
   size_t size() const { return _args.size(); }
   const Value &at(size_t i) const { return _args.at(i); }
-  Value &operator [](size_t i) { return _args[i]; }
-  const Value &operator [](size_t i) const { return _args[i]; }
+  Value &operator[](size_t i) { return _args[i]; }
+  const Value &operator[](size_t i) const { return _args[i]; }
   void clear() { _args.clear(); }
 
   std::vector<Value>::const_iterator begin() const { return _args.begin(); }
   std::vector<Value>::const_iterator end() const { return _args.end(); }
 
-  bool operator == (const Argument_list &other) const;
+  bool operator==(const Argument_list &other) const;
 
-  template<class T> void emplace_back(const T& value) {
+  template <class T>
+  void emplace_back(const T &value) {
     return _args.emplace_back(Value(value));
-}
-
+  }
 
  private:
   std::vector<Value> _args;
 };
 
-class SHCORE_PUBLIC Argument_map
-{
-public:
+class SHCORE_PUBLIC Argument_map {
+ public:
   Argument_map();
   Argument_map(const Value::Map_type &map);
 
@@ -376,13 +412,13 @@ public:
   std::shared_ptr<Object_bridge> object_at(const std::string &key) const;
   std::shared_ptr<Value::Map_type> map_at(const std::string &key) const;
   std::shared_ptr<Value::Array_type> array_at(const std::string &key) const;
-  template<class C>
+  template <class C>
   std::shared_ptr<C> object_at(const std::string &key) const {
     std::shared_ptr<C> ret_val;
     try {
       auto object = object_at(key);
       ret_val = std::dynamic_pointer_cast<C>(object);
-    } catch(...) {
+    } catch (...) {
       // We don't care, return value will be empty
     }
     return ret_val;
@@ -390,8 +426,7 @@ public:
 
   void ensure_keys(const std::set<std::string> &mandatory_keys,
                    const std::set<std::string> &optional_keys,
-                   const char *context,
-                   bool case_sensitive = true) const;
+                   const char *context, bool case_sensitive = true) const;
 
   bool validate_keys(const std::set<std::string> &mandatory_keys,
                      const std::set<std::string> &optional_keys,
@@ -399,61 +434,52 @@ public:
                      std::vector<std::string> &invalid_keys,
                      bool case_sensitive = true) const;
 
-
   size_t size() const { return _map.size(); }
   const Value &at(const std::string &key) const { return _map.at(key); }
-  Value &operator [](const std::string &key) { return _map[key]; }
+  Value &operator[](const std::string &key) { return _map[key]; }
   void clear() { _map.clear(); }
-  bool has_key(const std::string& key) { return _map.has_key(key); }
+  bool has_key(const std::string &key) { return _map.has_key(key); }
 
   const Value::Map_type &as_map() const { return _map; }
+
  private:
   Value::Map_type _map;
-  static bool comp(const std::string& lhs, const std::string& rhs);
-  static bool icomp(const std::string& lhs, const std::string& rhs);
+  static bool comp(const std::string &lhs, const std::string &rhs);
+  static bool icomp(const std::string &lhs, const std::string &rhs);
 };
 
-template<class T> struct value_type_for_native {};
+template <class T>
+struct value_type_for_native {};
 
 template <>
 struct value_type_for_native<bool> {
   static const Value_type type = Bool;
 
-  static bool extract(const Value &value) {
-    return value.as_bool();
-  }
+  static bool extract(const Value &value) { return value.as_bool(); }
 };
 template <>
 struct value_type_for_native<int64_t> {
   static const Value_type type = Integer;
 
-  static int64_t extract(const Value &value) {
-    return value.as_int();
-  }
+  static int64_t extract(const Value &value) { return value.as_int(); }
 };
 template <>
 struct value_type_for_native<uint64_t> {
   static const Value_type type = UInteger;
 
-  static uint64_t extract(const Value &value) {
-    return value.as_uint();
-  }
+  static uint64_t extract(const Value &value) { return value.as_uint(); }
 };
 template <>
 struct value_type_for_native<double> {
   static const Value_type type = Float;
 
-  static double extract(const Value &value) {
-    return value.as_double();
-  }
+  static double extract(const Value &value) { return value.as_double(); }
 };
 template <>
 struct value_type_for_native<std::string> {
   static const Value_type type = String;
 
-  static std::string extract(const Value &value) {
-    return value.as_string();
-  }
+  static std::string extract(const Value &value) { return value.as_string(); }
 };
 template <>
 struct value_type_for_native<Object_bridge *> {
@@ -475,9 +501,7 @@ template <>
 struct value_type_for_native<Dictionary_t> {
   static const Value_type type = Map;
 
-  static Dictionary_t extract(const Value &value) {
-    return value.as_map();
-  }
+  static Dictionary_t extract(const Value &value) { return value.as_map(); }
 };
 template <>
 struct value_type_for_native<Value::Array_type> {
@@ -487,9 +511,7 @@ template <>
 struct value_type_for_native<Array_t> {
   static const Value_type type = Array;
 
-  static Array_t extract(const Value &value) {
-    return value.as_array();
-  }
+  static Array_t extract(const Value &value) { return value.as_array(); }
 };
 
 std::string SHCORE_PUBLIC type_name(Value_type type);
@@ -503,7 +525,7 @@ class Option_unpacker {
   virtual ~Option_unpacker() {}
 
   // Extract required option
-  template<typename T>
+  template <typename T>
   Option_unpacker &required(const char *name, T *out_value) {
     Value value = get_required(name, value_type_for_native<T>::type);
     if (value) {
@@ -513,7 +535,7 @@ class Option_unpacker {
   }
 
   // Extract optional option
-  template<typename T>
+  template <typename T>
   Option_unpacker &optional(const char *name, T *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type);
     if (value) {
@@ -533,7 +555,7 @@ class Option_unpacker {
   }
 
   // Case insensitive
-  template<typename T>
+  template <typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type, true);
     if (value) {
@@ -556,7 +578,6 @@ class Option_unpacker {
   void validate();
 };
 
-
 class JSON_dumper;
 
 /** An instance of an object, that's implemented in some language.
@@ -567,20 +588,21 @@ class JSON_dumper;
  * They can be instantiated through their Metaclass factory
  */
 class SHCORE_PUBLIC Object_bridge {
-public:
+ public:
   virtual ~Object_bridge() {}
 
   virtual std::string class_name() const = 0;
 
   //! Appends JSON representation of the object if supported
-  virtual void append_json(JSON_dumper& dumper) const;
+  virtual void append_json(JSON_dumper &dumper) const;
 
   //! Appends descriptive text to the string, suitable for showing to the user
-  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const = 0;
+  virtual std::string &append_descr(std::string &s_out, int indent = -1,
+                                    int quote_strings = 0) const = 0;
 
   //! Returns a representation of the object suitable to be passed to a Factory
-  // constructor of this object, which would create an equivalent instance of the object
-  // Format for repr() of Native_objects must follow this pattern:
+  // constructor of this object, which would create an equivalent instance of
+  // the object Format for repr() of Native_objects must follow this pattern:
   // <Typename:data> where Typename is the same name used to register the type
   virtual std::string &append_repr(std::string &s_out) const = 0;
 
@@ -588,9 +610,11 @@ public:
   virtual std::vector<std::string> get_members() const = 0;
 
   //! Implements equality operator
-  virtual bool operator == (const Object_bridge &other) const = 0;
+  virtual bool operator==(const Object_bridge &other) const = 0;
 
-  virtual bool operator != (const Object_bridge &other) const { return !(*this == other); }
+  virtual bool operator!=(const Object_bridge &other) const {
+    return !(*this == other);
+  }
 
   //! Returns the value of a member
   virtual Value get_member(const std::string &prop) const = 0;
@@ -631,13 +655,14 @@ class SHCORE_PUBLIC Function_base {
 
   //! Returns the signature of the function, as a list of
   // argname - description, Type pairs
-  virtual const std::vector<std::pair<std::string, Value_type> > &signature() const = 0;
+  virtual const std::vector<std::pair<std::string, Value_type>> &signature()
+      const = 0;
 
   //! Return type of the function, as a description, Type pair
   virtual Value_type return_type() const = 0;
 
   //! Implements equality operator
-  virtual bool operator == (const Function_base &other) const = 0;
+  virtual bool operator==(const Function_base &other) const = 0;
 
   //! Invokes the function and passes back the return value.
   // arglist must match the signature
@@ -653,7 +678,7 @@ typedef std::shared_ptr<Function_base> Function_base_ref;
 class SHCORE_PUBLIC Exception : public std::exception {
   std::shared_ptr<Value::Map_type> _error;
 
-public:
+ public:
   Exception(const std::shared_ptr<Value::Map_type> e);
 
   virtual ~Exception() noexcept {}
@@ -671,12 +696,17 @@ public:
     return error_with_code("MySQL Error", message, code);
   }
 
-  static Exception mysql_error_with_code_and_state(const std::string &message, int code, const char *sqlstate) {
+  static Exception mysql_error_with_code_and_state(const std::string &message,
+                                                   int code,
+                                                   const char *sqlstate) {
     return error_with_code_and_state("MySQL Error", message, code, sqlstate);
   }
 
-  static Exception error_with_code(const std::string &type, const std::string &message, int code);
-  static Exception error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate);
+  static Exception error_with_code(const std::string &type,
+                                   const std::string &message, int code);
+  static Exception error_with_code_and_state(const std::string &type,
+                                             const std::string &message,
+                                             int code, const char *sqlstate);
   static Exception parser_error(const std::string &message);
   static Exception scripting_error(const std::string &message);
 
@@ -702,4 +732,4 @@ public:
 bool my_strnicmp(const char *c1, const char *c2, size_t n);
 }  // namespace shcore
 
-#endif // _TYPES_H_
+#endif  // _TYPES_H_

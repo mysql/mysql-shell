@@ -39,9 +39,9 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of Table class
-REGISTER_HELP(
-    TABLE_BRIEF,
-    "Represents a Table on an Schema, retrieved with a session created using mysqlx module.");
+REGISTER_HELP(TABLE_BRIEF,
+              "Represents a Table on an Schema, retrieved with a session "
+              "created using mysqlx module.");
 
 Table::Table(std::shared_ptr<Schema> owner, const std::string &name,
              bool is_view)
@@ -73,21 +73,21 @@ Table::~Table() {}
 
 // Documentation of insert function
 REGISTER_HELP(TABLE_INSERT_BRIEF, "Creates a record insertion handler.");
-REGISTER_HELP(
-    TABLE_INSERT_BRIEF1,
-    "Creates a record insertion handler using a column list to insert records.");
-REGISTER_HELP(
-    TABLE_INSERT_PARAM,
-    "@param columns The column list that will determine the order of the values to be inserted on the table.");
+REGISTER_HELP(TABLE_INSERT_BRIEF1,
+              "Creates a record insertion handler using a column list to "
+              "insert records.");
+REGISTER_HELP(TABLE_INSERT_PARAM,
+              "@param columns The column list that will determine the order of "
+              "the values to be inserted on the table.");
 REGISTER_HELP(TABLE_INSERT_PARAM1, "@param col1 The first column name.");
 REGISTER_HELP(TABLE_INSERT_PARAM2, "@param col2 The second column name.");
 REGISTER_HELP(TABLE_INSERT_RETURNS, "@returns A TableInsert object.");
-REGISTER_HELP(
-    TABLE_INSERT_DETAIL,
-    "This function creates a TableInsert object which is a record insertion handler.");
-REGISTER_HELP(
-    TABLE_INSERT_DETAIL1,
-    "The TableInsert class has other functions that allow specifying the way the insertion occurs.");
+REGISTER_HELP(TABLE_INSERT_DETAIL,
+              "This function creates a TableInsert object which is a record "
+              "insertion handler.");
+REGISTER_HELP(TABLE_INSERT_DETAIL1,
+              "The TableInsert class has other functions that allow specifying "
+              "the way the insertion occurs.");
 REGISTER_HELP(
     TABLE_INSERT_DETAIL2,
     "The insertion is done when the execute method is called on the handler.");
@@ -164,30 +164,31 @@ shcore::Value Table::insert_(const shcore::Argument_list &args) {
 // Documentation of update function
 REGISTER_HELP(TABLE_UPDATE_BRIEF, "Creates a record update handler.");
 REGISTER_HELP(TABLE_UPDATE_RETURNS, "@returns A TableUpdate object.");
-REGISTER_HELP(
-    TABLE_UPDATE_DETAIL,
-    "This function creates a TableUpdate object which is a record update handler.");
+REGISTER_HELP(TABLE_UPDATE_DETAIL,
+              "This function creates a TableUpdate object which is a record "
+              "update handler.");
 REGISTER_HELP(
     TABLE_UPDATE_DETAIL1,
-    "The TableUpdate class has several functions that allow specifying the way the update occurs, "
+    "The TableUpdate class has several functions that allow specifying the way "
+    "the update occurs, "
     "if a searchCondition was specified, it will be set on the handler.");
 REGISTER_HELP(
     TABLE_UPDATE_DETAIL2,
     "The update is done when the execute function is called on the handler.");
 
 /**
-* $(TABLE_UPDATE_BRIEF)
-*
-* $(TABLE_UPDATE_RETURNS)
-*
-* $(TABLE_UPDATE_DETAIL)
-*
-* $(TABLE_UPDATE_DETAIL1)
-*
-* $(TABLE_UPDATE_DETAIL2)
-*
-* \sa TableUpdate
-*/
+ * $(TABLE_UPDATE_BRIEF)
+ *
+ * $(TABLE_UPDATE_RETURNS)
+ *
+ * $(TABLE_UPDATE_DETAIL)
+ *
+ * $(TABLE_UPDATE_DETAIL1)
+ *
+ * $(TABLE_UPDATE_DETAIL2)
+ *
+ * \sa TableUpdate
+ */
 #if DOXYGEN_JS
 TableUpdate Table::update() {}
 #elif DOXYGEN_PY
@@ -202,30 +203,31 @@ shcore::Value Table::update_(const shcore::Argument_list &args) {
 // Documentation of delete function
 REGISTER_HELP(TABLE_DELETE_BRIEF, "Creates a record deletion handler.");
 REGISTER_HELP(TABLE_DELETE_RETURNS, "@returns A TableDelete object.");
-REGISTER_HELP(
-    TABLE_DELETE_DETAIL,
-    "This function creates a TableDelete object which is a record deletion handler.");
+REGISTER_HELP(TABLE_DELETE_DETAIL,
+              "This function creates a TableDelete object which is a record "
+              "deletion handler.");
 REGISTER_HELP(
     TABLE_DELETE_DETAIL1,
-    "The TableDelete class has several functions that allow specifying what should be deleted and how, "
+    "The TableDelete class has several functions that allow specifying what "
+    "should be deleted and how, "
     "if a searchCondition was specified, it will be set on the handler.");
 REGISTER_HELP(
     TABLE_DELETE_DETAIL2,
     "The deletion is done when the execute function is called on the handler.");
 
 /**
-* $(TABLE_DELETE_BRIEF)
-*
-* $(TABLE_DELETE_RETURNS)
-*
-* $(TABLE_DELETE_DETAIL)
-*
-* $(TABLE_DELETE_DETAIL1)
-*
-* $(TABLE_DELETE_DETAIL2)
-*
-* \sa TableDelete
-*/
+ * $(TABLE_DELETE_BRIEF)
+ *
+ * $(TABLE_DELETE_RETURNS)
+ *
+ * $(TABLE_DELETE_DETAIL)
+ *
+ * $(TABLE_DELETE_DETAIL1)
+ *
+ * $(TABLE_DELETE_DETAIL2)
+ *
+ * \sa TableDelete
+ */
 #if DOXYGEN_JS
 TableDelete Table::delete () {}
 #elif DOXYGEN_PY
@@ -245,41 +247,42 @@ REGISTER_HELP(
     TABLE_SELECT_PARAM,
     "@param columns A list of strings defining the columns to be retrieved.");
 REGISTER_HELP(TABLE_SELECT_RETURNS, "@returns A TableSelect object.");
-REGISTER_HELP(
-    TABLE_SELECT_DETAIL,
-    "This function creates a TableSelect object which is a record selection handler.");
+REGISTER_HELP(TABLE_SELECT_DETAIL,
+              "This function creates a TableSelect object which is a record "
+              "selection handler.");
 REGISTER_HELP(
     TABLE_SELECT_DETAIL1,
     "This handler will retrieve all the columns for each included record.");
-REGISTER_HELP(
-    TABLE_SELECT_DETAIL2,
-    "The TableSelect class has several functions that allow specifying what records should be retrieved "
-    "from the table, if a searchCondition was specified, it will be set on the handler.");
-REGISTER_HELP(
-    TABLE_SELECT_DETAIL3,
-    "The selection will be returned when the execute function is called on the handler.");
-REGISTER_HELP(
-    TABLE_SELECT_DETAIL4,
-    "This handler will retrieve only the columns specified on the columns list for each included record.");
-REGISTER_HELP(
-    TABLE_SELECT_DETAIL5,
-    "Each column on the list should be a string identifying the column name, alias is supported.");
+REGISTER_HELP(TABLE_SELECT_DETAIL2,
+              "The TableSelect class has several functions that allow "
+              "specifying what records should be retrieved "
+              "from the table, if a searchCondition was specified, it will be "
+              "set on the handler.");
+REGISTER_HELP(TABLE_SELECT_DETAIL3,
+              "The selection will be returned when the execute function is "
+              "called on the handler.");
+REGISTER_HELP(TABLE_SELECT_DETAIL4,
+              "This handler will retrieve only the columns specified on the "
+              "columns list for each included record.");
+REGISTER_HELP(TABLE_SELECT_DETAIL5,
+              "Each column on the list should be a string identifying the "
+              "column name, alias is supported.");
 
 /**
-* $(TABLE_SELECT_BRIEF)
-*
-* $(TABLE_SELECT_RETURNS)
-*
-* $(TABLE_SELECT_DETAIL)
-*
-* $(TABLE_SELECT_DETAIL1)
-*
-* $(TABLE_SELECT_DETAIL2)
-*
-* $(TABLE_SELECT_DETAIL3)
-*
-* \sa TableSelect
-*/
+ * $(TABLE_SELECT_BRIEF)
+ *
+ * $(TABLE_SELECT_RETURNS)
+ *
+ * $(TABLE_SELECT_DETAIL)
+ *
+ * $(TABLE_SELECT_DETAIL1)
+ *
+ * $(TABLE_SELECT_DETAIL2)
+ *
+ * $(TABLE_SELECT_DETAIL3)
+ *
+ * \sa TableSelect
+ */
 #if DOXYGEN_JS
 TableSelect Table::select() {}
 #elif DOXYGEN_PY
@@ -287,23 +290,23 @@ TableSelect Table::select() {}
 #endif
 
 /**
-* $(TABLE_SELECT_BRIEF1)
-*
-* $(TABLE_SELECT_PARAM)
-* $(TABLE_SELECT_RETURNS)
-*
-* $(TABLE_SELECT_DETAIL)
-*
-* $(TABLE_SELECT_DETAIL4)
-*
-* $(TABLE_SELECT_DETAIL5)
-*
-* $(TABLE_SELECT_DETAIL2)
-*
-* $(TABLE_SELECT_DETAIL3)
-*
-* \sa TableSelect
-*/
+ * $(TABLE_SELECT_BRIEF1)
+ *
+ * $(TABLE_SELECT_PARAM)
+ * $(TABLE_SELECT_RETURNS)
+ *
+ * $(TABLE_SELECT_DETAIL)
+ *
+ * $(TABLE_SELECT_DETAIL4)
+ *
+ * $(TABLE_SELECT_DETAIL5)
+ *
+ * $(TABLE_SELECT_DETAIL2)
+ *
+ * $(TABLE_SELECT_DETAIL3)
+ *
+ * \sa TableSelect
+ */
 #if DOXYGEN_JS
 TableSelect Table::select(List columns) {}
 #elif DOXYGEN_PY
@@ -320,15 +323,15 @@ shcore::Value Table::select_(const shcore::Argument_list &args) {
 REGISTER_HELP(
     TABLE_ISVIEW_BRIEF,
     "Indicates whether this Table object represents a View on the database.");
-REGISTER_HELP(
-    TABLE_ISVIEW_RETURNS,
-    "@returns True if the Table represents a View on the database, False if represents a Table.");
+REGISTER_HELP(TABLE_ISVIEW_RETURNS,
+              "@returns True if the Table represents a View on the database, "
+              "False if represents a Table.");
 
 /**
-* $(TABLE_ISVIEW_BRIEF)
-*
-* $(TABLE_ISVIEW_RETURNS)
-*/
+ * $(TABLE_ISVIEW_BRIEF)
+ *
+ * $(TABLE_ISVIEW_RETURNS)
+ */
 #if DOXYGEN_JS
 Bool Table::isView() {}
 #elif DOXYGEN_PY

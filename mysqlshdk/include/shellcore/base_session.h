@@ -1,5 +1,5 @@
 /*
-  * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,11 +31,11 @@
 #include <memory>
 #include <string>
 
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlsh {
 #if DOXYGEN_CPP
@@ -44,33 +44,35 @@ namespace mysqlsh {
 class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
  public:
   ShellBaseSession();
-  ShellBaseSession(const ShellBaseSession& s);
+  ShellBaseSession(const ShellBaseSession &s);
   virtual ~ShellBaseSession();
 
   // Virtual methods from object bridge
-  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  virtual std::string &append_descr(std::string &s_out, int indent = -1,
+                                    int quote_strings = 0) const;
   virtual std::string &append_repr(std::string &s_out) const;
-  virtual void append_json(shcore::JSON_dumper& dumper) const;
-  virtual bool operator == (const Object_bridge &other) const;
+  virtual void append_json(shcore::JSON_dumper &dumper) const;
+  virtual bool operator==(const Object_bridge &other) const;
 
   // Virtual methods from ISession
-  virtual void connect(const mysqlshdk::db::Connection_options& data) = 0;
+  virtual void connect(const mysqlshdk::db::Connection_options &data) = 0;
   virtual void close() = 0;
 
   virtual bool is_open() const = 0;
   virtual shcore::Value::Map_type_ref get_status() = 0;
-  virtual std::string get_node_type() { return "mysql";  }
-  virtual void create_schema(const std::string& name) = 0;
+  virtual std::string get_node_type() { return "mysql"; }
+  virtual void create_schema(const std::string &name) = 0;
   virtual void drop_schema(const std::string &name) = 0;
   virtual void set_current_schema(const std::string &name) = 0;
 
   // This function should be execute_sql, but BaseSession and ClassicSession
   // Have another function with the same signature except the return value
   // Using this name temporarily, at the end only one execute_sql
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query) = 0;
+  virtual shcore::Object_bridge_ref raw_execute_sql(
+      const std::string &query) = 0;
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
-                  mysqlshdk::db::uri::formats::full_no_password()) const;
+                      mysqlshdk::db::uri::formats::full_no_password()) const;
 
   virtual SessionType session_type() const = 0;
 
@@ -90,8 +92,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   // exist, we do not validate for nulls to let it crash on purpose since it
   // would reveal a failing logic elsewhere
   std::string get_user() { return _connection_options.get_user(); }
-  std::string get_host() {return _connection_options.get_host(); }
-  const mysqlshdk::db::Connection_options & get_connection_options() {
+  std::string get_host() { return _connection_options.get_host(); }
+  const mysqlshdk::db::Connection_options &get_connection_options() {
     return _connection_options;
   }
 
@@ -109,10 +111,10 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() = 0;
 
-  std::function<void(const std::string&, bool exists)> update_schema_cache;
+  std::function<void(const std::string &, bool exists)> update_schema_cache;
 
  protected:
-  std::string get_quoted_name(const std::string& name);
+  std::string get_quoted_name(const std::string &name);
   // TODO(rennox): Note that these are now stored on the low level session
   // object too, they should be removed from here
   mysqlshdk::db::Connection_options _connection_options;
@@ -134,8 +136,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
     ShellBaseSession *_owner;
   };
 
-  //mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
-  //std::function<void(const std::string&, bool exists)> update_schema_cache;
+  // mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
+  // std::function<void(const std::string&, bool exists)> update_schema_cache;
 
   std::string sub_query_placeholders(const std::string &query,
                                      const shcore::Array_t &args);

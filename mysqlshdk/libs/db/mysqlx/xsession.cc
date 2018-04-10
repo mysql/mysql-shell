@@ -131,8 +131,7 @@ XSession_impl::XSession_impl() {
 
 void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql.reset(::xcl::create_session().release());
-  if (_enable_trace)
-    _trace_handler = do_enable_trace(_mysql.get());
+  if (_enable_trace) _trace_handler = do_enable_trace(_mysql.get());
 
   _connection_options = data;
   if (!_connection_options.has_scheme())
@@ -156,7 +155,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
        _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
     _connection_options.set(mysqlshdk::db::kSslMode,
-                           {mysqlshdk::db::kSslModeVerifyCA});
+                            {mysqlshdk::db::kSslModeVerifyCA});
   }
   auto &ssl_options(_connection_options.get_ssl_options());
   if (ssl_options.has_data()) {
@@ -216,7 +215,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       xcl::XSession::Mysqlx_option::Authentication_method,
       std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"});
 #if LIBMYSQL_VERSION_ID > 80011
-  #error Check whether libmysqlx already fixed error for caching_sha2_password
+#error Check whether libmysqlx already fixed error for caching_sha2_password
   // if libmysqlx already fixed the error, the code above to set auth
   // methods can be removed. If not, update the version check above to error out
   // again on 8.0.12
@@ -241,8 +240,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       });
 
   auto unregister_handler_id = shcore::Scoped_callback([this, &handler_id]() {
-    if (_mysql)
-      _mysql->get_protocol().remove_notice_handler(handler_id);
+    if (_mysql) _mysql->get_protocol().remove_notice_handler(handler_id);
   });
 
   std::vector<Mysqlx::Error> xproto_errors;
@@ -311,8 +309,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   }
 
   // If the account is not expired, retrieves additional session information
-  if (!_expired_account)
-    load_session_info();
+  if (!_expired_account) load_session_info();
 }
 
 void XSession_impl::close() {
@@ -361,8 +358,7 @@ void XSession_impl::load_session_info() {
             "variable_name = 'mysqlx_ssl_cipher'"));
 
   const IRow *row = result->fetch_one();
-  if (!row)
-    throw std::logic_error("Unexpected empty result");
+  if (!row) throw std::logic_error("Unexpected empty result");
   _case_sensitive_table_names = row->get_uint(0) == 0;
   if (!row->is_null(1)) {
     _version = mysqlshdk::utils::Version(row->get_string(1));
@@ -383,8 +379,7 @@ XSession_impl::~XSession_impl() {
 }
 
 void XSession_impl::before_query() {
-  if (!_mysql)
-    throw std::logic_error("Not connected");
+  if (!_mysql) throw std::logic_error("Not connected");
 
   if (auto result = _prev_result.lock()) {
     if (result->has_resultset()) {
@@ -406,8 +401,7 @@ std::shared_ptr<IResult> XSession_impl::after_query(
   res->fetch_metadata();
   _prev_result = res;
 
-  if (buffered)
-    res->pre_fetch_rows(false);
+  if (buffered) res->pre_fetch_rows(false);
 
   return std::static_pointer_cast<IResult>(res);
 }
@@ -417,8 +411,7 @@ std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(_mysql->execute_sql(sql, &error));
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult), buffered);
 }
 
@@ -435,8 +428,7 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->execute_stmt(ns, stmt, args, &error));
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult));
 }
 
@@ -446,8 +438,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_insert(msg, &error));
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult));
 }
 
@@ -457,8 +448,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_update(msg, &error));
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult));
 }
 
@@ -468,8 +458,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_delete(msg, &error));
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult));
 }
 
@@ -479,12 +468,9 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_find(msg, &error));
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   return after_query(std::move(xresult));
 }
-
-
 
 std::function<std::shared_ptr<Session>()> g_session_factory;
 
@@ -494,8 +480,7 @@ void Session::set_factory_function(
 }
 
 std::shared_ptr<Session> Session::create() {
-  if (g_session_factory)
-    return g_session_factory();
+  if (g_session_factory) return g_session_factory();
   return std::shared_ptr<Session>(new Session());
 }
 

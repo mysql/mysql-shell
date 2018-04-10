@@ -22,10 +22,10 @@
  */
 
 #include "mod_mysql.h"
-#include "modules/mod_mysql_session.h"
 #include "modules/mod_mysql_constants.h"
-#include "shellcore/utils_help.h"
+#include "modules/mod_mysql_session.h"
 #include "modules/mysqlxtest_utils.h"
+#include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
 namespace mysqlsh {
@@ -89,14 +89,17 @@ REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
  *
  * \copydoc connection_options
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Detailed description of the connection data format is available at \ref
+ * connection_data
  *
  */
 
 #if DOXYGEN_JS
-ClassicSession getClassicSession(ConnectionData connectionData, String password){}
+ClassicSession getClassicSession(ConnectionData connectionData,
+                                 String password) {}
 #elif DOXYGEN_PY
-ClassicSession get_classic_session(ConnectionData connectionData, str password){}
+ClassicSession get_classic_session(ConnectionData connectionData,
+                                   str password) {}
 #endif
 
 DEFINE_FUNCTION(Mysql, get_classic_session) {
@@ -104,18 +107,25 @@ DEFINE_FUNCTION(Mysql, get_classic_session) {
 
   shcore::Value ret_val;
   try {
-  ret_val = shcore::Value(ClassicSession::create(args));
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getClassicSession"));
+    ret_val = shcore::Value(ClassicSession::create(args));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
+      get_function_name("getClassicSession"));
 
   return ret_val;
 }
 
-REGISTER_HELP(MYSQL_GETSESSION_BRIEF, "Opens a classic MySQL protocol session to a MySQL server.");
-REGISTER_HELP(MYSQL_GETSESSION_PARAM,  "@param connectionData The connection data for the session");
-REGISTER_HELP(MYSQL_GETSESSION_PARAM1, "@param password Optional password for the session");
+REGISTER_HELP(MYSQL_GETSESSION_BRIEF,
+              "Opens a classic MySQL protocol session to a MySQL server.");
+REGISTER_HELP(MYSQL_GETSESSION_PARAM,
+              "@param connectionData The connection data for the session");
+REGISTER_HELP(MYSQL_GETSESSION_PARAM1,
+              "@param password Optional password for the session");
 REGISTER_HELP(MYSQL_GETSESSION_RETURNS, "@returns A ClassicSession");
-REGISTER_HELP(MYSQL_GETSESSION_DETAIL, "A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the "\
-                                              "connected MySQL Server.");
+REGISTER_HELP(MYSQL_GETSESSION_DETAIL,
+              "A ClassicSession object uses the traditional MySQL Protocol to "
+              "allow executing operations on the "
+              "connected MySQL Server.");
 REGISTER_HELP(MYSQL_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
 // clang-format on
 
@@ -132,7 +142,8 @@ REGISTER_HELP(MYSQL_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
  *
  * \copydoc connection_options
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Detailed description of the connection data format is available at \ref
+ * connection_data
  *
  */
 #if DOXYGEN_JS
@@ -146,11 +157,12 @@ DEFINE_FUNCTION(Mysql, get_session) {
 
   shcore::Value ret_val;
   try {
-  ret_val = shcore::Value(ClassicSession::create(args));
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSession"));
+    ret_val = shcore::Value(ClassicSession::create(args));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getSession"));
 
   return ret_val;
 }
 
-}
-}
+}  // namespace mysql
+}  // namespace mysqlsh

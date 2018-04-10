@@ -21,10 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 
 // Misc tests via calling the executable
 
@@ -84,7 +84,8 @@ TEST_F(Mysqlsh_misc, connection_attribute) {
   execute({_mysqlsh, "--js", _mysql_uri.c_str(), "-e",
            "println(session.runSql('select concat(attr_name, \\'=\\', "
            "attr_value) from performance_schema.session_connect_attrs where "
-           "attr_name=\\'program_name\\'').fetchOne()[0])", nullptr});
+           "attr_name=\\'program_name\\'').fetchOne()[0])",
+           nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("program_name=mysqlsh");
 }
 
@@ -128,27 +129,31 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
 
 TEST_F(Mysqlsh_misc, autocompletion_options) {
   execute({_mysqlsh, "--js", "-e",
-      "println(shell.options['devapi.dbObjectHandles'], "
-      "        shell.options['autocomplete.nameCache'])", nullptr});
+           "println(shell.options['devapi.dbObjectHandles'], "
+           "        shell.options['autocomplete.nameCache'])",
+           nullptr});
   // disable autocomplete by default, if not running on tty or not interactive
   MY_EXPECT_CMD_OUTPUT_CONTAINS("true false");
   wipe_out();
 
   execute({_mysqlsh, "-A", "--js", "-e",
-      "println(shell.options['devapi.dbObjectHandles'], "
-      "        shell.options['autocomplete.nameCache'])", nullptr});
+           "println(shell.options['devapi.dbObjectHandles'], "
+           "        shell.options['autocomplete.nameCache'])",
+           nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("false false");
   wipe_out();
 
   execute({_mysqlsh, "--name-cache", "--js", "-e",
-      "println(shell.options['devapi.dbObjectHandles'], "
-      "        shell.options['autocomplete.nameCache'])", nullptr});
+           "println(shell.options['devapi.dbObjectHandles'], "
+           "        shell.options['autocomplete.nameCache'])",
+           nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("true true");
   wipe_out();
 
   execute({_mysqlsh, "--no-name-cache", "--js", "-e",
-      "println(shell.options['devapi.dbObjectHandles'], "
-      "        shell.options['autocomplete.nameCache'])", nullptr});
+           "println(shell.options['devapi.dbObjectHandles'], "
+           "        shell.options['autocomplete.nameCache'])",
+           nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("false false");
   wipe_out();
 }

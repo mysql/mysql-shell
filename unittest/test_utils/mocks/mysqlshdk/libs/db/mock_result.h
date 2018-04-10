@@ -44,11 +44,11 @@ namespace testing {
  */
 class Fake_result {
  public:
-  Fake_result(const std::vector<std::string>& names,
-              const std::vector<mysqlshdk::db::Type>& types);
-  const mysqlshdk::db::IRow* fetch_one();
+  Fake_result(const std::vector<std::string> &names,
+              const std::vector<mysqlshdk::db::Type> &types);
+  const mysqlshdk::db::IRow *fetch_one();
   std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
-  void add_row(const std::vector<std::string>& data);
+  void add_row(const std::vector<std::string> &data);
   void add_warning(const mysqlshdk::db::Warning &warning);
 
  private:
@@ -57,16 +57,16 @@ class Fake_result {
 
   std::vector<std::string> _names;
   std::vector<mysqlshdk::db::Type> _types;
-  std::vector<std::unique_ptr<mysqlshdk::db::IRow> > _records;
+  std::vector<std::unique_ptr<mysqlshdk::db::IRow>> _records;
 
-  std::vector<std::unique_ptr<mysqlshdk::db::Warning> > _warnings;
+  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> _warnings;
 };
 
 struct Fake_result_data {
   std::string sql;
   std::vector<std::string> names;
   std::vector<mysqlshdk::db::Type> types;
-  std::vector<std::vector<std::string> > rows;
+  std::vector<std::vector<std::string>> rows;
 };
 
 /**
@@ -103,24 +103,24 @@ class Mock_result : public mysqlshdk::db::IResult {
   MOCK_CONST_METHOD0(get_execution_time, unsigned long());
   MOCK_CONST_METHOD0(get_info, std::string());
 
-  MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column>&());
+  MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column> &());
 
-  virtual const mysqlshdk::db::IRow* fetch_one();
+  virtual const mysqlshdk::db::IRow *fetch_one();
   virtual std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
 
   virtual ~Mock_result() {}
 
-  void add_result(const std::vector<std::string>& names,
-                  const std::vector<mysqlshdk::db::Type>& types,
-                  const std::vector<std::vector<std::string> >& rows);
+  void add_result(const std::vector<std::string> &names,
+                  const std::vector<mysqlshdk::db::Type> &types,
+                  const std::vector<std::vector<std::string>> &rows);
 
-  void set_data(const std::vector<Fake_result_data>& data);
+  void set_data(const std::vector<Fake_result_data> &data);
 
  private:
   size_t _index;
-  std::vector<std::unique_ptr<Fake_result> > _results;
+  std::vector<std::unique_ptr<Fake_result>> _results;
 
-  const mysqlshdk::db::IRow* fake_fetch_one();
+  const mysqlshdk::db::IRow *fake_fetch_one();
   bool fake_next_resultset();
 };
 }  // namespace testing

@@ -24,21 +24,20 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include <cstdlib>
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace shcore {
 namespace debug {
 
 #ifndef NDEBUG
 
-static std::vector<std::unique_ptr<Debug_object_info> > g_debug_object_list;
+static std::vector<std::unique_ptr<Debug_object_info>> g_debug_object_list;
 // static Debug_object_info *g_debug_object_dummy = nullptr;
 
 Debug_object_info *debug_object_enable(const char *name) {
   for (const auto &c : g_debug_object_list) {
-    if (c->name.compare(name) == 0)
-      return c.get();
+    if (c->name.compare(name) == 0) return c.get();
   }
 
   g_debug_object_list.push_back(
@@ -69,8 +68,7 @@ bool debug_object_dump_report(bool verbose) {
     std::cout << "No instrumented allocation errors found.\n";
   else
     std::cout << count << " total instrumented leaks.\n";
-  if (fatal_found > 0)
-    abort();
+  if (fatal_found > 0) abort();
   return count == 0;
 }
 
@@ -110,8 +108,7 @@ void Debug_object_info::on_dealloc(void *p) {
     std::cout << "DEALLOC " << name << "  " << p << "\n";
     instances.erase(p);
     auto iter = instance_tags.find(p);
-    if (iter != instance_tags.end())
-      instance_tags.erase(iter);
+    if (iter != instance_tags.end()) instance_tags.erase(iter);
   }
 }
 

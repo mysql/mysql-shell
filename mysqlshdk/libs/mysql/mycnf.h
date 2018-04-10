@@ -39,7 +39,7 @@ namespace mycnf {
 using Option = std::pair<std::string, utils::nullable<std::string>>;
 
 void update_options(const std::string &path, const std::string &section,
-                     const std::vector<Option> &mycnf_options);
+                    const std::vector<Option> &mycnf_options);
 
 }  // namespace mycnf
 }  // namespace mysql

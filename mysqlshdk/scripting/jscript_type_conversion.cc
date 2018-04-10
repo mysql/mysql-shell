@@ -26,25 +26,29 @@
 
 #include "scripting/jscript_context.h"
 
-#include "scripting/jscript_object_wrapper.h"
+#include "scripting/jscript_array_wrapper.h"
 #include "scripting/jscript_function_wrapper.h"
 #include "scripting/jscript_map_wrapper.h"
-#include "scripting/jscript_array_wrapper.h"
+#include "scripting/jscript_object_wrapper.h"
 #include "scripting/types_jscript.h"
 
 #include "scripting/obj_date.h"
 
-#include "utils/utils_string.h"
-#include <fstream>
 #include <cerrno>
+#include <fstream>
+#include "utils/utils_string.h"
 
 #include <iostream>
 
 using namespace shcore;
 
-
 JScript_type_bridger::JScript_type_bridger(JScript_context *context)
-  : owner(context), object_wrapper(NULL), indexed_object_wrapper(NULL), function_wrapper(NULL), map_wrapper(NULL), array_wrapper(NULL) {}
+    : owner(context),
+      object_wrapper(NULL),
+      indexed_object_wrapper(NULL),
+      function_wrapper(NULL),
+      map_wrapper(NULL),
+      array_wrapper(NULL) {}
 
 void JScript_type_bridger::init() {
   object_wrapper = new JScript_object_wrapper(owner);
@@ -81,36 +85,41 @@ void JScript_type_bridger::dispose() {
   }
 }
 
-JScript_type_bridger::~JScript_type_bridger() {
-  dispose();
-}
+JScript_type_bridger::~JScript_type_bridger() { dispose(); }
 
-double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object, const char *method) {
-  v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(object->Get(v8::String::NewFromUtf8(owner->isolate(), method)));
+double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object,
+                                             const char *method) {
+  v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(
+      object->Get(v8::String::NewFromUtf8(owner->isolate(), method)));
   v8::Handle<v8::Value> result = func->Call(object, 0, NULL);
   return result->ToNumber()->Value();
 }
 
-v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_ref object) {
+v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(
+    Object_bridge_ref object) {
   if (object && object->class_name() == "Date") {
     std::shared_ptr<Date> date = std::static_pointer_cast<Date>(object);
-    // The only Date constructor exposed to C++ takes milliseconds, the constructor that parses a date from an string is implemented
-    // in Javascript, so it is invoked this way.
+    // The only Date constructor exposed to C++ takes milliseconds, the
+    // constructor that parses a date from an string is implemented in
+    // Javascript, so it is invoked this way.
     v8::Handle<v8::String> source = v8::String::NewFromUtf8(
         owner->isolate(),
         (shcore::str_format("new Date(%d, %d, %d, %d, %d, %d, %d)",
-                            date->get_year(), date->get_month()-1,
+                            date->get_year(), date->get_month() - 1,
                             date->get_day(), date->get_hour(), date->get_min(),
-                            date->get_sec(), date->get_usec() / 1000).c_str()));
+                            date->get_sec(), date->get_usec() / 1000)
+             .c_str()));
     v8::Handle<v8::Script> script = v8::Script::Compile(source);
     v8::Handle<v8::Value> result = script->Run();
     return result;
   }
 
-  return object->is_indexed() ? indexed_object_wrapper->wrap(object) : object_wrapper->wrap(object);
+  return object->is_indexed() ? indexed_object_wrapper->wrap(object)
+                              : object_wrapper->wrap(object);
 }
 
-Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Object> object) {
+Object_bridge_ref JScript_type_bridger::js_object_to_native(
+    v8::Handle<v8::Object> object) {
   std::string ctorname = *v8::String::Utf8Value(object->GetConstructorName());
 
   if (ctorname == "Date") {
@@ -124,13 +133,14 @@ Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Objec
     sec = (float)call_num_method(object, "getSeconds");
     msec = (int)call_num_method(object, "getMilliseconds");
     return Object_bridge_ref(
-        new Date(year, month+1, day, hour, min, sec, msec * 1000));
+        new Date(year, month + 1, day, hour, min, sec, msec * 1000));
   }
 
   return Object_bridge_ref();
 }
 
-Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value> &value) {
+Value JScript_type_bridger::v8_value_to_shcore_value(
+    const v8::Handle<v8::Value> &value) {
   if (value->IsUndefined())
     return Value();
   else if (value->IsNull())
@@ -148,19 +158,22 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
     return Value(false);
   else if (value->IsArray()) {
     v8::Array *jsarray = v8::Array::Cast(*value);
-    std::shared_ptr<Value::Array_type> array(new Value::Array_type(jsarray->Length()));
+    std::shared_ptr<Value::Array_type> array(
+        new Value::Array_type(jsarray->Length()));
     for (int32_t c = jsarray->Length(), i = 0; i < c; i++) {
       v8::Local<v8::Value> item(jsarray->Get(i));
       (*array)[i] = v8_value_to_shcore_value(item);
     }
     return Value(array);
   } else if (value->IsFunction()) {
-    v8::Handle<v8::Function> v8_function = v8::Handle<v8::Function>::Cast(value);
+    v8::Handle<v8::Function> v8_function =
+        v8::Handle<v8::Function>::Cast(value);
 
-    std::shared_ptr<shcore::JScript_function> function(new shcore::JScript_function(owner, v8_function));
-    //throw Exception::logic_error("JS function wrapping not implemented");
+    std::shared_ptr<shcore::JScript_function> function(
+        new shcore::JScript_function(owner, v8_function));
+    // throw Exception::logic_error("JS function wrapping not implemented");
     return Value(std::dynamic_pointer_cast<Function_base>(function));
-  } else if (value->IsObject()) // JS object
+  } else if (value->IsObject())  // JS object
   {
     v8::Handle<v8::Object> jsobject = value->ToObject();
     std::shared_ptr<Object_bridge> object;
@@ -178,8 +191,7 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
       return Value(function);
     } else {
       Object_bridge_ref object_ref = js_object_to_native(jsobject);
-      if (object_ref)
-        return Value(object_ref);
+      if (object_ref) return Value(object_ref);
 
       v8::Local<v8::Array> pnames(jsobject->GetPropertyNames());
       std::shared_ptr<Value::Map_type> map_ptr(new Value::Map_type);
@@ -193,12 +205,14 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
     }
   } else {
     v8::String::Utf8Value s(value->ToString());
-    throw std::invalid_argument("Cannot convert JS value to internal value: " + std::string(*s));
+    throw std::invalid_argument("Cannot convert JS value to internal value: " +
+                                std::string(*s));
   }
   return Value();
 }
 
-v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value &value) {
+v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
+    const Value &value) {
   v8::Handle<v8::Value> r;
   switch (value.type) {
     case Undefined:
@@ -233,14 +247,14 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
       // r = native_map_to_js(*value.value.map);
       r = map_wrapper->wrap(*value.value.map);
       break;
-    case MapRef:
-    {
+    case MapRef: {
       std::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
       if (map) {
-        throw std::invalid_argument("Cannot convert internal value to JS: wrapmapref not implemented\n");
+        throw std::invalid_argument(
+            "Cannot convert internal value to JS: wrapmapref not "
+            "implemented\n");
       }
-    }
-    break;
+    } break;
     case shcore::Function:
       r = function_wrapper->wrap(*value.value.func);
       break;
@@ -248,7 +262,8 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
   return r;
 }
 
-v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> value) {
+v8::Handle<v8::String> JScript_type_bridger::type_info(
+    v8::Handle<v8::Value> value) {
   if (value->IsUndefined())
     return v8::String::NewFromUtf8(owner->isolate(), "Undefined");
   else if (value->IsNull())
@@ -267,7 +282,7 @@ v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> val
     return v8::String::NewFromUtf8(owner->isolate(), "Array");
   else if (value->IsFunction())
     return v8::String::NewFromUtf8(owner->isolate(), "Function");
-  else if (value->IsObject()) // JS object
+  else if (value->IsObject())  // JS object
   {
     v8::Handle<v8::Object> jsobject = value->ToObject();
     std::shared_ptr<Object_bridge> object;
@@ -281,7 +296,7 @@ v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> val
       return v8::String::NewFromUtf8(owner->isolate(), "m.Map");
     } else if (JScript_object_wrapper::unwrap(jsobject, object)) {
       return v8::String::NewFromUtf8(owner->isolate(),
-        ("m." + object->class_name()).c_str());
+                                     ("m." + object->class_name()).c_str());
     } else if (JScript_function_wrapper::unwrap(jsobject, function)) {
       return v8::String::NewFromUtf8(owner->isolate(), "m.Function");
     } else if (JScript_object_wrapper::is_method(jsobject)) {

@@ -27,19 +27,21 @@
 #ifndef SRC_INTERACTIVE_INTERACTIVE_DBA_CLUSTER_H_
 #define SRC_INTERACTIVE_INTERACTIVE_DBA_CLUSTER_H_
 
-#include <string>
 #include <memory>
+#include <string>
 
-#include "modules/interactive_object_wrapper.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/interactive_object_wrapper.h"
 
 namespace shcore {
 class Interactive_dba_cluster : public Interactive_object_wrapper {
  public:
   explicit Interactive_dba_cluster(
       Shell_core &shell_core,
-      std::shared_ptr<mysqlsh::IConsole> console_handler) :
-    Interactive_object_wrapper("dba", shell_core, console_handler) { init(); }
+      std::shared_ptr<mysqlsh::IConsole> console_handler)
+      : Interactive_object_wrapper("dba", shell_core, console_handler) {
+    init();
+  }
 
   void init();
 
@@ -51,7 +53,7 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(
-        const shcore::Argument_list &args);
+      const shcore::Argument_list &args);
 
  private:
   bool resolve_instance_options(const std::string &function,
@@ -59,7 +61,7 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
                                 shcore::Value::Map_type_ref &options) const;
   mysqlsh::dba::Cluster_check_info check_preconditions(
       const std::string &function_name) const;
-  void assert_valid(const std::string& function_name) const;
+  void assert_valid(const std::string &function_name) const;
 };
 }  // namespace shcore
 

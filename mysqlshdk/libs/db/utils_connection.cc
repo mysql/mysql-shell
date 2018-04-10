@@ -29,7 +29,7 @@
 namespace mysqlshdk {
 namespace db {
 
-int MapSslModeNameToValue::get_value(const std::string& value) {
+int MapSslModeNameToValue::get_value(const std::string &value) {
   std::string my_value(value);
   std::transform(my_value.begin(), my_value.end(), my_value.begin(), ::tolower);
 
@@ -38,7 +38,7 @@ int MapSslModeNameToValue::get_value(const std::string& value) {
   return index != ssl_modes.end() ? index - ssl_modes.begin() : 0;
 }
 
-const std::string& MapSslModeNameToValue::get_value(int value) {
+const std::string &MapSslModeNameToValue::get_value(int value) {
   auto index = value >= 1 && value <= 5 ? value : 0;
 
   return ssl_modes[index];

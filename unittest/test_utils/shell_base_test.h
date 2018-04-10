@@ -59,22 +59,22 @@ class Shell_base_test : public Shell_test_env {
   virtual void TearDown();
 
  public:
-  void check_string_expectation(const char* file, int line,
-                                const std::string& expected_str,
-                                const std::string& actual, bool expected);
+  void check_string_expectation(const char *file, int line,
+                                const std::string &expected_str,
+                                const std::string &actual, bool expected);
   void check_string_list_expectation(
-      const char* file, int line, const std::vector<std::string>& expected_strs,
-      const std::string& actual, bool expected);
-  bool multi_value_compare(const std::string& expected,
-                           const std::string& actual);
-  bool check_multiline_expect(const std::string& context,
-                              const std::string& stream,
-                              const std::string& expected,
-                              const std::string& actual,
-                              int srcline = 0, int valline = 0);
+      const char *file, int line, const std::vector<std::string> &expected_strs,
+      const std::string &actual, bool expected);
+  bool multi_value_compare(const std::string &expected,
+                           const std::string &actual);
+  bool check_multiline_expect(const std::string &context,
+                              const std::string &stream,
+                              const std::string &expected,
+                              const std::string &actual, int srcline = 0,
+                              int valline = 0);
   std::string multiline(const std::vector<std::string> input);
 
-  void create_file(const std::string& name, const std::string& content);
+  void create_file(const std::string &name, const std::string &content);
 };
 }  // namespace tests
 

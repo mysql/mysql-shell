@@ -20,21 +20,19 @@
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include <string>
+#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/shell_script_tester.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
 #include "utils/utils_string.h"
-#include "mysqlshdk/libs/db/uri_encoder.h"
-#include "unittest/test_utils/shell_test_wrapper.h"
 
 namespace tests {
 
 class Api_connections : public Shell_js_script_tester {
  public:
   virtual void SetUp() {
-    if (_sb_port == 0)
-      FAIL() << "No MySQL Server available for test.";
+    if (_sb_port == 0) FAIL() << "No MySQL Server available for test.";
 
     enable_debug();
     Shell_js_script_tester::SetUp();
@@ -67,12 +65,10 @@ class Api_connections : public Shell_js_script_tester {
   static void SetUpTestCase() {
     Shell_test_wrapper shell_env(true);
 
-    std::vector<int> ports {shell_env.sb_port1(),
-                                shell_env.sb_port2(),
-                                shell_env.sb_port3()
-    };
+    std::vector<int> ports{shell_env.sb_port1(), shell_env.sb_port2(),
+                           shell_env.sb_port3()};
 
-    for(auto port: ports) {
+    for (auto port : ports) {
       try {
         shell_env.utils()->deploy_sandbox(port, "root");
         _sb_port = port;
@@ -86,11 +82,10 @@ class Api_connections : public Shell_js_script_tester {
 
   static void TearDownTestCase() {
     Shell_test_wrapper shell_env(true);
-    if (_sb_port != 0)
-      shell_env.utils()->destroy_sandbox(_sb_port);
+    if (_sb_port != 0) shell_env.utils()->destroy_sandbox(_sb_port);
   }
 
-  static std::string get_scripting_path(const std::string& path) {
+  static std::string get_scripting_path(const std::string &path) {
     std::string ret_val = path;
 #ifdef _WIN32
     ret_val = shcore::str_replace(ret_val, "\\", "/");
@@ -98,29 +93,26 @@ class Api_connections : public Shell_js_script_tester {
     return ret_val;
   }
 
-  void disable_ssl_on_instance(int port, const std::string& unsecure_user) {
-
+  void disable_ssl_on_instance(int port, const std::string &unsecure_user) {
     auto session = mysqlshdk::db::mysql::Session::create();
 
     auto connection_options = shcore::get_connection_options(
         "root:root@localhost:" + std::to_string(port), false);
     session->connect(connection_options);
 
-    session->query("create user " + unsecure_user + "@'%' identified with "
+    session->query("create user " + unsecure_user +
+                   "@'%' identified with "
                    "mysql_native_password by 'root'");
     session->close();
 
     testutil->stop_sandbox(port, "root");
     testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
     testutil->change_sandbox_conf(port, "default_authentication_plugin",
-                                        "mysql_native_password", "mysqld");
+                                  "mysql_native_password", "mysqld");
     testutil->start_sandbox(port);
   }
 
-
-  std::string get_sandbox_x_port() {
-    return std::to_string(_sb_port * 10);
-  }
+  std::string get_sandbox_x_port() { return std::to_string(_sb_port * 10); }
 
  protected:
   std::string _my_port;
@@ -129,7 +121,7 @@ class Api_connections : public Shell_js_script_tester {
   std::string _my_ca_file_uri;
   std::string _my_sandbox_path;
   std::string _my_cnf_path;
-  static int  _sb_port;
+  static int _sb_port;
 };
 
 int Api_connections::_sb_port = 0;
@@ -160,8 +152,7 @@ TEST_F(Api_connections, ssl_disabled) {
 
   shcore::sleep_ms(5000);
 
-  validate_chunks("api_connections.js",
-                  "api_connections_ssl_off.val");
+  validate_chunks("api_connections.js", "api_connections_ssl_off.val");
 }
 
 }  // namespace tests

@@ -33,11 +33,11 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -135,16 +135,16 @@ bool Configure_instance::check_config_path_for_update() {
       shcore::check_file_writable_or_throw(m_mycnf_path);
     } catch (std::exception &e) {
       if (m_interactive) {
-        m_console->print_warning("mycnfPath is not writable: " +
-                                m_mycnf_path + ": " + e.what());
+        m_console->print_warning("mycnfPath is not writable: " + m_mycnf_path +
+                                 ": " + e.what());
         m_console->println(
             "The required configuration changes may be written to a "
             "different file, which you can copy over to its proper location.");
 
         prompt_output_path = true;
       } else {
-        m_console->print_error("mycnfPath is not writable: " +
-                               m_mycnf_path + ": " + e.what());
+        m_console->print_error("mycnfPath is not writable: " + m_mycnf_path +
+                               ": " + e.what());
         m_console->println(
             "The outputMycnfPath option may be used to have "
             "the updated configuration file written to a different path.");
@@ -174,8 +174,7 @@ bool Configure_instance::check_config_path_for_update() {
                                m_output_mycnf_path + ": " + e.what());
         // If prompt_output_path is false, it means m_output_mycnf_path was
         // given by the user via option, so we fail directly
-        if (!prompt_output_path)
-          return false;
+        if (!prompt_output_path) return false;
       }
     }
   }
@@ -678,12 +677,12 @@ shcore::Value Configure_instance::execute() {
         m_console->println("Please restart MySQL manually");
       }
     } else {
-      if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path
-          && m_needs_configuration_update) {
-        m_console->print_note(
-            "You must now copy " + m_output_mycnf_path + " to the MySQL "
-            "configuration file path and restart MySQL for "
-            "changes to take effect.");
+      if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path &&
+          m_needs_configuration_update) {
+        m_console->print_note("You must now copy " + m_output_mycnf_path +
+                              " to the MySQL "
+                              "configuration file path and restart MySQL for "
+                              "changes to take effect.");
       } else {
         m_console->print_note(
             "MySQL server needs to be restarted for configuration changes to "
@@ -702,8 +701,7 @@ bool Configure_instance::clear_super_read_only() {
 
   // Handle clear_read_only interaction
   bool super_read_only = validate_super_read_only(
-      m_target_instance->get_session(), m_clear_read_only == true,
-      m_console);
+      m_target_instance->get_session(), m_clear_read_only == true, m_console);
 
   // If super_read_only was disabled, print the information
   if (super_read_only) {

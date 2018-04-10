@@ -29,41 +29,47 @@
 
 namespace shcore {
 class SHCORE_PUBLIC NotificationObserver {
-public:
-  virtual void handle_notification(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) = 0;
-  void observe_notification(const std::string& notification);
-  void ignore_notification(const std::string& notification);
+ public:
+  virtual void handle_notification(const std::string &name,
+                                   const shcore::Object_bridge_ref &sender,
+                                   shcore::Value::Map_type_ref data) = 0;
+  void observe_notification(const std::string &notification);
+  void ignore_notification(const std::string &notification);
   virtual ~NotificationObserver();
 
-private:
+ private:
   std::list<std::string> _notifications;
 };
 
-typedef std::list<NotificationObserver*> ObserverList;
+typedef std::list<NotificationObserver *> ObserverList;
 
 class SHCORE_PUBLIC ShellNotifications {
-private:
+ private:
   ShellNotifications() {}
-  std::map<std::string, ObserverList*> _observers;
+  std::map<std::string, ObserverList *> _observers;
 
-  static ShellNotifications* _instance;
+  static ShellNotifications *_instance;
 
-public:
+ public:
   static ShellNotifications *get();
   virtual ~ShellNotifications();
 
-  bool add_observer(NotificationObserver *observer, const std::string &notification);
-  bool remove_observer(NotificationObserver *observer, const std::string &notification);
-  void notify(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data);
-  void notify(const std::string &name, const shcore::Object_bridge_ref& sender);
+  bool add_observer(NotificationObserver *observer,
+                    const std::string &notification);
+  bool remove_observer(NotificationObserver *observer,
+                       const std::string &notification);
+  void notify(const std::string &name, const shcore::Object_bridge_ref &sender,
+              shcore::Value::Map_type_ref data);
+  void notify(const std::string &name, const shcore::Object_bridge_ref &sender);
 };
-};
+};  // namespace shcore
 
-#define DEBUG_NOTIFICATION(X) {\
-                                 shcore::Value::Map_type_ref data (new shcore::Value::Map_type());\
-                                 (*data)["value"] = shcore::Value(X);\
-                                 shcore::ShellNotifications::get()->notify("SN_DEBUGGER", shcore::Object_bridge_ref(), data);\
-                              }
+#define DEBUG_NOTIFICATION(X)                                        \
+  {                                                                  \
+    shcore::Value::Map_type_ref data(new shcore::Value::Map_type()); \
+    (*data)["value"] = shcore::Value(X);                             \
+    shcore::ShellNotifications::get()->notify(                       \
+        "SN_DEBUGGER", shcore::Object_bridge_ref(), data);           \
+  }
 
-
-#endif // _SHELLCORE_H_
+#endif  // _SHELLCORE_H_

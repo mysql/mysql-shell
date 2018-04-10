@@ -38,9 +38,7 @@ class SHCORE_PUBLIC Date : public Cpp_object_bridge {
   Date(int year, int month, int day, int hour, int min, int sec, int usec);
   Date(int year, int month, int day);
 
-  virtual std::string class_name() const {
-    return "Date";
-  }
+  virtual std::string class_name() const { return "Date"; }
 
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
                                     int quote_strings = 0) const;
@@ -55,31 +53,15 @@ class SHCORE_PUBLIC Date : public Cpp_object_bridge {
 
   int64_t as_ms() const;
 
-  int get_year() const {
-    return _year;
-  }
-  int get_month() const {
-    return _month+1;
-  }
-  int get_day() const {
-    return _day;
-  }
-  int get_hour() const {
-    return _hour;
-  }
-  int get_min() const {
-    return _min;
-  }
-  int get_sec() const {
-    return _sec;
-  }
-  int get_usec() const {
-    return _usec;
-  }
+  int get_year() const { return _year; }
+  int get_month() const { return _month + 1; }
+  int get_day() const { return _day; }
+  int get_hour() const { return _hour; }
+  int get_min() const { return _min; }
+  int get_sec() const { return _sec; }
+  int get_usec() const { return _usec; }
 
-  bool has_time() const {
-    return _has_time;
-  }
+  bool has_time() const { return _has_time; }
 
  public:
   static Object_bridge_ref create(const shcore::Argument_list &args);

@@ -152,8 +152,7 @@ TEST_F(Mysqlx_session, get_uuid) {
   }
 }
 
-
-// Our own tests to check for regressions in libmysqlx
+  // Our own tests to check for regressions in libmysqlx
 
 #if 0
 // This is a libmysqlxclient test

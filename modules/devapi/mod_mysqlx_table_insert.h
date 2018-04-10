@@ -36,9 +36,9 @@ namespace mysqlx {
 class Table;
 
 /**
-* \ingroup XDevAPI
-* Handler for Insert operations on Tables.
-*/
+ * \ingroup XDevAPI
+ * Handler for Insert operations on Tables.
+ */
 class TableInsert : public Table_crud_definition,
                     public std::enable_shared_from_this<TableInsert> {
  public:
@@ -63,7 +63,8 @@ class TableInsert : public Table_crud_definition,
   shcore::Value values(const shcore::Argument_list &args);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
-private:
+
+ private:
   Mysqlx::Crud::Insert message_;
 
   struct F {
@@ -79,17 +80,32 @@ private:
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("insert" == s) { return F::insert; }
-    if ("values" == s) { return F::values; }
-    if ("execute" == s) { return F::execute; }
-    if ("insertFields" == s) { return F::insertFields; }
-    if ("insertFieldsAndValues" == s) { return F::insertFieldsAndValues; }
-    if ("bind" == s) { return F::bind; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("insert" == s) {
+      return F::insert;
+    }
+    if ("values" == s) {
+      return F::values;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
+    if ("insertFields" == s) {
+      return F::insertFields;
+    }
+    if ("insertFieldsAndValues" == s) {
+      return F::insertFieldsAndValues;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
     return 0;
   }
-
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

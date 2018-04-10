@@ -27,35 +27,36 @@
 #ifndef SRC_INTERACTIVE_INTERACTIVE_GLOBAL_DBA_H_
 #define SRC_INTERACTIVE_INTERACTIVE_GLOBAL_DBA_H_
 
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "modules/interactive_object_wrapper.h"
-#include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_common.h"
+#include "modules/interactive_object_wrapper.h"
 #include "mysqlshdk/include/shellcore/console.h"
 
 namespace shcore {
 class Global_dba : public Interactive_object_wrapper {
  public:
-  explicit Global_dba(
-      Shell_core& shell_core,
-      std::shared_ptr<mysqlsh::IConsole> console_handler) :
-    Interactive_object_wrapper("dba", shell_core, console_handler),
-    _delegate(console_handler) { init(); }
+  explicit Global_dba(Shell_core &shell_core,
+                      std::shared_ptr<mysqlsh::IConsole> console_handler)
+      : Interactive_object_wrapper("dba", shell_core, console_handler),
+        _delegate(console_handler) {
+    init();
+  }
 
   void init();
 
   // create and start
   shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args,
-                                        const std::string& fname);
+                                        const std::string &fname);
   shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
   shcore::Value reboot_cluster_from_complete_outage(
-        const shcore::Argument_list &args);
+      const shcore::Argument_list &args);
 
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);
@@ -68,36 +69,35 @@ class Global_dba : public Interactive_object_wrapper {
 
  private:
   mysqlsh::dba::Cluster_check_info check_preconditions(
-        std::shared_ptr<mysqlshdk::db::ISession> group_session,
-        const std::string& function_name) const;
+      std::shared_ptr<mysqlshdk::db::ISession> group_session,
+      const std::string &function_name) const;
   std::vector<std::pair<std::string, std::string>>
-      get_replicaset_instances_status(
-            std::shared_ptr<mysqlsh::dba::Cluster> cluster,
-            const shcore::Value::Map_type_ref &options) const;
+  get_replicaset_instances_status(
+      std::shared_ptr<mysqlsh::dba::Cluster> cluster,
+      const shcore::Value::Map_type_ref &options) const;
   void validate_instances_status_reboot_cluster(
-        std::shared_ptr<mysqlsh::dba::Cluster> cluster,
-        std::shared_ptr<mysqlshdk::db::ISession> member_session,
-        shcore::Value::Map_type_ref options) const;
+      std::shared_ptr<mysqlsh::dba::Cluster> cluster,
+      std::shared_ptr<mysqlshdk::db::ISession> member_session,
+      shcore::Value::Map_type_ref options) const;
   shcore::Argument_list check_instance_op_params(
-        const shcore::Argument_list &args, const std::string& function_name);
-  shcore::Value perform_instance_operation(
-        const shcore::Argument_list &args, const std::string &fname,
-        const std::string& progressive, const std::string& past);
-  void print_validation_results(const shcore::Value::Map_type_ref& result);
+      const shcore::Argument_list &args, const std::string &function_name);
+  shcore::Value perform_instance_operation(const shcore::Argument_list &args,
+                                           const std::string &fname,
+                                           const std::string &progressive,
+                                           const std::string &past);
+  void print_validation_results(const shcore::Value::Map_type_ref &result);
   bool resolve_cnf_path(
       const mysqlshdk::db::Connection_options &connection_args,
       const shcore::Value::Map_type_ref &extra_options);
 
   bool ensure_admin_account_usable(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const std::string &user, const std::string &host,
-      std::string *out_create_account);
+      std::shared_ptr<mysqlshdk::db::ISession> session, const std::string &user,
+      const std::string &host, std::string *out_create_account);
 
   std::string prompt_confirmed_password();
   int prompt_menu(const std::vector<std::string> &options, int defopt);
-  bool prompt_super_read_only(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const shcore::Value::Map_type_ref &options);
+  bool prompt_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
+                              const shcore::Value::Map_type_ref &options);
 };
 }  // namespace shcore
 

@@ -24,18 +24,18 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <memory>
 #include "modules/adminapi/mod_dba_common.h"
-#include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "modules/mysqlxtest_utils.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
 #include "utils/debug.h"
+#include "utils/utils_general.h"
 
 using std::placeholders::_1;
 
@@ -80,9 +80,7 @@ Cluster::Cluster(const std::string &name,
   init();
 }
 
-Cluster::~Cluster() {
-  DEBUG_OBJ_DEALLOC(Cluster);
-}
+Cluster::~Cluster() { DEBUG_OBJ_DEALLOC(Cluster); }
 
 std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
                                    int UNUSED(quote_strings)) const {
@@ -153,20 +151,19 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
 void Cluster::assert_valid(const std::string &option_name) const {
   std::string name;
 
-  if (option_name == "disconnect")
-    return;
+  if (option_name == "disconnect") return;
 
   if (has_member(option_name) && _dissolved) {
     if (has_method(option_name)) {
       name = get_function_name(option_name, false);
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
-                                     "Can't call function '" + name +
-                                     "' on a dissolved cluster");
+                                             "Can't call function '" + name +
+                                             "' on a dissolved cluster");
     } else {
       name = get_member_name(option_name, naming_style);
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
-                                     "Can't access object member '" + name +
-                                     "' on a dissolved cluster");
+                                             "Can't access object member '" +
+                                             name + "' on a dissolved cluster");
     }
   }
   if (!_group_session) {
@@ -322,8 +319,9 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL,
               "the default replica set of the "
               "cluster.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+REGISTER_HELP(
+    CLUSTER_ADDINSTANCE_DETAIL1,
+    "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -345,12 +343,12 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL7,
               "hosts allowed to connect to the "
               "instance for group replication");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL8,
-              "@li localAddress: string value with the Group Replication "\
-              "local address to be used instead of the automatically "\
+              "@li localAddress: string value with the Group Replication "
+              "local address to be used instead of the automatically "
               "generated one.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL9,
-              "@li groupSeeds: string value with a comma-separated list of "\
-              "the Group Replication peer addresses to be used instead of the "\
+              "@li groupSeeds: string value with a comma-separated list of "
+              "the Group Replication peer addresses to be used instead of the "
               "automatically generated one.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
@@ -393,27 +391,27 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
               "the whitelist.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
-              "The localAddress and groupSeeds are advanced options and "\
-              "their usage is discouraged since incorrect values can lead to "\
+              "The localAddress and groupSeeds are advanced options and "
+              "their usage is discouraged since incorrect values can lead to "
               "Group Replication errors.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
-              "The value for localAddress is used to set the Group "\
-              "Replication system variable 'group_replication_local_address'. "\
-              "The localAddress option accepts values in the format: "\
-              "'host:port' or 'host:' or ':port'. If the specified "\
-              "value does not include a colon (:) and it is numeric, then it "\
-              "is assumed to be the port, otherwise it is considered to be "\
-              "the host. When the host is not specified, the default value is "\
-              "the host of the target instance specified as argument. When "\
-              "the port is not specified, the default value is the port of "\
-              "the target instance * 10 + 1. In case the automatically "\
-              "determined default port value is invalid (> 65535) then a "\
+              "The value for localAddress is used to set the Group "
+              "Replication system variable 'group_replication_local_address'. "
+              "The localAddress option accepts values in the format: "
+              "'host:port' or 'host:' or ':port'. If the specified "
+              "value does not include a colon (:) and it is numeric, then it "
+              "is assumed to be the port, otherwise it is considered to be "
+              "the host. When the host is not specified, the default value is "
+              "the host of the target instance specified as argument. When "
+              "the port is not specified, the default value is the port of "
+              "the target instance * 10 + 1. In case the automatically "
+              "determined default port value is invalid (> 65535) then a "
               "random value in the range [1000, 65535] is used.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
-              "The value for groupSeeds is used to set the Group Replication "\
-              "system variable 'group_replication_group_seeds'. The "\
+              "The value for groupSeeds is used to set the Group Replication "
+              "system variable 'group_replication_group_seeds'. The "
               "groupSeeds option accepts a comma-separated list of addresses "
               "in the format: 'host1:port1,...,hostN:portN'.");
 
@@ -445,7 +443,8 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref connection_data.
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
  *
  * Only TCP/IP connections are allowed for this function.
  *
@@ -502,8 +501,7 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
     validate_host_ip(connection_options.get_host());
 
     shcore::Argument_list rest;
-    if (args.size() == 2)
-      rest.push_back(args.at(1));
+    if (args.size() == 2) rest.push_back(args.at(1));
 
     ret_val = _default_replica_set->add_instance(connection_options, rest);
   }
@@ -569,8 +567,9 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL,
               "This function rejoins an Instance "
               "to the cluster.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+REGISTER_HELP(
+    CLUSTER_REJOININSTANCE_DETAIL1,
+    "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -629,50 +628,51 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
               "to be automatically set for the whitelist.");
 
 /**
-* $(CLUSTER_REJOININSTANCE_BRIEF)
-*
-* $(CLUSTER_REJOININSTANCE_PARAM)
-* $(CLUSTER_REJOININSTANCE_PARAM1)
-*
-* $(CLUSTER_REJOININSTANCE_THROWS)
-* $(CLUSTER_REJOININSTANCE_THROWS1)
-* $(CLUSTER_REJOININSTANCE_THROWS2)
-* $(CLUSTER_REJOININSTANCE_THROWS3)
-* $(CLUSTER_REJOININSTANCE_THROWS4)
-* $(CLUSTER_REJOININSTANCE_THROWS5)
-* $(CLUSTER_REJOININSTANCE_THROWS6)
-* $(CLUSTER_REJOININSTANCE_THROWS7)
-* $(CLUSTER_REJOININSTANCE_THROWS8)
-* $(CLUSTER_REJOININSTANCE_THROWS9)
-* $(CLUSTER_REJOININSTANCE_THROWS10)
-* $(CLUSTER_REJOININSTANCE_THROWS11)
-*
-* $(CLUSTER_REJOININSTANCE_RETURNS)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL1)
-*
-* Detailed description of the connection data format is available at \ref connection_data.
-*
-* Only TCP/IP connections are allowed for this function.
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL3)
-* $(CLUSTER_REJOININSTANCE_DETAIL4)
-* $(CLUSTER_REJOININSTANCE_DETAIL5)
-* $(CLUSTER_REJOININSTANCE_DETAIL6)
-* $(CLUSTER_REJOININSTANCE_DETAIL7)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL8)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL9)
-* $(CLUSTER_REJOININSTANCE_DETAIL10)
-* $(CLUSTER_REJOININSTANCE_DETAIL11)
-* $(CLUSTER_REJOININSTANCE_DETAIL12)
-* $(CLUSTER_REJOININSTANCE_DETAIL13)
-*
-* $(CLUSTER_REJOININSTANCE_DETAIL14)
-*/
+ * $(CLUSTER_REJOININSTANCE_BRIEF)
+ *
+ * $(CLUSTER_REJOININSTANCE_PARAM)
+ * $(CLUSTER_REJOININSTANCE_PARAM1)
+ *
+ * $(CLUSTER_REJOININSTANCE_THROWS)
+ * $(CLUSTER_REJOININSTANCE_THROWS1)
+ * $(CLUSTER_REJOININSTANCE_THROWS2)
+ * $(CLUSTER_REJOININSTANCE_THROWS3)
+ * $(CLUSTER_REJOININSTANCE_THROWS4)
+ * $(CLUSTER_REJOININSTANCE_THROWS5)
+ * $(CLUSTER_REJOININSTANCE_THROWS6)
+ * $(CLUSTER_REJOININSTANCE_THROWS7)
+ * $(CLUSTER_REJOININSTANCE_THROWS8)
+ * $(CLUSTER_REJOININSTANCE_THROWS9)
+ * $(CLUSTER_REJOININSTANCE_THROWS10)
+ * $(CLUSTER_REJOININSTANCE_THROWS11)
+ *
+ * $(CLUSTER_REJOININSTANCE_RETURNS)
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL)
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL1)
+ *
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
+ *
+ * Only TCP/IP connections are allowed for this function.
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL3)
+ * $(CLUSTER_REJOININSTANCE_DETAIL4)
+ * $(CLUSTER_REJOININSTANCE_DETAIL5)
+ * $(CLUSTER_REJOININSTANCE_DETAIL6)
+ * $(CLUSTER_REJOININSTANCE_DETAIL7)
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL8)
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL9)
+ * $(CLUSTER_REJOININSTANCE_DETAIL10)
+ * $(CLUSTER_REJOININSTANCE_DETAIL11)
+ * $(CLUSTER_REJOININSTANCE_DETAIL12)
+ * $(CLUSTER_REJOININSTANCE_DETAIL13)
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL14)
+ */
 #if DOXYGEN_JS
 Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
@@ -701,8 +701,7 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 
     shcore::Value::Map_type_ref options;
 
-    if (args.size() == 2)
-      options = args.map_at(1);
+    if (args.size() == 2) options = args.map_at(1);
 
     // if not, call mysqlprovision to join the instance to its own group
     ret_val = _default_replica_set->rejoin_instance(&instance_def, options);
@@ -756,8 +755,9 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL,
               "Instance from the default "
               "replicaSet of the cluster.");
 
-REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+REGISTER_HELP(
+    CLUSTER_REMOVEINSTANCE_DETAIL1,
+    "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -808,7 +808,8 @@ REGISTER_HELP(
  *
  * $(CLUSTER_REMOVEINSTANCE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref connection_data.
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
  *
  * Only TCP/IP connections are allowed for this function.
  *
@@ -836,7 +837,7 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
 
   // Remove the Instance from the Default ReplicaSet
   try {
-        // Check if we have a Default ReplicaSet
+    // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
@@ -906,8 +907,7 @@ void Cluster::set_default_replicaset(const std::string &name,
 REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
 REGISTER_HELP(CLUSTER_DESCRIBE_THROWS,
               "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_DESCRIBE_THROWS1,
-              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_DESCRIBE_THROWS1, "@li If the Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_DESCRIBE_THROWS2,
               "@li If the Metadata update operation failed.");
 REGISTER_HELP(
@@ -924,16 +924,14 @@ REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL3,
 REGISTER_HELP(
     CLUSTER_DESCRIBE_DETAIL4,
     "The defaultReplicaSet JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL5,
-              "@li name: the ReplicaSet name");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL5, "@li name: the ReplicaSet name");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL6,
               "@li topology: a list of dictionaries describing each instance "
               "belonging to the ReplicaSet.");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL7,
               "Each instance dictionary contains the following attributes:");
-REGISTER_HELP(
-    CLUSTER_DESCRIBE_DETAIL8,
-    "@li address: the instance address in the form of host:port");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL8,
+              "@li address: the instance address in the form of host:port");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL9,
               "@li label: the instance name identifier");
 REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL10, "@li role: the instance role");
@@ -983,7 +981,7 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   try {
     if (!_metadata_storage->cluster_exists(_name))
       throw shcore::Exception::argument_error("The cluster '" + _name +
-                                      "' no longer exists.");
+                                              "' no longer exists.");
 
     ret_val = shcore::Value::new_map();
 
@@ -1016,8 +1014,7 @@ REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
 
 REGISTER_HELP(CLUSTER_STATUS_THROWS,
               "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_STATUS_THROWS1,
-              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_STATUS_THROWS1, "@li If the Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_STATUS_THROWS2,
               "@li If the Metadata update operation failed.");
 
@@ -1048,9 +1045,8 @@ REGISTER_HELP(
     CLUSTER_STATUS_DETAIL7,
     "The defaultReplicaSet JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL8, "@li name: the ReplicaSet name");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL9,
-    "@li primary: the ReplicaSet single-master primary instance");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL9,
+              "@li primary: the ReplicaSet single-master primary instance");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL10, "@li ssl: the ReplicaSet SSL mode");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL11, "@li status: the ReplicaSet status");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL12,
@@ -1070,7 +1066,6 @@ REGISTER_HELP(
     "@li readReplicas: a list of read replica Instances of the instance.");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL18, "@li role: the instance role");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL19, "@li status: the instance status");
-
 
 /**
  * $(CLUSTER_STATUS_BRIEF)
@@ -1163,8 +1158,7 @@ REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
 
 REGISTER_HELP(CLUSTER_DISSOLVE_THROWS,
               "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1,
-              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_DISSOLVE_THROWS1, "@li If the Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_DISSOLVE_THROWS2,
               "@li If the Metadata update operation failed.");
 
@@ -1224,8 +1218,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
     shcore::Value::Map_type_ref options;
 
     bool force = false;
-    if (args.size() == 1)
-      options = args.map_at(0);
+    if (args.size() == 1) options = args.map_at(0);
 
     if (options) {
       // Verification of invalid attributes on the instance creation options
@@ -1233,8 +1226,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
       opt_map.ensure_keys({}, {"force"}, "dissolve options");
 
-      if (opt_map.has_key("force"))
-        force = opt_map.bool_at("force");
+      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
     }
 
     MetadataStorage::Transaction tx(_metadata_storage);
@@ -1253,8 +1245,8 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
         // BUG#26001653.
         // Get the online instances on the only available replica set
         auto online_instances =
-          _metadata_storage->get_replicaset_online_instances(
-            _default_replica_set->get_id());
+            _metadata_storage->get_replicaset_online_instances(
+                _default_replica_set->get_id());
 
         _metadata_storage->drop_replicaset(_default_replica_set->get_id());
 
@@ -1271,7 +1263,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
         _dissolved = true;
       } else {
         throw shcore::Exception::logic_error(
-          "Cannot drop cluster: The cluster is not empty.");
+            "Cannot drop cluster: The cluster is not empty.");
       }
     }
 
@@ -1287,14 +1279,11 @@ REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
 
 REGISTER_HELP(CLUSTER_RESCAN_THROWS,
               "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS1,
-              "@li If the Metadata is inaccessible.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS1, "@li If the Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS2,
               "@li If the Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS3,
-              "LogicError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS4,
-              "@li If the cluster does not exist.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS3, "LogicError in the following scenarios:");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS4, "@li If the cluster does not exist.");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS5,
               "RuntimeError in the following scenarios:");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS6,
@@ -1361,14 +1350,13 @@ shcore::Value::Map_type_ref Cluster::_rescan(
   return ret_val;
 }
 
-
 REGISTER_HELP(CLUSTER_DISCONNECT_BRIEF,
               "Disconnects all internal sessions used by the cluster object.");
 
 REGISTER_HELP(CLUSTER_DISCONNECT_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_DISCONNECT_DETAIL,
-              "Disconnects the internal MySQL sessions used by the cluster "\
+              "Disconnects the internal MySQL sessions used by the cluster "
               "to query for metadata and replication information.");
 
 /**
@@ -1402,7 +1390,6 @@ shcore::Value Cluster::disconnect(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF,
               "Restores the cluster from quorum loss.");
 REGISTER_HELP(
@@ -1421,12 +1408,10 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS2,
               "for Group Replication.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS3,
               "RuntimeError in the following scenarios:");
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4,
-    "@li If the instance does not exist on the Metadata.");
-REGISTER_HELP(
-    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5,
-    "@li If the instance is not on the ONLINE state.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS4,
+              "@li If the instance does not exist on the Metadata.");
+REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS5,
+              "@li If the instance is not on the ONLINE state.");
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_THROWS6,
               "@li If the instance does is not an active "
               "member of a replication group.");
@@ -1446,8 +1431,9 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL,
               "Such a scenario can occur if a group is partitioned or more "
               "crashes than tolerable occur.");
 
-REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+REGISTER_HELP(
+    CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1,
+    "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -1507,7 +1493,8 @@ REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL10,
  *
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref connection_data.
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
  *
  * Only TCP/IP connections are allowed for this function.
  *
@@ -1557,16 +1544,14 @@ shcore::Value Cluster::force_quorum_using_partition_of(
 
 void Cluster::set_option(const std::string &option,
                          const shcore::Value &value) {
-  if (!_options)
-    _options.reset(new shcore::Value::Map_type());
+  if (!_options) _options.reset(new shcore::Value::Map_type());
 
   (*_options)[option] = value;
 }
 
 void Cluster::set_attribute(const std::string &attribute,
                             const shcore::Value &value) {
-  if (!_attributes)
-    _attributes.reset(new shcore::Value::Map_type());
+  if (!_attributes) _attributes.reset(new shcore::Value::Map_type());
 
   (*_attributes)[attribute] = value;
 }
@@ -1607,8 +1592,9 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL,
               "GTIDs on the cluster "
               "to determine if the instance is valid for the cluster.");
 
-REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL1,
-              "The instance definition is the connection data for the instance.");
+REGISTER_HELP(
+    CLUSTER_CHECKINSTANCESTATE_DETAIL1,
+    "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2,
               "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
@@ -1669,7 +1655,8 @@ REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL14,
  *
  * $(CLUSTER_CHECKINSTANCESTATE_DETAIL1)
  *
- * Detailed description of the connection data format is available at \ref connection_data.
+ * Detailed description of the connection data format is available at \ref
+ * connection_data.
  *
  * Only TCP/IP connections are allowed for this function.
  *

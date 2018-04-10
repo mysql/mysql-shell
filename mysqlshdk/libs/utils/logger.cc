@@ -45,7 +45,7 @@
 #endif
 #elif defined _MSC_VER
 #pragma warning(push)
-#pragma warning(disable :)  // TODO(?): add MSVC code for pedantic and shadow
+#pragma warning(disable:)  // TODO(?): add MSVC code for pedantic and shadow
 #endif
 
 #ifdef __GNUC__
@@ -96,13 +96,11 @@ void Logger::set_log_level(LOG_LEVEL log_level_) {
   this->log_level = log_level_;
 }
 
-Logger::LOG_LEVEL Logger::get_log_level() {
-  return log_level;
-}
+Logger::LOG_LEVEL Logger::get_log_level() { return log_level; }
 
 void Logger::assert_logger_initialized() {
   if (instance.get() == nullptr) {
-    const char* msg_noinit =
+    const char *msg_noinit =
         "Logger: Tried to log to an uninitialized logger.\n";
 
 #ifdef WIN32
@@ -114,7 +112,7 @@ void Logger::assert_logger_initialized() {
   }
 }
 
-std::string Logger::format(const char* formats, ...) {
+std::string Logger::format(const char *formats, ...) {
   va_list args;
   va_start(args, formats);
 #ifdef WIN32
@@ -134,13 +132,13 @@ std::string Logger::format(const char* formats, ...) {
   return mybuf;
 }
 
-void Logger::log_text(LOG_LEVEL level, const char* domain, const char* text) {
+void Logger::log_text(LOG_LEVEL level, const char *domain, const char *text) {
   assert_logger_initialized();
 
   if (instance.get() != nullptr && level <= instance->log_level) {
     std::string s = instance->format_message(domain, text, level);
     s += "\n";
-    const char* buf = s.c_str();
+    const char *buf = s.c_str();
 
     instance->out.write(buf, (std::streamsize)strlen(buf));
     instance->out.flush();
@@ -156,12 +154,12 @@ void Logger::log_text(LOG_LEVEL level, const char* domain, const char* text) {
   }
 }
 
-void Logger::log(LOG_LEVEL level, const char* domain, const char* formats,
+void Logger::log(LOG_LEVEL level, const char *domain, const char *formats,
                  ...) {
   assert_logger_initialized();
 
   if (instance.get() != nullptr && level <= instance->log_level) {
-    char* mybuf;
+    char *mybuf;
     va_list args;
     va_start(args, formats);
 #ifdef WIN32
@@ -171,13 +169,13 @@ void Logger::log(LOG_LEVEL level, const char* domain, const char* formats,
 #endif
     va_end(args);
 
-    mybuf = static_cast<char*>(malloc(n + 1));
+    mybuf = static_cast<char *>(malloc(n + 1));
     va_start(args, formats);
     vsnprintf(mybuf, n + 1, formats, args);
     va_end(args);
     std::string s = instance->format_message(domain, mybuf, level);
     s += "\n";
-    const char* buf = s.c_str();
+    const char *buf = s.c_str();
 
     instance->out.write(buf, (std::streamsize)strlen(buf));
     instance->out.flush();
@@ -195,13 +193,13 @@ void Logger::log(LOG_LEVEL level, const char* domain, const char* formats,
   }
 }
 
-void Logger::log_exc(const char* domain, const char* message,
-                     const std::exception& exc) {
+void Logger::log_exc(const char *domain, const char *message,
+                     const std::exception &exc) {
   assert_logger_initialized();
   if (instance.get() != nullptr) {
     Logger::LOG_LEVEL level = Logger::LOG_ERROR;
     std::string s = instance->format_message(domain, message, exc);
-    const char* buf = s.c_str();
+    const char *buf = s.c_str();
 
     if (!instance->out.is_open()) {
       instance->out.write(buf, (std::streamsize)strlen(buf));
@@ -219,7 +217,7 @@ void Logger::log_exc(const char* domain, const char* message,
   }
 }
 
-Logger* Logger::singleton() {
+Logger *Logger::singleton() {
   if (instance.get() != nullptr) {
     return instance.get();
   } else {
@@ -227,7 +225,7 @@ Logger* Logger::singleton() {
   }
 }
 
-void Logger::out_to_stderr(const char* msg) {
+void Logger::out_to_stderr(const char *msg) {
 #ifdef WIN32
   OutputDebugString(msg);
 #else
@@ -236,19 +234,19 @@ void Logger::out_to_stderr(const char* msg) {
 #endif
 }
 
-/*static*/ std::string Logger::format_message(const char* domain,
-                                              const char* message,
+/*static*/ std::string Logger::format_message(const char *domain,
+                                              const char *message,
                                               Logger::LOG_LEVEL log_level_) {
   return format_message_common(domain, message, log_level_);
 }
 
-/*static*/ std::string Logger::format_message(const char* domain, const char*,
-                                              const std::exception& exc) {
+/*static*/ std::string Logger::format_message(const char *domain, const char *,
+                                              const std::exception &exc) {
   return format_message_common(domain, exc.what(), Logger::LOG_ERROR);
 }
 
 /*static*/ std::string Logger::format_message_common(
-    const char* domain, const char* message, Logger::LOG_LEVEL log_level_) {
+    const char *domain, const char *message, Logger::LOG_LEVEL log_level_) {
   // get GMT time as string
   char timestamp[32];
   {
@@ -284,7 +282,7 @@ void Logger::out_to_stderr(const char* msg) {
   return result;
 }
 
-void Logger::setup_instance(const char* filename, bool use_stderr,
+void Logger::setup_instance(const char *filename, bool use_stderr,
                             Logger::LOG_LEVEL log_level) {
   if (instance.get() != nullptr) {
     if (filename && instance->out_name.compare(filename) != 0) {
@@ -303,12 +301,12 @@ void Logger::setup_instance(const char* filename, bool use_stderr,
   }
 }
 
-/*static*/ const char* Logger::get_log_level_desc(
+/*static*/ const char *Logger::get_log_level_desc(
     Logger::LOG_LEVEL log_level_) {
   return Logger::log_levels_table.get_level_name_by_enum(log_level_).c_str();
 }
 
-Logger::Logger(const char* filename, bool use_stderr_,
+Logger::Logger(const char *filename, bool use_stderr_,
                Logger::LOG_LEVEL log_level_) {
   this->use_stderr = use_stderr_;
   this->log_level = log_level_;
@@ -323,43 +321,40 @@ Logger::Logger(const char* filename, bool use_stderr_,
 }
 
 Logger::~Logger() {
-  if (out.is_open())
-    out.close();
+  if (out.is_open()) out.close();
 }
 
-Logger::LOG_LEVEL Logger::get_level_by_name(const std::string& level_name) {
+Logger::LOG_LEVEL Logger::get_level_by_name(const std::string &level_name) {
   return log_levels_table.get_level_by_name(level_name);
 }
 
-Logger::LOG_LEVEL Logger::get_log_level(const std::string& tag) {
+Logger::LOG_LEVEL Logger::get_log_level(const std::string &tag) {
   LOG_LEVEL level = log_levels_table.get_level_by_name(tag);
 
-  if (level != LOG_NONE || is_level_none(tag))
-    return level;
+  if (level != LOG_NONE || is_level_none(tag)) return level;
 
   if (tag.size() == 1) {
     int nlevel = tag.c_str()[0] - '0';
-    if (nlevel >= 1 && nlevel <= 8)
-      return static_cast<LOG_LEVEL>(nlevel);
+    if (nlevel >= 1 && nlevel <= 8) return static_cast<LOG_LEVEL>(nlevel);
   }
 
   return LOG_NONE;
 }
 
-bool Logger::is_level_none(const std::string& tag) {
+bool Logger::is_level_none(const std::string &tag) {
   if (strcasecmp("none", tag.c_str()) == 0 || (tag == "1"))
     return true;
   else
     return false;
 }
 
-const char* Logger::get_level_range_info() {
+const char *Logger::get_level_range_info() {
   return "The log level value must be an integer between 1 and 8 any of "
          "[none, internal, error, warning, info, debug, debug2, debug3].";
 }
 
 Logger::LOG_LEVEL Logger::Logger_levels_table::get_level_by_name(
-    const std::string& level_name) {
+    const std::string &level_name) {
   std::map<std::string, LOG_LEVEL, Case_insensitive_comp>::const_iterator it =
       descr_to_level.find(level_name);
   if (it != descr_to_level.end())
@@ -368,8 +363,8 @@ Logger::LOG_LEVEL Logger::Logger_levels_table::get_level_by_name(
     return LOG_NONE;
 }
 
-bool Logger::Case_insensitive_comp::operator()(const std::string& lhs,
-                                               const std::string& rhs) const {
+bool Logger::Case_insensitive_comp::operator()(const std::string &lhs,
+                                               const std::string &rhs) const {
   return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
 

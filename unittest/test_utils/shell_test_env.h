@@ -79,12 +79,10 @@ class Override_row_string : public mysqlshdk::db::replay::Row_hook {
                       uint32_t column, const std::string &value)
       : mysqlshdk::db::replay::Row_hook(std::move(source)),
         _column(column),
-        _value(value) {
-  }
+        _value(value) {}
 
   std::string get_string(uint32_t index) const override {
-    if (index == _column)
-      return _value;
+    if (index == _column) return _value;
     return Row_hook::get_string(index);
   }
 
@@ -103,8 +101,7 @@ class Shell_test_env : public ::testing::Test {
  public:
   Shell_test_env();
 
-  virtual void SetUpOnce() {
-  }
+  virtual void SetUpOnce() {}
 
   static void SetUpTestCase();
 
@@ -119,12 +116,12 @@ class Shell_test_env : public ::testing::Test {
   static std::string _port;  //!< The port for X protocol, env:MYSQLX_PORT
   static std::string _user;
   static std::string _pwd;
-  static int _port_number;       //!< The port for X protocol, env:MYSQLX_PORT
+  static int _port_number;        //!< The port for X protocol, env:MYSQLX_PORT
   static std::string s_hostname;  //!< TBD
   std::string m_hostname;
   static bool s_real_host_is_loopback;
   bool m_real_host_is_loopback;
-  static std::string s_hostname_ip;   //!< TBD
+  static std::string s_hostname_ip;  //!< TBD
   std::string m_hostname_ip;
   static std::string s_real_hostname;  //!< TBD
   std::string m_real_hostname;
@@ -238,38 +235,32 @@ void run_test_data_sql_file(const std::string &uri,
                             const std::string &filename);
 
 inline std::string makebold(const std::string &s) {
-  if (!g_test_color_output)
-    return s;
+  if (!g_test_color_output) return s;
   return "\x1b[1m" + s + "\x1b[0m";
 }
 
 inline std::string makered(const std::string &s) {
-  if (!g_test_color_output)
-    return s;
+  if (!g_test_color_output) return s;
   return "\x1b[31m" + s + "\x1b[0m";
 }
 
 inline std::string makeredbg(const std::string &s) {
-  if (!g_test_color_output)
-    return s;
+  if (!g_test_color_output) return s;
   return "\x1b[41m" + s + "\x1b[0m";
 }
 
 inline std::string makeblue(const std::string &s) {
-  if (!g_test_color_output)
-    return s;
+  if (!g_test_color_output) return s;
   return "\x1b[36m" + s + "\x1b[0m";
 }
 
 inline std::string makegreen(const std::string &s) {
-  if (!g_test_color_output)
-    return s;
+  if (!g_test_color_output) return s;
   return "\x1b[32m" + s + "\x1b[0m";
 }
 
 inline std::string makeyellow(const std::string &s) {
-  if (!g_test_color_output)
-    return s;
+  if (!g_test_color_output) return s;
   return "\x1b[33m" + s + "\x1b[0m";
 }
 

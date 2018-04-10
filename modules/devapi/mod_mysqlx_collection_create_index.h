@@ -36,15 +36,15 @@ namespace mysqlx {
 class Collection;
 
 /**
-* \ingroup XDevAPI
-* $(COLLECTIONCREATEINDEX_BRIEF)
-*
-* $(COLLECTIONCREATEINDEX_DETAIL)
-*
-* $(COLLECTIONCREATEINDEX_DETAIL1)
-*
-* \sa Collection
-*/
+ * \ingroup XDevAPI
+ * $(COLLECTIONCREATEINDEX_BRIEF)
+ *
+ * $(COLLECTIONCREATEINDEX_DETAIL)
+ *
+ * $(COLLECTIONCREATEINDEX_DETAIL1)
+ *
+ * \sa Collection
+ */
 class CollectionCreateIndex
     : public Dynamic_object,
       public std::enable_shared_from_this<CollectionCreateIndex> {
@@ -76,18 +76,26 @@ class CollectionCreateIndex
   shcore::Argument_list _create_index_args;
 
   struct F {
-    static constexpr Allowed_function_mask _empty      = 1 << 0;
+    static constexpr Allowed_function_mask _empty = 1 << 0;
     static constexpr Allowed_function_mask createIndex = 1 << 1;
-    static constexpr Allowed_function_mask field       = 1 << 2;
-    static constexpr Allowed_function_mask execute     = 1 << 3;
+    static constexpr Allowed_function_mask field = 1 << 2;
+    static constexpr Allowed_function_mask execute = 1 << 3;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("createIndex" == s) { return F::createIndex; }
-    if ("field" == s) { return F::field; }
-    if ("execute" == s) { return F::execute; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("createIndex" == s) {
+      return F::createIndex;
+    }
+    if ("field" == s) {
+      return F::field;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
 };

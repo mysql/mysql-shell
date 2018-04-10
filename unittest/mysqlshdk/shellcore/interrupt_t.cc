@@ -227,8 +227,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   void output_wait(const char *str, int timeout) {
     timeout *= 1000;
     while (timeout > 0) {
-      if (output_handler.grep_stdout_thread_safe(str))
-        return;
+      if (output_handler.grep_stdout_thread_safe(str)) return;
 
       shcore::sleep_ms(200);
       timeout -= 200;
@@ -249,8 +248,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
       auto result = conn->query("show full processlist");
       for (;;) {
         auto row = result->fetch_one();
-        if (!row)
-          break;
+        if (!row) break;
         // for (int i = 0; i < 8; i++)
         //   printf("%s\t", row->get_value(i).descr().c_str());
         // printf("\n");

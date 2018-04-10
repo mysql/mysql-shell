@@ -24,17 +24,17 @@
 #ifndef _SHELL_SQL_H_
 #define _SHELL_SQL_H_
 
-#include "shellcore/shell_core.h"
-#include "shellcore/ishell_core.h"
-#include "scripting/common.h"
-#include "utils/utils_mysql_parsing.h"
 #include <stack>
+#include "scripting/common.h"
+#include "shellcore/ishell_core.h"
+#include "shellcore/shell_core.h"
+#include "utils/utils_mysql_parsing.h"
 
 namespace shcore {
 class SHCORE_PUBLIC Shell_sql : public Shell_language {
-public:
+ public:
   Shell_sql(IShell_core *owner);
-  virtual ~Shell_sql() {};
+  virtual ~Shell_sql(){};
 
   virtual void set_global(const std::string &, const Value &) {}
 
@@ -45,7 +45,7 @@ public:
   virtual void clear_input();
   virtual std::string get_continued_input_context();
 
-  virtual bool print_help(const std::string& topic);
+  virtual bool print_help(const std::string &topic);
   void print_exception(const shcore::Exception &e);
   std::shared_ptr<mysqlsh::ShellBaseSession> get_session();
   const std::string &get_main_delimiter() const {
@@ -58,12 +58,12 @@ public:
   std::stack<std::string> _parsing_context_stack;
 
   Value process_sql(const std::string &query_str,
-      mysql::splitter::Delimiters::delim_type_t delimiter,
-      std::shared_ptr<mysqlsh::ShellBaseSession> session,
-      std::function<void(shcore::Value)> result_processor);
+                    mysql::splitter::Delimiters::delim_type_t delimiter,
+                    std::shared_ptr<mysqlsh::ShellBaseSession> session,
+                    std::function<void(shcore::Value)> result_processor);
 
-  void cmd_process_file(const std::vector<std::string>& params);
+  void cmd_process_file(const std::vector<std::string> &params);
 };
-};
+};  // namespace shcore
 
 #endif

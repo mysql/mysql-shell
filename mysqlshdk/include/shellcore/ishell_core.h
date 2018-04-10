@@ -30,32 +30,23 @@
 #include <string>
 #include <vector>
 
-#include "scripting/object_registry.h"
-#include "scripting/types_common.h"
-#include "scripting/types.h"
-#include "scripting/lang_base.h"
 #include "mysqlshdk/libs/utils/enumset.h"
+#include "scripting/lang_base.h"
+#include "scripting/object_registry.h"
+#include "scripting/types.h"
+#include "scripting/types_common.h"
 
 namespace mysqlsh {
 // The session types that can be produced by connect_session
-enum class SessionType {
-  Auto,
-  X,
-  Classic
-};
+enum class SessionType { Auto, X, Classic };
 class ShellBaseSession;
-};
+};  // namespace mysqlsh
 
 namespace shcore {
 
 class SHCORE_PUBLIC IShell_core {
  public:
-  enum class Mode {
-    None = 0,
-    SQL = 1,
-    JavaScript = 2,
-    Python = 3
-  };
+  enum class Mode { None = 0, SQL = 1, JavaScript = 2, Python = 3 };
   typedef mysqlshdk::utils::Enum_set<Mode, Mode::Python> Mode_mask;
 
   static Mode_mask all_scripting_modes() {
@@ -74,15 +65,19 @@ class SHCORE_PUBLIC IShell_core {
   virtual Value get_global(const std::string &name) = 0;
 
   virtual Object_registry *registry() = 0;
-  virtual void handle_input(std::string &code, Input_state &state, std::function<void(shcore::Value)> result_processor) = 0;
+  virtual void handle_input(
+      std::string &code, Input_state &state,
+      std::function<void(shcore::Value)> result_processor) = 0;
   virtual bool handle_shell_command(const std::string &code) = 0;
   virtual std::string get_handled_input() = 0;
-  virtual int process_stream(std::istream& stream, const std::string& source,
+  virtual int process_stream(
+      std::istream &stream, const std::string &source,
       std::function<void(shcore::Value)> result_processor,
       const std::vector<std::string> &argv) = 0;
 
   // Development Session Handling
-  virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(const std::shared_ptr<mysqlsh::ShellBaseSession>& session) = 0;
+  virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(
+      const std::shared_ptr<mysqlsh::ShellBaseSession> &session) = 0;
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session() = 0;
 
   virtual Interpreter_delegate *get_delegate() = 0;
@@ -90,13 +85,13 @@ class SHCORE_PUBLIC IShell_core {
   virtual void print(const std::string &s) = 0;
   virtual void print_error(const std::string &s) = 0;
   virtual bool password(const std::string &s, std::string &ret_pass) = 0;
-  virtual const std::string& get_input_source() = 0;
-  virtual const std::vector<std::string>& get_input_args() = 0;
-  virtual bool print_help(const std::string& topic) = 0;
+  virtual const std::string &get_input_source() = 0;
+  virtual const std::vector<std::string> &get_input_args() = 0;
+  virtual bool print_help(const std::string &topic) = 0;
 };
 
 std::string to_string(const IShell_core::Mode mode);
-IShell_core::Mode parse_mode(const std::string& value);
+IShell_core::Mode parse_mode(const std::string &value);
 
 }  // namespace shcore
 

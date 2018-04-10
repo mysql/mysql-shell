@@ -78,13 +78,9 @@ struct Block_interrupts {
     Interrupts::block();
   }
 
-  ~Block_interrupts() {
-    Interrupts::unblock(clear_on_unblock_);
-  }
+  ~Block_interrupts() { Interrupts::unblock(clear_on_unblock_); }
 
-  void clear_pending(bool flag = true) {
-    clear_on_unblock_ = flag;
-  }
+  void clear_pending(bool flag = true) { clear_on_unblock_ = flag; }
 
   bool clear_on_unblock_;
 };
@@ -92,13 +88,11 @@ struct Block_interrupts {
 struct Interrupt_handler {
   explicit Interrupt_handler(std::function<bool()> handler, bool skip = false) {
     _skip = skip;
-    if (!skip)
-      Interrupts::push_handler(handler);
+    if (!skip) Interrupts::push_handler(handler);
   }
 
   ~Interrupt_handler() {
-    if (!_skip)
-      Interrupts::pop_handler();
+    if (!_skip) Interrupts::pop_handler();
   }
 
   bool _skip;

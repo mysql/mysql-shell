@@ -62,8 +62,7 @@ class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
 
  private:
   friend class Result;
-  Row(Result* result, MYSQL_ROW row,
-      const unsigned long *lengths);
+  Row(Result *result, MYSQL_ROW row, const unsigned long *lengths);
 
   Result &_result;
   MYSQL_ROW _row;

@@ -23,6 +23,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include "mysqlshdk/libs/textui/textui.h"
 #include "shellcore/ishell_core.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "utils/process_launcher.h"
@@ -30,10 +31,9 @@
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
-#include "mysqlshdk/libs/textui/textui.h"
 
 using namespace shcore;
-extern "C" const char* g_test_home;
+extern "C" const char *g_test_home;
 extern bool g_generate_validation_file;
 
 //-----------------------------------------------------------------------------
@@ -43,8 +43,8 @@ static void do_print(void *udata, const char *s) {
   fflush(stdout);
 }
 
-static shcore::Prompt_result do_prompt(void* udata, const char* prompt,
-                                       std::string* ret_input) {
+static shcore::Prompt_result do_prompt(void *udata, const char *prompt,
+                                       std::string *ret_input) {
   printf("%s", prompt);
   fflush(stdout);
   std::cin >> *ret_input;
@@ -68,9 +68,7 @@ class Test_debugger {
     m_enabled = true;
   }
 
-  void on_test_begin(Shell_core_test_wrapper *test) {
-    m_test = test;
-  }
+  void on_test_begin(Shell_core_test_wrapper *test) { m_test = test; }
 
   void on_reset_shell(std::shared_ptr<mysqlsh::Mysql_shell> shell) {
     m_shell = shell;
@@ -80,8 +78,8 @@ class Test_debugger {
     // Line containing //BREAK in the script will enter cmd loop
     if (m_enabled) {
       if (m_stepping) {
-       m_stepping = false;
-       return interact();
+        m_stepping = false;
+        return interact();
       } else if (shcore::str_strip(code) == "//BREAK") {
         println("//BREAK hit");
         return interact();
@@ -92,10 +90,9 @@ class Test_debugger {
   }
 
   Action on_validate_fail(const std::string &chunk_id) {
-    if (m_exit_on_test_error)
-      exit(1);
+    if (m_exit_on_test_error) exit(1);
     if (m_enabled) {
-      println("Validation '"+chunk_id+"' failed");
+      println("Validation '" + chunk_id + "' failed");
       return interact(true);
     } else if (g_test_fail_early) {
       return Action::Abort;
@@ -103,12 +100,10 @@ class Test_debugger {
     return Action::Continue;
   }
 
-  void did_execute(int lnum, const std::string &code) {
-  }
+  void did_execute(int lnum, const std::string &code) {}
 
   Action did_execute_test_failure() {
-    if (m_exit_on_test_error)
-      exit(1);
+    if (m_exit_on_test_error) exit(1);
     if (m_enabled) {
       println("Test failures found");
       return interact();
@@ -119,18 +114,15 @@ class Test_debugger {
   }
 
   void did_throw(int lnum, const std::string &code) {
-    if (m_enabled && m_break_on_throw)
-      interact();
+    if (m_enabled && m_break_on_throw) interact();
   }
 
  private:
   void println(const std::string &s) {
-    puts(mysqlshdk::textui::bold("TDB: "+s).c_str());
+    puts(mysqlshdk::textui::bold("TDB: " + s).c_str());
   }
 
-  bool debug() {
-    return true;
-  }
+  bool debug() { return true; }
 
   bool handle_command(const std::string &cmd, bool *exit_interactive) {
     if (cmd == "\\next") {
@@ -139,14 +131,13 @@ class Test_debugger {
       *exit_interactive = true;
       return true;
     } else if (cmd == "\\dhelp") {
-        std::cout
-            << "TDB Help\n"
-            << "--------\n"
-            << "\\next execute next\n"
-            << "\\cont continue execution\n"
-            << "\\abort let test fail (when handling validation failures)\n"
-            << "\\quit exit\n"
-            << "\n";
+      std::cout << "TDB Help\n"
+                << "--------\n"
+                << "\\next execute next\n"
+                << "\\cont continue execution\n"
+                << "\\abort let test fail (when handling validation failures)\n"
+                << "\\quit exit\n"
+                << "\n";
       return true;
     }
     return false;
@@ -185,7 +176,7 @@ class Test_debugger {
     bool exit_interactive = false;
     std::string cmd;
     while (!exit_interactive) {
-      char* tmp = mysqlsh::Command_line_shell::readline(
+      char *tmp = mysqlsh::Command_line_shell::readline(
           makebold(shell()->prompt()).c_str());
       if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
         cmd = tmp;
@@ -213,8 +204,7 @@ class Test_debugger {
         exit(1);
       }
 
-      if (!handle_command(cmd, &exit_interactive))
-        shell()->process_line(cmd);
+      if (!handle_command(cmd, &exit_interactive)) shell()->process_line(cmd);
     }
     return result;
   }
@@ -230,17 +220,14 @@ class Test_debugger {
   shcore::Interpreter_delegate m_deleg;
   std::weak_ptr<mysqlsh::Mysql_shell> m_shell;
 
-  std::shared_ptr<mysqlsh::Mysql_shell> shell() {
-    return m_shell.lock();
-  }
+  std::shared_ptr<mysqlsh::Mysql_shell> shell() { return m_shell.lock(); }
 };
 }  // namespace mysqlsh
 
 mysqlsh::Test_debugger *g_tdb = nullptr;
 
 void init_tdb() {
-  if (!g_tdb)
-    g_tdb = new mysqlsh::Test_debugger();
+  if (!g_tdb) g_tdb = new mysqlsh::Test_debugger();
 }
 
 void enable_tdb() {
@@ -254,7 +241,6 @@ void fini_tdb() {
 }
 
 //-----------------------------------------------------------------------------
-
 
 Shell_script_tester::Shell_script_tester() {
   init_tdb();
@@ -275,7 +261,7 @@ void Shell_script_tester::reset_shell() {
   g_tdb->on_reset_shell(_interactive_shell);
 }
 
-void Shell_script_tester::set_config_folder(const std::string& name) {
+void Shell_script_tester::set_config_folder(const std::string &name) {
   // Custom home folder for scripts
   _shell_scripts_home = shcore::path::join_path(g_test_home, "scripts", name);
 
@@ -286,12 +272,12 @@ void Shell_script_tester::set_config_folder(const std::string& name) {
   _scripts_home = _shell_scripts_home + "/scripts";
 }
 
-void Shell_script_tester::set_setup_script(const std::string& name) {
+void Shell_script_tester::set_setup_script(const std::string &name) {
   // if name is an absolute path, join_path will just return name
   _setup_script = shcore::path::join_path(_shell_scripts_home, "setup", name);
 }
 
-std::string Shell_script_tester::resolve_string(const std::string& source) {
+std::string Shell_script_tester::resolve_string(const std::string &source) {
   std::string updated(source);
 
   size_t start;
@@ -324,8 +310,7 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
       value = output_handler.std_out;
     }
     // strip the trailing newline added by execute, but not all whitespace
-    if (str_endswith(value, "\n"))
-      value = value.substr(0, value.size()-1);
+    if (str_endswith(value, "\n")) value = value.substr(0, value.size() - 1);
     if (strip_trailing_newline) {
       updated.replace(start, end - start + 5, value);
     } else {
@@ -339,19 +324,18 @@ std::string Shell_script_tester::resolve_string(const std::string& source) {
   return updated;
 }
 
-bool Shell_script_tester::validate_line_by_line(const std::string& context,
-                                                const std::string& chunk_id,
-                                                const std::string& stream,
-                                                const std::string& expected,
-                                                const std::string& actual,
+bool Shell_script_tester::validate_line_by_line(const std::string &context,
+                                                const std::string &chunk_id,
+                                                const std::string &stream,
+                                                const std::string &expected,
+                                                const std::string &actual,
                                                 int srcline, int valline) {
   return check_multiline_expect(context + "@" + chunk_id, stream, expected,
                                 actual, srcline, valline);
 }
 
-bool Shell_script_tester::validate(const std::string& context,
-                                   const std::string& chunk_id,
-                                   bool optional) {
+bool Shell_script_tester::validate(const std::string &context,
+                                   const std::string &chunk_id, bool optional) {
   std::string original_std_out = output_handler.std_out;
   std::string original_std_err = output_handler.std_err;
   size_t out_position = 0;
@@ -362,11 +346,11 @@ bool Shell_script_tester::validate(const std::string& context,
 
     // Identifies the validations to be done based on the context
     std::vector<std::shared_ptr<Validation>> validations;
-    for (const auto& val : _chunk_validations[chunk_id]) {
+    for (const auto &val : _chunk_validations[chunk_id]) {
       bool enabled = false;
       try {
         enabled = context_enabled(val->def->context);
-      } catch (const std::invalid_argument& e) {
+      } catch (const std::invalid_argument &e) {
         ADD_FAILURE_AT("validation file", val->def->linenum)
             << "ERROR EVALUATING VALIDATION CONTEXT: " << e.what() << "\n"
             << "\tCHUNK: " << val->def->line << "\n";
@@ -375,8 +359,7 @@ bool Shell_script_tester::validate(const std::string& context,
       if (enabled) {
         validations.push_back(val);
 
-        if (!val->expected_error.empty())
-          expect_failures = true;
+        if (!val->expected_error.empty()) expect_failures = true;
       } else {
         SKIP_VALIDATION(val->def->line);
       }
@@ -437,8 +420,7 @@ bool Shell_script_tester::validate(const std::string& context,
                                _chunks[chunk_id].code[0].first)
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\nwith validation at "
-                    << validations[valindex]->def->linenum
-                    << "\n"
+                    << validations[valindex]->def->linenum << "\n"
                     << makeyellow("\tSTDOUT missing: ") << out << "\n"
                     << makeyellow("\tSTDOUT actual: ") + original_std_out
                     << "\n";
@@ -447,8 +429,7 @@ bool Shell_script_tester::validate(const std::string& context,
                                _chunks[chunk_id].code[0].first)
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\nwith validation at "
-                    << validations[valindex]->def->linenum
-                    << "\n"
+                    << validations[valindex]->def->linenum << "\n"
                     << makeyellow("\tSTDOUT missing: ") << out << "\n"
                     << makeyellow("\tSTDOUT actual: ") +
                            original_std_out.substr(out_position)
@@ -464,8 +445,8 @@ bool Shell_script_tester::validate(const std::string& context,
           } else {
             if (!validate_line_by_line(context, chunk_id, "STDOUT", out,
                                        original_std_out,
-                                      _chunks[chunk_id].code[0].first,
-                                      validations[valindex]->def->linenum))
+                                       _chunks[chunk_id].code[0].first,
+                                       validations[valindex]->def->linenum))
               return false;
           }
         }
@@ -480,11 +461,10 @@ bool Shell_script_tester::validate(const std::string& context,
         if (original_std_out.find(out) != std::string::npos) {
           ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
               << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-              << "with validation at "
-              << validations[valindex]->def->linenum << "\n"
+              << "with validation at " << validations[valindex]->def->linenum
+              << "\n"
               << makeyellow("\tSTDOUT unexpected: ") << out << "\n"
-              << makeyellow("\tSTDOUT actual: ") << original_std_out
-              << "\n";
+              << makeyellow("\tSTDOUT actual: ") << original_std_out << "\n";
           return false;
         }
       }
@@ -506,8 +486,7 @@ bool Shell_script_tester::validate(const std::string& context,
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\n"
                     << "with validation at "
-                    << validations[valindex]->def->linenum
-                    << "\n"
+                    << validations[valindex]->def->linenum << "\n"
                     << makeyellow("\tSTDERR missing: ") + error << "\n"
                     << makeyellow("\tSTDERR actual: ") + original_std_err
                     << "\n";
@@ -517,8 +496,7 @@ bool Shell_script_tester::validate(const std::string& context,
                     << "while executing chunk: " + _chunks[chunk_id].def->line
                     << "\n"
                     << "with validation at "
-                    << validations[valindex]->def->linenum
-                    << "\n"
+                    << validations[valindex]->def->linenum << "\n"
                     << makeyellow("\tSTDERR missing: ") + error << "\n"
                     << makeyellow("\tSTDERR actual: ") +
                            original_std_err.substr(err_position)
@@ -558,7 +536,7 @@ bool Shell_script_tester::validate(const std::string& context,
           << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
           << makered("\tUnexpected Error: ") + original_std_err << "\n";
     } else if (!optional && _chunks.find(chunk_id) != _chunks.end()) {
-    // The error is that there are no validations
+      // The error is that there are no validations
       ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
           << makered("MISSING VALIDATIONS FOR CHUNK ")
           << _chunks[chunk_id].def->line << "\n"
@@ -571,27 +549,27 @@ bool Shell_script_tester::validate(const std::string& context,
   return true;
 }
 
-void Shell_script_tester::validate_interactive(const std::string& script) {
+void Shell_script_tester::validate_interactive(const std::string &script) {
   _filename = script;
   try {
     if (output_handler.passwords.size() || output_handler.prompts.size()) {
       std::cerr << "Starting with " << output_handler.passwords.size()
-                << " password prompts and "
-                << output_handler.prompts.size() << " regular prompts queued\n";
+                << " password prompts and " << output_handler.prompts.size()
+                << " regular prompts queued\n";
     }
     execute_script(script, true);
     if (testutil->test_skipped()) {
       SKIP_TEST(testutil->test_skip_reason());
     }
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     std::string error = e.what();
     FAIL() << makered("Unexpected exception excuting test script: ") << e.what()
            << "\n";
   }
 }
 
-bool Shell_script_tester::load_source_chunks(const std::string& path,
-                                             std::istream& stream) {
+bool Shell_script_tester::load_source_chunks(const std::string &path,
+                                             std::istream &stream) {
   Chunk_t chunk;
   chunk.def->id = "__global__";
   chunk.def->validation = ValidationType::Optional;
@@ -607,7 +585,6 @@ bool Shell_script_tester::load_source_chunks(const std::string& path,
 
     std::shared_ptr<Chunk_definition> chunk_def = load_chunk_definition(line);
     if (chunk_def) {
-
       // Full Script Context Validation is supported by defining context
       // validation at the __global__ scope.
       // The way to do it is with an anonymous chunk with the context validation
@@ -615,7 +592,7 @@ bool Shell_script_tester::load_source_chunks(const std::string& path,
       // #@ {<context validation>}
       if (chunk_def->id.empty()) {
         if (chunk.def->id == "__global__" &&
-          !context_enabled(chunk_def->context)) {
+            !context_enabled(chunk_def->context)) {
           ADD_SKIPPED_TEST(line);
           ret_val = false;
         }
@@ -629,8 +606,7 @@ bool Shell_script_tester::load_source_chunks(const std::string& path,
       }
     } else {
       // Only adds the lines that are NO snippet specifier
-      if (line.find("//! [") != 0)
-        chunk.code.push_back({linenum, line});
+      if (line.find("//! [") != 0) chunk.code.push_back({linenum, line});
     }
   }
 
@@ -640,8 +616,8 @@ bool Shell_script_tester::load_source_chunks(const std::string& path,
   return ret_val;
 }
 
-void Shell_script_tester::add_source_chunk(const std::string& path,
-                                           const Chunk_t& chunk) {
+void Shell_script_tester::add_source_chunk(const std::string &path,
+                                           const Chunk_t &chunk) {
   if (!chunk.code.empty()) {
     if (_chunks.find(chunk.def->id) == _chunks.end()) {
       _chunks[chunk.def->id] = chunk;
@@ -656,8 +632,8 @@ void Shell_script_tester::add_source_chunk(const std::string& path,
 }
 
 void Shell_script_tester::add_validation(
-    const std::shared_ptr<Chunk_definition>& chunk_def,
-    const std::vector<std::string>& source) {
+    const std::shared_ptr<Chunk_definition> &chunk_def,
+    const std::vector<std::string> &source) {
   if (source.size() == 3) {
     if (_chunk_validations.find(chunk_def->id) == _chunk_validations.end())
       _chunk_validations[chunk_def->id] = Chunk_validations();
@@ -681,7 +657,7 @@ void Shell_script_tester::add_validation(
  * @returns The chunk definition if the line is in the right format.
  */
 std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
-    const std::string& line) {
+    const std::string &line) {
   std::shared_ptr<Chunk_definition> ret_val;
 
   if (line.find(get_chunk_token()) == 0) {
@@ -691,8 +667,7 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
     std::string stream;
 
     chunk_id = line.substr(get_chunk_token().size());
-    if (chunk_id[0] == '#')
-      chunk_id = chunk_id.substr(1);
+    if (chunk_id[0] == '#') chunk_id = chunk_id.substr(1);
 
     // Identifies the version for the chunk expectations
     // If no version is specified assigns '*'
@@ -736,7 +711,7 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
   return ret_val;
 }
 
-void Shell_script_tester::load_validations(const std::string& path) {
+void Shell_script_tester::load_validations(const std::string &path) {
   std::ifstream file(path.c_str());
   std::vector<std::string> lines;
   bool skip_chunk = false;
@@ -827,17 +802,17 @@ void Shell_script_tester::load_validations(const std::string& path) {
             continue;
           }
 
-          if (chunk_index >=  _chunk_order.size()) {
+          if (chunk_index >= _chunk_order.size()) {
             ADD_FAILURE_AT(path.c_str(), line_no)
-                << makered("UNEXPECTED VALIDATIONS FOR CHUNK ") << current_val_def->line
-                << "\n"
+                << makered("UNEXPECTED VALIDATIONS FOR CHUNK ")
+                << current_val_def->line << "\n"
                 << "\tLINE: " << line_no << "\n";
             skip_chunk = true;
           }
         }
 
         // If the new chunk is wrong, ignores it
-        //if (!skip_chunk)
+        // if (!skip_chunk)
         //  current_chunk = new_val_def;
       } else {
         if (!skip_chunk && current_val_def) {
@@ -883,7 +858,7 @@ void Shell_script_tester::load_validations(const std::string& path) {
   }
 }
 
-void Shell_script_tester::execute_script(const std::string& path,
+void Shell_script_tester::execute_script(const std::string &path,
                                          bool in_chunks, bool is_pre_script) {
   // If no path is provided then executes the setup script
   std::string script(path.empty()
@@ -919,13 +894,12 @@ void Shell_script_tester::execute_script(const std::string& path,
       if (load_source_chunks(script, stream)) {
         // Loads the validations
         load_validations(_new_format ? VAL_SCRIPT(path)
-                                    : VALIDATION_SCRIPT(path));
+                                     : VALIDATION_SCRIPT(path));
       }
 
       // Abort the script processing if something went wrong on the validation
       // loading
-      if (testutil->test_skipped() && ::testing::Test::HasFailure())
-        return;
+      if (testutil->test_skipped() && ::testing::Test::HasFailure()) return;
 
       std::ofstream ofile;
       if (g_generate_validation_file) {
@@ -947,12 +921,12 @@ void Shell_script_tester::execute_script(const std::string& path,
         output_handler.debug_print(makeyellow(splitter));
 
         // Gets the chunks for the next id
-        auto& chunk = _chunks[_chunk_order[index]];
+        auto &chunk = _chunks[_chunk_order[index]];
 
         bool enabled;
         try {
           enabled = context_enabled(chunk.def->context);
-        } catch (const std::invalid_argument& e) {
+        } catch (const std::invalid_argument &e) {
           ADD_FAILURE_AT(script.c_str(), chunk.code[0].first)
               << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
               << "\tCHUNK: " << chunk.def->line << "\n";
@@ -961,7 +935,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
         // Executes the file line by line
         if (enabled) {
-          auto& code = chunk.code;
+          auto &code = chunk.code;
           std::string full_statement;
           for (size_t chunk_item = 0; chunk_item < code.size(); chunk_item++) {
             std::string line(code[chunk_item].second);
@@ -990,8 +964,7 @@ void Shell_script_tester::execute_script(const std::string& path,
               g_tdb->did_throw(chunk.code[chunk_item].first, line);
               throw;
             }
-            if (testutil->test_skipped())
-              return;
+            if (testutil->test_skipped()) return;
 
             if (_interactive_shell->input_state() == shcore::Input_state::Ok)
               full_statement.clear();
@@ -1029,7 +1002,7 @@ void Shell_script_tester::execute_script(const std::string& path,
             _custom_context =
                 path + "@[" + _chunk_order[index] + " validation]";
             if (!validate(path, _chunk_order[index],
-                chunk.is_validation_optional())) {
+                          chunk.is_validation_optional())) {
               if (g_tdb->on_validate_fail(_chunk_order[index]) ==
                   mysqlsh::Test_debugger::Action::Abort) {
                 FAIL();
@@ -1070,8 +1043,7 @@ void Shell_script_tester::execute_script(const std::string& path,
 
       // Abort the script processing if something went wrong on the validation
       // loading
-      if (testutil->test_skipped() && ::testing::Test::HasFailure())
-        return;
+      if (testutil->test_skipped() && ::testing::Test::HasFailure()) return;
 
       // Processes the script
       _interactive_shell->process_stream(stream, script, {}, true);
@@ -1114,9 +1086,9 @@ void Shell_script_tester::execute_script(const std::string& path,
   }
 }
 
-void Shell_script_tester::validate_chunks(const std::string& path,
-                                          const std::string& val_path,
-                                          const std::string& pre_path) {
+void Shell_script_tester::validate_chunks(const std::string &path,
+                                          const std::string &val_path,
+                                          const std::string &pre_path) {
   try {
     // If no path is provided then executes the setup script
     std::string script(_new_format ? NEW_TEST_SCRIPT(path) : TEST_SCRIPT(path));
@@ -1152,8 +1124,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
 
       // Process the file
       _options->interactive = true;
-      if (load_source_chunks(script, stream))
-        load_validations(file_name);
+      if (load_source_chunks(script, stream)) load_validations(file_name);
       for (size_t index = 0; index < _chunk_order.size(); index++) {
         // Prints debugging information
         std::string chunk_log = "CHUNK: " + _chunk_order[index];
@@ -1167,7 +1138,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
         bool enabled = false;
         try {
           enabled = context_enabled(chunk.def->context);
-        } catch (const std::invalid_argument& e) {
+        } catch (const std::invalid_argument &e) {
           ADD_FAILURE_AT(script.c_str(), chunk.code[0].first)
               << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
               << "\tCHUNK: " << chunk.def->line << "\n";
@@ -1175,7 +1146,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
 
         // Executes the file line by line
         if (enabled) {
-          auto& code = chunk.code;
+          auto &code = chunk.code;
           for (size_t chunk_item = 0; chunk_item < code.size(); chunk_item++) {
             std::string line(code[chunk_item].second);
 
@@ -1203,8 +1174,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
 
             g_tdb->did_execute(chunk.code[chunk_item].first, line);
 
-            if (testutil->test_skipped())
-              return;
+            if (testutil->test_skipped()) return;
           }
 
           execute("");
@@ -1213,7 +1183,7 @@ void Shell_script_tester::validate_chunks(const std::string& path,
           // Validation contexts is at chunk level
           _custom_context = path + "@[" + _chunk_order[index] + " validation]";
           if (!validate(path, _chunk_order[index],
-            chunk.is_validation_optional())) {
+                        chunk.is_validation_optional())) {
             if (g_tdb->on_validate_fail(_chunk_order[index]) ==
                 mysqlsh::Test_debugger::Action::Abort) {
               FAIL();
@@ -1241,14 +1211,14 @@ void Shell_script_tester::validate_chunks(const std::string& path,
       SCOPED_TRACE(text.c_str());
       ADD_FAILURE();
     }
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
   }
 }
 
 // Searches for // Assumpsions: comment, if found, creates the __assumptions__
 // array And processes the _assumption_script
-void Shell_script_tester::process_setup(std::istream& stream) {
+void Shell_script_tester::process_setup(std::istream &stream) {
   bool done = false;
   while (!done && !stream.eof()) {
     std::string line;
@@ -1291,7 +1261,7 @@ void Shell_script_tester::process_setup(std::istream& stream) {
   stream.seekg(0, stream.beg);
 }
 
-void Shell_script_tester::validate_batch(const std::string& script) {
+void Shell_script_tester::validate_batch(const std::string &script) {
   _filename = script;
   execute_script(script, false);
 }
@@ -1303,7 +1273,8 @@ void Shell_js_script_tester::set_defaults() {
 
   output_handler.wipe_all();
 
-  std::string code = "var __version = '" + _target_server_version.get_base() + "'";
+  std::string code =
+      "var __version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
   code = "var __version_num = " +
@@ -1337,23 +1308,22 @@ void Shell_script_tester::execute_setup() {
 }
 
 // Append option to the end of the given config file.
-void Shell_script_tester::add_to_cfg_file(const std::string& cfgfile_path,
-                                          const std::string& option) {
+void Shell_script_tester::add_to_cfg_file(const std::string &cfgfile_path,
+                                          const std::string &option) {
   std::ofstream cfgfile(cfgfile_path, std::ios_base::app);
   cfgfile << option << std::endl;
   cfgfile.close();
 }
 
 // Delete lines with the option from the given config file.
-void Shell_script_tester::remove_from_cfg_file(const std::string& cfgfile_path,
-                                               const std::string& option) {
+void Shell_script_tester::remove_from_cfg_file(const std::string &cfgfile_path,
+                                               const std::string &option) {
   std::string new_cfgfile_path = cfgfile_path + ".new";
   std::ofstream new_cfgfile(new_cfgfile_path);
   std::ifstream cfgfile(cfgfile_path);
   std::string line;
   while (std::getline(cfgfile, line)) {
-    if (line.find(option) != 0)
-      new_cfgfile << line << std::endl;
+    if (line.find(option) != 0) new_cfgfile << line << std::endl;
   }
   cfgfile.close();
   new_cfgfile.close();
@@ -1363,7 +1333,7 @@ void Shell_script_tester::remove_from_cfg_file(const std::string& cfgfile_path,
 
 // Check whether openssl executable is accessible via PATH
 bool Shell_script_tester::has_openssl_binary() {
-  const char* argv[] = {"openssl", "version", nullptr};
+  const char *argv[] = {"openssl", "version", nullptr};
   shcore::Process_launcher p(argv);
   p.start();
   std::string s = p.read_line();
@@ -1373,7 +1343,7 @@ bool Shell_script_tester::has_openssl_binary() {
   return false;
 }
 
-bool Shell_script_tester::context_enabled(const std::string& context) {
+bool Shell_script_tester::context_enabled(const std::string &context) {
   bool ret_val = true;
   std::string code(context);
   if (!context.empty()) {
@@ -1391,10 +1361,10 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
           code.substr(function_pos + 4, version_pos - function_pos - 4));
       std::string ver = shcore::str_strip(
           code.substr(version_pos, closing_pos - version_pos));
-      std::string fname = shcore::get_member_name("versionCheck",
-                                                  get_naming_style());
-      std::string new_func = "testutil." + fname +
-                             "(__version, '" + op + "', '" + ver + "')";
+      std::string fname =
+          shcore::get_member_name("versionCheck", get_naming_style());
+      std::string new_func =
+          "testutil." + fname + "(__version, '" + op + "', '" + ver + "')";
 
       code = shcore::str_replace(code, old_func, new_func);
       function_pos = code.find("VER(");
@@ -1424,7 +1394,7 @@ bool Shell_script_tester::context_enabled(const std::string& context) {
   return ret_val;
 }
 
-void Shell_script_tester::execute(int location, const std::string& code) {
+void Shell_script_tester::execute(int location, const std::string &code) {
   // save location in test script that is being currently executed
   _current_entry_point = context_identifier();
   try {
@@ -1436,8 +1406,7 @@ void Shell_script_tester::execute(int location, const std::string& code) {
   }
 }
 
-
-void Shell_script_tester::execute(const std::string& code) {
+void Shell_script_tester::execute(const std::string &code) {
   // save location in test script that is being currently executed
   _current_entry_point = context_identifier();
   try {

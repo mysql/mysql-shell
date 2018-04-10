@@ -32,12 +32,11 @@ namespace shcore {
  * Wraps an map object as a Python sequence object
  */
 struct PyShDictObject {
-  PyObject_HEAD
-  shcore::Value::Map_type_ref *map;
+  PyObject_HEAD shcore::Value::Map_type_ref *map;
 };
 
 PyObject *wrap(std::shared_ptr<Value::Map_type> map);
 bool unwrap(PyObject *value, std::shared_ptr<Value::Map_type> &ret_object);
-};
+};  // namespace shcore
 
 #endif

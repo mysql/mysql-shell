@@ -42,7 +42,7 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern bool g_profile_test_scripts;
 
 static int find_column_in_select_stmt(const std::string &sql,
-  const std::string &column) {
+                                      const std::string &column) {
   std::string s = shcore::str_lower(sql);
   // sanity checks for things we don't support
   assert(s.find(" from ") == std::string::npos);
@@ -69,8 +69,7 @@ static int find_column_in_select_stmt(const std::string &sql,
   }
 
   auto pos = s.find(";");
-  if (pos != std::string::npos)
-    s = s.substr(0, pos);
+  if (pos != std::string::npos) s = s.substr(0, pos);
 
   std::vector<std::string> columns(shcore::str_split(s, ","));
   // the last column name can contain other stuff
@@ -79,8 +78,7 @@ static int find_column_in_select_stmt(const std::string &sql,
 
   int i = 0;
   for (const auto &c : columns) {
-    if (shcore::str_strip(c) == column)
-      return i;
+    if (shcore::str_strip(c) == column) return i;
     ++i;
   }
   return -1;
@@ -99,8 +97,8 @@ Shell_test_output_handler::Shell_test_output_handler() : m_internal(false) {
   // Initialize the logger and attach the hook for error verification
   // Assumes logfile already initialized
   ngcommon::Logger::setup_instance(
-    ngcommon::Logger::singleton()->logfile_name().c_str(),
-    getenv("TEST_DEBUG") != nullptr);
+      ngcommon::Logger::singleton()->logfile_name().c_str(),
+      getenv("TEST_DEBUG") != nullptr);
   _logger = ngcommon::Logger::singleton();
   _logger->attach_log_hook(log_hook);
 }
@@ -178,8 +176,7 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
       target->debug_print(
           makered(shcore::str_format("\n--> mismatched prompt '%s'", prompt)));
     }
-    if (answer != "<<<CANCEL>>>")
-      ret_val = shcore::Prompt_result::Ok;
+    if (answer != "<<<CANCEL>>>") ret_val = shcore::Prompt_result::Ok;
   } else {
     ADD_FAILURE() << "Unexpected prompt for '" << prompt << "'";
     target->debug_print(
@@ -220,8 +217,7 @@ shcore::Prompt_result Shell_test_output_handler::deleg_password(
           shcore::str_format("\n--> mismatched pwd prompt '%s'", prompt)));
     }
 
-    if (answer != "<<<CANCEL>>>")
-      ret_val = shcore::Prompt_result::Ok;
+    if (answer != "<<<CANCEL>>>") ret_val = shcore::Prompt_result::Ok;
   } else {
     ADD_FAILURE() << "Unexpected password prompt for '" << prompt << "'";
     target->debug_print(makered(
@@ -292,8 +288,7 @@ void Shell_test_output_handler::validate_log_content(
       std::string error = expected ? "Missing" : "Unexpected";
       error += " LOG: " + value;
       std::string s;
-      for (const auto &piece : log)
-        s += piece;
+      for (const auto &piece : log) s += piece;
 
       ADD_FAILURE() << error << "\n"
                     << "LOG Actual: " + s;
@@ -301,8 +296,7 @@ void Shell_test_output_handler::validate_log_content(
   }
 
   // Wipe the log here
-  if (clear)
-    wipe_log();
+  if (clear) wipe_log();
 }
 
 void Shell_test_output_handler::validate_log_content(const std::string &content,
@@ -320,28 +314,24 @@ void Shell_test_output_handler::validate_log_content(const std::string &content,
     std::string error = expected ? "Missing" : "Unexpected";
     error += " LOG: " + content;
     std::string s;
-    for (const auto &piece : log)
-      s += piece;
+    for (const auto &piece : log) s += piece;
 
     ADD_FAILURE() << error << "\n"
                   << "LOG Actual: " + s;
   }
 
   // Wipe the log here
-  if (clear)
-    wipe_log();
+  if (clear) wipe_log();
 }
 
 void Shell_test_output_handler::debug_print(const std::string &line) {
-  if (debug || g_test_trace_scripts)
-    std::cout << line << std::endl;
+  if (debug || g_test_trace_scripts) std::cout << line << std::endl;
 
   full_output << line.c_str() << std::endl;
 }
 
 void Shell_test_output_handler::debug_print_header(const std::string &line) {
-  if (debug || g_test_trace_scripts)
-    std::cerr << makebold(line) << std::endl;
+  if (debug || g_test_trace_scripts) std::cerr << makebold(line) << std::endl;
 
   std::string splitter(line.length(), '-');
 
@@ -362,9 +352,7 @@ void Shell_core_test_wrapper::connect_classic() {
   execute("\\connect -mc " + _mysql_uri);
 }
 
-void Shell_core_test_wrapper::connect_x() {
-  execute("\\connect -mx " + _uri);
-}
+void Shell_core_test_wrapper::connect_x() { execute("\\connect -mx " + _uri); }
 
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;
@@ -377,8 +365,7 @@ std::string Shell_core_test_wrapper::context_identifier() {
     ret_val.append(test_info->name());
   }
 
-  if (!_custom_context.empty())
-    ret_val.append(": " + _custom_context);
+  if (!_custom_context.empty()) ret_val.append(": " + _custom_context);
 
   return ret_val;
 }
@@ -420,9 +407,9 @@ void Shell_core_test_wrapper::enable_testutil() {
   bool dummy_sandboxes =
       g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay;
 
-  testutil.reset(new tests::Testutils(
-      _sandbox_dir, _recording_enabled && dummy_sandboxes,
-      _interactive_shell, get_path_to_mysqlsh()));
+  testutil.reset(
+      new tests::Testutils(_sandbox_dir, _recording_enabled && dummy_sandboxes,
+                           _interactive_shell, get_path_to_mysqlsh()));
   testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text) {
         output_handler.prompts.push_back({prompt, text});
@@ -466,7 +453,7 @@ void Shell_core_test_wrapper::reset_replayable_shell(
   execute_setup();
 
 #ifdef _WIN32
-  mysqlshdk::db::replay::set_replay_query_hook([](const std::string& sql) {
+  mysqlshdk::db::replay::set_replay_query_hook([](const std::string &sql) {
     return shcore::str_replace(sql, ".dll", ".so");
   });
 #endif
@@ -474,9 +461,8 @@ void Shell_core_test_wrapper::reset_replayable_shell(
   // Intercept queries and hack their results so that we can have
   // recorded local sessions that match the actual local environment
   mysqlshdk::db::replay::set_replay_row_hook(
-      [](const mysqlshdk::db::Connection_options& target,
-              const std::string& sql,
-              std::unique_ptr<mysqlshdk::db::IRow> source)
+      [](const mysqlshdk::db::Connection_options &target,
+         const std::string &sql, std::unique_ptr<mysqlshdk::db::IRow> source)
           -> std::unique_ptr<mysqlshdk::db::IRow> {
         int datadir_column = -1;
 
@@ -507,8 +493,7 @@ void Shell_core_test_wrapper::reset_replayable_shell(
       });
 }
 
-void Shell_core_test_wrapper::execute(int location,
-                                      const std::string &code) {
+void Shell_core_test_wrapper::execute(int location, const std::string &code) {
   std::string _code(code);
 
   unsigned int elapsed = static_cast<unsigned int>(time(NULL)) - m_start_time;
@@ -527,7 +512,7 @@ void Shell_core_test_wrapper::execute(int location,
   _interactive_shell->process_line(_code);
 }
 
-void Shell_core_test_wrapper::execute(const std::string& code) {
+void Shell_core_test_wrapper::execute(const std::string &code) {
   std::string _code(code);
 
   std::string executed_input = makeblue("----> " + _code);
@@ -536,7 +521,7 @@ void Shell_core_test_wrapper::execute(const std::string& code) {
   _interactive_shell->process_line(_code);
 }
 
-void Shell_core_test_wrapper::execute_internal(const std::string& code) {
+void Shell_core_test_wrapper::execute_internal(const std::string &code) {
   std::string _code(code);
 
   output_handler.set_internal(true);
@@ -544,7 +529,7 @@ void Shell_core_test_wrapper::execute_internal(const std::string& code) {
   output_handler.set_internal(false);
 }
 
-void Shell_core_test_wrapper::execute_noerr(const std::string& code) {
+void Shell_core_test_wrapper::execute_noerr(const std::string &code) {
   ASSERT_EQ("", output_handler.std_err);
   execute(code);
   ASSERT_EQ("", output_handler.std_err);

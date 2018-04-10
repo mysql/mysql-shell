@@ -36,8 +36,7 @@ JSON_dumper::JSON_dumper(bool pprint) {
 }
 
 JSON_dumper::~JSON_dumper() {
-  if (_writer)
-    delete (_writer);
+  if (_writer) delete (_writer);
 }
 
 void JSON_dumper::append_value(const Value &value) {
@@ -63,17 +62,14 @@ void JSON_dumper::append_value(const Value &value) {
     case String:
       _writer->append_string(value.as_string().c_str());
       break;
-    case Object:
-    {
+    case Object: {
       auto object = value.as_object();
       if (object)
         object->append_json(*this);
       else
         _writer->append_null();
-    }
-    break;
-    case Array:
-    {
+    } break;
+    case Array: {
       Value::Array_type_ref array = value.as_array();
 
       if (array) {
@@ -87,10 +83,8 @@ void JSON_dumper::append_value(const Value &value) {
         _writer->end_array();
       } else
         _writer->append_null();
-    }
-    break;
-    case Map:
-    {
+    } break;
+    case Map: {
       Value::Map_type_ref map = value.as_map();
 
       if (map) {
@@ -106,47 +100,40 @@ void JSON_dumper::append_value(const Value &value) {
         _writer->end_object();
       } else
         _writer->append_null();
-    }
-    break;
+    } break;
     case MapRef:
       // TODO: define what to do with this too
-      //s_out.append("mapref");
+      // s_out.append("mapref");
       break;
     case Function:
       // TODO:
-      //value.func->get()->append_descr(s_out, pprint);
+      // value.func->get()->append_descr(s_out, pprint);
       break;
   }
 }
 
-void JSON_dumper::append_value(const std::string& key, const Value &value) {
+void JSON_dumper::append_value(const std::string &key, const Value &value) {
   _writer->append_string(key);
   append_value(value);
 }
 
-void JSON_dumper::append_null() const {
-  _writer->append_null();
-}
+void JSON_dumper::append_null() const { _writer->append_null(); }
 
-void JSON_dumper::append_null(const std::string& key) const {
+void JSON_dumper::append_null(const std::string &key) const {
   _writer->append_string(key);
   _writer->append_null();
 }
 
-void JSON_dumper::append_bool(bool data) const {
-  _writer->append_bool(data);
-}
+void JSON_dumper::append_bool(bool data) const { _writer->append_bool(data); }
 
-void JSON_dumper::append_bool(const std::string& key, bool data) const {
+void JSON_dumper::append_bool(const std::string &key, bool data) const {
   _writer->append_string(key);
   _writer->append_bool(data);
 }
 
-void JSON_dumper::append_int(int data) const {
-  _writer->append_int(data);
-}
+void JSON_dumper::append_int(int data) const { _writer->append_int(data); }
 
-void JSON_dumper::append_int(const std::string& key, int data) const {
+void JSON_dumper::append_int(const std::string &key, int data) const {
   _writer->append_string(key);
   _writer->append_int(data);
 }
@@ -155,7 +142,7 @@ void JSON_dumper::append_int64(int64_t data) const {
   _writer->append_int64(data);
 }
 
-void JSON_dumper::append_int64(const std::string& key, int64_t data) const {
+void JSON_dumper::append_int64(const std::string &key, int64_t data) const {
   _writer->append_string(key);
   _writer->append_int64(data);
 }
@@ -164,7 +151,7 @@ void JSON_dumper::append_uint(unsigned int data) const {
   _writer->append_uint(data);
 }
 
-void JSON_dumper::append_uint(const std::string& key, unsigned int data) const {
+void JSON_dumper::append_uint(const std::string &key, unsigned int data) const {
   _writer->append_string(key);
   _writer->append_uint(data);
 }
@@ -173,16 +160,17 @@ void JSON_dumper::append_uint64(uint64_t data) const {
   _writer->append_uint64(data);
 }
 
-void JSON_dumper::append_uint64(const std::string& key, uint64_t data) const {
+void JSON_dumper::append_uint64(const std::string &key, uint64_t data) const {
   _writer->append_string(key);
   _writer->append_uint64(data);
 }
 
-void JSON_dumper::append_string(const std::string& data) const {
+void JSON_dumper::append_string(const std::string &data) const {
   _writer->append_string(data);
 }
 
-void JSON_dumper::append_string(const std::string& key, const std::string& data) const {
+void JSON_dumper::append_string(const std::string &key,
+                                const std::string &data) const {
   _writer->append_string(key);
   _writer->append_string(data);
 }
@@ -191,7 +179,7 @@ void JSON_dumper::append_float(double data) const {
   _writer->append_float(data);
 }
 
-void JSON_dumper::append_float(const std::string& key, double data) const {
+void JSON_dumper::append_float(const std::string &key, double data) const {
   _writer->append_string(key);
   _writer->append_float(data);
 }

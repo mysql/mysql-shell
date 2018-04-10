@@ -24,14 +24,14 @@
 #include "modules/mod_utils.h"
 #include "mysh_config.h"
 #include "mysqlsh/cmdline_shell.h"
-#include "shellcore/interrupt_handler.h"
-#include "shellcore/shell_init.h"
-#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "shellcore/interrupt_handler.h"
+#include "shellcore/shell_init.h"
 
 #include <mysql_version.h>
 #include <sys/stat.h>
@@ -85,11 +85,9 @@ class Interrupt_helper : public shcore::Interrupt_helper {
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
   }
 
-  virtual void block() {
-  }
+  virtual void block() {}
 
-  virtual void unblock(bool clear_pending) {
-  }
+  virtual void unblock(bool clear_pending) {}
 };
 
 #else  // !WIN32
@@ -132,9 +130,7 @@ static void install_signal_handler() {
 
 class Interrupt_helper : public shcore::Interrupt_helper {
  public:
-  virtual void setup() {
-    install_signal_handler();
-  }
+  virtual void setup() { install_signal_handler(); }
 
   virtual void block() {
     sigset_t sigset;
@@ -208,7 +204,7 @@ static int enable_x_protocol(
 enableXProtocol();
 println();
 )*";
-// clang-format on
+  // clang-format on
   std::stringstream stream(script);
   return shell->process_stream(stream, "(command line)", {});
 }
@@ -274,8 +270,7 @@ void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
   // - Input is being redirected from file
   // - Input is being redirected from STDIN
   // - It is not running on a terminal
-  if (options->get().interactive)
-    is_interactive = true;
+  if (options->get().interactive) is_interactive = true;
 
   options->set_interactive(is_interactive);
 }
@@ -437,7 +432,6 @@ static int handle_redirect(std::shared_ptr<mysqlsh::Command_line_shell> shell,
   return 0;
 }
 
-
 static void show_cluster_info(
     std::shared_ptr<mysqlsh::Command_line_shell> shell,
     std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
@@ -448,7 +442,6 @@ static void show_cluster_info(
       "Variable 'cluster' is set.\nUse cluster.status() in scripting mode to "
       "get status of this cluster or cluster.help() for more commands.");
 }
-
 
 bool stdin_is_tty = false;
 bool stdout_is_tty = false;
@@ -474,7 +467,8 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
     shell_options->set_db_name_cache(false);
 
   // Switch default output format to tab separated instead of table
-  if (!options.interactive && options.output_format == "table" && !stdout_is_tty)
+  if (!options.interactive && options.output_format == "table" &&
+      !stdout_is_tty)
     shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));
 
   return shell_options;
@@ -518,8 +512,7 @@ int main(int argc, char **argv) {
       process_args(&argc, &argv);
   const mysqlsh::Shell_options::Storage &options = shell_options->get();
 
-  if (options.exit_code != 0)
-    return options.exit_code;
+  if (options.exit_code != 0) return options.exit_code;
 
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
   try {
@@ -581,8 +574,7 @@ int main(int argc, char **argv) {
 
           // If redirect is requested, then reconnect to the right instance
           ret_val = handle_redirect(shell, options);
-          if (ret_val != 0)
-            return ret_val;
+          if (ret_val != 0) return ret_val;
         } catch (mysqlshdk::db::Error &e) {
           if (e.sqlstate() && *e.sqlstate())
             std::cerr << "MySQL Error " << e.code() << " (" << e.sqlstate()
@@ -618,8 +610,7 @@ int main(int argc, char **argv) {
       // If default cluster specified on the cmdline, set cluster global var
       if (options.default_cluster_set) {
         try {
-          default_cluster =
-              shell->set_default_cluster(options.default_cluster);
+          default_cluster = shell->set_default_cluster(options.default_cluster);
         } catch (shcore::Exception &e) {
           std::cerr << "Option --cluster requires a session to a member of a "
                        "InnoDB cluster.\n"
@@ -635,8 +626,8 @@ int main(int argc, char **argv) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell->process_stream(stream, "(command line)", {});
       } else if (!options.execute_dba_statement.empty()) {
-        if (options.initial_mode != shcore::IShell_core::Mode::JavaScript
-            && options.initial_mode != shcore::IShell_core::Mode::None) {
+        if (options.initial_mode != shcore::IShell_core::Mode::JavaScript &&
+            options.initial_mode != shcore::IShell_core::Mode::None) {
           shell->print_error(
               "The --dba option can only be used in JavaScript mode\n");
           ret_val = 1;
@@ -647,8 +638,7 @@ int main(int argc, char **argv) {
         ret_val = shell->process_file(options.run_file, options.script_argv);
       } else if (options.interactive) {
         shell->load_state(shcore::get_user_config_path());
-        if (stdin_is_tty)
-          shell->print_banner();
+        if (stdin_is_tty) shell->print_banner();
 
         if (default_cluster) {
           show_cluster_info(shell, default_cluster);
@@ -675,7 +665,7 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     ret_val = 1;
   }
-  end:
+end:
   finalize_shell(shell);
   return ret_val;
 }

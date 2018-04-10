@@ -60,13 +60,9 @@ class Command_line_test : public Shell_base_test {
 
   bool grep_stdout(const std::string &s);
 
-  void wipe_out() {
-    _output.clear();
-  }
+  void wipe_out() { _output.clear(); }
 
-  void leave_carriage_returns() {
-    _strip_carriage_returns = false;
-  }
+  void leave_carriage_returns() { _strip_carriage_returns = false; }
 
  protected:
   std::string _mysqlsh_path;

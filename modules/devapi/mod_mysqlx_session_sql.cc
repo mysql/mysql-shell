@@ -23,10 +23,9 @@
 
 #include "modules/devapi/mod_mysqlx_session_sql.h"
 #include <memory>
+#include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "scripting/common.h"
-#include "db/mysqlx/mysqlxclient_clean.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
@@ -39,9 +38,9 @@ using namespace shcore;
 REGISTER_HELP(
     SQLEXECUTE_BRIEF,
     "Handler for execution SQL statements, supports parameter binding.");
-REGISTER_HELP(
-    SQLEXECUTE_DETAIL,
-    "This object should only be created by calling the sql function at a Session instance.");
+REGISTER_HELP(SQLEXECUTE_DETAIL,
+              "This object should only be created by calling the sql function "
+              "at a Session instance.");
 
 SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
     : Dynamic_object(), _session(owner) {
@@ -65,42 +64,47 @@ SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
 // Documentation of sql function
 REGISTER_HELP(SQLEXECUTE_SQL_BRIEF,
               "Sets the sql statement to be executed by this handler.");
-REGISTER_HELP(SQLEXECUTE_SQL_PARAM,
+REGISTER_HELP(
+    SQLEXECUTE_SQL_PARAM,
     "@param statement A string containing the SQL statement to be executed.");
 REGISTER_HELP(SQLEXECUTE_SQL_RETURNS, "@returns This SqlExecute object.");
-REGISTER_HELP(SQLEXECUTE_SQL_DETAIL,
-    "This function is called automatically when Session.sql(sql) is called.");
 REGISTER_HELP(
-    SQLEXECUTE_SQL_DETAIL1,
-    "Parameter binding is supported and can be done by using the \\b ? placeholder instead of passing values directly on the SQL statement.");
+    SQLEXECUTE_SQL_DETAIL,
+    "This function is called automatically when Session.sql(sql) is called.");
+REGISTER_HELP(SQLEXECUTE_SQL_DETAIL1,
+              "Parameter binding is supported and can be done by using the \\b "
+              "? placeholder instead of passing values directly on the SQL "
+              "statement.");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL2,
               "Parameters are bound in positional order.");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL3,
-    "The actual execution of the SQL statement will occur when the execute() function is called.");
-REGISTER_HELP(SQLEXECUTE_SQL_DETAIL4,
+              "The actual execution of the SQL statement will occur when the "
+              "execute() function is called.");
+REGISTER_HELP(
+    SQLEXECUTE_SQL_DETAIL4,
     "After this function invocation, the following functions can be invoked:");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL5, "@li bind(Value value)");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL6, "@li bind(List values)");
 REGISTER_HELP(SQLEXECUTE_SQL_DETAIL7, "@li execute().");
 
 /**
-* $(SQLEXECUTE_SQL_BRIEF)
-*
-* $(SQLEXECUTE_SQL_PARAM)
-* $(SQLEXECUTE_SQL_RETURNS)
-*
-* $(SQLEXECUTE_SQL_DETAIL)
-*
-* $(SQLEXECUTE_SQL_DETAIL1)
-* $(SQLEXECUTE_SQL_DETAIL2)
-*
-* $(SQLEXECUTE_SQL_DETAIL3)
-*
-* $(SQLEXECUTE_SQL_DETAIL4)
-* $(SQLEXECUTE_SQL_DETAIL5)
-* $(SQLEXECUTE_SQL_DETAIL6)
-* $(SQLEXECUTE_SQL_DETAIL7)
-*/
+ * $(SQLEXECUTE_SQL_BRIEF)
+ *
+ * $(SQLEXECUTE_SQL_PARAM)
+ * $(SQLEXECUTE_SQL_RETURNS)
+ *
+ * $(SQLEXECUTE_SQL_DETAIL)
+ *
+ * $(SQLEXECUTE_SQL_DETAIL1)
+ * $(SQLEXECUTE_SQL_DETAIL2)
+ *
+ * $(SQLEXECUTE_SQL_DETAIL3)
+ *
+ * $(SQLEXECUTE_SQL_DETAIL4)
+ * $(SQLEXECUTE_SQL_DETAIL5)
+ * $(SQLEXECUTE_SQL_DETAIL6)
+ * $(SQLEXECUTE_SQL_DETAIL7)
+ */
 #if DOXYGEN_JS
 SqlExecute SqlExecute::sql(String statement) {}
 #elif DOXYGEN_PY
@@ -125,17 +129,17 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args) {
 REGISTER_HELP(
     SQLEXECUTE_BIND_BRIEF,
     "Registers a parameter to be bound on the execution of the SQL statement.");
-REGISTER_HELP(
-    SQLEXECUTE_BIND_BRIEF1,
-    "Registers a list of parameter to be bound on the execution of the SQL statement.");
+REGISTER_HELP(SQLEXECUTE_BIND_BRIEF1,
+              "Registers a list of parameter to be bound on the execution of "
+              "the SQL statement.");
 REGISTER_HELP(SQLEXECUTE_BIND_PARAM, "@param value the value to be bound.");
 REGISTER_HELP(SQLEXECUTE_BIND_PARAM1,
               "@param values the value list to be bound.");
 REGISTER_HELP(SQLEXECUTE_BIND_RETURNS, "@returns This SqlExecute object.");
-REGISTER_HELP(
-    SQLEXECUTE_BIND_DETAIL,
-    "This method can be invoked any number of times, each time the received parameter "
-    "will be added to an internal binding list.");
+REGISTER_HELP(SQLEXECUTE_BIND_DETAIL,
+              "This method can be invoked any number of times, each time the "
+              "received parameter "
+              "will be added to an internal binding list.");
 REGISTER_HELP(SQLEXECUTE_BIND_DETAIL1, "This function can be invoked after:");
 REGISTER_HELP(SQLEXECUTE_BIND_DETAIL2, "@li sql(String statement)");
 REGISTER_HELP(SQLEXECUTE_BIND_DETAIL3, "@li bind(Value value)");
@@ -148,23 +152,23 @@ REGISTER_HELP(SQLEXECUTE_BIND_DETAIL7, "@li bind(List values)");
 REGISTER_HELP(SQLEXECUTE_BIND_DETAIL8, "@li execute().");
 
 /**
-* $(SQLEXECUTE_BIND_BRIEF)
-*
-* $(SQLEXECUTE_BIND_PARAM)
-* $(SQLEXECUTE_BIND_RETURNS)
-*
-* $(SQLEXECUTE_BIND_DETAIL)
-*
-* $(SQLEXECUTE_BIND_DETAIL1)
-* $(SQLEXECUTE_BIND_DETAIL2)
-* $(SQLEXECUTE_BIND_DETAIL3)
-* $(SQLEXECUTE_BIND_DETAIL4)
-*
-* $(SQLEXECUTE_BIND_DETAIL5)
-* $(SQLEXECUTE_BIND_DETAIL6)
-* $(SQLEXECUTE_BIND_DETAIL7)
-* $(SQLEXECUTE_BIND_DETAIL8)
-*/
+ * $(SQLEXECUTE_BIND_BRIEF)
+ *
+ * $(SQLEXECUTE_BIND_PARAM)
+ * $(SQLEXECUTE_BIND_RETURNS)
+ *
+ * $(SQLEXECUTE_BIND_DETAIL)
+ *
+ * $(SQLEXECUTE_BIND_DETAIL1)
+ * $(SQLEXECUTE_BIND_DETAIL2)
+ * $(SQLEXECUTE_BIND_DETAIL3)
+ * $(SQLEXECUTE_BIND_DETAIL4)
+ *
+ * $(SQLEXECUTE_BIND_DETAIL5)
+ * $(SQLEXECUTE_BIND_DETAIL6)
+ * $(SQLEXECUTE_BIND_DETAIL7)
+ * $(SQLEXECUTE_BIND_DETAIL8)
+ */
 #if DOXYGEN_JS
 SqlExecute SqlExecute::bind(Value value) {}
 #elif DOXYGEN_PY
@@ -172,23 +176,23 @@ SqlExecute SqlExecute::bind(Value value) {}
 #endif
 
 /**
-* $(SQLEXECUTE_BIND_BRIEF1)
-*
-* $(SQLEXECUTE_BIND_PARAM1)
-* $(SQLEXECUTE_BIND_RETURNS)
-*
-* $(SQLEXECUTE_BIND_DETAIL)
-*
-* $(SQLEXECUTE_BIND_DETAIL1)
-* $(SQLEXECUTE_BIND_DETAIL2)
-* $(SQLEXECUTE_BIND_DETAIL3)
-* $(SQLEXECUTE_BIND_DETAIL4)
-*
-* $(SQLEXECUTE_BIND_DETAIL5)
-* $(SQLEXECUTE_BIND_DETAIL6)
-* $(SQLEXECUTE_BIND_DETAIL7)
-* $(SQLEXECUTE_BIND_DETAIL8)
-*/
+ * $(SQLEXECUTE_BIND_BRIEF1)
+ *
+ * $(SQLEXECUTE_BIND_PARAM1)
+ * $(SQLEXECUTE_BIND_RETURNS)
+ *
+ * $(SQLEXECUTE_BIND_DETAIL)
+ *
+ * $(SQLEXECUTE_BIND_DETAIL1)
+ * $(SQLEXECUTE_BIND_DETAIL2)
+ * $(SQLEXECUTE_BIND_DETAIL3)
+ * $(SQLEXECUTE_BIND_DETAIL4)
+ *
+ * $(SQLEXECUTE_BIND_DETAIL5)
+ * $(SQLEXECUTE_BIND_DETAIL6)
+ * $(SQLEXECUTE_BIND_DETAIL7)
+ * $(SQLEXECUTE_BIND_DETAIL8)
+ */
 #if DOXYGEN_JS
 SqlExecute SqlExecute::bind(List values) {}
 #elif DOXYGEN_PY
@@ -220,15 +224,15 @@ REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL2, "@li bind(Value value)");
 REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL3, "@li bind(List values)");
 
 /**
-* $(SQLEXECUTE_EXECUTE_BRIEF)
-*
-* $(SQLEXECUTE_EXECUTE_RETURNS)
-*
-* $(SQLEXECUTE_EXECUTE_DETAIL)
-* $(SQLEXECUTE_EXECUTE_DETAIL1)
-* $(SQLEXECUTE_EXECUTE_DETAIL2)
-* $(SQLEXECUTE_EXECUTE_DETAIL3)
-*/
+ * $(SQLEXECUTE_EXECUTE_BRIEF)
+ *
+ * $(SQLEXECUTE_EXECUTE_RETURNS)
+ *
+ * $(SQLEXECUTE_EXECUTE_DETAIL)
+ * $(SQLEXECUTE_EXECUTE_DETAIL1)
+ * $(SQLEXECUTE_EXECUTE_DETAIL2)
+ * $(SQLEXECUTE_EXECUTE_DETAIL3)
+ */
 #if DOXYGEN_JS
 SqlResult SqlExecute::execute() {}
 #elif DOXYGEN_PY

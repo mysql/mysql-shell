@@ -27,10 +27,10 @@
 
 namespace mysqlshdk {
 namespace db {
-using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
+using mysqlshdk::utils::nullable_options::Set_mode;
 
-constexpr const char* Ssl_options::option_str_list[];
+constexpr const char *Ssl_options::option_str_list[];
 
 Ssl_options::Ssl_options(Comparison_mode mode)
     : Nullable_options(mode, "SSL Connection") {
@@ -40,8 +40,7 @@ Ssl_options::Ssl_options(Comparison_mode mode)
 
 bool Ssl_options::has_data() const {
   for (auto o : option_str_list) {
-    if (has_value(o))
-      return true;
+    if (has_value(o)) return true;
   }
 
   return false;
@@ -49,7 +48,7 @@ bool Ssl_options::has_data() const {
 
 void Ssl_options::set_mode(Ssl_mode value) {
   std::string str_mode =
-    MapSslModeNameToValue::get_value(static_cast<int>(value));
+      MapSslModeNameToValue::get_value(static_cast<int>(value));
 
   Nullable_options::set(kSslMode, str_mode, Set_mode::UPDATE_NULL);
 }
@@ -60,54 +59,52 @@ Ssl_mode Ssl_options::get_mode() const {
   return static_cast<Ssl_mode>(mode);
 }
 
-std::string Ssl_options::get_mode_name() const {
-  return get_value(kSslMode);
-}
+std::string Ssl_options::get_mode_name() const { return get_value(kSslMode); }
 
-const std::string& Ssl_options::_get(const std::string& id) const {
+const std::string &Ssl_options::_get(const std::string &id) const {
   return get_value(id);
 }
 
-void Ssl_options::set_ca(const std::string& value) {
+void Ssl_options::set_ca(const std::string &value) {
   Nullable_options::set(kSslCa, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_capath(const std::string& value) {
+void Ssl_options::set_capath(const std::string &value) {
   Nullable_options::set(kSslCaPath, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_crl(const std::string& value) {
+void Ssl_options::set_crl(const std::string &value) {
   Nullable_options::set(kSslCrl, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_crlpath(const std::string& value) {
+void Ssl_options::set_crlpath(const std::string &value) {
   Nullable_options::set(kSslCrlPath, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_cipher(const std::string& value) {
+void Ssl_options::set_cipher(const std::string &value) {
   Nullable_options::set(kSslCipher, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_tls_version(const std::string& value) {
+void Ssl_options::set_tls_version(const std::string &value) {
   Nullable_options::set(kSslTlsVersion, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_cert(const std::string& value) {
+void Ssl_options::set_cert(const std::string &value) {
   Nullable_options::set(kSslCert, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::set_key(const std::string& value) {
+void Ssl_options::set_key(const std::string &value) {
   Nullable_options::set(kSslKey, value, Set_mode::UPDATE_NULL);
 }
 
-void Ssl_options::remove(const std::string& name) {
+void Ssl_options::remove(const std::string &name) {
   if (has(name))
     throw std::invalid_argument("Unable to remove " + _ctx + " option");
   else
     throw_invalid_option(name);
 }
 
-void Ssl_options::set(const std::string& name, const std::string& value) {
+void Ssl_options::set(const std::string &name, const std::string &value) {
   if (compare(name, kSslMode) == 0) {
     int tmp_mode = MapSslModeNameToValue::get_value(value);
 

@@ -47,8 +47,7 @@ DEBUG_OBJ_ENABLE(Shell_core);
 namespace shcore {
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-    : IShell_core(),
-      _client_delegate(shdelegate) {
+    : IShell_core(), _client_delegate(shdelegate) {
   DEBUG_OBJ_ALLOC(Shell_core);
   _mode = Mode::None;
   _registry = new Object_registry();
@@ -80,14 +79,11 @@ Shell_core::~Shell_core() {
   }
   _globals.clear();
 
-  if (_langs[Mode::JavaScript])
-    delete _langs[Mode::JavaScript];
+  if (_langs[Mode::JavaScript]) delete _langs[Mode::JavaScript];
 
-  if (_langs[Mode::Python])
-    delete _langs[Mode::Python];
+  if (_langs[Mode::Python]) delete _langs[Mode::Python];
 
-  if (_langs[Mode::SQL])
-    delete _langs[Mode::SQL];
+  if (_langs[Mode::SQL]) delete _langs[Mode::SQL];
 }
 
 bool Shell_core::print_help(const std::string &topic) {
@@ -111,8 +107,7 @@ void Shell_core::println(const std::string &s, const std::string &tag) {
     }
   }
 
-  if (add_new_line)
-    output += "\n";
+  if (add_new_line) output += "\n";
 
   _client_delegate->print(_client_delegate->user_data, output.c_str());
 }
@@ -131,12 +126,10 @@ std::string Shell_core::format_json_output(const std::string &info,
   target.reserve(info.length());
 
   auto index = lines.begin(), end = lines.end();
-  if (index != end)
-    target = *index++;
+  if (index != end) target = *index++;
 
   while (index != end) {
-    if (!(*index).empty())
-      target += " " + *index;
+    if (!(*index).empty()) target += " " + *index;
 
     index++;
   }
@@ -244,8 +237,7 @@ int Shell_core::process_stream(
 
       handle_input(line, state, result_processor);
 
-      if (_global_return_code && !mysqlsh::Base_shell::options().force)
-        break;
+      if (_global_return_code && !mysqlsh::Base_shell::options().force) break;
     }
 
     if (state != Input_state::Ok) {
@@ -312,17 +304,15 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
   return false;
 }
 
-void Shell_core::init_sql() {
-  _langs[Mode::SQL] = new Shell_sql(this);
-}
+void Shell_core::init_sql() { _langs[Mode::SQL] = new Shell_sql(this); }
 
 void Shell_core::init_js() {
 #ifdef HAVE_V8
   Shell_javascript *js;
   _langs[Mode::JavaScript] = js = new Shell_javascript(this);
 
-  for (std::map<std::string, std::pair<Mode_mask, Value> >::const_iterator
-           iter = _globals.begin();
+  for (std::map<std::string, std::pair<Mode_mask, Value>>::const_iterator iter =
+           _globals.begin();
        iter != _globals.end(); ++iter) {
     if (iter->second.first.is_set(Mode::JavaScript))
       js->set_global(iter->first, iter->second.second);
@@ -335,8 +325,8 @@ void Shell_core::init_py() {
   Shell_python *py;
   _langs[Mode::Python] = py = new Shell_python(this);
 
-  for (std::map<std::string, std::pair<Mode_mask, Value> >::const_iterator
-           iter = _globals.begin();
+  for (std::map<std::string, std::pair<Mode_mask, Value>>::const_iterator iter =
+           _globals.begin();
        iter != _globals.end(); ++iter) {
     if (iter->second.first.is_set(Mode::Python))
       py->set_global(iter->first, iter->second.second);
@@ -373,9 +363,7 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   return globals;
 }
 
-void Shell_core::clear_input() {
-  _langs[interactive_mode()]->clear_input();
-}
+void Shell_core::clear_input() { _langs[interactive_mode()]->clear_input(); }
 
 bool Shell_core::handle_shell_command(const std::string &line) {
   return _langs[_mode]->handle_shell_command(line);
@@ -404,8 +392,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::get_dev_session() {
 
 std::string Shell_core::get_main_delimiter() const {
   auto it = _langs.find(Mode::SQL);
-  if (it == _langs.end())
-    return ";";
+  if (it == _langs.end()) return ";";
   return dynamic_cast<Shell_sql *>(it->second)->get_main_delimiter();
 }
 
@@ -438,8 +425,7 @@ void Shell_core::deleg_print_error(void *self, const char *text) {
 
   std::string output;
 
-  if (text)
-    output.assign(text);
+  if (text) output.assign(text);
 
   // When using JSON output ALL must be JSON
   std::string format = mysqlsh::Base_shell::options().output_format;
@@ -475,8 +461,7 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value,
   auto deleg = shcore->_client_delegate;
   std::string mtag;
 
-  if (tag)
-    mtag.assign(tag);
+  if (tag) mtag.assign(tag);
 
   // If the client delegate has it's own logic to print errors then let it go
   // not expected to be the case.
@@ -523,8 +508,7 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value,
       }
     }
 
-    if (add_new_line)
-      output += "\n";
+    if (add_new_line) output += "\n";
 
     if (mtag == "error")
       deleg->print_error(deleg->user_data, output.c_str());
@@ -547,8 +531,7 @@ std::vector<std::string> Shell_command_handler::split_command_line(
       "space",
       [](const std::string &input, size_t &index, std::string &text) -> bool {
         std::locale locale;
-        while (std::isspace(input[index], locale))
-          text += input[index++];
+        while (std::isspace(input[index], locale)) text += input[index++];
 
         return !text.empty();
       });
@@ -564,8 +547,7 @@ std::vector<std::string> Shell_command_handler::split_command_line(
   std::string param;
 
   while (_tokenizer.tokens_available()) {
-    if (_tokenizer.cur_token_type_is("quote"))
-      quoted_param = !quoted_param;
+    if (_tokenizer.cur_token_type_is("quote")) quoted_param = !quoted_param;
 
     // Quoted params will get accumulated into a single
     // command argument
@@ -693,8 +675,7 @@ std::string Shell_command_handler::get_commands(const std::string &title) {
       max_alias_length = tmp_alias_length;
 
     int tmp_length = tmp_commands.back().length();
-    if (tmp_length > max_length)
-      max_length = tmp_length;
+    if (tmp_length > max_length) max_length = tmp_length;
   }
 
   // Prints the command list title
@@ -749,8 +730,7 @@ bool Shell_command_handler::get_command_help(const std::string &command,
     }
 
     // Prints the additional help
-    if (!item->second->help.empty())
-      help += "\n\n" + item->second->help;
+    if (!item->second->help.empty()) help += "\n\n" + item->second->help;
 
     ret_val = true;
   }

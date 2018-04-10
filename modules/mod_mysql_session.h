@@ -30,17 +30,17 @@
 #include <memory>
 
 #include "modules/mod_common.h"
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
-#include "shellcore/ishell_core.h"
-#include "shellcore/base_session.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "scripting/types.h"
+#include "scripting/types_cpp.h"
+#include "shellcore/base_session.h"
+#include "shellcore/ishell_core.h"
 
 namespace shcore {
 class Shell_core;
 class Proxy_object;
-};
+};  // namespace shcore
 
 namespace mysqlsh {
 class DatabaseObject;
@@ -50,38 +50,39 @@ class ClassicSchema;
 class ClassicResult;
 class Connection;
 /**
-* \ingroup ShellAPI
-* $(CLASSICSESSION_BRIEF)
-*
-* $(CLASSICSESSION_DETAIL)
-*
-* \code{.js}
-* // Establishes the connection.
-* var mysql = require('mysql');
-* var session = mysql.getClassicSession("myuser@localhost", pwd);
-*
-* // Getting a schema through the getSchema function
-* var schema = session.getSchema("sakila");
-*
-* // Getting a schema through a session property
-* var schema = session.sakila;
-* \endcode
-*
-* \sa mysql.getClassicSession(String connectionData, String password)
-* \sa mysql.getClassicSession(Map connectionData, String password)
-*/
+ * \ingroup ShellAPI
+ * $(CLASSICSESSION_BRIEF)
+ *
+ * $(CLASSICSESSION_DETAIL)
+ *
+ * \code{.js}
+ * // Establishes the connection.
+ * var mysql = require('mysql');
+ * var session = mysql.getClassicSession("myuser@localhost", pwd);
+ *
+ * // Getting a schema through the getSchema function
+ * var schema = session.getSchema("sakila");
+ *
+ * // Getting a schema through a session property
+ * var schema = session.sakila;
+ * \endcode
+ *
+ * \sa mysql.getClassicSession(String connectionData, String password)
+ * \sa mysql.getClassicSession(Map connectionData, String password)
+ */
 class SHCORE_PUBLIC ClassicSession
     : public ShellBaseSession,
       public std::enable_shared_from_this<ClassicSession> {
  public:
   ClassicSession();
-  explicit ClassicSession(std::shared_ptr<mysqlshdk::db::mysql::Session> session);
-  ClassicSession(const ClassicSession& session);
+  explicit ClassicSession(
+      std::shared_ptr<mysqlshdk::db::mysql::Session> session);
+  ClassicSession(const ClassicSession &session);
   virtual ~ClassicSession();
 
 // We need to hide this from doxygen to avoid warnings
 #if !defined DOXYGEN_JS && !defined DOXYGEN_PY
-  std::shared_ptr<ClassicResult> execute_sql(const std::string& query);
+  std::shared_ptr<ClassicResult> execute_sql(const std::string &query);
 #endif
 
   // Virtual methods from object bridge
@@ -90,9 +91,9 @@ class SHCORE_PUBLIC ClassicSession
   virtual shcore::Value get_member(const std::string &prop) const;
 
   // Virtual methods from ISession
-  virtual void connect(const mysqlshdk::db::Connection_options& data);
+  virtual void connect(const mysqlshdk::db::Connection_options &data);
   virtual void close();
-  virtual void create_schema(const std::string& name);
+  virtual void create_schema(const std::string &name);
   virtual void drop_schema(const std::string &name);
   virtual void set_current_schema(const std::string &name);
   virtual void start_transaction();
@@ -130,17 +131,17 @@ class SHCORE_PUBLIC ClassicSession
   virtual std::string get_ssl_cipher() const;
   shcore::Value execute_sql(const std::string &query,
                             const shcore::Array_t &args);
-private:
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string& query);
-public:
-  virtual SessionType session_type() const {
-    return SessionType::Classic;
-  }
+
+ private:
+  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string &query);
+
+ public:
+  virtual SessionType session_type() const { return SessionType::Classic; }
 
   virtual void kill_query();
 
 #if DOXYGEN_JS
-  String uri; //!< Same as getUri()
+  String uri;  //!< Same as getUri()
   String getUri();
   ClassicResult runSql(String query, Array args = []);
   ClassicResult query(String query, Array args = []);
@@ -149,7 +150,7 @@ public:
   ClassicResult commit();
   ClassicResult rollback();
 #elif DOXYGEN_PY
-  str uri; //!< Same as get_uri()
+  str uri;  //!< Same as get_uri()
   str get_uri();
   ClassicResult run_sql(str query, list args = []);
   ClassicResult query(str query, list args = []);
@@ -160,12 +161,12 @@ public:
 #endif
 
   /**
-  * $(SHELLBASESESSION_ISOPEN_BRIEF)
-  *
-  * $(SHELLBASESESSION_ISOPEN_RETURNS)
-  *
-  * $(SHELLBASESESSION_ISOPEN_DETAIL)
-  */
+   * $(SHELLBASESESSION_ISOPEN_BRIEF)
+   *
+   * $(SHELLBASESESSION_ISOPEN_RETURNS)
+   *
+   * $(SHELLBASESESSION_ISOPEN_DETAIL)
+   */
 #if DOXYGEN_JS
   Bool isOpen() {}
 #elif DOXYGEN_PY
@@ -173,13 +174,13 @@ public:
 #endif
   virtual bool is_open() const;
 
-private:
+ private:
   void init();
   std::shared_ptr<mysqlshdk::db::mysql::Session> _session;
-  shcore::Value _run_sql(const std::string& function,
+  shcore::Value _run_sql(const std::string &function,
                          const shcore::Argument_list &args);
 };
-};
-};
+};  // namespace mysql
+};  // namespace mysqlsh
 
 #endif

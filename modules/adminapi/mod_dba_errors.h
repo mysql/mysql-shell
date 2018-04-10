@@ -69,7 +69,7 @@ inline shcore::Exception make_error(int code, const std::string &summary,
   (*error)["code"] = Value(code);
   return Exception(error, root_exception);
 }
-}
+}  // namespace dba
 }  // namespace mysqlsh
 
 #endif  // MODULES_ADMINAPI_MOD_DBA_ERRORS_H_

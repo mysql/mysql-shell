@@ -30,9 +30,9 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
+#include "mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -62,14 +62,12 @@ class SHCORE_PUBLIC Row_copy : public IRow {
  private:
   class Field_data_ {
    public:
-    virtual ~Field_data_() {
-    }
+    virtual ~Field_data_() {}
   };
   template <typename T>
   class Field_data : public Field_data_ {
    public:
-    explicit Field_data(const T &v) : value(v) {
-    }
+    explicit Field_data(const T &v) : value(v) {}
     T value;
   };
 

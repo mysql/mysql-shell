@@ -28,21 +28,19 @@
 #include <string>
 #include <vector>
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types_cpp.h"
 #include "src/mysqlsh/mysql_shell.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 
 namespace tests {
 
 /**
  * \ingroup Testutils
  * Class with test utilities
-*/
+ */
 class Testutils : public shcore::Cpp_object_bridge {
  private:
-  virtual std::string class_name() const {
-    return "Testutils";
-  }
+  virtual std::string class_name() const { return "Testutils"; }
 
  public:
 #if DOXYGEN_JS
@@ -97,8 +95,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   None import_data(str uri, str path, str defaultSchema);
   str wait_member_state(int port, str[] states);
   bool wait_member_transactions(int destPort, int sourcePort = 0);
-  None wait_for_delayed_gr_start(int port, str rootpass,
-                                 int timeout = 60);
+  None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
   None expect_prompt(str prompt, str answer);
   None expect_password(str prompt, str password);
   int make_file_readonly(str path);
@@ -143,20 +140,16 @@ class Testutils : public shcore::Cpp_object_bridge {
   static mysqlshdk::db::Connection_options sandbox_connection_options(
       int port, const std::string &password);
 
-  bool test_skipped() const {
-    return !_test_skipped.empty();
-  }
+  bool test_skipped() const { return !_test_skipped.empty(); }
 
-  const std::string &test_skip_reason() const {
-    return _test_skipped;
-  }
+  const std::string &test_skip_reason() const { return _test_skipped; }
 
  public:
   // Sandbox routines
   void deploy_sandbox(int port, const std::string &rootpass,
                       const shcore::Dictionary_t &opts = {});
   void deploy_raw_sandbox(int port, const std::string &rootpass,
-                      const shcore::Dictionary_t &opts = {});
+                          const shcore::Dictionary_t &opts = {});
   void destroy_sandbox(int port, bool quiet_kill = false);
 
   void start_sandbox(int port);
@@ -170,18 +163,19 @@ class Testutils : public shcore::Cpp_object_bridge {
   void end_snapshot_sandbox_error_log(int port);
 
   void change_sandbox_conf(int port, const std::string &option,
-                           const std::string& value,
-                           const std::string& section = "");
+                           const std::string &value,
+                           const std::string &section = "");
   void remove_from_sandbox_conf(int port, const std::string &option,
                                 const std::string &section = "");
   std::string get_sandbox_conf_path(int port);
   std::string get_sandbox_log_path(int port);
-  std::string get_sandbox_path(int port = 0, const std::string& file = "");
+  std::string get_sandbox_path(int port = 0, const std::string &file = "");
 
   void dump_data(const std::string &uri, const std::string &path,
                  const std::vector<std::string> &schemas);
   void import_data(const std::string &uri, const std::string &path,
                    const std::string &schema = "");
+
  public:
   // InnoDB cluster routines
   void wait_for_delayed_gr_start(int port, const std::string &root_pass,
@@ -195,12 +189,12 @@ class Testutils : public shcore::Cpp_object_bridge {
  public:
   // Misc utility stuff
   int make_file_readonly(const std::string &path);
-  void mk_dir(const std::string& path, bool recursive = false);
-  void rm_dir(const std::string& path, bool recursive = false);
-  int ch_mod(const std::string& path, int mode);
-  void cp_file(const std::string &source, const std::string& target);
-  void rm_file(const std::string& target);
-  void touch(const std::string& file);
+  void mk_dir(const std::string &path, bool recursive = false);
+  void rm_dir(const std::string &path, bool recursive = false);
+  int ch_mod(const std::string &path, int mode);
+  void cp_file(const std::string &source, const std::string &target);
+  void rm_file(const std::string &target);
+  void touch(const std::string &file);
 
   std::string get_shell_log_path();
 
@@ -222,8 +216,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   void expect_prompt(const std::string &prompt, const std::string &text);
   void expect_password(const std::string &prompt, const std::string &text);
 
-  bool version_check(const std::string &v1,
-                     const std::string &op,
+  bool version_check(const std::string &v1, const std::string &op,
                      const std::string &v2);
 
  private:
@@ -264,7 +257,7 @@ class Testutils : public shcore::Cpp_object_bridge {
                                        bool raw = false);
   void change_sandbox_uuid(int port, const std::string &server_uuid);
   std::string get_sandbox_datadir(int port);
-  void try_rename(const std::string& source, const std::string& target);
+  void try_rename(const std::string &source, const std::string &target);
   void make_empty_file(const std::string &path);
 
   std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(int port);

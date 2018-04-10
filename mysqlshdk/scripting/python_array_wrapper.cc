@@ -41,14 +41,16 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds) {
   PyObject *valueptr = NULL;
   static const char *kwlist[] = {"__valueptr__", 0};
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", (char**)kwlist, &valueptr))
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", (char **)kwlist,
+                                   &valueptr))
     return -1;
 
   delete self->array;
 
   if (valueptr) {
     try {
-      self->array->reset(static_cast<Value::Array_type*>(PyCObject_AsVoidPtr(valueptr)));
+      self->array->reset(
+          static_cast<Value::Array_type *>(PyCObject_AsVoidPtr(valueptr)));
     } catch (std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
@@ -77,11 +79,11 @@ Py_ssize_t list_length(PyShListObject *self) {
 PyObject *list_item(PyShListObject *self, Py_ssize_t index) {
   Python_context *ctx;
 
-  if (!(ctx = Python_context::get_and_check()))
-    return NULL;
+  if (!(ctx = Python_context::get_and_check())) return NULL;
 
   if (index < 0 || index >= (int)self->array->get()->size()) {
-    Python_context::set_python_error(PyExc_IndexError, "list index out of range");
+    Python_context::set_python_error(PyExc_IndexError,
+                                     "list index out of range");
     return NULL;
   }
 
@@ -98,7 +100,8 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value) {
   if (!ctx) return -1;
 
   if (index < 0 || index >= (int)self->array->get()->size()) {
-    Python_context::set_python_error(PyExc_IndexError, "list index out of range");
+    Python_context::set_python_error(PyExc_IndexError,
+                                     "list index out of range");
     return -1;
   }
 
@@ -126,7 +129,8 @@ int list_contains(PyShListObject *self, PyObject *value) {
     shcore::Value::Array_type *array;
     array = self->array->get();
 
-    if (std::find(array->begin(), array->end(), ctx->pyobj_to_shcore_value(value)) != array->end())
+    if (std::find(array->begin(), array->end(),
+                  ctx->pyobj_to_shcore_value(value)) != array->end())
       return 1;
   } catch (...) {
   }
@@ -138,18 +142,19 @@ PyObject *list_inplace_concat(PyShListObject *self, PyObject *other) {
   if (!ctx) return NULL;
 
   other = PySequence_Fast(other, "argument to += must be a sequence");
-  if (!other)
-    return NULL;
+  if (!other) return NULL;
 
   shcore::Value::Array_type *array;
   array = self->array->get();
 
-  shcore::Value::Array_type *array_other = new Value::Array_type(ctx->pyobj_to_shcore_value(other));
+  shcore::Value::Array_type *array_other =
+      new Value::Array_type(ctx->pyobj_to_shcore_value(other));
 
-  std::copy(array_other->begin(), array_other->end(), std::back_inserter(*array));
+  std::copy(array_other->begin(), array_other->end(),
+            std::back_inserter(*array));
 
   Py_INCREF(self);
-  return (PyObject*)self;
+  return (PyObject *)self;
 }
 
 PyObject *list_printable(PyShListObject *self) {
@@ -181,8 +186,7 @@ PyObject *list_insert(PyShListObject *self, PyObject *args) {
   if (!ctx) return NULL;
 
   PyObject *value;
-  if (!PyArg_ParseTuple(args, "iO:insert", &i, &value))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "iO:insert", &i, &value)) return NULL;
 
   try {
     shcore::Value::Array_type *array;
@@ -235,147 +239,148 @@ PyDoc_STRVAR(PyShListDoc,
                                                     \n\
                                                                                                                                   Creates a new instance of a shcore array object.");
 
-PyDoc_STRVAR(append_doc,
-             "L.append(value) -- append object to end");
-PyDoc_STRVAR(insert_doc,
-             "L.insert(index, value) -- insert object at index");
+PyDoc_STRVAR(append_doc, "L.append(value) -- append object to end");
+PyDoc_STRVAR(insert_doc, "L.insert(index, value) -- insert object at index");
 PyDoc_STRVAR(remove_doc,
              "L.remove(value) -- remove first occurrence of object");
 PyDoc_STRVAR(remove_all_doc,
              "L.remove_all() -- remove all elements from the list");
-PyDoc_STRVAR(extend_doc,
-             "L.extend(list) -- add all elements from the list");
+PyDoc_STRVAR(extend_doc, "L.extend(list) -- add all elements from the list");
 
 static PyMethodDef PyShListMethods[] = {
-  //{"__getitem__", (PyCFunction)list_subscript, METH_O|METH_COEXIST, getitem_doc},
-  {"append", (PyCFunction)list_append, METH_O, append_doc},
-  {"extend", (PyCFunction)list_inplace_concat, METH_O, extend_doc},
-  {"insert", (PyCFunction)list_insert, METH_VARARGS, insert_doc},
-  {"remove", (PyCFunction)list_remove, METH_O, remove_doc},
-  {"remove_all", (PyCFunction)list_remove_all, METH_NOARGS, remove_all_doc},
-  {NULL, NULL, 0, NULL}
+    //{"__getitem__", (PyCFunction)list_subscript, METH_O|METH_COEXIST,
+    // getitem_doc},
+    {"append", (PyCFunction)list_append, METH_O, append_doc},
+    {"extend", (PyCFunction)list_inplace_concat, METH_O, extend_doc},
+    {"insert", (PyCFunction)list_insert, METH_VARARGS, insert_doc},
+    {"remove", (PyCFunction)list_remove, METH_O, remove_doc},
+    {"remove_all", (PyCFunction)list_remove_all, METH_NOARGS, remove_all_doc},
+    {NULL, NULL, 0, NULL}};
+
+static PySequenceMethods PyShListObject_as_sequence = {
+    (lenfunc)list_length,     // lenfunc sq_length;
+    0,                        // binaryfunc sq_concat;
+    0,                        // ssizeargfunc sq_repeat;
+    (ssizeargfunc)list_item,  // ssizeargfunc sq_item;
+    0,  // (ssizessizeargfunc)list_slice, // ssizessizeargfunc sq_slice;
+    (ssizeobjargproc)list_assign,  // ssizeobjargproc sq_ass_item;
+    0,  // (ssizessizeobjargproc)list_assign_slice,// ssizessizeobjargproc
+        // sq_ass_slice;
+    (objobjproc)list_contains,        // objobjproc sq_contains;
+    (binaryfunc)list_inplace_concat,  // binaryfunc sq_inplace_concat;
+    0                                 // ssizeargfunc sq_inplace_repeat;
 };
 
-static PySequenceMethods PyShListObject_as_sequence =
-{
-  (lenfunc)list_length,  // lenfunc sq_length;
-  0,  // binaryfunc sq_concat;
-  0,  // ssizeargfunc sq_repeat;
-  (ssizeargfunc)list_item,  // ssizeargfunc sq_item;
-  0,  // (ssizessizeargfunc)list_slice, // ssizessizeargfunc sq_slice;
-  (ssizeobjargproc)list_assign,  // ssizeobjargproc sq_ass_item;
-  0,  // (ssizessizeobjargproc)list_assign_slice,// ssizessizeobjargproc sq_ass_slice;
-  (objobjproc)list_contains,  // objobjproc sq_contains;
-  (binaryfunc)list_inplace_concat,  // binaryfunc sq_inplace_concat;
-  0  // ssizeargfunc sq_inplace_repeat;
-};
+static PyTypeObject PyShListObjectType = {
+    PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
+    0,
+    "List",  // char *tp_name; /* For printing, in format "<module>.<name>" */
+    sizeof(PyShListObject),
+    0,  // int tp_basicsize, tp_itemsize; /* For allocation */
 
-static PyTypeObject PyShListObjectType =
-{
-  PyObject_HEAD_INIT(&PyType_Type)  //PyObject_VAR_HEAD
-  0,
-  "List",  // char *tp_name; /* For printing, in format "<module>.<name>" */
-  sizeof(PyShListObject), 0,  // int tp_basicsize, tp_itemsize; /* For allocation */
+    /* Methods to implement standard operations */
 
-  /* Methods to implement standard operations */
+    (destructor)list_dealloc,  //  destructor tp_dealloc;
+    0,                         // printfunc tp_print;
+    0,                         // getattrfunc tp_getattr;
+    0,                         // setattrfunc tp_setattr;
+    0,                         // (cmpfunc)list_compare, //  cmpfunc tp_compare;
+    0,                         // (reprfunc)list_repr,//  reprfunc tp_repr;
 
-  (destructor)list_dealloc,  //  destructor tp_dealloc;
-  0,  // printfunc tp_print;
-  0,  // getattrfunc tp_getattr;
-  0,  // setattrfunc tp_setattr;
-  0,  // (cmpfunc)list_compare, //  cmpfunc tp_compare;
-  0,  // (reprfunc)list_repr,//  reprfunc tp_repr;
+    /* Method suites for standard classes */
 
-  /* Method suites for standard classes */
+    0,                            //  PyNumberMethods *tp_as_number;
+    &PyShListObject_as_sequence,  //  PySequenceMethods *tp_as_sequence;
+    0,                            //  PyMappingMethods *tp_as_mapping;
 
-  0,  //  PyNumberMethods *tp_as_number;
-  &PyShListObject_as_sequence,  //  PySequenceMethods *tp_as_sequence;
-  0,  //  PyMappingMethods *tp_as_mapping;
+    /* More standard operations (here for binary compatibility) */
 
-  /* More standard operations (here for binary compatibility) */
+    0,                         // hashfunc tp_hash;
+    0,                         // ternaryfunc tp_call;
+    (reprfunc)list_printable,  // reprfunc tp_str;
+    PyObject_GenericGetAttr,   // getattrofunc tp_getattro;
+    0,                         // setattrofunc tp_setattro;
 
-  0,  // hashfunc tp_hash;
-  0,  // ternaryfunc tp_call;
-  (reprfunc)list_printable,  // reprfunc tp_str;
-  PyObject_GenericGetAttr,  // getattrofunc tp_getattro;
-  0,  // setattrofunc tp_setattro;
+    /* Functions to access object as input/output buffer */
+    0,  // PyBufferProcs *tp_as_buffer;
 
-  /* Functions to access object as input/output buffer */
-  0,  // PyBufferProcs *tp_as_buffer;
+    /* Flags to define presence of optional/expanded features */
+    Py_TPFLAGS_DEFAULT,  // long tp_flags;
 
-  /* Flags to define presence of optional/expanded features */
-  Py_TPFLAGS_DEFAULT,  // long tp_flags;
+    PyShListDoc,  // char *tp_doc; /* Documentation string */
 
-  PyShListDoc,  // char *tp_doc; /* Documentation string */
+    /* Assigned meaning in release 2.0 */
+    /* call function for all accessible objects */
+    0,  // traverseproc tp_traverse;
 
-  /* Assigned meaning in release 2.0 */
-  /* call function for all accessible objects */
-  0,  // traverseproc tp_traverse;
+    /* delete references to contained objects */
+    0,  // inquiry tp_clear;
 
-  /* delete references to contained objects */
-  0,  // inquiry tp_clear;
+    /* Assigned meaning in release 2.1 */
+    /* rich comparisons */
+    0,  // richcmpfunc tp_richcompare;
 
-  /* Assigned meaning in release 2.1 */
-  /* rich comparisons */
-  0,  // richcmpfunc tp_richcompare;
+    /* weak reference enabler */
+    0,  // long tp_weaklistoffset;
 
-  /* weak reference enabler */
-  0,  // long tp_weaklistoffset;
+    /* Added in release 2.2 */
+    /* Iterators */
+    0,  // getiterfunc tp_iter;
+    0,  // iternextfunc tp_iternext;
 
-  /* Added in release 2.2 */
-  /* Iterators */
-  0,  // getiterfunc tp_iter;
-  0,  // iternextfunc tp_iternext;
-
-  /* Attribute descriptor and subclassing stuff */
-  PyShListMethods,  // struct PyMethodDef *tp_methods;
-  0,  // struct PyMemberDef *tp_members;
-  0,  //  struct PyGetSetDef *tp_getset;
-  0,  // struct _typeobject *tp_base;
-  0,  // PyObject *tp_dict;
-  0,  // descrgetfunc tp_descr_get;
-  0,  // descrsetfunc tp_descr_set;
-  0,  // long tp_dictoffset;
-  (initproc)list_init,  // initproc tp_init;
-  PyType_GenericAlloc,  // allocfunc tp_alloc;
-  PyType_GenericNew,  // newfunc tp_new;
-  0,  // freefunc tp_free; /* Low-level free-memory routine */
-  0,  // inquiry tp_is_gc; /* For PyObject_IS_GC */
-  0,  // PyObject *tp_bases;
-  0,  // PyObject *tp_mro; /* method resolution order */
-  0,  // PyObject *tp_cache;
-  0,  // PyObject *tp_subclasses;
-  0,  // PyObject *tp_weaklist;
-  0,  // tp_del
+    /* Attribute descriptor and subclassing stuff */
+    PyShListMethods,      // struct PyMethodDef *tp_methods;
+    0,                    // struct PyMemberDef *tp_members;
+    0,                    //  struct PyGetSetDef *tp_getset;
+    0,                    // struct _typeobject *tp_base;
+    0,                    // PyObject *tp_dict;
+    0,                    // descrgetfunc tp_descr_get;
+    0,                    // descrsetfunc tp_descr_set;
+    0,                    // long tp_dictoffset;
+    (initproc)list_init,  // initproc tp_init;
+    PyType_GenericAlloc,  // allocfunc tp_alloc;
+    PyType_GenericNew,    // newfunc tp_new;
+    0,  // freefunc tp_free; /* Low-level free-memory routine */
+    0,  // inquiry tp_is_gc; /* For PyObject_IS_GC */
+    0,  // PyObject *tp_bases;
+    0,  // PyObject *tp_mro; /* method resolution order */
+    0,  // PyObject *tp_cache;
+    0,  // PyObject *tp_subclasses;
+    0,  // PyObject *tp_weaklist;
+    0,  // tp_del
 #if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
-  0  // tp_version_tag
+    0  // tp_version_tag
 #endif
 };
 
 void Python_context::init_shell_list_type() {
   PyShListObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShListObjectType) < 0) {
-    throw Exception::runtime_error("Could not initialize Shcore Array type in python");
+    throw Exception::runtime_error(
+        "Could not initialize Shcore Array type in python");
   }
 
   Py_INCREF(&PyShListObjectType);
-  PyModule_AddObject(get_shell_python_support_module(), "List", reinterpret_cast<PyObject *>(&PyShListObjectType));
+  PyModule_AddObject(get_shell_python_support_module(), "List",
+                     reinterpret_cast<PyObject *>(&PyShListObjectType));
 
-  _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_python_support_module()), "List");
+  _shell_list_class = PyDict_GetItemString(
+      PyModule_GetDict(get_shell_python_support_module()), "List");
 }
 
 PyObject *shcore::wrap(std::shared_ptr<Value::Array_type> array) {
   PyShListObject *wrapper = PyObject_New(PyShListObject, &PyShListObjectType);
   wrapper->array = new Value::Array_type_ref(array);
-  return reinterpret_cast<PyObject*>(wrapper);
+  return reinterpret_cast<PyObject *>(wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_object) {
+bool shcore::unwrap(PyObject *value,
+                    std::shared_ptr<Value::Array_type> &ret_object) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
   if (PyObject_IsInstance(value, ctx->get_shell_list_class())) {
-    ret_object = *((PyShListObject*)value)->array;
+    ret_object = *((PyShListObject *)value)->array;
     return true;
   }
   return false;

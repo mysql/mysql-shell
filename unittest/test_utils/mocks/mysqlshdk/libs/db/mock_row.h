@@ -36,14 +36,13 @@
 namespace testing {
 class Mock_row : public mysqlshdk::db::IRow {
  public:
-  Mock_row() {
-  }
-  Mock_row(const std::vector<std::string>& names,
-           const std::vector<mysqlshdk::db::Type>& types,
-           const std::vector<std::string>& data);
-  void init(const std::vector<std::string>& names,
-            const std::vector<mysqlshdk::db::Type>& types,
-            const std::vector<std::string>& data);
+  Mock_row() {}
+  Mock_row(const std::vector<std::string> &names,
+           const std::vector<mysqlshdk::db::Type> &types,
+           const std::vector<std::string> &data);
+  void init(const std::vector<std::string> &names,
+            const std::vector<mysqlshdk::db::Type> &types,
+            const std::vector<std::string> &data);
 
   MOCK_CONST_METHOD1(get_as_string, std::string(uint32_t index));
 
@@ -52,7 +51,7 @@ class Mock_row : public mysqlshdk::db::IRow {
   MOCK_CONST_METHOD1(get_uint, uint64_t(uint32_t index));
   MOCK_CONST_METHOD1(get_string, std::string(uint32_t index));
   MOCK_CONST_METHOD1(get_string_data,
-                     std::pair<const char*, size_t>(uint32_t index));
+                     std::pair<const char *, size_t>(uint32_t index));
   MOCK_CONST_METHOD1(get_float, float(uint32_t index));
   MOCK_CONST_METHOD1(get_double, double(uint32_t index));
   MOCK_CONST_METHOD1(get_bit, uint64_t(uint32_t index));
@@ -71,7 +70,7 @@ class Mock_row : public mysqlshdk::db::IRow {
   virtual int64_t def_get_int(uint32_t index) const;
   virtual uint64_t def_get_uint(uint32_t index) const;
   virtual std::string def_get_string(uint32_t index) const;
-  virtual std::pair<const char*, size_t> def_get_string_data(
+  virtual std::pair<const char *, size_t> def_get_string_data(
       uint32_t index) const;
   virtual float def_get_float(uint32_t index) const;
   virtual double def_get_double(uint32_t index) const;

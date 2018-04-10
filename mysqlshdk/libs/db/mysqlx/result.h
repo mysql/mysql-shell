@@ -29,10 +29,10 @@
 
 #include "mysqlshdk/libs/db/result.h"
 
+#include <deque>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <deque>
 #include <string>
 #include <vector>
 
@@ -52,7 +52,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   ~Result() override;
 
   // Data Retrieving
-  const IRow* fetch_one() override;
+  const IRow *fetch_one() override;
   bool next_resultset() override;
   std::unique_ptr<Warning> fetch_one_warning() override;
   std::string get_info() const override;
@@ -68,7 +68,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   uint64_t get_affected_row_count() const override;
   uint64_t get_fetched_row_count() const override { return _fetched_row_count; }
   uint64_t get_warning_count() const override;
-  const std::vector<Column>& get_metadata() const override { return _metadata; }
+  const std::vector<Column> &get_metadata() const override { return _metadata; }
   std::vector<std::string> get_generated_ids();
 
  protected:

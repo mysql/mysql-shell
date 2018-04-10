@@ -62,7 +62,7 @@ class Shell_options : public shcore::Options {
     // Individual connection parameters
     std::string user;
     std::string pwd;
-    const char* password = nullptr;
+    const char *password = nullptr;
     std::string host;
     int port = 0;
     std::string schema;
@@ -117,53 +117,39 @@ class Shell_options : public shcore::Options {
     mysqlshdk::db::Connection_options connection_options() const;
   };
 
-  explicit Shell_options(int argc = 0, char** argv = nullptr,
-                         const std::string& configuration_file = "");
+  explicit Shell_options(int argc = 0, char **argv = nullptr,
+                         const std::string &configuration_file = "");
 
-  void set(const std::string& option, const std::string& value) {
+  void set(const std::string &option, const std::string &value) {
     Options::set(option, value);
   }
-  void set(const std::string& option, const shcore::Value& value);
-  void set_and_notify(const std::string& option, const std::string& value,
+  void set(const std::string &option, const shcore::Value &value);
+  void set_and_notify(const std::string &option, const std::string &value,
                       bool save_to_file = false);
-  void set_and_notify(const std::string& option, const shcore::Value& value,
+  void set_and_notify(const std::string &option, const shcore::Value &value,
                       bool save_to_file = false);
 
-  void unset(const std::string& option, bool save_to_file = false);
+  void unset(const std::string &option, bool save_to_file = false);
 
-  shcore::Value get(const std::string& option);
+  shcore::Value get(const std::string &option);
 
-  const Storage& get() {
-    return storage;
-  }
+  const Storage &get() { return storage; }
 
-  bool has_key(const std::string& option) const {
+  bool has_key(const std::string &option) const {
     return named_options.find(option) != named_options.end();
   }
 
-  void set_interactive(bool value) {
-    storage.interactive = value;
-  }
+  void set_interactive(bool value) { storage.interactive = value; }
 
-  void set_wizards(bool value) {
-    storage.wizards = value;
-  }
+  void set_wizards(bool value) { storage.wizards = value; }
 
-  void set_db_name_cache(bool value) {
-    storage.db_name_cache = value;
-  }
+  void set_db_name_cache(bool value) { storage.db_name_cache = value; }
 
-  std::vector<std::string> get_details() {
-    return get_cmdline_help(30, 48);
-  }
+  std::vector<std::string> get_details() { return get_cmdline_help(30, 48); }
 
-  bool action_print_help() const {
-    return print_cmd_line_helper;
-  }
+  bool action_print_help() const { return print_cmd_line_helper; }
 
-  bool action_print_version() const {
-    return print_cmd_line_version;
-  }
+  bool action_print_version() const { return print_cmd_line_version; }
 
   bool action_print_version_extra() const {
     return print_cmd_line_version_extra;
@@ -172,10 +158,10 @@ class Shell_options : public shcore::Options {
   std::vector<std::string> get_named_options();
 
  protected:
-  bool custom_cmdline_handler(char** argv, int* argi);
+  bool custom_cmdline_handler(char **argv, int *argi);
 
-  void override_session_type(const std::string& option, const char* value);
-  void set_ssl_mode(const std::string& option, const char* value);
+  void override_session_type(const std::string &option, const char *value);
+  void set_ssl_mode(const std::string &option, const char *value);
 
   void check_session_type_conflicts();
   void check_user_conflicts();

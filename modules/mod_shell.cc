@@ -24,24 +24,24 @@
 
 #include <memory>
 
-#include "modules/mysqlxtest_utils.h"
-#include "utils/utils_general.h"
-#include "shellcore/utils_help.h"
 #include "modules/adminapi/mod_dba_common.h"
-#include "shellcore/base_session.h"
-#include "modules/mod_mysql_session.h"
-#include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/base_database_object.h"
-#include "shellcore/shell_notifications.h"
+#include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
+#include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "shellcore/base_session.h"
+#include "shellcore/shell_notifications.h"
+#include "shellcore/utils_help.h"
+#include "utils/utils_general.h"
 
 using namespace std::placeholders;
 
-
 namespace mysqlsh {
 
-REGISTER_HELP(SHELL_BRIEF, "Gives access to general purpose functions and properties.");
+REGISTER_HELP(SHELL_BRIEF,
+              "Gives access to general purpose functions and properties.");
 
 Shell::Shell(Mysql_shell *owner)
     : _shell(owner),
@@ -70,7 +70,7 @@ void Shell::init() {
 
 Shell::~Shell() {}
 
-bool Shell::operator == (const Object_bridge &other) const {
+bool Shell::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
@@ -80,52 +80,65 @@ void Shell::set_member(const std::string &prop, shcore::Value value) {
 
 // Documentation of shell.options
 REGISTER_HELP(SHELL_OPTIONS_BRIEF, "Dictionary of active shell options.");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL, "The options dictionary may contain "\
-                                    "the following attributes:");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL1, "@li batchContinueOnError: read-only, "\
-                                     "boolean value to indicate if the "\
-                                     "execution of an SQL script in batch "\
-                                     "mode shall continue if errors occur");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL2, "@li interactive: read-only, boolean "\
-                                     "value that indicates if the shell is "\
-                                     "running in interactive mode");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL3, "@li outputFormat: controls the type of "\
-                                     "output produced for SQL results.");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL4, "@li sandboxDir: default path where the "\
-                                     "new sandbox instances for InnoDB "\
-                                     "cluster will be deployed");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL5, "@li showWarnings: boolean value to "\
-                                     "indicate whether warnings shall be "\
-                                     "included when printing an SQL result");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL6, "@li useWizards: read-only, boolean value "\
-                                     "to indicate if the Shell is using the "\
-                                     "interactive wrappers (wizard mode)");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL7, "@li " SHCORE_HISTORY_MAX_SIZE ": number "\
+REGISTER_HELP(SHELL_OPTIONS_DETAIL,
+              "The options dictionary may contain "
+              "the following attributes:");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL1,
+              "@li batchContinueOnError: read-only, "
+              "boolean value to indicate if the "
+              "execution of an SQL script in batch "
+              "mode shall continue if errors occur");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL2,
+              "@li interactive: read-only, boolean "
+              "value that indicates if the shell is "
+              "running in interactive mode");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL3,
+              "@li outputFormat: controls the type of "
+              "output produced for SQL results.");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL4,
+              "@li sandboxDir: default path where the "
+              "new sandbox instances for InnoDB "
+              "cluster will be deployed");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL5,
+              "@li showWarnings: boolean value to "
+              "indicate whether warnings shall be "
+              "included when printing an SQL result");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL6,
+              "@li useWizards: read-only, boolean value "
+              "to indicate if the Shell is using the "
+              "interactive wrappers (wizard mode)");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL7, "@li " SHCORE_HISTORY_MAX_SIZE
+                                     ": number "
                                      "of entries to keep in command history");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL8, "@li " SHCORE_HISTORY_AUTOSAVE ": true "\
-                              "to save command history when exiting the shell");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL9, \
-    "@li " SHCORE_HISTIGNORE ": colon separated list of glob patterns to filter"
-    " out of the command history in SQL mode");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL8,
+              "@li " SHCORE_HISTORY_AUTOSAVE
+              ": true "
+              "to save command history when exiting the shell");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL9,
+              "@li " SHCORE_HISTIGNORE
+              ": colon separated list of glob patterns to filter"
+              " out of the command history in SQL mode");
 
-REGISTER_HELP(SHELL_OPTIONS_DETAIL10, \
+REGISTER_HELP(SHELL_OPTIONS_DETAIL10,
               "The outputFormat option supports the following values:");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL11, \
+REGISTER_HELP(SHELL_OPTIONS_DETAIL11,
               "@li table: displays the output in table format (default)");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL12, \
+REGISTER_HELP(SHELL_OPTIONS_DETAIL12,
               "@li json: displays the output in JSON format");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL13, \
+REGISTER_HELP(
+    SHELL_OPTIONS_DETAIL13,
     "@li json/raw: displays the output in a JSON format but in a single line");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL14, \
+REGISTER_HELP(
+    SHELL_OPTIONS_DETAIL14,
     "@li vertical: displays the outputs vertically, one line per column value");
 REGISTER_HELP(SHELL_OPTIONS_DETAIL15,
-              "@li " SHCORE_DB_NAME_CACHE \
-              ": true if auto-refresh of DB object name cache is "\
+              "@li " SHCORE_DB_NAME_CACHE
+              ": true if auto-refresh of DB object name cache is "
               "enabled. The \\rehash command can be used for manual refresh");
 REGISTER_HELP(
     SHELL_OPTIONS_DETAIL16,
-    "@li " SHCORE_DEVAPI_DB_OBJECT_HANDLES\
-    ": true to enable schema collection and table name aliases in the db "\
+    "@li " SHCORE_DEVAPI_DB_OBJECT_HANDLES
+    ": true to enable schema collection and table name aliases in the db "
     "object, for DevAPI operations.");
 
 /**
@@ -170,18 +183,20 @@ shcore::Value Shell::get_member(const std::string &prop) const {
 
 REGISTER_HELP(SHELL_PARSEURI_BRIEF, "Utility function to parse a URI string.");
 REGISTER_HELP(SHELL_PARSEURI_PARAM, "@param uri a URI string.");
-REGISTER_HELP(SHELL_PARSEURI_RETURNS, "@returns A dictionary containing all "\
-                                      "the elements contained on the given "\
-                                      "URI string.");
-REGISTER_HELP(SHELL_PARSEURI_DETAIL, "Parses a URI string and returns a "\
-                                     "dictionary containing an item for each "\
-                                     "found element.");
+REGISTER_HELP(SHELL_PARSEURI_RETURNS,
+              "@returns A dictionary containing all "
+              "the elements contained on the given "
+              "URI string.");
+REGISTER_HELP(SHELL_PARSEURI_DETAIL,
+              "Parses a URI string and returns a "
+              "dictionary containing an item for each "
+              "found element.");
 
 REGISTER_HELP(SHELL_PARSEURI_DETAIL1, "TOPIC_URI");
 
-REGISTER_HELP(SHELL_PARSEURI_DETAIL2, "For more details about how a URI is "
-  "created as well as the returned dictionary, use \\? connection");
-
+REGISTER_HELP(SHELL_PARSEURI_DETAIL2,
+              "For more details about how a URI is "
+              "created as well as the returned dictionary, use \\? connection");
 
 /**
  * $(SHELL_PARSEURI_BRIEF)
@@ -206,7 +221,6 @@ Dictionary Shell::parseUri(String uri) {}
 dict Shell::parse_uri(str uri) {}
 #endif
 shcore::Value Shell::parse_uri(const shcore::Argument_list &args) {
-
   shcore::Value ret_val;
   args.ensure_count(1, get_function_name("parseUri").c_str());
 
@@ -258,31 +272,28 @@ REGISTER_HELP(SHELL_PROMPT_DETAIL6, "@li password: the user input will not be ec
  * $(SHELL_PROMPT_DETAIL6)
  */
 #if DOXYGEN_JS
-String Shell::prompt(String message, Dictionary options){}
+String Shell::prompt(String message, Dictionary options) {}
 #elif DOXYGEN_PY
-str Shell::prompt(str message, dict options){}
+str Shell::prompt(str message, dict options) {}
 #endif
 shcore::Value Shell::prompt(const shcore::Argument_list &args) {
-
   std::string ret_val;
 
   args.ensure_count(1, 2, get_function_name("prompt").c_str());
 
   try {
-
     std::string prompt = args.string_at(0);
 
     shcore::Value::Map_type_ref options;
 
-    if (args.size() == 2)
-      options = args.map_at(1);
+    if (args.size() == 2) options = args.map_at(1);
 
     // If there are options, reads them to determine how to proceed
     std::string default_value;
     bool password = false;
 
     if (options) {
-      shcore::Argument_map opt_map (*options);
+      shcore::Argument_map opt_map(*options);
       opt_map.ensure_keys({}, {"defaultValue", "type"}, "prompt options");
 
       if (opt_map.has_key("defaultValue"))
@@ -292,7 +303,9 @@ shcore::Value Shell::prompt(const shcore::Argument_list &args) {
         std::string type = opt_map.string_at("type");
 
         if (type != "password")
-          throw shcore::Exception::runtime_error("Unsupported value for parameter 'type', allowed values: password");
+          throw shcore::Exception::runtime_error(
+              "Unsupported value for parameter 'type', allowed values: "
+              "password");
         else
           password = true;
       }
@@ -315,7 +328,6 @@ shcore::Value Shell::prompt(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("prompt"));
 
   return shcore::Value(ret_val);
-
 }
 
 // These two lines link the help to be shown on \? connection
@@ -347,12 +359,18 @@ REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1,
               "Only TCP/IP connections are allowed for this function.");
 
 REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
-REGISTER_HELP(TOPIC_URI1, "[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]");
+REGISTER_HELP(TOPIC_URI1,
+              "[scheme://][user[:password]@]<host[:port]|socket>[/"
+              "schema][?option=value&option=value...]");
 
 // These lines group the description of ALL the available connection options
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "The following options are valid for use either in a URI or in a dictionary:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS,
+              "The following options are valid for use either in a URI or in a "
+              "dictionary:");
 REGISTER_HELP(TOPIC_CONNECTION_OPTIONS1, "TOPIC_URI_CONNECTION_OPTIONS");
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS2, "The following options are also valid when a dictionary is used:");
+REGISTER_HELP(
+    TOPIC_CONNECTION_OPTIONS2,
+    "The following options are also valid when a dictionary is used:");
 REGISTER_HELP(TOPIC_CONNECTION_OPTIONS3, "TOPIC_DICT_CONNECTION_OPTIONS");
 
 // These lines group the connection options available for URI
@@ -397,36 +415,66 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS12,
               "URL encoded.");
 
 // These lines group the connection options available for dictionary
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS, "@li scheme: the protocol to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS1, "@li user: the MySQL user name to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS,
+              "@li scheme: the protocol to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS1,
+              "@li user: the MySQL user name to be used on the connection.");
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS2, "@li dbUser: alias for user.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS3, "@li password: the password to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS4, "@li dbPassword: same as password.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS5, "@li host: the hostname or IP address to be used on a TCP connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS6, "@li port: the port to be used in a TCP connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS7, "@li socket: the socket file name to be used on a connection through unix sockets.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS8, "@li schema: the schema to be selected once the connection is done.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS3,
+              "@li password: the password to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS4,
+              "@li dbPassword: same as password.");
+REGISTER_HELP(
+    TOPIC_DICT_CONNECTION_OPTIONS5,
+    "@li host: the hostname or IP address to be used on a TCP connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS6,
+              "@li port: the port to be used in a TCP connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS7,
+              "@li socket: the socket file name to be used on a connection "
+              "through unix sockets.");
+REGISTER_HELP(
+    TOPIC_DICT_CONNECTION_OPTIONS8,
+    "@li schema: the schema to be selected once the connection is done.");
 
-// The rest of the lines provide additional details related to the connection option definition
-REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS, "The connection options are case insensitive and can only be defined once.");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS1, "If an option is defined more than once, an error will be generated.");
+// The rest of the lines provide additional details related to the connection
+// option definition
+REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS,
+              "The connection options are case insensitive and can only be "
+              "defined once.");
+REGISTER_HELP(
+    TOPIC_CONNECTION_DATA_DETAILS1,
+    "If an option is defined more than once, an error will be generated.");
 
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL, "TOPIC_CONNECTION_OPTION_SCHEME");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1, "TOPIC_CONNECTION_OPTION_SOCKET");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2, "TOPIC_CONNECTION_OPTION_SSL_MODE");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3, "TOPIC_CONNECTION_OPTION_TLS_VERSION");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL,
+              "TOPIC_CONNECTION_OPTION_SCHEME");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1,
+              "TOPIC_CONNECTION_OPTION_SOCKET");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
+              "TOPIC_CONNECTION_OPTION_SSL_MODE");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
+              "TOPIC_CONNECTION_OPTION_TLS_VERSION");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "TOPIC_URI_ENCODED_VALUE");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "TOPIC_URI_ENCODED_ATTRIBUTE");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME, "<b>Protocol Selection</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME1, "The scheme option defines the protocol to be used on the connection, the following are the accepted values:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME2, "@li mysql: for connections using the Classic protocol.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME3, "@li mysqlx: for connections using the X protocol.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME1,
+              "The scheme option defines the protocol to be used on the "
+              "connection, the following are the accepted values:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME2,
+              "@li mysql: for connections using the Classic protocol.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME3,
+              "@li mysqlx: for connections using the X protocol.");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET, "<b>Socket Connections</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET1, "To define a socket connection, replace the host and port by the socket path.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET2, "When using a connection dictionary, the path is set as the value for the socket option.");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET3, "When using a URI, the socket path must be URL encoded. A socket path may be specified in a URI in one of the following ways:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET1,
+              "To define a socket connection, replace the host and port by the "
+              "socket path.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET2,
+              "When using a connection dictionary, the path is set as the "
+              "value for the socket option.");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET3,
+              "When using a URI, the socket path must be URL encoded. A socket "
+              "path may be specified in a URI in one of the following ways:");
 
 #ifdef _WIN32
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET4,
@@ -442,7 +490,8 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTION_SOCKET6, "");
 #endif
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE, "<b>SSL Mode</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE1, "The ssl-mode option accepts the following values:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE1,
+              "The ssl-mode option accepts the following values:");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE2, "@li DISABLED");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE3, "@li PREFERRED");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE4, "@li REQUIRED");
@@ -450,24 +499,39 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE5, "@li VERIFY_CA");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE6, "@li VERIFY_IDENTITY");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION, "<b>TLS Version</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION1, "The tls-version option accepts the following values:");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION1,
+              "The tls-version option accepts the following values:");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION2, "@li TLSv1");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION3, "@li TLSv1.1");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION4, "@li TLSv1.2 (Supported only on commercial packages)");
+REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION4,
+              "@li TLSv1.2 (Supported only on commercial packages)");
 
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE, "<b>URL Encoding</b>");
-REGISTER_HELP(TOPIC_URI_ENCODED_VALUE1, "URL encoded values only accept alphanumeric characters and the next symbols: -._~!$'()*+;");
-REGISTER_HELP(TOPIC_URI_ENCODED_VALUE2, "Any other character must be URL encoded.");
-REGISTER_HELP(TOPIC_URI_ENCODED_VALUE3, "URL encoding is done by replacing the character being encoded by the sequence: %XX");
-REGISTER_HELP(TOPIC_URI_ENCODED_VALUE4, "Where XX is the hexadecimal ASCII value of the character being encoded.");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE1,
+              "URL encoded values only accept alphanumeric characters and the "
+              "next symbols: -._~!$'()*+;");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE2,
+              "Any other character must be URL encoded.");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE3,
+              "URL encoding is done by replacing the character being encoded "
+              "by the sequence: %XX");
+REGISTER_HELP(
+    TOPIC_URI_ENCODED_VALUE4,
+    "Where XX is the hexadecimal ASCII value of the character being encoded.");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE5,
               "If host is a literal IPv6 address it should be enclosed in "
               "\"[\" and \"]\" characters.");
 
 REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");
-REGISTER_HELP(SHELL_CONNECT_PARAM, "@param connectionData the connection data to be used to establish the session.");
-REGISTER_HELP(SHELL_CONNECT_PARAM1, "@param password Optional the password to be used when establishing the session.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL, "This function will establish the global session with the received connection data.");
+REGISTER_HELP(SHELL_CONNECT_PARAM,
+              "@param connectionData the connection data to be used to "
+              "establish the session.");
+REGISTER_HELP(SHELL_CONNECT_PARAM1,
+              "@param password Optional the password to be used when "
+              "establishing the session.");
+REGISTER_HELP(SHELL_CONNECT_DETAIL,
+              "This function will establish the global session with the "
+              "received connection data.");
 REGISTER_HELP(SHELL_CONNECT_DETAIL1, "TOPIC_CONNECTION_DATA");
 
 REGISTER_HELP(SHELL_CONNECT_DETAIL2,
@@ -492,7 +556,8 @@ REGISTER_HELP(SHELL_CONNECT_DETAIL3,
  *
  * \copydoc connection_options
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Detailed description of the connection data format is available at \ref
+ * connection_data
  *
  * $(SHELL_CONNECT_DETAIL2)
  *
@@ -525,16 +590,16 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
       std::static_pointer_cast<Object_bridge>(get_dev_session()));
 }
 
-void Shell::set_current_schema(const std::string& name) {
+void Shell::set_current_schema(const std::string &name) {
   auto session = _shell_core->get_dev_session();
   shcore::Value new_schema = shcore::Value::Null();
 
   if (!name.empty()) {
     session->set_current_schema(name);
 
-    auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
-    if (x_session)
-      new_schema = shcore::Value(x_session->get_schema(name));
+    auto x_session =
+        std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
+    if (x_session) new_schema = shcore::Value(x_session->get_schema(name));
   }
 
   _shell_core->set_global("db", new_schema,
@@ -571,7 +636,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::set_session_global(
     std::string currentSchema = session->get_default_schema();
     shcore::Value schema = shcore::Value::Null();
 
-    auto x_session = std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
+    auto x_session =
+        std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
     if (x_session && !currentSchema.empty())
       schema = shcore::Value(x_session->get_schema(currentSchema));
 
@@ -613,7 +679,8 @@ shcore::Value Shell::set_session(const shcore::Argument_list &args) {
 shcore::Value Shell::get_session(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getSession").c_str());
 
-  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_shell_core->get_dev_session()));
+  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(
+      _shell_core->get_dev_session()));
 }
 
 shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
@@ -631,13 +698,15 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   return shcore::Value(ret_val);
 }
 
-
 REGISTER_HELP(SHELL_LOG_BRIEF, "Logs an entry to the shell's log file.");
-REGISTER_HELP(SHELL_LOG_PARAM, "@param level one of ERROR, WARNING, INFO, "
-          "DEBUG, DEBUG2 as a string");
+REGISTER_HELP(SHELL_LOG_PARAM,
+              "@param level one of ERROR, WARNING, INFO, "
+              "DEBUG, DEBUG2 as a string");
 REGISTER_HELP(SHELL_LOG_PARAM1, "@param message the text to be logged");
-REGISTER_HELP(SHELL_LOG_DETAIL, "Only messages that have a level value equal "
-          "to or lower than the active one (set via --log-level) are logged.");
+REGISTER_HELP(
+    SHELL_LOG_DETAIL,
+    "Only messages that have a level value equal "
+    "to or lower than the active one (set via --log-level) are logged.");
 
 /**
  * $(SHELL_LOG_BRIEF)
@@ -660,7 +729,7 @@ shcore::Value Shell::log(const shcore::Argument_list &args) {
     level = ngcommon::Logger::get_log_level(args.string_at(0));
     if (level == ngcommon::Logger::LOG_NONE)
       throw shcore::Exception::argument_error("Invalid log level '" +
-                                                args[0].descr() + "'");
+                                              args[0].descr() + "'");
     ngcommon::Logger::log(level, nullptr, "%s", args.string_at(1).c_str());
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("log"));

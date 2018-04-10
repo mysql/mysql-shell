@@ -49,8 +49,8 @@ std::string join_path(const std::string &a, const std::string &b,
   return join_path(a, join_path(b, args...));
 }
 
-std::pair<std::string, std::string> SHCORE_PUBLIC splitdrive(
-    const std::string &path);
+std::pair<std::string, std::string> SHCORE_PUBLIC
+splitdrive(const std::string &path);
 
 std::string SHCORE_PUBLIC dirname(const std::string &path);
 std::string SHCORE_PUBLIC basename(const std::string &path);

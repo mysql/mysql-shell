@@ -39,8 +39,7 @@ std::shared_ptr<Metadata_mysql> Metadata_mysql::create(
 }
 
 Metadata_mysql::Metadata_mysql(std::shared_ptr<db::ISession> session)
-    : _session(session) {
-}
+    : _session(session) {}
 
 std::shared_ptr<db::IResult> Metadata_mysql::query(const std::string &sql) {
   assert(_session);

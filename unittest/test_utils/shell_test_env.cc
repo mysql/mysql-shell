@@ -58,9 +58,7 @@ class My_random : public mysqlshdk::utils::Random {
  */
 class Test_net_utilities : public mysqlshdk::utils::Net {
  public:
-  ~Test_net_utilities() override {
-    remove();
-  }
+  ~Test_net_utilities() override { remove(); }
 
   /**
    * Injects this instance of network utilities, replacing the default
@@ -79,8 +77,7 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
    * Removes the injected instance, restoring the default behaviour.
    */
   void remove() {
-    if (get() == this)
-      set(nullptr);
+    if (get() == this) set(nullptr);
   }
 
  protected:
@@ -92,8 +89,8 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
   /**
    * Allows to resolve the hostname stored by the shell test environment.
    */
-  std::string resolve_hostname_ipv4_impl(const std::string &name) const
-                                                                  override {
+  std::string resolve_hostname_ipv4_impl(
+      const std::string &name) const override {
     if (name == m_hostname || name == m_real_hostname)
       return m_hostname_ip;
     else
@@ -113,9 +110,7 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     return Net::is_loopback_impl(address);
   }
 
-  std::string get_hostname_impl() const override {
-    return m_hostname;
-  }
+  std::string get_hostname_impl() const override { return m_hostname; }
 };
 
 Test_net_utilities test_net_utilities;
@@ -188,8 +183,7 @@ void Shell_test_env::setup_env(int sandbox_port1, int sandbox_port2,
 
   s_hostname = getenv("MYSQL_HOSTNAME");
   s_real_hostname = getenv("MYSQL_REAL_HOSTNAME");
-  s_real_host_is_loopback =
-      mysqlshdk::utils::Net::is_loopback(s_real_hostname);
+  s_real_host_is_loopback = mysqlshdk::utils::Net::is_loopback(s_real_hostname);
   s_hostname_ip = mysqlshdk::utils::Net::resolve_hostname_ipv4(s_hostname);
   assert(!s_real_hostname.empty());
 
@@ -313,9 +307,7 @@ void Shell_test_env::TearDown() {
   }
 }
 
-void Shell_test_env::SetUpTestCase() {
-  g_initialized_test = false;
-}
+void Shell_test_env::SetUpTestCase() { g_initialized_test = false; }
 
 std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
   mysqlshdk::db::replay::set_mode(g_test_recording_mode, g_test_trace_sql);
@@ -469,7 +461,7 @@ void Shell_test_env::teardown_recorder() {
  * Returns the path to the mysqlsh binary being used on the tests.
  */
 std::string Shell_test_env::get_path_to_mysqlsh() {
-  // MYSQLSH_HOME will be honored during execution of the tests
+// MYSQLSH_HOME will be honored during execution of the tests
 #ifdef _WIN32
   return shcore::path::join_path(shcore::get_mysqlx_home_path(), "bin",
                                  "mysqlsh.exe");
@@ -480,8 +472,7 @@ std::string Shell_test_env::get_path_to_mysqlsh() {
 }
 
 std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {
-  if (file.empty())
-    return g_test_home;
+  if (file.empty()) return g_test_home;
   return shcore::path::join_path(g_test_home, file);
 }
 
@@ -603,8 +594,7 @@ std::string random_string(std::string::size_type length) {
 
   std::string result;
   result.reserve(length);
-  while (length--)
-    result += alphanum[dist(rng)];
+  while (length--) result += alphanum[dist(rng)];
 
   return result;
 }

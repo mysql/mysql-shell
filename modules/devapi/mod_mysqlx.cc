@@ -37,28 +37,30 @@ namespace mysqlx {
 REGISTER_HELP(
     MYSQLX_INTERACTIVE_BRIEF,
     "Used to work with X Protocol sessions using the MySQL X DevAPI.");
-REGISTER_HELP(
-    MYSQLX_BRIEF,
-    "Encloses the functions and classes available to interact with an X Protocol enabled MySQL Product.");
-REGISTER_HELP(
-    MYSQLX_DETAIL,
-    "The objects contained on this module provide a full API to interact with the different MySQL Products "
-    "implementing the X Protocol.");
-REGISTER_HELP(
-    MYSQLX_DETAIL1,
-    "In the case of a MySQL Server the API will enable doing operations on the different database objects "
-    "such as schema management operations and both table and collection management and CRUD operations. "
-    "(CRUD: Create, Read, Update, Delete).");
-REGISTER_HELP(
-    MYSQLX_DETAIL2,
-    "Intention of the module is to provide a full API for development through scripting languages such as "
-    "JavaScript and Python, this would be normally achieved through a normal session.");
-REGISTER_HELP(
-    MYSQLX_DETAIL3,
-    "To use the properties and functions available on this module you first need to import it.");
-REGISTER_HELP(
-    MYSQLX_DETAIL4,
-    "When running the shell in interactive mode, this module is automatically imported.");
+REGISTER_HELP(MYSQLX_BRIEF,
+              "Encloses the functions and classes available to interact with "
+              "an X Protocol enabled MySQL Product.");
+REGISTER_HELP(MYSQLX_DETAIL,
+              "The objects contained on this module provide a full API to "
+              "interact with the different MySQL Products "
+              "implementing the X Protocol.");
+REGISTER_HELP(MYSQLX_DETAIL1,
+              "In the case of a MySQL Server the API will enable doing "
+              "operations on the different database objects "
+              "such as schema management operations and both table and "
+              "collection management and CRUD operations. "
+              "(CRUD: Create, Read, Update, Delete).");
+REGISTER_HELP(MYSQLX_DETAIL2,
+              "Intention of the module is to provide a full API for "
+              "development through scripting languages such as "
+              "JavaScript and Python, this would be normally achieved through "
+              "a normal session.");
+REGISTER_HELP(MYSQLX_DETAIL3,
+              "To use the properties and functions available on this module "
+              "you first need to import it.");
+REGISTER_HELP(MYSQLX_DETAIL4,
+              "When running the shell in interactive mode, this module is "
+              "automatically imported.");
 
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
@@ -92,9 +94,8 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 //   shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 // }
 
-REGISTER_HELP(
-    MYSQLX_GETSESSION_BRIEF,
-    "Creates a Session instance using the provided connection data.");
+REGISTER_HELP(MYSQLX_GETSESSION_BRIEF,
+              "Creates a Session instance using the provided connection data.");
 REGISTER_HELP(MYSQLX_GETSESSION_PARAM,
               "@param connectionData The connection data for the session");
 REGISTER_HELP(MYSQLX_GETSESSION_PARAM1,
@@ -105,7 +106,6 @@ REGISTER_HELP(
     "A Session object uses the X Protocol to allow executing operations on the "
     "connected MySQL Server.");
 REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
-
 
 /**
  * \ingroup mysqlx
@@ -120,7 +120,8 @@ REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
  *
  * \copydoc connection_options
  *
- * Detailed description of the connection data format is available at \ref connection_data
+ * Detailed description of the connection data format is available at \ref
+ * connection_data
  *
  */
 

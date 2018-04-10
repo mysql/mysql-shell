@@ -22,18 +22,18 @@
  */
 
 #include "shellcore/base_session.h"
-#include "scripting/object_factory.h"
-#include "shellcore/shell_core.h"
-#include "scripting/lang_base.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
+#include "scripting/lang_base.h"
+#include "scripting/object_factory.h"
 #include "scripting/proxy_object.h"
 #include "shellcore/interrupt_handler.h"
+#include "shellcore/shell_core.h"
 #include "utils/debug.h"
-#include "utils/utils_general.h"
 #include "utils/utils_file.h"
-#include "utils/utils_string.h"
+#include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "utils/utils_string.h"
 
 using namespace mysqlsh;
 using namespace shcore;
@@ -51,9 +51,7 @@ ShellBaseSession::ShellBaseSession(const ShellBaseSession &s)
   DEBUG_OBJ_ALLOC(ShellBaseSession);
 }
 
-ShellBaseSession::~ShellBaseSession() {
-  DEBUG_OBJ_DEALLOC(ShellBaseSession);
-}
+ShellBaseSession::~ShellBaseSession() { DEBUG_OBJ_DEALLOC(ShellBaseSession); }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int /*indent*/,
                                             int /*quote_strings*/) const {
@@ -61,8 +59,7 @@ std::string &ShellBaseSession::append_descr(std::string &s_out, int /*indent*/,
     s_out.append("<" + class_name() + ":disconnected>");
   else
     s_out.append("<" + class_name() + ":" +
-                 uri(mysqlshdk::db::uri::formats::user_transport()) +
-                 ">");
+                 uri(mysqlshdk::db::uri::formats::user_transport()) + ">");
   return s_out;
 }
 
@@ -83,11 +80,11 @@ void ShellBaseSession::append_json(shcore::JSON_dumper &dumper) const {
   dumper.end_object();
 }
 
-bool ShellBaseSession::operator == (const Object_bridge &other) const {
+bool ShellBaseSession::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
-std::string ShellBaseSession::get_quoted_name(const std::string& name) {
+std::string ShellBaseSession::get_quoted_name(const std::string &name) {
   size_t index = 0;
   std::string quoted_name(name);
 
@@ -107,14 +104,11 @@ std::string ShellBaseSession::uri(
 }
 
 std::string ShellBaseSession::get_default_schema() {
-  return _connection_options.has_schema() ?
-         _connection_options.get_schema() :
-         "";
+  return _connection_options.has_schema() ? _connection_options.get_schema()
+                                          : "";
 }
 
-void ShellBaseSession::reconnect() {
-  connect(_connection_options);
-}
+void ShellBaseSession::reconnect() { connect(_connection_options); }
 
 std::string ShellBaseSession::sub_query_placeholders(
     const std::string &query, const shcore::Array_t &args) {
@@ -147,7 +141,8 @@ std::string ShellBaseSession::sub_query_placeholders(
         throw;
       } catch (std::exception &e) {
         throw Exception::argument_error(shcore::str_format(
-          "%s while substituting placeholder value at index #%i", e.what(), i));
+            "%s while substituting placeholder value at index #%i", e.what(),
+            i));
       }
       ++i;
     }

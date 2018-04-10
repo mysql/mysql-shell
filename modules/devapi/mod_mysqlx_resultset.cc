@@ -25,19 +25,19 @@
 #include <memory>
 #include <utility>
 #include "modules/devapi/base_constants.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/obj_date.h"
 #include "shellcore/interrupt_handler.h"
-#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/utils_help.h"
-#include "mysqlshdk/libs/utils/strformat.h"
 
-using std::placeholders::_1;
 using shcore::Value;
+using std::placeholders::_1;
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -56,8 +56,7 @@ BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
   add_property("warnings", "getWarnings");
 }
 
-BaseResult::~BaseResult() {
-}
+BaseResult::~BaseResult() {}
 
 void BaseResult::buffer() {
   shcore::Interrupt_handler intr([this]() {
@@ -99,11 +98,9 @@ REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL2,
  * $(BASERESULT_GETWARNINGS_DETAIL2)
  */
 #if DOXYGEN_JS
-List BaseResult::getWarnings() {
-}
+List BaseResult::getWarnings() {}
 #elif DOXYGEN_PY
-list BaseResult::get_warnings() {
-}
+list BaseResult::get_warnings() {}
 #endif
 
 shcore::Value BaseResult::get_member(const std::string &prop) const {
@@ -156,11 +153,9 @@ REGISTER_HELP(BASERESULT_GETEXECUTIONTIME_BRIEF,
  * $(BASERESULT_GETEXECUTIONTIME_BRIEF)
  */
 #if DOXYGEN_JS
-String BaseResult::getExecutionTime() {
-}
+String BaseResult::getExecutionTime() {}
 #elif DOXYGEN_PY
-str BaseResult::get_execution_time() {
-}
+str BaseResult::get_execution_time() {}
 #endif
 
 std::string BaseResult::get_execution_time() const {
@@ -188,24 +183,20 @@ REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL,
  * \sa warnings
  */
 #if DOXYGEN_JS
-Integer BaseResult::getWarningCount() {
-}
+Integer BaseResult::getWarningCount() {}
 #elif DOXYGEN_PY
-int BaseResult::get_warning_count() {
-}
+int BaseResult::get_warning_count() {}
 #endif
 
 uint64_t BaseResult::get_warning_count() const {
-  if (_result)
-    return _result->get_warning_count();
+  if (_result) return _result->get_warning_count();
   return 0;
 }
 
 void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
   bool create_object = (dumper.deep_level() == 0);
 
-  if (create_object)
-    dumper.start_object();
+  if (create_object) dumper.start_object();
 
   dumper.append_value("executionTime", get_member("executionTime"));
 
@@ -214,8 +205,7 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
     dumper.append_value("warnings", get_member("warnings"));
   }
 
-  if (create_object)
-    dumper.end_object();
+  if (create_object) dumper.end_object();
 }
 
 // -----------------------------------------------------------------------
@@ -255,8 +245,7 @@ shcore::Value Result::get_member(const std::string &prop) const {
     shcore::Value::Array_type_ref ret_val(new shcore::Value::Array_type);
     std::vector<std::string> doc_ids = get_generated_ids();
 
-    for (auto doc_id : doc_ids)
-      ret_val->push_back(shcore::Value(doc_id));
+    for (auto doc_id : doc_ids) ret_val->push_back(shcore::Value(doc_id));
 
     return shcore::Value(ret_val);
   } else {
@@ -284,16 +273,13 @@ REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_DETAIL,
  * $(RESULT_GETAFFECTEDITEMCOUNT_DETAIL)
  */
 #if DOXYGEN_JS
-Integer Result::getAffectedItemCount() {
-}
+Integer Result::getAffectedItemCount() {}
 #elif DOXYGEN_PY
-int Result::get_affected_item_count() {
-}
+int Result::get_affected_item_count() {}
 #endif
 
 int64_t Result::get_affected_item_count() const {
-  if (!_result)
-    return -1;
+  if (!_result) return -1;
   return _result->get_affected_row_count();
 }
 
@@ -320,16 +306,13 @@ REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_DETAIL1,
  * $(RESULT_GETAUTOINCREMENTVALUE_DETAIL1)
  */
 #if DOXYGEN_JS
-Integer Result::getAutoIncrementValue() {
-}
+Integer Result::getAutoIncrementValue() {}
 #elif DOXYGEN_PY
-int Result::get_auto_increment_value() {
-}
+int Result::get_auto_increment_value() {}
 #endif
 
 int64_t Result::get_auto_increment_value() const {
-  if (_result)
-    return _result->get_auto_increment_value();
+  if (_result) return _result->get_auto_increment_value();
   return 0;
 }
 
@@ -337,16 +320,19 @@ int64_t Result::get_auto_increment_value() const {
 REGISTER_HELP(RESULT_GETGENERATEDIDS_BRIEF,
               "Returns the list of document ids generated on the server.");
 REGISTER_HELP(RESULT_GETGENERATEDIDS_RETURNS,
-    "@returns a list of strings containing the generated ids.");
-REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL,
+              "@returns a list of strings containing the generated ids.");
+REGISTER_HELP(
+    RESULT_GETGENERATEDIDS_DETAIL,
     "When adding documents into a collection, it is required that an ID is "
     "associated to the document, if a document is added without an '_id' "
     "field, an error will be generated.");
-REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL1,
+REGISTER_HELP(
+    RESULT_GETGENERATEDIDS_DETAIL1,
     "At MySQL 8.0.5 if the documents being added do not have an '_id' field, "
     "the server will automatically generate an ID and assign it to the "
     "document.");
-REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL2,
+REGISTER_HELP(
+    RESULT_GETGENERATEDIDS_DETAIL2,
     "This function returns a list of the IDs that were generated for the "
     "server to satisfy this requirement.");
 /**
@@ -361,9 +347,9 @@ REGISTER_HELP(RESULT_GETGENERATEDIDS_DETAIL2,
  * $(RESULT_GETGENERATEDIDS_DETAIL2)
  */
 #if DOXYGEN_JS
-  List Result::getGeneratedIds(){};
+List Result::getGeneratedIds(){};
 #elif DOXYGEN_PY
-  list Result::get_generated_ids(){};
+list Result::get_generated_ids(){};
 #endif
 const std::vector<std::string> Result::get_generated_ids() const {
   if (_result)
@@ -410,11 +396,9 @@ REGISTER_HELP(
  * $(DOCRESULT_FETCHONE_RETURNS)
  */
 #if DOXYGEN_JS
-Document DocResult::fetchOne() {
-}
+Document DocResult::fetchOne() {}
 #elif DOXYGEN_PY
-Document DocResult::fetch_one() {
-}
+Document DocResult::fetch_one() {}
 #endif
 shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const {
   Value ret_val = Value::Null();
@@ -456,11 +440,9 @@ REGISTER_HELP(DOCRESULT_FETCHALL_DETAIL1,
  * $(DOCRESULT_FETCHALL_DETAIL1)
  */
 #if DOXYGEN_JS
-List DocResult::fetchAll() {
-}
+List DocResult::fetchAll() {}
 #elif DOXYGEN_PY
-list DocResult::fetch_all() {
-}
+list DocResult::fetch_all() {}
 #endif
 shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const {
   Value::Array_type_ref array(new Value::Array_type());
@@ -552,11 +534,9 @@ REGISTER_HELP(ROWRESULT_GETCOLUMNCOUNT_RETURNS,
  * $(ROWRESULT_GETCOLUMNCOUNT_RETURNS)
  */
 #if DOXYGEN_JS
-Integer RowResult::getColumnCount() {
-}
+Integer RowResult::getColumnCount() {}
 #elif DOXYGEN_PY
-int RowResult::get_column_count() {
-}
+int RowResult::get_column_count() {}
 #endif
 int64_t RowResult::get_column_count() const {
   return _result->get_metadata().size();
@@ -575,11 +555,9 @@ REGISTER_HELP(ROWRESULT_GETCOLUMNNAMES_RETURNS,
  * $(ROWRESULT_GETCOLUMNNAMES_RETURNS)
  */
 #if DOXYGEN_JS
-List RowResult::getColumnNames() {
-}
+List RowResult::getColumnNames() {}
 #elif DOXYGEN_PY
-list RowResult::get_column_names() {
-}
+list RowResult::get_column_names() {}
 #endif
 std::vector<std::string> RowResult::get_column_names() const {
   return *_column_names;
@@ -598,11 +576,9 @@ REGISTER_HELP(ROWRESULT_GETCOLUMNS_RETURNS,
  * $(ROWRESULT_GETCOLUMNS_RETURNS)
  */
 #if DOXYGEN_JS
-List RowResult::getColumns() {
-}
+List RowResult::getColumns() {}
 #elif DOXYGEN_PY
-list RowResult::get_columns() {
-}
+list RowResult::get_columns() {}
 #endif
 shcore::Value::Array_type_ref RowResult::get_columns() const {
   if (!_columns) {
@@ -704,11 +680,9 @@ REGISTER_HELP(
  * $(ROWRESULT_FETCHONE_RETURNS)
  */
 #if DOXYGEN_JS
-Row RowResult::fetchOne() {
-}
+Row RowResult::fetchOne() {}
 #elif DOXYGEN_PY
-Row RowResult::fetch_one() {
-}
+Row RowResult::fetch_one() {}
 #endif
 shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   shcore::Value ret_val;
@@ -739,11 +713,9 @@ REGISTER_HELP(ROWRESULT_FETCHALL_RETURNS, "@returns A List of DbDoc objects.");
  * $(ROWRESULT_FETCHALL_RETURNS)
  */
 #if DOXYGEN_JS
-List RowResult::fetchAll() {
-}
+List RowResult::fetchAll() {}
 #elif DOXYGEN_PY
-list RowResult::fetch_all() {
-}
+list RowResult::fetch_all() {}
 #endif
 shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const {
   Value::Array_type_ref array(new Value::Array_type());
@@ -763,15 +735,13 @@ shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const {
 void RowResult::append_json(shcore::JSON_dumper &dumper) const {
   bool create_object = (dumper.deep_level() == 0);
 
-  if (create_object)
-    dumper.start_object();
+  if (create_object) dumper.start_object();
 
   BaseResult::append_json(dumper);
 
   dumper.append_value("rows", fetch_all(shcore::Argument_list()));
 
-  if (create_object)
-    dumper.end_object();
+  if (create_object) dumper.end_object();
 }
 
 // Documentation of SqlResult class
@@ -801,15 +771,12 @@ REGISTER_HELP(SQLRESULT_GETAUTOINCREMENTVALUE_DETAIL,
  * $(SQLRESULT_GETAUTOINCREMENTVALUE_DETAIL)
  */
 #if DOXYGEN_JS
-Integer SqlResult::getAutoIncrementValue() {
-}
+Integer SqlResult::getAutoIncrementValue() {}
 #elif DOXYGEN_PY
-int SqlResult::get_auto_increment_value() {
-}
+int SqlResult::get_auto_increment_value() {}
 #endif
 int64_t SqlResult::get_auto_increment_value() const {
-  if (_result)
-    return _result->get_auto_increment_value();
+  if (_result) return _result->get_auto_increment_value();
   return 0;
 }
 
@@ -821,15 +788,12 @@ REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF,
  * $(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF)
  */
 #if DOXYGEN_JS
-Integer SqlResult::getAffectedRowCount() {
-}
+Integer SqlResult::getAffectedRowCount() {}
 #elif DOXYGEN_PY
-int SqlResult::get_affected_row_count() {
-}
+int SqlResult::get_affected_row_count() {}
 #endif
 int64_t SqlResult::get_affected_row_count() const {
-  if (_result)
-    return _result->get_affected_row_count();
+  if (_result) return _result->get_affected_row_count();
   return 0;
 }
 
@@ -854,11 +818,9 @@ REGISTER_HELP(SQLRESULT_HASDATA_BRIEF,
  *
  */
 #if DOXYGEN_JS
-Bool SqlResult::hasData() {
-}
+Bool SqlResult::hasData() {}
 #elif DOXYGEN_PY
-bool SqlResult::has_data() {
-}
+bool SqlResult::has_data() {}
 #endif
 shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("hasData").c_str());
@@ -880,11 +842,9 @@ REGISTER_HELP(SQLRESULT_NEXTDATASET_RETURNS,
  * $(SQLRESULT_NEXTDATASET_RETURNS)
  */
 #if DOXYGEN_JS
-Bool SqlResult::nextDataSet() {
-}
+Bool SqlResult::nextDataSet() {}
 #elif DOXYGEN_PY
-bool SqlResult::next_data_set() {
-}
+bool SqlResult::next_data_set() {}
 #endif
 shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());

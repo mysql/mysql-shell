@@ -24,9 +24,9 @@
 #ifndef __MYSH__UTILS_JSON__
 #define __MYSH__UTILS_JSON__
 
-#include <string>
-#include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
+#include <string>
 
 #include "mysqlshdk_export.h"
 
@@ -34,15 +34,12 @@ namespace shcore {
 // This class is to wrap the Raw and Pretty writers from rapidjson since
 // they
 class SHCORE_PUBLIC Writer_base {
-protected:
-
+ protected:
   class SStream {
-  public:
+   public:
     using Ch = std::string::value_type;
 
-    void Put(Ch c) {
-      data += c;
-    }
+    void Put(Ch c) { data += c; }
     void Flush() {}
 
     std::string data;
@@ -50,7 +47,7 @@ protected:
 
   SStream _data;
 
-public:
+ public:
   virtual ~Writer_base() {}
 
   virtual void start_array() = 0;
@@ -63,16 +60,16 @@ public:
   virtual void append_int64(int64_t data) = 0;
   virtual void append_uint(unsigned int data) = 0;
   virtual void append_uint64(uint64_t data) = 0;
-  virtual void append_string(const std::string& data) = 0;
+  virtual void append_string(const std::string &data) = 0;
   virtual void append_float(double data) = 0;
 
-public:
+ public:
   std::string str() { return _data.data; }
 };
 
-class SHCORE_PUBLIC Raw_writer :public Writer_base {
-public:
-  Raw_writer() :_writer(_data) {};
+class SHCORE_PUBLIC Raw_writer : public Writer_base {
+ public:
+  Raw_writer() : _writer(_data){};
   virtual ~Raw_writer() {}
 
   virtual void start_array() { _writer.StartArray(); }
@@ -86,16 +83,18 @@ public:
   virtual void append_int64(int64_t data) { _writer.Int64(data); };
   virtual void append_uint(unsigned int data) { _writer.Uint(data); };
   virtual void append_uint64(uint64_t data) { _writer.Uint64(data); };
-  virtual void append_string(const std::string& data) { _writer.String(data.c_str(), unsigned(data.length())); };
+  virtual void append_string(const std::string &data) {
+    _writer.String(data.c_str(), unsigned(data.length()));
+  };
   virtual void append_float(double data) { _writer.Double(data); };
 
-private:
-  rapidjson::Writer<SStream>_writer;
+ private:
+  rapidjson::Writer<SStream> _writer;
 };
 
-class SHCORE_PUBLIC Pretty_writer :public Writer_base {
-public:
-  Pretty_writer() :_writer(_data) {};
+class SHCORE_PUBLIC Pretty_writer : public Writer_base {
+ public:
+  Pretty_writer() : _writer(_data){};
   virtual ~Pretty_writer() {}
 
   virtual void start_array() { _writer.StartArray(); }
@@ -109,61 +108,73 @@ public:
   virtual void append_int64(int64_t data) { _writer.Int64(data); }
   virtual void append_uint(unsigned int data) { _writer.Uint(data); }
   virtual void append_uint64(uint64_t data) { _writer.Uint64(data); }
-  virtual void append_string(const std::string& data) { _writer.String(data.c_str(), unsigned(data.length())); }
+  virtual void append_string(const std::string &data) {
+    _writer.String(data.c_str(), unsigned(data.length()));
+  }
   virtual void append_float(double data) { _writer.Double(data); }
 
-private:
-  rapidjson::PrettyWriter<SStream>_writer;
+ private:
+  rapidjson::PrettyWriter<SStream> _writer;
 };
 
 struct Value;
 class SHCORE_PUBLIC JSON_dumper {
-public:
+ public:
   JSON_dumper(bool pprint = false);
   virtual ~JSON_dumper();
 
-  void start_array() { _deep_level++;  _writer->start_array(); }
-  void end_array() { _deep_level--; _writer->end_array(); }
-  void start_object() { _deep_level++; _writer->start_object(); }
-  void end_object() { _deep_level--; _writer->end_object(); }
+  void start_array() {
+    _deep_level++;
+    _writer->start_array();
+  }
+  void end_array() {
+    _deep_level--;
+    _writer->end_array();
+  }
+  void start_object() {
+    _deep_level++;
+    _writer->start_object();
+  }
+  void end_object() {
+    _deep_level--;
+    _writer->end_object();
+  }
 
   void append_value(const Value &value);
-  void append_value(const std::string& key, const Value &value);
+  void append_value(const std::string &key, const Value &value);
 
-  void append_null()const;
-  void append_null(const std::string& key)const;
+  void append_null() const;
+  void append_null(const std::string &key) const;
 
-  void append_bool(bool data)const;
-  void append_bool(const std::string& key, bool data)const;
+  void append_bool(bool data) const;
+  void append_bool(const std::string &key, bool data) const;
 
-  void append_int(int data)const;
-  void append_int(const std::string& key, int data)const;
+  void append_int(int data) const;
+  void append_int(const std::string &key, int data) const;
 
-  void append_int64(int64_t data)const;
-  void append_int64(const std::string& key, int64_t data)const;
+  void append_int64(int64_t data) const;
+  void append_int64(const std::string &key, int64_t data) const;
 
-  void append_uint(unsigned int data)const;
-  void append_uint(const std::string& key, unsigned int data)const;
+  void append_uint(unsigned int data) const;
+  void append_uint(const std::string &key, unsigned int data) const;
 
-  void append_uint64(uint64_t data)const;
-  void append_uint64(const std::string& key, uint64_t data)const;
+  void append_uint64(uint64_t data) const;
+  void append_uint64(const std::string &key, uint64_t data) const;
 
-  void append_string(const std::string& data)const;
-  void append_string(const std::string& key, const std::string& data)const;
+  void append_string(const std::string &data) const;
+  void append_string(const std::string &key, const std::string &data) const;
 
-  void append_float(double data)const;
-  void append_float(const std::string& key, double data)const;
+  void append_float(double data) const;
+  void append_float(const std::string &key, double data) const;
 
   int deep_level() { return _deep_level; }
 
-  std::string str() {
-    return _writer->str();
-  }
+  std::string str() { return _writer->str(); }
 
-private:
+ private:
   int _deep_level;
 
-  Writer_base* _writer;
+  Writer_base *_writer;
 };
-}
+}  // namespace shcore
 #endif /* defined(__MYSH__UTILS_JSON__) */

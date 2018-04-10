@@ -83,7 +83,7 @@ class Mock_session : public mysqlshdk::db::ISession {
  private:
   size_t _last_query;
   std::vector<std::string> _queries;
-  std::map<std::string, std::shared_ptr<mysqlshdk::db::IResult> > _results;
+  std::map<std::string, std::shared_ptr<mysqlshdk::db::IResult>> _results;
   std::vector<bool> _throws;
 };
 }  // namespace testing

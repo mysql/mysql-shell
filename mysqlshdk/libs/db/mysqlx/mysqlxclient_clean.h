@@ -37,8 +37,8 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #pragma clang diagnostic ignored "-Wsign-compare"
 #elif defined _MSC_VER
-#pragma warning (push)
-#pragma warning (disable : 4018 4996)
+#pragma warning(push)
+#pragma warning(disable : 4018 4996)
 #endif
 
 #ifdef _WIN32
@@ -46,8 +46,8 @@
 #endif
 
 #include <mysqlxclient.h>
-#include <mysqlxclient/xmessage.h>
 #include <mysqlxclient/mysqlxclient_error.h>
+#include <mysqlxclient/xmessage.h>
 
 #define CONTENT_TYPE_GEOMETRY 0x0001
 #define CONTENT_TYPE_JSON 0x0002
@@ -58,7 +58,7 @@
 #elif defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined _MSC_VER
-#pragma warning (pop)
+#pragma warning(pop)
 #endif
 
 #endif  // MYSQLSHDK_LIBS_MYSQLXCRUD_MYSQLXCLIENT_CLEAN_H_

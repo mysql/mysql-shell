@@ -1,25 +1,25 @@
 /*
-* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2.0,
-* as published by the Free Software Foundation.
-*
-* This program is also distributed with certain software (including
-* but not limited to OpenSSL) that is licensed under separate terms, as
-* designated in a particular file or component or in included license
-* documentation.  The authors of MySQL hereby grant you an additional
-* permission to link the program and your derivative works with the
-* separately licensed software that they have included with MySQL.
-* This program is distributed in the hope that it will be useful,  but
-* WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
-* the GNU General Public License, version 2.0, for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software Foundation, Inc.,
-* 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysh_config.h"
@@ -34,9 +34,9 @@
 #endif
 #endif
 
+#include <cctype>
 #include <cstdio>
 #include <ctime>
-#include <cctype>
 #include <locale>
 
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -47,7 +47,7 @@
 #include "shellcore/utils_help.h"
 
 namespace shcore {
-bool is_valid_identifier(const std::string& name) {
+bool is_valid_identifier(const std::string &name) {
   bool ret_val = false;
 
   if (!name.empty()) {
@@ -94,8 +94,7 @@ std::string strip_password(const std::string &connstring) {
     password = user_part.substr(p + 1);
     std::string uri_stripped = connstring;
     std::string::size_type i = uri_stripped.find(":" + password);
-    if (i != std::string::npos)
-      uri_stripped.erase(i, password.length() + 1);
+    if (i != std::string::npos) uri_stripped.erase(i, password.length() + 1);
 
     return uri_stripped;
   }
@@ -109,15 +108,18 @@ std::string strip_password(const std::string &connstring) {
   std::string::size_type pos;
   if ((pos = result.find("ssl_ca=")) != std::string::npos) {
     std::string::size_type pos2 = result.find("&");
-    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
+    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos
+: pos2 - pos + 1, "");
   }
   if ((pos = result.find("ssl_cert=")) != std::string::npos) {
     std::string::size_type pos2 = result.find("&");
-    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
+    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos
+: pos2 - pos + 1, "");
   }
   if ((pos = result.find("ssl_key=")) != std::string::npos) {
     std::string::size_type pos2 = result.find("&");
-    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
+    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos
+: pos2 - pos + 1, "");
   }
   if (result.at(result.size() - 1) == '?') {
     result.resize(result.size() - 1);
@@ -157,15 +159,13 @@ mysqlshdk::db::Connection_options get_connection_options(const std::string &uri,
  * Overrides connection data parameters with specific values, also adds
  * parameters with default values if missing
  */
-void update_connection_data
-  (mysqlshdk::db::Connection_options *connection_options,
-   const std::string &user, const char *password,
-   const std::string &host, int port,
-   const std::string& sock,
-   const std::string &database,
-   const mysqlshdk::db::Ssl_options& ssl_options,
-   const std::string &auth_method, bool get_server_public_key,
-   const std::string &server_public_key_path) {
+void update_connection_data(
+    mysqlshdk::db::Connection_options *connection_options,
+    const std::string &user, const char *password, const std::string &host,
+    int port, const std::string &sock, const std::string &database,
+    const mysqlshdk::db::Ssl_options &ssl_options,
+    const std::string &auth_method, bool get_server_public_key,
+    const std::string &server_public_key_path) {
   if (!user.empty()) {
     connection_options->clear_user();
     connection_options->set_user(user);
@@ -229,8 +229,7 @@ void update_connection_data
 
   if (ssl_options.has_cipher()) {
     connection_options->get_ssl_options().clear_cipher();
-    connection_options->get_ssl_options().set_cipher(
-        ssl_options.get_cipher());
+    connection_options->get_ssl_options().set_cipher(ssl_options.get_cipher());
   }
 
   if (ssl_options.has_tls_version()) {
@@ -267,15 +266,15 @@ void update_connection_data
   }
 }
 
-void set_default_connection_data
-  (mysqlshdk::db::Connection_options *connection_options) {
+void set_default_connection_data(
+    mysqlshdk::db::Connection_options *connection_options) {
   // Default values
   if (!connection_options->has_user())
     connection_options->set_user(get_system_user());
 
   if (!connection_options->has_host() &&
-     (!connection_options->has_transport_type() ||
-      connection_options->get_transport_type() == mysqlshdk::db::Tcp))
+      (!connection_options->has_transport_type() ||
+       connection_options->get_transport_type() == mysqlshdk::db::Tcp))
     connection_options->set_host("localhost");
 }
 
@@ -290,9 +289,9 @@ std::string get_system_user() {
   }
 #else
   if (geteuid() == 0) {
-    ret_val = "root";    /* allow use of surun */
+    ret_val = "root"; /* allow use of surun */
   } else {
-# if defined(HAVE_GETPWUID_R) and defined(HAVE_GETLOGIN_R)
+#if defined(HAVE_GETPWUID_R) and defined(HAVE_GETLOGIN_R)
     auto name_size = sysconf(_SC_LOGIN_NAME_MAX);
     char *name = reinterpret_cast<char *>(malloc(name_size));
     if (!getlogin_r(name, name_size)) {
@@ -307,8 +306,8 @@ std::string get_system_user() {
         ret_val.assign(pwd.pw_name);
       } else {
         char *str;
-        if ((str = getenv("USER")) || (str=getenv("LOGNAME")) ||
-        (str = getenv("LOGIN"))) {
+        if ((str = getenv("USER")) || (str = getenv("LOGNAME")) ||
+            (str = getenv("LOGIN"))) {
           ret_val.assign(str);
         } else {
           ret_val = "UNKNOWN_USER";
@@ -318,13 +317,12 @@ std::string get_system_user() {
     }
 
     free(name);
-# elif HAVE_CUSERID
+#elif HAVE_CUSERID
     char username[L_cuserid];
-    if (cuserid(username))
-      ret_val.assign(username);
-# else
+    if (cuserid(username)) ret_val.assign(username);
+#else
     ret_val = "UNKNOWN_USER";
-# endif
+#endif
   }
 #endif
 
@@ -340,7 +338,8 @@ std::string errno_to_string(int err) {
   (void)i;
   ret.resize(strlen(&ret[0]));
   return ret;
-#elif __APPLE__ || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE) // NOLINT
+#elif __APPLE__ || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && \
+                    !_GNU_SOURCE)  // NOLINT
   std::string ret;
   ret.resize(256);
   auto i = strerror_r(err, &ret[0], ret.size());
@@ -406,21 +405,23 @@ split_string(const std::string &input, std::vector<size_t> max_lengths) {
   }
 
   // Adds the remainder of the input
-  if (start < input.size())
-    chunks.push_back(input.substr(start));
+  if (start < input.size()) chunks.push_back(input.substr(start));
 
   return chunks;
 }
 
 /**
-* Splits string based on each of the individual characters of the separator string
-*
-* @param input The string to be split
-* @param separator_chars String containing characters wherein the input string is split on any of the characters
-* @param compress Boolean value which when true ensures consecutive separators do not generate new elements in the split
-*
-* @returns vector of splitted strings
-*/
+ * Splits string based on each of the individual characters of the separator
+ * string
+ *
+ * @param input The string to be split
+ * @param separator_chars String containing characters wherein the input string
+ * is split on any of the characters
+ * @param compress Boolean value which when true ensures consecutive separators
+ * do not generate new elements in the split
+ *
+ * @returns vector of splitted strings
+ */
 std::vector<std::string> split_string_chars(const std::string &input,
                                             const std::string &separator_chars,
                                             bool compress) {
@@ -499,13 +500,12 @@ std::string get_member_name(const std::string &name,
   As a special case, if string is longer than 2 characters and
   all characters are uppercase, conversion will be skipped.
   */
-std::string to_camel_case(const std::string& name) {
+std::string to_camel_case(const std::string &name) {
   std::string new_name;
   bool upper_next = false;
   size_t upper_count = 0;
   for (auto ch : name) {
-    if (isupper(ch))
-      upper_count++;
+    if (isupper(ch)) upper_count++;
     if (ch == '_') {
       upper_count++;
       upper_next = true;
@@ -516,8 +516,7 @@ std::string to_camel_case(const std::string& name) {
       new_name.push_back(ch);
     }
   }
-  if (upper_count == name.length())
-    return name;
+  if (upper_count == name.length()) return name;
   return new_name;
 }
 
@@ -526,7 +525,7 @@ std::string to_camel_case(const std::string& name) {
   As a special case, if string is longer than 2 characters and
   all characters are uppercase, conversion will be skipped.
   */
-std::string from_camel_case(const std::string& name) {
+std::string from_camel_case(const std::string &name) {
   std::string new_name;
   size_t upper_count = 0;
   // Uppercase letters will be converted to underscore+lowercase letter
@@ -545,13 +544,11 @@ std::string from_camel_case(const std::string& name) {
     } else {
       // if character is '_'
       skip_underscore = character == '_';
-      if (skip_underscore)
-        upper_count++;
+      if (skip_underscore) upper_count++;
       new_name.append(1, character);
     }
   }
-  if (upper_count == name.length())
-    return name;
+  if (upper_count == name.length()) return name;
   return new_name;
 }
 
@@ -586,8 +583,7 @@ std::string format_text(const std::vector<std::string> &lines, size_t width,
 
   if (lines.size() > 1) {
     for (size_t index = 1; index < lines.size(); index++) {
-      if (paragraph_per_line)
-        ret_val += "\n";
+      if (paragraph_per_line) ret_val += "\n";
 
       sublines = split_string(lines[index], lengths);
       for (auto subline : sublines) {
@@ -624,15 +620,13 @@ std::string format_markup_text(const std::vector<std::string> &lines,
     // &nbsp; @< and @>
     if (0 == line.find("<code>")) {
       auto pos = line.find("</code>", 6);
-      if (pos != std::string::npos)
-        ret_val += line.substr(6, pos - 6);
+      if (pos != std::string::npos) ret_val += line.substr(6, pos - 6);
     } else if (0 == line.find("@li")) {
       current_is_item = true;
 
       // Adds an extra new line to separate the first item from the previous
       // paragraph
-      if (previous_was_item != current_is_item)
-        ret_val += new_line;
+      if (previous_was_item != current_is_item) ret_val += new_line;
 
       ret_val += strpadding + " - ";
       ret_val +=
@@ -660,13 +654,12 @@ std::string format_markup_text(const std::vector<std::string> &lines,
 
   // Some characters need to be specified using special doxygen format to
   // to prevent generating doxygen warnings.
-  std::vector<std::pair<const char*, const char*>> replacements = {{"@<", "<"},
-    {"@>", ">"}, {"&nbsp;", " "}};
+  std::vector<std::pair<const char *, const char *>> replacements = {
+      {"@<", "<"}, {"@>", ">"}, {"&nbsp;", " "}};
 
-  for(const auto& rpl : replacements) {
+  for (const auto &rpl : replacements) {
     ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);
   }
-
 
   return ret_val;
 }
@@ -693,8 +686,7 @@ std::string replace_text(const std::string &source, const std::string &from,
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
                                             std::string *out_string) {
   bool seen_not_a_digit = false;
-  if (s.size() <= p)
-    return p;
+  if (s.size() <= p) return p;
 
   char quote = s[p];
   if (quote !=
@@ -702,8 +694,7 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
     // check if valid initial char
     if (!std::isalnum(quote) && quote != '_' && quote != '$')
       throw std::runtime_error("Invalid character in identifier");
-    if (!std::isdigit(quote))
-      seen_not_a_digit = true;
+    if (!std::isdigit(quote)) seen_not_a_digit = true;
     quote = 0;
   } else {
     seen_not_a_digit = true;
@@ -712,12 +703,9 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
 
   if (quote == 0) {
     while (p < s.size()) {
-      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$')
-        break;
-      if (out_string)
-        out_string->push_back(s[p]);
-      if (!seen_not_a_digit && !isdigit(s[p]))
-        seen_not_a_digit = true;
+      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$') break;
+      if (out_string) out_string->push_back(s[p]);
+      if (!seen_not_a_digit && !isdigit(s[p])) seen_not_a_digit = true;
       ++p;
     }
     if (!seen_not_a_digit)
@@ -736,8 +724,7 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
       switch (s[p]) {
         case '`':
           if (esc == quote) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
             esc = 0;
           } else {
             esc = s[p];
@@ -745,12 +732,10 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
           break;
         default:
           if (esc == quote) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
@@ -770,8 +755,7 @@ static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
 static std::size_t span_quotable_string_literal(
     const std::string &s, std::size_t p, std::string *out_string,
     bool allow_number_at_beginning = false) {
-  if (s.size() <= p)
-    return p;
+  if (s.size() <= p) return p;
 
   char quote = s[p];
   if (quote != '\'' && quote != '"') {
@@ -790,8 +774,7 @@ static std::size_t span_quotable_string_literal(
       if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$' && s[p] != '.' &&
           s[p] != '%')
         break;
-      if (out_string)
-        out_string->push_back(s[p]);
+      if (out_string) out_string->push_back(s[p]);
       ++p;
     }
   } else {
@@ -807,22 +790,19 @@ static std::size_t span_quotable_string_literal(
         case '\'':
           if (quote == s[p]) {
             if (esc == quote || esc == '\\') {
-              if (out_string)
-                out_string->push_back(s[p]);
+              if (out_string) out_string->push_back(s[p]);
               esc = 0;
             } else {
               esc = s[p];
             }
           } else {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
             esc = 0;
           }
           break;
         case '\\':
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
             esc = 0;
           } else if (esc == 0) {
             esc = '\\';
@@ -832,60 +812,50 @@ static std::size_t span_quotable_string_literal(
           break;
         case 'n':
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back('\n');
+            if (out_string) out_string->push_back('\n');
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
           break;
         case 't':
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back('\t');
+            if (out_string) out_string->push_back('\t');
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
           break;
         case 'b':
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back('\b');
+            if (out_string) out_string->push_back('\b');
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
           break;
         case 'r':
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back('\r');
+            if (out_string) out_string->push_back('\r');
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
           break;
         case '0':
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back('\0');
+            if (out_string) out_string->push_back('\0');
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
@@ -897,20 +867,17 @@ static std::size_t span_quotable_string_literal(
             }
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
           break;
         default:
           if (esc == '\\') {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
             esc = 0;
           } else if (esc == 0) {
-            if (out_string)
-              out_string->push_back(s[p]);
+            if (out_string) out_string->push_back(s[p]);
           } else {
             done = true;
           }
@@ -931,8 +898,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
                                                  std::size_t p,
                                                  std::string *out_string,
                                                  bool auto_quote_hosts) {
-  if (s.size() <= p)
-    return p;
+  if (s.size() <= p) return p;
 
   // Use the span_quotable_identifier, if an error occurs, try to see if quotes
   // would fix it, however first check for the existence of the '@' character
@@ -966,8 +932,8 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
       // If the complete string was not consumed could be a hostname that
       // requires quotes, they should be enabled only if not quoted already
       if (res < s.size() && auto_quote_hosts) {
-        bool quoted = ((s[p] == '\'' && s.at(s.size()-1) == '\'') ||
-                       (s[p] == '"' && s.at(s.size()-1) == '"'));
+        bool quoted = ((s[p] == '\'' && s.at(s.size() - 1) == '\'') ||
+                       (s[p] == '"' && s.at(s.size() - 1) == '"'));
 
         try_quoting = !quoted;
       }
@@ -980,8 +946,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
       std::string quoted_s =
           s.substr(0, old_p) + quote_identifier(s.substr(old_p), '\'');
       // reset out_string
-      if (out_string)
-        *out_string = "";
+      if (out_string) *out_string = "";
       res = span_quotable_string_literal(quoted_s, old_p, out_string, true);
     }
   }
@@ -990,16 +955,16 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
 
 /** Split a MySQL account string (in the form user@host) into its username and
  *  hostname components. The returned strings will be unquoted.
- *  The supported format is the <a href="https://dev.mysql.com/doc/refman/en/account-names.html">standard MySQL account name format</a>.
- *  This means it supports both identifiers and string literals for username and hostname.
+ *  The supported format is the <a
+ * href="https://dev.mysql.com/doc/refman/en/account-names.html">standard MySQL
+ * account name format</a>. This means it supports both identifiers and string
+ * literals for username and hostname.
  */
 void split_account(const std::string &account, std::string *out_user,
                    std::string *out_host, bool auto_quote_hosts) {
   std::size_t pos = 0;
-  if (out_user)
-    *out_user = "";
-  if (out_host)
-    *out_host = "";
+  if (out_user) *out_user = "";
+  if (out_host) *out_host = "";
 
   // Check if account starts with string literal or identifier depending on the
   // first character being a backtick or not.
@@ -1019,7 +984,7 @@ void split_account(const std::string &account, std::string *out_user,
 /** Join MySQL account components into a string suitable for use with GRANT
  *  and similar
  */
-std::string make_account(const std::string& user, const std::string &host) {
+std::string make_account(const std::string &user, const std::string &host) {
   return shcore::sqlstring("?@?", 0) << user << host;
 }
 
@@ -1123,24 +1088,21 @@ static bool _match_glob(const std::string &pat, size_t ppos,
     switch (pc) {
       case '*':
         // skip multiple consecutive *
-        while (ppos < pend && pat[ppos + 1] == '*')
-          ++ppos;
+        while (ppos < pend && pat[ppos + 1] == '*') ++ppos;
 
         // match * by trying every substring of str with the rest of the pattern
         for (size_t sp = spos; sp <= send; ++sp) {
           // if something matched, we're fine
-          if (_match_glob(pat, ppos + 1, str, sp))
-            return true;
+          if (_match_glob(pat, ppos + 1, str, sp)) return true;
         }
         // if there were no matches, then give up
         return false;
       case '\\':
         ++ppos;
         if (ppos >= pend)  // can't have an escape at the end of the pattern
-          throw std::logic_error("Invalid pattern "+pat);
+          throw std::logic_error("Invalid pattern " + pat);
         pc = pat[ppos];
-        if (sc != pc)
-          return false;
+        if (sc != pc) return false;
         ++ppos;
         ++spos;
         break;
@@ -1149,8 +1111,7 @@ static bool _match_glob(const std::string &pat, size_t ppos,
         ++spos;
         break;
       default:
-        if (sc != pc)
-          return false;
+        if (sc != pc) return false;
         ++ppos;
         ++spos;
         break;

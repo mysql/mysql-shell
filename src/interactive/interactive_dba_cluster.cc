@@ -21,20 +21,20 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "interactive_dba_cluster.h"
 #include <string>
 #include <vector>
-#include "interactive_dba_cluster.h"
+#include "db/mysql/session.h"
 #include "interactive_global_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/mysqlxtest_utils.h"
-#include "utils/utils_general.h"
-#include "utils/utils_string.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/mod_utils.h"
+#include "modules/mysqlxtest_utils.h"
+#include "mysql/instance.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/version.h"
-#include "mysql/instance.h"
-#include "db/mysql/session.h"
-#include "modules/mod_utils.h"
+#include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -50,41 +50,40 @@ void Interactive_dba_cluster::init() {
   add_method("removeInstance",
              std::bind(&Interactive_dba_cluster::remove_instance, this, _1),
              "data");
-  add_varargs_method("dissolve", std::bind(&Interactive_dba_cluster::dissolve,
-                     this, _1));
-  add_varargs_method("checkInstanceState",
-                     std::bind(&Interactive_dba_cluster::check_instance_state,
-                     this, _1));
-  add_varargs_method("rescan", std::bind(&Interactive_dba_cluster::rescan,
-                     this, _1));
+  add_varargs_method("dissolve",
+                     std::bind(&Interactive_dba_cluster::dissolve, this, _1));
+  add_varargs_method(
+      "checkInstanceState",
+      std::bind(&Interactive_dba_cluster::check_instance_state, this, _1));
+  add_varargs_method("rescan",
+                     std::bind(&Interactive_dba_cluster::rescan, this, _1));
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
-      std::bind(&Interactive_dba_cluster::force_quorum_using_partition_of,
-      this, _1));
+      std::bind(&Interactive_dba_cluster::force_quorum_using_partition_of, this,
+                _1));
 }
 
-mysqlsh::dba::Cluster_check_info
-    Interactive_dba_cluster::check_preconditions(
-        const std::string& function_name) const {
+mysqlsh::dba::Cluster_check_info Interactive_dba_cluster::check_preconditions(
+    const std::string &function_name) const {
   ScopedStyle ss(_target.get(), naming_style);
   auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
   return cluster->check_preconditions(function_name);
 }
 
 void Interactive_dba_cluster::assert_valid(
-      const std::string& function_name) const {
+    const std::string &function_name) const {
   ScopedStyle ss(_target.get(), naming_style);
   auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
   cluster->assert_valid(function_name);
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(
-      const shcore::Argument_list &args) {
+    const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string function;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
 
-  auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
+  auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
 
   if (cluster) {
     // Throw an error if the cluster has already been dissolved
@@ -93,7 +92,7 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(
   }
   if (object) {
     if (prompt("The default ReplicaSet is already initialized. \
-                Do you want to add a new instance?")  == Prompt_answer::YES)
+                Do you want to add a new instance?") == Prompt_answer::YES)
       function = "addInstance";
   } else {
     function = "addSeedInstance";
@@ -110,8 +109,7 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(
     shcore::Argument_list new_args;
     new_args.push_back(shcore::Value(instance_map));
 
-    if (args.size() == 2)
-      new_args.push_back(args[1]);
+    if (args.size() == 2) new_args.push_back(args[1]);
 
     ret_val = call_target(function, new_args);
   }
@@ -138,13 +136,12 @@ shcore::Value Interactive_dba_cluster::add_instance(
   try {
     std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
     auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-    if (cluster)
-      object = cluster->get_default_replicaset();
+    if (cluster) object = cluster->get_default_replicaset();
 
     if (!object) {
       if (prompt("The default ReplicaSet is not initialized. Do you want to \
                   initialize it adding a seed instance?") == Prompt_answer::YES)
-          function = "addSeedInstance";
+        function = "addSeedInstance";
     } else {
       function = "addInstance";
     }
@@ -165,8 +162,8 @@ shcore::Value Interactive_dba_cluster::add_instance(
         options = args.map_at(1);
         shcore::Argument_map options_map(*options);
         options_map.ensure_keys({},
-            mysqlsh::dba::ReplicaSet::_add_instance_opts,
-            "instance definition");
+                                mysqlsh::dba::ReplicaSet::_add_instance_opts,
+                                "instance definition");
 
         // Validate SSL options for the cluster instance
         mysqlsh::dba::validate_ssl_instance_options(options);
@@ -185,16 +182,15 @@ shcore::Value Interactive_dba_cluster::add_instance(
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));
 
-  if (options)
-    new_args.push_back(args[1]);
+  if (options) new_args.push_back(args[1]);
 
   println("Adding instance to the cluster ...");
   println();
   ret_val = call_target(function, new_args);
 
-  println("The instance '" +
-    instance_def.as_uri(user_transport()) + ""
-    "' was successfully added to the cluster.");
+  println("The instance '" + instance_def.as_uri(user_transport()) +
+          ""
+          "' was successfully added to the cluster.");
   println();
 
   return ret_val;
@@ -220,8 +216,8 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
     if (args.size() == 2) {
       options = args.map_at(1);
       shcore::Argument_map options_map(*options);
-      options_map.ensure_keys({},
-          mysqlsh::dba::ReplicaSet::_add_instance_opts, "instance definition");
+      options_map.ensure_keys({}, mysqlsh::dba::ReplicaSet::_add_instance_opts,
+                              "instance definition");
 
       // Validate SSL options for the cluster instance
       mysqlsh::dba::validate_ssl_instance_options(options);
@@ -254,23 +250,22 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(instance_map));
 
-  if (options)
-    new_args.push_back(args[1]);
+  if (options) new_args.push_back(args[1]);
 
   println("Rejoining instance to the cluster ...");
   println();
   ret_val = call_target("rejoinInstance", new_args);
 
-  println("The instance '" +
-    instance_def.as_uri(only_transport()) + ""
-    "' was successfully rejoined on the cluster.");
+  println("The instance '" + instance_def.as_uri(only_transport()) +
+          ""
+          "' was successfully rejoined on the cluster.");
   println();
 
   return ret_val;
 }
 
 shcore::Value Interactive_dba_cluster::remove_instance(
-      const shcore::Argument_list &args) {
+    const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Value::Map_type_ref instance_map;  // Map with the connection data
   mysqlshdk::db::Connection_options instance_def;
@@ -304,21 +299,22 @@ shcore::Value Interactive_dba_cluster::remove_instance(
 
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
   ret_val = call_target("removeInstance", args);
 
   try {
     println("The instance '" +
-      instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) + ""
-      "' was successfully removed from the cluster.");
+            instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
+            ""
+            "' was successfully removed from the cluster.");
 
     println();
 
     // User and pass might not be specified in args and in that case we need to
     // get them from the metadata session.
     if (!instance_def.has_user() || !instance_def.has_password()) {
-
       auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
       auto cluster_session = cluster->get_group_session();
       auto cluster_cnx_opts = cluster_session->get_connection_options();
@@ -340,26 +336,27 @@ shcore::Value Interactive_dba_cluster::remove_instance(
       mysqlshdk::mysql::Instance *instance =
           new mysqlshdk::mysql::Instance(_session);
       if (instance->get_version() < mysqlshdk::utils::Version(8, 0, 5)) {
-        println("WARNING: The 'group_replication_start_on_boot' variable must "
-                "be set to 'OFF' in the server configuration file, otherwise "
-                "it might silently rejoin the cluster upon restart.");
+        println(
+            "WARNING: The 'group_replication_start_on_boot' variable must "
+            "be set to 'OFF' in the server configuration file, otherwise "
+            "it might silently rejoin the cluster upon restart.");
         println();
       }
       _session->close();
-    } catch (std::exception&) {
+    } catch (std::exception &) {
       // If the force option was used then the instance is most likely not
       // available, therefore an error is expected when trying to connect and in
       // that case the error should be ignored (not reported).
-      if (!force)
-        throw;
+      if (!force) throw;
     }
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
   return ret_val;
 }
 
 shcore::Value Interactive_dba_cluster::dissolve(
-      const shcore::Argument_list &args) {
+    const shcore::Argument_list &args) {
   shcore::Value ret_val;
   bool force = false;
   shcore::Value::Map_type_ref options;
@@ -372,16 +369,14 @@ shcore::Value Interactive_dba_cluster::dissolve(
   check_preconditions("dissolve");
 
   try {
-    if (args.size() == 1)
-      options = args.map_at(0);
+    if (args.size() == 1) options = args.map_at(0);
 
     if (options) {
       shcore::Argument_map opt_map(*options);
 
       opt_map.ensure_keys({}, {"force"}, "dissolve options");
 
-      if (opt_map.has_key("force"))
-        force = opt_map.bool_at("force");
+      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"));
@@ -389,13 +384,13 @@ shcore::Value Interactive_dba_cluster::dissolve(
   if (!force) {
     std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
     auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-    if (cluster)
-      object = cluster->get_default_replicaset();
+    if (cluster) object = cluster->get_default_replicaset();
 
     if (object) {
       println("The cluster still has active ReplicaSets.");
-      println("Please use cluster.dissolve({force: true}) to deactivate "
-              "replication");
+      println(
+          "Please use cluster.dissolve({force: true}) to deactivate "
+          "replication");
       println("and unregister the ReplicaSets from the cluster.");
       println();
 
@@ -415,7 +410,7 @@ shcore::Value Interactive_dba_cluster::dissolve(
 }
 
 shcore::Value Interactive_dba_cluster::check_instance_state(
-      const shcore::Argument_list &args) {
+    const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("checkInstanceState");
 
@@ -428,7 +423,7 @@ shcore::Value Interactive_dba_cluster::check_instance_state(
 
   try {
     instance_def =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
     // Gather username and password if missing
     mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
@@ -448,25 +443,27 @@ shcore::Value Interactive_dba_cluster::check_instance_state(
   println();
 
   if (result->get_string("state") == "ok") {
-    println("The instance '" +
-      instance_def.as_uri(user_transport()) + "' is valid for "
-      "the cluster.");
+    println("The instance '" + instance_def.as_uri(user_transport()) +
+            "' is valid for "
+            "the cluster.");
 
     if (result->get_string("reason") == "new")
       println("The instance is new to Group Replication.");
     else
       println("The instance is fully recoverable.");
   } else {
-    println("The instance '" +
-      instance_def.as_uri(user_transport()) + "' is invalid for "
-      "the cluster.");
+    println("The instance '" + instance_def.as_uri(user_transport()) +
+            "' is invalid for "
+            "the cluster.");
 
     if (result->get_string("reason") == "diverged")
-      println("The instance contains additional transactions in relation to "
-              "the cluster.");
+      println(
+          "The instance contains additional transactions in relation to "
+          "the cluster.");
     else
-      println("There are transactions in the cluster that can't be recovered "
-              "on the instance.");
+      println(
+          "There are transactions in the cluster that can't be recovered "
+          "on the instance.");
   }
   println();
 
@@ -474,7 +471,7 @@ shcore::Value Interactive_dba_cluster::check_instance_state(
 }
 
 shcore::Value Interactive_dba_cluster::rescan(
-      const shcore::Argument_list &args) {
+    const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   // Throw an error if the cluster has already been dissolved
@@ -510,8 +507,8 @@ shcore::Value Interactive_dba_cluster::rescan(
         println("A new instance '" + instance_map->get_string("host") +
                 "' was discovered in the HA setup.");
 
-        if (prompt("Would you like to add it to the cluster metadata?")
-            == Prompt_answer::YES) {
+        if (prompt("Would you like to add it to the cluster metadata?") ==
+            Prompt_answer::YES) {
           std::string full_host = instance_map->get_string("host");
           auto instance_def = shcore::get_connection_options(full_host, false);
 
@@ -526,9 +523,9 @@ shcore::Value Interactive_dba_cluster::rescan(
 
           object->add_instance_metadata(instance_def);
 
-          println("The instance '" +
-            instance_def.as_uri(user_transport()) + "' was "
-            "successfully added to the cluster metadata.");
+          println("The instance '" + instance_def.as_uri(user_transport()) +
+                  "' was "
+                  "successfully added to the cluster metadata.");
           println();
         }
       }
@@ -544,10 +541,12 @@ shcore::Value Interactive_dba_cluster::rescan(
         println("The instance '" + instance_map->get_string("host") +
                 "' is no longer part of the HA setup. "
                 "It is either offline or left the HA group.");
-        println("You can try to add it to the cluster again with the "
-                "cluster.rejoinInstance('" + instance_map->get_string("host") +
-                "') command or you can remove it from the cluster "
-                "configuration.");
+        println(
+            "You can try to add it to the cluster again with the "
+            "cluster.rejoinInstance('" +
+            instance_map->get_string("host") +
+            "') command or you can remove it from the cluster "
+            "configuration.");
 
         if (prompt("Would you like to remove it from the cluster metadata?") ==
             Prompt_answer::YES) {
@@ -563,9 +562,9 @@ shcore::Value Interactive_dba_cluster::rescan(
 
           object->remove_instance_metadata(instance_def);
 
-          println("The instance '" +
-            instance_def.as_uri(user_transport()) + "' was "
-            "successfully removed from the cluster metadata.");
+          println("The instance '" + instance_def.as_uri(user_transport()) +
+                  "' was "
+                  "successfully removed from the cluster metadata.");
 
           println();
         }
@@ -577,7 +576,7 @@ shcore::Value Interactive_dba_cluster::rescan(
 }
 
 shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
-      const shcore::Argument_list &args) {
+    const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   // Throw an error if the cluster has already been dissolved
@@ -592,10 +591,10 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
 
   try {
     instance_def =
-      mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
     std::shared_ptr<mysqlsh::dba::ReplicaSet> default_replica_set;
-    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster> (_target);
+    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
 
     default_replica_set = cluster->get_default_replicaset();
 
@@ -610,18 +609,20 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
         default_replica_set->get_online_instances();
 
     if (online_instances_array.empty())
-      throw shcore::Exception::logic_error("No online instances are visible "
-                                           "from the given one.");
+      throw shcore::Exception::logic_error(
+          "No online instances are visible "
+          "from the given one.");
 
     auto group_peers = shcore::str_join(online_instances_array, ",");
 
     // Remove the trailing comma of group_peers
-    if (group_peers.back() == ',')
-      group_peers.pop_back();
+    if (group_peers.back() == ',') group_peers.pop_back();
 
-    std::string message = "Restoring replicaset '" + rs_name + "'"
+    std::string message = "Restoring replicaset '" + rs_name +
+                          "'"
                           " from loss of quorum, by using the partition "
-                          "composed of [" + group_peers + "]\n\n";
+                          "composed of [" +
+                          group_peers + "]\n\n";
     print(message);
 
     mysqlsh::resolve_connection_credentials(&instance_def, _delegate);

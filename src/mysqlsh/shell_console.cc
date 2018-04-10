@@ -25,11 +25,11 @@
 #include <string>
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "scripting/shexcept.h"
-#include "shellcore/shell_options.h"
 #include "shellcore/base_shell.h"
-#include "mysqlshdk/libs/utils/utils_json.h"
+#include "shellcore/shell_options.h"
 
 namespace mysqlsh {
 namespace {

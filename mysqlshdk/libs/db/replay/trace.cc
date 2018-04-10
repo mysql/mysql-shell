@@ -26,10 +26,10 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
-#include <rapidjson/writer.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/reader.h>
 #include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <utility>
 #include "mysqlshdk/libs/db/replay/replayer.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -42,21 +42,20 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
-sequence_error::sequence_error(const std::string& what)
+sequence_error::sequence_error(const std::string &what)
     : db::Error(what.c_str(), 9999) {
   std::cerr << "SESSION REPLAY ERROR: " << what << "\n";
-  if (getenv("TEST_DEBUG"))
-    assert(0);
+  if (getenv("TEST_DEBUG")) assert(0);
 }
 
 template <typename T>
-void set(rapidjson::Document* doc, const char* key, T value) {
+void set(rapidjson::Document *doc, const char *key, T value) {
   rapidjson::Value v(value);
   rapidjson::Value k(key, doc->GetAllocator());
   doc->AddMember(k, v, doc->GetAllocator());
 }
 
-void set(rapidjson::Document* doc, const char* key, const char* value) {
+void set(rapidjson::Document *doc, const char *key, const char *value) {
   rapidjson::Value v;
   rapidjson::Value k(key, doc->GetAllocator());
   if (!value) {
@@ -67,28 +66,28 @@ void set(rapidjson::Document* doc, const char* key, const char* value) {
   doc->AddMember(k, v, doc->GetAllocator());
 }
 
-void set(rapidjson::Document* doc, const char* key, const std::string& value) {
+void set(rapidjson::Document *doc, const char *key, const std::string &value) {
   rapidjson::Value v(value.c_str(), doc->GetAllocator());
   rapidjson::Value k(key, doc->GetAllocator());
   doc->AddMember(k, v, doc->GetAllocator());
 }
 
 template <typename T>
-void set(rapidjson::Document* doc, rapidjson::Value* obj, const char* key,
+void set(rapidjson::Document *doc, rapidjson::Value *obj, const char *key,
          T value) {
   rapidjson::Value v(value);
   rapidjson::Value k(key, doc->GetAllocator());
   obj->AddMember(k, v, doc->GetAllocator());
 }
 
-void set(rapidjson::Document* doc, rapidjson::Value* obj, const char* key,
-         const std::string& value) {
+void set(rapidjson::Document *doc, rapidjson::Value *obj, const char *key,
+         const std::string &value) {
   rapidjson::Value v(value.c_str(), doc->GetAllocator());
   rapidjson::Value k(key, doc->GetAllocator());
   obj->AddMember(k, v, doc->GetAllocator());
 }
 
-std::string to_json(rapidjson::Value* value) {
+std::string to_json(rapidjson::Value *value) {
   rapidjson::Document doc;
   doc.CopyFrom(*value, doc.GetAllocator());
   rapidjson::StringBuffer buffer;
@@ -97,7 +96,7 @@ std::string to_json(rapidjson::Value* value) {
   return buffer.GetString();
 }
 
-std::string get_string(rapidjson::Value& value) {  // NOLINT
+std::string get_string(rapidjson::Value &value) {  // NOLINT
   if (!value.IsString()) {
     throw std::logic_error("Bad JSON data. String expected, got " +
                            to_json(&value));
@@ -105,7 +104,7 @@ std::string get_string(rapidjson::Value& value) {  // NOLINT
   return value.GetString();
 }
 
-int64_t get_int(rapidjson::Value& value) {  // NOLINT
+int64_t get_int(rapidjson::Value &value) {  // NOLINT
   if (!value.IsInt64()) {
     throw std::logic_error("Bad JSON data. Int expected, got " +
                            to_json(&value));
@@ -113,7 +112,7 @@ int64_t get_int(rapidjson::Value& value) {  // NOLINT
   return value.GetInt64();
 }
 
-uint64_t get_uint(rapidjson::Value& value) {  // NOLINT
+uint64_t get_uint(rapidjson::Value &value) {  // NOLINT
   if (!value.IsUint64()) {
     throw std::logic_error("Bad JSON data. Uint expected, got " +
                            to_json(&value));
@@ -122,14 +121,14 @@ uint64_t get_uint(rapidjson::Value& value) {  // NOLINT
 }
 
 std::string make_json(
-    const std::string& type, const std::string& subtype,
-    const std::vector<std::pair<std::string, std::string>>& items, int i) {
+    const std::string &type, const std::string &subtype,
+    const std::vector<std::pair<std::string, std::string>> &items, int i) {
   rapidjson::Document doc;
   doc.SetObject();
   set(&doc, "type", type);
   set(&doc, "subtype", subtype);
   set(&doc, "index", i);
-  for (const auto& i : items) {
+  for (const auto &i : items) {
     set(&doc, i.first.c_str(), i.second);
   }
 
@@ -140,8 +139,8 @@ std::string make_json(
 }
 
 void Trace_writer::serialize_connect(
-    const mysqlshdk::db::Connection_options& data,
-    const std::string& protocol) {
+    const mysqlshdk::db::Connection_options &data,
+    const std::string &protocol) {
   _stream << make_json("request", "CONNECT",
                        {{"uri", data.as_uri(uri::formats::full())},
                         {"protocol", protocol}},
@@ -154,12 +153,11 @@ void Trace_writer::serialize_connect(
 }
 
 void Trace_writer::serialize_close() {
-  if (_print_traces)
-    std::cerr << shcore::path::basename(_path) << ": close\n";
+  if (_print_traces) std::cerr << shcore::path::basename(_path) << ": close\n";
   _stream << make_json("request", "CLOSE", {}, ++_idx) << ",\n";
 }
 
-void Trace_writer::serialize_query(const std::string& sql) {
+void Trace_writer::serialize_query(const std::string &sql) {
   if (_print_traces > 1)
     std::cerr << shcore::path::basename(_path) << ": " << sql << "\n";
   _stream << make_json("request", "QUERY", {{"sql", sql}}, ++_idx) << ",\n";
@@ -170,7 +168,7 @@ void Trace_writer::serialize_ok() {
 }
 
 void Trace_writer::serialize_connect_ok(
-    const std::map<std::string, std::string>& info) {
+    const std::map<std::string, std::string> &info) {
   rapidjson::Document doc;
   doc.SetObject();
   set(&doc, "type", "response");
@@ -186,11 +184,11 @@ void Trace_writer::serialize_connect_ok(
   _stream << buffer.GetString() << ",\n";
 }
 
-void serialize_result_metadata(rapidjson::Document* doc,
+void serialize_result_metadata(rapidjson::Document *doc,
                                std::shared_ptr<db::IResult> result) {
   rapidjson::Value clist;
   clist.SetArray();
-  for (const auto& column : result->get_metadata()) {
+  for (const auto &column : result->get_metadata()) {
     rapidjson::Value cobj;
     cobj.SetObject();
     set(doc, &cobj, "schema", column.get_schema());
@@ -212,8 +210,8 @@ void serialize_result_metadata(rapidjson::Document* doc,
   doc->AddMember("columns", clist, doc->GetAllocator());
 }
 
-void push_field(rapidjson::Document* doc, rapidjson::Value* array,
-                const db::IRow* row, uint32_t i) {
+void push_field(rapidjson::Document *doc, rapidjson::Value *array,
+                const db::IRow *row, uint32_t i) {
   rapidjson::Value value;
   if (row->is_null(i)) {
     value.SetNull();
@@ -256,11 +254,11 @@ void push_field(rapidjson::Document* doc, rapidjson::Value* array,
   array->PushBack(value, doc->GetAllocator());
 }
 
-void serialize_result_rows(rapidjson::Document* doc,
+void serialize_result_rows(rapidjson::Document *doc,
                            std::shared_ptr<db::IResult> result) {
   rapidjson::Value rlist;
   rlist.SetArray();
-  const db::IRow* row = result->fetch_one();
+  const db::IRow *row = result->fetch_one();
   while (row) {
     rapidjson::Value fields;
     fields.SetArray();
@@ -294,13 +292,13 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     doc.Accept(writer);
     _stream << buffer.GetString() << ",\n";
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     std::cerr << "Exception serializing result trace: " << e.what() << "\n";
     throw;
   }
 }
 
-void Trace_writer::serialize_error(const db::Error& e) {
+void Trace_writer::serialize_error(const db::Error &e) {
   if (_print_traces)
     std::cerr << "MySQL error in " << _path << ": " << e.what() << " ("
               << e.code() << ")\n";
@@ -312,7 +310,7 @@ void Trace_writer::serialize_error(const db::Error& e) {
           << ",\n";
 }
 
-void Trace_writer::serialize_error(const std::runtime_error& e) {
+void Trace_writer::serialize_error(const std::runtime_error &e) {
   if (_print_traces)
     std::cerr << "Runtime error in " << _path << ": " << e.what() << "\n";
   _stream << make_json("response", "ERROR",
@@ -321,18 +319,18 @@ void Trace_writer::serialize_error(const std::runtime_error& e) {
           << ",\n";
 }
 
-Trace_writer* Trace_writer::create(const std::string& path, int print_traces) {
+Trace_writer *Trace_writer::create(const std::string &path, int print_traces) {
   return new Trace_writer(path, print_traces);
 }
 
 void Trace_writer::set_metadata(
-    const std::map<std::string, std::string>& meta) {
+    const std::map<std::string, std::string> &meta) {
   rapidjson::Document doc;
   doc.SetObject();
 
   rapidjson::Value value;
   value.SetObject();
-  for (const auto& i : meta) {
+  for (const auto &i : meta) {
     rapidjson::Value k(i.first.c_str(), doc.GetAllocator());
     rapidjson::Value v(i.second.c_str(), doc.GetAllocator());
     value.AddMember(k, v, doc.GetAllocator());
@@ -345,13 +343,11 @@ void Trace_writer::set_metadata(
   _stream << buffer.GetString() << ",\n";
 }
 
-Trace_writer::Trace_writer(const std::string& path, int print_traces)
+Trace_writer::Trace_writer(const std::string &path, int print_traces)
     : _path(path), _print_traces(print_traces) {
-  if (_print_traces)
-    std::cerr << "Creating trace file " << path << "\n";
+  if (_print_traces) std::cerr << "Creating trace file " << path << "\n";
   _stream.open(path);
-  if (_stream.bad())
-    throw std::logic_error(path + ": " + strerror(errno));
+  if (_stream.bad()) throw std::logic_error(path + ": " + strerror(errno));
   _stream.rdbuf()->pubsetbuf(0, 0);
   _stream << "[\n";
 }
@@ -365,17 +361,15 @@ Trace_writer::~Trace_writer() {
 
 // ------------------------------------------------
 
-Trace::Trace(const std::string& path, int print_traces)
+Trace::Trace(const std::string &path, int print_traces)
     : _trace_path(path), _print_traces(print_traces) {
-  std::FILE* file;
+  std::FILE *file;
   char buffer[1024 * 4];
 
-  if (_print_traces)
-    std::cerr << "Opening trace file " << path << "\n";
+  if (_print_traces) std::cerr << "Opening trace file " << path << "\n";
 
   file = std::fopen(path.c_str(), "r");
-  if (!file)
-    throw std::logic_error(path + ": " + strerror(errno));
+  if (!file) throw std::logic_error(path + ": " + strerror(errno));
 
   _index = 0;
   rapidjson::FileReadStream stream(file, buffer, sizeof(buffer));
@@ -393,12 +387,10 @@ Trace::Trace(const std::string& path, int print_traces)
   assert(_doc.IsArray());
 }
 
-Trace::~Trace() {
-}
+Trace::~Trace() {}
 
-void Trace::next(rapidjson::Value* entry) {
-  if (_index >= _doc.Size() - 1)
-    throw sequence_error("Session trace is over");
+void Trace::next(rapidjson::Value *entry) {
+  if (_index >= _doc.Size() - 1) throw sequence_error("Session trace is over");
 
   *entry = _doc[_index++];
 
@@ -407,11 +399,9 @@ void Trace::next(rapidjson::Value* entry) {
   }
 }
 
-std::map<std::string, std::string> Trace::get_metadata() {
-  return {};
-}
+std::map<std::string, std::string> Trace::get_metadata() { return {}; }
 
-void Trace::expect_request(rapidjson::Value* doc, const char* subtype) {
+void Trace::expect_request(rapidjson::Value *doc, const char *subtype) {
   if (_got_error)
     throw sequence_error("Session " + _trace_path + " is invalidated");
 
@@ -437,8 +427,8 @@ mysqlshdk::db::Connection_options Trace::expected_connect() {
 
   expect_request(&obj, "CONNECT");
   if (_print_traces > 1)
-    std::cerr << shcore::path::basename(_trace_path) << ": connect: " <<
-        obj["uri"].GetString() << "\n";
+    std::cerr << shcore::path::basename(_trace_path)
+              << ": connect: " << obj["uri"].GetString() << "\n";
   return mysqlshdk::db::Connection_options(obj["uri"].GetString());
 }
 
@@ -460,8 +450,8 @@ std::string Trace::expected_query() {
   return query;
 }
 
-void throw_error(rapidjson::Value* doc) {
-  const char* subtype = (*doc)["subtype"].GetString();
+void throw_error(rapidjson::Value *doc) {
+  const char *subtype = (*doc)["subtype"].GetString();
   if (strcmp(subtype, "ERROR") == 0) {
     throw db::Error((*doc)["msg"].GetString(),
                     std::atoi((*doc)["code"].GetString()),
@@ -482,7 +472,7 @@ void Trace::expected_status() {
     throw sequence_error(
         "Expected response in session trace, but got something else");
 
-  const char* subtype = obj["subtype"].GetString();
+  const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "OK") == 0) {
   } else {
     throw_error(&obj);
@@ -490,7 +480,7 @@ void Trace::expected_status() {
 }
 
 void Trace::expected_connect_status(
-    std::map<std::string, std::string>* out_info) {
+    std::map<std::string, std::string> *out_info) {
   rapidjson::Value obj;
   next(&obj);
 
@@ -498,7 +488,7 @@ void Trace::expected_connect_status(
     throw sequence_error(
         "Expected response in session trace, but got something else");
 
-  const char* subtype = obj["subtype"].GetString();
+  const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "CONNECT_OK") == 0) {
     for (auto itr = obj.MemberBegin(); itr != obj.MemberEnd(); ++itr) {
       if (itr->value.IsString())
@@ -509,10 +499,10 @@ void Trace::expected_connect_status(
   }
 }
 
-void unserialize_result_metadata(rapidjson::Value* clist,
-                                 std::vector<Column>* metadata) {
+void unserialize_result_metadata(rapidjson::Value *clist,
+                                 std::vector<Column> *metadata) {
   for (unsigned i = 0; i < clist->Size(); i++) {
-    rapidjson::Value& cobj((*clist)[i]);
+    rapidjson::Value &cobj((*clist)[i]);
     db::Column column(
         get_string(cobj["schema"]), get_string(cobj["table_name"]),
         get_string(cobj["table_label"]), get_string(cobj["column_name"]),
@@ -526,18 +516,15 @@ void unserialize_result_metadata(rapidjson::Value* clist,
 }
 
 class Row_unserializer : public db::IRow {
-  rapidjson::Value& _fields;
-  const std::vector<db::Column>& _columns;
+  rapidjson::Value &_fields;
+  const std::vector<db::Column> &_columns;
 
  public:
-  Row_unserializer(rapidjson::Value& fields,  // NOLINT(runtime/references)
-                   const std::vector<db::Column>& columns)
-      : _fields(fields), _columns(columns) {
-  }
+  Row_unserializer(rapidjson::Value &fields,  // NOLINT(runtime/references)
+                   const std::vector<db::Column> &columns)
+      : _fields(fields), _columns(columns) {}
 
-  uint32_t num_fields() const override {
-    return _columns.size();
-  }
+  uint32_t num_fields() const override { return _columns.size(); }
 
   Type get_type(uint32_t index) const override {
     return _columns[index].get_type();
@@ -548,8 +535,7 @@ class Row_unserializer : public db::IRow {
   }
 
   std::string get_as_string(uint32_t index) const override {
-    if (_fields[index].IsString())
-      return _fields[index].GetString();
+    if (_fields[index].IsString()) return _fields[index].GetString();
     return to_json(&_fields[index]);
   }
 
@@ -573,7 +559,7 @@ class Row_unserializer : public db::IRow {
     return _fields[index].GetDouble();
   }
 
-  std::pair<const char*, size_t> get_string_data(uint32_t) const override {
+  std::pair<const char *, size_t> get_string_data(uint32_t) const override {
     throw std::logic_error("not implemented");
   }
 
@@ -583,7 +569,7 @@ class Row_unserializer : public db::IRow {
 };
 
 void Trace::unserialize_result_rows(
-    rapidjson::Value* rlist, std::shared_ptr<Result_mysql> result,
+    rapidjson::Value *rlist, std::shared_ptr<Result_mysql> result,
     std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept) {
   for (unsigned i = 0; i < rlist->Size(); i++) {
     if (intercept) {
@@ -598,7 +584,7 @@ void Trace::unserialize_result_rows(
 }
 
 void Trace::unserialize_result_rows(
-    rapidjson::Value* rlist, std::shared_ptr<Result_mysqlx> result,
+    rapidjson::Value *rlist, std::shared_ptr<Result_mysqlx> result,
     std::function<std::unique_ptr<IRow>(std::unique_ptr<IRow>)> intercept) {
   for (unsigned i = 0; i < rlist->Size(); i++) {
     if (intercept) {
@@ -621,7 +607,7 @@ std::shared_ptr<Result_mysql> Trace::expected_result(
     throw sequence_error(
         "Expected response in session trace, but got something else");
 
-  const char* subtype = obj["subtype"].GetString();
+  const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "RESULT") == 0) {
     auto last_insert_id = get_int(obj["auto_increment_value"]);
     auto affected_rows = get_uint(obj["affected_rows"]);
@@ -633,11 +619,11 @@ std::shared_ptr<Result_mysql> Trace::expected_result(
 
     if (obj.HasMember("columns")) {
       result->_has_resultset = true;
-      rapidjson::Value& cols(obj["columns"]);
+      rapidjson::Value &cols(obj["columns"]);
       unserialize_result_metadata(&cols, &result->_metadata);
     }
     if (obj.HasMember("rows")) {
-      rapidjson::Value& rows(obj["rows"]);
+      rapidjson::Value &rows(obj["rows"]);
       unserialize_result_rows(&rows, result, intercept);
     }
     return result;
@@ -656,7 +642,7 @@ std::shared_ptr<Result_mysqlx> Trace::expected_result_x(
     throw sequence_error(
         "Expected response in session trace, but got something else");
 
-  const char* subtype = obj["subtype"].GetString();
+  const char *subtype = obj["subtype"].GetString();
   if (strcmp(subtype, "RESULT") == 0) {
     auto last_insert_id = get_int(obj["auto_increment_value"]);
     auto affected_rows = get_uint(obj["affected_rows"]);
@@ -668,11 +654,11 @@ std::shared_ptr<Result_mysqlx> Trace::expected_result_x(
 
     if (obj.HasMember("columns")) {
       result->_has_resultset = true;
-      rapidjson::Value& cols(obj["columns"]);
+      rapidjson::Value &cols(obj["columns"]);
       unserialize_result_metadata(&cols, &result->_metadata);
     }
     if (obj.HasMember("rows")) {
-      rapidjson::Value& rows(obj["rows"]);
+      rapidjson::Value &rows(obj["rows"]);
       unserialize_result_rows(&rows, result, intercept);
     }
     return result;
@@ -684,20 +670,19 @@ std::shared_ptr<Result_mysqlx> Trace::expected_result_x(
 
 //--------------
 
-void save_info(const std::string& path,
-               const std::map<std::string, std::string>& state) {
+void save_info(const std::string &path,
+               const std::map<std::string, std::string> &state) {
   rapidjson::Document doc;
   doc.SetObject();
-  for (const auto& m : state) {
+  for (const auto &m : state) {
     set(&doc, m.first.c_str(), m.second.c_str());
   }
 
-  std::FILE* file;
+  std::FILE *file;
   char buffer[1024 * 4];
 
   file = std::fopen(path.c_str(), "w+");
-  if (!file)
-    throw std::runtime_error(path + ": " + strerror(errno));
+  if (!file) throw std::runtime_error(path + ": " + strerror(errno));
 
   rapidjson::FileWriteStream stream(file, buffer, sizeof(buffer));
   rapidjson::Writer<rapidjson::FileWriteStream> writer(stream);
@@ -705,13 +690,12 @@ void save_info(const std::string& path,
   std::fclose(file);
 }
 
-std::map<std::string, std::string> load_info(const std::string& path) {
-  std::FILE* file;
+std::map<std::string, std::string> load_info(const std::string &path) {
+  std::FILE *file;
   char buffer[1024 * 4];
 
   file = std::fopen(path.c_str(), "r");
-  if (!file)
-    throw std::runtime_error(path + ": " + strerror(errno));
+  if (!file) throw std::runtime_error(path + ": " + strerror(errno));
 
   rapidjson::Document doc;
   rapidjson::FileReadStream stream(file, buffer, sizeof(buffer));

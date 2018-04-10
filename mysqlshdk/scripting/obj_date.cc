@@ -74,8 +74,7 @@ bool Date::operator==(const Date &other) const {
 
 std::string &Date::append_descr(std::string &s_out, int /*indent*/,
                                 int quote_strings) const {
-  if (quote_strings)
-    s_out.push_back(quote_strings);
+  if (quote_strings) s_out.push_back(quote_strings);
 
   if (_has_time) {
     if (_usec != 0)
@@ -87,8 +86,7 @@ std::string &Date::append_descr(std::string &s_out, int /*indent*/,
   } else {
     s_out.append(str_format("%04d-%02d-%02d", _year, (_month + 1), _day));
   }
-  if (quote_strings)
-    s_out.push_back(quote_strings);
+  if (quote_strings) s_out.push_back(quote_strings);
   return s_out;
 }
 

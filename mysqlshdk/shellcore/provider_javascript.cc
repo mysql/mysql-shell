@@ -49,12 +49,9 @@ class JavaScript_proxy : public Object {
  public:
   explicit JavaScript_proxy(Provider_javascript *completer, const JSObject &obj,
                             const std::string &obj_class, bool callable)
-      : completer_(completer), jsobj_(obj), jsobj_class_(obj_class) {
-  }
+      : completer_(completer), jsobj_(obj), jsobj_class_(obj_class) {}
 
-  std::string get_type() const override {
-    return jsobj_class_;
-  }
+  std::string get_type() const override { return jsobj_class_; }
 
   bool is_member_callable(const std::string &name) const override {
     if (wrapped_placeholder_) {
@@ -128,8 +125,7 @@ class JavaScript_proxy : public Object {
 Provider_javascript::Provider_javascript(
     std::shared_ptr<Object_registry> registry,
     std::shared_ptr<JScript_context> context)
-    : Provider_script(registry), context_(context) {
-}
+    : Provider_script(registry), context_(context) {}
 
 Completion_list Provider_javascript::complete_chain(const Chain &chain_a) {
   // handle globals/toplevel keywords
@@ -250,8 +246,7 @@ Provider_script::Chain Provider_javascript::parse_until(
       case '}':
       case ')':
       case ']':
-        if (s[p] == close_char)
-          return chain;
+        if (s[p] == close_char) return chain;
         chain.clear();
         identifier.clear();
         // unexpected closing thingy, probably bad syntax, but we don't care

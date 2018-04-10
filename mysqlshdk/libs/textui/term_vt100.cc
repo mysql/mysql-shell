@@ -40,13 +40,11 @@ namespace vt100 {
 
 int tty_fd() {
   static int fd = -1;
-  if (fd >= 0)
-    return fd;
+  if (fd >= 0) return fd;
   const char *ttydev = ttyname(0);  // NOLINT(runtime/threadsafe_fn)
   // suggests ttyname_r which is not portable and not needed
 
-  if (!ttydev)
-    return -1;
+  if (!ttydev) return -1;
   fd = open(ttydev, O_RDWR | O_NOCTTY);
   return fd;
 }
@@ -55,8 +53,7 @@ bool get_screen_size(int *rows, int *columns) {
   struct winsize size;
   if (ioctl(fileno(stdout), TIOCGWINSZ, &size) == 0) {
     // Happens in some cases (under gdb, in jenkins), even if the fd is a tty
-    if (size.ws_row == 0 && size.ws_col == 0)
-      return false;
+    if (size.ws_row == 0 && size.ws_col == 0) return false;
     *rows = size.ws_row;
     *columns = size.ws_col;
     return true;

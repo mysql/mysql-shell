@@ -76,8 +76,7 @@ void Prompt_manager::Attributes::load(const shcore::Value::Map_type_ref &opts) {
   if (opts->has_key("bg")) {
     style_map["bg"] = opts->at("bg").descr();
   }
-  if (opts->has_key("bold"))
-    style_map["bold"] = opts->at("bold").descr();
+  if (opts->has_key("bold")) style_map["bold"] = opts->at("bold").descr();
   if (opts->has_key("underline"))
     style_map["underline"] = opts->at("underline").descr();
 
@@ -95,8 +94,7 @@ void Prompt_manager::Attributes::load(const shcore::Value::Map_type_ref &opts) {
   }
   if (opts->has_key("padding")) {
     padding = opts->get_int("padding");
-    if (padding < 0)
-      throw std::invalid_argument("padding value must be >= 0");
+    if (padding < 0) throw std::invalid_argument("padding value must be >= 0");
   }
   if (opts->has_key("separator")) {
     sep.reset(new std::string(opts->get_string("separator")));
@@ -134,8 +132,7 @@ void Prompt_manager::set_theme(const shcore::Value &theme) {
       renderer_.set_symbols(sv);
 
       std::string sep, alt_sep;
-      if (symbols->has_key("separator"))
-        sep = symbols->get_string("separator");
+      if (symbols->has_key("separator")) sep = symbols->get_string("separator");
       if (symbols->has_key("separator2"))
         alt_sep = symbols->get_string("separator2");
       renderer_.set_separator(sep, alt_sep);
@@ -196,15 +193,13 @@ Prompt_manager::~Prompt_manager() {}
 
 std::string Prompt_manager::do_apply_vars(
     const std::string &s, Prompt_manager::Variables_map *vars,
-    Prompt_manager::Dynamic_variable_callback query_var,
-    int recursion_depth) {
+    Prompt_manager::Dynamic_variable_callback query_var, int recursion_depth) {
   std::string ret;
   std::string::size_type pos = 0, p;
 
   while ((p = s.find('%', pos)) != std::string::npos) {
     std::string::size_type end = s.find('%', p + 1);
-    if (end == std::string::npos)
-      break;
+    if (end == std::string::npos) break;
 
     ret.append(s.substr(pos, p - pos));
 
@@ -250,10 +245,9 @@ std::string Prompt_manager::do_apply_vars(
         if (recursion_depth >= k_max_variable_recursion_depth) {
           return "<<Recursion detected during variable evaluation>>";
         } else {
-          std::string v = custom_variables_[var]->evaluate(
-              std::bind(&Prompt_manager::do_apply_vars, this,
-                        std::placeholders::_1, vars, query_var,
-                        recursion_depth+1));
+          std::string v = custom_variables_[var]->evaluate(std::bind(
+              &Prompt_manager::do_apply_vars, this, std::placeholders::_1, vars,
+              query_var, recursion_depth + 1));
           ret.append(v);
         }
       } else {

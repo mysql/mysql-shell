@@ -34,8 +34,7 @@ namespace mysqlshdk {
 namespace db {
 namespace mysqlx {
 Result::Result(std::unique_ptr<xcl::XQuery_result> result)
-    : _result(std::move(result)), _row(this), _fetched_row_count(0) {
-}
+    : _result(std::move(result)), _row(this), _fetched_row_count(0) {}
 
 void Result::fetch_metadata() {
   _metadata.clear();
@@ -146,8 +145,7 @@ void Result::fetch_metadata() {
 
 std::string Result::get_info() const {
   std::string info;
-  if (_result)
-    _result->try_get_info_message(&info);
+  if (_result) _result->try_get_info_message(&info);
   return info;
 }
 
@@ -168,8 +166,7 @@ uint64_t Result::get_affected_row_count() const {
 }
 
 uint64_t Result::get_warning_count() const {
-  if (_result)
-    return _result->get_warnings().size();
+  if (_result) return _result->get_warnings().size();
   return 0;
 }
 
@@ -214,8 +211,7 @@ const IRow *Result::fetch_one() {
     if (_result) {
       xcl::XError error;
       const ::xcl::XRow *row = _result->get_next_row(&error);
-      if (error)
-        throw mysqlshdk::db::Error(error.what(), error.error());
+      if (error) throw mysqlshdk::db::Error(error.what(), error.error());
       if (row) {
         _row.reset(row);
         _fetched_row_count++;
@@ -226,28 +222,24 @@ const IRow *Result::fetch_one() {
   return nullptr;
 }
 
-void Result::rewind() {
-  _fetched_row_count = 0;
-}
+void Result::rewind() { _fetched_row_count = 0; }
 
 bool Result::pre_fetch_rows(bool persistent) {
   if (_result) {
     _persistent_pre_fetch = persistent;
     _stop_pre_fetch = false;
-    if (!_result->has_resultset())
-      return false;
+    if (!_result->has_resultset()) return false;
     Row wrapper(this);
     xcl::XError error;
     while (const ::xcl::XRow *row = _result->get_next_row(&error)) {
-      if (_stop_pre_fetch)
-        return true;
+      if (_stop_pre_fetch) return true;
       wrapper.reset(row);
       _pre_fetched_rows.push_back(Row_copy(wrapper));
     }
     if (error) {
       std::stringstream msg;
       msg << "Error " << error.error() << " (" << error.what() << ")";
-      msg << " while fetching row " << _pre_fetched_rows.size()+1 << ".";
+      msg << " while fetching row " << _pre_fetched_rows.size() + 1 << ".";
       throw mysqlshdk::db::Error(msg.str().c_str(), error.error());
     }
     _pre_fetched = true;
@@ -255,13 +247,9 @@ bool Result::pre_fetch_rows(bool persistent) {
   return true;
 }
 
-void Result::stop_pre_fetch() {
-  _stop_pre_fetch = true;
-}
+void Result::stop_pre_fetch() { _stop_pre_fetch = true; }
 
-bool Result::has_resultset() {
-  return _result->has_resultset();
-}
+bool Result::has_resultset() { return _result->has_resultset(); }
 
 bool Result::next_resultset() {
   bool ret_val = false;
@@ -271,8 +259,7 @@ bool Result::next_resultset() {
 
   xcl::XError error;
   ret_val = _result->next_resultset(&error);
-  if (error)
-    throw mysqlshdk::db::Error(error.what(), error.error());
+  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
   _fetched_row_count = 0;
   return ret_val;
 }

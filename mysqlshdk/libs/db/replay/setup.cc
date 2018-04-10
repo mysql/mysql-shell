@@ -41,7 +41,7 @@ Mode g_replay_mode = Mode::Direct;
 Result_row_hook g_replay_row_hook;
 Query_hook g_replay_query_hook;
 
-void set_recording_path_prefix(const std::string& path) {
+void set_recording_path_prefix(const std::string &path) {
   assert(path.size() + 1 < sizeof(g_recording_path_prefix));
   if (!path.empty()) {
     snprintf(g_recording_path_prefix, sizeof(g_recording_path_prefix), "%s",
@@ -54,7 +54,7 @@ void set_recording_path_prefix(const std::string& path) {
   g_external_program_index = 0;
 }
 
-void begin_recording_context(const std::string& context) {
+void begin_recording_context(const std::string &context) {
   assert(context.size() < sizeof(g_recording_context));
   snprintf(g_recording_context, sizeof(g_recording_context), "%s",
            context.c_str());
@@ -79,45 +79,42 @@ std::string current_recording_dir() {
   return path;
 }
 
-std::string external_recording_path(const std::string& program_id) {
+std::string external_recording_path(const std::string &program_id) {
   ++g_external_program_index;
   std::string path = g_recording_path_prefix;
 
   path.append(g_recording_context);
-  if (!shcore::str_endswith(g_recording_context, "/"))
-    path.append("_");
+  if (!shcore::str_endswith(g_recording_context, "/")) path.append("_");
   path.append(program_id);
   path.append(std::to_string(g_external_program_index));
   return path;
 }
 
-std::string new_recording_path(const std::string& type) {
+std::string new_recording_path(const std::string &type) {
   g_session_create_index++;
   std::string path = g_recording_path_prefix;
-  char* p = strrchr(g_recording_context, '/');
+  char *p = strrchr(g_recording_context, '/');
   if (p) {
     shcore::ensure_dir_exists(path + "/" + std::string(g_recording_context, p));
   }
   path.append(g_recording_context);
-  if (!shcore::str_endswith(g_recording_context, "/"))
-    path.append(".");
+  if (!shcore::str_endswith(g_recording_context, "/")) path.append(".");
   path.append(std::to_string(g_session_create_index));
   path.append("." + type);
   return path;
 }
 
-std::string next_replay_path(const std::string& type) {
+std::string next_replay_path(const std::string &type) {
   g_session_replay_index++;
   std::string path = g_recording_path_prefix;
   path.append(g_recording_context);
-  if (!shcore::str_endswith(g_recording_context, "/"))
-    path.append(".");
+  if (!shcore::str_endswith(g_recording_context, "/")) path.append(".");
   path.append(std::to_string(g_session_replay_index));
   path.append("." + type);
   return path;
 }
 
-void save_test_case_info(const std::map<std::string, std::string>& state) {
+void save_test_case_info(const std::map<std::string, std::string> &state) {
   save_info(current_recording_dir() + "/info", state);
 }
 
@@ -159,13 +156,9 @@ void setup_mysql_session_injector(Mode mode, int print_traces) {
   }
 }
 
-void set_replay_row_hook(Result_row_hook func) {
-  g_replay_row_hook = func;
-}
+void set_replay_row_hook(Result_row_hook func) { g_replay_row_hook = func; }
 
-void set_replay_query_hook(Query_hook func) {
-  g_replay_query_hook = func;
-}
+void set_replay_query_hook(Query_hook func) { g_replay_query_hook = func; }
 
 No_replay::No_replay() {
   _old_mode = g_active_session_injector_mode;

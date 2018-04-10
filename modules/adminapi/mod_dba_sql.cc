@@ -22,12 +22,12 @@
  */
 
 #include "modules/adminapi/mod_dba_sql.h"
+#include <utils/utils_general.h>
 #include <algorithm>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
-#include <utils/utils_general.h>
 #include "utils/utils_sqlstring.h"
 
 namespace mysqlsh {
@@ -169,8 +169,9 @@ SlaveReplicationState get_slave_replication_state(
     ret_val = SlaveReplicationState::New;
   } else {
     std::string query;
-    query = shcore::sqlstring(
-        "select gtid_subset(?, @@global.gtid_executed)", 0) << slave_executed;
+    query =
+        shcore::sqlstring("select gtid_subset(?, @@global.gtid_executed)", 0)
+        << slave_executed;
 
     auto result = connection->query(query);
     auto row = result->fetch_one();
@@ -180,8 +181,9 @@ SlaveReplicationState get_slave_replication_state(
     if (1 == slave_is_subset) {
       // If purged has more gtids than the executed on the slave
       // it means some data will not be recoverable
-      query = shcore::sqlstring(
-          "select gtid_subtract(@@global.gtid_purged, ?)", 0) << slave_executed;
+      query =
+          shcore::sqlstring("select gtid_subtract(@@global.gtid_purged, ?)", 0)
+          << slave_executed;
 
       result = connection->query(query);
       row = result->fetch_one();
@@ -235,7 +237,8 @@ Cluster_check_info get_replication_group_state(
   // Gets the cluster instance status count
   std::string instance_state_query(
       "SELECT MEMBER_STATE FROM performance_schema.replication_group_members "
-      "WHERE MEMBER_ID = '" + ret_val.source + "'");
+      "WHERE MEMBER_ID = '" +
+      ret_val.source + "'");
   result = connection->query(instance_state_query);
   row = result->fetch_one();
   if (!row) {
@@ -312,10 +315,10 @@ ManagedInstance::State get_instance_state(
   // Get the state information of the instance with the given address.
   shcore::sqlstring query = shcore::sqlstring(
       "SELECT mysql_server_uuid, instance_name, member_state "
-          "FROM mysql_innodb_cluster_metadata.instances "
-          "LEFT JOIN performance_schema.replication_group_members "
-          "ON `mysql_server_uuid`=`member_id` "
-          "WHERE addresses->\"$.mysqlClassic\" = ?",
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "LEFT JOIN performance_schema.replication_group_members "
+      "ON `mysql_server_uuid`=`member_id` "
+      "WHERE addresses->\"$.mysqlClassic\" = ?",
       0);
   query << address;
   query.done();
@@ -324,8 +327,8 @@ ManagedInstance::State get_instance_state(
   row = result->fetch_one();
   if (!row) {
     throw shcore::Exception::runtime_error(
-        "Unable to retreive status information for the instance '" +
-        address + "'. The instance might no longer be part of the cluster.");
+        "Unable to retreive status information for the instance '" + address +
+        "'. The instance might no longer be part of the cluster.");
   }
   std::string instance_uuid = row->get_as_string(0);
   std::string state = row->get_as_string(2);
@@ -347,9 +350,9 @@ ManagedInstance::State get_instance_state(
   } else if (state.compare("NULL") == 0) {
     return ManagedInstance::State::Missing;
   } else {
-    throw shcore::Exception::runtime_error(
-        "The instance '" + address + "' has an unexpected status: '" + state +
-        "'.");
+    throw shcore::Exception::runtime_error("The instance '" + address +
+                                           "' has an unexpected status: '" +
+                                           state + "'.");
   }
 }
 
@@ -358,8 +361,10 @@ std::string get_plugin_status(
     std::string plugin_name) {
   std::string query, status;
   query = shcore::sqlstring(
-      "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE "
-      "PLUGIN_NAME = ?", 0) << plugin_name;
+              "SELECT PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE "
+              "PLUGIN_NAME = ?",
+              0)
+          << plugin_name;
 
   // Any error will bubble up right away
   auto result = connection->query(query);
@@ -383,8 +388,11 @@ bool is_server_on_replication_group(
     const std::string &uuid) {
   std::string query;
   query = shcore::sqlstring(
-      "select count(*) from performance_schema.replication_group_members where "
-      "member_id = ?", 0) << uuid;
+              "select count(*) from "
+              "performance_schema.replication_group_members where "
+              "member_id = ?",
+              0)
+          << uuid;
 
   // Any error will bubble up right away
   auto result = connection->query(query);
@@ -396,12 +404,12 @@ bool is_server_on_replication_group(
   if (row)
     count = row->get_int(0);
   else
-    throw shcore::Exception::runtime_error("Unable to verify Group Replication "
-                                           "membership");
+    throw shcore::Exception::runtime_error(
+        "Unable to verify Group Replication "
+        "membership");
 
   return count == 1;
 }
-
 
 bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
                          const std::string &name, std::string &value,
@@ -417,7 +425,7 @@ bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
       value = row->get_string(0);
     else
       ret_val = false;
-  } catch (mysqlshdk::db::Error& error) {
+  } catch (mysqlshdk::db::Error &error) {
     if (throw_on_error) {
       throw shcore::Exception::mysql_error_with_code_and_state(
           error.what(), error.code(), error.sqlstate());
@@ -445,7 +453,7 @@ bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
       value = row->get_int(0);
     else
       ret_val = false;
-  } catch (mysqlshdk::db::Error& error) {
+  } catch (mysqlshdk::db::Error &error) {
     if (throw_on_error) {
       throw shcore::Exception::mysql_error_with_code_and_state(
           error.what(), error.code(), error.sqlstate());
@@ -460,8 +468,7 @@ bool get_server_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
 }
 
 void set_global_variable(std::shared_ptr<mysqlshdk::db::ISession> connection,
-                         const std::string &name,
-                         const std::string &value) {
+                         const std::string &name, const std::string &value) {
   std::string query, query_raw = "SET GLOBAL " + name + " = ?";
   query = shcore::sqlstring(query_raw.c_str(), 0) << value;
 
@@ -505,9 +512,8 @@ bool is_gtid_subset(std::shared_ptr<mysqlshdk::db::ISession> connection,
     auto result = connection->query(query);
     auto row = result->fetch_one();
 
-    if (row)
-      ret_val = row->get_int(0);
-  } catch (mysqlshdk::db::Error& error) {
+    if (row) ret_val = row->get_int(0);
+  } catch (mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
   }
@@ -552,14 +558,14 @@ std::vector<std::string> get_peer_seeds(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     const std::string &instance_host) {
   std::vector<std::string> ret_val;
-  shcore::sqlstring query =
-      shcore::sqlstring(
-          "SELECT JSON_UNQUOTE(addresses->'$.grLocal') "\
-          "FROM mysql_innodb_cluster_metadata.instances "\
-          "WHERE addresses->'$.mysqlClassic' <> ? "\
-          "AND replicaset_id IN (SELECT replicaset_id "\
-          "FROM mysql_innodb_cluster_metadata.instances "\
-          "WHERE addresses->'$.mysqlClassic' = ?)", 0);
+  shcore::sqlstring query = shcore::sqlstring(
+      "SELECT JSON_UNQUOTE(addresses->'$.grLocal') "
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE addresses->'$.mysqlClassic' <> ? "
+      "AND replicaset_id IN (SELECT replicaset_id "
+      "FROM mysql_innodb_cluster_metadata.instances "
+      "WHERE addresses->'$.mysqlClassic' = ?)",
+      0);
 
   query << instance_host.c_str();
   query << instance_host.c_str();
@@ -567,8 +573,8 @@ std::vector<std::string> get_peer_seeds(
 
   try {
     // Get current GR group seeds value
-    auto result = connection->query(
-        "SELECT @@global.group_replication_group_seeds");
+    auto result =
+        connection->query("SELECT @@global.group_replication_group_seeds");
     auto row = result->fetch_one();
     std::string group_seeds_str = row->get_string(0);
     if (!group_seeds_str.empty())
@@ -580,8 +586,7 @@ std::vector<std::string> get_peer_seeds(
     while (row) {
       std::string seed = row->get_string(0);
 
-      if (std::find(ret_val.begin(), ret_val.end(), seed) ==
-          ret_val.end()) {
+      if (std::find(ret_val.begin(), ret_val.end(), seed) == ret_val.end()) {
         // Only add seed from metadata if not already in the GR group seeds.
         ret_val.push_back(seed);
       }
@@ -608,8 +613,7 @@ std::string generate_password(size_t password_length) {
 
   assert(PASSWORD_LENGTH >= 20);
 
-  if (password_length < PASSWORD_LENGTH)
-    password_length = PASSWORD_LENGTH;
+  if (password_length < PASSWORD_LENGTH) password_length = PASSWORD_LENGTH;
 
   auto get_random = [&rd](size_t size, const char *source) {
     std::string data;
@@ -623,7 +627,7 @@ std::string generate_password(size_t password_length) {
       if (i == 0) {
         data += random;
       } else {
-        if (random != data[i-1])
+        if (random != data[i - 1])
           data += random;
         else
           i--;
@@ -650,7 +654,7 @@ std::string generate_password(size_t password_length) {
 
   for (size_t index = 0; index < 8; index++) {
     std::uniform_int_distribution<int> rand_pos(lower,
-        ((index + 1) * step) - 1);
+                                                ((index + 1) * step) - 1);
     size_t position = rand_pos(rd);
     lower = position + 2;
     pwd[position] = alphas[index];
@@ -664,7 +668,7 @@ std::string generate_password(size_t password_length) {
   step = password_length / 3;
   for (size_t index = 0; index < 3; index++) {
     std::uniform_int_distribution<int> rand_pos(lower,
-        ((index + 1) * step) - 1);
+                                                ((index + 1) * step) - 1);
     size_t position = rand_pos(rd);
     lower = position + 2;
     pwd[position] = numbers[index];
@@ -678,11 +682,11 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
   std::vector<std::pair<std::string, int>> ret;
 
   std::string query(
-    "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, "
-    "COUNT(*) FROM performance_schema.threads WHERE type = 'foreground' "
-    " AND name in ('thread/mysqlx/worker', 'thread/sql/one_connection')"
-    " AND processlist_id <> connection_id()"
-    "GROUP BY acct;");
+      "SELECT CONCAT(PROCESSLIST_USER, '@', PROCESSLIST_HOST) AS acct, "
+      "COUNT(*) FROM performance_schema.threads WHERE type = 'foreground' "
+      " AND name in ('thread/mysqlx/worker', 'thread/sql/one_connection')"
+      " AND processlist_id <> connection_id()"
+      "GROUP BY acct;");
 
   // Any error will bubble up right away
   auto result = connection->query(query);
@@ -690,8 +694,7 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
 
   while (row) {
     if (!row->is_null(0)) {
-      ret.emplace_back(row->get_string(0),
-                       row->get_int(1));
+      ret.emplace_back(row->get_string(0), row->get_int(1));
     }
 
     row = result->fetch_one();

@@ -27,11 +27,10 @@
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_row.h"
 #include "utils/utils_general.h"
 
-
 namespace testing {
-void Mock_row::init(const std::vector<std::string>& names,
-                    const std::vector<mysqlshdk::db::Type>& types,
-                    const std::vector<std::string>& data) {
+void Mock_row::init(const std::vector<std::string> &names,
+                    const std::vector<mysqlshdk::db::Type> &types,
+                    const std::vector<std::string> &data) {
   _names = std::move(names);
   _types = std::move(types);
   _record = std::move(data);
@@ -89,9 +88,10 @@ std::string Mock_row::def_get_string(uint32_t index) const {
   return _record[index];
 }
 
-std::pair<const char*, size_t> Mock_row::def_get_string_data(uint32_t index) const {
-  return std::pair<const char*, size_t>(_record[index].c_str(),
-                                        _record[index].size());
+std::pair<const char *, size_t> Mock_row::def_get_string_data(
+    uint32_t index) const {
+  return std::pair<const char *, size_t>(_record[index].c_str(),
+                                         _record[index].size());
 }
 
 float Mock_row::def_get_float(uint32_t index) const {

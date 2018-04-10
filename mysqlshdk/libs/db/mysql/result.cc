@@ -43,8 +43,7 @@ Result::Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
       _warning_count(warning_count_),
       _fetched_row_count(0),
       _has_resultset(false) {
-  if (info_)
-    _info.assign(info_);
+  if (info_) _info.assign(info_);
 }
 
 void Result::fetch_metadata() {
@@ -72,8 +71,7 @@ void Result::fetch_metadata() {
   }
 }
 
-Result::~Result() {
-}
+Result::~Result() {}
 
 const IRow *Result::fetch_one() {
   _row.reset();
@@ -98,7 +96,7 @@ const IRow *Result::fetch_one() {
           const char *err = session->get_last_error(&code, &state);
           if (code != 0)
             throw shcore::Exception::mysql_error_with_code_and_state(err, code,
-                                                                    state);
+                                                                     state);
         }
       }
     }
@@ -109,8 +107,7 @@ const IRow *Result::fetch_one() {
 bool Result::next_resultset() {
   bool ret_val = false;
 
-  if (auto s = _session.lock())
-    ret_val = s->next_resultset();
+  if (auto s = _session.lock()) ret_val = s->next_resultset();
 
   _fetched_row_count = 0;
 
@@ -157,8 +154,7 @@ std::unique_ptr<Warning> Result::fetch_one_warning() {
 void Result::reset(std::shared_ptr<MYSQL_RES> res) {
   _has_resultset = false;
 
-  if (res)
-    _has_resultset = true;
+  if (res) _has_resultset = true;
 
   _result = res;
 }

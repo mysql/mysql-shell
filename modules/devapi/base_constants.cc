@@ -111,7 +111,7 @@ Value Constant::get_constant(const std::string &module,
 Value Constant::get_constant_value(const std::string &module,
                                    const std::string &group,
                                    const std::string &id,
-                                   const shcore::Argument_list &/*args*/) {
+                                   const shcore::Argument_list & /*args*/) {
   Value ret_val;
 
   // By default all is OK if there are NO params
@@ -198,7 +198,7 @@ Value Constant::get_constant_value(const std::string &module,
         ret_val = Value("ENUM");
       } else if (id == "GEOMETRY") {
         ret_val = Value("GEOMETRY");
-      // NULL is only registered for mysql module
+        // NULL is only registered for mysql module
       } else if (id == "NULL" && module == "mysql") {
         ret_val = Value("NULL");
       }
@@ -229,8 +229,7 @@ std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent),
   if (_data.type == shcore::String) {
     std::string data = _data.as_string();
     size_t pos = data.find("(");
-    if (pos != std::string::npos)
-      s_out.append(data.substr(pos));
+    if (pos != std::string::npos) s_out.append(data.substr(pos));
   }
 
   s_out.append(">");

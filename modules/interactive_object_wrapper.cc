@@ -22,8 +22,8 @@
  */
 
 #include "modules/interactive_object_wrapper.h"
-#include <string>
 #include <memory>
+#include <string>
 
 #include "utils/utils_string.h"
 
@@ -33,8 +33,7 @@ namespace shcore {
 // of wrappers
 
 Interactive_object_wrapper::Interactive_object_wrapper(
-    const std::string &alias,
-    shcore::Shell_core &core,
+    const std::string &alias, shcore::Shell_core &core,
     std::shared_ptr<mysqlsh::IConsole> console_handler)
     : _alias(alias), _shell_core(core), _delegate(console_handler) {}
 
@@ -45,8 +44,7 @@ Value Interactive_object_wrapper::get_member_advanced(
   // If the target object is not set, the resolve function enables resolving the
   // proper target object Child classes shouls implement the interactivenes
   // required to resolve the target object
-  if (!_target)
-    resolve();
+  if (!_target) resolve();
 
   // Member resolution only makes sense if the target is set and it also
   // has the member
@@ -73,8 +71,7 @@ shcore::Value Interactive_object_wrapper::get_member(
   // If the target object is not set, the resolve function enables resolving the
   // proper target object Child classes shouls implement the interactivenes
   // required to resolve the target object
-  if (!_target)
-    resolve();
+  if (!_target) resolve();
 
   // Member resolution only makes sense if the target is set and it also
   // has the member
@@ -101,8 +98,7 @@ Value Interactive_object_wrapper::call(const std::string &name,
   // If the target object is not set, the resolve function enables resolving the
   // proper target object Child classes shouls implement the interactivenes
   // required to resolve the target object
-  if (!_target)
-    resolve();
+  if (!_target) resolve();
 
   // Method execution only makes sense if the target object is set and it
   // also has the method
@@ -124,8 +120,7 @@ bool Interactive_object_wrapper::has_method_advanced(
     const std::string &name, const NamingStyle &style) const {
   bool ret_val = Cpp_object_bridge::has_method_advanced(name, style);
 
-  if (!ret_val && _target)
-    ret_val = _target->has_method_advanced(name, style);
+  if (!ret_val && _target) ret_val = _target->has_method_advanced(name, style);
 
   return ret_val;
 }
@@ -138,8 +133,7 @@ Value Interactive_object_wrapper::call_advanced(const std::string &name,
   // If the target object is not set, the resolve function enables resolving the
   // proper target object Child classes shouls implement the interactivenes
   // required to resolve the target object
-  if (!_target)
-    resolve();
+  if (!_target) resolve();
 
   // Method execution only makes sense if the target object is set and it
   // also has the method
@@ -200,16 +194,16 @@ bool Interactive_object_wrapper::prompt(const std::string &prompt,
                                         std::string &ret_val,
                                         bool trim_answer) const {
   bool ret = _shell_core.prompt(prompt, ret_val);
-  if (trim_answer)
-    ret_val = shcore::str_strip(ret_val, " ");
+  if (trim_answer) ret_val = shcore::str_strip(ret_val, " ");
   return ret;
 }
 
-shcore::Prompt_answer Interactive_object_wrapper::prompt(const std::string& prompt_str, Prompt_answer def) const {
+shcore::Prompt_answer Interactive_object_wrapper::prompt(
+    const std::string &prompt_str, Prompt_answer def) const {
   assert(def != Prompt_answer::NONE);
   Prompt_answer final_ans = Prompt_answer::NONE;
   std::string ans;
-  while(final_ans == Prompt_answer::NONE) {
+  while (final_ans == Prompt_answer::NONE) {
     std::string def_str = "";
     switch (def) {
       case Prompt_answer::YES:
@@ -232,8 +226,7 @@ shcore::Prompt_answer Interactive_object_wrapper::prompt(const std::string& prom
         else
           println("\nInvalid answer!");
       }
-    }
-    else
+    } else
       break;
   }
   return final_ans;

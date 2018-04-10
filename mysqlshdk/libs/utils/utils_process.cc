@@ -37,8 +37,7 @@ namespace utils {
 bool check_lock_file(const std::string &path) {
   std::string data;
   if (!shcore::load_text_file(path, data)) {
-    if (errno == ENOENT)
-      return false;
+    if (errno == ENOENT) return false;
     throw std::runtime_error(path + ": " + strerror(errno));
   }
   int64_t pid = std::stoi(data);

@@ -29,20 +29,20 @@
 #include "modules/interactive_object_wrapper.h"
 
 namespace shcore {
-  //! Interactive wrapper for the active session
-  class Global_shell : public Interactive_object_wrapper {
-  public:
-    Global_shell(Shell_core& shell_core,
-                 std::shared_ptr<mysqlsh::IConsole> console_handler) :
-      Interactive_object_wrapper("shell", shell_core, console_handler) {
-        init();
-      }
+//! Interactive wrapper for the active session
+class Global_shell : public Interactive_object_wrapper {
+ public:
+  Global_shell(Shell_core &shell_core,
+               std::shared_ptr<mysqlsh::IConsole> console_handler)
+      : Interactive_object_wrapper("shell", shell_core, console_handler) {
+    init();
+  }
 
-    shcore::Value connect(const shcore::Argument_list &args);
+  shcore::Value connect(const shcore::Argument_list &args);
 
-  private:
-    void init();
-  };
-}
+ private:
+  void init();
+};
+}  // namespace shcore
 
 #endif

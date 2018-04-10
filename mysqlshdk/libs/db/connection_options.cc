@@ -21,19 +21,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mysqlshdk/libs/db/connection_options.h"
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-using mysqlshdk::utils::nullable;
-using mysqlshdk::utils::nullable_options::Set_mode;
-using mysqlshdk::utils::nullable_options::Comparison_mode;
-using mysqlshdk::utils::Nullable_options;
 using mysqlshdk::db::uri::Uri_encoder;
+using mysqlshdk::utils::Nullable_options;
+using mysqlshdk::utils::nullable;
+using mysqlshdk::utils::nullable_options::Comparison_mode;
+using mysqlshdk::utils::nullable_options::Set_mode;
 
 namespace mysqlshdk {
 namespace db {
@@ -51,8 +51,8 @@ std::string to_string(Transport_type type) {
 }
 
 namespace {
-static constexpr const char *fixed_str_list[] = {
-    kHost, kSocket, kScheme, kSchema, kUser, kPassword};
+static constexpr const char *fixed_str_list[] = {kHost,   kSocket, kScheme,
+                                                 kSchema, kUser,   kPassword};
 }
 
 Connection_options::Connection_options(Comparison_mode mode)
@@ -63,7 +63,7 @@ Connection_options::Connection_options(Comparison_mode mode)
     Nullable_options::set(o, nullptr, Set_mode::CREATE);
 }
 
-Connection_options::Connection_options(const std::string& uri,
+Connection_options::Connection_options(const std::string &uri,
                                        Comparison_mode mode)
     : Nullable_options(mode, "connection"),
       _ssl_options(_mode),
@@ -74,7 +74,7 @@ Connection_options::Connection_options(const std::string& uri,
   try {
     uri::Uri_parser parser;
     *this = parser.parse(uri, _mode);
-  } catch (const std::invalid_argument& error) {
+  } catch (const std::invalid_argument &error) {
     std::string msg = "Invalid URI: ";
     msg.append(error.what());
     throw std::invalid_argument(msg);
@@ -82,7 +82,7 @@ Connection_options::Connection_options(const std::string& uri,
 }
 
 void Connection_options::set_login_options_from(
-    const Connection_options& options) {
+    const Connection_options &options) {
   clear_user();
   if (options.has_user()) {
     set_user(options.get_user());
@@ -96,14 +96,12 @@ void Connection_options::set_login_options_from(
   _ssl_options.clear_key();
   // SSL client certificate options are login options
   const Ssl_options &ssl = options.get_ssl_options();
-  if (ssl.has_cert())
-    _ssl_options.set_cert(ssl.get_cert());
-  if (ssl.has_key())
-    _ssl_options.set_key(ssl.get_key());
+  if (ssl.has_cert()) _ssl_options.set_cert(ssl.get_cert());
+  if (ssl.has_key()) _ssl_options.set_key(ssl.get_key());
 }
 
 void Connection_options::set_ssl_connection_options_from(
-    const Ssl_options& options) {
+    const Ssl_options &options) {
   Ssl_options orig(_ssl_options);
   // Copy all SSL options
   _ssl_options = options;
@@ -111,10 +109,8 @@ void Connection_options::set_ssl_connection_options_from(
   _ssl_options.clear_cert();
   _ssl_options.clear_key();
   // SSL client certificate options are login options
-  if (orig.has_cert())
-    _ssl_options.set_cert(orig.get_cert());
-  if (orig.has_key())
-    _ssl_options.set_key(orig.get_key());
+  if (orig.has_cert()) _ssl_options.set_cert(orig.get_cert());
+  if (orig.has_key()) _ssl_options.set_key(orig.get_key());
 }
 
 void Connection_options::set_ssl_options(const Ssl_options &options) {
@@ -128,12 +124,12 @@ bool Connection_options::has_data() const {
   return false;
 }
 
-void Connection_options::_set_fixed(const std::string& key,
-                                    const std::string& val) {
+void Connection_options::_set_fixed(const std::string &key,
+                                    const std::string &val) {
   Nullable_options::set(key, val, Set_mode::UPDATE_NULL);
 }
 
-void Connection_options::set_pipe(const std::string& pipe) {
+void Connection_options::set_pipe(const std::string &pipe) {
 #ifdef _WIN32
   const bool win32 = true;
 #else
@@ -150,7 +146,7 @@ void Connection_options::set_pipe(const std::string& pipe) {
   _transport_type = Pipe;
 }
 
-void Connection_options::set_socket(const std::string& socket) {
+void Connection_options::set_socket(const std::string &socket) {
   if ((!_transport_type.is_null() && *_transport_type == Pipe) ||
       !_port.is_null() ||
       (Nullable_options::has_value(kHost) &&
@@ -162,14 +158,13 @@ void Connection_options::set_socket(const std::string& socket) {
 }
 
 void Connection_options::raise_connection_type_error(
-    const std::string& source) {
+    const std::string &source) {
   std::string type;
   std::string target;
 
   if (Nullable_options::has_value(kHost) || !_port.is_null()) {
     if (Nullable_options::has_value(kHost)) {
-      if (get_value(kHost) != "localhost")
-        type = "tcp ";
+      if (get_value(kHost) != "localhost") type = "tcp ";
 
       target = "to '" + get_value(kHost);
     }
@@ -199,7 +194,7 @@ void Connection_options::raise_connection_type_error(
                          source.c_str(), type.c_str(), target.c_str()));
 }
 
-void Connection_options::set_host(const std::string& host) {
+void Connection_options::set_host(const std::string &host) {
   if (!_transport_type.is_null() && *_transport_type != Tcp)
     raise_connection_type_error("connection to '" + host + "'");
 
@@ -223,7 +218,7 @@ void Connection_options::set_port(int port) {
   }
 }
 
-std::string Connection_options::get_iname(const std::string& name) const {
+std::string Connection_options::get_iname(const std::string &name) const {
   // DbUser and DbPassword are only supported as input
   // Internally, they are handled as User and Password
   std::string iname(name);
@@ -235,14 +230,14 @@ std::string Connection_options::get_iname(const std::string& name) const {
   return name;
 }
 
-void Connection_options::set(const std::string& name,
-                             const std::vector<std::string>& values) {
+void Connection_options::set(const std::string &name,
+                             const std::vector<std::string> &values) {
   std::string iname = get_iname(name);
 
   auto is_extra_option = [this, &name]() -> bool {
     return std::find_if(uri_extra_options.begin(), uri_extra_options.end(),
                         [this, &name](const decltype(
-                            uri_extra_options)::value_type& item) {
+                            uri_extra_options)::value_type &item) {
                           return compare(name, item) == 0;
                         }) != uri_extra_options.end();
   };
@@ -284,14 +279,14 @@ void Connection_options::set(const std::string& name,
   }
 }
 
-bool Connection_options::has(const std::string& name) const {
+bool Connection_options::has(const std::string &name) const {
   std::string iname = get_iname(name);
 
   return Nullable_options::has(iname) || _ssl_options.has(iname) ||
          _extra_options.has(iname) || compare(iname, kPort) == 0;
 }
 
-bool Connection_options::has_value(const std::string& name) const {
+bool Connection_options::has_value(const std::string &name) const {
   std::string iname = get_iname(name);
 
   if (Nullable_options::has(iname))
@@ -305,8 +300,7 @@ bool Connection_options::has_value(const std::string& name) const {
 }
 
 int Connection_options::get_port() const {
-  if (_port.is_null())
-    throw_no_value(kPort);
+  if (_port.is_null()) throw_no_value(kPort);
 
   return *_port;
 }
@@ -318,7 +312,7 @@ Transport_type Connection_options::get_transport_type() const {
   return *_transport_type;
 }
 
-const std::string& Connection_options::get(const std::string& name) const {
+const std::string &Connection_options::get(const std::string &name) const {
   if (Nullable_options::has(name))
     return get_value(name);
   else if (_ssl_options.has(name))
@@ -354,7 +348,7 @@ void Connection_options::clear_pipe() {
   clear_value(kSocket);
 }
 
-void Connection_options::remove(const std::string& name) {
+void Connection_options::remove(const std::string &name) {
   // Can't delete fixed values
   if (Nullable_options::has(name))
     throw std::invalid_argument(
@@ -375,13 +369,13 @@ std::string Connection_options::as_uri(
   return encoder.encode_uri(*this, format);
 }
 
-bool Connection_options::operator==(const Connection_options& other) const {
+bool Connection_options::operator==(const Connection_options &other) const {
   return Nullable_options::operator==(other) &&
          _ssl_options == other._ssl_options &&
          _extra_options == other._extra_options;
 }
 
-bool Connection_options::operator!=(const Connection_options& other) const {
+bool Connection_options::operator!=(const Connection_options &other) const {
   return !(*this == other);
 }
 

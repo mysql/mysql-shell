@@ -33,22 +33,19 @@ namespace shcore {
 std::string str_strip(const std::string &s, const std::string &chars) {
   size_t begin = s.find_first_not_of(chars);
   size_t end = s.find_last_not_of(chars);
-  if (begin == std::string::npos)
-    return std::string();
+  if (begin == std::string::npos) return std::string();
   return s.substr(begin, end - begin + 1);
 }
 
 std::string str_lstrip(const std::string &s, const std::string &chars) {
   size_t begin = s.find_first_not_of(chars);
-  if (begin == std::string::npos)
-    return std::string();
+  if (begin == std::string::npos) return std::string();
   return s.substr(begin);
 }
 
 std::string str_rstrip(const std::string &s, const std::string &chars) {
   size_t end = s.find_last_not_of(chars);
-  if (end == std::string::npos)
-    return std::string();
+  if (end == std::string::npos) return std::string();
   return s.substr(0, end + 1);
 }
 
@@ -63,28 +60,24 @@ std::string str_format(const char *formats, ...) {
   va_start(args, formats);
   len = _vscprintf(formats, args);
   va_end(args);
-  if (len < 0)
-    throw std::invalid_argument("Could not format string");
+  if (len < 0) throw std::invalid_argument("Could not format string");
   buffer.resize(len + 1);
   va_start(args, formats);
   len = vsnprintf(&buffer[0], buffer.size(), formats, args);
   va_end(args);
-  if (len < 0)
-    throw std::invalid_argument("Could not format string");
+  if (len < 0) throw std::invalid_argument("Could not format string");
   buffer.resize(len);
 #else
   va_start(args, formats);
   len = vsnprintf(&buffer[0], buffer.size(), formats, args);
   va_end(args);
-  if (len < 0)
-    throw std::invalid_argument("Could not format string");
+  if (len < 0) throw std::invalid_argument("Could not format string");
   if (len + 1 >= kBufferSize) {
     buffer.resize(len + 1);
     va_start(args, formats);
     len = vsnprintf(&buffer[0], buffer.size(), formats, args);
     va_end(args);
-    if (len < 0)
-      throw std::invalid_argument("Could not format string");
+    if (len < 0) throw std::invalid_argument("Could not format string");
   }
   buffer.resize(len);
 #endif
@@ -107,14 +100,12 @@ std::string str_replace(const std::string &s, const std::string &from,
   } else {
     std::string::size_type start = 0, p = s.find(from);
     while (p != std::string::npos) {
-      if (p > start)
-        str.append(s, start, p - start);
+      if (p > start) str.append(s, start, p - start);
       str.append(to);
       start = p + offs;
       p = s.find(from, start);
     }
-    if (start < s.length())
-      str.append(s, start, s.length() - start);
+    if (start < s.length()) str.append(s, start, s.length() - start);
   }
   return str;
 }
@@ -197,7 +188,7 @@ std::string bits_to_string(uint64_t bits, int nbits) {
       r.append(k_bits[bits & 0xff]);
       break;
   }
-  r = r.substr(8-length.rem);
+  r = r.substr(8 - length.rem);
   return r;
 }
 
@@ -222,10 +213,8 @@ std::vector<std::string> str_break_into_lines(const std::string &line,
   std::string rem(line);
   while (rem.length() > line_width) {
     std::size_t split_point = line_width - 1;
-    while (rem[split_point] != ' ' && split_point > 0)
-      --split_point;
-    if (split_point == 0)
-      break;
+    while (rem[split_point] != ' ' && split_point > 0) --split_point;
+    if (split_point == 0) break;
     result.push_back(rem.substr(0, split_point));
     rem = rem.substr(split_point + 1);
   }

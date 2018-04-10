@@ -21,9 +21,9 @@
 
 #include <string>
 #include "mysh_config.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_file.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 
 #ifndef MAX_PATH
 const int MAX_PATH = 4096;
@@ -31,43 +31,40 @@ const int MAX_PATH = 4096;
 
 namespace tests {
 
-TEST_F(Command_line_test, bug24912358) {
+TEST_F(Command_line_test, bug24912358){
 
-  // Tests with X Protocol Session
-  {
-    std::string uri = "--uri=" + _uri;
-    execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
-    MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1", multiline({
-      "-127 << 1.1",
-      "18446744073709551362"
-    }), _output);
-  }
+    // Tests with X Protocol Session
+    {std::string uri = "--uri=" + _uri;
+execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
+MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
+                           multiline({"-127 << 1.1", "18446744073709551362"}),
+                           _output);
+}  // namespace tests
 
-  {
-    std::string uri = "--uri=" + _uri;
-    execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
-    MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1", multiline({
-      "-127 << -1.1",
-      "0"}), _output);
-  }
+{
+  std::string uri = "--uri=" + _uri;
+  execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
+  MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
+                             multiline({"-127 << -1.1", "0"}), _output);
+}
 
-  // Tests with Classic Session
-  {
-    std::string uri = "--uri=" + _mysql_uri;
-    execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
-    MY_EXPECT_MULTILINE_OUTPUT(
-        "select -127 << 1.1",
-        multiline({"-127 << 1.1", "18446744073709551362"}), _output);
-  }
+// Tests with Classic Session
+{
+  std::string uri = "--uri=" + _mysql_uri;
+  execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
+  MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
+                             multiline({"-127 << 1.1", "18446744073709551362"}),
+                             _output);
+}
 
-  {
-    std::string uri = "--uri=" + _mysql_uri;
-    execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
-    MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1", multiline({
-      "-127 << -1.1",
-      "0"}), _output);
-  }
-};
+{
+  std::string uri = "--uri=" + _mysql_uri;
+  execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
+  MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
+                             multiline({"-127 << -1.1", "0"}), _output);
+}
+}
+;
 
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
@@ -78,25 +75,28 @@ TEST_F(Command_line_test, bug23508428) {
   execute({_mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;",
            NULL});
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1619 (HY000): Built-in plugins "
-                                  "cannot be deleted");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "ERROR: 1619 (HY000): Built-in plugins "
+        "cannot be deleted");
   }
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
     execute({_mysqlsh, uri.c_str(), "--sqlc", "-e",
              "uninstall plugin mysqlx_cache_cleaner;", NULL});
     if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS("ERROR: 1619 (HY000): Built-in plugins "
-                                    "cannot be deleted");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "ERROR: 1619 (HY000): Built-in plugins "
+          "cannot be deleted");
     }
   }
 
   if (_target_server_version < mysqlshdk::utils::Version(8, 0, 5)) {
-    execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol",
-            NULL});
+    execute(
+        {_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: Installing plugin "
-                                  "mysqlx...");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "enableXProtocol: Installing plugin "
+        "mysqlx...");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: done");
   }
 
@@ -120,12 +120,11 @@ TEST_F(Command_line_test, bug23508428) {
       _port);
 }
 
-
 TEST_F(Command_line_test, bug24905066) {
   // Tests URI formatting using classic protocol
   {
     execute({_mysqlsh, "--mysql", "-i", "--uri",
-            "root:@(/path/to/whatever/socket.sock)", NULL});
+             "root:@(/path/to/whatever/socket.sock)", NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Creating a Classic session to "
@@ -135,7 +134,7 @@ TEST_F(Command_line_test, bug24905066) {
   // Tests URI formatting using X protocol
   {
     execute({_mysqlsh, "--mysqlx", "-i", "--uri",
-            "root:@(/path/to/whatever/socket.sock)", "-e", "1", NULL});
+             "root:@(/path/to/whatever/socket.sock)", "-e", "1", NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Creating an X protocol session to "
@@ -148,8 +147,9 @@ TEST_F(Command_line_test, bug24905066) {
 
     execute({_mysqlsh, "--mysql", "-i", "--uri", uri.c_str(), NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL Error 1049 (42000): Unknown database "
-                                  "'some_unexisting_schema'");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "MySQL Error 1049 (42000): Unknown database "
+        "'some_unexisting_schema'");
   }
 
   // Tests the connection fails if invalid schema is provided on x session
@@ -160,11 +160,13 @@ TEST_F(Command_line_test, bug24905066) {
         {_mysqlsh, "--mysqlx", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
 
     if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL Error 1045: Unknown database "
-                                    "'some_unexisting_schema'");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "MySQL Error 1045: Unknown database "
+          "'some_unexisting_schema'");
     } else {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS("RuntimeError: Unknown database "
-                                    "'some_unexisting_schema'");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "RuntimeError: Unknown database "
+          "'some_unexisting_schema'");
     }
   }
 }
@@ -275,15 +277,15 @@ TEST_F(Command_line_test, retain_schema_after_reconnect) {
 
   char cmd[MAX_PATH];
   std::snprintf(
-    cmd, MAX_PATH,
+      cmd, MAX_PATH,
 #ifdef _WIN32
-    "echo kill CONNECTION_ID(); show tables; | %s --uri=%s/mysql --sql "
-    "--interactive 2> nul",
+      "echo kill CONNECTION_ID(); show tables; | %s --uri=%s/mysql --sql "
+      "--interactive 2> nul",
 #else
-    "echo \"use mysql;\nkill CONNECTION_ID(); show tables;\" | %s --uri=%s "
-    "--sql --interactive 2> /dev/null",
+      "echo \"use mysql;\nkill CONNECTION_ID(); show tables;\" | %s --uri=%s "
+      "--sql --interactive 2> /dev/null",
 #endif
-    _mysqlsh, _uri.c_str());
+      _mysqlsh, _uri.c_str());
 
 #ifdef _WIN32
   FILE *fp = _popen(cmd, "r");
@@ -311,8 +313,7 @@ TEST_F(Command_line_test, bug26970629) {
   std::string host;
   std::string pwd = "--password=";
 
-  if (!_pwd.empty())
-    pwd += _pwd;
+  if (!_pwd.empty()) pwd += _pwd;
 #ifdef _WIN32
   variable = "named_pipe";
   host = "--host=.";

@@ -65,10 +65,9 @@ static Command_line_shell *g_instance = nullptr;
 static void auto_complete(const char *text, int *start_index,
                           linenoiseCompletions *completions) {
   size_t completion_offset = *start_index;
-  std::vector<std::string> options(
-      g_instance->completer()->complete(
-          g_instance->shell_context()->interactive_mode(), text,
-          &completion_offset));
+  std::vector<std::string> options(g_instance->completer()->complete(
+      g_instance->shell_context()->interactive_mode(), text,
+      &completion_offset));
 
   std::sort(options.begin(), options.end(),
             [](const std::string &a, const std::string &b) -> bool {
@@ -97,7 +96,7 @@ Command_line_shell::Command_line_shell(
   finish_init();
 
   _history.set_limit(std::min<int64_t>(options().history_max_size,
-      std::numeric_limits<int>::max()));
+                                       std::numeric_limits<int>::max()));
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
 
@@ -131,8 +130,7 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
                                  &Command_line_shell::deleg_password,
                                  &Command_line_shell::deleg_source,
                                  nullptr,  // print_value
-                                 &Command_line_shell::deleg_print_error})) {
-}
+                                 &Command_line_shell::deleg_print_error})) {}
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
   if (!path.empty()) {
@@ -190,7 +188,7 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
                                      path.c_str(), strerror(errno)));
     } else {
       println(shcore::str_format("Command history file saved with %i entries.",
-              linenoiseHistorySize()));
+                                 linenoiseHistorySize()));
     }
   } else if (args[1] == "delete" || args[1] == "del") {
     if (args.size() != 3) {
@@ -203,10 +201,10 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
         try {
           if (sep != std::string::npos) {
             first = std::stoul(args[2].substr(0, sep), nullptr);
-            if (args[2].substr(sep+1).empty()) {
+            if (args[2].substr(sep + 1).empty()) {
               last = _history.last_entry();
             } else {
-              last = std::stoul(args[2].substr(sep+1), nullptr);
+              last = std::stoul(args[2].substr(sep + 1), nullptr);
               if (first > last) {
                 println("Invalid history range " + args[2] +
                         ". Last item must be greater than first");
@@ -225,11 +223,10 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
             first > _history.last_entry()) {
           println("Invalid history entry " + args[2]);
         } else {
-          if (last > _history.last_entry())
-            last = _history.last_entry();
+          if (last > _history.last_entry()) last = _history.last_entry();
           _history.del(first, last);
         }
-      } catch (std::invalid_argument&) {
+      } catch (std::invalid_argument &) {
         println("\\history delete requires entry number to be deleted");
       }
     }
@@ -305,8 +302,7 @@ char *Command_line_shell::readline(const char *prompt) {
     auto all_lines = prompt_line.substr(0, pos + 1);
     prompt_line = prompt_line.substr(pos + 1);
 
-    if (!all_lines.empty())
-      std::cout << all_lines << std::flush;
+    if (!all_lines.empty()) std::cout << all_lines << std::flush;
   }
 
   char *tmp = linenoise(prompt_line.c_str());
@@ -321,9 +317,7 @@ char *Command_line_shell::readline(const char *prompt) {
   return tmp;
 }
 
-void Command_line_shell::handle_interrupt() {
-  _interrupted = true;
-}
+void Command_line_shell::handle_interrupt() { _interrupted = true; }
 
 shcore::Prompt_result Command_line_shell::deleg_prompt(void *cdata,
                                                        const char *prompt,
@@ -331,8 +325,7 @@ shcore::Prompt_result Command_line_shell::deleg_prompt(void *cdata,
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_interrupted = false;
   char *tmp = Command_line_shell::readline(prompt);
-  if (tmp && strcmp(tmp, CTRL_C_STR) == 0)
-    self->_interrupted = true;
+  if (tmp && strcmp(tmp, CTRL_C_STR) == 0) self->_interrupted = true;
   if (!tmp || self->_interrupted) {
     if (tmp) free(tmp);
     *ret = "";
@@ -351,16 +344,14 @@ shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
                                                          std::string *ret) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_interrupted = false;
-  shcore::Interrupt_handler inth(
-    [self]() {
-      self->handle_interrupt();
-      return true;
-    });
+  shcore::Interrupt_handler inth([self]() {
+    self->handle_interrupt();
+    return true;
+  });
   char *tmp = self->options().passwords_from_stdin
                   ? shcore::mysh_get_stdin_password(prompt)
                   : mysh_get_tty_password(prompt);
-  if (tmp && strcmp(tmp, CTRL_C_STR) == 0)
-    self->_interrupted = true;
+  if (tmp && strcmp(tmp, CTRL_C_STR) == 0) self->_interrupted = true;
   if (!tmp || self->_interrupted) {
     if (tmp) free(tmp);
     *ret = "";
@@ -442,8 +433,7 @@ void Command_line_shell::command_loop() {
           free(tmp);
         } else {
           if (tmp) {
-            if (strcmp(tmp, CTRL_C_STR) == 0)
-              _interrupted = true;
+            if (strcmp(tmp, CTRL_C_STR) == 0) _interrupted = true;
             free(tmp);
           }
           if (_interrupted) {
@@ -454,8 +444,7 @@ void Command_line_shell::command_loop() {
           break;
         }
       } else {
-        if (options().full_interactive)
-          std::cout << prompt() << std::flush;
+        if (options().full_interactive) std::cout << prompt() << std::flush;
         if (!std::getline(std::cin, cmd)) {
           if (_interrupted || !std::cin.eof()) {
             _interrupted = false;
@@ -464,8 +453,7 @@ void Command_line_shell::command_loop() {
           break;
         }
       }
-      if (options().full_interactive)
-        std::cout << cmd << "\n";
+      if (options().full_interactive) std::cout << cmd << "\n";
     }
     process_line(cmd);
     reconnect_if_needed();
@@ -508,10 +496,8 @@ void Command_line_shell::print_cmd_line_helper() {
   println("       mysqlsh [OPTIONS] [URI] --cluster");
   println("");
   // clang-format on
-  std::vector<std::string> details =
-      Shell_options(0, nullptr).get_details();
-  for (std::string line : details)
-    println("  "+line);
+  std::vector<std::string> details = Shell_options(0, nullptr).get_details();
+  for (std::string line : details) println("  " + line);
 
   println("");
   println("Usage examples:");

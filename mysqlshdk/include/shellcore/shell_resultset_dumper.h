@@ -46,13 +46,13 @@ class ClassicResult;
 class ResultsetDumper {
  public:
   ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target,
-                  shcore::Interpreter_delegate* output_handler,
+                  shcore::Interpreter_delegate *output_handler,
                   bool buffer_data);
   virtual ~ResultsetDumper() = default;
   virtual void dump();
 
  protected:
-  shcore::Interpreter_delegate* _output_handler;
+  shcore::Interpreter_delegate *_output_handler;
   std::shared_ptr<mysqlsh::ShellBaseResult> _resultset;
   std::string _format;
   bool _show_warnings;
@@ -68,10 +68,10 @@ class ResultsetDumper {
   void dump_normal(std::shared_ptr<mysqlsh::mysqlx::DocResult> result);
   void dump_normal(std::shared_ptr<mysqlsh::mysqlx::Result> result);
 
-  std::string get_affected_stats(const std::string& member,
-                                 const std::string& legend);
-  int get_warning_and_execution_time_stats(std::string& output_stats);
-  void dump_records(std::string& output_stats);
+  std::string get_affected_stats(const std::string &member,
+                                 const std::string &legend);
+  int get_warning_and_execution_time_stats(std::string &output_stats);
+  void dump_records(std::string &output_stats);
   size_t dump_tabbed(shcore::Value::Array_type_ref records);
   size_t dump_table(shcore::Value::Array_type_ref records);
   size_t dump_vertical(shcore::Value::Array_type_ref records);

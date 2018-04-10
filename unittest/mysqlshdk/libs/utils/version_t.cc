@@ -27,8 +27,8 @@
 #include <fstream>
 #include <string>
 
-#include "unittest/gtest_clean.h"
 #include "mysqlshdk/libs/utils/version.h"
+#include "unittest/gtest_clean.h"
 
 namespace ngcommon {
 namespace tests {

@@ -24,7 +24,7 @@
 #include <time.h>
 #else
 #include <sys/times.h>
-#ifdef _SC_CLK_TCK // For mit-pthreads
+#ifdef _SC_CLK_TCK  // For mit-pthreads
 #undef CLOCKS_PER_SEC
 #define CLOCKS_PER_SEC (sysconf(_SC_CLK_TCK))
 #endif
@@ -51,14 +51,12 @@ std::string Random::get_time_string() {
 static Random *g_random = nullptr;
 
 Random *Random::get() {
-  if (!g_random)
-    g_random = new Random();
+  if (!g_random) g_random = new Random();
   return g_random;
 }
 
 void Random::set(Random *random) {
-  if (g_random)
-    delete g_random;
+  if (g_random) delete g_random;
   g_random = random;
 }
 

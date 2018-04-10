@@ -36,17 +36,17 @@ namespace mysqlx {
 class Table;
 
 /**
-* \ingroup XDevAPI
-* Handler for record selection on a Table.
-*
-* This object provides the necessary functions to allow selecting record data
-* from a table.
-*
-* This object should only be created by calling the select function on the table
-* object from which the record data will be retrieved.
-*
-* \sa Table
-*/
+ * \ingroup XDevAPI
+ * Handler for record selection on a Table.
+ *
+ * This object provides the necessary functions to allow selecting record data
+ * from a table.
+ *
+ * This object should only be created by calling the select function on the
+ * table object from which the record data will be retrieved.
+ *
+ * \sa Table
+ */
 class TableSelect : public Table_crud_definition,
                     public std::enable_shared_from_this<TableSelect> {
  public:
@@ -89,9 +89,10 @@ class TableSelect : public Table_crud_definition,
   shcore::Value bind(const shcore::Argument_list &args);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
-private:
-   Mysqlx::Crud::Find message_;
-   void set_lock_contention(const shcore::Argument_list &args);
+
+ private:
+  Mysqlx::Crud::Find message_;
+  void set_lock_contention(const shcore::Argument_list &args);
 
   struct F {
     static constexpr Allowed_function_mask _empty = 1 << 0;
@@ -111,19 +112,45 @@ private:
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) { return F::_empty; }
-    if ("__shell_hook__" == s) { return F::__shell_hook__; }
-    if ("select" == s) { return F::select; }
-    if ("where" == s) { return F::where; }
-    if ("groupBy" == s) { return F::groupBy; }
-    if ("having" == s) { return F::having; }
-    if ("orderBy" == s) { return F::orderBy; }
-    if ("limit" == s) { return F::limit; }
-    if ("offset" == s) { return F::offset; }
-    if ("lockShared" == s) { return F::lockShared; }
-    if ("lockExclusive" == s) { return F::lockExclusive; }
-    if ("bind" == s) { return F::bind; }
-    if ("execute" == s) { return F::execute; }
+    if ("" == s) {
+      return F::_empty;
+    }
+    if ("__shell_hook__" == s) {
+      return F::__shell_hook__;
+    }
+    if ("select" == s) {
+      return F::select;
+    }
+    if ("where" == s) {
+      return F::where;
+    }
+    if ("groupBy" == s) {
+      return F::groupBy;
+    }
+    if ("having" == s) {
+      return F::having;
+    }
+    if ("orderBy" == s) {
+      return F::orderBy;
+    }
+    if ("limit" == s) {
+      return F::limit;
+    }
+    if ("offset" == s) {
+      return F::offset;
+    }
+    if ("lockShared" == s) {
+      return F::lockShared;
+    }
+    if ("lockExclusive" == s) {
+      return F::lockExclusive;
+    }
+    if ("bind" == s) {
+      return F::bind;
+    }
+    if ("execute" == s) {
+      return F::execute;
+    }
     return 0;
   }
 };

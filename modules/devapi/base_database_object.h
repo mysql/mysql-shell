@@ -42,9 +42,9 @@ namespace mysqlsh {
 class ShellBaseSession;
 class CoreSchema;
 /**
-* \ingroup ShellAPI
-* $(DATABASEOBJECT_BRIEF)
-*/
+ * \ingroup ShellAPI
+ * $(DATABASEOBJECT_BRIEF)
+ */
 class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
  public:
   DatabaseObject(std::shared_ptr<ShellBaseSession> session,
@@ -65,17 +65,11 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
 
   virtual std::string get_object_type() { return class_name(); }
 
-  const std::string &name() const {
-    return _name;
-  }
+  const std::string &name() const { return _name; }
 
-  std::shared_ptr<ShellBaseSession> session() const {
-    return _session.lock();
-  }
+  std::shared_ptr<ShellBaseSession> session() const { return _session.lock(); }
 
-  std::shared_ptr<DatabaseObject> schema() const {
-    return _schema.lock();
-  }
+  std::shared_ptr<DatabaseObject> schema() const { return _schema.lock(); }
 
 #if DOXYGEN_JS
   String name;     //!< $(DATABASEOBJECT_NAME_BRIEF)

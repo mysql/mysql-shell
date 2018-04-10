@@ -40,9 +40,9 @@ class Prompt_segment;
 
 class Prompt_renderer {
  public:
-  static const char* k_symbol_sep_right_pl;
-  static const char* k_symbol_sep_right_hollow_pl;
-  static const char* k_symbol_ellipsis_pl;
+  static const char *k_symbol_sep_right_pl;
+  static const char *k_symbol_sep_right_hollow_pl;
+  static const char *k_symbol_ellipsis_pl;
 
   explicit Prompt_renderer(int min_empty_space = 20);
   ~Prompt_renderer();

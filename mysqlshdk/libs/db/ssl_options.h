@@ -36,8 +36,8 @@
 
 namespace mysqlshdk {
 namespace db {
-using mysqlshdk::utils::nullable_options::Set_mode;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
+using mysqlshdk::utils::nullable_options::Set_mode;
 
 enum class SHCORE_PUBLIC Ssl_mode {
   Disabled = 1,
@@ -64,14 +64,14 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
 
   Ssl_mode get_mode() const;
   std::string get_mode_name() const;
-  const std::string& get_ca() const { return _get(kSslCa); }
-  const std::string& get_capath() const { return _get(kSslCaPath); }
-  const std::string& get_cert() const { return _get(kSslCert); }
-  const std::string& get_key() const { return _get(kSslKey); }
-  const std::string& get_crl() const { return _get(kSslCrl); }
-  const std::string& get_crlpath() const { return _get(kSslCrlPath); }
-  const std::string& get_cipher() const { return _get(kSslCipher); }
-  const std::string& get_tls_version() const { return _get(kSslTlsVersion); }
+  const std::string &get_ca() const { return _get(kSslCa); }
+  const std::string &get_capath() const { return _get(kSslCaPath); }
+  const std::string &get_cert() const { return _get(kSslCert); }
+  const std::string &get_key() const { return _get(kSslKey); }
+  const std::string &get_crl() const { return _get(kSslCrl); }
+  const std::string &get_crlpath() const { return _get(kSslCrlPath); }
+  const std::string &get_cipher() const { return _get(kSslCipher); }
+  const std::string &get_tls_version() const { return _get(kSslTlsVersion); }
 
   void clear_mode() { clear_value(kSslMode); }
   void clear_ca() { clear_value(kSslCa); }
@@ -84,25 +84,25 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void clear_tls_version() { clear_value(kSslTlsVersion); }
 
   void set_mode(Ssl_mode value);
-  void set_ca(const std::string& value);
-  void set_capath(const std::string& value);
-  void set_crl(const std::string& value);
-  void set_crlpath(const std::string& value);
-  void set_cipher(const std::string& value);
-  void set_tls_version(const std::string& value);
-  void set_cert(const std::string& value);
-  void set_key(const std::string& value);
+  void set_ca(const std::string &value);
+  void set_capath(const std::string &value);
+  void set_crl(const std::string &value);
+  void set_crlpath(const std::string &value);
+  void set_cipher(const std::string &value);
+  void set_tls_version(const std::string &value);
+  void set_cert(const std::string &value);
+  void set_key(const std::string &value);
 
-  void set(const std::string& name, const std::string& value);
-  void remove(const std::string& name);
+  void set(const std::string &name, const std::string &value);
+  void remove(const std::string &name);
   void validate() const;
 
-  static constexpr const char* const option_str_list[] = {
+  static constexpr const char *const option_str_list[] = {
       kSslCa,      kSslCaPath, kSslCert,       kSslKey, kSslCrl,
       kSslCrlPath, kSslCipher, kSslTlsVersion, kSslMode};
 
  private:
-  const std::string& _get(const std::string& attribute) const;
+  const std::string &_get(const std::string &attribute) const;
 };
 }  // namespace db
 }  // namespace mysqlshdk

@@ -36,31 +36,31 @@
 namespace mysqlsh {
 namespace mysqlx {
 /**
-* \ingroup mysqlx
-* Constants to represent data types con Column objects
-*
-* Supported Data Types
-*
-*  - BIT
-*  - TINYINT
-*  - SMALLINT
-*  - MEDIUMINT
-*  - INT
-*  - BIGINT
-*  - FLOAT
-*  - DECIMAL
-*  - DOUBLE
-*  - JSON
-*  - STRING
-*  - BYTES
-*  - TIME
-*  - DATE
-*  - DATETIME
-*  - TIMESTAMP
-*  - SET
-*  - ENUM
-*  - GEOMETRY
-*/
+ * \ingroup mysqlx
+ * Constants to represent data types con Column objects
+ *
+ * Supported Data Types
+ *
+ *  - BIT
+ *  - TINYINT
+ *  - SMALLINT
+ *  - MEDIUMINT
+ *  - INT
+ *  - BIGINT
+ *  - FLOAT
+ *  - DECIMAL
+ *  - DOUBLE
+ *  - JSON
+ *  - STRING
+ *  - BYTES
+ *  - TIME
+ *  - DATE
+ *  - DATETIME
+ *  - TIMESTAMP
+ *  - SET
+ *  - ENUM
+ *  - GEOMETRY
+ */
 class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge {
  public:
   Type();
@@ -76,18 +76,17 @@ class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge {
       const shcore::Argument_list &args);
 };
 
-
 /**
-* \ingroup mysqlx
-* Constants to represent lock contention types
-*
-* Supported Lock Contention types for row locking on table.select() and
-* collection.find() operations.
-*
-*  - DEFAULT
-*  - NOWAIT
-*  - SKIP_LOCKED
-*/
+ * \ingroup mysqlx
+ * Constants to represent lock contention types
+ *
+ * Supported Lock Contention types for row locking on table.select() and
+ * collection.find() operations.
+ *
+ *  - DEFAULT
+ *  - NOWAIT
+ *  - SKIP_LOCKED
+ */
 class SHCORE_PUBLIC LockContention : public shcore::Cpp_object_bridge {
  public:
   LockContention();

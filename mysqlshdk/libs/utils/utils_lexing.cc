@@ -26,14 +26,14 @@
 namespace mysqlshdk {
 namespace utils {
 
-SQL_string_iterator::SQL_string_iterator(const std::string& str,
+SQL_string_iterator::SQL_string_iterator(const std::string &str,
                                          std::string::size_type offset)
     : m_s(str), m_offset(offset - 1) {
   // Let's make sure we start from valid SQL
   ++(*this);
 }
 
-SQL_string_iterator& SQL_string_iterator::operator++() {
+SQL_string_iterator &SQL_string_iterator::operator++() {
   if (++m_offset > m_s.length())
     throw std::out_of_range("SQL_string_iterator offset out of range");
 
@@ -65,8 +65,7 @@ SQL_string_iterator& SQL_string_iterator::operator++() {
       default:
         incremented = true;
     }
-    if (m_offset == std::string::npos)
-      m_offset = m_s.length();
+    if (m_offset == std::string::npos) m_offset = m_s.length();
   } while (!incremented && m_offset < m_s.length());
 
   return *this;

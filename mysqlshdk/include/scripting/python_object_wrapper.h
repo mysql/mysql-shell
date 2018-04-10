@@ -38,19 +38,17 @@ struct PyMemberCache {
  * Wraps a native/bridged C++ object reference as a Python sequence object
  */
 struct PyShObjObject {
-  PyObject_HEAD
-  shcore::Object_bridge_ref *object;
+  PyObject_HEAD shcore::Object_bridge_ref *object;
   PyMemberCache *cache;
 };
 
 struct PyShObjIndexedObject {
-  PyObject_HEAD
-  shcore::Object_bridge_ref *object;
+  PyObject_HEAD shcore::Object_bridge_ref *object;
   PyMemberCache *cache;
 };
 
 PyObject *wrap(std::shared_ptr<Object_bridge> object);
 bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
-};
+};  // namespace shcore
 
 #endif  // _PYTHON_OBJECT_WRAPPER_H_

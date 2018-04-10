@@ -21,20 +21,17 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <cstdio>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdio>
 
 #include "db/mysqlx/expr_parser.h"
 
 #include <google/protobuf/text_format.h>
 
-
-int main(int argc, char **argv)
-{
-  if (argc != 3)
-  {
+int main(int argc, char **argv) {
+  if (argc != 3) {
     printf("%s tab|col <expr>\n", argv[0]);
     return 1;
   }
@@ -42,8 +39,7 @@ int main(int argc, char **argv)
   const char *type = argv[1];
   const char *expr = argv[2];
 
-  try
-  {
+  try {
     mysqlx::Expr_parser p(expr, strcmp(type, "col") == 0);
 
     Mysqlx::Expr::Expr *expr = p.expr().release();
@@ -53,15 +49,11 @@ int main(int argc, char **argv)
 
     std::cout << "OK\n";
     std::cout << out << "\n";
-  }
-  catch (mysqlx::Parser_error &e)
-  {
+  } catch (mysqlx::Parser_error &e) {
     std::cout << "ERROR\n";
     std::cout << e.what() << "\n";
     // must exit with 0
-  }
-  catch (std::exception &e)
-  {
+  } catch (std::exception &e) {
     std::cout << "UNEXPECTED ERROR\n";
     std::cout << e.what() << "\n";
     return 1;

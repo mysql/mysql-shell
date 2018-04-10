@@ -25,17 +25,17 @@
 #include <string>
 
 #include "gtest_clean.h"
-#include "scripting/types.h"
 #include "scripting/lang_base.h"
+#include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
+#include "shell_script_tester.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_jscript.h"
-#include "shell_script_tester.h"
 
 namespace shcore {
 class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
-protected:
+ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp() {
     Shell_js_script_tester::SetUp();
@@ -47,7 +47,7 @@ protected:
     _new_format = true;
   }
 
-  virtual void pre_process_line(const std::string &path, std::string & line) {
+  virtual void pre_process_line(const std::string &path, std::string &line) {
     // Unit tests work using default ports, if that is not the case
     // We need to update them before being executed
     if (!_port.empty() && _port != "33060") {
@@ -181,7 +181,8 @@ TEST_F(Shell_js_dev_api_sample_tester, Transaction_Handling) {
 
 //==================>>> working_with_collections
 TEST_F(Shell_js_dev_api_sample_tester, Basic_CRUD_Operations_on_Collections) {
-  validate_interactive("working_with_collections/Basic_CRUD_Operations_on_Collections");
+  validate_interactive(
+      "working_with_collections/Basic_CRUD_Operations_on_Collections");
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Collection_add) {
@@ -211,12 +212,14 @@ TEST_F(Shell_js_dev_api_sample_tester, Document_Identity_2) {
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Working_with_Existing_Collections) {
-  validate_interactive("working_with_collections/Working_with_Existing_Collections");
+  validate_interactive(
+      "working_with_collections/Working_with_Existing_Collections");
 }
 
 //==================>>> working_with_collections
 TEST_F(Shell_js_dev_api_sample_tester, Document_Object___Class_Diagram) {
-  validate_interactive("working_with_documents/Document_Object___Class_Diagram");
+  validate_interactive(
+      "working_with_documents/Document_Object___Class_Diagram");
 }
 
 //==================>>> working_with_relational_tables
@@ -225,11 +228,13 @@ TEST_F(Shell_js_dev_api_sample_tester, Table_insert) {
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Working_with_Relational_Tables) {
-  validate_interactive("working_with_relational_tables/Working_with_Relational_Tables");
+  validate_interactive(
+      "working_with_relational_tables/Working_with_Relational_Tables");
 }
 
 //==================>>> working_with_tables_documents
 TEST_F(Shell_js_dev_api_sample_tester, Collections_as_Relational_Tables) {
-  validate_interactive("working_with_tables_documents/Collections_as_Relational_Tables");
+  validate_interactive(
+      "working_with_tables_documents/Collections_as_Relational_Tables");
 }
-}
+}  // namespace shcore

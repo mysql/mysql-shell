@@ -30,25 +30,25 @@
 #include <stdexcept>
 
 #include "utils/utils_general.h"
-#include "utils/utils_string.h"
 #include "utils/utils_path.h"
+#include "utils/utils_string.h"
 
 #ifdef WIN32
-#include <direct.h>
 #include <ShlObj.h>
 #include <comdef.h>
+#include <direct.h>
 #define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 #else
-#  include <sys/file.h>
-#  include <errno.h>
-#  include <sys/types.h>
-#  include <dirent.h>
-#  include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #ifdef __APPLE__
-#include <mach-o/dyld.h>
 #include <limits.h>
+#include <mach-o/dyld.h>
 #else
 #include <linux/limits.h>
 #endif
@@ -68,7 +68,7 @@ std::string get_user_config_path() {
 
   // Check if there's an override of the config directory
   // This is needed required for unit-tests
-  const char* usr_config_path = getenv("MYSQLSH_USER_CONFIG_HOME");
+  const char *usr_config_path = getenv("MYSQLSH_USER_CONFIG_HOME");
   if (usr_config_path) {
     path.assign(usr_config_path);
   } else {
@@ -91,7 +91,7 @@ std::string get_user_config_path() {
     to_append.push_back("mysqlsh");
 #else
     path_separator = "/";
-    char* cpath = std::getenv("HOME");
+    char *cpath = std::getenv("HOME");
 
     if (cpath != NULL) {
       if (access(cpath, X_OK) != 0)
@@ -118,23 +118,27 @@ std::string get_user_config_path() {
 }
 
 /*
-* Returns the config path (/etc/mysql/mysqlsh in Unix or %ProgramData%\MySQL\mysqlsh in Windows).
-*/
+ * Returns the config path (/etc/mysql/mysqlsh in Unix or
+ * %ProgramData%\MySQL\mysqlsh in Windows).
+ */
 std::string get_global_config_path() {
   std::string path_separator;
   std::string path;
-  std::vector < std::string> to_append;
+  std::vector<std::string> to_append;
 
 #ifdef WIN32
   path_separator = "\\";
   char szPath[MAX_PATH];
   HRESULT hr;
 
-  if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
+  if (SUCCEEDED(
+          hr = SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
     path.assign(szPath);
   else {
     _com_error err(hr);
-    throw std::runtime_error(str_format("Error when gathering the PROGRAMDATA folder path: %s", err.ErrorMessage()));
+    throw std::runtime_error(
+        str_format("Error when gathering the PROGRAMDATA folder path: %s",
+                   err.ErrorMessage()));
   }
 
   to_append.push_back("MySQL");
@@ -144,8 +148,8 @@ std::string get_global_config_path() {
   path = "/etc/mysql/mysqlsh";
 #endif
 
-  // Up to know the path must exist since it was retrieved from OS standard means
-  // we need to guarantee the rest of the path exists
+  // Up to know the path must exist since it was retrieved from OS standard
+  // means we need to guarantee the rest of the path exists
   if (!path.empty()) {
     for (size_t index = 0; index < to_append.size(); index++) {
       path += path_separator + to_append[index];
@@ -167,19 +171,23 @@ std::string get_binary_folder() {
 #ifdef WIN32
   HMODULE hModule = GetModuleHandleA(NULL);
   if (hModule) {
-    char path[MAX_PATH] {'\0'};
+    char path[MAX_PATH]{'\0'};
     if (GetModuleFileNameA(hModule, path, MAX_PATH)) {
       exe_path.assign(path);
       path_separator = "\\";
     } else
-      throw std::runtime_error(str_format("get_binary_folder: GetModuleFileNameA failed with error %s\n", GetLastError()));
+      throw std::runtime_error(str_format(
+          "get_binary_folder: GetModuleFileNameA failed with error %s\n",
+          GetLastError()));
   } else
-    throw std::runtime_error(str_format("get_binary_folder: GetModuleHandleA failed with error %s\n", GetLastError()));
+    throw std::runtime_error(
+        str_format("get_binary_folder: GetModuleHandleA failed with error %s\n",
+                   GetLastError()));
 #else
   path_separator = "/";
 #ifdef __APPLE__
-  char path[PATH_MAX] {'\0'};
-  char real_path[PATH_MAX] {'\0'};
+  char path[PATH_MAX]{'\0'};
+  char real_path[PATH_MAX]{'\0'};
   uint32_t buffsize = sizeof(path);
   if (!_NSGetExecutablePath(path, &buffsize)) {
     // _NSGetExecutablePath may return tricky constructs on paths
@@ -188,25 +196,27 @@ std::string get_binary_folder() {
     if (realpath(path, real_path))
       exe_path.assign(real_path);
     else
-      throw std::runtime_error(str_format("get_binary_folder: Readlink failed with error %d\n", errno));
+      throw std::runtime_error(str_format(
+          "get_binary_folder: Readlink failed with error %d\n", errno));
   } else
-    throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.\n");
+    throw std::runtime_error(
+        "get_binary_folder: _NSGetExecutablePath failed.\n");
 
 #else
 #ifdef __linux__
-  char path[PATH_MAX] {'\0'};
+  char path[PATH_MAX]{'\0'};
   ssize_t len = readlink("/proc/self/exe", path, PATH_MAX);
   if (-1 != len) {
     path[len] = '\0';
     exe_path.assign(path);
-  }
-  else
-    throw std::runtime_error(str_format("get_binary_folder: Readlink failed with error %d\n", errno));
+  } else
+    throw std::runtime_error(str_format(
+        "get_binary_folder: Readlink failed with error %d\n", errno));
 #endif
 #endif
 #endif
-  // If the exe path was found now we check if it can be considered the standard installation
-  // by checking the parent folder is "bin"
+  // If the exe path was found now we check if it can be considered the standard
+  // installation by checking the parent folder is "bin"
   if (!exe_path.empty()) {
     std::vector<std::string> tokens;
     tokens = split_string(exe_path, path_separator, true);
@@ -231,29 +241,29 @@ std::string SHCORE_PUBLIC get_mp_path() {
 }
 
 /*
-* Returns what should be considered the HOME folder for the shell.
-* If MYSQLSH_HOME is defined, returns its value.
-* If not, it will try to identify the value based on the binary full path:
-* In a standard setup the binary will be at <MYSQLX_HOME>/bin
-*
-* If that is the case MYSQLX_HOME is determined by trimming out
-* /bin/mysqlsh from the full executable name.
-*
-* An empty value would indicate MYSQLX_HOME is unknown.
-*/
+ * Returns what should be considered the HOME folder for the shell.
+ * If MYSQLSH_HOME is defined, returns its value.
+ * If not, it will try to identify the value based on the binary full path:
+ * In a standard setup the binary will be at <MYSQLX_HOME>/bin
+ *
+ * If that is the case MYSQLX_HOME is determined by trimming out
+ * /bin/mysqlsh from the full executable name.
+ *
+ * An empty value would indicate MYSQLX_HOME is unknown.
+ */
 std::string get_mysqlx_home_path() {
   std::string ret_val;
   std::string binary_folder;
   std::string path_separator;
-  const char* env_home = getenv("MYSQLSH_HOME");
+  const char *env_home = getenv("MYSQLSH_HOME");
 
   if (env_home) {
     ret_val.assign(env_home);
   } else {
     binary_folder = get_binary_folder();
 
-    // If the exe path was found now we check if it can be considered the standard installation
-    // by checking the parent folder is "bin"
+    // If the exe path was found now we check if it can be considered the
+    // standard installation by checking the parent folder is "bin"
     if (!binary_folder.empty()) {
       if (shcore::path::basename(binary_folder) == "bin") {
         ret_val = shcore::path::dirname(binary_folder);
@@ -263,16 +273,15 @@ std::string get_mysqlx_home_path() {
   return ret_val;
 }
 
-
 /*
  * Returns whether if a file exists (true) or doesn't (false);
  */
-bool file_exists(const std::string& filename) {
+bool file_exists(const std::string &filename) {
 #ifdef WIN32
   DWORD dwAttrib = GetFileAttributesA(filename.c_str());
 
   if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-    !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
     return true;
   else
     return false;
@@ -285,9 +294,9 @@ bool file_exists(const std::string& filename) {
 }
 
 /*
-* Returns true when the specified path is a folder
-*/
-bool is_folder(const std::string& path) {
+ * Returns true when the specified path is a folder
+ */
+bool is_folder(const std::string &path) {
 #ifdef WIN32
   DWORD dwAttrib = GetFileAttributesA(path.c_str());
 
@@ -295,8 +304,7 @@ bool is_folder(const std::string& path) {
           (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 #else
   struct stat stbuf;
-  if (stat(path.c_str(), &stbuf) < 0)
-    return false;
+  if (stat(path.c_str(), &stbuf) < 0) return false;
   return (stbuf.st_mode & S_IFDIR) != 0;
 #endif
 }
@@ -305,7 +313,7 @@ bool is_folder(const std::string& path) {
  * Attempts to create directory if doesn't exists, otherwise just returns.
  * If there is an error, an exception is thrown.
  */
-void ensure_dir_exists(const std::string& path) {
+void ensure_dir_exists(const std::string &path) {
   const char *dir_path = path.c_str();
 #ifdef WIN32
   DWORD dwAttrib = GetFileAttributesA(dir_path);
@@ -313,28 +321,33 @@ void ensure_dir_exists(const std::string& path) {
   if (dwAttrib != INVALID_FILE_ATTRIBUTES)
     return;
   else if (!CreateDirectoryA(dir_path, NULL)) {
-    throw std::runtime_error(str_format("Error when creating directory %s with error: %s", dir_path, shcore::get_last_error().c_str()));
+    throw std::runtime_error(
+        str_format("Error when creating directory %s with error: %s", dir_path,
+                   shcore::get_last_error().c_str()));
   }
 #else
-  DIR* dir = opendir(dir_path);
+  DIR *dir = opendir(dir_path);
   if (dir) {
     /* Directory exists. */
     closedir(dir);
   } else if (ENOENT == errno) {
     /* Directory does not exist. */
     if (mkdir(dir_path, 0700) != 0)
-      throw std::runtime_error(str_format("Error when verifying dir %s exists: %s", dir_path, shcore::get_last_error().c_str()));
+      throw std::runtime_error(
+          str_format("Error when verifying dir %s exists: %s", dir_path,
+                     shcore::get_last_error().c_str()));
   } else {
-    throw std::runtime_error(str_format("Error when verifying dir %s exists: %s", dir_path, shcore::get_last_error().c_str()));
+    throw std::runtime_error(
+        str_format("Error when verifying dir %s exists: %s", dir_path,
+                   shcore::get_last_error().c_str()));
   }
 #endif
 }
 
-
 /*
  * Recursively create a directory and its parents if they don't exist.
  */
-void SHCORE_PUBLIC create_directory(const std::string& path, bool recursive) {
+void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive) {
   assert(!path.empty());
   for (;;) {
 #ifdef WIN32
@@ -365,10 +378,11 @@ std::vector<std::string> listdir(const std::string &path) {
 }
 
 /**
- * Iterate contents of given directory, calling the given function on each entry.
+ * Iterate contents of given directory, calling the given function on each
+ * entry.
  */
-bool iterdir(const std::string& path,
-             const std::function<bool(const std::string&)>& fun) {
+bool iterdir(const std::string &path,
+             const std::function<bool(const std::string &)> &fun) {
   bool stopped = false;
 #ifdef WIN32
   WIN32_FIND_DATA ffd;
@@ -379,13 +393,12 @@ bool iterdir(const std::string& path,
   hFind = FindFirstFile(search_path.c_str(), &ffd);
   if (hFind == INVALID_HANDLE_VALUE)
     throw std::runtime_error(
-      str_format("%s: %s", path.c_str(), shcore::get_last_error().c_str()));
+        str_format("%s: %s", path.c_str(), shcore::get_last_error().c_str()));
 
   // Remove all elements in directory (recursively)
   do {
     // Skip directories "." and ".."
-    if (!strcmp(ffd.cFileName, ".") ||
-        !strcmp(ffd.cFileName, "..")) {
+    if (!strcmp(ffd.cFileName, ".") || !strcmp(ffd.cFileName, "..")) {
       continue;
     }
 
@@ -414,19 +427,17 @@ bool iterdir(const std::string& path,
     }
     closedir(dir);
   } else {
-    throw std::runtime_error(str_format("%s: %s",
-                                        path.c_str(),
-                                        get_last_error().c_str()));
+    throw std::runtime_error(
+        str_format("%s: %s", path.c_str(), get_last_error().c_str()));
   }
 #endif
   return !stopped;
 }
 
-
 /*
  * Remove the specified directory and all its contents.
  */
-void remove_directory(const std::string& path, bool recursive) {
+void remove_directory(const std::string &path, bool recursive) {
   const char *dir_path = path.c_str();
 #ifdef WIN32
   if (recursive) {
@@ -454,8 +465,7 @@ void remove_directory(const std::string& path, bool recursive) {
       // Remove all elements in directory (recursively)
       do {
         // Skip directories "." and ".."
-        if (!strcmp(ffd.cFileName, ".") ||
-            !strcmp(ffd.cFileName, "..")) {
+        if (!strcmp(ffd.cFileName, ".") || !strcmp(ffd.cFileName, "..")) {
           continue;
         }
 
@@ -472,7 +482,7 @@ void remove_directory(const std::string& path, bool recursive) {
             throw std::runtime_error(str_format(
                 "Unable to remove directory %s. Error removing file %s: %s",
                 dir_path, dir_elem.c_str(), shcore::get_last_error().c_str()));
-           }
+          }
         }
       } while (FindNextFile(hFind, &ffd) != 0);
       FindClose(hFind);
@@ -522,8 +532,8 @@ void remove_directory(const std::string& path, bool recursive) {
       }
       closedir(dir);
     } else if (ENOENT == errno) {
-      throw std::runtime_error("Directory "+ path +
-          " does not exist and cannot be removed.");
+      throw std::runtime_error("Directory " + path +
+                               " does not exist and cannot be removed.");
     } else if (ENOTDIR == errno) {
       throw std::runtime_error("Not a directory, unable to remove " + path);
     } else {
@@ -543,22 +553,18 @@ void remove_directory(const std::string& path, bool recursive) {
 }
 
 /*
- * Returns the last system specific error description (using GetLastError in Windows or errno in Unix/OSX).
+ * Returns the last system specific error description (using GetLastError in
+ * Windows or errno in Unix/OSX).
  */
 std::string get_last_error() {
 #ifdef WIN32
   DWORD dwCode = GetLastError();
   LPTSTR lpMsgBuf;
 
-  FormatMessage(
-    FORMAT_MESSAGE_ALLOCATE_BUFFER |
-    FORMAT_MESSAGE_FROM_SYSTEM |
-    FORMAT_MESSAGE_IGNORE_INSERTS,
-    NULL,
-    dwCode,
-    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-    (LPTSTR)&lpMsgBuf,
-    0, NULL);
+  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                    FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL, dwCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR)&lpMsgBuf, 0, NULL);
   std::string msgerr = "SystemError: ";
   msgerr += lpMsgBuf;
   msgerr += "(code %d)";
@@ -568,9 +574,9 @@ std::string get_last_error() {
   char sys_err[64];
   int errnum = errno;
 
-#if ((defined _POSIX_C_SOURCE && (_POSIX_C_SOURCE >= 200112L)) ||    \
-       (defined _XOPEN_SOURCE   && (_XOPEN_SOURCE >= 600)))      &&    \
-      ! defined _GNU_SOURCE
+#if ((defined _POSIX_C_SOURCE && (_POSIX_C_SOURCE >= 200112L)) || \
+     (defined _XOPEN_SOURCE && (_XOPEN_SOURCE >= 600))) &&        \
+    !defined _GNU_SOURCE
   int r = strerror_r(errno, sys_err, sizeof(sys_err));
   (void)r;  // silence unused variable;
 #elif defined _GNU_SOURCE
@@ -587,7 +593,7 @@ std::string get_last_error() {
 #endif
 }
 
-bool load_text_file(const std::string& path, std::string& data) {
+bool load_text_file(const std::string &path, std::string &data) {
   bool ret_val = false;
 
   std::ifstream s(path.c_str());
@@ -612,7 +618,7 @@ bool load_text_file(const std::string& path, std::string& data) {
   return ret_val;
 }
 
-std::string SHCORE_PUBLIC get_text_file(const std::string& path) {
+std::string SHCORE_PUBLIC get_text_file(const std::string &path) {
   std::string data;
   if (!load_text_file(path, data)) {
     char sys_err[64];
@@ -628,15 +634,18 @@ std::string SHCORE_PUBLIC get_text_file(const std::string& path) {
  *
  * If file does not exist, and quiet is true, fails silently.
  */
-void SHCORE_PUBLIC delete_file(const std::string& filename, bool quiet) {
-  if (quiet && !shcore::file_exists(filename))
-    return;
+void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet) {
+  if (quiet && !shcore::file_exists(filename)) return;
 #ifdef WIN32
   if (!DeleteFile(filename.c_str()))
-    throw std::runtime_error(str_format("Error when deleting file  %s exists: %s", filename.c_str(), shcore::get_last_error().c_str()));
+    throw std::runtime_error(
+        str_format("Error when deleting file  %s exists: %s", filename.c_str(),
+                   shcore::get_last_error().c_str()));
 #else
   if (remove(filename.c_str()))
-    throw std::runtime_error(str_format("Error when deleting file  %s exists: %s", filename.c_str(), shcore::get_last_error().c_str()));
+    throw std::runtime_error(
+        str_format("Error when deleting file  %s exists: %s", filename.c_str(),
+                   shcore::get_last_error().c_str()));
 #endif
 }
 
@@ -646,7 +655,7 @@ void SHCORE_PUBLIC delete_file(const std::string& filename, bool quiet) {
 std::string get_home_dir() {
   std::string path_separator;
   std::string path;
-  std::vector <std::string> to_append;
+  std::vector<std::string> to_append;
 
 #ifdef WIN32
   path_separator = "\\";
@@ -657,18 +666,19 @@ std::string get_home_dir() {
     path.assign(szPath);
   else {
     _com_error err(hr);
-    throw std::runtime_error(str_format("Error when gathering the PROFILE folder path: %s", err.ErrorMessage()));
+    throw std::runtime_error(
+        str_format("Error when gathering the PROFILE folder path: %s",
+                   err.ErrorMessage()));
   }
 #else
   path_separator = "/";
-  char* cpath = std::getenv("HOME");
+  char *cpath = std::getenv("HOME");
 
-  if (cpath != NULL)
-    path.assign(cpath);
+  if (cpath != NULL) path.assign(cpath);
 #endif
 
-  // Up to know the path must exist since it was retrieved from OS standard means
-  // we need to guarantee the rest of the path exists
+  // Up to know the path must exist since it was retrieved from OS standard
+  // means we need to guarantee the rest of the path exists
   if (!path.empty()) {
     for (size_t index = 0; index < to_append.size(); index++) {
       path += path_separator + to_append[index];
@@ -681,7 +691,7 @@ std::string get_home_dir() {
   return path;
 }
 
-bool create_file(const std::string& name, const std::string& content) {
+bool create_file(const std::string &name, const std::string &content) {
   bool ret_val = false;
   std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
 
@@ -694,7 +704,7 @@ bool create_file(const std::string& name, const std::string& content) {
   return ret_val;
 }
 
-void copy_file(const std::string& from, const std::string& to,
+void copy_file(const std::string &from, const std::string &to,
                bool copy_attributes) {
   std::ofstream ofile;
   std::ifstream ifile;
@@ -741,7 +751,7 @@ void copy_file(const std::string& from, const std::string& to,
   }
 }
 
-void rename_file(const std::string& from, const std::string& to) {
+void rename_file(const std::string &from, const std::string &to) {
   if (rename(from.c_str(), to.c_str()) < 0) {
     throw std::runtime_error(
         shcore::str_format("Could not rename '%s' to '%s': %s", from.c_str(),
@@ -749,7 +759,7 @@ void rename_file(const std::string& from, const std::string& to) {
   }
 }
 
-void copy_dir(const std::string& from, const std::string& to) {
+void copy_dir(const std::string &from, const std::string &to) {
   create_directory(to);
   iterdir(from, [from, to](const std::string &name) {
     try {
@@ -758,8 +768,7 @@ void copy_dir(const std::string& from, const std::string& to) {
       else
         copy_file(path::join_path(from, name), path::join_path(to, name));
     } catch (std::runtime_error &e) {
-      if (errno != ENOENT)
-        throw;
+      if (errno != ENOENT) throw;
     }
     return true;
   });

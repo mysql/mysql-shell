@@ -34,27 +34,26 @@
 #include "gtest_clean.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
+#include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "src/mysqlsh/mysql_shell.h"
-#include "unittest/test_utils/shell_base_test.h"
-#include "shellcore/base_session.h"
 #include "unittest/test_utils/mod_testutils.h"
+#include "unittest/test_utils/shell_base_test.h"
 
 #ifndef UNITTEST_TEST_UTILS_H_
 #define UNITTEST_TEST_UTILS_H_
 
-#define EXPECT_BECOMES_TRUE(timeout, pred)    \
-  do {                                        \
-    auto t = time(nullptr);                   \
-    bool ok = false;                          \
-    while (time(nullptr) - t < (timeout)) {   \
-      if ((pred)) {                           \
-        ok = true;                            \
-        break;                                \
-      }                                       \
-    }                                         \
-    if (!ok)                                  \
-      FAIL() << "Timeout waiting for " #pred; \
+#define EXPECT_BECOMES_TRUE(timeout, pred)           \
+  do {                                               \
+    auto t = time(nullptr);                          \
+    bool ok = false;                                 \
+    while (time(nullptr) - t < (timeout)) {          \
+      if ((pred)) {                                  \
+        ok = true;                                   \
+        break;                                       \
+      }                                              \
+    }                                                \
+    if (!ok) FAIL() << "Timeout waiting for " #pred; \
   } while (0)
 
 #define EXPECT_THROW_NOTHING(expr)                                \
@@ -91,8 +90,7 @@ class Shell_test_output_handler {
   Shell_test_output_handler();
   virtual ~Shell_test_output_handler();
 
-  virtual void TearDown() {
-  }
+  virtual void TearDown() {}
 
   static void deleg_print(void *user_data, const char *text);
   static void deleg_print_error(void *user_data, const char *text);
@@ -109,12 +107,8 @@ class Shell_test_output_handler {
     std_out.clear();
   }
 
-  void wipe_err() {
-    std_err.clear();
-  }
-  void wipe_log() {
-    log.clear();
-  }
+  void wipe_err() { std_err.clear(); }
+  void wipe_log() { log.clear(); }
   void wipe_all() {
     wipe_out();
     std_err.clear();
@@ -150,9 +144,7 @@ class Shell_test_output_handler {
   void debug_print(const std::string &line);
   void debug_print_header(const std::string &line);
   void flush_debug_log();
-  void whipe_debug_log() {
-    full_output.clear();
-  }
+  void whipe_debug_log() { full_output.clear(); }
 
   bool debug;
 
@@ -173,41 +165,41 @@ class Shell_test_output_handler {
   bool m_internal;
 };
 
-#define MY_EXPECT_STDOUT_CONTAINS(x, ...)                               \
-  do {                                                                  \
-    SCOPED_TRACE("...in stdout check\n");                               \
-    output_handler.validate_stdout_content(x, true, ##__VA_ARGS__);     \
+#define MY_EXPECT_STDOUT_CONTAINS(x, ...)                           \
+  do {                                                              \
+    SCOPED_TRACE("...in stdout check\n");                           \
+    output_handler.validate_stdout_content(x, true, ##__VA_ARGS__); \
   } while (0)
-#define MY_EXPECT_STDERR_CONTAINS(x, ...)                               \
-  do {                                                                  \
-    SCOPED_TRACE("...in stderr check\n");                               \
-    output_handler.validate_stderr_content(x, true, ##__VA_ARGS__);     \
+#define MY_EXPECT_STDERR_CONTAINS(x, ...)                           \
+  do {                                                              \
+    SCOPED_TRACE("...in stderr check\n");                           \
+    output_handler.validate_stderr_content(x, true, ##__VA_ARGS__); \
   } while (0)
-#define MY_EXPECT_LOG_CONTAINS(x, ...)                                  \
-  do {                                                                  \
-    SCOPED_TRACE("...in log check\n");                                  \
-    output_handler.validate_log_content(x, true, ##__VA_ARGS__);        \
+#define MY_EXPECT_LOG_CONTAINS(x, ...)                           \
+  do {                                                           \
+    SCOPED_TRACE("...in log check\n");                           \
+    output_handler.validate_log_content(x, true, ##__VA_ARGS__); \
   } while (0)
-#define MY_EXPECT_STDOUT_NOT_CONTAINS(x, ...)                           \
-  do {                                                                  \
-    SCOPED_TRACE("...in stdout check\n");                               \
-    output_handler.validate_stdout_content(x, false, ##__VA_ARGS__);    \
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x, ...)                        \
+  do {                                                               \
+    SCOPED_TRACE("...in stdout check\n");                            \
+    output_handler.validate_stdout_content(x, false, ##__VA_ARGS__); \
   } while (0)
-#define MY_EXPECT_STDERR_NOT_CONTAINS(x, ...)                           \
-  do {                                                                  \
-    SCOPED_TRACE("...in stderr check\n");                               \
-    output_handler.validate_stderr_content(x, false, ##__VA_ARGS__);    \
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x, ...)                        \
+  do {                                                               \
+    SCOPED_TRACE("...in stderr check\n");                            \
+    output_handler.validate_stderr_content(x, false, ##__VA_ARGS__); \
   } while (0)
-#define MY_EXPECT_LOG_NOT_CONTAINS(x, ...)                              \
-  do {                                                                  \
-    SCOPED_TRACE("...in log check\n");                                  \
-    output_handler.validate_log_content(x, false, ##__VA_ARGS__);       \
+#define MY_EXPECT_LOG_NOT_CONTAINS(x, ...)                        \
+  do {                                                            \
+    SCOPED_TRACE("...in log check\n");                            \
+    output_handler.validate_log_content(x, false, ##__VA_ARGS__); \
   } while (0)
 
- /**
-  * \ingroup UTFramework
-  * Base class for tests that use an instance of the shell library.
-  */
+/**
+ * \ingroup UTFramework
+ * Base class for tests that use an instance of the shell library.
+ */
 class Shell_core_test_wrapper : public tests::Shell_base_test {
  public:
   static std::string get_options_file_name(
@@ -217,11 +209,8 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
   virtual void TearDown();
-  virtual void set_defaults() {
-  }
-  virtual ::testing::TestInfo *info() {
-    return nullptr;
-  }
+  virtual void set_defaults() {}
+  virtual ::testing::TestInfo *info() { return nullptr; }
   virtual std::string context_identifier();
 
   std::string _custom_context;
@@ -243,8 +232,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
                      bool remove_config = true) {
     extern char *g_mppath;
     std::string options_file = get_options_file_name();
-    if (remove_config)
-      std::remove(options_file.c_str());
+    if (remove_config) std::remove(options_file.c_str());
     _opts.reset(new mysqlsh::Shell_options(argc, const_cast<char **>(argv),
                                            options_file));
     _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
@@ -260,8 +248,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     debug = true;
     output_handler.debug = true;
   }
-  virtual void set_options() {
-  }
+  virtual void set_options() {}
 
   void enable_testutil();
   void enable_replay();
@@ -270,8 +257,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   virtual void reset_shell() {
     // If the options have not been set, they must be set now, otherwise
     // they should be explicitly reset
-    if (!_opts)
-      reset_options();
+    if (!_opts) reset_options();
 
     _interactive_shell.reset(
         new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
@@ -287,24 +273,16 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
-  mysqlsh::Shell_options::Storage* _options;
+  mysqlsh::Shell_options::Storage *_options;
 
   // set to true in a subclass if reset_shell() should not be called
   // during SetUp()
   bool _delay_reset_shell = false;
 
-  void wipe_out() {
-    output_handler.wipe_out();
-  }
-  void wipe_err() {
-    output_handler.wipe_err();
-  }
-  void wipe_log() {
-    output_handler.wipe_log();
-  }
-  void wipe_all() {
-    output_handler.wipe_all();
-  }
+  void wipe_out() { output_handler.wipe_out(); }
+  void wipe_err() { output_handler.wipe_err(); }
+  void wipe_log() { output_handler.wipe_log(); }
+  void wipe_all() { output_handler.wipe_all(); }
 
   std::shared_ptr<tests::Testutils> testutil;
 
@@ -315,8 +293,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   }
 
   std::shared_ptr<mysqlsh::Shell_options> get_options() {
-    if (!_opts)
-      reset_options();
+    if (!_opts) reset_options();
 
     return _opts;
   }

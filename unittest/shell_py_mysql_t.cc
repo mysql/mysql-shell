@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "unittest/shell_script_tester.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "unittest/shell_script_tester.h"
 
 namespace shcore {
 class Shell_py_mysql_tests : public Shell_py_script_tester {
@@ -34,19 +34,16 @@ class Shell_py_mysql_tests : public Shell_py_script_tester {
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (connection_options.has_user())
-      user = connection_options.get_user();
+    if (connection_options.has_user()) user = connection_options.get_user();
 
-    if (connection_options.has_host())
-      host = connection_options.get_host();
+    if (connection_options.has_host()) host = connection_options.get_host();
 
     if (connection_options.has_password())
       password = connection_options.get_password();
 
     // Setups some variables on the JS context, these will be used on some test
     // cases
-    if (_mysql_port.empty())
-      _mysql_port = "3306";
+    if (_mysql_port.empty()) _mysql_port = "3306";
 
     std::string code = "__user = '" + user + "';";
     exec_and_out_equals(code);

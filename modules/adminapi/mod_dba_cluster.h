@@ -29,8 +29,8 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
-#include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/adminapi/mod_dba_replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 #define ACC_USER "username"
@@ -86,17 +86,17 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   virtual std::string class_name() const { return "Cluster"; }
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
                                     int quote_strings = 0) const;
-  virtual bool operator == (const Object_bridge &other) const;
+  virtual bool operator==(const Object_bridge &other) const;
 
   virtual shcore::Value call(const std::string &name,
-                            const shcore::Argument_list &args);
+                             const shcore::Argument_list &args);
   virtual shcore::Value get_member(const std::string &prop) const;
 
   uint64_t get_id() const { return _id; }
   void set_id(uint64_t id) { _id = id; }
 
   std::shared_ptr<ReplicaSet> get_default_replicaset() {
-      return _default_replica_set;
+    return _default_replica_set;
   }
   void set_default_replicaset(const std::string &name,
                               const std::string &topology_type,
@@ -106,18 +106,16 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void assert_valid(const std::string &option_name) const;
   void set_description(std::string description) { _description = description; }
 
-  void set_name(const std::string &name) {
-    _name = name;
-  }
+  void set_name(const std::string &name) { _name = name; }
 
-  void set_option(const std::string& option, const shcore::Value &value);
-  void set_options(const std::string& json) {
+  void set_option(const std::string &option, const shcore::Value &value);
+  void set_options(const std::string &json) {
     _options = shcore::Value::parse(json).as_map();
   }
   std::string get_options() { return shcore::Value(_options).json(false); }
 
-  void set_attribute(const std::string& attribute, const shcore::Value &value);
-  void set_attributes(const std::string& json) {
+  void set_attribute(const std::string &attribute, const shcore::Value &value);
+  void set_attributes(const std::string &json) {
     _attributes = shcore::Value::parse(json).as_map();
   }
   std::string get_attributes() {
@@ -162,7 +160,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value disconnect(const shcore::Argument_list &args);
 
   Cluster_check_info check_preconditions(
-      const std::string& function_name) const;
+      const std::string &function_name) const;
 
  protected:
   Cluster() : _dissolved(false) { init(); }  // To support basic mocking

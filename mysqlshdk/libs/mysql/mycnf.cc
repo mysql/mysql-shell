@@ -103,7 +103,7 @@ void update_options(const std::string &path, const std::string &section,
   ifs.close();
   ofs.close();
 
-  shcore::copy_file(path+".tmp", path);
+  shcore::copy_file(path + ".tmp", path);
   try {
     shcore::delete_file(path + ".tmp");
   } catch (...) {

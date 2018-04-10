@@ -27,7 +27,6 @@
 namespace mysqlshdk {
 namespace db {
 
-
 std::shared_ptr<mysqlshdk::db::ISession> Db_tests::make_session() {
   if (is_classic)
     return mysqlshdk::db::mysql::Session::create();
@@ -35,9 +34,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Db_tests::make_session() {
     return mysqlshdk::db::mysqlx::Session::create();
 }
 
-void Db_tests::TearDownTestCase() {
-  run_script_classic({"drop schema xtest"});
-}
+void Db_tests::TearDownTestCase() { run_script_classic({"drop schema xtest"}); }
 
 void Db_tests::SetUp() {
   is_classic = true;
@@ -64,8 +61,7 @@ bool Db_tests::switch_proto() {
 TEST_F(Db_tests, connect_uri) {
   do {
     SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
-    auto connection_options =
-        shcore::get_connection_options(uri_nopass());
+    auto connection_options = shcore::get_connection_options(uri_nopass());
     connection_options.set_password("fake_pwd");
 
     // Connection failure
@@ -105,8 +101,7 @@ TEST_F(Db_tests, execute) {
     EXPECT_NO_THROW(session->connect(connection_options));
 
     // Execute error, trying to use an unexisting schema
-    EXPECT_THROW(session->execute("use some_weird_schema"),
-                 std::exception);
+    EXPECT_THROW(session->execute("use some_weird_schema"), std::exception);
 
     // Execute success, use a valid schema
     EXPECT_NO_THROW(session->execute("use mysql"));
@@ -145,8 +140,7 @@ TEST_F(Db_tests, query) {
     }
 
     // Required test database for the rest of this test
-    EXPECT_NO_THROW(
-        session->execute("drop schema if exists Db_sessions"));
+    EXPECT_NO_THROW(session->execute("drop schema if exists Db_sessions"));
     EXPECT_NO_THROW(session->execute("create schema Db_sessions"));
     EXPECT_NO_THROW(session->execute("use Db_sessions"));
 

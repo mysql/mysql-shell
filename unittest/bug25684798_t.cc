@@ -22,11 +22,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <string>
 #include <iostream>
+#include <string>
 
-#include "test_utils/shell_test_env.h"
 #include "gtest_clean.h"
+#include "test_utils/shell_test_env.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -37,7 +37,6 @@ namespace tests {
 #ifndef _WIN32
 
 TEST(Bug25684798, regression_python_cmdline) {
-
   std::string mysqlsh_path = Shell_test_env::get_path_to_mysqlsh();
   std::string cmd = mysqlsh_path + " --py -e '1'";
 
@@ -50,7 +49,5 @@ TEST(Bug25684798, regression_python_cmdline) {
   EXPECT_EQ(256, system(cmd.c_str()));
 }
 
-
 #endif
-
 }

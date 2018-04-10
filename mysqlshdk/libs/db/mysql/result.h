@@ -49,7 +49,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual ~Result();
 
   // Data Retrieving
-  virtual const IRow* fetch_one();
+  virtual const IRow *fetch_one();
   virtual bool next_resultset();
   virtual std::unique_ptr<Warning> fetch_one_warning();
   void rewind();  // Not part of IResult
@@ -61,12 +61,12 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
   virtual uint64_t get_warning_count() const { return _warning_count; }
   virtual std::string get_info() const { return _info; }
-  virtual const std::vector<Column>& get_metadata() const { return _metadata; }
+  virtual const std::vector<Column> &get_metadata() const { return _metadata; }
 
  protected:
   Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
          uint64_t affected_rows, unsigned int warning_count,
-         uint64_t last_insert_id, const char* info);
+         uint64_t last_insert_id, const char *info);
   void reset(std::shared_ptr<MYSQL_RES> res);
   void fetch_metadata();
   Type map_data_type(int raw_type, int flags);

@@ -120,11 +120,11 @@ class Token {
     QUOTE = 83
   };
 
-  Token(Token::TokenType type, const std::string& text, int cur_pos);
+  Token(Token::TokenType type, const std::string &text, int cur_pos);
 
-  const std::string& get_text() const { return _text; }
+  const std::string &get_text() const { return _text; }
   TokenType get_type() const { return _type; }
-  const std::string& get_type_name() const;
+  const std::string &get_type_name() const;
   int get_pos() const { return _pos; }
 
  private:
@@ -135,7 +135,7 @@ class Token {
 
 class Tokenizer {
  public:
-  Tokenizer(const std::string& input);
+  Tokenizer(const std::string &input);
 
   typedef std::vector<Token> tokens_t;
 
@@ -144,22 +144,22 @@ class Tokenizer {
   bool cur_token_type_is(Token::TokenType type);
   bool next_token_type(Token::TokenType type);
   bool pos_token_type_is(tokens_t::size_type pos, Token::TokenType type);
-  const std::string& consume_token(Token::TokenType type);
-  const Token& peek_token();
+  const std::string &consume_token(Token::TokenType type);
+  const Token &peek_token();
   void unget_token();
   void inc_pos_token();
   int get_token_pos() { return _pos; }
-  const Token& consume_any_token();
+  const Token &consume_any_token();
   void assert_tok_position();
   bool tokens_available();
   bool is_interval_units_type();
-  bool is_type_within_set(const std::set<Token::TokenType>& types);
+  bool is_type_within_set(const std::set<Token::TokenType> &types);
 
   std::vector<Token>::const_iterator begin() const { return _tokens.begin(); }
   std::vector<Token>::const_iterator end() const { return _tokens.end(); }
 
   void get_tokens();
-  const std::string& get_input() { return _input; }
+  const std::string &get_input() { return _input; }
 
  protected:
   std::vector<Token> _tokens;
@@ -168,7 +168,7 @@ class Tokenizer {
 
  public:
   struct Cmp_icase {
-    bool operator()(const std::string& lhs, const std::string& rhs) const;
+    bool operator()(const std::string &lhs, const std::string &rhs) const;
   };
 
   struct Maps {
@@ -187,14 +187,13 @@ class Tokenizer {
 
 class Parser_error : public std::runtime_error {
  public:
-  Parser_error(const std::string& msg) : std::runtime_error(msg), column(-1) {}
-  Parser_error(const std::string& msg, const std::string& line_, int column_)
-      : std::runtime_error(msg), line(line_), column(column_) {
-  }
+  Parser_error(const std::string &msg) : std::runtime_error(msg), column(-1) {}
+  Parser_error(const std::string &msg, const std::string &line_, int column_)
+      : std::runtime_error(msg), line(line_), column(column_) {}
 
   std::string line;
   int column;
 };
-}
+}  // namespace mysqlx
 
 #endif

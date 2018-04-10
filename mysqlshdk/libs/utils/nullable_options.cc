@@ -27,56 +27,52 @@
 namespace mysqlshdk {
 namespace utils {
 
-using nullable_options::Set_mode;
 using nullable_options::Comparison_mode;
+using nullable_options::Set_mode;
 
 Nullable_options::Nullable_options(Comparison_mode mode,
-                                   const std::string& context)
+                                   const std::string &context)
     : _ctx(context),
       _mode(mode),
       _options(_mode == Comparison_mode::CASE_SENSITIVE
                    ? Nullable_options::comp
                    : Nullable_options::icomp) {
-  if (!_ctx.empty() && _ctx[_ctx.size() - 1] != ' ')
-    _ctx.append(" ");
+  if (!_ctx.empty() && _ctx[_ctx.size() - 1] != ' ') _ctx.append(" ");
 }
 
-int Nullable_options::compare(const std::string& lhs,
-                              const std::string& rhs) const {
+int Nullable_options::compare(const std::string &lhs,
+                              const std::string &rhs) const {
   if (_mode == Comparison_mode::CASE_SENSITIVE)
     return lhs.compare(rhs);
   else
     return shcore::str_casecmp(lhs.c_str(), rhs.c_str());
 }
 
-bool Nullable_options::comp(const std::string& lhs, const std::string& rhs) {
+bool Nullable_options::comp(const std::string &lhs, const std::string &rhs) {
   return lhs.compare(rhs) < 0;
 }
 
-bool Nullable_options::icomp(const std::string& lhs, const std::string& rhs) {
+bool Nullable_options::icomp(const std::string &lhs, const std::string &rhs) {
   return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
 
-bool Nullable_options::has(const std::string& name) const {
+bool Nullable_options::has(const std::string &name) const {
   return _options.find(name) != _options.end();
 }
 
-bool Nullable_options::has_value(const std::string& name) const {
-  if (!has(name))
-    throw_invalid_option(name);
+bool Nullable_options::has_value(const std::string &name) const {
+  if (!has(name)) throw_invalid_option(name);
 
   return !_options.at(name).is_null();
 }
 
-void Nullable_options::set(const std::string& name, const std::string& value,
+void Nullable_options::set(const std::string &name, const std::string &value,
                            Set_mode mode) {
   // The option is meant to be created
-  if (mode == Set_mode::CREATE && has(name))
-    throw_already_defined_option(name);
+  if (mode == Set_mode::CREATE && has(name)) throw_already_defined_option(name);
 
   // The option is meant to be updated (So must exist)
-  if (mode == Set_mode::UPDATE_ONLY && !has(name))
-    throw_invalid_option(name);
+  if (mode == Set_mode::UPDATE_ONLY && !has(name)) throw_invalid_option(name);
 
   // The option is meant to be updated if null (So must exist and be empty)
   if (mode == Set_mode::UPDATE_NULL) {
@@ -88,15 +84,13 @@ void Nullable_options::set(const std::string& name, const std::string& value,
   _options[name] = value;
 }
 
-void Nullable_options::set(const std::string& name, const char* value,
+void Nullable_options::set(const std::string &name, const char *value,
                            Set_mode mode) {
   // The option is meant to be created
-  if (mode == Set_mode::CREATE && has(name))
-    throw_already_defined_option(name);
+  if (mode == Set_mode::CREATE && has(name)) throw_already_defined_option(name);
 
   // The option is meant to be updated (So must exist)
-  if (mode == Set_mode::UPDATE_ONLY && !has(name))
-    throw_invalid_option(name);
+  if (mode == Set_mode::UPDATE_ONLY && !has(name)) throw_invalid_option(name);
 
   // The option is meant to be updated if null (So must exist and be empty)
   if (mode == Set_mode::UPDATE_NULL) {
@@ -112,45 +106,40 @@ void Nullable_options::set(const std::string& name, const char* value,
     _options[name] = nullable<std::string>();
 }
 
-const std::string& Nullable_options::get_value(const std::string& name) const {
-  if (!has(name))
-    throw_invalid_option(name);
+const std::string &Nullable_options::get_value(const std::string &name) const {
+  if (!has(name)) throw_invalid_option(name);
 
-  if (!has_value(name))
-    throw_no_value(name);
+  if (!has_value(name)) throw_no_value(name);
 
   return *_options.at(name);
 }
 
-void Nullable_options::clear_value(const std::string& name) {
-  if (!has(name))
-    throw_invalid_option(name);
+void Nullable_options::clear_value(const std::string &name) {
+  if (!has(name)) throw_invalid_option(name);
 
   _options.at(name).reset();
 }
 
-void Nullable_options::remove(const std::string& name) {
-  if (!has(name))
-    throw_invalid_option(name);
+void Nullable_options::remove(const std::string &name) {
+  if (!has(name)) throw_invalid_option(name);
 
   _options.erase(name);
 }
 
-void Nullable_options::throw_invalid_option(const std::string& name) const {
+void Nullable_options::throw_invalid_option(const std::string &name) const {
   throw std::invalid_argument("Invalid " + _ctx + "option '" + name + "'.");
 }
 
-void Nullable_options::throw_no_value(const std::string& name) const {
+void Nullable_options::throw_no_value(const std::string &name) const {
   throw std::invalid_argument("The " + _ctx + "option '" + name +
                               "' has no "
                               "value.");
 }
 
 void Nullable_options::throw_already_defined_option(
-    const std::string& name) const {
+    const std::string &name) const {
   std::string value;
-  if (has_value(name))
-    value = " as '" + get_value(name) + "'";
+  if (has_value(name)) value = " as '" + get_value(name) + "'";
 
   throw std::invalid_argument("The " + _ctx + "option '" + name +
                               "' is "
@@ -158,18 +147,15 @@ void Nullable_options::throw_already_defined_option(
                               value + ".");
 }
 
-bool Nullable_options::operator==(const Nullable_options& other) const {
+bool Nullable_options::operator==(const Nullable_options &other) const {
   // Tests for different case sensitiveness
-  if (_mode != other._mode)
-    return false;
+  if (_mode != other._mode) return false;
 
   // Tests for different context
-  if (_ctx != other._ctx)
-    return false;
+  if (_ctx != other._ctx) return false;
 
   // Tests for different number of options
-  if (size() != other.size())
-    return false;
+  if (size() != other.size()) return false;
 
   for (auto o : _options) {
     // Tests for options being contained on both
@@ -190,7 +176,7 @@ bool Nullable_options::operator==(const Nullable_options& other) const {
   return true;
 }
 
-bool Nullable_options::operator!=(const Nullable_options& other) const {
+bool Nullable_options::operator!=(const Nullable_options &other) const {
   return !(*this == other);
 }
 

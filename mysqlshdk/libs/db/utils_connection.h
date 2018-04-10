@@ -53,8 +53,8 @@ class SHCORE_PUBLIC MapSslModeNameToValue {
   MapSslModeNameToValue() {}
 
  public:
-  static int get_value(const std::string& value);
-  static const std::string& get_value(int value);
+  static int get_value(const std::string &value);
+  static const std::string &get_value(int value);
 };
 
 // common keys for dictionary connection data
@@ -86,17 +86,40 @@ constexpr const char kSslModeRequired[] = "required";
 constexpr const char kSslModeVerifyCA[] = "verify_ca";
 constexpr const char kSslModeVerifyIdentity[] = "verify_identity";
 
-const std::set<std::string> connection_attributes = {
-    kHost,      kPort,          kSocket,   kScheme,     kSchema,
-    kUser,      kDbUser,        kPassword, kDbPassword, kSslCa,
-    kSslCaPath, kSslCert,       kSslKey,   kSslCrl,     kSslCrlPath,
-    kSslCipher, kSslTlsVersion, kSslMode,  kAuthMethod, kGetServerPublicKey,
-    kServerPublicKeyPath};
+const std::set<std::string> connection_attributes = {kHost,
+                                                     kPort,
+                                                     kSocket,
+                                                     kScheme,
+                                                     kSchema,
+                                                     kUser,
+                                                     kDbUser,
+                                                     kPassword,
+                                                     kDbPassword,
+                                                     kSslCa,
+                                                     kSslCaPath,
+                                                     kSslCert,
+                                                     kSslKey,
+                                                     kSslCrl,
+                                                     kSslCrlPath,
+                                                     kSslCipher,
+                                                     kSslTlsVersion,
+                                                     kSslMode,
+                                                     kAuthMethod,
+                                                     kGetServerPublicKey,
+                                                     kServerPublicKeyPath};
 
-const std::set<std::string> uri_connection_attributes = {
-    kSslCa,   kSslCaPath,  kSslCert,            kSslKey,
-    kSslCrl,  kSslCrlPath, kSslCipher,          kSslTlsVersion,
-    kSslMode, kAuthMethod, kGetServerPublicKey, kServerPublicKeyPath};
+const std::set<std::string> uri_connection_attributes = {kSslCa,
+                                                         kSslCaPath,
+                                                         kSslCert,
+                                                         kSslKey,
+                                                         kSslCrl,
+                                                         kSslCrlPath,
+                                                         kSslCipher,
+                                                         kSslTlsVersion,
+                                                         kSslMode,
+                                                         kAuthMethod,
+                                                         kGetServerPublicKey,
+                                                         kServerPublicKeyPath};
 
 const std::set<std::string> uri_extra_options = {
     kAuthMethod, kGetServerPublicKey, kServerPublicKeyPath};

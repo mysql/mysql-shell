@@ -27,15 +27,15 @@
 #ifndef _MOD_MYSQLXTEST_UTILS_H_
 #define _MOD_MYSQLXTEST_UTILS_H_
 
-#include "scripting/types_cpp.h"
-#include "scripting/common.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "scripting/common.h"
+#include "scripting/types_cpp.h"
 
 /*
  * Helper function to ensure the exceptions generated on the mysqlx_connector
  * are properly translated to the corresponding shcore::Exception type
  */
-inline void translate_crud_exception(const std::string& operation) {
+inline void translate_crud_exception(const std::string &operation) {
   try {
     throw;
   } catch (shcore::Exception &e) {
@@ -53,20 +53,22 @@ inline void translate_crud_exception(const std::string& operation) {
   }
 }
 
-#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)   \
-  catch (...)                   \
-  { translate_crud_exception(operation); throw; }
+#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation) \
+  catch (...) {                                       \
+    translate_crud_exception(operation);              \
+    throw;                                            \
+  }
 
 /*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
+ * Helper function to ensure the exceptions generated on the mysqlx_connector
+ * are properly translated to the corresponding shcore::Exception type
+ */
 inline void translate_exception() {
   try {
     throw;
   } catch (mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(
-        e.what(), e.code(), e.sqlstate());
+    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
+                                                             e.sqlstate());
   } catch (std::runtime_error &e) {
     throw shcore::Exception::runtime_error(e.what());
   } catch (std::logic_error &e) {
@@ -77,10 +79,12 @@ inline void translate_exception() {
 }
 
 #define CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(operation) \
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)
 
-#define CATCH_AND_TRANSLATE()   \
-  catch (...)                   \
-{ translate_exception(); throw; }
+#define CATCH_AND_TRANSLATE() \
+  catch (...) {               \
+    translate_exception();    \
+    throw;                    \
+  }
 
 #endif

@@ -25,14 +25,14 @@
 #include <random>
 #include <sstream>
 
+#include "db/mysqlx/expr_parser.h"
+#include "db/mysqlx/util/setter_any.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
-#include "db/mysqlx/expr_parser.h"
-#include "shellcore/utils_help.h"
-#include "db/mysqlx/util/setter_any.h"
-#include "utils/utils_string.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "shellcore/utils_help.h"
+#include "utils/utils_string.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -151,13 +151,13 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
           shcore::Value::Array_type_ref docs = args[0].as_array();
           int i = 0;
           for (auto doc : *docs) {
-            add_one_document(doc, "Element #"+std::to_string(++i));
+            add_one_document(doc, "Element #" + std::to_string(++i));
           }
         } else {
           // add(doc, doc, ...)
           // add(mysqlx.expr(), mysqlx.expr(), ...)
           for (size_t i = 0; i < args.size(); i++) {
-            add_one_document(args[i], "Argument #"+std::to_string(i+1));
+            add_one_document(args[i], "Argument #" + std::to_string(i + 1));
           }
         }
         // Updates the exposed functions (since a document has been added)
@@ -195,8 +195,8 @@ static std::string extract_id(Mysqlx::Expr::Expr *expr) {
 void CollectionAdd::add_one_document(shcore::Value doc,
                                      const std::string &error_context) {
   if (!(doc.type == shcore::Map ||
-      (doc.type == shcore::Object &&
-       doc.as_object()->class_name() == "Expression"))) {
+        (doc.type == shcore::Object &&
+         doc.as_object()->class_name() == "Expression"))) {
     throw shcore::Exception::argument_error(
         error_context +
         " expected to be a document, JSON expression or a list of documents");
@@ -311,12 +311,10 @@ shcore::Value CollectionAdd::execute(bool upsert) {
   mysqlshdk::utils::Profile_timer timer;
   insert_bound_values(message_.mutable_args());
   timer.stage_begin("CollectionAdd::execute");
-  if (upsert)
-    message_.set_upsert(upsert);
+  if (upsert) message_.set_upsert(upsert);
   if (message_.mutable_row()->size()) {
-    result.reset(new mysqlx::Result(safe_exec([this]() {
-      return session()->session()->execute_crud(message_);
-    })));
+    result.reset(new mysqlx::Result(safe_exec(
+        [this]() { return session()->session()->execute_crud(message_); })));
   } else {
     result.reset(new mysqlsh::mysqlx::Result({}));
   }

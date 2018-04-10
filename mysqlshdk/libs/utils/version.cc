@@ -28,16 +28,14 @@
 namespace mysqlshdk {
 namespace utils {
 
-Version::Version() : _major(0) {
-}
+Version::Version() : _major(0) {}
 
 // Minimal implementation of version parsing, no need for something more complex
 // for now
-Version::Version(const std::string& version) : _major(0) {
+Version::Version(const std::string &version) : _major(0) {
   auto tokens = shcore::str_split(version, "-", 1);
 
-  if (tokens.size() == 2)
-    _extra = tokens[1];
+  if (tokens.size() == 2) _extra = tokens[1];
   auto base_tokens = shcore::str_split(tokens[0], ".");
 
   switch (base_tokens.size()) {
@@ -57,18 +55,17 @@ Version::Version(const std::string& version) : _major(0) {
   }
 }
 
-int Version::parse_token(const std::string& data) {
+int Version::parse_token(const std::string &data) {
   size_t idx = 0;
   int value = 0;
   std::string error;
   try {
     value = std::stoi(data, &idx);
 
-    if (idx < data.length())
-      error = "Only digits allowed for version numbers";
-  } catch (const std::invalid_argument& e) {
+    if (idx < data.length()) error = "Only digits allowed for version numbers";
+  } catch (const std::invalid_argument &e) {
     error = e.what();
-  } catch (const std::out_of_range& e) {
+  } catch (const std::out_of_range &e) {
     error = e.what();
   }
 
@@ -84,8 +81,7 @@ std::string Version::get_base() const {
   if (_minor) {
     ret_val.append(".").append(std::to_string(*_minor));
 
-    if (_patch)
-      ret_val.append(".").append(std::to_string(*_patch));
+    if (_patch) ret_val.append(".").append(std::to_string(*_patch));
   }
 
   return ret_val;
@@ -94,42 +90,33 @@ std::string Version::get_base() const {
 std::string Version::get_full() const {
   std::string ret_val = get_base();
 
-  if (_extra)
-    ret_val.append("-" + *_extra);
+  if (_extra) ret_val.append("-" + *_extra);
 
   return ret_val;
 }
 
-bool Version::operator<(const Version& other) {
+bool Version::operator<(const Version &other) {
   return _major < other._major ||
-         (_major == other._major &&
-          (get_minor() < other.get_minor() ||
-           (get_minor() == other.get_minor() &&
-            get_patch() < other.get_patch())));
+         (_major == other._major && (get_minor() < other.get_minor() ||
+                                     (get_minor() == other.get_minor() &&
+                                      get_patch() < other.get_patch())));
 }
 
-bool Version::operator<=(const Version& other) {
-  return *this < other || (_major == other._major &&
-                           get_minor() == other.get_minor() &&
-                           get_patch() == other.get_patch());
+bool Version::operator<=(const Version &other) {
+  return *this < other ||
+         (_major == other._major && get_minor() == other.get_minor() &&
+          get_patch() == other.get_patch());
 }
-bool Version::operator>(const Version& other) {
-  return !(*this <= other);
-}
+bool Version::operator>(const Version &other) { return !(*this <= other); }
 
-bool Version::operator>=(const Version& other) {
-  return !(*this < other);
-}
+bool Version::operator>=(const Version &other) { return !(*this < other); }
 
-bool Version::operator==(const Version& other) {
-  return _major == other._major &&
-         get_minor() == other.get_minor() &&
+bool Version::operator==(const Version &other) {
+  return _major == other._major && get_minor() == other.get_minor() &&
          get_patch() == other.get_patch();
 }
 
-bool Version::operator!=(const Version& other) {
-  return !(*this == other);
-}
+bool Version::operator!=(const Version &other) { return !(*this == other); }
 
 }  // namespace utils
 }  // namespace mysqlshdk

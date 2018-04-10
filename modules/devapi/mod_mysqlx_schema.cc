@@ -29,8 +29,8 @@
 
 #include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
-#include "shellcore/shell_core.h"
 #include "shellcore/base_shell.h"
+#include "shellcore/shell_core.h"
 
 #include "scripting/proxy_object.h"
 
@@ -40,12 +40,11 @@
 #include "modules/devapi/mod_mysqlx_table.h"
 
 #include "mysqlshdk/libs/utils/logger.h"
-#include "shellcore/utils_help.h"
 #include "shellcore/base_shell.h"  // for options
+#include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
-#include "utils/utils_string.h"
 #include "utils/utils_sqlstring.h"
-
+#include "utils/utils_string.h"
 
 using namespace mysqlsh;
 using namespace mysqlsh::mysqlx;
@@ -54,20 +53,21 @@ using namespace shcore;
 // Documentation of Schema class
 REGISTER_HELP(SCHEMA_INTERACTIVE_BRIEF,
               "Used to work with database schema objects.");
-REGISTER_HELP(
-    SCHEMA_BRIEF,
-    "Represents a Schema as retrived from a session created using the X Protocol.");
+REGISTER_HELP(SCHEMA_BRIEF,
+              "Represents a Schema as retrived from a session created using "
+              "the X Protocol.");
 REGISTER_HELP(SCHEMA_DETAIL, "<b> View Support </b>");
 REGISTER_HELP(
     SCHEMA_DETAIL1,
     "MySQL Views are stored queries that when executed produce a result set.");
-REGISTER_HELP(
-    SCHEMA_DETAIL2,
-    "MySQL supports the concept of Updatable Views: in specific conditions are met, "
-    "Views can be used not only to retrieve data from them but also to update, add and delete records.");
-REGISTER_HELP(
-    SCHEMA_DETAIL3,
-    "For the purpose of this API, Views behave similar to a Table, and so they are treated as Tables.");
+REGISTER_HELP(SCHEMA_DETAIL2,
+              "MySQL supports the concept of Updatable Views: in specific "
+              "conditions are met, "
+              "Views can be used not only to retrieve data from them but also "
+              "to update, add and delete records.");
+REGISTER_HELP(SCHEMA_DETAIL3,
+              "For the purpose of this API, Views behave similar to a Table, "
+              "and so they are treated as Tables.");
 
 Schema::Schema(std::shared_ptr<Session> session, const std::string &schema)
     : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema) {
@@ -90,10 +90,9 @@ void Schema::init() {
   add_method("createCollection",
              std::bind(&Schema::create_collection, this, _1), "name",
              shcore::String);
-  add_method(
-      "dropCollection",
-      std::bind(&Schema::drop_schema_object, this, _1, "Collection"),
-      "name", shcore::String);
+  add_method("dropCollection",
+             std::bind(&Schema::drop_schema_object, this, _1, "Collection"),
+             "name", shcore::String);
 
   // Note: If properties are added uncomment this
   // _base_property_count = _properties.size();
@@ -201,14 +200,11 @@ void Schema::update_cache() {
 
 void Schema::_remove_object(const std::string &name, const std::string &type) {
   if (type == "View") {
-    if (_views->count(name))
-      _views->erase(name);
+    if (_views->count(name)) _views->erase(name);
   } else if (type == "Table") {
-    if (_tables->count(name))
-      _tables->erase(name);
+    if (_tables->count(name)) _tables->erase(name);
   } else if (type == "Collection") {
-    if (_collections->count(name))
-      _collections->erase(name);
+    if (_collections->count(name)) _collections->erase(name);
   }
 }
 
@@ -220,9 +216,9 @@ std::vector<std::string> Schema::get_members() const {
   // Flush the cache if we have it populated but it got disabled
   if (!use_object_handles() && _using_object_handles) {
     _using_object_handles = false;
-    flush_cache(_views, const_cast<Schema*>(this));
-    flush_cache(_tables, const_cast<Schema*>(this));
-    flush_cache(_collections, const_cast<Schema*>(this));
+    flush_cache(_views, const_cast<Schema *>(this));
+    flush_cache(_tables, const_cast<Schema *>(this));
+    flush_cache(_collections, const_cast<Schema *>(this));
   }
   return DatabaseObject::get_members();
 }
@@ -236,16 +232,13 @@ Value Schema::get_member(const std::string &prop) const {
     ret_val = find_in_cache(prop, _tables);
 
     // Searches prop as a collection
-    if (!ret_val)
-      ret_val = find_in_cache(prop, _collections);
+    if (!ret_val) ret_val = find_in_cache(prop, _collections);
 
     // Searches prop as a view
-    if (!ret_val)
-      ret_val = find_in_cache(prop, _views);
+    if (!ret_val) ret_val = find_in_cache(prop, _views);
   }
 
-  if (!ret_val)
-    ret_val = DatabaseObject::get_member(prop);
+  if (!ret_val) ret_val = DatabaseObject::get_member(prop);
 
   return ret_val;
 }
@@ -266,18 +259,18 @@ REGISTER_HELP(SCHEMA_GETTABLES_DETAIL2,
               "Returns a List of available Table objects.");
 
 /**
-* $(SCHEMA_GETTABLES_BRIEF)
-*
-* \sa Table
-*
-* $(SCHEMA_GETTABLES_RETURNS)
-*
-* $(SCHEMA_GETTABLES_DETAIL)
-*
-* $(SCHEMA_GETTABLES_DETAIL1)
-*
-* $(SCHEMA_GETTABLES_DETAIL2)
-*/
+ * $(SCHEMA_GETTABLES_BRIEF)
+ *
+ * \sa Table
+ *
+ * $(SCHEMA_GETTABLES_RETURNS)
+ *
+ * $(SCHEMA_GETTABLES_DETAIL)
+ *
+ * $(SCHEMA_GETTABLES_DETAIL1)
+ *
+ * $(SCHEMA_GETTABLES_DETAIL2)
+ */
 #if DOXYGEN_JS
 List Schema::getTables() {}
 #elif DOXYGEN_PY
@@ -286,8 +279,7 @@ list Schema::get_tables() {}
 shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getTables").c_str());
 
-  if (use_object_handles())
-    update_cache();
+  if (use_object_handles()) update_cache();
 
   shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
 
@@ -300,9 +292,9 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
 // Documentation of getCollections function
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_BRIEF,
               "Returns a list of Collections for this Schema.");
-REGISTER_HELP(
-    SCHEMA_GETCOLLECTIONS_RETURNS,
-    "@returns A List containing the Collection objects available for the Schema.");
+REGISTER_HELP(SCHEMA_GETCOLLECTIONS_RETURNS,
+              "@returns A List containing the Collection objects available for "
+              "the Schema.");
 REGISTER_HELP(
     SCHEMA_GETCOLLECTIONS_DETAIL,
     "Pulls from the database the available Tables, Views and Collections.");
@@ -313,18 +305,18 @@ REGISTER_HELP(SCHEMA_GETCOLLECTIONS_DETAIL2,
               "Returns a List of available Collection objects.");
 
 /**
-* $(SCHEMA_GETCOLLECTIONS_BRIEF)
-*
-* \sa Collection
-*
-* $(SCHEMA_GETCOLLECTIONS_RETURNS)
-*
-* $(SCHEMA_GETCOLLECTIONS_DETAIL)
-*
-* $(SCHEMA_GETCOLLECTIONS_DETAIL1)
-*
-* $(SCHEMA_GETCOLLECTIONS_DETAIL2)
-*/
+ * $(SCHEMA_GETCOLLECTIONS_BRIEF)
+ *
+ * \sa Collection
+ *
+ * $(SCHEMA_GETCOLLECTIONS_RETURNS)
+ *
+ * $(SCHEMA_GETCOLLECTIONS_DETAIL)
+ *
+ * $(SCHEMA_GETCOLLECTIONS_DETAIL1)
+ *
+ * $(SCHEMA_GETCOLLECTIONS_DETAIL2)
+ */
 #if DOXYGEN_JS
 List Schema::getCollections() {}
 #elif DOXYGEN_PY
@@ -333,8 +325,7 @@ list Schema::get_collections() {}
 shcore::Value Schema::get_collections(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getCollections").c_str());
 
-  if (use_object_handles())
-    update_cache();
+  if (use_object_handles()) update_cache();
 
   shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
 
@@ -350,24 +341,24 @@ REGISTER_HELP(SCHEMA_GETTABLE_PARAM,
               "@param name the name of the Table to look for.");
 REGISTER_HELP(SCHEMA_GETTABLE_RETURNS,
               "@returns the Table object matching the name.");
-REGISTER_HELP(
-    SCHEMA_GETTABLE_DETAIL,
-    "Verifies if the requested Table exist on the database, if exists, returns the corresponding Table object.");
+REGISTER_HELP(SCHEMA_GETTABLE_DETAIL,
+              "Verifies if the requested Table exist on the database, if "
+              "exists, returns the corresponding Table object.");
 REGISTER_HELP(SCHEMA_GETTABLE_DETAIL1, "Updates the Tables cache.");
 
 /**
-* $(SCHEMA_GETTABLE_BRIEF)
-*
-* $(SCHEMA_GETTABLE_PARAM)
-*
-* $(SCHEMA_GETTABLE_RETURNS)
-*
-* $(SCHEMA_GETTABLE_DETAIL)
-*
-* $(SCHEMA_GETTABLE_DETAIL1)
-*
-* \sa Table
-*/
+ * $(SCHEMA_GETTABLE_BRIEF)
+ *
+ * $(SCHEMA_GETTABLE_PARAM)
+ *
+ * $(SCHEMA_GETTABLE_RETURNS)
+ *
+ * $(SCHEMA_GETTABLE_DETAIL)
+ *
+ * $(SCHEMA_GETTABLE_DETAIL1)
+ *
+ * \sa Table
+ */
 #if DOXYGEN_JS
 Table Schema::getTable(String name) {}
 #elif DOXYGEN_PY
@@ -437,18 +428,18 @@ REGISTER_HELP(
 REGISTER_HELP(SCHEMA_GETCOLLECTION_DETAIL1, "Updates the Collections cache.");
 
 /**
-* $(SCHEMA_GETCOLLECTION_BRIEF)
-*
-* $(SCHEMA_GETCOLLECTION_PARAM)
-*
-* $(SCHEMA_GETCOLLECTION_RETURNS)
-*
-* $(SCHEMA_GETCOLLECTION_DETAIL)
-*
-* $(SCHEMA_GETCOLLECTION_DETAIL1)
-*
-* \sa Collection
-*/
+ * $(SCHEMA_GETCOLLECTION_BRIEF)
+ *
+ * $(SCHEMA_GETCOLLECTION_PARAM)
+ *
+ * $(SCHEMA_GETCOLLECTION_RETURNS)
+ *
+ * $(SCHEMA_GETCOLLECTION_DETAIL)
+ *
+ * $(SCHEMA_GETCOLLECTION_DETAIL1)
+ *
+ * \sa Collection
+ */
 #if DOXYGEN_JS
 Collection Schema::getCollection(String name) {}
 #elif DOXYGEN_PY
@@ -473,8 +464,7 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args) {
                                              name + "', no Session available");
 
       bool exists = false;
-      if (!real_name.empty() && found_type == "COLLECTION")
-        exists = true;
+      if (!real_name.empty() && found_type == "COLLECTION") exists = true;
 
       // Updates the cache
       update_collection_cache(real_name, exists);
@@ -505,12 +495,12 @@ REGISTER_HELP(
     "@returns the Table object representing the collection or undefined.");
 
 /**
-* $(SCHEMA_GETCOLLECTIONASTABLE_BRIEF)
-*
-* $(SCHEMA_GETCOLLECTIONASTABLE_PARAM)
-*
-* $(SCHEMA_GETCOLLECTIONASTABLE_RETURNS)
-*/
+ * $(SCHEMA_GETCOLLECTIONASTABLE_BRIEF)
+ *
+ * $(SCHEMA_GETCOLLECTIONASTABLE_PARAM)
+ *
+ * $(SCHEMA_GETCOLLECTIONASTABLE_RETURNS)
+ */
 #if DOXYGEN_JS
 Collection Schema::getCollectionAsTable(String name) {}
 #elif DOXYGEN_PY
@@ -532,27 +522,27 @@ shcore::Value Schema::get_collection_as_table(
 }
 
 // Documentation of createCollection function
-REGISTER_HELP(
-    SCHEMA_CREATECOLLECTION_BRIEF,
-    "Creates in the current schema a new collection with the specified name and "
-    "retrieves an object representing the new collection created.");
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_BRIEF,
+              "Creates in the current schema a new collection with the "
+              "specified name and "
+              "retrieves an object representing the new collection created.");
 REGISTER_HELP(SCHEMA_CREATECOLLECTION_PARAM,
               "@param name the name of the collection.");
 REGISTER_HELP(SCHEMA_CREATECOLLECTION_RETURNS,
               "@returns the new created collection.");
-REGISTER_HELP(
-    SCHEMA_CREATECOLLECTION_DETAIL,
-    "To specify a name for a collection, follow the naming conventions in MySQL.");
+REGISTER_HELP(SCHEMA_CREATECOLLECTION_DETAIL,
+              "To specify a name for a collection, follow the naming "
+              "conventions in MySQL.");
 
 /**
-* $(SCHEMA_CREATECOLLECTION_BRIEF)
-*
-* $(SCHEMA_CREATECOLLECTION_PARAM)
-*
-* $(SCHEMA_CREATECOLLECTION_RETURNS)
-*
-* $(SCHEMA_CREATECOLLECTION_DETAIL)
-*/
+ * $(SCHEMA_CREATECOLLECTION_BRIEF)
+ *
+ * $(SCHEMA_CREATECOLLECTION_PARAM)
+ *
+ * $(SCHEMA_CREATECOLLECTION_RETURNS)
+ *
+ * $(SCHEMA_CREATECOLLECTION_DETAIL)
+ */
 #if DOXYGEN_JS
 Collection Schema::createCollection(String name) {}
 #elif DOXYGEN_PY
@@ -590,10 +580,8 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
 }
 
 // Documentation of dropCollection function
-REGISTER_HELP(SCHEMA_DROPCOLLECTION_BRIEF,
-              "Drops the specified collection.");
-REGISTER_HELP(SCHEMA_DROPCOLLECTION_RETURNS,
-              "@returns Nothing.");
+REGISTER_HELP(SCHEMA_DROPCOLLECTION_BRIEF, "Drops the specified collection.");
+REGISTER_HELP(SCHEMA_DROPCOLLECTION_RETURNS, "@returns Nothing.");
 
 /**
  * $(SCHEMA_DROPCOLLECTION_BRIEF)
@@ -606,7 +594,7 @@ Undefined Schema::dropCollection(String name) {}
 None Schema::drop_collection(str name) {}
 #endif
 shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
-                                              const std::string &type) {
+                                         const std::string &type) {
   std::string function = get_function_name("drop" + type);
   args.ensure_count(1, function.c_str());
 
@@ -619,25 +607,23 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
 
   try {
     if (type == "View") {
-        std::shared_ptr<Session> sess(
+      std::shared_ptr<Session> sess(
           std::static_pointer_cast<Session>(_session.lock()));
-        sess->_execute_sql(sqlstring("drop view if exists !.!", 0) << schema.as_string() << name + "",
-                       shcore::Argument_list());
+      sess->_execute_sql(sqlstring("drop view if exists !.!", 0)
+                             << schema.as_string() << name + "",
+                         shcore::Argument_list());
     } else {
-      if ((type == "Table") ||
-          (type == "Collection")) {
+      if ((type == "Table") || (type == "Collection")) {
         shcore::Argument_list command_args;
         command_args.push_back(schema);
         command_args.push_back(Value(name));
 
         std::shared_ptr<Session> sess(
-          std::static_pointer_cast<Session>(_session.lock()));
+            std::static_pointer_cast<Session>(_session.lock()));
         try {
           sess->executeAdminCommand("drop_collection", false, command_args);
-        }
-        catch (const mysqlshdk::db::Error e) {
-          if (e.code() != ER_BAD_TABLE_ERROR)
-            throw;
+        } catch (const mysqlshdk::db::Error e) {
+          if (e.code() != ER_BAD_TABLE_ERROR) throw;
         }
       }
     }

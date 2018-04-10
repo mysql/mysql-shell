@@ -23,8 +23,8 @@
 
 #include <gtest/gtest.h>
 #include <initializer_list>
-#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"
+#include "mysqlshdk/libs/textui/textui.h"
 
 namespace mysqlshdk {
 namespace textui {
@@ -433,7 +433,7 @@ TEST(Textui, term_vt100) {
   EXPECT_EQ("\x1B[5;31;41m", vt100::attr(1, 1, vt100::Blink));
   EXPECT_EQ("\x1B[7;31;41m", vt100::attr(1, 1, vt100::Reverse));
   EXPECT_EQ("\x1B[8;31;41m", vt100::attr(1, 1, vt100::Hidden));
-  EXPECT_EQ("\x1B[1;5;31;41m", vt100::attr(1, 1, vt100::Bright|vt100::Blink));
+  EXPECT_EQ("\x1B[1;5;31;41m", vt100::attr(1, 1, vt100::Bright | vt100::Blink));
 }
 
 }  // namespace textui

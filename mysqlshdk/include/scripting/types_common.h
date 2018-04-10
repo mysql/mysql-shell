@@ -29,8 +29,8 @@
 #define TYPES_COMMON_PUBLIC
 
 #ifdef No_mysqlshtypes
-# undef TYPES_COMMON_PUBLIC
-# define TYPES_COMMON_PUBLIC SHCORE_PUBLIC
+#undef TYPES_COMMON_PUBLIC
+#define TYPES_COMMON_PUBLIC SHCORE_PUBLIC
 #endif
 
 #endif

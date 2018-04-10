@@ -55,17 +55,14 @@ class Auto_script_js : public Shell_js_script_tester,
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (connection_options.has_user())
-      user = connection_options.get_user();
+    if (connection_options.has_user()) user = connection_options.get_user();
 
-    if (connection_options.has_host())
-      host = connection_options.get_host();
+    if (connection_options.has_host()) host = connection_options.get_host();
 
     if (connection_options.has_password())
       password = connection_options.get_password();
 
-    if (_port.empty())
-      _port = "33060";
+    if (_port.empty()) _port = "33060";
 
     if (_port.empty()) {
       _port = "33060";
@@ -117,13 +114,13 @@ class Auto_script_js : public Shell_js_script_tester,
            std::to_string(_mysql_sandbox_port3) + ";";
     exec_and_out_equals(code);
     code = "var __mysql_sandbox_gr_port1 = " +
-        std::to_string(_mysql_sandbox_port1*10+1) + ";";
+           std::to_string(_mysql_sandbox_port1 * 10 + 1) + ";";
     exec_and_out_equals(code);
     code = "var __mysql_sandbox_gr_port2 = " +
-        std::to_string(_mysql_sandbox_port2*10+1) + ";";
+           std::to_string(_mysql_sandbox_port2 * 10 + 1) + ";";
     exec_and_out_equals(code);
     code = "var __mysql_sandbox_gr_port3 = " +
-        std::to_string(_mysql_sandbox_port3*10+1) + ";";
+           std::to_string(_mysql_sandbox_port3 * 10 + 1) + ";";
     exec_and_out_equals(code);
     code = "var __sandbox_uri1 = 'mysql://root:root@localhost:" +
            std::to_string(_mysql_sandbox_port1) + "';";
@@ -135,13 +132,13 @@ class Auto_script_js : public Shell_js_script_tester,
            std::to_string(_mysql_sandbox_port3) + "';";
     exec_and_out_equals(code);
     code = "var __hostname_uri1 = 'mysql://root:root@" + hostname() + ":" +
-        std::to_string(_mysql_sandbox_port1) + "';";
+           std::to_string(_mysql_sandbox_port1) + "';";
     exec_and_out_equals(code);
     code = "var __hostname_uri2 = 'mysql://root:root@" + hostname() + ":" +
-        std::to_string(_mysql_sandbox_port2) + "';";
+           std::to_string(_mysql_sandbox_port2) + "';";
     exec_and_out_equals(code);
     code = "var __hostname_uri3 = 'mysql://root:root@" + hostname() + ":" +
-        std::to_string(_mysql_sandbox_port3) + "';";
+           std::to_string(_mysql_sandbox_port3) + "';";
     exec_and_out_equals(code);
 
     code = "var localhost = 'localhost'";
@@ -154,8 +151,7 @@ class Auto_script_js : public Shell_js_script_tester,
            _mysql_port + "';";
     exec_and_out_equals(code);
 
-    code = "var __os_type = '" + shcore::to_string(shcore::get_os_type()) +
-           "'";
+    code = "var __os_type = '" + shcore::to_string(shcore::get_os_type()) + "'";
     exec_and_out_equals(code);
 
     code = "var __system_user = '" + shcore::get_system_user() + "';";
@@ -164,9 +160,8 @@ class Auto_script_js : public Shell_js_script_tester,
     if (_replaying)
       code = "var __replaying = true;";
     else
-    code = "var __replaying = false;";
+      code = "var __replaying = false;";
     exec_and_out_equals(code);
-
   }
 };
 
@@ -213,15 +208,13 @@ std::vector<std::string> find_js_tests(const std::string &subdir,
                                        const std::string &ext) {
   std::string path = shcore::path::join_path(g_test_home, "scripts", "auto",
                                              subdir, "scripts");
-  if (!shcore::is_folder(path))
-    return {};
+  if (!shcore::is_folder(path)) return {};
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
   std::vector<std::string> filtered;
   for (const auto &s : tests) {
-    if (shcore::str_endswith(s, ext))
-      filtered.push_back(subdir + "/" + s);
+    if (shcore::str_endswith(s, ext)) filtered.push_back(subdir + "/" + s);
   }
   return filtered;
 }

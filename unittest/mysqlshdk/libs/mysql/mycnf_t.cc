@@ -74,9 +74,8 @@ password=bar
 user=bla
 )*");
 
-  update_options(
-      TEST_FILE, "[mysqld]",
-      std::vector<Option>{{"user", {}}, {"password", {}}});
+  update_options(TEST_FILE, "[mysqld]",
+                 std::vector<Option>{{"user", {}}, {"password", {}}});
 
   std::string file;
   shcore::load_text_file(TEST_FILE, file);
@@ -124,7 +123,6 @@ baz=
 
   shcore::delete_file(TEST_FILE);
 }
-
 
 TEST(Mycnf, update_options_empty) {
   shcore::create_file(TEST_FILE, "");

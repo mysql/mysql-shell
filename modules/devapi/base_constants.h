@@ -76,7 +76,7 @@ class SHCORE_PUBLIC Constant : public shcore::Cpp_object_bridge {
                                    const shcore::Argument_list &args);
 
   // A single instance of every Constant will exist
-  typedef std::map<std::string, std::shared_ptr<Constant> > Group_constants;
+  typedef std::map<std::string, std::shared_ptr<Constant>> Group_constants;
   typedef std::map<std::string, Group_constants> Module_constants;
   static std::map<std::string, Module_constants> _constants;
 };

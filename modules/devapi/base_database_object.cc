@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
@@ -37,7 +38,6 @@
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
 #include "utils/utils_general.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -102,8 +102,8 @@ REGISTER_HELP(DATABASEOBJECT_GETNAME_BRIEF,
               "Returns the name of this database object.");
 
 /**
-* $(DATABASEOBJECT_GETNAME)
-*/
+ * $(DATABASEOBJECT_GETNAME)
+ */
 #if DOXYGEN_JS
 String DatabaseObject::getName() {}
 #elif DOXYGEN_PY
@@ -126,13 +126,13 @@ REGISTER_HELP(DATABASEOBJECT_GETSESSION_DETAIL2,
               "an ClassicSession.");
 
 /**
-* $(DATABASEOBJECT_GETSESSION_BRIEF)
-* $(DATABASEOBJECT_GETSESSION_RETURNS)
-*
-* $(DATABASEOBJECT_GETSESSION_DETAIL)
-* $(DATABASEOBJECT_GETSESSION_DETAIL1)
-* $(DATABASEOBJECT_GETSESSION_DETAIL2)
-*/
+ * $(DATABASEOBJECT_GETSESSION_BRIEF)
+ * $(DATABASEOBJECT_GETSESSION_RETURNS)
+ *
+ * $(DATABASEOBJECT_GETSESSION_DETAIL)
+ * $(DATABASEOBJECT_GETSESSION_DETAIL1)
+ * $(DATABASEOBJECT_GETSESSION_DETAIL2)
+ */
 #if DOXYGEN_JS
 Object DatabaseObject::getSession() {}
 #elif DOXYGEN_PY
@@ -158,14 +158,14 @@ REGISTER_HELP(
     "@li Null: if this database object is a Schema or ClassicSchema.");
 
 /**
-* $(DATABASEOBJECT_GETSCHEMA_BRIEF)
-* $(DATABASEOBJECT_GETSCHEMA_RETURNS)
-*
-* $(DATABASEOBJECT_GETSCHEMA_DETAIL)
-* $(DATABASEOBJECT_GETSCHEMA_DETAIL1)
-* $(DATABASEOBJECT_GETSCHEMA_DETAIL2)
-* $(DATABASEOBJECT_GETSCHEMA_DETAIL3)
-*/
+ * $(DATABASEOBJECT_GETSCHEMA_BRIEF)
+ * $(DATABASEOBJECT_GETSCHEMA_RETURNS)
+ *
+ * $(DATABASEOBJECT_GETSCHEMA_DETAIL)
+ * $(DATABASEOBJECT_GETSCHEMA_DETAIL1)
+ * $(DATABASEOBJECT_GETSCHEMA_DETAIL2)
+ * $(DATABASEOBJECT_GETSCHEMA_DETAIL3)
+ */
 #if DOXYGEN_JS
 Object DatabaseObject::getSchema() {}
 #elif DOXYGEN_PY
@@ -236,8 +236,7 @@ shcore::Value DatabaseObject::existsInDatabase(
                .empty());
     else {
       std::string name = _name;
-      if (schema)
-        name = schema->get_member("name").as_string() + "." + _name;
+      if (schema) name = schema->get_member("name").as_string() + "." + _name;
 
       throw shcore::Exception::logic_error("Unable to verify existence of '" +
                                            name + "', no Session available");
@@ -281,8 +280,7 @@ void DatabaseObject::update_cache(
   for (auto name : existing) {
     target_cache->erase(name);
 
-    if (target)
-      target->delete_property(name);
+    if (target) target->delete_property(name);
   }
 }
 
@@ -293,22 +291,20 @@ void DatabaseObject::update_cache(
   if (exists && target_cache->find(name) == target_cache->end()) {
     (*target_cache)[name] = generator(name);
 
-    if (target && shcore::is_valid_identifier(name))
-      target->add_property(name);
+    if (target && shcore::is_valid_identifier(name)) target->add_property(name);
   }
 
   if (!exists && target_cache->find(name) != target_cache->end()) {
     target_cache->erase(name);
 
-    if (target)
-      target->delete_property(name);
+    if (target) target->delete_property(name);
   }
 }
 
 void DatabaseObject::flush_cache(Cache target_cache, DatabaseObject *target) {
   if (target) {
     for (const auto &iter : *target_cache) {
-        target->delete_property(iter.first);
+      target->delete_property(iter.first);
     }
   }
   target_cache->clear();
@@ -316,8 +312,7 @@ void DatabaseObject::flush_cache(Cache target_cache, DatabaseObject *target) {
 
 void DatabaseObject::get_object_list(Cache target_cache,
                                      shcore::Value::Array_type_ref list) {
-  for (auto entry : *target_cache)
-    list->push_back(entry.second);
+  for (auto entry : *target_cache) list->push_back(entry.second);
 }
 
 shcore::Value DatabaseObject::find_in_cache(const std::string &name,
@@ -331,8 +326,7 @@ shcore::Value DatabaseObject::find_in_cache(const std::string &name,
 
 bool DatabaseObject::is_base_member(const std::string &prop) const {
   auto style = naming_style;
-  if (has_method_advanced(prop, style))
-    return true;
+  if (has_method_advanced(prop, style)) return true;
   auto prop_index = std::find_if(
       _properties.begin(), _properties.begin() + (_base_property_count - 1),
       [prop, style](const Cpp_property_name &p) {

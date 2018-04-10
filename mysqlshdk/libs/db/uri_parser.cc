@@ -149,12 +149,10 @@ void Uri_parser::parse_userinfo() {
     }
 
     // At this point the user name can't be empty
-    if (user.empty())
-      throw std::invalid_argument("Missing user name");
+    if (user.empty()) throw std::invalid_argument("Missing user name");
 
     _data->set_user(user);
-    if (has_password)
-      _data->set_password(password);
+    if (has_password) _data->set_password(password);
   }
 }
 
@@ -186,7 +184,7 @@ void Uri_parser::parse_target() {
             get_input_chunk({offset, _chunks[URI_TARGET].second}) +
             "] at position " + std::to_string(offset));
 
-     // Windows pipe
+      // Windows pipe
     } else if (input_contains("\\.", start)) {
       start += 2;
       size_t offset(start);
@@ -219,7 +217,7 @@ std::string Uri_parser::parse_ipv4(size_t *offset) {
       int value;
       try {
         value = std::stoi(octet);
-      } catch (const std::invalid_argument& e) {
+      } catch (const std::invalid_argument &e) {
         std::string s = "Error parsing IPV4 address: ";
         s += e.what();
         throw std::invalid_argument(s);
@@ -246,7 +244,7 @@ std::string Uri_parser::parse_ipv4(size_t *offset) {
   return host;
 }
 
-void Uri_parser::parse_ipv6(const std::pair<size_t, size_t>& range,
+void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
                             size_t *offset) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(false);
@@ -305,21 +303,19 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t>& range,
       // If an IPv4 is read, it must be at the end of the IPv6 definition
       // So we are done
       std::string ipv4_host;
-      if (ipv4_allowed)
-        ipv4_host = parse_ipv4(offset);
+      if (ipv4_allowed) ipv4_host = parse_ipv4(offset);
 
       if (ipv4_allowed && !ipv4_host.empty()) {
         host += ipv4_host;
         ipv4_found = true;
         break;
 
-      // Colon is allowed after each hex-digit or after one colon
+        // Colon is allowed after each hex-digit or after one colon
       } else if (colon_allowed && _tokenizer.cur_token_type_is(":")) {
         host += _tokenizer.consume_token(":");
         (*offset)++;
 
-        if (last_was_colon)
-          double_colon_allowed = false;
+        if (last_was_colon) double_colon_allowed = false;
 
         colon_allowed = double_colon_allowed;
 
@@ -388,7 +384,7 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t>& range,
   _data->set_host(host);
 }
 
-void Uri_parser::parse_port(const std::pair<size_t, size_t>& range,
+void Uri_parser::parse_port(const std::pair<size_t, size_t> &range,
                             size_t *offset) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(false);
@@ -480,8 +476,7 @@ void Uri_parser::parse_path() {
       _tokenizer.consume_any_token();
     }
 
-    if (!schema.empty())
-      _data->set_schema(schema);
+    if (!schema.empty()) _data->set_schema(schema);
   }
 }
 
@@ -491,7 +486,7 @@ void Uri_parser::parse_query() {
     parse_attribute(_chunks[URI_QUERY], &offset);
 }
 
-void Uri_parser::parse_attribute(const std::pair<size_t, size_t>& range,
+void Uri_parser::parse_attribute(const std::pair<size_t, size_t> &range,
                                  size_t *offset) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(false);
@@ -516,8 +511,7 @@ void Uri_parser::parse_attribute(const std::pair<size_t, size_t>& range,
   bool has_value = false;
   while (_tokenizer.tokens_available()) {
     if (_tokenizer.cur_token_type_is("pause")) {
-      if (_tokenizer.peek_token().get_text()[0] == '=')
-        has_value = true;
+      if (_tokenizer.peek_token().get_text()[0] == '=') has_value = true;
 
       break;
     } else if (_tokenizer.cur_token_type_is("pct-encoded")) {
@@ -540,7 +534,7 @@ void Uri_parser::parse_attribute(const std::pair<size_t, size_t>& range,
 }
 
 std::vector<std::string> Uri_parser::parse_values(
-    const std::pair<size_t, size_t>& range, size_t *offset) {
+    const std::pair<size_t, size_t> &range, size_t *offset) {
   std::vector<std::string> ret_val;
 
   auto closing = _input.find(']');
@@ -563,9 +557,9 @@ std::vector<std::string> Uri_parser::parse_values(
   return ret_val;
 }
 
-std::string Uri_parser::parse_value(const std::pair<size_t, size_t>& range,
+std::string Uri_parser::parse_value(const std::pair<size_t, size_t> &range,
                                     size_t *offset,
-                                    const std::string& finalizers) {
+                                    const std::string &finalizers) {
   std::string ret_val;
 
   auto closing = _input.find(')', range.first);
@@ -581,7 +575,7 @@ std::string Uri_parser::parse_value(const std::pair<size_t, size_t>& range,
   return ret_val;
 }
 
-char Uri_parser::percent_decode(const std::string& value) {
+char Uri_parser::percent_decode(const std::string &value) {
   int ret_val = 0;
 
   ret_val += hex_literals[value[1]] * 16;
@@ -591,13 +585,13 @@ char Uri_parser::percent_decode(const std::string& value) {
 }
 
 std::string Uri_parser::get_input_chunk(
-    const std::pair<size_t, size_t>& range) {
+    const std::pair<size_t, size_t> &range) {
   return _input.substr(range.first, range.second - range.first + 1);
 }
 
 std::string Uri_parser::parse_unencoded_value(
-    const std::pair<size_t, size_t>& range, size_t *offset,
-    const std::string& finalizers) {
+    const std::pair<size_t, size_t> &range, size_t *offset,
+    const std::string &finalizers) {
   _tokenizer.reset();
   _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
 #ifdef _WIN32
@@ -609,8 +603,7 @@ std::string Uri_parser::parse_unencoded_value(
 #endif
   _tokenizer.set_complex_token("delims", DELIMITERS);
 
-  if (!finalizers.empty())
-    _tokenizer.set_final_token_group("end", finalizers);
+  if (!finalizers.empty()) _tokenizer.set_final_token_group("end", finalizers);
 
   _tokenizer.process(range);
 
@@ -638,15 +631,14 @@ std::string Uri_parser::parse_unencoded_value(
 }
 
 std::string Uri_parser::parse_encoded_value(
-    const std::pair<size_t, size_t>& range, size_t *offset,
-    const std::string& finalizers) {
+    const std::pair<size_t, size_t> &range, size_t *offset,
+    const std::string &finalizers) {
   _tokenizer.reset();
   _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
   _tokenizer.set_complex_token("unreserved", UNRESERVED);
   _tokenizer.set_complex_token("delims", std::string("!$'()*+;="));
 
-  if (!finalizers.empty())
-    _tokenizer.set_final_token_group("end", finalizers);
+  if (!finalizers.empty()) _tokenizer.set_final_token_group("end", finalizers);
 
   _tokenizer.process(range);
 
@@ -654,8 +646,7 @@ std::string Uri_parser::parse_encoded_value(
 
   // Reserves enough space for the value
   auto last_token = _tokenizer.peek_last_token();
-  if (last_token)
-    value.reserve(last_token->get_pos() - range.first);
+  if (last_token) value.reserve(last_token->get_pos() - range.first);
 
   // TODO(rennox): Add encoding logic for each appended token
   //       Yes it is unencoded value, but we support encoded stuff as well
@@ -673,7 +664,7 @@ std::string Uri_parser::parse_encoded_value(
   return value;
 }
 
-Connection_options Uri_parser::parse(const std::string& input,
+Connection_options Uri_parser::parse(const std::string &input,
                                      Comparison_mode mode) {
   Connection_options data(mode);
 
@@ -770,7 +761,7 @@ Connection_options Uri_parser::parse(const std::string& input,
   return data;
 }
 
-bool Uri_parser::input_contains(const std::string& what, size_t index) {
+bool Uri_parser::input_contains(const std::string &what, size_t index) {
   bool ret_val = false;
 
   if (index == std::string::npos)

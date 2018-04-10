@@ -94,11 +94,11 @@ Cluster_group_client::Cluster_group_client(
     if (!gr::get_group_information(*_instance, &member_state, &member_id,
                                    &_group_name, &_single_primary_mode)) {
       throw cluster_error(Error::Group_replication_not_active,
-          "Instance is not a member of a InnoDB cluster");
+                          "Instance is not a member of a InnoDB cluster");
     }
     if (member_state == gr::Member_state::OFFLINE) {
       throw cluster_error(Error::Group_replication_not_active,
-          "Target member is OFFLINE in group_replication");
+                          "Target member is OFFLINE in group_replication");
     }
 
     check_quorum(_instance.get());
@@ -171,15 +171,15 @@ std::string pick_candidate_uri(
     if (redirect_uri.empty()) {
       throw std::runtime_error(
           "X protocol endpoint not set in metadata for target "
-          "instance " + i.name);
+          "instance " +
+          i.name);
     }
   }
   return redirect_uri;
 }
 }  // namespace
 
-std::string Cluster_group_client::find_uri_to_any_primary(
-    Protocol_type type) {
+std::string Cluster_group_client::find_uri_to_any_primary(Protocol_type type) {
   std::vector<mysqlshdk::innodbcluster::Instance_info> candidates;
   candidates = get_online_primaries();
   if (candidates.empty()) {

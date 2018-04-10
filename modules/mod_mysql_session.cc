@@ -24,25 +24,25 @@
 #include "modules/mod_mysql_session.h"
 
 #include <set>
-#include <thread>
 #include <string>
+#include <thread>
 #include <vector>
 
+#include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
 #include "shellcore/shell_core.h"
-#include "scripting/lang_base.h"
 #include "shellcore/shell_notifications.h"
 
-#include "scripting/proxy_object.h"
 #include "modules/mysqlxtest_utils.h"
+#include "scripting/proxy_object.h"
 
 #include "modules/mod_mysql_resultset.h"
-#include "utils/utils_general.h"
-#include "utils/utils_sqlstring.h"
-#include "utils/utils_path.h"
+#include "modules/mod_utils.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/utils_help.h"
-#include "modules/mod_utils.h"
+#include "utils/utils_general.h"
+#include "utils/utils_path.h"
+#include "utils/utils_sqlstring.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh;
@@ -50,17 +50,19 @@ using namespace mysqlsh::mysql;
 using namespace shcore;
 
 // Documentation for ClassicSession class
-REGISTER_HELP(CLASSICSESSION_INTERACTIVE_BRIEF, "Represents the currently "\
-"open MySQL session.");
-REGISTER_HELP(CLASSICSESSION_BRIEF, "Enables interaction with a MySQL Server "\
-"using the MySQL Protocol.");
-REGISTER_HELP(CLASSICSESSION_DETAIL, "Provides facilities to execute queries "\
-"and retrieve database objects.");
-REGISTER_HELP(CLASSICSESSION_PARENTS, "ShellDevelopmentSession,"\
-"ShellBaseSession");
-ClassicSession::ClassicSession() {
-  init();
-}
+REGISTER_HELP(CLASSICSESSION_INTERACTIVE_BRIEF,
+              "Represents the currently "
+              "open MySQL session.");
+REGISTER_HELP(CLASSICSESSION_BRIEF,
+              "Enables interaction with a MySQL Server "
+              "using the MySQL Protocol.");
+REGISTER_HELP(CLASSICSESSION_DETAIL,
+              "Provides facilities to execute queries "
+              "and retrieve database objects.");
+REGISTER_HELP(CLASSICSESSION_PARENTS,
+              "ShellDevelopmentSession,"
+              "ShellBaseSession");
+ClassicSession::ClassicSession() { init(); }
 
 ClassicSession::ClassicSession(const ClassicSession &session)
     : ShellBaseSession(session),
@@ -79,25 +81,27 @@ ClassicSession::ClassicSession(
 }
 
 ClassicSession::~ClassicSession() {
-  if (is_open())
-    close();
+  if (is_open()) close();
 }
 
 void ClassicSession::init() {
-  //_schema_proxy.reset(new Proxy_object(std::bind(&ClassicSession::get_db, this, _1)));
+  //_schema_proxy.reset(new Proxy_object(std::bind(&ClassicSession::get_db,
+  // this, _1)));
 
   add_property("uri", "getUri");
 
   add_method("close", std::bind(&ClassicSession::_close, this, _1), "data");
-  add_method("runSql", std::bind(&ClassicSession::run_sql, this, _1),
-    "stmt", shcore::String);
-  add_method("query", std::bind(&ClassicSession::query, this, _1),
-    "stmt", shcore::String);
+  add_method("runSql", std::bind(&ClassicSession::run_sql, this, _1), "stmt",
+             shcore::String);
+  add_method("query", std::bind(&ClassicSession::query, this, _1), "stmt",
+             shcore::String);
 
   add_method("isOpen", std::bind(&ClassicSession::_is_open, this, _1));
-  add_method("startTransaction", std::bind(&ClassicSession::_start_transaction, this, _1), "data");
+  add_method("startTransaction",
+             std::bind(&ClassicSession::_start_transaction, this, _1), "data");
   add_method("commit", std::bind(&ClassicSession::_commit, this, _1), "data");
-  add_method("rollback", std::bind(&ClassicSession::_rollback, this, _1), "data");
+  add_method("rollback", std::bind(&ClassicSession::_rollback, this, _1),
+             "data");
 }
 
 void ClassicSession::connect(
@@ -123,8 +127,8 @@ REGISTER_HELP(CLASSICSESSION_CLOSE_BRIEF,
               "session object.");
 
 /**
-* $(CLASSICSESSION_CLOSE_BRIEF)
-*/
+ * $(CLASSICSESSION_CLOSE_BRIEF)
+ */
 #if DOXYGEN_JS
 Undefined ClassicSession::close() {}
 #elif DOXYGEN_PY
@@ -134,8 +138,7 @@ void ClassicSession::close() {
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
   // it may remain open
-  if (_session)
-    _session->close();
+  if (_session) _session->close();
 
   _session.reset();
 }
@@ -148,12 +151,16 @@ Value ClassicSession::_close(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-REGISTER_HELP(CLASSICSESSION_ISOPEN_BRIEF, "Returns true if session is "\
-  "known to be open.");
-REGISTER_HELP(CLASSICSESSION_ISOPEN_RETURNS, "@returns A boolean value "\
-  "indicating if the session is still open.");
-REGISTER_HELP(CLASSICSESSION_ISOPEN_DETAIL, "Returns true if the session is "\
-    "still open and false otherwise. Note: may return true if connection "\
+REGISTER_HELP(CLASSICSESSION_ISOPEN_BRIEF,
+              "Returns true if session is "
+              "known to be open.");
+REGISTER_HELP(CLASSICSESSION_ISOPEN_RETURNS,
+              "@returns A boolean value "
+              "indicating if the session is still open.");
+REGISTER_HELP(
+    CLASSICSESSION_ISOPEN_DETAIL,
+    "Returns true if the session is "
+    "still open and false otherwise. Note: may return true if connection "
     "is lost.");
 
 shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
@@ -162,15 +169,15 @@ shcore::Value ClassicSession::_is_open(const shcore::Argument_list &args) {
   return shcore::Value(is_open());
 }
 
-shcore::Value ClassicSession::_run_sql(const std::string& function, const shcore::Argument_list &args) {
+shcore::Value ClassicSession::_run_sql(const std::string &function,
+                                       const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name(function).c_str());
   Value ret_val;
 
   try {
     auto query = args.string_at(0);
     shcore::Array_t values;
-    if (args.size() > 1)
-      values = args.array_at(1);
+    if (args.size() > 1) values = args.array_at(1);
 
     // Will return the result of the SQL execution
     // In case of error will be Undefined
@@ -180,23 +187,29 @@ shcore::Value ClassicSession::_run_sql(const std::string& function, const shcore
       Interruptible intr(this);
       ret_val = execute_sql(query, values);
     }
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function));
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function));
 
   return ret_val;
 }
 
-
 // Documentation of runSql function
-REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF, "Executes a query and returns the "
-"corresponding ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM, "@param query the SQL query to "
-"execute against the database.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM1, "@param args Optional list of "
-"literals to use when replacing ? placeholders in the query string.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS, "@returns A ClassicResult "
-"object.");
-REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "
-"thrown if an error occurs on the SQL execution.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF,
+              "Executes a query and returns the "
+              "corresponding ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_PARAM,
+              "@param query the SQL query to "
+              "execute against the database.");
+REGISTER_HELP(
+    CLASSICSESSION_RUNSQL_PARAM1,
+    "@param args Optional list of "
+    "literals to use when replacing ? placeholders in the query string.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_RETURNS,
+              "@returns A ClassicResult "
+              "object.");
+REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION,
+              "@exception An exception is "
+              "thrown if an error occurs on the SQL execution.");
 
 //! $(CLASSICSESSION_RUNSQL_BRIEF)
 #if DOXYGEN_CPP
@@ -206,10 +219,10 @@ REGISTER_HELP(CLASSICSESSION_RUNSQL_EXCEPTION, "@exception An exception is "
 //! $(CLASSICSESSION_RUNSQL_PARAM1)
 #endif
 /**
-* $(CLASSICSESSION_RUNSQL_RETURNS)
-*
-* $(CLASSICSESSION_RUNSQL_EXCEPTION)
-*/
+ * $(CLASSICSESSION_RUNSQL_RETURNS)
+ *
+ * $(CLASSICSESSION_RUNSQL_EXCEPTION)
+ */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::runSql(String query, Array args) {}
 #elif DOXYGEN_PY
@@ -219,17 +232,22 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) {
   return _run_sql("runSql", args);
 }
 
-
-REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF, "Executes a query and returns the "
-  "corresponding ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_QUERY_PARAM, "@param query the SQL query string "
-  "to execute, with optional ? placeholders");
-REGISTER_HELP(CLASSICSESSION_QUERY_PARAM1, "@param args Optional list of "
-  "literals to use when replacing ? placeholders in the query string.");
-REGISTER_HELP(CLASSICSESSION_QUERY_RETURNS, "@returns A ClassicResult "
-  "object.");
-REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION, "@exception An exception is "
-  "thrown if an error occurs on the SQL execution.");
+REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF,
+              "Executes a query and returns the "
+              "corresponding ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_QUERY_PARAM,
+              "@param query the SQL query string "
+              "to execute, with optional ? placeholders");
+REGISTER_HELP(
+    CLASSICSESSION_QUERY_PARAM1,
+    "@param args Optional list of "
+    "literals to use when replacing ? placeholders in the query string.");
+REGISTER_HELP(CLASSICSESSION_QUERY_RETURNS,
+              "@returns A ClassicResult "
+              "object.");
+REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION,
+              "@exception An exception is "
+              "thrown if an error occurs on the SQL execution.");
 
 //! $(CLASSICSESSION_QUERY_BRIEF)
 #if DOXYGEN_CPP
@@ -239,10 +257,10 @@ REGISTER_HELP(CLASSICSESSION_QUERY_EXCEPTION, "@exception An exception is "
 //! $(CLASSICSESSION_QUERY_PARAM1)
 #endif
 /**
-* $(CLASSICSESSION_QUERY_RETURNS)
-*
-* $(CLASSICSESSION_QUERY_EXCEPTION)
-*/
+ * $(CLASSICSESSION_QUERY_RETURNS)
+ *
+ * $(CLASSICSESSION_QUERY_EXCEPTION)
+ */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::query(String query, Array args = []) {}
 #elif DOXYGEN_PY
@@ -257,8 +275,8 @@ shcore::Object_bridge_ref ClassicSession::raw_execute_sql(
   return execute_sql(query, {}).as_object();
 }
 
-shcore::Value ClassicSession::execute_sql(
-    const std::string &query, const shcore::Array_t &args) {
+shcore::Value ClassicSession::execute_sql(const std::string &query,
+                                          const shcore::Array_t &args) {
   Value ret_val;
   if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
@@ -271,9 +289,10 @@ shcore::Value ClassicSession::execute_sql(
         mysqlshdk::utils::Profile_timer timer;
         timer.stage_begin("query");
         ClassicResult *result;
-        ret_val = Value::wrap(result = new ClassicResult(
-            std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
-                _session->query(sub_query_placeholders(query, args)))));
+        ret_val = Value::wrap(
+            result = new ClassicResult(
+                std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
+                    _session->query(sub_query_placeholders(query, args)))));
         timer.stage_end();
         result->set_execution_time(timer.total_seconds_ellapsed());
       } catch (const mysqlshdk::db::Error &error) {
@@ -334,18 +353,21 @@ void ClassicSession::create_schema(const std::string &name) {
 }
 
 // Documentation of getCurrentSchema function
-REGISTER_HELP(CLASSICSESSION_URI_BRIEF, "Retrieves the URI for the current "\
-"session.");
-REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF, "Retrieves the URI for the current "\
-"session.");
-REGISTER_HELP(CLASSICSESSION_GETURI_RETURNS, "@return A string representing "\
-"the connection data.");
+REGISTER_HELP(CLASSICSESSION_URI_BRIEF,
+              "Retrieves the URI for the current "
+              "session.");
+REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF,
+              "Retrieves the URI for the current "
+              "session.");
+REGISTER_HELP(CLASSICSESSION_GETURI_RETURNS,
+              "@return A string representing "
+              "the connection data.");
 
 /**
-* $(SHELLBASESESSION_GETURI_BRIEF)
-*
-* $(CLASSICSESSION_GETURI_RETURNS)
-*/
+ * $(SHELLBASESESSION_GETURI_BRIEF)
+ *
+ * $(CLASSICSESSION_GETURI_RETURNS)
+ */
 #if DOXYGEN_JS
 String ClassicSession::getUri() {}
 #elif DOXYGEN_PY
@@ -386,8 +408,7 @@ std::string ClassicSession::get_current_schema() {
       std::shared_ptr<mysqlsh::Row> row = next_row.as_object<mysqlsh::Row>();
       shcore::Value schema = row->get_member(0);
 
-      if (schema)
-        name = schema.as_string();
+      if (schema) name = schema.as_string();
     }
   }
 
@@ -429,12 +450,15 @@ void ClassicSession::drop_schema(const std::string &name) {
 }
 
 /*
-* This function verifies if the given object exist in the database, works for schemas, tables and views.
-* The check for tables and views is done is done based on the type.
-* If type is not specified and an object with the name is found, the type will be returned.
-*/
+ * This function verifies if the given object exist in the database, works for
+ * schemas, tables and views. The check for tables and views is done is done
+ * based on the type. If type is not specified and an object with the name is
+ * found, the type will be returned.
+ */
 
-std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) {
+std::string ClassicSession::db_object_exists(std::string &type,
+                                             const std::string &name,
+                                             const std::string &owner) {
   std::string statement;
   std::string ret_val;
   // match must be exact, since both branches below use LIKE and both escape
@@ -449,12 +473,11 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
 
     if (val_row) {
       auto row = val_row.as_object<mysqlsh::Row>();
-      if (row)
-        ret_val = row->get_member(0).as_string();
+      if (row) ret_val = row->get_member(0).as_string();
     }
   } else {
-    statement = sqlstring("show full tables from ! like ?", 0) << owner
-                                                               << escaped_name;
+    statement = sqlstring("show full tables from ! like ?", 0)
+                << owner << escaped_name;
     auto val_result = execute_sql(statement, shcore::Array_t());
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
@@ -465,9 +488,11 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
       if (row) {
         std::string db_type = row->get_member(1).as_string();
 
-        if (type == "Table" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
+        if (type == "Table" &&
+            (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
           ret_val = row->get_member(0).as_string();
-        else if (type == "View" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
+        else if (type == "View" &&
+                 (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
           ret_val = row->get_member(0).as_string();
         else if (type.empty()) {
           ret_val = row->get_member(0).as_string();
@@ -481,52 +506,71 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
 }
 
 // Documentation of startTransaction function
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_BRIEF, "Starts a transaction context on the server.");
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_RETURNS, "@returns A ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL, "Calling this function will turn off the autocommit mode on the server.");
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL1, "All the operations executed after calling this function will take place only when commit() is called.");
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL2, "All the operations executed after calling this function, will be discarded is rollback() is called.");
-REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL3, "When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_BRIEF,
+              "Starts a transaction context on the server.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_RETURNS,
+              "@returns A ClassicResult object.");
+REGISTER_HELP(
+    CLASSICSESSION_STARTTRANSACTION_DETAIL,
+    "Calling this function will turn off the autocommit mode on the server.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL1,
+              "All the operations executed after calling this function will "
+              "take place only when commit() is called.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL2,
+              "All the operations executed after calling this function, will "
+              "be discarded is rollback() is called.");
+REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_DETAIL3,
+              "When commit() or rollback() are called, the server autocommit "
+              "mode will return back to it's state before calling "
+              "startTransaction().");
 
 /**
-* $(CLASSICSESSION_STARTTRANSACTION_BRIEF)
-*
-* $(CLASSICSESSION_STARTTRANSACTION_RETURNS)
-*
-* $(CLASSICSESSION_STARTTRANSACTION_DETAIL)
-*
-* $(CLASSICSESSION_STARTTRANSACTION_DETAIL1)
-*
-* $(CLASSICSESSION_STARTTRANSACTION_DETAIL2)
-*
-* $(CLASSICSESSION_STARTTRANSACTION_DETAIL3)
-*/
+ * $(CLASSICSESSION_STARTTRANSACTION_BRIEF)
+ *
+ * $(CLASSICSESSION_STARTTRANSACTION_RETURNS)
+ *
+ * $(CLASSICSESSION_STARTTRANSACTION_DETAIL)
+ *
+ * $(CLASSICSESSION_STARTTRANSACTION_DETAIL1)
+ *
+ * $(CLASSICSESSION_STARTTRANSACTION_DETAIL2)
+ *
+ * $(CLASSICSESSION_STARTTRANSACTION_DETAIL3)
+ */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::startTransaction() {}
 #elif DOXYGEN_PY
 ClassicResult ClassicSession::start_transaction() {}
 #endif
-shcore::Value ClassicSession::_start_transaction(const shcore::Argument_list &args) {
+shcore::Value ClassicSession::_start_transaction(
+    const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
   return execute_sql("start transaction", shcore::Array_t());
 }
 
 // Documentation of commit function
-REGISTER_HELP(CLASSICSESSION_COMMIT_BRIEF, "Commits all the operations executed after a call to startTransaction().");
-REGISTER_HELP(CLASSICSESSION_COMMIT_RETURNS, "@returns A ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL, "All the operations executed after calling startTransaction() will take place when this function is called.");
-REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
+REGISTER_HELP(
+    CLASSICSESSION_COMMIT_BRIEF,
+    "Commits all the operations executed after a call to startTransaction().");
+REGISTER_HELP(CLASSICSESSION_COMMIT_RETURNS,
+              "@returns A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL,
+              "All the operations executed after calling startTransaction() "
+              "will take place when this function is called.");
+REGISTER_HELP(CLASSICSESSION_COMMIT_DETAIL1,
+              "The server autocommit mode will return back to it's state "
+              "before calling startTransaction().");
 
 /**
-* $(CLASSICSESSION_COMMIT_BRIEF)
-*
-* $(CLASSICSESSION_COMMIT_RETURNS)
-*
-* $(CLASSICSESSION_COMMIT_DETAIL)
-*
-* $(CLASSICSESSION_COMMIT_DETAIL1)
-*/
+ * $(CLASSICSESSION_COMMIT_BRIEF)
+ *
+ * $(CLASSICSESSION_COMMIT_RETURNS)
+ *
+ * $(CLASSICSESSION_COMMIT_DETAIL)
+ *
+ * $(CLASSICSESSION_COMMIT_DETAIL1)
+ */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::commit() {}
 #elif DOXYGEN_PY
@@ -539,20 +583,27 @@ shcore::Value ClassicSession::_commit(const shcore::Argument_list &args) {
 }
 
 // Documentation of rollback function
-REGISTER_HELP(CLASSICSESSION_ROLLBACK_BRIEF, "Discards all the operations executed after a call to startTransaction().");
-REGISTER_HELP(CLASSICSESSION_ROLLBACK_RETURNS, "@returns A ClassicResult object.");
-REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL, "All the operations executed after calling startTransaction() will be discarded when this function is called.");
-REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL1, "The server autocommit mode will return back to it's state before calling startTransaction().");
+REGISTER_HELP(
+    CLASSICSESSION_ROLLBACK_BRIEF,
+    "Discards all the operations executed after a call to startTransaction().");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_RETURNS,
+              "@returns A ClassicResult object.");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL,
+              "All the operations executed after calling startTransaction() "
+              "will be discarded when this function is called.");
+REGISTER_HELP(CLASSICSESSION_ROLLBACK_DETAIL1,
+              "The server autocommit mode will return back to it's state "
+              "before calling startTransaction().");
 
 /**
-* $(CLASSICSESSION_ROLLBACK_BRIEF)
-*
-* $(CLASSICSESSION_ROLLBACK_RETURNS)
-*
-* $(CLASSICSESSION_ROLLBACK_DETAIL)
-*
-* $(CLASSICSESSION_ROLLBACK_DETAIL1)
-*/
+ * $(CLASSICSESSION_ROLLBACK_BRIEF)
+ *
+ * $(CLASSICSESSION_ROLLBACK_RETURNS)
+ *
+ * $(CLASSICSESSION_ROLLBACK_DETAIL)
+ *
+ * $(CLASSICSESSION_ROLLBACK_DETAIL1)
+ */
 #if DOXYGEN_JS
 ClassicResult ClassicSession::rollback() {}
 #elif DOXYGEN_PY
@@ -573,17 +624,17 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
     if (row) {
       (*status)["SESSION_TYPE"] = shcore::Value("Classic");
       (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
-//        (*status)["DEFAULT_SCHEMA"] =
-//          shcore::Value(_connection_options.has_schema() ?
-//                        _connection_options.get_schema() : "");
+      //        (*status)["DEFAULT_SCHEMA"] =
+      //          shcore::Value(_connection_options.has_schema() ?
+      //                        _connection_options.get_schema() : "");
 
       std::string current_schema;
-      if (!row->is_null(0))
-        current_schema = row->get_string(0);
+      if (!row->is_null(0)) current_schema = row->get_string(0);
 
       (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
       (*status)["CURRENT_USER"] = shcore::Value(row->get_string(1));
-      (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_session->get_connection_id()));
+      (*status)["CONNECTION_ID"] =
+          shcore::Value(uint64_t(_session->get_connection_id()));
 
       //(*status)["SKIP_UPDATES"] = shcore::Value(???);
 
@@ -602,7 +653,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
       row = result->fetch_one();
       std::string version;
       if (row) {
-        version =  " " + row->get_string(1);
+        version = " " + row->get_string(1);
       }
       (*status)["SSL_CIPHER"] = shcore::Value(cipher + version);
     }
@@ -629,17 +680,16 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
         (*status)["TCP_PORT"] = shcore::Value(row->get_int(6));
       } else if (_connection_options.get_transport_type() ==
                  mysqlshdk::db::Transport_type::Socket) {
-          const std::string datadir = row->get_string(7);
-          const std::string socket = row->get_string(5);
-          const std::string socket_abs_path =
-              shcore::path::normalize(shcore::path::join_path(
-                  std::vector<std::string>{datadir, socket}));
-          (*status)["UNIX_SOCKET"] = shcore::Value(socket_abs_path);
+        const std::string datadir = row->get_string(7);
+        const std::string socket = row->get_string(5);
+        const std::string socket_abs_path = shcore::path::normalize(
+            shcore::path::join_path(std::vector<std::string>{datadir, socket}));
+        (*status)["UNIX_SOCKET"] = shcore::Value(socket_abs_path);
       }
 
       unsigned long ver = mysql_get_client_version();
       std::stringstream sv;
-      sv << ver/10000 << "." << (ver%10000)/100 << "." << ver % 100;
+      sv << ver / 10000 << "." << (ver % 10000) / 100 << "." << ver % 100;
       (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
 
       if (_session->get_stats())
@@ -648,8 +698,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
       try {
         if (_connection_options.get_transport_type() ==
             mysqlshdk::db::Transport_type::Tcp)
-          (*status)["TCP_PORT"] =
-              shcore::Value(_connection_options.get_port());
+          (*status)["TCP_PORT"] = shcore::Value(_connection_options.get_port());
       } catch (...) {
       }
       //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
@@ -658,7 +707,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
       // SAFE UPDATES
     }
-  } catch (shcore::Exception& e) {
+  } catch (shcore::Exception &e) {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
@@ -666,8 +715,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 }
 
 void ClassicSession::start_transaction() {
-  if (_tx_deep == 0)
-    execute_sql("start transaction", shcore::Array_t());
+  if (_tx_deep == 0) execute_sql("start transaction", shcore::Array_t());
 
   _tx_deep++;
 }
@@ -677,8 +725,7 @@ void ClassicSession::commit() {
 
   assert(_tx_deep >= 0);
 
-  if (_tx_deep == 0)
-    execute_sql("commit", shcore::Array_t());
+  if (_tx_deep == 0) execute_sql("commit", shcore::Array_t());
 }
 
 void ClassicSession::rollback() {
@@ -686,17 +733,14 @@ void ClassicSession::rollback() {
 
   assert(_tx_deep >= 0);
 
-  if (_tx_deep == 0)
-    execute_sql("rollback", shcore::Array_t());
+  if (_tx_deep == 0) execute_sql("rollback", shcore::Array_t());
 }
 
 uint64_t ClassicSession::get_connection_id() const {
   return _session->get_connection_id();
 }
 
-bool ClassicSession::is_open() const {
-  return _session && _session->is_open();
-}
+bool ClassicSession::is_open() const { return _session && _session->is_open(); }
 
 std::string ClassicSession::query_one_string(const std::string &query,
                                              int field) {

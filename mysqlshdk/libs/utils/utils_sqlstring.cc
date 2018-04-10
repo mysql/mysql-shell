@@ -360,8 +360,7 @@ std::string escape_wildcards(const std::string &s) {
   for (const auto &ch : s) {
     bool escape = (ch == '%' || ch == '_');
 
-    if (escape)
-      result.push_back('\\');
+    if (escape) result.push_back('\\');
 
     result.push_back(ch);
   }
@@ -443,8 +442,7 @@ sqlstring::sqlstring() : _format(0) {}
 std::string sqlstring::consume_until_next_escape() {
   mysqlshdk::utils::SQL_string_iterator it(_format_string_left);
   for (; it.valid(); ++it)
-    if (*it == '?' || *it == '!')
-      break;
+    if (*it == '?' || *it == '!') break;
 
   if (it.position() > 0) {
     std::string s = _format_string_left.substr(0, it.position());

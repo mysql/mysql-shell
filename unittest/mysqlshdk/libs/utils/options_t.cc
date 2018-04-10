@@ -31,18 +31,17 @@
 
 namespace shcore {
 
-using opts::Source;
-using opts::cmdline;
 using opts::Basic_type;
 using opts::Range;
 using opts::Read_only;
+using opts::Source;
+using opts::cmdline;
 
 class Options_test : public Shell_core_test_wrapper, public Options {
  public:
   Options_test(std::string options_file =
                    get_options_file_name("options_test_options.json"))
-      : Options(options_file), options_file(options_file) {
-  }
+      : Options(options_file), options_file(options_file) {}
 
   void SetUp() {
     Shell_core_test_wrapper::SetUp();
@@ -50,14 +49,11 @@ class Options_test : public Shell_core_test_wrapper, public Options {
     named_options.clear();
   }
 
-  void DummySetter(const std::string &val) {
-    dummy_value = val;
-  }
+  void DummySetter(const std::string &val) { dummy_value = val; }
 
   void HandleMode(const std::string &opt, const char *value) {
     assert(value == nullptr);
-    if (opt == "--some-mode")
-      some_mode = true;
+    if (opt == "--some-mode") some_mode = true;
   }
 
   void CreateTestOptions() {

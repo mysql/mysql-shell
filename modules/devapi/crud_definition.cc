@@ -117,7 +117,8 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
 
     log_warning("Flushing resultset data from interrupted query...");
     try {
-      while (result->next_resultset());
+      while (result->next_resultset())
+        ;
       result.reset();
     } catch (mysqlshdk::db::Error) {
       throw;
@@ -161,8 +162,7 @@ void Crud_definition::insert_bound_values(
   } else {
     std::vector<std::string> undefined;
     for (size_t index = 0; index < _bound_values.size(); index++) {
-      if (!_bound_values[index])
-        undefined.push_back(_placeholders[index]);
+      if (!_bound_values[index]) undefined.push_back(_placeholders[index]);
     }
     str_undefined = shcore::str_join(undefined, ", ");
   }
@@ -175,12 +175,11 @@ void Crud_definition::insert_bound_values(
 
   // No errors, proceeds to set the values if any
   target->Clear();
-  for (auto &value : _bound_values)
-    target->AddAllocated(value.release());
+  for (auto &value : _bound_values) target->AddAllocated(value.release());
 }
 
 void Crud_definition::encode_expression_object(Mysqlx::Expr::Expr *expr,
-                                              const shcore::Value &value) {
+                                               const shcore::Value &value) {
   assert(value.type == shcore::Object);
 
   shcore::Object_bridge_ref object = value.as_object();

@@ -24,37 +24,36 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
-
 #ifndef _MODULES_MOD_SYS_H_
 #define _MODULES_MOD_SYS_H_
 
 namespace mysqlsh {
-  /**
-   * \ingroup ShellAPI
-   * $(SYS_BRIEF)
-   */
-  class SHCORE_PUBLIC Sys : public shcore::Cpp_object_bridge {
-  public:
-    Sys(shcore::IShell_core* owner);
-    virtual ~Sys();
+/**
+ * \ingroup ShellAPI
+ * $(SYS_BRIEF)
+ */
+class SHCORE_PUBLIC Sys : public shcore::Cpp_object_bridge {
+ public:
+  Sys(shcore::IShell_core *owner);
+  virtual ~Sys();
 
-    virtual std::string class_name() const { return "Sys"; };
-    virtual bool operator == (const Object_bridge &other) const;
+  virtual std::string class_name() const { return "Sys"; };
+  virtual bool operator==(const Object_bridge &other) const;
 
-    virtual void set_member(const std::string &prop, shcore::Value value);
-    virtual shcore::Value get_member(const std::string &prop) const;
+  virtual void set_member(const std::string &prop, shcore::Value value);
+  virtual shcore::Value get_member(const std::string &prop) const;
 
-    #if DOXYGEN_JS
-    Array path;
-    Array argv;
-    #endif
+#if DOXYGEN_JS
+  Array path;
+  Array argv;
+#endif
 
-  protected:
-    void init();
+ protected:
+  void init();
 
-    shcore::Value::Array_type_ref _argv;
-    shcore::Value::Array_type_ref _path;
-  };
-}
+  shcore::Value::Array_type_ref _argv;
+  shcore::Value::Array_type_ref _path;
+};
+}  // namespace mysqlsh
 
 #endif

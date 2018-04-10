@@ -32,8 +32,8 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "shell_script_tester.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_file.h"
@@ -66,11 +66,9 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (connection_options.has_user())
-      user = connection_options.get_user();
+    if (connection_options.has_user()) user = connection_options.get_user();
 
-    if (connection_options.has_host())
-      host = connection_options.get_host();
+    if (connection_options.has_host()) host = connection_options.get_host();
 
     if (connection_options.has_password())
       password = connection_options.get_password();
@@ -79,8 +77,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     std::string have_ssl;
     _have_ssl = true;
 
-    if (_port.empty())
-      _port = "33060";
+    if (_port.empty()) _port = "33060";
 
     if (_port.empty()) {
       _port = "33060";
@@ -179,8 +176,7 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     code = "var __path_splitter = '\\\\';";
     exec_and_out_equals(code);
     auto tokens = shcore::split_string(_sandbox_dir, "\\");
-    if (!tokens.at(tokens.size() - 1).empty())
-      tokens.push_back("");
+    if (!tokens.at(tokens.size() - 1).empty()) tokens.push_back("");
 
     // The sandbox dir for C++
     _sandbox_dir = shcore::str_join(tokens, "\\");
@@ -289,8 +285,8 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   shcore::ensure_dir_exists(dir_long);
 
   // Create directory with non-ascii characteres.
-  std::string dir_non_ascii = _sandbox_dir + path_splitter +
-                              "no_café_para_los_niños";
+  std::string dir_non_ascii =
+      _sandbox_dir + path_splitter + "no_café_para_los_niños";
   shcore::ensure_dir_exists(dir_non_ascii);
 
   validate_interactive("dba_sandboxes.js");
@@ -355,9 +351,9 @@ TEST_F(Shell_js_dba_tests, cluster_no_interactive) {
   validate_interactive("dba_cluster_no_interactive.js");
 
   std::vector<std::string> log{
-    R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
-    R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
-    R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+      R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
+      R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+      R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
   };
   MY_EXPECT_LOG_CONTAINS(log);
 }
@@ -371,7 +367,6 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_no_interactive) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_multimaster_no_interactive.js");
 }
-
 
 TEST_F(Shell_js_dba_tests, interactive) {
   // IMPORTANT NOTE: This test fixture requires non sandbox server as the base
@@ -408,9 +403,9 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   validate_interactive("dba_cluster_interactive.js");
 
   std::vector<std::string> log{
-    R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
-    R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
-    R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+      R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
+      R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
+      R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
   };
   MY_EXPECT_LOG_CONTAINS(log);
 }
@@ -569,11 +564,12 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
   validate_interactive("dba_cluster_no_misconfigurations.js");
 
   std::vector<std::string> log = {
-    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
-    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+      // "DBA: root@localhost:" + _mysql_sandbox_port1 +
+      //     " : Server variable binlog_format was changed from 'MIXED' to
+      //     'ROW'",
       "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
-          " : Server variable binlog_checksum was changed from 'CRC32' to "
-          "'NONE'"};
+      " : Server variable binlog_checksum was changed from 'CRC32' to "
+      "'NONE'"};
 
   MY_EXPECT_LOG_NOT_CONTAINS(log);
 }
@@ -587,11 +583,12 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   validate_interactive("dba_cluster_no_misconfigurations_interactive.js");
 
   std::vector<std::string> log = {
-    // "DBA: root@localhost:" + _mysql_sandbox_port1 +
-    //     " : Server variable binlog_format was changed from 'MIXED' to 'ROW'",
+      // "DBA: root@localhost:" + _mysql_sandbox_port1 +
+      //     " : Server variable binlog_format was changed from 'MIXED' to
+      //     'ROW'",
       "DBA: root@localhost:" + std::to_string(_mysql_sandbox_port1) +
-          " : Server variable binlog_checksum was changed from 'CRC32' to "
-          "'NONE'"};
+      " : Server variable binlog_checksum was changed from 'CRC32' to "
+      "'NONE'"};
 
   MY_EXPECT_LOG_NOT_CONTAINS(log);
 }

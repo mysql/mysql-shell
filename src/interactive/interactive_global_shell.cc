@@ -22,11 +22,11 @@
  */
 
 #include "interactive_global_shell.h"
-#include "utils/utils_general.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "shellcore/base_session.h"
-#include "modules/mod_utils.h"
+#include "utils/utils_general.h"
 
 using namespace std::placeholders;
 
@@ -41,8 +41,8 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
 
   mysqlshdk::db::Connection_options instance_def;
   try {
-    instance_def = mysqlsh::get_connection_options(args,
-                                               mysqlsh::PasswordFormat::STRING);
+    instance_def =
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
     mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
   }
@@ -55,4 +55,4 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   return call_target("connect", new_args);
 }
 
-}
+}  // namespace shcore

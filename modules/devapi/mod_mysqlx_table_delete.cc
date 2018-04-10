@@ -27,8 +27,8 @@
 #include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
-#include "scripting/common.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "scripting/common.h"
 
 using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
@@ -51,35 +51,39 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
   register_dynamic_function(F::where, F::delete_);
   register_dynamic_function(F::orderBy, F::delete_ | F::where);
   register_dynamic_function(F::limit, F::delete_ | F::where | F::orderBy);
-  register_dynamic_function(F::bind, F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(F::execute, F::delete_ | F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::delete_ | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::bind,
+                            F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(
+      F::execute, F::delete_ | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::__shell_hook__, F::delete_ | F::where |
+                                                   F::orderBy | F::limit |
+                                                   F::bind);
 
   // Initial function update
   update_functions(F::_empty);
 }
 
 /**
-* Initializes this record deletion handler.
-* \return This TableDelete object.
-*
-* This function is called automatically when Table.delete() is called.
-*
-* The actual deletion of the records will occur only when the execute method is
-* called.
-*
-* #### Method Chaining
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - where(String searchCriteria)
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute().
-*
-* \sa Usage examples at execute().
-*/
+ * Initializes this record deletion handler.
+ * \return This TableDelete object.
+ *
+ * This function is called automatically when Table.delete() is called.
+ *
+ * The actual deletion of the records will occur only when the execute method is
+ * called.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - where(String searchCriteria)
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute().
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableDelete TableDelete::delete () {}
 #elif DOXYGEN_PY
@@ -112,27 +116,26 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
 //! deleted.
 #endif
 /**
-* if not specified all the records will be deleted from the table unless a limit
-* is set.
-* \return This TableDelete object.
-*
-* The searchCondition supports \a [Parameter Binding](param_binding.html).
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - delete()
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - orderBy(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * if not specified all the records will be deleted from the table unless a
+ * limit is set. \return This TableDelete object.
+ *
+ * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - delete()
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - orderBy(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableDelete TableDelete::where(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -168,29 +171,29 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args) {
 //! the deletion will be done following the order defined by this criteria.
 #endif
 /**
-* \return This TableDelete object.
-*
-* The elements of sortExprStr list are strings defining the column name on which
-* the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
-* If no order criteria is specified, ascending will be used by default.
-*
-* This method is usually used in combination with limit to fix the amount of
-* records to be deleted.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - delete()
-* - where(String searchCondition)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute()
-*
-*/
+ * \return This TableDelete object.
+ *
+ * The elements of sortExprStr list are strings defining the column name on
+ * which the sorting will be based in the form of "columnIdentifier [ ASC | DESC
+ * ]". If no order criteria is specified, ascending will be used by default.
+ *
+ * This method is usually used in combination with limit to fix the amount of
+ * records to be deleted.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - delete()
+ * - where(String searchCondition)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ */
 #if DOXYGEN_JS
 TableDelete TableDelete::orderBy(List sortExprStr) {}
 #elif DOXYGEN_PY
@@ -226,26 +229,26 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
 //! \param numberOfRows the number of records to be deleted.
 #endif
 /**
-* \return This TableDelete object.
-*
-* This method is usually used in combination with sort to fix the amount of
-* records to be deleted.
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - delete()
-* - where(String searchCondition)
-* - orderBy(List sortExprStr)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableDelete object.
+ *
+ * This method is usually used in combination with sort to fix the amount of
+ * records to be deleted.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - delete()
+ * - where(String searchCondition)
+ * - orderBy(List sortExprStr)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableDelete TableDelete::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
@@ -274,25 +277,25 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
 //! \param value: The value to be bound on the placeholder.
 #endif
 /**
-* \return This TableDelete object.
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times right before calling execute:
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* An error will be raised if the placeholder indicated by name does not exist.
-*
-* This function must be called once for each used placeohlder or an error will
-* be
-* raised when the execute method is called.
-*
-* \sa Usage examples at execute().
-*/
+ * \return This TableDelete object.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times right before calling execute:
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * An error will be raised if the placeholder indicated by name does not exist.
+ *
+ * This function must be called once for each used placeohlder or an error will
+ * be
+ * raised when the execute method is called.
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 TableDelete TableDelete::bind(String name, Value value) {}
 #elif DOXYGEN_PY
@@ -312,33 +315,33 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args) {
 }
 
 /**
-* Executes the record deletion with the configured filter and limit.
-* \return Result A result object that can be used to retrieve the results of the
-* deletion operation.
-*
-* #### Method Chaining
-*
-* This function can be invoked after any other function on this class.
-*/
+ * Executes the record deletion with the configured filter and limit.
+ * \return Result A result object that can be used to retrieve the results of
+ * the deletion operation.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked after any other function on this class.
+ */
 #if DOXYGEN_JS
 /**
-*
-* #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_table_delete.js"
-* \skip //@ TableDelete: delete under condition
-* \until //@ TableDelete: with limit 3
-* \until print('Records Left:', records.length, '\n');
-*/
+ *
+ * #### Examples
+ * \dontinclude "js_devapi/scripts/mysqlx_table_delete.js"
+ * \skip //@ TableDelete: delete under condition
+ * \until //@ TableDelete: with limit 3
+ * \until print('Records Left:', records.length, '\n');
+ */
 Result TableDelete::execute() {}
 #elif DOXYGEN_PY
 /**
-*
-* #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_table_delete.py"
-* \skip #@ TableDelete: delete under condition
-* \until #@ TableDelete: with limit 3
-* \until print 'Records Left:', len(records), '\n'
-*/
+ *
+ * #### Examples
+ * \dontinclude "py_devapi/scripts/mysqlx_table_delete.py"
+ * \skip #@ TableDelete: delete under condition
+ * \until #@ TableDelete: with limit 3
+ * \until print 'Records Left:', len(records), '\n'
+ */
 Result TableDelete::execute() {}
 #endif
 shcore::Value TableDelete::execute(const shcore::Argument_list &args) {

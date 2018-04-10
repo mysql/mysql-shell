@@ -43,19 +43,21 @@ REGISTER_HELP(
     UTIL_BRIEF,
     "Global object that groups miscellaneous tools like upgrade checker.");
 
-Util::Util(shcore::IShell_core* owner,
-    std::shared_ptr<mysqlsh::IConsole> console_handler, bool wizards_mode) :
-    _shell_core(*owner),
-    m_console_handler(console_handler),
-    m_wizards_mode(wizards_mode){
-  add_method("checkForServerUpgrade", std::bind(&Util::check_for_server_upgrade,
-                                                this, std::placeholders::_1),
-             "data", shcore::Map);
+Util::Util(shcore::IShell_core *owner,
+           std::shared_ptr<mysqlsh::IConsole> console_handler,
+           bool wizards_mode)
+    : _shell_core(*owner),
+      m_console_handler(console_handler),
+      m_wizards_mode(wizards_mode) {
+  add_method(
+      "checkForServerUpgrade",
+      std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
+      "data", shcore::Map);
 }
 
-static std::string format_upgrade_issue(const Upgrade_issue& problem) {
+static std::string format_upgrade_issue(const Upgrade_issue &problem) {
   std::stringstream ss;
-  const char* item = "Schema";
+  const char *item = "Schema";
   ss << problem.schema;
   if (!problem.table.empty()) {
     item = "Table";
@@ -114,7 +116,7 @@ int Util::check_for_server_upgrade(ConnectionData connectionData, str password);
 #endif
 
 shcore::Value Util::check_for_server_upgrade(
-    const shcore::Argument_list& args) {
+    const shcore::Argument_list &args) {
   args.ensure_count(0, 2, get_function_name("checkForServerUpgrade").c_str());
   int errors = 0, warnings = 0, notices = 0;
   try {
@@ -129,9 +131,8 @@ shcore::Value Util::check_for_server_upgrade(
             : mysqlsh::get_connection_options(args,
                                               mysqlsh::PasswordFormat::STRING);
 
-    mysqlsh::resolve_connection_credentials(&connection_options,
-                                            m_wizards_mode ? m_console_handler
-                                                           : nullptr);
+    mysqlsh::resolve_connection_credentials(
+        &connection_options, m_wizards_mode ? m_console_handler : nullptr);
 
     _shell_core.print(shcore::str_format(
         "The MySQL server at %s will now be checked for compatibility "
@@ -144,7 +145,7 @@ shcore::Value Util::check_for_server_upgrade(
     session->connect(connection_options);
 
     auto result = session->query("select current_user();");
-    const mysqlshdk::db::IRow* row = result->fetch_one();
+    const mysqlshdk::db::IRow *row = result->fetch_one();
     if (row == nullptr)
       throw std::runtime_error("Unable to get information about a user");
 
@@ -175,7 +176,7 @@ shcore::Value Util::check_for_server_upgrade(
           shcore::str_format("\n%zu) %s\n", i + 1, checklist[i]->get_name()));
       std::vector<Upgrade_issue> issues = checklist[i]->run(session);
 
-      std::function<std::string(const Upgrade_issue&)> issue_formater(
+      std::function<std::string(const Upgrade_issue &)> issue_formater(
           to_string);
       if (issues.empty())
         _shell_core.print("  No issues found\n");
@@ -185,7 +186,7 @@ shcore::Value Util::check_for_server_upgrade(
       else
         issue_formater = format_upgrade_issue;
 
-      for (const auto& issue : issues) {
+      for (const auto &issue : issues) {
         switch (issue.level) {
           case Upgrade_issue::ERROR:
             errors++;

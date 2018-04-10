@@ -26,10 +26,7 @@
 
 #include <cstdlib>
 
-typedef enum {
-  MY_GCVT_ARG_FLOAT,
-  MY_GCVT_ARG_DOUBLE
-} my_gcvt_arg_type;
+typedef enum { MY_GCVT_ARG_FLOAT, MY_GCVT_ARG_DOUBLE } my_gcvt_arg_type;
 
 size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
                bool *error);

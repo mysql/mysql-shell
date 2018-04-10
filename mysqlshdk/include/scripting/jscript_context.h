@@ -73,7 +73,7 @@ class SHCORE_PUBLIC JScript_context {
   bool is_terminating() const { return _terminating; }
   void terminate();
 
-private:
+ private:
   struct JScript_context_impl;
   JScript_context_impl *_impl;
   bool _terminating = false;
@@ -83,6 +83,6 @@ private:
   Value get_v8_exception_data(v8::TryCatch *exc, bool interactive);
   std::string format_exception(const shcore::Value &exc);
 };
-};
+};  // namespace shcore
 
 #endif

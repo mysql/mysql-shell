@@ -52,12 +52,9 @@ constexpr static std::size_t array_size(const T (&)[N]) noexcept {
 
 class Scoped_callback {
  public:
-  explicit Scoped_callback(std::function<void()> c) : callback(c) {
-  }
+  explicit Scoped_callback(std::function<void()> c) : callback(c) {}
 
-  ~Scoped_callback() {
-    callback();
-  }
+  ~Scoped_callback() { callback(); }
 
  private:
   std::function<void()> callback;
@@ -109,8 +106,7 @@ std::string SHCORE_PUBLIC from_camel_case(const std::string &name);
 std::string SHCORE_PUBLIC errno_to_string(int err);
 
 void SHCORE_PUBLIC split_account(const std::string &account,
-                                 std::string *out_user,
-                                 std::string *out_host,
+                                 std::string *out_user, std::string *out_host,
                                  bool auto_quote_hosts = false);
 std::string SHCORE_PUBLIC make_account(const std::string &user,
                                        const std::string &host);

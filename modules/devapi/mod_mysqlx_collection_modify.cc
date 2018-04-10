@@ -21,13 +21,13 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
-#include "modules/devapi/mod_mysqlx_collection.h"
-#include "modules/devapi/mod_mysqlx_resultset.h"
-#include "modules/devapi/mod_mysqlx_expression.h"
-#include "mysqlshdk/libs/utils/profiling.h"
-#include "utils/utils_string.h"
-#include "shellcore/utils_help.h"
 #include "db/mysqlx/mysqlx_parser.h"
+#include "modules/devapi/mod_mysqlx_collection.h"
+#include "modules/devapi/mod_mysqlx_expression.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"
+#include "mysqlshdk/libs/utils/profiling.h"
+#include "shellcore/utils_help.h"
+#include "utils/utils_string.h"
 
 #include <algorithm>
 #include <memory>
@@ -43,12 +43,13 @@ using namespace shcore;
 // Documentation of CollectionModify class
 REGISTER_HELP(COLLECTIONMODIFY_BRIEF,
               "Handler for document update operations on a Collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_DETAIL,
-    "This object provides the necessary functions to allow updating documents on a collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_DETAIL1,
-    "This object should only be created by calling the modify function on the collection object on which the documents will be updated.");
+REGISTER_HELP(COLLECTIONMODIFY_DETAIL,
+              "This object provides the necessary functions to allow updating "
+              "documents on a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_DETAIL1,
+              "This object should only be created by calling the modify "
+              "function on the collection object on which the documents will "
+              "be updated.");
 
 CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
@@ -83,14 +84,16 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   register_dynamic_function(F::arrayDelete, F::modify | F::operation);
   register_dynamic_function(F::sort, F::operation);
   register_dynamic_function(F::limit, F::operation | F::sort);
-  register_dynamic_function(F::bind, F::operation | F::sort | F::limit | F::bind);
-  register_dynamic_function(F::execute, F::operation | F::sort | F::limit | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::operation | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::bind,
+                            F::operation | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::execute,
+                            F::operation | F::sort | F::limit | F::bind);
+  register_dynamic_function(F::__shell_hook__,
+                            F::operation | F::sort | F::limit | F::bind);
 
   // Initial function update
   update_functions(F::_empty);
 }
-
 
 void CollectionModify::set_operation(int type, const std::string &path,
                                      const shcore::Value &value,
@@ -121,72 +124,76 @@ void CollectionModify::set_operation(int type, const std::string &path,
   // Sets the source
   operation->mutable_source()->CopyFrom(identifier);
 
-  Mysqlx::Expr::Expr* expr_value = nullptr;
+  Mysqlx::Expr::Expr *expr_value = nullptr;
   if (value) {
     expr_value = operation->mutable_value();
     encode_expression_value(expr_value, value);
   }
 
   if ((type == Mysqlx::Crud::UpdateOperation::ITEM_MERGE ||
-      type == Mysqlx::Crud::UpdateOperation::MERGE_PATCH) &&
-     (!expr_value || expr_value->type() != Mysqlx::Expr::Expr::Expr::OBJECT)) {
-       throw std::invalid_argument("Argument expected to be a JSON object");
-    }
+       type == Mysqlx::Crud::UpdateOperation::MERGE_PATCH) &&
+      (!expr_value || expr_value->type() != Mysqlx::Expr::Expr::Expr::OBJECT)) {
+    throw std::invalid_argument("Argument expected to be a JSON object");
+  }
 }
 
 // Documentation of modify function
-REGISTER_HELP(COLLECTIONMODIFY_MODIFY_BRIEF,
+REGISTER_HELP(
+    COLLECTIONMODIFY_MODIFY_BRIEF,
     "Sets the search condition to identify the Documents to be updated on the "
     "owner Collection.");
 
-REGISTER_HELP(COLLECTIONMODIFY_MODIFY_PARAM,
+REGISTER_HELP(
+    COLLECTIONMODIFY_MODIFY_PARAM,
     "@param searchCondition: An expression to identify the documents to be "
     "updated.");
 
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_RETURNS,
-    "@returns This CollectionModify object.");
+              "@returns This CollectionModify object.");
 
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL,
-    "Creates a handler to update documents in the collection.");
+              "Creates a handler to update documents in the collection.");
 
-REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL1,
+REGISTER_HELP(
+    COLLECTIONMODIFY_MODIFY_DETAIL1,
     "A condition must be provided to this function, all the documents "
     "matching the condition will be updated.");
 
-REGISTER_HELP(COLLECTIONMODIFY_MODIFY_DETAIL2,
+REGISTER_HELP(
+    COLLECTIONMODIFY_MODIFY_DETAIL2,
     "To update all the documents, set a condition that always evaluates to "
     "true, for example '1'.");
 
 /**
-* $(COLLECTIONMODIFY_MODIFY_BRIEF)
-*
-* $(COLLECTIONMODIFY_MODIFY_PARAM)
-*
-* $(COLLECTIONMODIFY_MODIFY_DETAIL)
-*
-* $(COLLECTIONMODIFY_MODIFY_RETURNS)
-*
-* $(COLLECTIONMODIFY_MODIFY_DETAIL1)
-*
-* $(COLLECTIONMODIFY_MODIFY_DETAIL2)
-*
-* #### Method Chaining
-*
-* This function is called automatically when Collection.modify(searchCondition)
-* is called.
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* \sa Usage examples at execute().
-* \sa Collection
-*/
+ * $(COLLECTIONMODIFY_MODIFY_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_MODIFY_PARAM)
+ *
+ * $(COLLECTIONMODIFY_MODIFY_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_MODIFY_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_MODIFY_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_MODIFY_DETAIL2)
+ *
+ * #### Method Chaining
+ *
+ * This function is called automatically when Collection.modify(searchCondition)
+ * is called.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * \sa Usage examples at execute().
+ * \sa Collection
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::modify(String searchCondition) {}
 #elif DOXYGEN_PY
@@ -217,7 +224,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-CollectionModify &CollectionModify::set_filter(const std::string& filter) {
+CollectionModify &CollectionModify::set_filter(const std::string &filter) {
   message_.set_allocated_criteria(
       ::mysqlx::parser::parse_collection_filter(filter, &_placeholders));
 
@@ -234,87 +241,88 @@ REGISTER_HELP(COLLECTIONMODIFY_SET_PARAM1,
               "@param value The value to be set on the specified attribute.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SET_DETAIL,
-    "Adds an opertion into the modify handler to set an attribute on the documents that were included on the selection filter and limit.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SET_DETAIL1,
-    "@li If the attribute is not present on the document, it will be added with the given value.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SET_DETAIL2,
-    "@li If the attribute already exists on the document, it will be updated with the given value.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL,
+              "Adds an opertion into the modify handler to set an attribute on "
+              "the documents that were included on the selection filter and "
+              "limit.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL1,
+              "@li If the attribute is not present on the document, it will be "
+              "added with the given value.");
+REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL2,
+              "@li If the attribute already exists on the document, it will be "
+              "updated with the given value.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL3,
               "<b> Using Expressions for Values </b>");
 REGISTER_HELP(
     COLLECTIONMODIFY_SET_DETAIL4,
-   "The received values are set into the document in a literal way unless an "
-   "expression is used.");
+    "The received values are set into the document in a literal way unless an "
+    "expression is used.");
 REGISTER_HELP(
     COLLECTIONMODIFY_SET_DETAIL5,
-   "When an expression is used, it is evaluated on the server and the "
-   "resulting value is set into the document.");
+    "When an expression is used, it is evaluated on the server and the "
+    "resulting value is set into the document.");
 
 /**
-* $(COLLECTIONMODIFY_SET_BRIEF)
-*
-* $(COLLECTIONMODIFY_SET_PARAM)
-*
-* $(COLLECTIONMODIFY_SET_PARAM1)
-*
-* $(COLLECTIONMODIFY_SET_RETURNS)
-*
-* $(COLLECTIONMODIFY_SET_DETAIL)
-* $(COLLECTIONMODIFY_SET_DETAIL1)
-* $(COLLECTIONMODIFY_SET_DETAIL2)
-*
-* $(COLLECTIONMODIFY_SET_DETAIL3)
-*
-* $(COLLECTIONMODIFY_SET_DETAIL4)
-*
-* $(COLLECTIONMODIFY_SET_DETAIL5)
-*
-* To define an expression use:
-* \code{.py}
-* mysqlx.expr(expression)
-* \endcode
-*
-* The expression also can be used for \a [Parameter
-* Binding](param_binding.html).
-*
-* The attribute addition will be done on the collection's documents once the
-* execute method is called.
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_SET_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_SET_PARAM)
+ *
+ * $(COLLECTIONMODIFY_SET_PARAM1)
+ *
+ * $(COLLECTIONMODIFY_SET_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_SET_DETAIL)
+ * $(COLLECTIONMODIFY_SET_DETAIL1)
+ * $(COLLECTIONMODIFY_SET_DETAIL2)
+ *
+ * $(COLLECTIONMODIFY_SET_DETAIL3)
+ *
+ * $(COLLECTIONMODIFY_SET_DETAIL4)
+ *
+ * $(COLLECTIONMODIFY_SET_DETAIL5)
+ *
+ * To define an expression use:
+ * \code{.py}
+ * mysqlx.expr(expression)
+ * \endcode
+ *
+ * The expression also can be used for \a [Parameter
+ * Binding](param_binding.html).
+ *
+ * The attribute addition will be done on the collection's documents once the
+ * execute method is called.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::set(String attribute, Value value) {}
 #elif DOXYGEN_PY
@@ -340,64 +348,64 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_BRIEF,
               "Removes attributes from documents in a collection.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX, "unset(String attribute)");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX1, "unset(List attributes)");
-REGISTER_HELP(
-    COLLECTIONMODIFY_UNSET_PARAM,
-    "@param attribute A string with the document path of the attribute to be removed.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_UNSET_PARAM1,
-    "@param attributes A list with the document paths of the attributes to be removed.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM,
+              "@param attribute A string with the document path of the "
+              "attribute to be removed.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM1,
+              "@param attributes A list with the document paths of the "
+              "attributes to be removed.");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_UNSET_DETAIL,
-    "The attribute removal will be done on the collection's documents once the execute method is called.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_UNSET_DETAIL1,
-    "For each attribute on the attributes list, adds an opertion into the modify handler");
-REGISTER_HELP(
-    COLLECTIONMODIFY_UNSET_DETAIL2,
-    "to remove the attribute on the documents that were included on the selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL,
+              "The attribute removal will be done on the collection's "
+              "documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL1,
+              "For each attribute on the attributes list, adds an opertion "
+              "into the modify handler");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
+              "to remove the attribute on the documents that were included on "
+              "the selection filter and limit.");
 
 /**
-* $(COLLECTIONMODIFY_UNSET_BRIEF)
-*
-* $(COLLECTIONMODIFY_UNSET_PARAM)
-*
-* $(COLLECTIONMODIFY_UNSET_RETURNS)
-*
-* $(COLLECTIONMODIFY_UNSET_DETAIL)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_UNSET_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_UNSET_PARAM)
+ *
+ * $(COLLECTIONMODIFY_UNSET_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_UNSET_DETAIL)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 //@{
 #if DOXYGEN_JS
 CollectionModify CollectionModify::unset(String attribute) {}
@@ -407,48 +415,48 @@ CollectionModify CollectionModify::unset(str attribute) {}
 //@}
 
 /**
-* $(COLLECTIONMODIFY_UNSET_BRIEF)
-*
-* $(COLLECTIONMODIFY_UNSET_PARAM1)
-*
-* $(COLLECTIONMODIFY_UNSET_RETURNS)
-*
-* $(COLLECTIONMODIFY_UNSET_DETAIL1)
-* $(COLLECTIONMODIFY_UNSET_DETAIL2)
-*
-* $(COLLECTIONMODIFY_UNSET_DETAIL)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_UNSET_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_UNSET_PARAM1)
+ *
+ * $(COLLECTIONMODIFY_UNSET_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_UNSET_DETAIL1)
+ * $(COLLECTIONMODIFY_UNSET_DETAIL2)
+ *
+ * $(COLLECTIONMODIFY_UNSET_DETAIL)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::unset(List attributes) {}
 #elif DOXYGEN_PY
@@ -505,8 +513,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
     }
 
     // Updates the exposed functions
-    if (unset_count)
-      update_functions(F::operation);
+    if (unset_count) update_functions(F::operation);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("unset"));
 
@@ -514,63 +521,64 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
 }
 
 // Documentation of merge function
-REGISTER_HELP(
-    COLLECTIONMODIFY_MERGE_BRIEF,
-    "Adds attributes taken from a document into the documents in a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_BRIEF,
+              "Adds attributes taken from a document into the documents in a "
+              "collection.");
 REGISTER_HELP(
     COLLECTIONMODIFY_MERGE_PARAM,
     "@param document The document from which the attributes will be merged.");
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MERGE_DETAIL,
-    "This function adds an operation to add into the documents of a collection, all the attribues defined in document that do not exist on the collection's documents.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MERGE_DETAIL1,
-    "The attribute addition will be done on the collection's documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL,
+              "This function adds an operation to add into the documents of a "
+              "collection, all the attribues defined in document that do not "
+              "exist on the collection's documents.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
+              "The attribute addition will be done on the collection's "
+              "documents once the execute method is called.");
 
 /**
-* $(COLLECTIONMODIFY_MERGE_BRIEF)
-*
-* $(COLLECTIONMODIFY_MERGE_PARAM)
-*
-* $(COLLECTIONMODIFY_MERGE_RETURNS)
-*
-* $(COLLECTIONMODIFY_MERGE_DETAIL)
-*
-* $(COLLECTIONMODIFY_MERGE_DETAIL1)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_MERGE_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_MERGE_PARAM)
+ *
+ * $(COLLECTIONMODIFY_MERGE_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_MERGE_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_MERGE_DETAIL1)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::merge(Document document) {}
 #elif DOXYGEN_PY
@@ -581,7 +589,6 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("merge").c_str());
 
   try {
-
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);
 
     update_functions(F::operation);
@@ -592,93 +599,104 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
 }
 
 // Documentation of merge function
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_BRIEF,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_BRIEF,
     "Performs modifications on a document based on a patch JSON object.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_PARAM,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_PARAM,
     "@param document The JSON object to be used on the patch process.");
 REGISTER_HELP(COLLECTIONMODIFY_PATCH_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL,
     "This function adds an operation to update the documents of a collection, "
     "the patch operation follows the algorithm described on the JSON Merge "
     "Patch RFC7386.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL1,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL1,
     "The patch JSON object will be used to either add, update or remove fields "
     "from documents in the collection that match the filter specified on the "
     "call to the modify() function.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL2, "The operation to be performed "
-"depends on the attributes defined at the patch JSON object:");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL3,
+REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL2,
+              "The operation to be performed "
+              "depends on the attributes defined at the patch JSON object:");
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL3,
     "@li Any attribute with value equal to null will be removed if exists.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL4,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL4,
     "@li Any attribute with value different than null will be updated if "
     "exists.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL5,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL5,
     "@li Any attribute with value different than null will be added if "
     "does not exists.");
 REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL6, "Special considerations:");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL7,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL7,
     "@li The _id of the documents is inmutable, so it will not be affected by "
     "the patch operation even if it is included on the patch JSON object.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL8,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL8,
     "@li The patch JSON object accepts expression objects as values. If used "
     "they will be evaluated at the server side.");
-REGISTER_HELP(COLLECTIONMODIFY_PATCH_DETAIL9,
+REGISTER_HELP(
+    COLLECTIONMODIFY_PATCH_DETAIL9,
     "The patch operations will be done on the collection's documents once the "
     "execute method is called.");
 /**
-* $(COLLECTIONMODIFY_PATCH_BRIEF)
-*
-* $(COLLECTIONMODIFY_PATCH_PARAM)
-*
-* $(COLLECTIONMODIFY_PATCH_RETURNS)
-*
-* $(COLLECTIONMODIFY_PATCH_DETAIL)
-*
-* $(COLLECTIONMODIFY_PATCH_DETAIL1)
-*
-* $(COLLECTIONMODIFY_PATCH_DETAIL2)
-* $(COLLECTIONMODIFY_PATCH_DETAIL3)
-* $(COLLECTIONMODIFY_PATCH_DETAIL4)
-* $(COLLECTIONMODIFY_PATCH_DETAIL5)
-*
-* $(COLLECTIONMODIFY_PATCH_DETAIL6)
-* $(COLLECTIONMODIFY_PATCH_DETAIL7)
-* $(COLLECTIONMODIFY_PATCH_DETAIL8)
-*
-* $(COLLECTIONMODIFY_PATCH_DETAIL9)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_PATCH_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_PATCH_PARAM)
+ *
+ * $(COLLECTIONMODIFY_PATCH_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_PATCH_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_PATCH_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_PATCH_DETAIL2)
+ * $(COLLECTIONMODIFY_PATCH_DETAIL3)
+ * $(COLLECTIONMODIFY_PATCH_DETAIL4)
+ * $(COLLECTIONMODIFY_PATCH_DETAIL5)
+ *
+ * $(COLLECTIONMODIFY_PATCH_DETAIL6)
+ * $(COLLECTIONMODIFY_PATCH_DETAIL7)
+ * $(COLLECTIONMODIFY_PATCH_DETAIL8)
+ *
+ * $(COLLECTIONMODIFY_PATCH_DETAIL9)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::patch(Document document) {}
 #elif DOXYGEN_PY
@@ -699,66 +717,67 @@ shcore::Value CollectionModify::patch(const shcore::Argument_list &args) {
 }
 
 // Documentation of arrayInsert function
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYINSERT_BRIEF,
-    "Inserts a value into a specific position in an array attribute in documents of a collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYINSERT_PARAM,
-    "@param path A document path that identifies the array attribute and position where the value will be inserted.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_BRIEF,
+              "Inserts a value into a specific position in an array attribute "
+              "in documents of a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM,
+              "@param path A document path that identifies the array attribute "
+              "and position where the value will be inserted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM1,
               "@param value The value to be inserted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYINSERT_DETAIL,
-    "Adds an opertion into the modify handler to insert a value into an array attribute on the documents that were included on the selection filter and limit.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
-    "The insertion of the value will be done on the collection's documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL,
+              "Adds an opertion into the modify handler to insert a value into "
+              "an array attribute on the documents that were included on the "
+              "selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
+              "The insertion of the value will be done on the collection's "
+              "documents once the execute method is called.");
 
 /**
-* $(COLLECTIONMODIFY_ARRAYINSERT_BRIEF)
-*
-* $(COLLECTIONMODIFY_ARRAYINSERT_PARAM)
-* $(COLLECTIONMODIFY_ARRAYINSERT_PARAM1)
-*
-* $(COLLECTIONMODIFY_ARRAYINSERT_RETURNS)
-*
-* $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
-*
-* $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_ARRAYINSERT_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_ARRAYINSERT_PARAM)
+ * $(COLLECTIONMODIFY_ARRAYINSERT_PARAM1)
+ *
+ * $(COLLECTIONMODIFY_ARRAYINSERT_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::arrayInsert(String path, Value value) {}
 #elif DOXYGEN_PY
@@ -785,61 +804,62 @@ shcore::Value CollectionModify::array_insert(
 REGISTER_HELP(
     COLLECTIONMODIFY_ARRAYAPPEND_BRIEF,
     "Appends a value into an array attribute in documents of a collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYAPPEND_PARAM,
-    "@param path A document path that identifies the array attribute where the value will be appended.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM,
+              "@param path A document path that identifies the array attribute "
+              "where the value will be appended.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1,
               "@param value The value to be appended.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
-    "Adds an opertion into the modify handler to append a value into an array attribute on the documents that were included on the selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
+              "Adds an opertion into the modify handler to append a value into "
+              "an array attribute on the documents that were included on the "
+              "selection filter and limit.");
 
 /**
-* $(COLLECTIONMODIFY_ARRAYAPPEND_BRIEF)
-*
-* $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM)
-* $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1)
-*
-* $(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS)
-*
-* $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* The attribute addition will be done on the collection's documents once the
-* execute method is called.
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_ARRAYAPPEND_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM)
+ * $(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1)
+ *
+ * $(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * The attribute addition will be done on the collection's documents once the
+ * execute method is called.
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::arrayAppend(String path, Value value) {}
 #elif DOXYGEN_PY
@@ -862,63 +882,64 @@ shcore::Value CollectionModify::array_append(
 }
 
 // Documentation of arrayDelete function
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYDELETE_BRIEF,
-    "Deletes the value at a specific position in an array attribute in documents of a collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYDELETE_PARAM,
-    "@param path A document path that identifies the array attribute and position of the value to be deleted.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_BRIEF,
+              "Deletes the value at a specific position in an array attribute "
+              "in documents of a collection.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_PARAM,
+              "@param path A document path that identifies the array attribute "
+              "and position of the value to be deleted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
-    "Adds an opertion into the modify handler to delete a value from an array attribute on the documents that were included on the selection filter and limit.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
-    "The attribute deletion will be done on the collection's documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
+              "Adds an opertion into the modify handler to delete a value from "
+              "an array attribute on the documents that were included on the "
+              "selection filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
+              "The attribute deletion will be done on the collection's "
+              "documents once the execute method is called.");
 
 /**
-* $(COLLECTIONMODIFY_ARRAYDELETE_BRIEF)
-*
-* $(COLLECTIONMODIFY_ARRAYDELETE_PARAM)
-*
-* $(COLLECTIONMODIFY_ARRAYDELETE_RETURNS)
-*
-* $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
-*
-* $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times after:
-*
-* - modify(String searchCondition)
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-* - sort(List sortExprStr)
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_ARRAYDELETE_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_ARRAYDELETE_PARAM)
+ *
+ * $(COLLECTIONMODIFY_ARRAYDELETE_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
+ *
+ * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times after:
+ *
+ * - modify(String searchCondition)
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::arrayDelete(String path) {}
 #elif DOXYGEN_PY
@@ -942,57 +963,59 @@ shcore::Value CollectionModify::array_delete(
 }
 
 // Documentation of sort function
-REGISTER_HELP(
-    COLLECTIONMODIFY_SORT_BRIEF,
-    "Sets the document order in which the update operations added to the handler should be done.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SORT_PARAM,
-    "@param sortExprStr: A list of expression strings defining a collection sort criteria.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_BRIEF,
+              "Sets the document order in which the update operations added to "
+              "the handler should be done.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_PARAM,
+              "@param sortExprStr: A list of expression strings defining a "
+              "collection sort criteria.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SORT_DETAIL,
-    "The elements of sortExprStr list are usually strings defining the attribute name on which the collection sorting will be based. Each criterion could be followed by asc or desc to indicate ascending");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SORT_DETAIL1,
-    "or descending order respectivelly. If no order is specified, ascending will be used by default.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_SORT_DETAIL2,
-    "This method is usually used in combination with limit to fix the amount of documents to be updated.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL,
+              "The elements of sortExprStr list are usually strings defining "
+              "the attribute name on which the collection sorting will be "
+              "based. Each criterion could be followed by asc or desc to "
+              "indicate ascending");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL1,
+              "or descending order respectivelly. If no order is specified, "
+              "ascending will be used by default.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2,
+              "This method is usually used in combination with limit to fix "
+              "the amount of documents to be updated.");
 
 /**
-* $(COLLECTIONMODIFY_SORT_BRIEF)
-*
-* $(COLLECTIONMODIFY_SORT_PARAM)
-*
-* $(COLLECTIONMODIFY_SORT_RETURNS)
-*
-* $(COLLECTIONMODIFY_SORT_DETAIL)
-* $(COLLECTIONMODIFY_SORT_DETAIL1)
-*
-* $(COLLECTIONMODIFY_SORT_DETAIL2)
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_SORT_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_SORT_PARAM)
+ *
+ * $(COLLECTIONMODIFY_SORT_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_SORT_DETAIL)
+ * $(COLLECTIONMODIFY_SORT_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_SORT_DETAIL2)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::sort(List sortExprStr) {}
 #elif DOXYGEN_PY
@@ -1021,48 +1044,48 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
 }
 
 // Documentation of limit function
-REGISTER_HELP(
-    COLLECTIONMODIFY_LIMIT_BRIEF,
-    "Sets a limit for the documents to be updated by the operations added to the handler.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_LIMIT_PARAM,
-    "@param numberOfDocs the number of documents to affect on the update operations.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_BRIEF,
+              "Sets a limit for the documents to be updated by the operations "
+              "added to the handler.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_PARAM,
+              "@param numberOfDocs the number of documents to affect on the "
+              "update operations.");
 REGISTER_HELP(COLLECTIONMODIFY_LIMIT_RETURNS,
               "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_LIMIT_DETAIL,
-    "This method is usually used in combination with sort to fix the amount of documents to be updated.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL,
+              "This method is usually used in combination with sort to fix the "
+              "amount of documents to be updated.");
 
 /**
-* $(COLLECTIONMODIFY_LIMIT_BRIEF)
-*
-* $(COLLECTIONMODIFY_LIMIT_PARAM)
-*
-* $(COLLECTIONMODIFY_LIMIT_RETURNS)
-*
-* $(COLLECTIONMODIFY_LIMIT_DETAIL)
-*
-* #### Method Chaining
-*
-* This function can be invoked only once after:
-*
-* - set(String attribute, Value value)
-* - unset(String attribute)
-* - unset(List attributes)
-* - merge(Document document)
-* - patch(Document document)
-* - arrayAppend(String path, Value value)
-* - arrayInsert(String path, Value value)
-* - arrayDelete(String path)
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - limit(Integer numberOfRows)
-* - bind(String name, Value value)
-* - execute(ExecuteOptions opt)
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_LIMIT_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_LIMIT_PARAM)
+ *
+ * $(COLLECTIONMODIFY_LIMIT_RETURNS)
+ *
+ * $(COLLECTIONMODIFY_LIMIT_DETAIL)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - set(String attribute, Value value)
+ * - unset(String attribute)
+ * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
+ * - arrayAppend(String path, Value value)
+ * - arrayInsert(String path, Value value)
+ * - arrayDelete(String path)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute(ExecuteOptions opt)
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionModify CollectionModify::limit(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
@@ -1082,43 +1105,43 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
 }
 
 // Documentation of bind function
-REGISTER_HELP(
-    COLLECTIONMODIFY_BIND_BRIEF,
-    "Binds a value to a specific placeholder used on this CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_BIND_PARAM,
-    "@param name: The name of the placeholder to which the value will be bound.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_BRIEF,
+              "Binds a value to a specific placeholder used on this "
+              "CollectionModify object.");
+REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM,
+              "@param name: The name of the placeholder to which the value "
+              "will be bound.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_PARAM1,
               "@param value: The value to be bound on the placeholder.");
 REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURNS,
               "@returns This CollectionModify object.");
 
 /**
-* $(COLLECTIONMODIFY_BIND_BRIEF)
-*
-* $(COLLECTIONMODIFY_BIND_PARAM)
-*
-* $(COLLECTIONMODIFY_BIND_PARAM1)
-*
-* $(COLLECTIONMODIFY_BIND_RETURNS)
-*
-* #### Method Chaining
-*
-* This function can be invoked multiple times right before calling execute:
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute()
-*
-* An error will be raised if the placeholder indicated by name does not exist.
-*
-* This function must be called once for each used placeohlder or an error will
-* be
-* raised when the execute method is called.
-*
-* \sa Usage examples at execute().
-*/
+ * $(COLLECTIONMODIFY_BIND_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_BIND_PARAM)
+ *
+ * $(COLLECTIONMODIFY_BIND_PARAM1)
+ *
+ * $(COLLECTIONMODIFY_BIND_RETURNS)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked multiple times right before calling execute:
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * An error will be raised if the placeholder indicated by name does not exist.
+ *
+ * This function must be called once for each used placeohlder or an error will
+ * be
+ * raised when the execute method is called.
+ *
+ * \sa Usage examples at execute().
+ */
 #if DOXYGEN_JS
 CollectionFind CollectionModify::bind(String name, Value value) {}
 #elif DOXYGEN_PY
@@ -1144,44 +1167,44 @@ CollectionModify &CollectionModify::bind(const std::string &name,
 }
 
 // Documentation of execute function
-REGISTER_HELP(
-    COLLECTIONMODIFY_EXECUTE_BRIEF,
-    "Executes the update operations added to the handler with the configured filter and limit.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_EXECUTE_RETURNS,
-    "@returns CollectionResultset A Result object that can be used to retrieve the results of the update operation.");
+REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_BRIEF,
+              "Executes the update operations added to the handler with the "
+              "configured filter and limit.");
+REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_RETURNS,
+              "@returns CollectionResultset A Result object that can be used "
+              "to retrieve the results of the update operation.");
 
 /**
-* $(COLLECTIONMODIFY_EXECUTE_BRIEF)
-*
-* $(COLLECTIONMODIFY_EXECUTE_RETURNS)
-*
-* #### Method Chaining
-*
-* This function can be invoked after any other function on this class except
-* modify().
-*
-* The update operation will be executed in the order they were added.
-*/
+ * $(COLLECTIONMODIFY_EXECUTE_BRIEF)
+ *
+ * $(COLLECTIONMODIFY_EXECUTE_RETURNS)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked after any other function on this class except
+ * modify().
+ *
+ * The update operation will be executed in the order they were added.
+ */
 #if DOXYGEN_JS
 /**
-*
-* #### Examples
-* \dontinclude "js_devapi/scripts/mysqlx_collection_modify.js"
-* \skip //@# CollectionModify: Set Execution
-* \until //@ CollectionModify: sorting and limit Execution - 4
-* \until print(dir(doc));
-*/
+ *
+ * #### Examples
+ * \dontinclude "js_devapi/scripts/mysqlx_collection_modify.js"
+ * \skip //@# CollectionModify: Set Execution
+ * \until //@ CollectionModify: sorting and limit Execution - 4
+ * \until print(dir(doc));
+ */
 Result CollectionModify::execute() {}
 #elif DOXYGEN_PY
 /**
-*
-* #### Examples
-* \dontinclude "py_devapi/scripts/mysqlx_collection_modify.py"
-* \skip #@# CollectionModify: Set Execution
-* \until #@ CollectionModify: sorting and limit Execution - 4
-* \until print dir(doc)
-*/
+ *
+ * #### Examples
+ * \dontinclude "py_devapi/scripts/mysqlx_collection_modify.py"
+ * \skip #@# CollectionModify: Set Execution
+ * \until #@ CollectionModify: sorting and limit Execution - 4
+ * \until print dir(doc)
+ */
 Result CollectionModify::execute() {}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
@@ -1189,7 +1212,8 @@ shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   try {
     ret_val = execute();
-  }CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return ret_val;
 }
@@ -1199,9 +1223,8 @@ shcore::Value CollectionModify::execute() {
   mysqlshdk::utils::Profile_timer timer;
   insert_bound_values(message_.mutable_args());
   timer.stage_begin("CollectionModify::execute");
-  result.reset(new mysqlx::Result(safe_exec([this]() {
-    return session()->session()->execute_crud(message_);
-  })));
+  result.reset(new mysqlx::Result(safe_exec(
+      [this]() { return session()->session()->execute_crud(message_); })));
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_ellapsed());
 

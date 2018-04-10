@@ -34,9 +34,7 @@ namespace textui {
 
 Color_capability g_color_capability = Color_256;
 
-void set_color_capability(Color_capability cap) {
-  g_color_capability = cap;
-}
+void set_color_capability(Color_capability cap) { g_color_capability = cap; }
 
 bool parse_rgb(const std::string &color, uint8_t rgb[3]) {
   if (color.empty() || color[0] != '#' ||
@@ -56,9 +54,7 @@ bool parse_rgb(const std::string &color, uint8_t rgb[3]) {
 }
 
 /** Clear the screen */
-void cls() {
-  vt100::erase_screen();
-}
+void cls() { vt100::erase_screen(); }
 
 int parse_color_set(const std::string &color_spec, uint8_t *color_16,
                     uint8_t *color_256, uint8_t color_rgb[3],
@@ -68,8 +64,7 @@ int parse_color_set(const std::string &color_spec, uint8_t *color_16,
   int mask = 0;
   std::vector<std::string> values(shcore::split_string(color_spec, ";"));
   for (auto &color : values) {
-    if (color.empty())
-      continue;
+    if (color.empty()) continue;
     if (color[0] == '#') {
       if (!parse_rgb(color, color_rgb))
         throw std::invalid_argument("Invalid rgb color " + color);
@@ -201,16 +196,13 @@ Style::operator std::string() const {
 }
 
 bool Style::compare(const Style &style, int mask) const {
-  if ((field_mask & mask) != (style.field_mask & mask))
-    return false;
+  if ((field_mask & mask) != (style.field_mask & mask)) return false;
 
   if ((field_mask & mask) & Style::Color_16_fg_set) {
-    if (fg.color_16 != style.fg.color_16)
-      return false;
+    if (fg.color_16 != style.fg.color_16) return false;
   }
   if ((field_mask & mask) & Style::Color_256_fg_set) {
-    if (fg.color_256 != style.fg.color_256)
-      return false;
+    if (fg.color_256 != style.fg.color_256) return false;
   }
   if ((field_mask & mask) & Style::Color_rgb_fg_set) {
     if (fg.color_rgb[0] != style.fg.color_rgb[0] ||
@@ -219,12 +211,10 @@ bool Style::compare(const Style &style, int mask) const {
       return false;
   }
   if ((field_mask & mask) & Style::Color_16_bg_set) {
-    if (bg.color_16 != style.bg.color_16)
-      return false;
+    if (bg.color_16 != style.bg.color_16) return false;
   }
   if ((field_mask & mask) & Style::Color_256_bg_set) {
-    if (bg.color_256 != style.bg.color_256)
-      return false;
+    if (bg.color_256 != style.bg.color_256) return false;
   }
   if ((field_mask & mask) & Style::Color_rgb_bg_set) {
     if (bg.color_rgb[0] != style.bg.color_rgb[0] ||
@@ -233,8 +223,7 @@ bool Style::compare(const Style &style, int mask) const {
       return false;
   }
   if ((field_mask & mask) & Style::Attributes_set) {
-    if (bold != style.bold || underline != style.underline)
-      return false;
+    if (bold != style.bold || underline != style.underline) return false;
   }
   return true;
 }

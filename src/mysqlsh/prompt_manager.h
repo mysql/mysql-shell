@@ -90,10 +90,10 @@ class Prompt_manager {
   Prompt_renderer renderer_;
   std::map<std::string, std::unique_ptr<Custom_variable>> custom_variables_;
 
-  std::string do_apply_vars(
-      const std::string &s, Prompt_manager::Variables_map *vars,
-      Prompt_manager::Dynamic_variable_callback query_var,
-      int recursion_depth = 0);
+  std::string do_apply_vars(const std::string &s,
+                            Prompt_manager::Variables_map *vars,
+                            Prompt_manager::Dynamic_variable_callback query_var,
+                            int recursion_depth = 0);
 
   void update(
       const std::function<std::string(const std::string &)> &apply_vars);

@@ -24,8 +24,8 @@
 #ifndef _JSCRIPT_TYPE_CONVERSION_H_
 #define _JSCRIPT_TYPE_CONVERSION_H_
 
-#include "scripting/types.h"
 #include "scripting/include_v8.h"
+#include "scripting/types.h"
 
 namespace shcore {
 class JScript_context;
@@ -55,6 +55,6 @@ struct JScript_type_bridger {
   class JScript_map_wrapper *map_wrapper;
   class JScript_array_wrapper *array_wrapper;
 };
-};
+};  // namespace shcore
 
 #endif

@@ -76,13 +76,13 @@ inline bool is_string_type(Type type) {
  */
 class SHCORE_PUBLIC Column {
  public:
-  Column(const std::string& schema, const std::string& table_name,
-         const std::string& table_label, const std::string& column_name,
-         const std::string& column_label, uint32_t length, int frac_digits,
+  Column(const std::string &schema, const std::string &table_name,
+         const std::string &table_label, const std::string &column_name,
+         const std::string &column_label, uint32_t length, int frac_digits,
          Type type, uint32_t collation_id, bool unsigned_, bool zerofill,
          bool binary);
 
-  bool operator==(const Column& o) const {
+  bool operator==(const Column &o) const {
     return _schema == o._schema && _table_name == o._table_name &&
            _table_label == o._table_label && _column_name == o._column_name &&
            _column_label == o._column_label &&
@@ -92,45 +92,21 @@ class SHCORE_PUBLIC Column {
            _binary == o._binary;
   }
 
-  const std::string& get_schema() const {
-    return _schema;
-  }
-  const std::string& get_table_name() const {
-    return _table_name;
-  }
-  const std::string& get_table_label() const {
-    return _table_label;
-  }
-  const std::string& get_column_name() const {
-    return _column_name;
-  }
-  const std::string& get_column_label() const {
-    return _column_label;
-  }
-  uint32_t get_length() const {
-    return _length;
-  }
-  int get_fractional() const {
-    return _fractional;
-  }
-  Type get_type() const {
-    return _type;
-  }
+  const std::string &get_schema() const { return _schema; }
+  const std::string &get_table_name() const { return _table_name; }
+  const std::string &get_table_label() const { return _table_label; }
+  const std::string &get_column_name() const { return _column_name; }
+  const std::string &get_column_label() const { return _column_label; }
+  uint32_t get_length() const { return _length; }
+  int get_fractional() const { return _fractional; }
+  Type get_type() const { return _type; }
   std::string get_collation_name() const;
   std::string get_charset_name() const;
-  uint32_t get_collation() const {
-    return _collation_id;
-  }
+  uint32_t get_collation() const { return _collation_id; }
 
-  bool is_unsigned() const {
-    return _unsigned;
-  }
-  bool is_zerofill() const {
-    return _zerofill;
-  }
-  bool is_binary() const {
-    return _binary;
-  }
+  bool is_unsigned() const { return _unsigned; }
+  bool is_zerofill() const { return _zerofill; }
+  bool is_binary() const { return _binary; }
 
  private:
   std::string _schema;

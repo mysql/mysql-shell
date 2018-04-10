@@ -129,8 +129,7 @@ bool is_grantable(const std::string &grant) {
 }  // namespace
 
 struct User_privileges::Mapped_row {
-  Mapped_row() : schema{k_wildcard}, table{k_wildcard} {
-  }
+  Mapped_row() : schema{k_wildcard}, table{k_wildcard} {}
   std::string schema;
   std::string table;
 };
@@ -153,9 +152,7 @@ User_privileges::User_privileges(const std::shared_ptr<db::ISession> &session,
   read_table_privileges(session);
 }
 
-bool User_privileges::user_exists() const {
-  return m_user_exists;
-}
+bool User_privileges::user_exists() const { return m_user_exists; }
 
 bool User_privileges::has_grant_option(const std::string &schema,
                                        const std::string &table) const {
@@ -330,9 +327,7 @@ User_privileges_result::User_privileges_result(
       privileges.get_missing_privileges(required_privileges, schema, table);
 }
 
-bool User_privileges_result::user_exists() const {
-  return m_user_exists;
-}
+bool User_privileges_result::user_exists() const { return m_user_exists; }
 
 bool User_privileges_result::has_grant_option() const {
   return m_has_grant_option;

@@ -32,18 +32,18 @@ TEST(nullable, default_initialization) {
 TEST(nullable, base_type_initialization_numeric) {
   mysqlshdk::utils::nullable<int> sample(50);
   EXPECT_FALSE(sample.is_null());
-  EXPECT_EQ(50, *sample); // Testing the * operator
+  EXPECT_EQ(50, *sample);  // Testing the * operator
   int value = sample;
-  EXPECT_EQ(50, value); // Testing implicit conversion
+  EXPECT_EQ(50, value);  // Testing implicit conversion
 }
 
 TEST(nullable, other_initialization_numeric) {
   mysqlshdk::utils::nullable<int> sample(50);
   mysqlshdk::utils::nullable<int> sample2(sample);
   EXPECT_FALSE(sample2.is_null());
-  EXPECT_EQ(50, *sample2); // Testing the * operator
+  EXPECT_EQ(50, *sample2);  // Testing the * operator
   int value = sample2;
-  EXPECT_EQ(50, value); // Testing implicit conversion
+  EXPECT_EQ(50, value);  // Testing implicit conversion
 }
 
 TEST(nullable, base_type_assignment_numeric) {
@@ -52,9 +52,9 @@ TEST(nullable, base_type_assignment_numeric) {
   sample = 50;
 
   EXPECT_FALSE(sample.is_null());
-  EXPECT_EQ(50, *sample); // Testing the * operator
+  EXPECT_EQ(50, *sample);  // Testing the * operator
   int value = sample;
-  EXPECT_EQ(50, value); // Testing implicit conversion
+  EXPECT_EQ(50, value);  // Testing implicit conversion
 }
 
 TEST(nullable, nullable_assignment_numeric) {
@@ -64,26 +64,26 @@ TEST(nullable, nullable_assignment_numeric) {
   sample2 = sample;
 
   EXPECT_FALSE(sample2.is_null());
-  EXPECT_EQ(50, *sample2); // Testing the * operator
+  EXPECT_EQ(50, *sample2);  // Testing the * operator
   int value = sample2;
-  EXPECT_EQ(50, value); // Testing implicit conversion
+  EXPECT_EQ(50, value);  // Testing implicit conversion
 }
 
 TEST(nullable, base_type_initialization_string) {
   mysqlshdk::utils::nullable<std::string> sample("some value");
   EXPECT_FALSE(sample.is_null());
-  EXPECT_EQ("some value", *sample); // Testing the * operator
+  EXPECT_EQ("some value", *sample);  // Testing the * operator
   std::string value = sample;
-  EXPECT_EQ("some value", value); // Testing implicit conversion
+  EXPECT_EQ("some value", value);  // Testing implicit conversion
 }
 
 TEST(nullable, other_initializtion_string) {
   mysqlshdk::utils::nullable<std::string> sample("some value");
   mysqlshdk::utils::nullable<std::string> sample2(sample);
   EXPECT_FALSE(sample2.is_null());
-  EXPECT_EQ("some value", *sample2); // Testing the * operator
+  EXPECT_EQ("some value", *sample2);  // Testing the * operator
   std::string value = sample2;
-  EXPECT_EQ("some value", value); // Testing implicit conversion
+  EXPECT_EQ("some value", value);  // Testing implicit conversion
 }
 
 TEST(nullable, base_type_assignment_string) {
@@ -92,9 +92,9 @@ TEST(nullable, base_type_assignment_string) {
   sample = "some value";
 
   EXPECT_FALSE(sample.is_null());
-  EXPECT_EQ("some value", *sample); // Testing the * operator
+  EXPECT_EQ("some value", *sample);  // Testing the * operator
   std::string value = sample;
-  EXPECT_EQ("some value", value); // Testing implicit conversion
+  EXPECT_EQ("some value", value);  // Testing implicit conversion
 }
 
 TEST(nullable, nullable_assignment_string) {
@@ -104,9 +104,9 @@ TEST(nullable, nullable_assignment_string) {
   sample2 = sample;
 
   EXPECT_FALSE(sample2.is_null());
-  EXPECT_EQ("some value", *sample2); // Testing the * operator
+  EXPECT_EQ("some value", *sample2);  // Testing the * operator
   std::string value = sample2;
-  EXPECT_EQ("some value", value); // Testing implicit conversion
+  EXPECT_EQ("some value", value);  // Testing implicit conversion
 }
 
-}
+}  // namespace testing

@@ -28,25 +28,25 @@
 #include <locale>
 #include <map>
 #include <memory>
-#include <string>
-#include <vector>
 #include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "scripting/types.h"
-#include "scripting/lang_base.h"
-#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/adminapi/dba/preconditions.h"
-#include "mysqlshdk/libs/db/connection_options.h"
+#include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
-#include "mysqlshdk/include/shellcore/console.h"
+#include "scripting/lang_base.h"
+#include "scripting/types.h"
 
 namespace mysqlsh {
 namespace dba {
 
-void SHCORE_PUBLIC validate_cluster_name(const std::string& name);
+void SHCORE_PUBLIC validate_cluster_name(const std::string &name);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
 class MetadataStorage;
@@ -62,17 +62,11 @@ struct Instance_definition {
   std::string xendpoint;
   std::string grendpoint;
 
-  bool operator==(const Instance_definition& other) const = delete;
+  bool operator==(const Instance_definition &other) const = delete;
 };
 
 namespace ReplicaSetStatus {
-enum Status {
-  OK,
-  OK_PARTIAL,
-  OK_NO_TOLERANCE,
-  NO_QUORUM,
-  UNKNOWN
-};
+enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, UNKNOWN };
 
 std::string describe(Status state);
 };  // namespace ReplicaSetStatus
@@ -109,16 +103,16 @@ bool validate_cluster_admin_user_privileges(
     std::shared_ptr<mysqlshdk::db::ISession> session,
     const std::string &admin_user, const std::string &admin_host,
     std::string *validation_error);
-void create_cluster_admin_user(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &username, const std::string &password);
-std::string SHCORE_PUBLIC resolve_cluster_ssl_mode(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string& member_ssl_mode);
-std::string SHCORE_PUBLIC resolve_instance_ssl_mode(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    std::shared_ptr<mysqlshdk::db::ISession> psession,
-    const std::string& member_ssl_mode);
+void create_cluster_admin_user(std::shared_ptr<mysqlshdk::db::ISession> session,
+                               const std::string &username,
+                               const std::string &password);
+std::string SHCORE_PUBLIC
+resolve_cluster_ssl_mode(std::shared_ptr<mysqlshdk::db::ISession> session,
+                         const std::string &member_ssl_mode);
+std::string SHCORE_PUBLIC
+resolve_instance_ssl_mode(std::shared_ptr<mysqlshdk::db::ISession> session,
+                          std::shared_ptr<mysqlshdk::db::ISession> psession,
+                          const std::string &member_ssl_mode);
 std::vector<std::string> get_instances_gr(
     const std::shared_ptr<MetadataStorage> &metadata);
 std::vector<std::string> get_instances_md(
@@ -127,14 +121,14 @@ std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
 std::vector<MissingInstanceInfo> get_unavailable_instances(
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
-std::string SHCORE_PUBLIC get_gr_replicaset_group_name(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
-bool SHCORE_PUBLIC validate_replicaset_group_name(
-    std::shared_ptr<mysqlshdk::db::ISession> session,
-    const std::string &group_name);
-bool validate_super_read_only(
-    std::shared_ptr<mysqlshdk::db::ISession> session, bool clear_read_only,
-    std::shared_ptr<mysqlsh::IConsole> console);
+std::string SHCORE_PUBLIC
+get_gr_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session);
+bool SHCORE_PUBLIC
+validate_replicaset_group_name(std::shared_ptr<mysqlshdk::db::ISession> session,
+                               const std::string &group_name);
+bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
+                              bool clear_read_only,
+                              std::shared_ptr<mysqlsh::IConsole> console);
 bool validate_instance_rejoinable(
     std::shared_ptr<mysqlshdk::db::ISession> instance_session,
     const std::shared_ptr<MetadataStorage> &metadata, uint64_t rs_id);
@@ -150,9 +144,8 @@ std::string prompt_cnf_path(
     std::shared_ptr<mysqlsh::IConsole> console_handler = nullptr);
 std::string prompt_new_account_password(
     std::shared_ptr<mysqlsh::IConsole> console_handler);
-int prompt_menu(
-    const std::vector<std::string> &options, int defopt,
-    std::shared_ptr<mysqlsh::IConsole> console_handler);
+int prompt_menu(const std::vector<std::string> &options, int defopt,
+                std::shared_ptr<mysqlsh::IConsole> console_handler);
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host,
@@ -161,15 +154,13 @@ bool prompt_create_usable_admin_account(
     const std::string &user, const std::string &host,
     std::string *out_create_account,
     std::shared_ptr<mysqlsh::IConsole> console_handler);
-bool prompt_super_read_only(
-    const mysqlshdk::mysql::IInstance &instance,
-    std::shared_ptr<mysqlsh::IConsole> console_handler,
-    bool throw_on_error = false);
-void dump_table(
-    const std::vector<std::string> &column_names,
-    const std::vector<std::string> &column_labels,
-    shcore::Value::Array_type_ref documents,
-    std::shared_ptr<mysqlsh::IConsole> console_handler);
+bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
+                            std::shared_ptr<mysqlsh::IConsole> console_handler,
+                            bool throw_on_error = false);
+void dump_table(const std::vector<std::string> &column_names,
+                const std::vector<std::string> &column_labels,
+                shcore::Value::Array_type_ref documents,
+                std::shared_ptr<mysqlsh::IConsole> console_handler);
 ConfigureInstanceAction get_configure_instance_action(
     const shcore::Value::Map_type &opt_map);
 void print_validation_results(
@@ -189,18 +180,17 @@ void print_validation_results(
  * @throws shcore::Exception created by the 'factory' function if connection
  *                           options are not valid.
  */
-void validate_connection_options(const Connection_options &options,
+void validate_connection_options(
+    const Connection_options &options,
     std::function<shcore::Exception(const std::string &)> factory =
         shcore::Exception::argument_error);
 
 inline void translate_cluster_exception(std::string operation) {
-  if (!operation.empty())
-    operation.append(": ");
+  if (!operation.empty()) operation.append(": ");
   try {
     throw;
   } catch (mysqlshdk::innodbcluster::cluster_error &e) {
-    throw shcore::Exception::runtime_error(
-        operation + e.format());
+    throw shcore::Exception::runtime_error(operation + e.format());
   } catch (shcore::Exception &e) {
     auto error = e.error();
     (*error)["message"] = shcore::Value(operation + e.what());

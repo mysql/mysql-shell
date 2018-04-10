@@ -24,34 +24,40 @@
 #ifndef _JSCRIPT_MAP_WRAPPER_H_
 #define _JSCRIPT_MAP_WRAPPER_H_
 
-#include "scripting/types.h"
 #include "scripting/include_v8.h"
+#include "scripting/types.h"
 
 namespace shcore {
 class JScript_context;
 
 class JScript_map_wrapper {
-public:
+ public:
   JScript_map_wrapper(JScript_context *context);
   ~JScript_map_wrapper();
 
   v8::Handle<v8::Object> wrap(std::shared_ptr<Value::Map_type> map);
 
-  static bool unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Map_type> &ret_map);
+  static bool unwrap(v8::Handle<v8::Object> value,
+                     std::shared_ptr<Value::Map_type> &ret_map);
 
-private:
+ private:
   struct Collectable;
 
-  static void handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
-  static void handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info);
-  static void handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info);
+  static void handler_getter(v8::Local<v8::String> property,
+                             const v8::PropertyCallbackInfo<v8::Value> &info);
+  static void handler_setter(v8::Local<v8::String> property,
+                             v8::Local<v8::Value> value,
+                             const v8::PropertyCallbackInfo<v8::Value> &info);
+  static void handler_enumerator(
+      const v8::PropertyCallbackInfo<v8::Array> &info);
 
-  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data);
+  static void wrapper_deleted(
+      const v8::WeakCallbackData<v8::Object, Collectable> &data);
 
-private:
+ private:
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _map_template;
 };
-};
+};  // namespace shcore
 
 #endif

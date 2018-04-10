@@ -25,7 +25,7 @@
 #include <algorithm>
 
 namespace shcore {
-ShellNotifications* ShellNotifications::_instance = NULL;
+ShellNotifications *ShellNotifications::_instance = NULL;
 
 NotificationObserver::~NotificationObserver() {
   std::list<std::string>::iterator it, end = _notifications.end();
@@ -36,26 +36,28 @@ NotificationObserver::~NotificationObserver() {
   _notifications.clear();
 }
 
-void NotificationObserver::observe_notification(const std::string& notification) {
+void NotificationObserver::observe_notification(
+    const std::string &notification) {
   if (ShellNotifications::get()->add_observer(this, notification))
     _notifications.push_back(notification);
 }
 
-void NotificationObserver::ignore_notification(const std::string& notification) {
+void NotificationObserver::ignore_notification(
+    const std::string &notification) {
   if (ShellNotifications::get()->remove_observer(this, notification))
     _notifications.remove(notification);
 }
 
 ShellNotifications *ShellNotifications::get() {
-  if (!_instance)
-    _instance = new ShellNotifications();
+  if (!_instance) _instance = new ShellNotifications();
 
   return _instance;
 }
 
 ShellNotifications::~ShellNotifications() {}
 
-bool ShellNotifications::add_observer(NotificationObserver *observer, const std::string &notification) {
+bool ShellNotifications::add_observer(NotificationObserver *observer,
+                                      const std::string &notification) {
   bool ret_val = false;
 
   // Gets the observer list for the given notification
@@ -66,13 +68,13 @@ bool ShellNotifications::add_observer(NotificationObserver *observer, const std:
   // Adds the observer if it does not exists already
   ObserverList *list = _observers[notification];
   ret_val = std::find(list->begin(), list->end(), observer) == list->end();
-  if (ret_val)
-    _observers[notification]->push_back(observer);
+  if (ret_val) _observers[notification]->push_back(observer);
 
   return ret_val;
 }
 
-bool ShellNotifications::remove_observer(NotificationObserver *observer, const std::string &notification) {
+bool ShellNotifications::remove_observer(NotificationObserver *observer,
+                                         const std::string &notification) {
   bool ret_val = false;
 
   if (_observers.find(notification) != _observers.end()) {
@@ -97,7 +99,9 @@ bool ShellNotifications::remove_observer(NotificationObserver *observer, const s
   return ret_val;
 }
 
-void ShellNotifications::notify(const std::string &name, const shcore::Object_bridge_ref& sender, shcore::Value::Map_type_ref data) {
+void ShellNotifications::notify(const std::string &name,
+                                const shcore::Object_bridge_ref &sender,
+                                shcore::Value::Map_type_ref data) {
   if (_observers.find(name) != _observers.end()) {
     ObserverList *list = _observers[name];
 
@@ -111,7 +115,8 @@ void ShellNotifications::notify(const std::string &name, const shcore::Object_br
   }
 };
 
-void ShellNotifications::notify(const std::string &name, const shcore::Object_bridge_ref& sender) {
+void ShellNotifications::notify(const std::string &name,
+                                const shcore::Object_bridge_ref &sender) {
   notify(name, sender, shcore::Value::Map_type_ref());
 }
-};
+};  // namespace shcore

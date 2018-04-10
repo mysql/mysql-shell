@@ -46,14 +46,14 @@ namespace db {
 
 class Error : public std::runtime_error {
  public:
-  Error(const char* what, int code) : std::runtime_error(what), code_(code) {}
+  Error(const char *what, int code) : std::runtime_error(what), code_(code) {}
 
-  Error(const char* what, int code, const char* sqlstate)
+  Error(const char *what, int code, const char *sqlstate)
       : std::runtime_error(what), code_(code), sqlstate_(sqlstate) {}
 
   int code() const { return code_; }
 
-  const char* sqlstate() const { return sqlstate_.c_str(); }
+  const char *sqlstate() const { return sqlstate_.c_str(); }
 
   std::string format() const {
     if (sqlstate_.empty())
@@ -71,23 +71,23 @@ class Error : public std::runtime_error {
 class SHCORE_PUBLIC ISession {
  public:
   // Connection
-  virtual void connect(const std::string& uri) {
+  virtual void connect(const std::string &uri) {
     connect(mysqlshdk::db::Connection_options(uri));
   }
 
-  virtual void connect(const mysqlshdk::db::Connection_options& data) = 0;
+  virtual void connect(const mysqlshdk::db::Connection_options &data) = 0;
 
-  virtual const mysqlshdk::db::Connection_options& get_connection_options()
+  virtual const mysqlshdk::db::Connection_options &get_connection_options()
       const = 0;
 
-  virtual const char* get_ssl_cipher() const = 0;
+  virtual const char *get_ssl_cipher() const = 0;
 
   virtual mysqlshdk::utils::Version get_server_version() const = 0;
 
   // Execution
-  virtual std::shared_ptr<IResult> query(const std::string& sql,
+  virtual std::shared_ptr<IResult> query(const std::string &sql,
                                          bool buffered = false) = 0;
-  virtual void execute(const std::string& sql) = 0;
+  virtual void execute(const std::string &sql) = 0;
 
   /**
    * Execute query and perform client-side placeholder substitution
@@ -99,12 +99,13 @@ class SHCORE_PUBLIC ISession {
    * auto result = session->queryf("SELECT * FROM tbl WHERE id = ?", my_id);
    */
   template <typename... Args>
-  std::shared_ptr<IResult> queryf(const std::string& sql, const Args& ...args) {
+  std::shared_ptr<IResult> queryf(const std::string &sql,
+                                  const Args &... args) {
     return query(shcore::sqlformat(sql, args...));
   }
 
   template <typename... Args>
-  void executef(const std::string& sql, const Args& ...args) {
+  void executef(const std::string &sql, const Args &... args) {
     execute(shcore::sqlformat(sql, args...));
   }
 

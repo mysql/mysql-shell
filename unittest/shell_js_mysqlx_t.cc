@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "unittest/shell_script_tester.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "unittest/shell_script_tester.h"
 
 using Version = mysqlshdk::utils::Version;
 
@@ -45,17 +45,14 @@ class Shell_js_mysqlx_tests : public Shell_js_script_tester {
     std::string user, host, password;
     auto connection_options = shcore::get_connection_options(_uri);
 
-    if (connection_options.has_user())
-      user = connection_options.get_user();
+    if (connection_options.has_user()) user = connection_options.get_user();
 
-    if (connection_options.has_host())
-      host = connection_options.get_host();
+    if (connection_options.has_host()) host = connection_options.get_host();
 
     if (connection_options.has_password())
       password = connection_options.get_password();
 
-    if (_port.empty())
-      _port = "33060";
+    if (_port.empty()) _port = "33060";
 
     std::string code = "var __user = '" + user + "';";
     exec_and_out_equals(code);
