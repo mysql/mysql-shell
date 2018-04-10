@@ -254,8 +254,6 @@ TEST_F(Mysqlsh_fieldtypes_all, Fixed_point_types_classic) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_X) {
-  SKIP_TEST("Has bugs to be fixed later");
-
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_real;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_real;",
@@ -281,8 +279,6 @@ TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_X) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Floating_point_types_classic) {
-  SKIP_TEST("Has bugs to be fixed later");
-
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_real;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT("SELECT * FROM t_real;",
@@ -319,7 +315,10 @@ TEST_F(Mysqlsh_fieldtypes_all, Date_types_X) {
                    "2015-07-23\t16:34:12\t2015-07-23 16:34:12\t"
                    "2015-07-23 16:34:12\t2015",
                    "0000-01-01\t-01:00:00\t2000-01-01 00:00:02\t"
-                   "0000-01-01 00:00:00\t1999"}),
+                   "0000-01-01 00:00:00\t1999",
+                   "NULL\tNULL\tNULL\tNULL\tNULL",
+                   "0000-00-00\t00:00:00\t0000-00-00 00:00:00\t"
+                   "0000-00-00 00:00:00\t0"}),
         _output);
   }
 }
@@ -327,14 +326,28 @@ TEST_F(Mysqlsh_fieldtypes_all, Date_types_X) {
 TEST_F(Mysqlsh_fieldtypes_all, Date_types_classic) {
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_date;", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT(
-      "SELECT * FROM t_date;",
-      multiline({"c1\tc2\tc3\tc4\tc5",
-                 "2015-07-23\t16:34:12\t2015-07-23 16:34:12\t"
-                 "2015-07-23 16:34:12\t2015",
-                 "0000-01-01\t-01:00:00\t2000-01-01 00:00:02\t"
-                 "0000-01-01 00:00:00\t1999"}),
-      _output);
+  //  In 5.7 NULL timestamp is changed to Now on insert
+  if (_target_server_version < Version("8.0"))
+    MY_EXPECT_MULTILINE_OUTPUT(
+        "SELECT * FROM t_date;",
+        multiline({"c1\tc2\tc3\tc4\tc5",
+                   "2015-07-23\t16:34:12\t2015-07-23 16:34:12\t"
+                   "2015-07-23 16:34:12\t2015",
+                   "0000-01-01\t-01:00:00\t2000-01-01 00:00:02\t"
+                   "0000-01-01 00:00:00\t1999"}),
+        _output);
+  else
+    MY_EXPECT_MULTILINE_OUTPUT(
+        "SELECT * FROM t_date;",
+        multiline({"c1\tc2\tc3\tc4\tc5",
+                   "2015-07-23\t16:34:12\t2015-07-23 16:34:12\t"
+                   "2015-07-23 16:34:12\t2015",
+                   "0000-01-01\t-01:00:00\t2000-01-01 00:00:02\t"
+                   "0000-01-01 00:00:00\t1999",
+                   "NULL\tNULL\tNULL\tNULL\tNULL",
+                   "0000-00-00\t00:00:00\t0000-00-00 00:00:00\t"
+                   "0000-00-00 00:00:00\t0000"}),
+        _output);
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Binary_types_X) {
@@ -374,8 +387,6 @@ TEST_F(Mysqlsh_fieldtypes_all, Binary_types_classic) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Other_types_X) {
-  SKIP_TEST("Has bugs to be fixed later");
-
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_bit;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
@@ -395,8 +406,6 @@ TEST_F(Mysqlsh_fieldtypes_all, Other_types_X) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Other_types_classic) {
-  SKIP_TEST("Has bugs to be fixed later");
-
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_bit;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(

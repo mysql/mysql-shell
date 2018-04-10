@@ -109,10 +109,14 @@ INSERT INTO t_double VALUES (NULL, NULL);
 # DATE
 #
 
+SET @SAVE_sql_mode = @@sql_mode ;
+set sql_mode='';
 CREATE TABLE t_date (c1 DATE, c2 TIME, c3 TIMESTAMP, c4 DATETIME, c5 YEAR);
 INSERT INTO t_date VALUES ('2015-07-23', '16:34:12', '2015-07-23 16:34:12', '2015-07-23 16:34:12', '2015');
 INSERT INTO t_date VALUES ('0-1-1', '-1:0:0.12', '2000-1-1 0:0:2', '0-1-1', '1999');
 INSERT INTO t_date VALUES (NULL, NULL, NULL, NULL, NULL);
+INSERT INTO t_date VALUES ('0000-00-00', '00:00:00', '0000-00-00 00:00:00', '0000-00-00 00:00:00', 0);
+SET @@sql_mode = @SAVE_sql_mode ; 
 
 #
 # BINARY

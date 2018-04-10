@@ -76,6 +76,12 @@ TEST_F(Db_tests, row_getters_date) {
       CHECK_FAIL_NUMBER(2);
       CHECK_NULL(3);
       CHECK_NULL(4);
+      NEXT_ROW();
+      CHECK_EQ(0, "0000-00-00", get_string);
+      CHECK_EQ(1, "00:00:00", get_string);
+      CHECK_EQ(2, "0000-00-00 00:00:00", get_string);
+      CHECK_EQ(3, "0000-00-00 00:00:00", get_string);
+      //  CHECK_EQ(4, 0, get_int); For test framework 0 != 0000
       LAST_ROW();
     }
   } while (switch_proto());
