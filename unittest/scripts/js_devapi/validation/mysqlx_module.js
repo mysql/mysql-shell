@@ -99,10 +99,10 @@ For additional information on connection data use \? connection.
 ||mysqlx.dateValue: 3,6 or 7 arguments expected (ArgumentError)
 
 //@ mysqlx module: Bug #26429426
-||mysqlx.dateValue: Valid day range is 1-31 (ArgumentError)
+||mysqlx.dateValue: Valid day range is 0-31 (ArgumentError)
 
 //@ month validation
-||mysqlx.dateValue: Valid month range is 1-12 (ArgumentError)
+||mysqlx.dateValue: Valid month range is 0-12 (ArgumentError)
 
 //@ year validation
 ||mysqlx.dateValue: Valid year range is 0-9999 (ArgumentError)

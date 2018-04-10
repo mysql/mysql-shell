@@ -192,10 +192,10 @@ Object_bridge_ref Date::from_mysqlx_datetime(const xcl::DateTime &date) {
 void Date::validate() {
   if (_year > 9999 || _year < 0)
     throw shcore::Exception::argument_error("Valid year range is 0-9999");
-  if (_month > 11 || _month < 0)
-    throw shcore::Exception::argument_error("Valid month range is 1-12");
-  if (_day > 31 || _day < 1)
-    throw shcore::Exception::argument_error("Valid day range is 1-31");
+  if (_month > 11 || _month + 1 < 0)
+    throw shcore::Exception::argument_error("Valid month range is 0-12");
+  if (_day > 31 || _day < 0)
+    throw shcore::Exception::argument_error("Valid day range is 0-31");
   if (_has_time) {
     if (_hour > 23 || _hour < 0)
       throw shcore::Exception::argument_error("Valid hour range is 0-23");

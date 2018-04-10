@@ -48,7 +48,7 @@ mysqlx.dateValue(1410, 7, 15, 10);
 mysqlx.dateValue(1, 2, -19);
 
 //@ month validation
-mysqlx.dateValue(1410, 0, 10);
+mysqlx.dateValue(1410, 13, 10);
 
 //@ year validation
 mysqlx.dateValue(-10, 11, 10);
