@@ -82,10 +82,10 @@ class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
 
       // Other examples use an URI assumin the defaut port
       // If that's not the case, we need to add it to the URI
-      pos = line.find("'mike:s3cr3t!@localhost'");
+      pos = line.find("'mike:paSSw0rd@localhost'");
       if (pos != std::string::npos) {
         std::string new_line = line.substr(0, pos);
-        new_line += "'mike:s3cr3t!@localhost:";
+        new_line += "'mike:paSSw0rd@localhost:";
         new_line += _port;
         new_line += "');";
         line = new_line;
@@ -106,7 +106,7 @@ TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server) {
 
 TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server_1) {
   output_handler.prompts.push_back({"*", "mike"});
-  output_handler.passwords.push_back({"*", "s3cr3t!"});
+  output_handler.passwords.push_back({"*", "paSSw0rd"});
 
   validate_interactive("concepts/Connecting_to_a_Single_MySQL_Server_1");
 }
@@ -132,10 +132,6 @@ TEST_F(Shell_py_dev_api_sample_tester, Working_with_a_Session_Object) {
 }
 
 //==================>>> crud_operations
-TEST_F(Shell_py_dev_api_sample_tester, Interactive_Shell_Commands) {
-  validate_interactive("crud_operations/Interactive_Shell_Commands");
-}
-
 TEST_F(Shell_py_dev_api_sample_tester, Method_Chaining) {
   validate_interactive("crud_operations/Method_Chaining");
 }
@@ -234,15 +230,9 @@ TEST_F(Shell_py_dev_api_sample_tester, Creating_a_Collection) {
 }
 
 TEST_F(Shell_py_dev_api_sample_tester, Document_Identity) {
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 5))
+    SKIP_TEST("DevAPI samples require the lastest version of the DevAPI");
   validate_interactive("working_with_collections/Document_Identity");
-}
-
-TEST_F(Shell_py_dev_api_sample_tester, Document_Identity_1) {
-  validate_interactive("working_with_collections/Document_Identity_1");
-}
-
-TEST_F(Shell_py_dev_api_sample_tester, Document_Identity_2) {
-  validate_interactive("working_with_collections/Document_Identity_2");
 }
 
 TEST_F(Shell_py_dev_api_sample_tester, Working_with_Existing_Collections) {

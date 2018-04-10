@@ -26,7 +26,7 @@ function ensure_session(){
 
     // Ensures the user on dev-api exists
     try {
-      testSession.sql("create user mike@'%' identified by 's3cr3t!'").execute();
+      testSession.sql("create user mike@'%' identified by 'paSSw0rd'").execute();
       testSession.sql("grant all on *.* to mike@'%' with grant option").execute();
     }
     catch(err)

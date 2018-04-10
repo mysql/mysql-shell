@@ -7,7 +7,7 @@ try {
   // Connect to server on localhost
   mySession = mysqlx.getSession( {
     host: 'localhost', port: 33060,
-    dbUser: 'mike', dbPassword: 's3cr3t!' } );
+    user: 'mike', password: 'paSSw0rd' } );
 }
 catch (err) {
   print('The database session could not be opened: ' + err.message);

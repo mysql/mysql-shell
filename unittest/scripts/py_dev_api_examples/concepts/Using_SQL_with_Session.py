@@ -1,7 +1,7 @@
 from mysqlsh import mysqlx
 
 # Connect to server using a Session
-mySession = mysqlx.get_session('mike:s3cr3t!@localhost')
+mySession = mysqlx.get_session('mike:paSSw0rd@localhost')
 
 # Switch to use schema 'test'
 mySession.sql("USE test").execute()

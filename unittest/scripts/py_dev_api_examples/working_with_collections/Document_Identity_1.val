@@ -1,3 +1,0 @@
-print(myColl.find('title like "MySQL Cookbook%"').execute().fetch_one()._id);|978-1449374020|
-testSession.close()||
-testSession = None||

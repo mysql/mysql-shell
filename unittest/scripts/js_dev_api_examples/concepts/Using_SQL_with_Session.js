@@ -2,7 +2,7 @@
 var mysqlx = require('mysqlx');
 
 // Connect to server using a Session
-var mySession = mysqlx.getSession('mike:s3cr3t!@localhost');
+var mySession = mysqlx.getSession('mike:paSSw0rd@localhost');
 
 // Switch to use schema 'test'
 mySession.sql("USE test").execute();
