@@ -6,7 +6,7 @@ var mysqlx = require('mysqlx');
 // Connect to server
 var mySession = mysqlx.getSession( {
 host: 'localhost', port: 33060,
-dbUser: 'mike', dbPassword: 's3cr3t!'} );
+user: 'mike', password: 'paSSw0rd'} );
 
 var myDb = mySession.getSchema('test');
 

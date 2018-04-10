@@ -7,6 +7,6 @@ pwd = shell.prompt("Password: ", {'type': "password"})
 # Connect to MySQL Server on a network machine
 mySession = mysqlx.get_session( {
         'host': 'localhost', 'port': 33060,
-        'dbUser': usr, 'dbPassword': pwd} )
+        'user': usr, 'password': pwd} )
 
 myDb = mySession.get_schema('test')

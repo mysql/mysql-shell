@@ -1,0 +1,2 @@
+print(myDb)|<Schema:test>|
+mySession.close()||
