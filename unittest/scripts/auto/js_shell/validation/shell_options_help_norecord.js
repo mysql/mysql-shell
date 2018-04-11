@@ -1,18 +1,18 @@
 //@<OUT> autocomplete.nameCache option help text
  autocomplete.nameCache  Enable database name caching for autocompletion.
- 
+
 //@<OUT> batchContinueOnError option help text
  batchContinueOnError  To use in SQL batch mode, forces processing to continue
                        if an error is found.
-					   
+
 //@<OUT> defaultMode option help text
  defaultMode  Specifies the shell mode to use when shell is started - one of
               sql, js or py.
-		  
+
 //@<OUT> devapi.dbObjectHandles option help text
  devapi.dbObjectHandles  Enable table and collection name handles for the
                          DevAPI db object.
-						 
+
 //@<OUT> history.autoSave option help text
  history.autoSave  Shell's history autosave.
 
@@ -26,8 +26,9 @@
  interactive  Enables interactive mode
 
 //@<OUT> logLevel option help text
- logLevel  The log level value must be an integer between 1 and 8 any of [none,
-           internal, error, warning, info, debug, debug2, debug3].
+ logLevel  The log level value must be an integer between 1 and 8 or any of
+           [none, internal, error, warning, info, debug, debug2, debug3]
+           respectively.
 
 //@<OUT> outputFormat option help text
  outputFormat  Determines output format
@@ -43,10 +44,10 @@
 
 //@<OUT> useWizards option help text
  useWizards  Enables wizard mode.
- 
+
 //@ Verify the help text when using filter
 |history.autoSave           Shell's history autosave.|
 |history.maxSize            Shell's history maximum size|
 |history.sql.ignorePattern  Shell's history ignore list.|
- 
+
 
