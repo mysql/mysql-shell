@@ -370,10 +370,16 @@ Value Python_context::execute_interactive(const std::string &code,
       const_cast<char *>("displayhook"),
       PyDict_GetItemString(PyModule_GetDict(_shell_python_support_module),
                            const_cast<char *>("interactivehook")));
+  PyObject *py_result = nullptr;
+  try {
+    py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
+  } catch (const std::exception &e) {
+    set_python_error(PyExc_RuntimeError, e.what());
 
-  PyObject *py_result =
-      PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
-
+    // C++ exceptions should be caught before they cross to the Python runtime.
+    // Assert let us to catch these cases during development.
+    assert(0);
+  }
   PySys_SetObject(const_cast<char *>("displayhook"), orig_hook);
   Py_DECREF(orig_hook);
   if (!py_result) {
