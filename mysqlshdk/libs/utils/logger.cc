@@ -349,8 +349,9 @@ bool Logger::is_level_none(const std::string &tag) {
 }
 
 const char *Logger::get_level_range_info() {
-  return "The log level value must be an integer between 1 and 8 any of "
-         "[none, internal, error, warning, info, debug, debug2, debug3].";
+  return "The log level value must be an integer between 1 and 8 or any of "
+         "[none, internal, error, warning, info, debug, debug2, debug3] "
+         "respectively.";
 }
 
 Logger::LOG_LEVEL Logger::Logger_levels_table::get_level_by_name(

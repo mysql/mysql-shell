@@ -204,7 +204,7 @@
  sandboxDir                 <<<_defaultSandboxDir>>>
  showWarnings               true
  useWizards                 true
- 
+
 //@<OUT> List all the options using \option and show-origin
  autocomplete.nameCache     true (Compiled default)
  batchContinueOnError       false (Compiled default)
@@ -239,7 +239,7 @@
 //@ Configuration operation available in SQL mode
 |Switching to SQL mode... Commands end with ;|
 |8|
-||The log level value must be an integer between 1 and 8 any of [none, internal, error, warning, info, debug, debug2, debug3].
+||The log level value must be an integer between 1 and 8 or any of [none, internal, error, warning, info, debug, debug2, debug3] respectively.
 |8|
 ||
 |5|
@@ -276,5 +276,5 @@
  sandboxDir                 <<<_defaultSandboxDir>>> (Compiled default)
  showWarnings               true (Compiled default)
  useWizards                 true (Compiled default)
- 
+
 
