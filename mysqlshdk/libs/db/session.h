@@ -116,6 +116,8 @@ class SHCORE_PUBLIC ISession {
 
   virtual bool is_open() const = 0;
 
+  virtual const Error *get_last_error() const = 0;
+
   virtual ~ISession() {}
 
   // TODO(rennox): This is a convenient function as URI is being retrieved from

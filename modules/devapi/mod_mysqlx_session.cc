@@ -1167,21 +1167,11 @@ shcore::Value Session::_execute_stmt(const std::string &ns,
 std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
     const std::string &ns, const std::string &command,
     const ::xcl::Arguments &args) {
-  try {
-    Interruptible intr(this);
-    auto result = std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(
-        _session->execute_stmt(ns, command, args));
-    result->pre_fetch_rows();
-    return result;
-  } catch (const mysqlshdk::db::Error &e) {
-    if (e.code() == 2006 || e.code() == 5166 || e.code() == 2013 ||
-        e.code() == 2000) {
-      ShellNotifications::get()->notify(
-          "SN_SESSION_CONNECTION_LOST",
-          std::dynamic_pointer_cast<Cpp_object_bridge>(shared_from_this()));
-    }
-    throw;
-  }
+  Interruptible intr(this);
+  auto result = std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(
+      _session->execute_stmt(ns, command, args));
+  result->pre_fetch_rows();
+  return result;
 }
 
 shcore::Value Session::_execute_sql(const std::string &statement,

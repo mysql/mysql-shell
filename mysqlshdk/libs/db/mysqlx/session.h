@@ -98,6 +98,12 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   void load_session_info();
 
+  void check_error_and_throw(const xcl::XError &error);
+
+  void store_error_and_throw(const Error &error);
+
+  Error *get_last_error() const { return m_last_error.get(); }
+
   std::unique_ptr<xcl::XSession> _mysql;
   std::string _ssl_cipher;
   std::string _connection_info;
@@ -111,6 +117,7 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   std::weak_ptr<Result> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
+  std::unique_ptr<Error> m_last_error;
 };
 
 class SHCORE_PUBLIC Session : public ISession,
@@ -182,6 +189,10 @@ class SHCORE_PUBLIC Session : public ISession,
   }
 
   bool is_open() const override { return _impl->valid(); };
+
+  const Error *get_last_error() const override {
+    return _impl->get_last_error();
+  }
 
   ~Session() { close(); }
 

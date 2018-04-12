@@ -298,13 +298,6 @@ shcore::Value ClassicSession::execute_sql(const std::string &query,
         timer.stage_end();
         result->set_execution_time(timer.total_seconds_ellapsed());
       } catch (const mysqlshdk::db::Error &error) {
-        // Connection lost, sends a notification
-        if (error.code() == CR_SERVER_GONE_ERROR ||
-            error.code() == CR_SERVER_LOST)
-          ShellNotifications::get()->notify(
-              "SN_SESSION_CONNECTION_LOST",
-              std::dynamic_pointer_cast<Cpp_object_bridge>(shared_from_this()));
-
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());
       }

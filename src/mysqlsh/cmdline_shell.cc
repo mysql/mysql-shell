@@ -555,8 +555,6 @@ void Command_line_shell::handle_notification(
     } else if (data->get_string("option") == SHCORE_HISTIGNORE) {
       set_sql_safe_for_logging(data->get_string("value"));
     }
-  } else {
-    Mysql_shell::handle_notification(name, sender, data);
   }
 }
 }  // namespace mysqlsh

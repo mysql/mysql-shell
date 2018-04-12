@@ -26,6 +26,7 @@
 
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -185,9 +186,13 @@ Cluster_check_info get_cluster_check_info(
   // active session
   try {
     state.source_type = get_gr_instance_type(group_session);
-  } catch (std::exception &e) {
-    log_warning("Error detecting GR instance: %s", e.what());
-    state.source_type = GRInstanceType::Unknown;
+  } catch (shcore::Exception &e) {
+    if (mysqlshdk::db::is_server_connection_error(e.code())) {
+      throw;
+    } else {
+      log_warning("Error detecting GR instance: %s", e.what());
+      state.source_type = GRInstanceType::Unknown;
+    }
   }
 
   // If it is a GR instance, validates the instance state

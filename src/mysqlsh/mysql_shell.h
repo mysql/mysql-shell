@@ -40,8 +40,7 @@ namespace mysqlsh {
 class Shell;  // from modules
 class Util;
 
-class Mysql_shell : public mysqlsh::Base_shell,
-                    public shcore::NotificationObserver {
+class Mysql_shell : public mysqlsh::Base_shell {
  public:
   Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
               shcore::Interpreter_delegate *custom_delegate);
@@ -98,10 +97,6 @@ class Mysql_shell : public mysqlsh::Base_shell,
                                 const std::string &uri,
                                 const std::string &sessionid);
 
-  void handle_notification(const std::string &name,
-                           const shcore::Object_bridge_ref &sender,
-                           shcore::Value::Map_type_ref data) override;
-
   void process_sql_result(std::shared_ptr<mysqlshdk::db::IResult> result,
                           const shcore::Sql_result_info &info) override;
 
@@ -111,7 +106,6 @@ class Mysql_shell : public mysqlsh::Base_shell,
   std::shared_ptr<mysqlsh::Util> _global_util;
   Scoped_console m_console_handler;
 
-  bool _reconnect_session;
   /// Last schema set by the user via \use command.
   std::string _last_active_schema;
 

@@ -107,12 +107,6 @@ bool Shell_sql::process_sql(const std::string &query_str,
         info.ellapsed_seconds = timer.total_seconds_ellapsed();
       } catch (mysqlshdk::db::Error &e) {
         Interrupts::pop_handler();
-
-        // Connection lost, sends a notification
-        if (e.code() == CR_SERVER_GONE_ERROR || e.code() == CR_SERVER_LOST)
-          ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST",
-                                            _owner->get_dev_session());
-
         throw shcore::Exception::mysql_error_with_code_and_state(
             e.what(), e.code(), e.sqlstate());
       } catch (...) {
