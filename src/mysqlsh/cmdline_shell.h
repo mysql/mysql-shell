@@ -41,7 +41,8 @@
 
 namespace mysqlsh {
 
-class Command_line_shell : public Mysql_shell {
+class Command_line_shell : public Mysql_shell,
+                           public shcore::NotificationObserver {
  public:
   explicit Command_line_shell(std::shared_ptr<Shell_options> options);
 

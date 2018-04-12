@@ -298,13 +298,13 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
                             data.as_uri(uri::formats::only_transport()) +
                             "' seems to speak the classic MySQL protocol";
       message.append(" (").append(err.what()).append(")");
-      throw mysqlshdk::db::Error(message.c_str(), CR_MALFORMED_PACKET);
+      store_error_and_throw(Error(message.c_str(), CR_MALFORMED_PACKET));
     } else {
       if (!xproto_errors.empty()) {
         auto e = xproto_errors.back();
-        throw mysqlshdk::db::Error(e.msg().c_str(), e.code());
+        store_error_and_throw(Error(e.msg().c_str(), e.code()));
       }
-      throw mysqlshdk::db::Error(err.what(), err.error());
+      store_error_and_throw(Error(err.what(), err.error()));
     }
   }
 
@@ -411,7 +411,7 @@ std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(_mysql->execute_sql(sql, &error));
-  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
+  check_error_and_throw(error);
   return after_query(std::move(xresult), buffered);
 }
 
@@ -428,7 +428,7 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->execute_stmt(ns, stmt, args, &error));
-  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
+  check_error_and_throw(error);
   return after_query(std::move(xresult));
 }
 
@@ -438,7 +438,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_insert(msg, &error));
-  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
+  check_error_and_throw(error);
   return after_query(std::move(xresult));
 }
 
@@ -448,7 +448,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_update(msg, &error));
-  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
+  check_error_and_throw(error);
   return after_query(std::move(xresult));
 }
 
@@ -458,7 +458,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_delete(msg, &error));
-  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
+  check_error_and_throw(error);
   return after_query(std::move(xresult));
 }
 
@@ -468,8 +468,21 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_find(msg, &error));
-  if (error) throw mysqlshdk::db::Error(error.what(), error.error());
+  check_error_and_throw(error);
   return after_query(std::move(xresult));
+}
+
+void XSession_impl::check_error_and_throw(const xcl::XError &error) {
+  if (error) {
+    store_error_and_throw(Error(error.what(), error.error()));
+  } else {
+    m_last_error.reset(nullptr);
+  }
+}
+
+void XSession_impl::store_error_and_throw(const Error &error) {
+  m_last_error.reset(new Error(error));
+  throw error;
 }
 
 std::function<std::shared_ptr<Session>()> g_session_factory;

@@ -124,6 +124,24 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return mysql_error(_mysql);
   }
 
+  Error *get_last_error() {
+    if (nullptr == _mysql) {
+      m_last_error.reset(nullptr);
+    } else {
+      int code = 0;
+      const char *sqlstate = nullptr;
+      const char *error = get_last_error(&code, &sqlstate);
+
+      if (code == 0) {
+        m_last_error.reset(nullptr);
+      } else {
+        m_last_error.reset(new Error{error, code, sqlstate});
+      }
+    }
+
+    return m_last_error.get();
+  }
+
   std::vector<std::string> get_last_gtids() const;
 
   const mysqlshdk::db::Connection_options &get_connection_options() const {
@@ -139,6 +157,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::shared_ptr<MYSQL_RES> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
+  std::unique_ptr<Error> m_last_error;
 };
 
 class SHCORE_PUBLIC Session : public ISession,
@@ -149,27 +168,29 @@ class SHCORE_PUBLIC Session : public ISession,
 
   static std::shared_ptr<Session> create();
 
-  virtual void connect(
-      const mysqlshdk::db::Connection_options &connection_options) {
+  void connect(
+      const mysqlshdk::db::Connection_options &connection_options) override {
     _impl->connect(connection_options);
   }
 
-  virtual const mysqlshdk::db::Connection_options &get_connection_options()
-      const {
+  const mysqlshdk::db::Connection_options &get_connection_options()
+      const override {
     return _impl->get_connection_options();
   }
 
-  virtual std::shared_ptr<IResult> query(const std::string &sql,
-                                         bool buffered = false) {
+  std::shared_ptr<IResult> query(const std::string &sql,
+                                 bool buffered = false) override {
     return _impl->query(sql, buffered);
   }
 
-  virtual void execute(const std::string &sql) { _impl->execute(sql); }
-  virtual void close() { _impl->close(); }
-  virtual const char *get_ssl_cipher() const { return _impl->get_ssl_cipher(); }
-  virtual bool is_open() const { return _impl->is_open(); }
+  void execute(const std::string &sql) override { _impl->execute(sql); }
+  void close() override { _impl->close(); }
+  const char *get_ssl_cipher() const override {
+    return _impl->get_ssl_cipher();
+  }
+  bool is_open() const override { return _impl->is_open(); }
 
-  virtual uint64_t get_connection_id() const { return _impl->get_thread_id(); }
+  uint64_t get_connection_id() const override { return _impl->get_thread_id(); }
 
   virtual uint64_t get_protocol_info() { return _impl->get_protocol_info(); }
 
@@ -181,11 +202,15 @@ class SHCORE_PUBLIC Session : public ISession,
 
   virtual const char *get_stats() { return _impl->get_stats(); }
 
-  virtual mysqlshdk::utils::Version get_server_version() const {
+  mysqlshdk::utils::Version get_server_version() const override {
     return _impl->get_server_version();
   }
 
-  virtual ~Session() {
+  const Error *get_last_error() const override {
+    return _impl->get_last_error();
+  }
+
+  ~Session() override {
     if (_impl) _impl->close();
   }
 

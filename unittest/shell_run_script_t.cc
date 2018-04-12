@@ -168,6 +168,22 @@ class ShellExeRunScript : public tests::Command_line_test {
     shcore::create_file("badsyn.js",
                         "){}\n"
                         "println('end')\n");
+    shcore::create_file("reconnect_mysql.js",
+                        "session.runSql('select 1');\n"
+                        "try {session.runSql('kill ?', "
+                        "[session.runSql('select connection_id()')"
+                        ".fetchOne()[0]])} catch(e){};\n"
+                        "session.runSql('select 1');\n"
+                        "session.runSql('select 1');\n");
+    shcore::create_file("reconnect_mysqlx.js",
+                        "session.sql('select 1').execute();\n"
+                        "try {session.sql('kill ?').bind("
+                        "[session.sql('select connection_id()').execute()"
+                        ".fetchOne()[0]]).execute(); } catch(e){};\n"
+                        "session.sql('select 1').execute();\n"
+                        "session.sql('select 1').execute();\n");
+    // disable prompt theme, so we can check output along with prompt
+    putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME=invalid"));
   }
 
   static void TearDownTestCase() {
@@ -180,6 +196,9 @@ class ShellExeRunScript : public tests::Command_line_test {
     shcore::delete_file("good_int.py");
     shcore::delete_file("bad.py");
     shcore::delete_file("badsyn.py");
+    shcore::delete_file("reconnect_mysql.js");
+    shcore::delete_file("reconnect_mysqlx.js");
+    putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   }
 };
 
@@ -651,5 +670,70 @@ end)";
 }
 
 #endif  // ! _WIN32
+
+TEST_F(ShellExeRunScript, reconnect_mysql_session) {
+  wipe_out();
+  int rc = execute(
+      {_mysqlsh, _mysql_uri.c_str(), "--js", "--interactive=full", nullptr},
+      nullptr, "reconnect_mysql.js");
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      R"(No default schema selected; type \use <schema> to set one.
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+mysql-js []> session.runSql('select 1');
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(mysql-js []> session.runSql('select 1');
+ClassicSession.runSql: Lost connection to MySQL server during query (MySQL Error 2013)
+The global session got disconnected..
+Attempting to reconnect to 'mysql://)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      R"(The global session was successfully reconnected.
+mysql-js []> session.runSql('select 1');
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)");
+}
+
+TEST_F(ShellExeRunScript, reconnect_mysqlx_session) {
+  wipe_out();
+  int rc =
+      execute({_mysqlsh, _uri.c_str(), "--js", "--interactive=full", nullptr},
+              nullptr, "reconnect_mysqlx.js");
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      R"(No default schema selected; type \use <schema> to set one.
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+mysql-js []> session.sql('select 1').execute();
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      R"(mysql-js []> session.sql('select 1').execute();
+MySQL server has gone away (MySQL Error 2006)
+The global session got disconnected..
+Attempting to reconnect to 'mysqlx://)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      R"(The global session was successfully reconnected.
+mysql-js []> session.sql('select 1').execute();
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)");
+}
 
 }  // namespace shellcore

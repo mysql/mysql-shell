@@ -73,6 +73,9 @@ class Mock_session : public mysqlshdk::db::ISession {
   MOCK_CONST_METHOD0(is_open, bool());
   MOCK_CONST_METHOD0(get_server_version, mysqlshdk::utils::Version());
 
+  // Error handling
+  MOCK_CONST_METHOD0(get_last_error, mysqlshdk::db::Error *());
+
   // Disconnection
   MOCK_METHOD0(close, void());
 

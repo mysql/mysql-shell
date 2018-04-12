@@ -30,6 +30,7 @@ set(db_SOURCE
     connection_options.cc
     ssl_options.cc
     utils_connection.cc
+    utils_error.cc
     row_copy.cc
     mysql/session.cc
     mysql/result.cc

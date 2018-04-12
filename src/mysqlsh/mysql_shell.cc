@@ -44,6 +44,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -371,10 +372,8 @@ REGISTER_HELP(CMD_NOWARNINGS_SYNTAX1, "<b>\\w</b>");
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
     : mysqlsh::Base_shell(cmdline_options, custom_delegate),
-      m_console_handler{std::make_shared<Shell_console>(custom_delegate)},
-      _reconnect_session(false) {
+      m_console_handler{std::make_shared<Shell_console>(custom_delegate)} {
   DEBUG_OBJ_ALLOC(Mysql_shell);
-  observe_notification("SN_SESSION_CONNECTION_LOST");
 
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
@@ -1113,8 +1112,21 @@ void Mysql_shell::refresh_completion(bool force) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         _shell->get_dev_session());
     std::string current_schema;
-    if (session && _provider_sql &&
-        !(current_schema = session->get_current_schema()).empty()) {
+    auto handle_error = [this](const std::exception &e) {
+      print_error(shcore::str_format(
+          "Error during auto-completion cache update: %s\n", e.what()));
+    };
+
+    if (session) {
+      try {
+        current_schema = session->get_current_schema();
+      } catch (std::exception &e) {
+        handle_error(e);
+        return;
+      }
+    }
+
+    if (session && _provider_sql && !current_schema.empty()) {
       // Only refresh the full DB name cache if we're in SQL mode
       if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
         println("Fetching table and column names from `" + current_schema +
@@ -1124,10 +1136,7 @@ void Mysql_shell::refresh_completion(bool force) {
                                             nullptr,  // &table_names,
                                             true);
         } catch (std::exception &e) {
-          print_error(
-              shcore::str_format(
-                  "Error during auto-completion cache update: %s\n", e.what())
-                  .c_str());
+          handle_error(e);
         }
       }
     }
@@ -1342,21 +1351,22 @@ void Mysql_shell::process_sql_result(
   }
 }
 
-void Mysql_shell::handle_notification(const std::string &name,
-                                      const shcore::Object_bridge_ref &sender,
-                                      shcore::Value::Map_type_ref data) {
-  if (name == "SN_SESSION_CONNECTION_LOST") {
-    auto session = std::dynamic_pointer_cast<mysqlsh::ShellBaseSession>(sender);
-
-    if (session && session == _shell->get_dev_session())
-      _reconnect_session = true;
-  }
-}
-
 bool Mysql_shell::reconnect_if_needed(bool force) {
   bool ret_val = false;
-  if (_reconnect_session || force) {
-    auto session = _shell->get_dev_session();
+  bool reconnect_session = false;
+  auto session = _shell->get_dev_session();
+
+  if (session) {
+    const auto core_session = session->get_core_session();
+    if (core_session) {
+      auto error = core_session->get_last_error();
+      reconnect_session =
+          (error != nullptr) &&
+          mysqlshdk::db::is_server_connection_error(error->code());
+    }
+  }
+
+  if (reconnect_session || force) {
     Connection_options co = session->get_connection_options();
     if (!_last_active_schema.empty() &&
         (!co.has_schema() || co.get_schema() != _last_active_schema))
@@ -1390,8 +1400,6 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
           "\nThe global session could not be reconnected automatically.\n"
           "Please use '\\reconnect' instead to manually reconnect.\n");
   }
-
-  _reconnect_session = false;
 
   return ret_val;
 }
