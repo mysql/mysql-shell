@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -1840,6 +1840,19 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   _options->wizards = true;
   wipe_all();
 
+  execute("shell.options.set_persist(\"showWarnings\", False)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_FALSE(_options->show_warnings);
+  wipe_all();
+
+  execute("shell.options.unset(\"showWarnings\");");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_TRUE(_options->show_warnings);
+
+  execute("shell.options.unset_persist(\"showWarnings\");");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_TRUE(_options->show_warnings);
+
   execute("\\js");
   wipe_all();
 
@@ -1863,7 +1876,7 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   EXPECT_TRUE(_options->show_warnings);
   wipe_all();
 
-  execute("shell.options.set_persist(\"showWarnings\", false)");
+  execute("shell.options.setPersist(\"showWarnings\", false)");
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_FALSE(_options->show_warnings);
 
@@ -1879,7 +1892,7 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   reset_shell();
   EXPECT_FALSE(_options->show_warnings);
 
-  execute("shell.options.unset_persist(\"showWarnings\");");
+  execute("shell.options.unsetPersist(\"showWarnings\");");
   EXPECT_TRUE(output_handler.std_err.empty());
   EXPECT_TRUE(_options->show_warnings);
   reset_options(0, nullptr, false);

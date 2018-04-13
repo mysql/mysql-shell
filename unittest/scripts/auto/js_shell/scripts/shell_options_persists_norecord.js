@@ -4,99 +4,99 @@ var _defaultSandboxDir = shell.options.sandboxDir
 shell.connect(__mysqluripwd)
 
 //@ autocomplete.nameCache update and set back to default using shell.options
-shell.options.set_persist("autocomplete.nameCache", false);
+shell.options.setPersist("autocomplete.nameCache", false);
 shell.options["autocomplete.nameCache"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("autocomplete.nameCache")
+shell.options.unsetPersist("autocomplete.nameCache")
 shell.options["autocomplete.nameCache"]
 
 //@ batchContinueOnError update and set back to default using shell.options
 shell.options.set("batchContinueOnError", true);
 shell.options["batchContinueOnError"]
-shell.options.unset_persist("batchContinueOnError")
+shell.options.unsetPersist("batchContinueOnError")
 shell.options["batchContinueOnError"]
 
 //@ devapi.dbObjectHandles update and set back to default using shell.options
-shell.options.set_persist("devapi.dbObjectHandles", false);
+shell.options.setPersist("devapi.dbObjectHandles", false);
 shell.options["devapi.dbObjectHandles"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("devapi.dbObjectHandles")
+shell.options.unsetPersist("devapi.dbObjectHandles")
 shell.options["devapi.dbObjectHandles"]
 
 //@ history.autoSave update and set back to default using shell.options
-shell.options.set_persist("history.autoSave", true);
+shell.options.setPersist("history.autoSave", true);
 shell.options["history.autoSave"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("history.autoSave");
+shell.options.unsetPersist("history.autoSave");
 shell.options["history.autoSave"]
 
 //@ history.maxSize update and set back to default using shell.options
-shell.options.set_persist("history.maxSize", 10);
+shell.options.setPersist("history.maxSize", 10);
 shell.options["history.maxSize"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("history.maxSize");
+shell.options.unsetPersist("history.maxSize");
 shell.options["history.maxSize"]
 
 //@ history.sql.ignorePattern update and set back to default using shell.options
-shell.options.set_persist("history.sql.ignorePattern", "*PATTERN*");
+shell.options.setPersist("history.sql.ignorePattern", "*PATTERN*");
 shell.options["history.sql.ignorePattern"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("history.sql.ignorePattern");
+shell.options.unsetPersist("history.sql.ignorePattern");
 shell.options["history.sql.ignorePattern"]
 
 //@ interactive update and set back to default using shell.options
 shell.options["interactive"] = "true"
 shell.options["interactive"]
-shell.options.unset_persist("interactive");
+shell.options.unsetPersist("interactive");
 shell.options["interactive"]
 
 //@ logLevel update and set back to default using shell.options
-shell.options.set_persist("logLevel", 8);
+shell.options.setPersist("logLevel", 8);
 shell.options["logLevel"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("logLevel");
+shell.options.unsetPersist("logLevel");
 shell.options["logLevel"]
 
 //@ outputFormat update and set back to default using shell.options
-shell.options.set_persist("outputFormat", "json/raw");
+shell.options.setPersist("outputFormat", "json/raw");
 shell.options["outputFormat"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("outputFormat")
+shell.options.unsetPersist("outputFormat")
 shell.options["outputFormat"]
 
 //@ passwordsFromStdin update and set back to default using shell.options
-shell.options.set_persist("passwordsFromStdin", true);
+shell.options.setPersist("passwordsFromStdin", true);
 shell.options["passwordsFromStdin"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("passwordsFromStdin")
+shell.options.unsetPersist("passwordsFromStdin")
 shell.options["passwordsFromStdin"]
 
 //@ sandboxDir update and set back to default using shell.options
-shell.options.set_persist("sandboxDir", "\\sandboxDir");
+shell.options.setPersist("sandboxDir", "\\sandboxDir");
 shell.options["sandboxDir"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("sandboxDir");
+shell.options.unsetPersist("sandboxDir");
 shell.options["sandboxDir"]
 
 //@ showWarnings update and set back to default using shell.options
-shell.options.set_persist("showWarnings", false);
+shell.options.setPersist("showWarnings", false);
 shell.options["showWarnings"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("showWarnings");
+shell.options.unsetPersist("showWarnings");
 shell.options["showWarnings"]
 
 //@ useWizards update and set back to default using shell.options
-shell.options.set_persist("useWizards", false);
+shell.options.setPersist("useWizards", false);
 shell.options["useWizards"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("useWizards");
+shell.options.unsetPersist("useWizards");
 shell.options["useWizards"]
 
 //@ defaultMode update and set back to default using shell.options
-shell.options.set_persist("defaultMode", "py");
+shell.options.setPersist("defaultMode", "py");
 shell.options["defaultMode"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
-shell.options.unset_persist("defaultMode");
+shell.options.unsetPersist("defaultMode");
 shell.options["defaultMode"]
 
 //@ autocomplete.nameCache update and set back to default using \option
