@@ -67,10 +67,10 @@ Options::Options(std::shared_ptr<mysqlsh::Shell_options> options)
     add_property(opt + "|" + opt);
 
   add_method("set", std::bind(&Options::set, this, std::placeholders::_1));
-  add_method("set_persist",
+  add_method("setPersist",
              std::bind(&Options::set_persist, this, std::placeholders::_1));
   add_method("unset", std::bind(&Options::unset, this, std::placeholders::_1));
-  add_method("unset_persist",
+  add_method("unsetPersist",
              std::bind(&Options::unset_persist, this, std::placeholders::_1));
 }
 
