@@ -21,8 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/utils/utils_file.h"
 #include "unittest/gtest_clean.h"
+
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
 
@@ -161,7 +163,15 @@ TEST_F(Mysqlsh_misc, autocompletion_options) {
 TEST_F(Mysqlsh_misc, autodetect_script_type) {
   shcore::create_file("bla.js", "println('JavaScript works');\n");
   shcore::create_file("bla.py", "print 'Python works'\n");
+  shcore::create_file("py.foo", "print 'Python works!'\n");
+  shcore::create_file("js.foo", "println('JS works!')\n");
   shcore::create_file("bla.sql", "select 'SQL works';\n");
+
+  try {
+    shcore::delete_file(shcore::path::join_path(shcore::get_user_config_path(),
+                                                "options.json"));
+  } catch (...) {
+  }
 
   execute({_mysqlsh, "-f", "bla.js", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("JavaScript works");
@@ -175,14 +185,80 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Not connected");
   wipe_out();
 
-  execute({_mysqlsh, "--js", "-f", "bla.py", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("SyntaxError: Unexpected string");
+  // will exec using JS - error
+  execute({_mysqlsh, "-f", "py.foo", nullptr});
   wipe_out();
 
+  execute({_mysqlsh, "--py", "-f", "py.foo", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works!");
+  wipe_out();
+
+  // will exec using JS - OK
+  execute({_mysqlsh, "-f", "js.foo", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
+  wipe_out();
+
+  execute({_mysqlsh, "--js", "-f", "js.foo", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
+  wipe_out();
+
+  // actual file type always overrides --js switch,
+  // although if -e is combined with -f, the mode given in cmdline should be
+  // used for executing -e (when combining both is supported)
   execute({_mysqlsh, "--py", "-f", "bla.sql", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("File \"<string>\", line 1");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Not connected");
   wipe_out();
 
+  // filetype doesn't type language, so the cmdline option overrides it
+  execute({_mysqlsh, "--py", "-f", "py.foo", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works!");
+  wipe_out();
+
+  // now change the default startup mode and persist it
+  // Bug#27861407  SHELL DOESN'T EXECUTE SCRIPTS USING CORRECT LANGUAGE
+  execute({_mysqlsh, "--js", "-e",
+           "shell.options.setPersist('defaultMode', 'js')", nullptr});
+
+  execute({_mysqlsh, "-f", "bla.js", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("JavaScript works");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "bla.py", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "js.foo", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "py.foo", nullptr});
+
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "bla.sql", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Not connected");
+  wipe_out();
+
+  // again with Python as default
+  execute({_mysqlsh, "--js", "-e",
+           "shell.options.setPersist('defaultMode', 'py')", nullptr});
+  execute({_mysqlsh, "-f", "bla.js", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("JavaScript works");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "bla.py", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works");
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "js.foo", nullptr});
+  wipe_out();
+
+  execute({_mysqlsh, "-f", "py.foo", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works!");
+  wipe_out();
+
+  shcore::delete_file(
+      shcore::path::join_path(shcore::get_user_config_path(), "options.json"));
   shcore::delete_file("bla.js");
   shcore::delete_file("bla.py");
   shcore::delete_file("bla.sql");
