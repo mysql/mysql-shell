@@ -77,6 +77,8 @@ class SHCORE_PUBLIC ISession {
 
   virtual void connect(const mysqlshdk::db::Connection_options &data) = 0;
 
+  virtual uint64_t get_connection_id() const = 0;
+
   virtual const mysqlshdk::db::Connection_options &get_connection_options()
       const = 0;
 

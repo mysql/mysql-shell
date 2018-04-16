@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
 #ifndef _SHELLCORE_PYTHON_H_
 #define _SHELLCORE_PYTHON_H_
 
+#include <string>
+
 #include "shellcore/shell_core.h"
 
 namespace shcore {
@@ -35,21 +37,21 @@ class Shell_python : public Shell_language {
 
   virtual void set_global(const std::string &name, const Value &value);
 
-  virtual std::string preprocess_input_line(const std::string &s);
-  virtual void handle_input(
-      std::string &code, Input_state &state,
+  void set_result_processor(
       std::function<void(shcore::Value)> result_processor);
 
+  virtual std::string preprocess_input_line(const std::string &s);
+  virtual void handle_input(std::string &code, Input_state &state);
+
   virtual bool is_module(const std::string &file_name);
-  virtual void execute_module(
-      const std::string &file_name,
-      std::function<void(shcore::Value)> result_processor);
+  virtual void execute_module(const std::string &file_name);
 
   std::shared_ptr<Python_context> python_context() { return _py; }
 
  private:
   static int check_signals(void *);
   std::shared_ptr<Python_context> _py;
+  std::function<void(shcore::Value)> _result_processor;
   long _pending_interrupt_thread;
   bool _aborted = false;
 

@@ -132,7 +132,7 @@ class SHCORE_PUBLIC Session : public ISession,
 
   void close() override { _impl->close(); }
 
-  virtual uint64_t get_connection_id() const { return _impl->get_thread_id(); }
+  uint64_t get_connection_id() const override { return _impl->get_thread_id(); }
 
   const char *get_ssl_cipher() const override {
     return _impl->get_ssl_cipher();

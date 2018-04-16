@@ -65,14 +65,11 @@ class SHCORE_PUBLIC IShell_core {
   virtual Value get_global(const std::string &name) = 0;
 
   virtual Object_registry *registry() = 0;
-  virtual void handle_input(
-      std::string &code, Input_state &state,
-      std::function<void(shcore::Value)> result_processor) = 0;
+  virtual void handle_input(std::string &code, Input_state &state) = 0;
   virtual bool handle_shell_command(const std::string &code) = 0;
   virtual std::string get_handled_input() = 0;
   virtual int process_stream(
       std::istream &stream, const std::string &source,
-      std::function<void(shcore::Value)> result_processor,
       const std::vector<std::string> &argv) = 0;
 
   // Development Session Handling

@@ -60,12 +60,10 @@ class Environment {
 class Shell_sql_test : public Shell_core_test_wrapper {
  protected:
   Environment env;
-  shcore::Value _returned_value;
 
   virtual void SetUp() {
     Shell_core_test_wrapper::SetUp();
     connect();
-    _returned_value = shcore::Value();
   }
 
   virtual void TearDown() {
@@ -76,13 +74,13 @@ class Shell_sql_test : public Shell_core_test_wrapper {
     }
   }
 
-  void process_result(shcore::Value result) { _returned_value = result; }
+  void process_sql_result(std::shared_ptr<mysqlshdk::db::IResult>,
+                          const shcore::Sql_result_info &) {}
 
-  shcore::Value handle_input(std::string &query, Input_state &state) {
-    env.shell_sql->handle_input(
-        query, state, std::bind(&Shell_sql_test::process_result, this, _1));
-
-    return _returned_value;
+  void handle_input(std::string &query, Input_state &state) {
+    env.shell_sql->set_result_processor(
+        std::bind(&Shell_sql_test::process_sql_result, this, _1, _2));
+    env.shell_sql->handle_input(query, state);
   }
 
   void connect() {

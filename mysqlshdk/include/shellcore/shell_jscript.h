@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
 #ifndef _SHELLCORE_JS_H_
 #define _SHELLCORE_JS_H_
 
+#include <string>
+
 #include "shellcore/shell_core.h"
 
 namespace shcore {
@@ -31,19 +33,21 @@ class JScript_context;
 
 class Shell_javascript : public Shell_language {
  public:
-  Shell_javascript(Shell_core *shcore);
+  explicit Shell_javascript(Shell_core *shcore);
+
+  void set_result_processor(
+      std::function<void(shcore::Value)> result_processor);
 
   virtual void set_global(const std::string &name, const Value &value);
 
-  virtual void handle_input(
-      std::string &code, Input_state &state,
-      std::function<void(shcore::Value)> result_processor);
+  virtual void handle_input(std::string &code, Input_state &state);
 
   std::shared_ptr<JScript_context> javascript_context() { return _js; }
 
  private:
   void abort() noexcept;
   std::shared_ptr<JScript_context> _js;
+  std::function<void(shcore::Value)> _result_processor;
 };
 };  // namespace shcore
 

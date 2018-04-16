@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "shellcore/shell_jscript.h"
+
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "scripting/jscript_context.h"
@@ -34,9 +35,12 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
     : Shell_language(shcore),
       _js(new JScript_context(shcore->registry(), shcore->get_delegate())) {}
 
-void Shell_javascript::handle_input(
-    std::string &code, Input_state &state,
+void Shell_javascript::set_result_processor(
     std::function<void(shcore::Value)> result_processor) {
+  _result_processor = result_processor;
+}
+
+void Shell_javascript::handle_input(std::string &code, Input_state &state) {
   // Undefined to be returned in case of errors
   Value result;
 
@@ -58,7 +62,7 @@ void Shell_javascript::handle_input(
 
   _last_handled = code;
 
-  result_processor(result);
+  _result_processor(result);
 }
 
 void Shell_javascript::set_global(const std::string &name, const Value &value) {

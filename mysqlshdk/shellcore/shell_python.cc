@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,11 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// clang-format off
 #include "scripting/python_context.h"
+
 #include "shellcore/shell_python.h"
-#include "scripting/python_utils.h"
-// clang-format on
+
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
@@ -46,17 +45,15 @@ std::string Shell_python::preprocess_input_line(const std::string &s) {
   return s;
 }
 
-/*
- * Helper function to ensure the exceptions generated on the mysqlx_connector
- * are properly translated to the corresponding shcore::Exception type
- */
+void Shell_python::set_result_processor(
+    std::function<void(shcore::Value)> result_processor) {
+  _result_processor = result_processor;
+}
 
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(
-    std::string &code, Input_state &state,
-    std::function<void(shcore::Value)> result_processor) {
+void Shell_python::handle_input(std::string &code, Input_state &state) {
   Value result;
 
   auto tid = PyThread_get_thread_ident();
@@ -87,7 +84,7 @@ void Shell_python::handle_input(
   _last_handled = code;
 
   // Only processes the result when full statements are executed
-  if (state == Input_state::Ok) result_processor(result);
+  if (state == Input_state::Ok) _result_processor(result);
 }
 
 /*
@@ -132,16 +129,14 @@ bool Shell_python::is_module(const std::string &file_name) {
   return ret_val;
 }
 
-void Shell_python::execute_module(
-    const std::string &file_name,
-    std::function<void(shcore::Value)> result_processor) {
+void Shell_python::execute_module(const std::string &file_name) {
   shcore::Value ret_val;
   try {
     WillEnterPython lock;
 
     ret_val = _py->execute_module(file_name, _owner->get_input_args());
 
-    result_processor(ret_val);
+    _result_processor(ret_val);
   } catch (std::exception &exc) {
     _owner->print_error(std::string("Exception while loading ")
                             .append(file_name)

@@ -179,7 +179,8 @@ Exception Exception::error_with_code_and_state(const std::string &type,
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
-  (*error)["state"] = Value(std::string(sqlstate));
+  if (sqlstate && *sqlstate)
+    (*error)["state"] = Value(std::string(sqlstate));
   Exception e(error);
   return e;
 }

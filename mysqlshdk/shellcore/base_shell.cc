@@ -41,6 +41,7 @@
 #include "mysqlshdk/shellcore/provider_python.h"
 #include "shellcore/shell_python.h"
 #endif
+#include "shellcore/shell_sql.h"
 
 namespace mysqlsh {
 
@@ -64,8 +65,6 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
   _completer_object_registry.reset(new shcore::completer::Object_registry());
 
   _update_variables_pending = 1;
-
-  _result_processor = std::bind(&Base_shell::process_result, this, _1);
 }
 
 void Base_shell::finish_init() {
@@ -151,14 +150,14 @@ void Base_shell::load_default_modules(shcore::Shell_core::Mode mode) {
   std::string tmp;
   if (mode == shcore::Shell_core::Mode::JavaScript) {
     tmp = "var mysqlx = require('mysqlx');";
-    _shell->handle_input(tmp, _input_mode, _result_processor);
+    _shell->handle_input(tmp, _input_mode);
     tmp = "var mysql = require('mysql');";
-    _shell->handle_input(tmp, _input_mode, _result_processor);
+    _shell->handle_input(tmp, _input_mode);
   } else if (mode == shcore::Shell_core::Mode::Python) {
     tmp = "from mysqlsh import mysqlx";
-    _shell->handle_input(tmp, _input_mode, _result_processor);
+    _shell->handle_input(tmp, _input_mode);
     tmp = "from mysqlsh import mysql";
-    _shell->handle_input(tmp, _input_mode, _result_processor);
+    _shell->handle_input(tmp, _input_mode);
   }
 }
 
@@ -294,6 +293,12 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
       case shcore::Shell_core::Mode::SQL:
         if (_shell->switch_mode(mode, lang_initialized) && !initializing)
           println("Switching to SQL mode... Commands end with ;");
+        if (lang_initialized) {
+          auto sql =
+              static_cast<shcore::Shell_sql *>(_shell->language_object(mode));
+          sql->set_result_processor(
+              std::bind(&Base_shell::process_sql_result, this, _1, _2));
+        }
         break;
       case shcore::Shell_core::Mode::JavaScript:
 #ifdef HAVE_V8
@@ -302,6 +307,8 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
         if (lang_initialized) {
           auto js = static_cast<shcore::Shell_javascript *>(
               _shell->language_object(mode));
+          js->set_result_processor(
+              std::bind(&Base_shell::process_result, this, _1));
           _completer.add_provider(
               shcore::IShell_core::Mode_mask(
                   shcore::IShell_core::Mode::JavaScript),
@@ -320,6 +327,8 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
         if (lang_initialized) {
           auto py = static_cast<shcore::Shell_python *>(
               _shell->language_object(mode));
+          py->set_result_processor(
+              std::bind(&Base_shell::process_result, this, _1));
           _completer.add_provider(
               shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::Python),
               std::unique_ptr<shcore::completer::Provider>(
@@ -381,7 +390,7 @@ void Base_shell::process_line(const std::string &line) {
   if (_input_mode != shcore::Input_state::ContinuedBlock &&
       !_input_buffer.empty()) {
     try {
-      _shell->handle_input(_input_buffer, _input_mode, _result_processor);
+      _shell->handle_input(_input_buffer, _input_mode);
 
       // Here we analyze the input mode as it was let after executing the code
       if (_input_mode == shcore::Input_state::Ok) {
@@ -413,9 +422,20 @@ void Base_shell::notify_executed_statement(const std::string &line) {
                                             data);
 }
 
+void Base_shell::process_sql_result(
+    std::shared_ptr<mysqlshdk::db::IResult> result,
+    const shcore::Sql_result_info &info) {
+  if (!result) {
+    // Return value of undefined implies an error processing
+    // TODO(alfredo) - signaling of errors should be moved down
+    _shell->set_error_processing();
+  }
+}
+
 void Base_shell::process_result(shcore::Value result) {
-  if (options().interactive ||
-      _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
+  assert(_shell->interactive_mode() != shcore::Shell_core::Mode::SQL);
+
+  if (options().interactive) {
     if (result) {
       shcore::Value shell_hook;
       std::shared_ptr<shcore::Object_bridge> object;
@@ -440,6 +460,9 @@ void Base_shell::process_result(shcore::Value result) {
             object->class_name().find("Result") != std::string::npos) {
           std::shared_ptr<mysqlsh::ShellBaseResult> resultset =
               std::static_pointer_cast<mysqlsh::ShellBaseResult>(object);
+
+          // TODO(alfredo) - dumping of SqlResults should be redirected to
+          // process_sql_result()
 
           // Result buffering will be done ONLY if on any of the scripting
           // interfaces
@@ -473,7 +496,7 @@ int Base_shell::process_file(const std::string &path,
   if (path.empty())
     print_error("Invalid filename");
   else if (_shell->is_module(path))
-    _shell->execute_module(path, _result_processor, argv);
+    _shell->execute_module(path, argv);
   else {
     std::string file = shcore::path::expand_user(path);
     if (shcore::is_folder(file)) {
@@ -538,7 +561,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
     // Being interactive, we do not care about the return value
     return 0;
   } else {
-    return _shell->process_stream(stream, source, _result_processor, argv);
+    return _shell->process_stream(stream, source, argv);
   }
 }
 
