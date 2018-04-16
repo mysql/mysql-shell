@@ -26,8 +26,9 @@
 #include <fstream>
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
-#include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
+#include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 
 using namespace shcore;
@@ -57,56 +58,71 @@ Shell_sql::Shell_sql(IShell_core *owner)
                            Shell_command_function());
 }
 
-Value Shell_sql::process_sql(
-    const std::string &query_str,
-    mysql::splitter::Delimiters::delim_type_t delimiter,
-    std::shared_ptr<mysqlsh::ShellBaseSession> session,
-    std::function<void(shcore::Value)> result_processor) {
-  Value ret_val;
-  if (!session) {
-    print_exception(shcore::Exception::logic_error("Not connected."));
-  } else {
-    try {
-      shcore::Argument_list query;
-      query.push_back(Value(query_str));
+void Shell_sql::kill_query(uint64_t conn_id,
+                           const mysqlshdk::db::Connection_options &conn_opts) {
+  try {
+    std::shared_ptr<mysqlshdk::db::ISession> kill_session;
 
-      // ClassicSession has runSql and returns a ClassicResult object
-      if (session->session_type() == mysqlsh::SessionType::Classic) {
-        try {
-          ret_val =
-              std::static_pointer_cast<mysqlsh::mysql::ClassicSession>(session)
-                  ->execute_sql(query_str, {});
-        } catch (mysqlshdk::db::Error &e) {
-          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-        }
-      } else if (session->session_type() == mysqlsh::SessionType::X) {
-        try {
-          ret_val = std::static_pointer_cast<mysqlsh::mysqlx::Session>(session)
-                        ->_execute_sql(query_str);
-        } catch (mysqlshdk::db::Error &e) {
-          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-        }
-      } else {
-        throw shcore::Exception::logic_error(
-            "The current session type (" + session->class_name() +
-            ") can't be used for SQL execution.");
+    if (conn_opts.get_scheme() == "mysqlx")
+      kill_session = mysqlshdk::db::mysqlx::Session::create();
+    else
+      kill_session = mysqlshdk::db::mysql::Session::create();
+    kill_session->connect(conn_opts);
+    kill_session->executef("kill query ?", conn_id);
+    _owner->print("-- query aborted\n");
+
+    kill_session->close();
+  } catch (std::exception &e) {
+    _owner->print(std::string("-- error aborting query: ") + e.what() + "\n");
+  }
+}
+
+bool Shell_sql::process_sql(const std::string &query_str,
+                            mysql::splitter::Delimiters::delim_type_t delimiter,
+                            std::shared_ptr<mysqlshdk::db::ISession> session) {
+  bool ret_val = false;
+  if (session) {
+    try {
+      std::shared_ptr<mysqlshdk::db::IResult> result;
+      Sql_result_info info;
+      if (delimiter == "\\G") info.show_vertical = true;
+      try {
+        mysqlshdk::utils::Profile_timer timer;
+        timer.stage_begin("query");
+        // Install kill query as ^C handler
+        uint64_t conn_id = session->get_connection_id();
+        const auto &conn_opts = session->get_connection_options();
+        Interrupts::push_handler([this, conn_id, conn_opts]() {
+          kill_query(conn_id, conn_opts);
+          return true;
+        });
+
+        result = session->query(query_str);
+        Interrupts::pop_handler();
+
+        timer.stage_end();
+        info.ellapsed_seconds = timer.total_seconds_ellapsed();
+      } catch (mysqlshdk::db::Error &e) {
+        Interrupts::pop_handler();
+
+        // Connection lost, sends a notification
+        if (e.code() == CR_SERVER_GONE_ERROR || e.code() == CR_SERVER_LOST)
+          ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST",
+                                            _owner->get_dev_session());
+
+        throw shcore::Exception::mysql_error_with_code_and_state(
+            e.what(), e.code(), e.sqlstate());
+      } catch (...) {
+        Interrupts::pop_handler();
+        throw;
       }
-      // If reached this point, processes the returned result object
-      // FIXME: This handling of \\G added a dependency with Base_shell that
-      // should NOT be here.
-      auto old_format =
-          mysqlsh::Base_shell::get_options()->get(SHCORE_OUTPUT_FORMAT);
-      if (delimiter == "\\G")
-        mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT,
-                                                Value("vertical"));
-      // FIXME eventually remove the result_processor and the shcore::Value
-      // FIXME result wrapper and call the dumper directly on db::IResult,
-      // FIXME since we do only print query results here
-      result_processor(ret_val);
-      mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
+
+      _result_processor(result, info);
+
+      ret_val = true;
     } catch (shcore::Exception &exc) {
       print_exception(exc);
-      ret_val = Value();
+      ret_val = false;
     }
   }
   _last_handled += query_str + delimiter;
@@ -114,13 +130,18 @@ Value Shell_sql::process_sql(
   return ret_val;
 }
 
-void Shell_sql::handle_input(
-    std::string &code, Input_state &state,
-    std::function<void(shcore::Value)> result_processor) {
-  Value ret_val;
+void Shell_sql::handle_input(std::string &code, Input_state &state) {
   state = Input_state::Ok;
-  auto session = _owner->get_dev_session();
-  bool no_query_executed = true;
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  bool got_error = false;
+
+  {
+    auto s = _owner->get_dev_session();
+    if (!s)
+      print_exception(shcore::Exception::logic_error("Not connected."));
+    else
+      session = s->get_core_session();
+  }
 
   _last_handled.clear();
 
@@ -162,23 +183,21 @@ void Shell_sql::handle_input(
         else
           _sql_cache.append("\n").append(line);
       } else {
-        no_query_executed = false;
         if (!_sql_cache.empty()) {
-          no_query_executed = false;
           std::string cached_query = _sql_cache + "\n" +
                                      code.substr(ranges[range_index].offset(),
                                                  ranges[range_index].length());
 
           _sql_cache.clear();
 
-          ret_val =
-              process_sql(cached_query, ranges[range_index].get_delimiter(),
-                          session, result_processor);
+          if (!process_sql(cached_query, ranges[range_index].get_delimiter(),
+                           session))
+            got_error = true;
         } else {
-          ret_val = process_sql(code.substr(ranges[range_index].offset(),
-                                            ranges[range_index].length()),
-                                ranges[range_index].get_delimiter(), session,
-                                result_processor);
+          if (!process_sql(code.substr(ranges[range_index].offset(),
+                                       ranges[range_index].length()),
+                           ranges[range_index].get_delimiter(), session))
+            got_error = true;
         }
       }
     }
@@ -188,9 +207,6 @@ void Shell_sql::handle_input(
       state = Input_state::Ok;
     else
       state = Input_state::ContinuedSingle;
-
-    // Nothing was processed so it is not an error
-    if (no_query_executed) ret_val = Value::Null();
   }
 
   // TODO: previous to file processing the caller was caching unprocessed code
@@ -201,8 +217,8 @@ void Shell_sql::handle_input(
   //       still required or not.
   code = "";
 
-  // If ret_val still Undefined, it means there was an error on the processing
-  if (ret_val.type == Undefined) result_processor(ret_val);
+  // signal error during input processing
+  if (got_error) _result_processor(nullptr, {});
 }
 
 void Shell_sql::clear_input() {

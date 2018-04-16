@@ -30,6 +30,7 @@
 #include "shellcore/completer.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_options.h"
+#include "shellcore/shell_sql.h"
 
 #include <map>
 #include <memory>
@@ -118,11 +119,12 @@ class SHCORE_PUBLIC Base_shell {
 
   void update_prompt_variables(bool reconnected);
 
+  virtual void process_result(shcore::Value result);
+  virtual void process_sql_result(
+      std::shared_ptr<mysqlshdk::db::IResult> result,
+      const shcore::Sql_result_info &info);
+
  private:
-  void process_result(shcore::Value result);
-
-  std::function<void(shcore::Value)> _result_processor;
-
   shcore::Interpreter_delegate _delegate;
 
  protected:

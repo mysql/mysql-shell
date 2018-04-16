@@ -303,6 +303,25 @@ TEST_F(Command_line_test, retain_schema_after_reconnect) {
   EXPECT_NE(std::string::npos, out.find("/mysql'.."));
 }
 
+TEST_F(Command_line_test, duplicate_not_connected_error) {
+  // executing multiple statements while not connected should print
+  // Not Connected just once, not once for each statement
+  execute({_mysqlsh, "--sql", "-e", "select 1; select 2; select 3;", NULL});
+
+  EXPECT_EQ("ERROR: Not connected.\n", _output);
+}
+
+TEST_F(Command_line_test, bug25653170) {
+  // Executing scripts with incomplete SQL silently fails
+  int rc =
+      execute({_mysqlsh, _uri.c_str(), "--sql", "-e", "select 1 /*", NULL});
+  EXPECT_EQ(1, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "ERROR: 1064: You have an error in your SQL syntax; check the manual "
+      "that corresponds to your MySQL server version for the right syntax to "
+      "use near '/*' at line 1");
+}
+
 // The following test is temporarily disabled in Windows.
 // There's a bug in the shell which is not recognizing (.) as 'localhost'
 // Resulting in the following failure in Windows:

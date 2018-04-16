@@ -103,6 +103,9 @@ class Mysql_shell : public mysqlsh::Base_shell,
                            const shcore::Object_bridge_ref &sender,
                            shcore::Value::Map_type_ref data) override;
 
+  void process_sql_result(std::shared_ptr<mysqlshdk::db::IResult> result,
+                          const shcore::Sql_result_info &info) override;
+
   std::shared_ptr<mysqlsh::Shell> _global_shell;
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;

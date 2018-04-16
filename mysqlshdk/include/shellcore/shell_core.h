@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,9 +101,7 @@ class SHCORE_PUBLIC Shell_language {
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
   virtual std::string preprocess_input_line(const std::string &s) { return s; }
-  virtual void handle_input(
-      std::string &code, Input_state &state,
-      std::function<void(shcore::Value)> result_processor) = 0;
+  virtual void handle_input(std::string &code, Input_state &state) = 0;
   virtual bool handle_shell_command(const std::string &code) {
     return _shell_command_handler.process(code);
   }
@@ -115,9 +113,7 @@ class SHCORE_PUBLIC Shell_language {
   virtual bool print_help(const std::string &) { return false; }
   virtual bool is_module(const std::string &UNUSED(file_name)) { return false; }
   virtual void execute_module(
-      const std::string &UNUSED(file_name),
-      std::function<void(shcore::Value)> UNUSED(
-          result_processor)) { /* Does Nothing by default*/
+      const std::string &UNUSED(file_name)) { /* Does Nothing by default */
   }
 
  protected:
@@ -164,22 +160,16 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
  public:
   virtual std::string preprocess_input_line(const std::string &s);
-  virtual void handle_input(
-      std::string &code, Input_state &state,
-      std::function<void(shcore::Value)> result_processor);
+  virtual void handle_input(std::string &code, Input_state &state);
   virtual bool handle_shell_command(const std::string &code);
   virtual std::string get_handled_input();
-  virtual int process_stream(
-      std::istream &stream, const std::string &source,
-      std::function<void(shcore::Value)> result_processor,
-      const std::vector<std::string> &argv);
+  virtual int process_stream(std::istream &stream, const std::string &source,
+                             const std::vector<std::string> &argv);
   virtual bool is_module(const std::string &file_name) {
     return _langs[_mode]->is_module(file_name);
   }
-  virtual void execute_module(
-      const std::string &file_name,
-      std::function<void(shcore::Value)> result_processor,
-      const std::vector<std::string> &argv);
+  virtual void execute_module(const std::string &file_name,
+                              const std::vector<std::string> &argv);
 
   virtual void clear_input();
 

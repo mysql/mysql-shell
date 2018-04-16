@@ -30,9 +30,11 @@
 #include <utility>
 #include <vector>
 #include "modules/devapi/mod_mysqlx.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"  // temporary
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql.h"
+#include "modules/mod_mysql_resultset.h"  // temporary
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
@@ -45,6 +47,7 @@
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
+#include "shellcore/shell_resultset_dumper.h"
 #include "shellcore/utils_help.h"
 #include "src/interactive/interactive_dba_cluster.h"
 #include "src/interactive/interactive_global_dba.h"
@@ -1289,6 +1292,69 @@ void Mysql_shell::process_line(const std::string &line) {
     notify_executed_statement(line);
   else
     Base_shell::process_line(line);
+}
+
+void Mysql_shell::process_sql_result(
+    std::shared_ptr<mysqlshdk::db::IResult> result,
+    const shcore::Sql_result_info &info) {
+  Base_shell::process_sql_result(result, info);
+  if (result) {
+    // TODO(.): Shell_options dependency from dumper should be moved out:
+    // Resultset_dumper dumper(result, _shell->get_delegate());
+    // size_t nrows = dumper.dump_rows(format);
+    // if (options().interactive)
+    //   dumper.print_stats(nrows);
+    // if (options().show_warnings)
+    //   dumper.print_warnings();
+
+    // temporary adapter code:
+
+    auto wrap_result =
+        [](std::shared_ptr<mysqlshdk::db::mysql::Result> result, double t) {
+          mysqlsh::mysql::ClassicResult *res;
+          shcore::Value ret_val = shcore::Value::wrap(
+              res = new mysqlsh::mysql::ClassicResult(result));
+          res->set_execution_time(t);
+          return ret_val;
+        };
+
+    auto wrap_resultx =
+        [](std::shared_ptr<mysqlshdk::db::mysqlx::Result> result, double t) {
+          mysqlsh::mysqlx::SqlResult *res;
+          shcore::Value ret_val =
+              shcore::Value::wrap(res = new mysqlsh::mysqlx::SqlResult(result));
+          res->set_execution_time(t);
+          return ret_val;
+        };
+
+    auto old_format = options().output_format;
+    if (info.show_vertical)
+      mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT,
+                                              shcore::Value("vertical"));
+    shcore::Scoped_callback clean([old_format]() {
+      mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
+    });
+
+    if (dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get())) {
+      ResultsetDumper dumper(
+          wrap_result(
+              std::static_pointer_cast<mysqlshdk::db::mysql::Result>(result),
+              info.ellapsed_seconds)
+              .as_object<mysqlsh::ShellBaseResult>(),
+          _shell->get_delegate(), false);
+      dumper.dump();
+    } else if (dynamic_cast<mysqlshdk::db::mysqlx::Result *>(result.get())) {
+      ResultsetDumper dumper(
+          wrap_resultx(
+              std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(result),
+              info.ellapsed_seconds)
+              .as_object<mysqlsh::ShellBaseResult>(),
+          _shell->get_delegate(), false);
+      dumper.dump();
+    } else {
+      throw std::invalid_argument("Invalid result object");
+    }
+  }
 }
 
 void Mysql_shell::handle_notification(const std::string &name,

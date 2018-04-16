@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,6 +66,7 @@ class Mock_session : public mysqlshdk::db::ISession {
   MOCK_METHOD0(start_transaction, void());
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());
+  MOCK_CONST_METHOD0(get_connection_id, uint64_t());
   MOCK_CONST_METHOD0(get_ssl_cipher, const char *());
   MOCK_CONST_METHOD0(get_connection_options,
                      const mysqlshdk::db::Connection_options &());

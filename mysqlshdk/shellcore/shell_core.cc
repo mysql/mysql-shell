@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -192,11 +192,9 @@ std::string Shell_core::preprocess_input_line(const std::string &s) {
   return _langs[_mode]->preprocess_input_line(s);
 }
 
-void Shell_core::handle_input(
-    std::string &code, Input_state &state,
-    std::function<void(shcore::Value)> result_processor) {
+void Shell_core::handle_input(std::string &code, Input_state &state) {
   try {
-    _langs[_mode]->handle_input(code, state, result_processor);
+    _langs[_mode]->handle_input(code, state);
   } catch (...) {
     throw;
   }
@@ -214,10 +212,8 @@ std::string Shell_core::get_handled_input() {
  * - 1 in case of any processing error is found.
  * - 0 if no processing errors were found.
  */
-int Shell_core::process_stream(
-    std::istream &stream, const std::string &source,
-    std::function<void(shcore::Value)> result_processor,
-    const std::vector<std::string> &argv) {
+int Shell_core::process_stream(std::istream &stream, const std::string &source,
+                               const std::vector<std::string> &argv) {
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on
   //       process_result this global return code may be used again once the
@@ -235,14 +231,14 @@ int Shell_core::process_stream(
 
       std::getline(stream, line);
 
-      handle_input(line, state, result_processor);
+      handle_input(line, state);
 
       if (_global_return_code && !mysqlsh::Base_shell::options().force) break;
     }
 
     if (state != Input_state::Ok) {
       std::string delimiter = ";";
-      handle_input(delimiter, state, result_processor);
+      handle_input(delimiter, state);
     }
   } else {
     std::string data;
@@ -267,7 +263,7 @@ int Shell_core::process_stream(
         data[0] == '#' && data[1] == '!')
       data.replace(0, 2, "//");
 
-    handle_input(data, state, result_processor);
+    handle_input(data, state);
   }
 
   _input_source.clear();
@@ -396,13 +392,11 @@ std::string Shell_core::get_main_delimiter() const {
   return dynamic_cast<Shell_sql *>(it->second)->get_main_delimiter();
 }
 
-void Shell_core::execute_module(
-    const std::string &file_name,
-    std::function<void(shcore::Value)> result_processor,
-    const std::vector<std::string> &argv) {
+void Shell_core::execute_module(const std::string &file_name,
+                                const std::vector<std::string> &argv) {
   _input_args = argv;
 
-  _langs[_mode]->execute_module(file_name, result_processor);
+  _langs[_mode]->execute_module(file_name);
 }
 
 void Shell_core::deleg_print(void *self, const char *text) {

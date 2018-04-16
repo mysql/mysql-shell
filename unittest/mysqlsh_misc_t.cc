@@ -37,7 +37,6 @@ TEST_F(Mysqlsh_misc, trace_proto) {
            nullptr});
   static const char *expected1 = R"*(>>>> SEND Mysqlx.Sql.StmtExecute {
   stmt: "select 1\n"
-  namespace: "sql"
 })*";
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected1);
