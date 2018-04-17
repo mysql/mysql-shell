@@ -185,6 +185,7 @@ var c = dba.createCluster('test', {clearReadOnly: true});
 //@ Add instance errors using localAddress option
 // FR1-TS-2-5 (GR issues an error if the hostname or IP address is invalid)
 add_instance_options['port'] = __mysql_sandbox_port2;
+add_instance_options['user'] = 'root';
 c.addInstance(add_instance_options, {localAddress: "1a"});
 // FR1-TS-2-6
 c.addInstance(add_instance_options, {localAddress: ":"});

@@ -71,6 +71,7 @@ else
 
 //@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3;
+add_instance_options['user'] = 'root';
 single.addInstance(add_instance_options);
 
 // Drops the metadata on the multi cluster letting a non managed replication group

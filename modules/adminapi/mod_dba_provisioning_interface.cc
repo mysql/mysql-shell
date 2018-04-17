@@ -106,7 +106,8 @@ int ProvisioningInterface::execute_mysqlprovision(
   });
 
   std::string log_level = "--log-level=";
-  if (mysqlsh::Base_shell::options().log_to_stderr) log_level.append("@");
+  if (mysqlsh::current_shell_options()->get().log_to_stderr)
+    log_level.append("@");
   log_level.append(std::to_string(
       static_cast<int>(ngcommon::Logger::singleton()->get_log_level())));
 
@@ -195,7 +196,7 @@ int ProvisioningInterface::execute_mysqlprovision(
     _delegate->print(_delegate->user_data, header.c_str());
   }
 
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   std::string stage_action;
 
   shcore::Process_launcher p(&args_script[0]);
@@ -618,7 +619,7 @@ int ProvisioningInterface::exec_sandbox_op(
   if (!sandbox_dir.empty()) {
     kwargs["sandbox_base_dir"] = shcore::Value(sandbox_dir);
   } else {
-    std::string dir = mysqlsh::Base_shell::options().sandbox_directory;
+    std::string dir = mysqlsh::current_shell_options()->get().sandbox_directory;
 
     try {
       shcore::ensure_dir_exists(dir);

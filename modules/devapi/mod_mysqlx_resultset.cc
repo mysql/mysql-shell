@@ -200,7 +200,7 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
 
   dumper.append_value("executionTime", get_member("executionTime"));
 
-  if (mysqlsh::Base_shell::options().show_warnings) {
+  if (mysqlsh::current_shell_options()->get().show_warnings) {
     dumper.append_value("warningCount", get_member("warningCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }

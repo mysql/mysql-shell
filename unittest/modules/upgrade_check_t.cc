@@ -442,8 +442,7 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
       _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->console(),
-            _interactive_shell->options().wizards);
+            _interactive_shell->console());
   shcore::Argument_list args;
 
   // valid mysql 5.7 superuser
@@ -481,8 +480,7 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
   if (_target_server_version < Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 8.0");
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->console(),
-            _interactive_shell->options().wizards);
+            _interactive_shell->console());
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
@@ -490,8 +488,7 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
 
 TEST_F(MySQL_upgrade_check_test, password_prompted) {
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->console(),
-            _interactive_shell->options().wizards);
+            _interactive_shell->console());
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
@@ -509,8 +506,7 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
 
 TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->console(),
-            _interactive_shell->options().wizards);
+            _interactive_shell->console());
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));
 
@@ -533,14 +529,22 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   _options->wizards = false;
   reset_shell();
   Util util(_interactive_shell->shell_context().get(),
-            _interactive_shell->console(),
-            _interactive_shell->options().wizards);
+            _interactive_shell->console());
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
-  EXPECT_THROW_LIKE(util.check_for_server_upgrade(args), shcore::Exception,
-                    "Util.checkForServerUpgrade: Missing password for "
-                    "'" +
-                        _mysql_uri_nopasswd + "'");
+  output_handler.passwords.push_back(
+      {"If this was prompted it is an error", "WhAtEvEr"});
+
+  try {
+    util.check_for_server_upgrade(args);
+  } catch (...) {
+    // We don't really care for this test
+  }
+
+  // Passwords are consumed if prompted, so verifying this indicates the
+  // password was NOT prompted as expected and so, NOT consumed
+  EXPECT_FALSE(output_handler.passwords.empty());
+  output_handler.passwords.clear();
 }
 }  // namespace mysqlsh

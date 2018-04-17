@@ -44,6 +44,7 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -180,6 +181,9 @@ class Shell_options : public shcore::Options {
   bool print_cmd_line_version = false;
   bool print_cmd_line_version_extra = false;
 };
+
+std::shared_ptr<Shell_options> current_shell_options();
+
 }  // namespace mysqlsh
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_

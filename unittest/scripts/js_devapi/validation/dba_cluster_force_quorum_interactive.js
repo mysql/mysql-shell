@@ -95,9 +95,9 @@
 //@<OUT> Cluster.forceQuorumUsingPartitionOf success
 Restoring replicaset 'default' from loss of quorum, by using the partition composed of [<<<localhost>>>:<<<__mysql_sandbox_port1>>>]
 
-Please provide the password for 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>': Restoring the InnoDB cluster ...
+Restoring the InnoDB cluster ...
 
-The InnoDB cluster was successfully restored using the partition from the instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
+Please provide the password for 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>': The InnoDB cluster was successfully restored using the partition from the instance 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'.
 
 WARNING: To avoid a split-brain scenario, ensure that all other members of the replicaset are removed or joined back to the group that was restored.
 

@@ -22,8 +22,16 @@
  */
 
 #include "modules/mod_utils.h"
+
 #include <string>
+
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -276,77 +284,172 @@ shcore::Value(ssl.get_tls_version());
     return options;
 }*/
 
-/**
- * This function receives an connection options map and will try to resolve user
- * and password:
- * - If no user is specified, "root" will be used.
- * - Password is resolved based on a delegate, if no password is available and
- *   a delegate is provided, the password will be retrieved through the delegate
- */
-void resolve_connection_credentials(
-    mysqlshdk::db::Connection_options *options,
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
-  // Sets a default user if not specified
-  // TODO(rennox): Why is it setting root when it should actually be the
-  // system user???
-  // Maybe not for the interactives??
-  // Maybe the default user should be passed as parameters and use system if
-  // empty oO
-  if (!options->has_user()) options->set_user("root");
+namespace {
 
-  if (!options->has_password()) {
-    std::string uri =
-        options->as_uri(mysqlshdk::db::uri::formats::full_no_password());
-    if (console_handler) {
-      std::string answer;
+std::shared_ptr<mysqlshdk::db::mysqlx::Session> create_x_session() {
+  auto xsession = mysqlshdk::db::mysqlx::Session::create();
 
-      std::string prompt = "Please provide the password for '" + uri + "': ";
+  if (current_shell_options()->get().trace_protocol)
+    xsession->enable_protocol_trace(true);
 
-      if (console_handler->prompt_password(prompt.c_str(), &answer) ==
-          shcore::Prompt_result::Ok) {
-        options->set_password(answer);
+  return xsession;
+}
+
+std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
+    const Connection_options &connection_options) {
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  std::string connection_error;
+
+  Connection_options copy = connection_options;
+
+  SessionType type = copy.get_session_type();
+
+  // Automatic protocol detection is ON
+  // Attempts X Protocol first, then Classic
+  if (type == mysqlsh::SessionType::Auto) {
+    session = create_x_session();
+
+    try {
+      copy.set_scheme("mysqlx");
+      session->connect(copy);
+      return session;
+    } catch (const mysqlshdk::db::Error &e) {
+      // Unknown message received from server indicates an attempt to create
+      // And X Protocol session through the MySQL protocol
+      int code = e.code();
+      if (code == CR_MALFORMED_PACKET ||  // Unknown message received from
+                                          // server 10
+          code == CR_CONNECTION_ERROR ||  // No connection could be made because
+                                          // the target machine actively refused
+                                          // it connecting to host:port
+          code == CR_SERVER_GONE_ERROR) {  // MySQL server has gone away
+                                           // (randomly sent by libmysqlx)
+        type = mysqlsh::SessionType::Classic;
+        copy.clear_scheme();
+        copy.set_scheme("mysql");
+
+        // Since this is an unexpected error, we store the message to be logged
+        // in case the classic session connection fails too
+        if (code == CR_SERVER_GONE_ERROR)
+          connection_error.append("X protocol error: ").append(e.what());
       } else {
-        throw shcore::Exception::argument_error("Missing password for '" + uri +
-                                                "'");
+        throw;
       }
-    } else {
-      throw shcore::Exception::argument_error("Missing password for '" + uri +
-                                              "'");
     }
+  }
+
+  switch (type) {
+    case mysqlsh::SessionType::X:
+      session = create_x_session();
+      break;
+    case mysqlsh::SessionType::Classic:
+      session = mysqlshdk::db::mysql::Session::create();
+      break;
+    default:
+      throw shcore::Exception::argument_error(
+          "Invalid session type specified for MySQL connection.");
+      break;
+  }
+
+  try {
+    session->connect(copy);
+  } catch (shcore::Exception &e) {
+    if (connection_error.empty()) {
+      throw;
+    } else {
+      // If an error was cached for the X protocol connection
+      // it is included on a new exception
+      connection_error.append("\nClassic protocol error: ");
+      connection_error.append(e.format());
+      throw shcore::Exception::argument_error(connection_error);
+    }
+  }
+
+  return session;
+}
+
+std::shared_ptr<mysqlshdk::db::ISession> create_session(
+    const Connection_options &connection_options) {
+  // allow SIGINT to interrupt the connect()
+  bool cancelled = false;
+  shcore::Interrupt_handler intr([&cancelled]() {
+    cancelled = true;
+    return true;
+  });
+
+  auto session = create_and_connect(connection_options);
+
+  if (cancelled) throw shcore::cancelled("Cancelled");
+
+  return session;
+}
+
+void password_prompt(Connection_options *options) {
+  const std::string uri =
+      options->as_uri(mysqlshdk::db::uri::formats::user_transport());
+  const std::string prompt = "Please provide the password for '" + uri + "': ";
+  std::string answer;
+  const auto result = current_console()->prompt_password(prompt, &answer);
+
+  if (result == shcore::Prompt_result::Ok) {
+    options->set_password(answer);
+  } else {
+    throw shcore::cancelled("Cancelled");
   }
 }
 
-void resolve_connection_credentials_deleg(
-    mysqlshdk::db::Connection_options *options,
-    shcore::Interpreter_delegate *delegate) {
-  // Sets a default user if not specified
-  // TODO(rennox): Why is it setting root when it should actually be the
-  // system user???
-  // Maybe not for the interactives??
-  // Maybe the default user should be passed as parameters and use system if
-  // empty oO
-  if (!options->has_user()) options->set_user("root");
+}  // namespace
 
-  if (!options->has_password()) {
-    std::string uri =
-        options->as_uri(mysqlshdk::db::uri::formats::full_no_password());
-    if (delegate) {
-      std::string answer;
+std::shared_ptr<mysqlshdk::db::ISession> establish_session(
+    const Connection_options &options, bool prompt_for_password,
+    bool prompt_in_loop) {
+  Connection_options copy = options;
 
-      std::string prompt = "Please provide the password for '" + uri + "': ";
+  copy.set_default_connection_data();
 
-      if (delegate->password(delegate->user_data, prompt.c_str(), &answer) ==
-          shcore::Prompt_result::Ok) {
-        options->set_password(answer);
-      } else {
-        throw shcore::Exception::argument_error("Missing password for '" + uri +
-                                                "'");
-      }
-    } else {
-      throw shcore::Exception::argument_error("Missing password for '" + uri +
-                                              "'");
-    }
+  if (!copy.has_password()) {
+    // TODO: query the helper for password
+    // TODO: if password was found, create_session()
+    // TODO: if create_session() throws, check if error was caused by wrong
+    //       username/password
+    // TODO: if it was, continue (password prompt), otherwise rethrow
   }
+
+  if (prompt_for_password) {
+    do {
+      if (!copy.has_password()) {
+        password_prompt(&copy);
+      }
+
+      try {
+        return create_session(copy);
+      } catch (const mysqlshdk::db::Error &e) {
+        if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
+          throw;
+        } else {
+          copy.clear_password();
+          current_console()->print_error(e.format());
+        }
+      }
+      // TODO: password was provided by the user, if it's correct store it
+    } while (prompt_in_loop);
+  }
+
+  return create_session(copy);
+}
+
+std::shared_ptr<mysqlshdk::db::ISession> establish_mysql_session(
+    const Connection_options &options, bool prompt_for_password,
+    bool prompt_in_loop) {
+  Connection_options copy = options;
+
+  if (copy.has_scheme()) {
+    copy.clear_scheme();
+  }
+
+  copy.set_scheme("mysql");
+
+  return establish_session(copy, prompt_for_password, prompt_in_loop);
 }
 
 }  // namespace mysqlsh

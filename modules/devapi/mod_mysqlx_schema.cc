@@ -209,7 +209,7 @@ void Schema::_remove_object(const std::string &name, const std::string &type) {
 }
 
 bool Schema::use_object_handles() const {
-  return Base_shell::options().devapi_schema_object_handles;
+  return current_shell_options()->get().devapi_schema_object_handles;
 }
 
 std::vector<std::string> Schema::get_members() const {

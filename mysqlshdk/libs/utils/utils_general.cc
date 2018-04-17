@@ -67,10 +67,12 @@ bool is_valid_identifier(const std::string &name) {
 std::string strip_password(const std::string &connstring) {
   std::string remaining = connstring;
   std::string password;
+  std::string scheme;
 
   std::string::size_type p;
   p = remaining.find("://");
   if (p != std::string::npos) {
+    scheme = remaining.substr(0, p + 3);
     remaining = remaining.substr(p + 3);
   }
 
@@ -91,11 +93,11 @@ std::string strip_password(const std::string &connstring) {
 
   if ((p = user_part.find(':')) != std::string::npos) {
     password = user_part.substr(p + 1);
-    std::string uri_stripped = connstring;
+    std::string uri_stripped = remaining;
     std::string::size_type i = uri_stripped.find(":" + password);
     if (i != std::string::npos) uri_stripped.erase(i, password.length() + 1);
 
-    return uri_stripped;
+    return scheme + uri_stripped;
   }
 
   // no password to strip, return original one
@@ -148,8 +150,7 @@ mysqlshdk::db::Connection_options get_connection_options(const std::string &uri,
                                                          bool set_defaults) {
   mysqlshdk::db::Connection_options connection_options(uri);
 
-  if (!connection_options.has_user() && set_defaults)
-    connection_options.set_user(get_system_user());
+  if (set_defaults) connection_options.set_default_connection_data();
 
   return connection_options;
 }
@@ -263,18 +264,6 @@ void update_connection_data(
     connection_options->set(mysqlshdk::db::kServerPublicKeyPath,
                             {server_public_key_path});
   }
-}
-
-void set_default_connection_data(
-    mysqlshdk::db::Connection_options *connection_options) {
-  // Default values
-  if (!connection_options->has_user())
-    connection_options->set_user(get_system_user());
-
-  if (!connection_options->has_host() &&
-      (!connection_options->has_transport_type() ||
-       connection_options->get_transport_type() == mysqlshdk::db::Tcp))
-    connection_options->set_host("localhost");
 }
 
 std::string get_system_user() {

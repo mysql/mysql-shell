@@ -417,9 +417,6 @@ shcore::Value ReplicaSet::add_instance(
   // Check if we need to overwrite the seed instance
   if (overwrite_seed) seed_instance = true;
 
-  // Retrieves the instance definition
-  auto instance_cnx_opt = connection_options;
-
   // Retrieves the add options
   if (args.size() == 1) {
     auto add_options = args.map_at(0);
@@ -467,22 +464,19 @@ shcore::Value ReplicaSet::add_instance(
       group_seeds = add_options->get_string("groupSeeds");
   }
 
-  // Sets a default user if not specified
-  mysqlsh::resolve_connection_credentials(&instance_cnx_opt, nullptr);
+  std::shared_ptr<mysqlshdk::db::ISession> session{establish_mysql_session(
+      connection_options, current_shell_options()->get().wizards)};
+  mysqlshdk::mysql::Instance target_instance(session);
+  target_instance.cache_global_sysvars();
+
+  // Retrieves the instance definition
+  auto instance_cnx_opt = session->get_connection_options();
+
   std::string user = instance_cnx_opt.get_user();
   std::string super_user_password = instance_cnx_opt.get_password();
   std::string joiner_host = instance_cnx_opt.get_host();
 
   std::string instance_address = instance_cnx_opt.as_uri(only_transport());
-
-  bool is_instance_on_md =
-      _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
-
-  std::shared_ptr<mysqlshdk::db::ISession> session(
-      mysqlshdk::db::mysql::Session::create());
-  session->connect(instance_cnx_opt);
-  mysqlshdk::mysql::Instance target_instance(session);
-  target_instance.cache_global_sysvars();
 
   // Check whether the address being used is not in a known not-good case
   validate_instance_address(session, joiner_host, instance_cnx_opt.get_port());
@@ -558,6 +552,9 @@ shcore::Value ReplicaSet::add_instance(
 
   // Check instance server UUID (must be unique among the cluster members).
   validate_server_uuid(session);
+
+  bool is_instance_on_md =
+      _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
 
   log_debug("RS %lu: Adding instance '%s' to replicaset%s",
             static_cast<unsigned long>(_id), instance_address.c_str(),
@@ -908,6 +905,8 @@ shcore::Value ReplicaSet::rejoin_instance(
   if (!instance_def->has_port())
     instance_def->set_port(mysqlshdk::db::k_default_mysql_port);
 
+  instance_def->set_default_connection_data();
+
   std::string instance_address = instance_def->as_uri(only_transport());
 
   // Check if the instance is part of the Metadata
@@ -927,18 +926,13 @@ shcore::Value ReplicaSet::rejoin_instance(
   // Before rejoining an instance we must also verify if the group has quorum
   // and if the gr plugin is active otherwise we may end up hanging the system
 
-  // Get the rejoining instance definition
-  // Sets a default user if not specified
-  mysqlsh::resolve_connection_credentials(instance_def);
-  std::string instance_password = instance_def->get_password();
-  // std::string instance_user = instance_def->get_user();
-
   // Validate 'group_replication_group_name'
   {
     try {
       log_info("Opening a new session to the rejoining instance %s",
                instance_address.c_str());
-      session = get_session(*instance_def);
+      session = establish_mysql_session(*instance_def,
+                                        current_shell_options()->get().wizards);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
@@ -1064,7 +1058,8 @@ shcore::Value ReplicaSet::rejoin_instance(
     // Get the seed session connection data
     // use mysqlprovision to rejoin the cluster.
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
-        *instance_def, seed_instance_def, "", instance_password, "", ssl_mode,
+        session->get_connection_options(), seed_instance_def, "",
+        session->get_connection_options().get_password(), "", ssl_mode,
         ip_whitelist, "", gr_group_seeds, true, &errors);
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",
@@ -1698,10 +1693,8 @@ shcore::Value ReplicaSet::retrieve_instance_state(
   if (!instance_def.has_port())
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
-  // Sets a default user if not specified
-  mysqlsh::resolve_connection_credentials(&instance_def, nullptr);
-
-  auto instance_session = Dba::get_session(instance_def);
+  auto instance_session = establish_mysql_session(
+      instance_def, current_shell_options()->get().wizards);
 
   // We will work with the session saved on the metadata which points to the
   // cluster Assuming it is the R/W instance
@@ -1758,16 +1751,15 @@ void ReplicaSet::add_instance_metadata(
 
   MetadataStorage::Transaction tx(_metadata_storage);
 
-  int xport = instance_definition.get_port() * 10;
+  int port = -1;
+  int xport = -1;
   std::string local_gr_address;
 
-  std::string joiner_host = instance_definition.get_host();
+  std::string joiner_host;
 
   // Check if the instance was already added
   std::string instance_address = instance_definition.as_uri(only_transport());
 
-  //  std::string instance_address = joiner_host + ":" +
-  //    std::to_string(instance_definition.get_int(mysqlshdk::db::kPort));
   std::string mysql_server_uuid;
   std::string mysql_server_address;
 
@@ -1776,8 +1768,17 @@ void ReplicaSet::add_instance_metadata(
   // get the server_uuid from the joining instance
   {
     std::shared_ptr<mysqlshdk::db::ISession> classic;
+    std::string joiner_user;
     try {
-      classic = get_session(instance_definition);
+      classic = establish_mysql_session(instance_definition,
+                                        current_shell_options()->get().wizards);
+
+      auto options = classic->get_connection_options();
+      port = options.get_port();
+      xport = port * 10;
+      joiner_host = options.get_host();
+      instance_address = options.as_uri(only_transport());
+      joiner_user = options.get_user();
     } catch (Exception &e) {
       std::stringstream ss;
       ss << "Error opening session to '" << instance_address
@@ -1794,7 +1795,7 @@ void ReplicaSet::add_instance_metadata(
            << "Please ensure all instances in the same group/replicaset have"
               " the same password for account '"
               ""
-           << instance_definition.get_user()
+           << joiner_user
            << "' and that it is accessible from the host mysqlsh is running "
               "from.";
         throw Exception::runtime_error(se.str());
@@ -1830,8 +1831,7 @@ void ReplicaSet::add_instance_metadata(
       log_info("Normalized address of '%s' to '%s'", joiner_host.c_str(),
                mysql_server_address.c_str());
 
-      instance_address = mysql_server_address + ":" +
-                         std::to_string(instance_definition.get_port());
+      instance_address = mysql_server_address + ":" + std::to_string(port);
     } else {
       mysql_server_address = joiner_host;
     }
@@ -1852,8 +1852,7 @@ void ReplicaSet::add_instance_metadata(
   // NOTE(rennox): the old insert_host function was reading from the map
   // the keys location and id_host (<--- no, is not a typo, id_host)
   // where does those values come from????
-  uint32_t host_id =
-      _metadata_storage->insert_host(instance_definition.get_host(), "", "");
+  uint32_t host_id = _metadata_storage->insert_host(joiner_host, "", "");
 
   instance.host_id = host_id;
   instance.replicaset_id = get_id();
@@ -1951,10 +1950,9 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   if (!instance_def.has_port())
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
 
-  std::string instance_address = instance_def.as_uri(only_transport());
+  instance_def.set_default_connection_data();
 
-  // Sets a default user if not specified
-  mysqlsh::resolve_connection_credentials(&instance_def, nullptr);
+  std::string instance_address = instance_def.as_uri(only_transport());
 
   // TODO(miguel): test if there's already quorum and add a 'force' option to be
   // used if so
@@ -1980,7 +1978,9 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     try {
       log_info("Opening a new session to the partition instance %s",
                instance_address.c_str());
-      session = get_session(instance_def);
+      session = establish_mysql_session(instance_def,
+                                        current_shell_options()->get().wizards);
+      instance_def = session->get_connection_options();
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());

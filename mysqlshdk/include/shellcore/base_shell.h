@@ -28,6 +28,7 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/completer.h"
+#include "shellcore/scoped_contexts.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_options.h"
 #include "shellcore/shell_sql.h"
@@ -40,12 +41,6 @@
 namespace mysqlsh {
 class SHCORE_PUBLIC Base_shell {
  public:
-  static std::shared_ptr<Shell_options> get_options() { return shell_options; }
-
-  static const Shell_options::Storage &options() {
-    return shell_options->get();
-  }
-
   Base_shell(std::shared_ptr<Shell_options> cmdline_options,
              shcore::Interpreter_delegate *custom_delegate);
 
@@ -104,8 +99,14 @@ class SHCORE_PUBLIC Base_shell {
     return _provider_sql;
   }
 
+  std::shared_ptr<Shell_options> get_options() const {
+    return m_shell_options.get();
+  }
+
+  const Shell_options::Storage &options() const { return get_options()->get(); }
+
  protected:
-  static std::shared_ptr<mysqlsh::Shell_options> shell_options;
+  Scoped_shell_options m_shell_options;
   std::shared_ptr<shcore::Shell_core> _shell;
   std::map<std::string, std::string> _prompt_variables;
   std::unique_ptr<std::string> _deferred_output;

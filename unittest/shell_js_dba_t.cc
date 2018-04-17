@@ -428,12 +428,6 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
   output_handler.prompts.push_back({"*", "yes"});
 
-  //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back({"*", "n"});
-
-  //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back({"*", "n"});
-
   //@<OUT> Cluster: rejoin_instance with interaction, ok
   output_handler.passwords.push_back({"*", "root"});
 

@@ -704,7 +704,7 @@ shcore::Object_bridge_ref Session::get_schema(const std::string &name) {
   }
 
   auto dbobject = std::dynamic_pointer_cast<DatabaseObject>(ret_val);
-  if (Base_shell::options().devapi_schema_object_handles)
+  if (current_shell_options()->get().devapi_schema_object_handles)
     dbobject->update_cache();
 
   return ret_val;

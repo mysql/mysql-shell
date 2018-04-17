@@ -90,13 +90,12 @@ int Command_line_test::execute(const std::vector<const char *> &args,
     // The password should be provided when it is expected that the Shell
     // will prompt for it, in such case, we give it on the stdin
     if (password) {
-      // sleep before providing a password
-      shcore::sleep_ms(500);
-
       std::string pwd(password);
       pwd.append("\n");
 
       if (needs_child_terminal) {
+        // wait for password prompt
+        _process->read_from_terminal();
         _process->write_to_terminal(pwd.c_str(), pwd.size());
       } else {
         _process->write(pwd.c_str(), pwd.size());

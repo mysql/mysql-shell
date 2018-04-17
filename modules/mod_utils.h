@@ -32,6 +32,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -109,15 +110,55 @@ void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
 shcore::Value::Map_type_ref SHCORE_PUBLIC
 get_connection_map(const Connection_options &connection_options);
 
-void SHCORE_PUBLIC resolve_connection_credentials(
-    Connection_options *options,
-    std::shared_ptr<mysqlsh::IConsole> console_handler = nullptr);
+/**
+ * Establishes a new session using given connection options.
+ *
+ * Fills in connection options, if they're missing:
+ * - calls shcore::set_default_connection_data(),
+ * - if password is not specified, queries the credential helper for one (if
+ *   applicable) and tries to establish a session; if session cannot be
+ *   established due to wrong credentials, queries the user for password, unless
+ *   prompt_for_password is set to false; in that case attempts to connect
+ *   without password,
+ * - uses scheme of the established session if no scheme is specified.
+ *
+ * If session was successfully established and password was not previously
+ * stored by the credential helper, stores the password (if applicable).
+ *
+ * @param options Connection options used to establish a session.
+ * @param prompt_for_password If true and password is missing will prompt the
+ *        user for password.
+ * @param prompt_in_loop If true, prompt is presented in a loop until correct
+ *        password is given or operation is canceled via CTRL-C.
+ *
+ * @return A session object connected to the server specified by connection
+ *         options.
+ *
+ * @throws shcore::cancelled if user interrupts the operation with CTRL-C
+ * @throws shcore::Exception::argument_error if scheme was not specified and
+ *         connection cannot be established using both X and MySQL protocol
+ * @throws mysqlshdk::db::Error if session could not be established
+ */
+std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
+establish_session(const Connection_options &options, bool prompt_for_password,
+                  bool prompt_in_loop = false);
 
-// To be removed and replaced with resolve_connection_credentials
-// as soon as the full move to IConsole is done
-void SHCORE_PUBLIC resolve_connection_credentials_deleg(
-    Connection_options *options,
-    shcore::Interpreter_delegate *delegate = nullptr);
+/**
+ * Forces the session to use MySQL protocol changing the scheme to "mysql",
+ * otherwise behaves the same as establish_session().
+ *
+ * @param options Connection options used to establish a session.
+ * @param prompt_for_password If true and password is missing will prompt the
+ *        user for password.
+ * @param prompt_in_loop If true, prompt is presented in a loop until correct
+ *        password is given or operation is canceled via CTRL-C.
+ *
+ * @return A session object connected to the server specified by connection
+ *         options.
+ */
+std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
+establish_mysql_session(const Connection_options &options,
+                        bool prompt_for_password, bool prompt_in_loop = false);
 
 }  // namespace mysqlsh
 

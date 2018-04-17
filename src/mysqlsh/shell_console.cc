@@ -34,8 +34,8 @@
 namespace mysqlsh {
 namespace {
 std::string json_obj(const char *key, const std::string &value) {
-  shcore::JSON_dumper dumper(mysqlsh::Base_shell::options().output_format ==
-                             "json");
+  shcore::JSON_dumper dumper(
+      mysqlsh::current_shell_options()->get().output_format == "json");
   dumper.start_object();
   dumper.append_string(key);
   dumper.append_string(value);
@@ -45,7 +45,7 @@ std::string json_obj(const char *key, const std::string &value) {
 }
 
 bool use_json() {
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   return format.find("json") != std::string::npos;
 }
 }  // namespace
@@ -127,12 +127,12 @@ bool Shell_console::prompt(const std::string &prompt, std::string *ret_val) {
   return false;
 }
 
-static int process_label(const std::string &s, std::string *out_display,
-                         std::string *out_clean_text) {
+static char process_label(const std::string &s, std::string *out_display,
+                          std::string *out_clean_text) {
   out_display->clear();
   if (s.empty()) return 0;
 
-  int letter = 0;
+  char letter = 0;
   char prev = 0;
   for (char c : s) {
     if (prev == '&') letter = c;
@@ -160,9 +160,9 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
 
   Prompt_answer final_ans = Prompt_answer::NONE;
   std::string ans;
-  int yes_letter = 0;
-  int no_letter = 0;
-  int alt_letter = 0;
+  char yes_letter = 0;
+  char no_letter = 0;
+  char alt_letter = 0;
   std::string def_str;
   std::string clean_yes_text, clean_no_text, clean_alt_text;
   if (yes_label == "&Yes" && no_label == "&No" && alt_label.empty()) {
@@ -212,15 +212,15 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
       if (ans.empty()) {
         final_ans = def;
       } else {
-        if (std::toupper(ans[0]) == yes_letter ||
+        if (shcore::str_caseeq(ans, std::string{&yes_letter, 1}) ||
             shcore::str_caseeq(ans, clean_yes_text)) {
           final_ans = Prompt_answer::YES;
         } else if (!clean_no_text.empty() &&
-                   (std::toupper(ans[0]) == no_letter ||
+                   (shcore::str_caseeq(ans, std::string{&no_letter, 1}) ||
                     shcore::str_caseeq(ans, clean_no_text))) {
           final_ans = Prompt_answer::NO;
         } else if (!clean_alt_text.empty() &&
-                   (std::toupper(ans[0]) == alt_letter ||
+                   (shcore::str_caseeq(ans, std::string{&alt_letter, 1}) ||
                     shcore::str_caseeq(ans, clean_alt_text))) {
           final_ans = Prompt_answer::ALT;
         } else {

@@ -206,8 +206,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 //@ ET_5 - Call dba.configureInstance() with interactive flag set to true and not specifying username {VER(>=8.0.11)}
 var uri1 = localhost + ":" + __mysql_sandbox_port1;
-var root_uri1 = "root@" + uri1;
-testutil.expectPassword("Please provide the password for '" + root_uri1 + "': ", "wrongpwd");
+testutil.expectPassword("Please provide the password for '", "wrongpwd");
 dba.configureInstance(uri1, {interactive: true});
 
 // ET_6 - Missing username. if interactive DISABLED, an error is thrown regarding the missing value for the username.
@@ -215,6 +214,7 @@ dba.configureInstance(uri1, {interactive: true});
 
 // ET_7 - Missing password. if interactive ENABLED, the value for the password is prompted
 //@ ET_7 - Call dba.configureInstance() with interactive flag set to true and not specifying a password {VER(>=8.0.11)}
+var root_uri1 = "root@" + uri1;
 testutil.expectPassword("Please provide the password for '" + root_uri1 + "': ", "wrongpwd");
 dba.configureInstance(root_uri1, {interactive: true});
 

@@ -106,7 +106,8 @@ shcore::Argument_list Global_dba::check_instance_op_params(
   shcore::Value::Map_type_ref options;  // Map with the connection data
 
   // Initialize sandboxDir with the default sandboxValue
-  std::string sandboxDir = mysqlsh::Base_shell::options().sandbox_directory;
+  std::string sandboxDir =
+      mysqlsh::current_shell_options()->get().sandbox_directory;
 
   new_args.push_back(args[0]);
 

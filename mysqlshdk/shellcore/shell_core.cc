@@ -100,7 +100,7 @@ void Shell_core::println(const std::string &s, const std::string &tag) {
 
   // When using JSON output ALL must be JSON
   if (!s.empty()) {
-    std::string format = mysqlsh::Base_shell::options().output_format;
+    std::string format = mysqlsh::current_shell_options()->get().output_format;
     if (format.find("json") != std::string::npos) {
       output = format_json_output(output, tag.empty() ? "info" : tag);
       add_new_line = false;
@@ -139,8 +139,8 @@ std::string Shell_core::format_json_output(const std::string &info,
 
 std::string Shell_core::format_json_output(const shcore::Value &info,
                                            const std::string &tag) {
-  shcore::JSON_dumper dumper(mysqlsh::Base_shell::options().output_format ==
-                             "json");
+  shcore::JSON_dumper dumper(
+      mysqlsh::current_shell_options()->get().output_format == "json");
   dumper.start_object();
   dumper.append_value(tag, info);
   dumper.end_object();
@@ -151,7 +151,7 @@ std::string Shell_core::format_json_output(const shcore::Value &info,
 void Shell_core::print_error(const std::string &s) {
   std::string output;
   // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   if (format.find("json") != std::string::npos)
     output = format_json_output(s, "error");
   else
@@ -164,7 +164,7 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass) {
   std::string prompt(s);
 
   // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "password");
 
@@ -178,7 +178,7 @@ bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
   std::string prompt(s);
 
   // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   if (format.find("json") != std::string::npos)
     prompt = format_json_output(prompt, "prompt");
 
@@ -233,7 +233,8 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
 
       handle_input(line, state);
 
-      if (_global_return_code && !mysqlsh::Base_shell::options().force) break;
+      if (_global_return_code && !mysqlsh::current_shell_options()->get().force)
+        break;
     }
 
     if (state != Input_state::Ok) {
@@ -405,7 +406,7 @@ void Shell_core::deleg_print(void *self, const char *text) {
   std::string output(text);
 
   // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   if (format.find("json") != std::string::npos)
     output = shcore->format_json_output(output, "info");
 
@@ -422,7 +423,7 @@ void Shell_core::deleg_print_error(void *self, const char *text) {
   if (text) output.assign(text);
 
   // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
   if (format.find("json") != std::string::npos)
     output = shcore->format_json_output(output, "error");
 
@@ -465,7 +466,7 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value,
     std::string output;
     bool add_new_line = true;
     // When using JSON output ALL must be JSON
-    std::string format = mysqlsh::Base_shell::options().output_format;
+    std::string format = mysqlsh::current_shell_options()->get().output_format;
     if (format.find("json") != std::string::npos) {
       // If no tag is provided, prints the JSON representation of the Value
       if (mtag.empty()) {

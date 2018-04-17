@@ -45,6 +45,13 @@ class mod_shell_test : public Shell_core_test_wrapper {
     _shell.reset(new mysqlsh::Shell(_backend.get()));
   }
 
+  void TearDown() override {
+    _shell.reset();
+    _backend.reset();
+
+    Shell_core_test_wrapper::TearDown();
+  }
+
  protected:
   std::shared_ptr<Mock_mysql_shell> _backend;
   std::shared_ptr<mysqlsh::Shell> _shell;

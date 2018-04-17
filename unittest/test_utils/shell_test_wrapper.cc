@@ -119,6 +119,8 @@ void Shell_test_wrapper::reset_options() {
  * options defined at _opts.
  */
 void Shell_test_wrapper::reset() {
+  // previous shell needs to be destroyed before a new one can be created
+  _interactive_shell.reset();
   _interactive_shell.reset(
       new mysqlsh::Mysql_shell(get_options(), &output_handler.deleg));
 

@@ -31,14 +31,15 @@
 #include <vector>
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
+#include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
 
 namespace mysqlshdk {
 namespace db {
-using utils::nullable;
 using utils::Nullable_options;
+using utils::nullable;
 using utils::nullable_options::Comparison_mode;
 enum Transport_type { Tcp, Socket, Pipe };
 std::string to_string(Transport_type type);
@@ -117,6 +118,16 @@ class SHCORE_PUBLIC Connection_options
       uri::Tokens_mask format = uri::formats::full_no_password()) const;
 
   const Nullable_options &get_extra_options() const { return _extra_options; }
+
+  mysqlsh::SessionType get_session_type() const;
+
+  /**
+   * Sets the default connection data, if they're missing:
+   * - uses system user if no user is specified,
+   * - uses localhost if host is not specified and transport type is not
+   *   specified or it's TCP.
+   */
+  void set_default_connection_data();
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);

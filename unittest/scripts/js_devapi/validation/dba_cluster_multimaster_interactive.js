@@ -321,11 +321,11 @@ problem.
 Please monitor the output of the rejoin operation and take necessary action if
 the instance cannot rejoin.
 
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Rejoining instance to the cluster ...
+Rejoining instance to the cluster ...
 
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
 
 //@<OUT> Cluster: status for rejoin: success
 {

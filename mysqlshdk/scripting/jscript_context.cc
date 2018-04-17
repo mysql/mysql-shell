@@ -431,7 +431,7 @@ struct JScript_context::JScript_context_impl {
         v8::External::Cast(*args.Data())->Value());
     std::string text;
     // FIXME this doesn't belong here?
-    std::string format = mysqlsh::Base_shell::options().output_format;
+    std::string format = mysqlsh::current_shell_options()->get().output_format;
 
     for (int i = 0; i < args.Length(); i++) {
       v8::HandleScope handle_scope(args.GetIsolate());

@@ -130,28 +130,25 @@ const char* cmd_help_option =
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
     : mysqlsh::Base_shell(cmdline_options, custom_delegate),
+      m_console_handler{std::make_shared<Shell_console>(custom_delegate)},
       _reconnect_session(false) {
   DEBUG_OBJ_ALLOC(Mysql_shell);
   observe_notification("SN_SESSION_CONNECTION_LOST");
-
-  // Create the interaction_handler
-  _console_handler = std::shared_ptr<mysqlsh::Shell_console>(
-      new mysqlsh::Shell_console(custom_delegate));
 
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
   _global_js_sys =
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
   _global_dba = std::shared_ptr<mysqlsh::dba::Dba>(
-      new mysqlsh::dba::Dba(_shell.get(), _console_handler, options()));
+      new mysqlsh::dba::Dba(_shell.get(), console()));
   _global_util = std::shared_ptr<mysqlsh::Util>(
-      new mysqlsh::Util(_shell.get(), _console_handler, options().wizards));
+      new mysqlsh::Util(_shell.get(), console()));
 
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
-        new shcore::Global_shell(*_shell.get(), _console_handler));
+        new shcore::Global_shell(*_shell.get(), console()));
     auto interactive_dba = std::shared_ptr<shcore::Global_dba>(
-        new shcore::Global_dba(*_shell.get(), _console_handler));
+        new shcore::Global_dba(*_shell.get(), console()));
 
     interactive_shell->set_target(_global_shell);
     interactive_dba->set_target(_global_dba);
@@ -190,7 +187,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   INIT_MODULE(mysqlsh::mysql::Mysql);
   INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 
-  set_sql_safe_for_logging(shell_options->get(SHCORE_HISTIGNORE).descr());
+  set_sql_safe_for_logging(get_options()->get(SHCORE_HISTIGNORE).descr());
   // completion provider for shell \commands (must be the 1st)
   completer()->add_provider(shcore::IShell_core::Mode_mask::any(),
                             std::unique_ptr<shcore::completer::Provider>(
@@ -327,92 +324,6 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
 
 Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
 
-static mysqlsh::SessionType get_session_type(
-    const mysqlshdk::db::Connection_options &opt) {
-  if (!opt.has_scheme()) {
-    return mysqlsh::SessionType::Auto;
-  } else {
-    std::string scheme = opt.get_scheme();
-    if (scheme == "mysqlx")
-      return mysqlsh::SessionType::X;
-    else if (scheme == "mysql")
-      return mysqlsh::SessionType::Classic;
-    else
-      throw std::invalid_argument("Unknown MySQL URI type " + scheme);
-  }
-}
-
-std::shared_ptr<mysqlshdk::db::ISession> Mysql_shell::create_session(
-    const mysqlshdk::db::Connection_options &connection_options) {
-  std::shared_ptr<mysqlshdk::db::ISession> session;
-  std::string connection_error;
-
-  SessionType type = get_session_type(connection_options);
-
-  // Automatic protocol detection is ON
-  // Attempts X Protocol first, then Classic
-  if (type == mysqlsh::SessionType::Auto) {
-    auto xsession = mysqlshdk::db::mysqlx::Session::create();
-    session = xsession;
-    if (options().trace_protocol) xsession->enable_protocol_trace(true);
-    try {
-      session->connect(connection_options);
-      return session;
-    } catch (mysqlshdk::db::Error &e) {
-      // Unknown message received from server indicates an attempt to create
-      // And X Protocol session through the MySQL protocol
-      int code = e.code();
-      if (code == CR_MALFORMED_PACKET ||  // Unknown message received from
-                                          // server 10
-          code == CR_CONNECTION_ERROR ||  // No connection could be made because
-                                          // the target machine actively refused
-                                          // it connecting to host:port
-          code == CR_SERVER_GONE_ERROR) {  // MySQL server has gone away
-                                           // (randomly sent by libmysqlx)
-        type = mysqlsh::SessionType::Classic;
-
-        // Since this is an unexpected error, we store the message to be logged
-        // in case the classic session connection fails too
-        if (code == CR_SERVER_GONE_ERROR)
-          connection_error.append("X protocol error: ").append(e.what());
-      } else {
-        throw;
-      }
-    }
-  }
-
-  switch (type) {
-    case mysqlsh::SessionType::X: {
-      auto xsession = mysqlshdk::db::mysqlx::Session::create();
-      session = xsession;
-      if (options().trace_protocol) xsession->enable_protocol_trace(true);
-      break;
-    }
-    case mysqlsh::SessionType::Classic:
-      session = mysqlshdk::db::mysql::Session::create();
-      break;
-    default:
-      throw shcore::Exception::argument_error(
-          "Invalid session type specified for MySQL connection.");
-      break;
-  }
-
-  try {
-    session->connect(connection_options);
-  } catch (shcore::Exception &e) {
-    if (connection_error.empty()) {
-      throw;
-    } else {
-      // If an error was cached for the X protocol connection
-      // it is included on a new exception
-      connection_error.append("\nClassic protocol error: ");
-      connection_error.append(e.format());
-      throw shcore::Exception::argument_error(connection_error);
-    }
-  }
-  return session;
-}
-
 void Mysql_shell::print_connection_message(mysqlsh::SessionType type,
                                            const std::string &uri,
                                            const std::string &sessionid) {
@@ -443,9 +354,11 @@ void Mysql_shell::connect(
   std::string pass;
   std::string schema_name;
 
+  connection_options.set_default_connection_data();
+
   if (options().interactive)
     print_connection_message(
-        get_session_type(connection_options),
+        connection_options.get_session_type(),
         connection_options.as_uri(
             mysqlshdk::db::uri::formats::no_scheme_no_password()),
         /*_options.app*/ "");
@@ -459,30 +372,9 @@ void Mysql_shell::connect(
     throw shcore::Exception::runtime_error(
         "Recreate schema requested, but no schema specified");
 
-  // Prompts for the password if needed
-  if (!connection_options.has_password()) {
-    if (_shell->password("Enter password: ", pass))
-      connection_options.set_password(pass);
-    else
-      throw shcore::cancelled("Cancelled");
-  }
-
   auto old_session(_shell->get_dev_session());
-
-  std::shared_ptr<mysqlsh::ShellBaseSession> new_session;
-  {
-    std::shared_ptr<mysqlshdk::db::ISession> session;
-    // allow SIGINT to interrupt the connect()
-    bool cancelled = false;
-    shcore::Interrupt_handler intr([&cancelled]() {
-      cancelled = true;
-      return true;
-    });
-    session = create_session(connection_options);
-    if (cancelled) throw shcore::cancelled("Cancelled");
-
-    new_session = set_active_session(session);
-  }
+  auto new_session = set_active_session(
+      establish_session(connection_options, options().wizards));
 
   if (old_session && old_session->is_open()) {
     if (options().interactive) println("Closing old connection...");
@@ -615,7 +507,7 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary) {
       session->get_connection_options();
   mysqlshdk::innodbcluster::Protocol_type proto =
       mysqlshdk::innodbcluster::Protocol_type::X;
-  switch (get_session_type(connection)) {
+  switch (connection.get_session_type()) {
     case mysqlsh::SessionType::X:
       proto = mysqlshdk::innodbcluster::Protocol_type::X;
       break;
@@ -874,13 +766,13 @@ bool Mysql_shell::cmd_reconnect(const std::vector<std::string> &args) {
 }
 
 bool Mysql_shell::cmd_quit(const std::vector<std::string> &UNUSED(args)) {
-  shell_options->set_interactive(false);
+  get_options()->set_interactive(false);
 
   return true;
 }
 
 bool Mysql_shell::cmd_warnings(const std::vector<std::string> &UNUSED(args)) {
-  shell_options->set(SHCORE_SHOW_WARNINGS, shcore::Value::True());
+  get_options()->set(SHCORE_SHOW_WARNINGS, shcore::Value::True());
 
   println("Show warnings enabled.");
 
@@ -888,7 +780,7 @@ bool Mysql_shell::cmd_warnings(const std::vector<std::string> &UNUSED(args)) {
 }
 
 bool Mysql_shell::cmd_nowarnings(const std::vector<std::string> &UNUSED(args)) {
-  shell_options->set(SHCORE_SHOW_WARNINGS, shcore::Value::False());
+  get_options()->set(SHCORE_SHOW_WARNINGS, shcore::Value::False());
 
   println("Show warnings disabled.");
 
@@ -1161,7 +1053,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
       print_error(cmd_help_option);
     } else if (args[1] == "-h" || args[1] == "--help") {
       std::string filter = args.size() > 2 ? args[2] : "";
-      auto help = shell_options->get_named_help(filter, 80, 1);
+      auto help = get_options()->get_named_help(filter, 80, 1);
       if (help.empty())
         print_error("No help found for filter: " + filter);
       else
@@ -1170,18 +1062,18 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
       bool show_origin =
           args.size() > 2 && args[2] == "--show-origin" ? true : false;
       for (const auto &line :
-           shell_options->get_options_description(show_origin))
+           get_options()->get_options_description(show_origin))
         println(" " + line);
     } else if (args.size() == 2 && args[1].find('=') == std::string::npos) {
-      println(shell_options->get_value_as_string(args[1]));
+      println(get_options()->get_value_as_string(args[1]));
     } else if (args[1] == "--unset") {
       if (args[2] == "--persist") {
         if (args.size() > 3)
-          shell_options->unset(args[3], true);
+          get_options()->unset(args[3], true);
         else
           print_error("Unset requires option to be specified");
       } else {
-        shell_options->unset(args[2], false);
+        get_options()->unset(args[2], false);
       }
     } else {
       std::size_t args_start = 1;
@@ -1200,7 +1092,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
         if (optname.back() == '=')
           optname = optname.substr(0, optname.length() - 1);
         if (value[0] == '=') value = value.substr(1);
-        shell_options->set_and_notify(optname, value, persist);
+        get_options()->set_and_notify(optname, value, persist);
       } else {
         std::size_t offset = args[args_start].find('=');
         if (offset == std::string::npos) {
@@ -1208,7 +1100,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
         } else {
           std::string opt = args[args_start].substr(0, offset);
           std::string val = args[args_start].substr(offset + 1);
-          shell_options->set_and_notify(opt, val, persist);
+          get_options()->set_and_notify(opt, val, persist);
         }
       }
     }
@@ -1329,10 +1221,10 @@ void Mysql_shell::process_sql_result(
 
     auto old_format = options().output_format;
     if (info.show_vertical)
-      mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT,
-                                              shcore::Value("vertical"));
+      mysqlsh::current_shell_options()->set(SHCORE_OUTPUT_FORMAT,
+                                            shcore::Value("vertical"));
     shcore::Scoped_callback clean([old_format]() {
-      mysqlsh::Base_shell::get_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
+      mysqlsh::current_shell_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
     });
 
     if (dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get())) {

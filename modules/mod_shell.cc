@@ -580,8 +580,6 @@ shcore::Value Shell::connect(const shcore::Argument_list &args) {
     auto connection_options =
         mysqlsh::get_connection_options(args, PasswordFormat::STRING);
 
-    mysqlsh::resolve_connection_credentials(&connection_options);
-
     _shell->connect(connection_options);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));

@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_CONSOLE_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_CONSOLE_H_
 
+#include <memory>
 #include <string>
 #include "mysqlshdk/include/scripting/lang_base.h"
 
@@ -68,6 +69,8 @@ class IConsole {
   virtual shcore::Prompt_result prompt_password(const std::string &prompt,
                                                 std::string *out_val) = 0;
 };
+
+std::shared_ptr<IConsole> current_console();
 
 }  // namespace mysqlsh
 

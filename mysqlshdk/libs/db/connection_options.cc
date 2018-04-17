@@ -30,8 +30,8 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::db::uri::Uri_encoder;
-using mysqlshdk::utils::nullable;
 using mysqlshdk::utils::Nullable_options;
+using mysqlshdk::utils::nullable;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::nullable_options::Set_mode;
 
@@ -377,6 +377,29 @@ bool Connection_options::operator==(const Connection_options &other) const {
 
 bool Connection_options::operator!=(const Connection_options &other) const {
   return !(*this == other);
+}
+
+mysqlsh::SessionType Connection_options::get_session_type() const {
+  if (!has_scheme()) {
+    return mysqlsh::SessionType::Auto;
+  } else {
+    std::string scheme = get_scheme();
+    if (scheme == "mysqlx")
+      return mysqlsh::SessionType::X;
+    else if (scheme == "mysql")
+      return mysqlsh::SessionType::Classic;
+    else
+      throw std::invalid_argument("Unknown MySQL URI type " + scheme);
+  }
+}
+
+void Connection_options::set_default_connection_data() {
+  // Default values
+  if (!has_user()) set_user(shcore::get_system_user());
+
+  if (!has_host() &&
+      (!has_transport_type() || get_transport_type() == mysqlshdk::db::Tcp))
+    set_host("localhost");
 }
 
 }  // namespace db

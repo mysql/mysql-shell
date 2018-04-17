@@ -137,7 +137,8 @@ TEST_F(Command_line_connection_test, prompt_sample) {
            "--passwords-from-stdin", "-e", "session", NULL},
           _pwd.c_str());
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Enter password:");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Please provide the password for '" +
+                                _mysql_uri_nopasswd + "':");
 }
 
 TEST_F(Command_line_connection_test, session_cmdline_options) {

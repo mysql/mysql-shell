@@ -33,6 +33,7 @@
 #undef ERROR
 #endif
 
+#include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -75,9 +76,6 @@ void SHCORE_PUBLIC update_connection_data(
     const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
     const std::string &server_public_key_path);
-
-void SHCORE_PUBLIC set_default_connection_data(
-    mysqlshdk::db::Connection_options *connection_options);
 
 std::string SHCORE_PUBLIC get_system_user();
 

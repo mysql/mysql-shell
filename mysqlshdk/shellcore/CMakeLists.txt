@@ -33,6 +33,7 @@ set(SHELLCORE_SOURCES
   provider_script.cc
   interrupt_handler.cc
   ishell_core.cc
+  scoped_contexts.cc
   shell_core.cc
   shell_init.cc
   shell_notifications.cc

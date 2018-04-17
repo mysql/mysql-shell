@@ -257,7 +257,7 @@ static PyObject *object_printable(PyShObjObject *self) {
   PyObject *ret_val;
 
   Value object((*self->object));
-  std::string format = mysqlsh::Base_shell::options().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
 
   if (format.find("json") == 0)
     ret_val = PyString_FromString(object.json(format == "json").c_str());

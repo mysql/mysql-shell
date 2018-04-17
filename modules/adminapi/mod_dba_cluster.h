@@ -81,8 +81,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Cluster(const std::string &name,
           std::shared_ptr<mysqlshdk::db::ISession> group_session,
           std::shared_ptr<MetadataStorage> metadata_storage,
-          std::shared_ptr<IConsole> console_handler,
-          const Shell_options::Storage &options);
+          std::shared_ptr<IConsole> console_handler);
   virtual ~Cluster();
 
   virtual std::string class_name() const { return "Cluster"; }
@@ -174,7 +173,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
    *
    * @return Boolean value indicative if the interactive mode is enabled.
    */
-  bool is_interactive() const { return m_shell_options.wizards; }
+  bool is_interactive() const { return current_shell_options()->get().wizards; }
 
   /**
    * Synchronize transactions on target instance.
@@ -205,7 +204,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<IConsole> m_console;
   // Used shell options
-  const Shell_options::Storage &m_shell_options;
   void init();
 
  private:

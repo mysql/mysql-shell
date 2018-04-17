@@ -1161,46 +1161,6 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
   }
 }
 
-/**
- * This function receives an connection options map and will try to resolve user
- * and password:
- * - If no user is specified, "root" will be used.
- * - Password is resolved based on a delegate, if no password is available and
- *   a delegate is provided, the password will be retrieved through the delegate
- */
-void resolve_connection_credentials(
-    mysqlshdk::db::Connection_options *options,
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
-  // Sets a default user if not specified
-  // TODO(rennox): Why is it setting root when it should actually be the
-  // system user???
-  // Maybe not for the interactives??
-  // Maybe the default user should be passed as parameters and use system if
-  // empty oO
-  if (!options->has_user()) options->set_user("root");
-
-  if (!options->has_password()) {
-    std::string uri =
-        options->as_uri(mysqlshdk::db::uri::formats::full_no_password());
-    if (console_handler) {
-      std::string answer;
-
-      std::string prompt = "Please provide the password for '" + uri + "': ";
-
-      if (console_handler->prompt_password(prompt.c_str(), &answer) ==
-          shcore::Prompt_result::Ok) {
-        options->set_password(answer);
-      } else {
-        throw shcore::Exception::argument_error("Missing password for '" + uri +
-                                                "'");
-      }
-    } else {
-      throw shcore::Exception::argument_error("Missing password for '" + uri +
-                                              "'");
-    }
-  }
-}
-
 // AdminAPI interactive handling specific methods
 
 /*
