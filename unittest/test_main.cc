@@ -600,7 +600,8 @@ int main(int argc, char **argv) {
     setup_test_environment();
 
     if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
-      target = g_target_server_version.get_base();
+      if (target.empty())
+        target = g_target_server_version.get_base();
 
       if (tracedir.empty())
         tracedir = shcore::path::join_path(g_test_home, "traces", target, "");
