@@ -440,6 +440,10 @@ int Process::write_to_terminal(const char *buf, size_t count) {
   throw std::runtime_error("This method is not available on Windows.");
 }
 
+std::string Process::read_from_terminal() {
+  throw std::runtime_error("This method is not available on Windows.");
+}
+
 #else  // !WIN32
 
 void Process::start() {
@@ -595,6 +599,55 @@ int Process::write_to_terminal(const char *buf, size_t count) {
   }
 
   return write_fd(m_master_device, buf, count);
+}
+
+std::string Process::read_from_terminal() {
+  if (!m_use_pseudo_tty) {
+    throw std::logic_error(
+        "Call enable_child_terminal() before calling this "
+        "method.");
+  }
+
+  fd_set fd_in;
+  char buffer[512];
+  struct timeval timeout;
+  long retry_count = 0;
+
+  do {
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100 * 1000;
+
+    FD_ZERO(&fd_in);
+    FD_SET(m_master_device, &fd_in);
+
+    int ret = ::select(m_master_device + 1, &fd_in, nullptr, nullptr, &timeout);
+
+    if (ret == -1) {
+      report_error(nullptr);
+    } else if (ret == 0) {
+      report_error("Timeout on select()");
+    } else {
+      int n = ::read(m_master_device, buffer, sizeof(buffer));
+
+      if (n >= 0) {
+        return std::string(buffer, n);
+      } else if (errno == EIO) {
+        // This error means that the other side of pseudo terminal is closed.
+        // Since child does not duplicate it to stdin/stdout/stderr, it will
+        // remain closed until the child process opens the controlling terminal
+        // (i.e. writes the password prompt and waits for user input).
+        if (++retry_count > 1000000) {
+          report_error("Controlling terminal seems to be closed");
+        } else {
+          continue;
+        }
+      } else {
+        report_error(nullptr);
+      }
+    }
+  } while (true);
+
+  return "";
 }
 
 pid_t Process::get_pid() { return childpid; }

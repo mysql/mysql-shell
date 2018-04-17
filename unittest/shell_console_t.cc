@@ -46,6 +46,10 @@ void print(void *user_data, const char *text) {
 shcore::Prompt_result prompt(void *user_data, const char *prompt,
                              std::string *ret_input) {
   Test_data *data = static_cast<Test_data *>(user_data);
+  if (data->input.empty()) {
+    ADD_FAILURE() << "Unexpected prompt: " << prompt;
+    return shcore::Prompt_result::CTRL_D;
+  }
   if (!data->output.empty()) data->output.append("||");
   data->output.append(prompt);
   *ret_input = data->input.front();
@@ -56,6 +60,10 @@ shcore::Prompt_result prompt(void *user_data, const char *prompt,
 shcore::Prompt_result password(void *user_data, const char *prompt,
                                std::string *ret_password) {
   Test_data *data = static_cast<Test_data *>(user_data);
+  if (data->input.empty()) {
+    ADD_FAILURE() << "Unexpected password prompt: " << prompt;
+    return shcore::Prompt_result::CTRL_D;
+  }
   if (!data->output.empty()) data->output.append("||");
   data->output.append(prompt);
   *ret_password = data->input.front();
@@ -64,7 +72,9 @@ shcore::Prompt_result password(void *user_data, const char *prompt,
 }
 }  // namespace
 
-TEST(Shell_console, prompt) {
+class Shell_console_test : public Shell_core_test_wrapper {};
+
+TEST_F(Shell_console_test, prompt) {
   std::unique_ptr<Test_data> data(new Test_data());
   shcore::Interpreter_delegate deleg(data.get(), print, prompt, password,
                                      nullptr, nullptr, nullptr);
@@ -127,6 +137,38 @@ TEST(Shell_console, prompt) {
   answer = console.confirm("Really?", Prompt_answer::YES, "&Continue", "&Edit",
                            "C&ancel");
   EXPECT_EQ(Prompt_answer::YES, answer);
+  EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ",
+            data->output);
+  data->output.clear();
+
+  data->input.push_back("cancel");
+  answer = console.confirm("Really?", Prompt_answer::YES, "&Continue", "&Edit",
+                           "C&ancel");
+  EXPECT_EQ(Prompt_answer::ALT, answer);
+  EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ",
+            data->output);
+  data->output.clear();
+
+  data->input.push_back("CANCEL");
+  answer = console.confirm("Really?", Prompt_answer::YES, "&Continue", "&Edit",
+                           "C&ancel");
+  EXPECT_EQ(Prompt_answer::ALT, answer);
+  EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ",
+            data->output);
+  data->output.clear();
+
+  data->input.push_back("a");
+  answer = console.confirm("Really?", Prompt_answer::YES, "&Continue", "&Edit",
+                           "C&ancel");
+  EXPECT_EQ(Prompt_answer::ALT, answer);
+  EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ",
+            data->output);
+  data->output.clear();
+
+  data->input.push_back("A");
+  answer = console.confirm("Really?", Prompt_answer::YES, "&Continue", "&Edit",
+                           "C&ancel");
+  EXPECT_EQ(Prompt_answer::ALT, answer);
   EXPECT_EQ("Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ",
             data->output);
   data->output.clear();

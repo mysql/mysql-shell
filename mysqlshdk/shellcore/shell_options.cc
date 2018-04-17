@@ -43,21 +43,6 @@ bool Shell_options::Storage::has_connection_data() const {
          ssl_options.has_data();
 }
 
-static mysqlsh::SessionType get_session_type(
-    const mysqlshdk::db::Connection_options &opt) {
-  if (!opt.has_scheme()) {
-    return mysqlsh::SessionType::Auto;
-  } else {
-    std::string scheme = opt.get_scheme();
-    if (scheme == "mysqlx")
-      return mysqlsh::SessionType::X;
-    else if (scheme == "mysql")
-      return mysqlsh::SessionType::Classic;
-    else
-      throw std::invalid_argument("Unknown MySQL URI type " + scheme);
-  }
-}
-
 /**
  * Builds Connection_options from options given by user through command line
  */
@@ -79,7 +64,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   // If a scheme is given on the URI the session type must match the URI
   // scheme
   if (target_server.has_scheme()) {
-    mysqlsh::SessionType uri_session_type = get_session_type(target_server);
+    mysqlsh::SessionType uri_session_type = target_server.get_session_type();
     std::string error;
 
     if (session_type != mysqlsh::SessionType::Auto &&
@@ -106,9 +91,6 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     }
   }
 
-  // TODO(rennox): Analize if this should actually exist... or if it
-  // should be done right before connection for the missing data
-  shcore::set_default_connection_data(&target_server);
   return target_server;
 }
 

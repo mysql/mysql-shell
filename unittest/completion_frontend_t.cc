@@ -195,10 +195,10 @@ class Completer_frontend : public Shell_core_test_wrapper {
     _options->interactive = true;
     _options->db_name_cache = true;
 
-    _interactive_shell.reset(new mysqlsh::Command_line_shell(
+    replace_shell<Command_line_shell>(
         get_options(),
         std::unique_ptr<shcore::Interpreter_delegate>(
-            new shcore::Interpreter_delegate(output_handler.deleg))));
+            new shcore::Interpreter_delegate(output_handler.deleg)));
 
     execute("\\py");
     execute("import sys");

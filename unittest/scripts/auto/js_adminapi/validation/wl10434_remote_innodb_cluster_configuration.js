@@ -302,7 +302,7 @@ Please restart MySQL manually
 ||
 
 //@ ET_5 - Call dba.configureInstance() with interactive flag set to true and not specifying username {VER(>=8.0.11)}
-||Access denied for user 'root'@'<<<localhost>>>' (using password: YES) (MySQL Error 1045)
+||(using password: YES) (MySQL Error 1045)
 
 //@ ET_7 - Call dba.configureInstance() with interactive flag set to true and not specifying a password {VER(>=8.0.11)}
 ||Access denied for user 'root'@'<<<localhost>>>' (using password: YES) (MySQL Error 1045)

@@ -45,12 +45,9 @@
 
 namespace mysqlsh {
 
-std::shared_ptr<mysqlsh::Shell_options> Base_shell::shell_options;
-
 Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
                        shcore::Interpreter_delegate *custom_delegate)
-    : _deferred_output(new std::string()) {
-  Base_shell::shell_options = cmdline_options;
+    : m_shell_options{cmdline_options}, _deferred_output(new std::string()) {
   shcore::Interrupts::setup();
 
   std::string log_path =
@@ -68,7 +65,7 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 }
 
 void Base_shell::finish_init() {
-  shcore::IShell_core::Mode initial_mode = shell_options->get().initial_mode;
+  shcore::IShell_core::Mode initial_mode = options().initial_mode;
   if (initial_mode == shcore::IShell_core::Mode::None) {
 #ifdef HAVE_V8
     initial_mode = shcore::IShell_core::Mode::JavaScript;

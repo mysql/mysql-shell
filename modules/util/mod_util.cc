@@ -28,6 +28,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -44,11 +45,8 @@ REGISTER_HELP(
     "Global object that groups miscellaneous tools like upgrade checker.");
 
 Util::Util(shcore::IShell_core *owner,
-           std::shared_ptr<mysqlsh::IConsole> console_handler,
-           bool wizards_mode)
-    : _shell_core(*owner),
-      m_console_handler(console_handler),
-      m_wizards_mode(wizards_mode) {
+           std::shared_ptr<mysqlsh::IConsole> console_handler)
+    : _shell_core(*owner), m_console_handler(console_handler) {
   add_method(
       "checkForServerUpgrade",
       std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
@@ -131,18 +129,14 @@ shcore::Value Util::check_for_server_upgrade(
             : mysqlsh::get_connection_options(args,
                                               mysqlsh::PasswordFormat::STRING);
 
-    mysqlsh::resolve_connection_credentials(
-        &connection_options, m_wizards_mode ? m_console_handler : nullptr);
-
     _shell_core.print(shcore::str_format(
         "The MySQL server at %s will now be checked for compatibility "
         "issues for upgrade to MySQL 8.0...\n",
         connection_options.as_uri(mysqlshdk::db::uri::formats::only_transport())
             .c_str()));
 
-    std::shared_ptr<mysqlshdk::db::ISession> session =
-        mysqlshdk::db::mysql::Session::create();
-    session->connect(connection_options);
+    auto session = establish_mysql_session(
+        connection_options, current_shell_options()->get().wizards);
 
     auto result = session->query("select current_user();");
     const mysqlshdk::db::IRow *row = result->fetch_one();

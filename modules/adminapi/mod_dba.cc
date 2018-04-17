@@ -194,9 +194,8 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
 Dba::Dba(shcore::IShell_core *owner,
-         std::shared_ptr<mysqlsh::IConsole> console_handler,
-         const Shell_options::Storage &options)
-    : _shell_core(owner), m_console(console_handler), m_options(options) {
+         std::shared_ptr<mysqlsh::IConsole> console_handler)
+    : _shell_core(owner), m_console(console_handler) {
   init();
 }
 
@@ -245,7 +244,8 @@ void Dba::init() {
       "rebootClusterFromCompleteOutage",
       std::bind(&Dba::reboot_cluster_from_complete_outage, this, _1));
 
-  std::string local_mp_path = mysqlsh::Base_shell::options().gadgets_path;
+  std::string local_mp_path =
+      mysqlsh::current_shell_options()->get().gadgets_path;
 
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
@@ -564,7 +564,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
     std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
   std::shared_ptr<mysqlsh::dba::Cluster> cluster(
-      new Cluster("", group_session, metadata, m_console, m_options));
+      new Cluster("", group_session, metadata, m_console));
 
   if (!name) {
     // Reloads the cluster (to avoid losing _default_cluster in case of error)
@@ -1003,8 +1003,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     MetadataStorage::Transaction tx(metadata);
 
-    std::shared_ptr<Cluster> cluster(new Cluster(
-        cluster_name, group_session, metadata, m_console, m_options));
+    std::shared_ptr<Cluster> cluster(
+        new Cluster(cluster_name, group_session, metadata, m_console));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -1353,7 +1353,7 @@ shcore::Value Dba::check_instance_configuration(
   shcore::Value ret_val;
   mysqlshdk::db::Connection_options instance_def;
   std::shared_ptr<mysqlshdk::db::ISession> instance_session;
-  bool interactive = m_options.wizards;
+  bool interactive = current_shell_options()->get().wizards;
   std::string mycnf_path, password;
 
   try {
@@ -1374,18 +1374,11 @@ shcore::Value Dba::check_instance_configuration(
           args, mysqlsh::PasswordFormat::OPTIONS);
     }
 
-    // If interactive is enabled, resolves user and validates password
-    if (interactive) {
-      if (instance_def.has_data())
-        mysqlsh::resolve_connection_credentials(&instance_def, m_console);
-    }
-
     // Establish the session to the target instance
     if (instance_def.has_data()) {
       validate_connection_options(instance_def);
 
-      instance_session = mysqlshdk::db::mysql::Session::create();
-      instance_session->connect(instance_def);
+      instance_session = establish_mysql_session(instance_def, interactive);
     } else {
       instance_session = connect_to_target_member();
     }
@@ -1996,7 +1989,7 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
   std::string mycnf_path, output_mycnf_path, cluster_admin, password;
   mysqlshdk::utils::nullable<std::string> cluster_admin_password;
   mysqlshdk::utils::nullable<bool> clear_read_only;
-  bool interactive = m_options.wizards;
+  bool interactive = current_shell_options()->get().wizards;
   mysqlshdk::utils::nullable<bool> restart;
 
   {
@@ -2021,18 +2014,11 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
           args, mysqlsh::PasswordFormat::OPTIONS);
     }
 
-    // If interactive is enabled, resolves user and validates password
-    if (interactive) {
-      if (instance_def.has_data())
-        mysqlsh::resolve_connection_credentials(&instance_def, m_console);
-    }
-
     // Establish the session to the target instance
     if (instance_def.has_data()) {
       validate_connection_options(instance_def);
 
-      instance_session = mysqlshdk::db::mysql::Session::create();
-      instance_session->connect(instance_def);
+      instance_session = establish_mysql_session(instance_def, interactive);
     } else {
       instance_session = connect_to_target_member();
     }
@@ -2646,8 +2632,8 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
-    cluster.reset(new Cluster(cluster_name, group_session, metadata, m_console,
-                              m_options));
+    cluster.reset(
+        new Cluster(cluster_name, group_session, metadata, m_console));
 
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.

@@ -35,8 +35,9 @@ using namespace shcore;
 
 Shell_python::Shell_python(Shell_core *shcore)
     : Shell_language(shcore),
-      _py(new Python_context(shcore->get_delegate(),
-                             mysqlsh::Base_shell::options().interactive)) {}
+      _py(new Python_context(
+          shcore->get_delegate(),
+          mysqlsh::current_shell_options()->get().interactive)) {}
 
 std::string Shell_python::preprocess_input_line(const std::string &s) {
   const char *p = s.c_str();
@@ -68,7 +69,7 @@ void Shell_python::handle_input(std::string &code, Input_state &state) {
     _aborted = false;
   }
 
-  if (mysqlsh::Base_shell::options().interactive) {
+  if (mysqlsh::current_shell_options()->get().interactive) {
     WillEnterPython lock;
     result = _py->execute_interactive(code, state);
   } else {

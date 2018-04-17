@@ -153,7 +153,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   _delegate.print = print;
   _delegate.print_error = print;
 
-  std::string local_mp_path = mysqlsh::Base_shell::options().gadgets_path;
+  std::string local_mp_path =
+      mysqlsh::current_shell_options()->get().gadgets_path;
 
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
@@ -956,6 +957,7 @@ static int os_file_lock(int fd) {
 #endif
 
 void Testutils::wait_sandbox_dead(int port) {
+  log_info("Waiting for ports (%d)...", port);
   // wait until classic, x and Xcom ports are free
   if (port * 10 + 1 < 65535) {
     while (
@@ -971,6 +973,8 @@ void Testutils::wait_sandbox_dead(int port) {
   while (mysqlshdk::utils::Net::is_port_listening("localhost", port)) {
     shcore::sleep_ms(500);
   }
+
+  log_info("Waiting for lock file...");
 
 #ifdef _WIN32
   // In Windows, it should be enough to see if the ibdata file is locked
@@ -990,6 +994,9 @@ void Testutils::wait_sandbox_dead(int port) {
                                            "/mysqld.sock.lock")) {
     shcore::sleep_ms(500);
   }
+
+  log_info("Waiting for ibdata file...");
+
   // wait for innodb to release lock from ibdata file
   int ibdata_fd =
       open((get_sandbox_datadir(port) + "/ibdata1").c_str(), O_RDWR);
@@ -1000,6 +1007,8 @@ void Testutils::wait_sandbox_dead(int port) {
     ::close(ibdata_fd);
   }
 #endif
+
+  log_info("Finished waiting");
 }
 
 bool is_configuration_option(const std::string &option,

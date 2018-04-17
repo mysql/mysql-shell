@@ -115,6 +115,18 @@ class Process {
   int write_to_terminal(const char *buf, size_t count);
 
   /**
+   * Reads output from terminal of the child process.
+   *
+   * This method is not available on Windows.
+   *
+   * @return Number of bytes written.
+   * @throws std::system_error in case of reading error.
+   * @throws std::logic_error if enable_child_terminal() was not called before
+   *         starting the child process
+   */
+  std::string read_from_terminal();
+
+  /**
    * Kills the child process.
    */
   void kill();

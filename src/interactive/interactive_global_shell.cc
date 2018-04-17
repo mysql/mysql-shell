@@ -43,8 +43,6 @@ shcore::Value Global_shell::connect(const shcore::Argument_list &args) {
   try {
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
-
-    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("connect"));
 

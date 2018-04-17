@@ -62,6 +62,7 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 
 //@ Cluster: addInstance with interaction, error
 add_instance_options['port'] = __mysql_sandbox_port1;
+add_instance_options['user'] = 'root';
 Cluster.addInstance(add_instance_options, add_instance_extra_opts);
 
 //@<OUT> Cluster: addInstance with interaction, ok

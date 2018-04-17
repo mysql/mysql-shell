@@ -43,8 +43,7 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
                            public std::enable_shared_from_this<Util> {
  public:
   explicit Util(shcore::IShell_core *owner,
-                std::shared_ptr<mysqlsh::IConsole> console_handler,
-                bool wizards_mode);
+                std::shared_ptr<mysqlsh::IConsole> console_handler);
 
   std::string class_name() const override { return "Util"; };
 
@@ -58,7 +57,6 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
  private:
   shcore::IShell_core &_shell_core;
   std::shared_ptr<mysqlsh::IConsole> m_console_handler;
-  bool m_wizards_mode;
 };
 
 } /* namespace mysqlsh */

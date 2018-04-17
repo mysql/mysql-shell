@@ -70,14 +70,12 @@ REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 Cluster::Cluster(const std::string &name,
                  std::shared_ptr<mysqlshdk::db::ISession> group_session,
                  std::shared_ptr<MetadataStorage> metadata_storage,
-                 std::shared_ptr<IConsole> console_handler,
-                 const Shell_options::Storage &options)
+                 std::shared_ptr<IConsole> console_handler)
     : _name(name),
       _dissolved(false),
       _group_session(group_session),
       _metadata_storage(metadata_storage),
-      m_console(console_handler),
-      m_shell_options(options) {
+      m_console(console_handler) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
@@ -1754,7 +1752,8 @@ void Cluster::sync_transactions(
                              ->get_string(0);
 
   bool sync_res = mysqlshdk::gr::wait_for_gtid_set(
-      target_instance, gtid_set, m_shell_options.dba_gtid_wait_timeout);
+      target_instance, gtid_set,
+      current_shell_options()->get().dba_gtid_wait_timeout);
   if (!sync_res) {
     std::string instance_address =
         target_instance.get_connection_options().as_uri(

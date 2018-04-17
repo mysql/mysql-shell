@@ -10,7 +10,6 @@
 # rebuild_traces <filter>
 # Set TARGET_MYSQL to change the traced server version.
 
-
 if test "$TARGET_MYSQL" = ""; then
   version=$(mysqld --version|cut -d\  -f4|cut -d- -f1)
 else
@@ -18,9 +17,11 @@ else
 fi
 
 # Filter to find all tests that are replayable and processed by default
-replayable_tests_filter="Shell_js_dba*:*Auto_script_js*:Dba_common_test.*:Dba_sql_test.*:Dba_common_cluster_functions.*:Dba_replicaset_test.*:-Shell_js_dba_tests.no_interactive_sandboxes:Shell_js_dba_tests.interactive_deploy_instance"
+replayable_tests_filter="Shell_js_dba*:*Auto_script_js*:*Auto_script_py*:Dba_common_test.*:Dba_sql_test.*:Dba_common_cluster_functions.*:Dba_replicaset_test.*"
 # Test groups that must be recorded/executed at once instead of case by case
 replayable_test_groups_nosplit="Dba_common_cluster_functions.*:Dba_replicaset_test.*:Dba_sql_test.*"
+# Excluded tests
+excluded_tests_filter="-Shell_js_dba_tests.no_interactive_sandboxes:Shell_js_dba_tests.interactive_deploy_instance"
 
 rut=bin/run_unit_tests
 
@@ -66,7 +67,7 @@ for arg in $*; do
 done
 
 if test "$filter" = ""; then
-  filter=$replayable_tests_filter:$replayable_test_groups_nosplit
+  filter=$replayable_tests_filter:$replayable_test_groups_nosplit:$excluded_tests_filter
 fi
 
 function is_nosplit_group() {

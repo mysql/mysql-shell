@@ -83,8 +83,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 #endif
 
   Dba(shcore::IShell_core *owner,
-      std::shared_ptr<mysqlsh::IConsole> console_handler,
-      const Shell_options::Storage &options);
+      std::shared_ptr<mysqlsh::IConsole> console_handler);
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
@@ -185,7 +184,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
  private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
   std::shared_ptr<mysqlsh::IConsole> m_console;
-  const Shell_options::Storage &m_options;
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);

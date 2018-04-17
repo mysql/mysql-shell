@@ -99,8 +99,6 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(
     auto instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
-    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
-
     auto instance_map = mysqlsh::get_connection_map(instance_def);
 
     shcore::Argument_list new_args;
@@ -169,7 +167,7 @@ shcore::Value Interactive_dba_cluster::add_instance(
         mysqlsh::dba::validate_ip_whitelist_option(options);
       }
 
-      mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+      instance_def.set_default_connection_data();
 
       instance_map = mysqlsh::get_connection_map(instance_def);
     }
@@ -238,7 +236,7 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
 
     print(message);
 
-    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+    instance_def.set_default_connection_data();
 
     instance_map = mysqlsh::get_connection_map(instance_def);
   }
@@ -331,8 +329,7 @@ shcore::Value Interactive_dba_cluster::check_instance_state(
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
-    // Gather username and password if missing
-    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+    instance_def.set_default_connection_data();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("checkInstanceState"));
@@ -418,7 +415,9 @@ shcore::Value Interactive_dba_cluster::rescan(
           std::string full_host = instance_map->get_string("host");
           auto instance_def = shcore::get_connection_options(full_host, false);
 
-          mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+          instance_def.set_user(cluster->get_group_session()
+                                    ->get_connection_options()
+                                    .get_user());
 
           println("Adding instance to the cluster metadata...");
           println();
@@ -531,7 +530,7 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
                           group_peers + "]\n\n";
     print(message);
 
-    mysqlsh::resolve_connection_credentials(&instance_def, _delegate);
+    instance_def.set_default_connection_data();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("forceQuorumUsingPartitionOf"));

@@ -254,13 +254,19 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   void enable_replay();
   virtual void execute_setup() {}
 
+  template <typename T, typename... Args>
+  void replace_shell(Args &&... args) {
+    // previous shell needs to be destroyed before a new one can be created
+    _interactive_shell.reset();
+    _interactive_shell.reset(new T{std::forward<Args>(args)...});
+  }
+
   virtual void reset_shell() {
     // If the options have not been set, they must be set now, otherwise
     // they should be explicitly reset
     if (!_opts) reset_options();
 
-    _interactive_shell.reset(
-        new mysqlsh::Mysql_shell(_opts, &output_handler.deleg));
+    replace_shell<mysqlsh::Mysql_shell>(_opts, &output_handler.deleg);
     _interactive_shell->finish_init();
     set_defaults();
     enable_testutil();

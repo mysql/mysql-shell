@@ -162,9 +162,9 @@ ResultsetDumper::ResultsetDumper(
       _resultset(target),
       _buffer_data(buffer_data),
       _cancelled(false) {
-  _format = mysqlsh::Base_shell::options().output_format;
-  _interactive = mysqlsh::Base_shell::options().interactive;
-  _show_warnings = mysqlsh::Base_shell::options().show_warnings;
+  _format = mysqlsh::current_shell_options()->get().output_format;
+  _interactive = mysqlsh::current_shell_options()->get().interactive;
+  _show_warnings = mysqlsh::current_shell_options()->get().show_warnings;
 }
 
 void ResultsetDumper::dump() {

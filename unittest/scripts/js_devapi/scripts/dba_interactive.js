@@ -120,18 +120,18 @@ else
 
 //@ Dba: checkInstanceConfiguration error
 testutil.expectPassword("*", "root");
-dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port1);
+dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port1);
 
 //@<OUT> Dba: checkInstanceConfiguration ok 1
 testutil.expectPassword("*", "root");
-dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port2);
+dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2);
 
 //@<OUT> Dba: checkInstanceConfiguration ok 2
 testutil.expectPassword("*", "root");
-dba.checkInstanceConfiguration('localhost:' + __mysql_sandbox_port2, {password:'root'});
+dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {password:'root'});
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
-var uri2 = 'localhost:' + __mysql_sandbox_port2;
+var uri2 = 'root@localhost:' + __mysql_sandbox_port2;
 var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
 // TODO: This test needs an actual remote instance
@@ -145,11 +145,11 @@ var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
 //@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
 testutil.expectPassword("*", "root");
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1);
 
 //@<OUT> Dba: configureLocalInstance error 3 bad call {VER(>=8.0.11)}
 testutil.expectPassword("*", "root");
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1);
 
 session.close();
 
@@ -212,7 +212,7 @@ connect_to_sandbox([__mysql_sandbox_port1]);
 //@<OUT> Dba: configureLocalInstance updating config file
 testutil.expectPassword("*", "root");
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
-dba.configureLocalInstance('localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
+dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
 
 //@ Dba: create an admin user with all needed privileges
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE

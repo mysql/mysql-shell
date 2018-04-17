@@ -28,6 +28,7 @@
 #include <vector>
 #include "scripting/types.h"
 #include "shellcore/base_shell.h"
+#include "shellcore/scoped_contexts.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_options.h"
 
@@ -77,14 +78,13 @@ class Mysql_shell : public mysqlsh::Base_shell,
     return &_shell_command_handler;
   }
 
-  std::shared_ptr<mysqlsh::Shell_console> console() { return _console_handler; }
+  std::shared_ptr<mysqlsh::IConsole> console() {
+    return m_console_handler.get();
+  }
 
  protected:
   shcore::Shell_command_handler _shell_command_handler;
   static void set_sql_safe_for_logging(const std::string &patterns);
-
-  std::shared_ptr<mysqlshdk::db::ISession> create_session(
-      const mysqlshdk::db::Connection_options &connection_options);
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_active_session(
       std::shared_ptr<mysqlshdk::db::ISession> session);
@@ -110,7 +110,7 @@ class Mysql_shell : public mysqlsh::Base_shell,
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
   std::shared_ptr<mysqlsh::Util> _global_util;
-  std::shared_ptr<mysqlsh::Shell_console> _console_handler;
+  Scoped_console m_console_handler;
 
   bool _reconnect_session;
   /// Last schema set by the user via \use command.

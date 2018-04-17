@@ -49,7 +49,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
     return true;
   });
 
-  if (mysqlsh::Base_shell::options().interactive)
+  if (mysqlsh::current_shell_options()->get().interactive)
     result = _js->execute_interactive(code, state);
   else {
     try {

@@ -131,13 +131,9 @@ class Shell_test_env : public ::testing::Test {
   static std::string _uri_nopasswd;  //!< A password-less URI for X protocol
   static std::string
       _mysql_port;  //!< The port for MySQL protocol, env:MYSQL_PORT
-  static std::string
-      _mysql57_port;  //!< The port of 5.7 server for upgrade checker
   static int
       _mysql_port_number;  //!< The port for MySQL protocol, env:MYSQL_PORT
   static std::string _mysql_uri;  //!< A full URI for MySQL protocol sessions
-  static std::string
-      _mysql57_uri;  //!< An URI of 5.7 server for upgrade checker
   static std::string
       _mysql_uri_nopasswd;  //!< A password-less URI for MySQL protocol sessions
 
