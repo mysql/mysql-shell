@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -209,8 +209,10 @@ Replayer_mysql::get_connection_options() const {
 }
 
 Result_mysql::Result_mysql(uint64_t affected_rows, unsigned int warning_count,
-                           uint64_t last_insert_id, const char *info)
-    : mysql::Result({}, affected_rows, warning_count, last_insert_id, info) {}
+                           uint64_t last_insert_id, const char *info,
+                           const std::vector<std::string> &gtids)
+    : mysql::Result({}, affected_rows, warning_count, last_insert_id, info),
+      _gtids(gtids) {}
 
 // ---
 

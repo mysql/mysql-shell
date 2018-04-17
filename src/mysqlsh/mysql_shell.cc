@@ -1343,6 +1343,12 @@ void Mysql_shell::process_sql_result(
               .as_object<mysqlsh::ShellBaseResult>(),
           _shell->get_delegate(), false);
       dumper.dump();
+      if (options().interactive) {
+        const std::vector<std::string> &gtids(result->get_gtids());
+        if (!gtids.empty()) {
+          println("GTIDs: " + shcore::str_join(gtids, ", "));
+        }
+      }
     } else if (dynamic_cast<mysqlshdk::db::mysqlx::Result *>(result.get())) {
       ResultsetDumper dumper(
           wrap_resultx(

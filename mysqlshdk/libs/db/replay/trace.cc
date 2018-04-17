@@ -283,6 +283,10 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
     set(&doc, "affected_rows", result->get_affected_row_count());
     set(&doc, "warning_count", result->get_warning_count());
     set(&doc, "info", result->get_info());
+    std::vector<std::string> gtids = result->get_gtids();
+    if (!gtids.empty()) {
+      set(&doc, "gtids", shcore::str_join(gtids, ","));
+    }
     if (result->has_resultset()) {
       serialize_result_metadata(&doc, result);
       serialize_result_rows(&doc, result);
@@ -621,9 +625,12 @@ std::shared_ptr<Result_mysql> Trace::expected_result(
     auto affected_rows = get_uint(obj["affected_rows"]);
     auto warning_count = get_int(obj["warning_count"]);
     auto info = get_string(obj["info"]);
+    std::string gtids = obj.HasMember("gtids") ? get_string(obj["gtids"]) : "";
 
     std::shared_ptr<Result_mysql> result(new Result_mysql(
-        affected_rows, warning_count, last_insert_id, info.c_str()));
+        affected_rows, warning_count, last_insert_id, info.c_str(),
+        gtids.empty() ? std::vector<std::string>()
+                      : shcore::str_split(gtids, ",")));
 
     if (obj.HasMember("columns")) {
       result->_has_resultset = true;

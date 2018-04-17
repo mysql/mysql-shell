@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,7 +78,8 @@ class Replayer_mysql : public mysql::Session {
 class Result_mysql : public db::mysql::Result {
  public:
   Result_mysql(uint64_t affected_rows, unsigned int warning_count,
-               uint64_t last_insert_id, const char *info);
+               uint64_t last_insert_id, const char *info,
+               const std::vector<std::string> &gtids);
 
   const db::IRow *fetch_one() override {
     if (_rows.size() > _fetched_row_count) return &_rows[_fetched_row_count++];
@@ -91,12 +92,15 @@ class Result_mysql : public db::mysql::Result {
 
   bool has_resultset() override { return _has_resultset; }
 
+  const std::vector<std::string> &get_gtids() const override { return _gtids; }
+
  private:
   friend class Trace;
 
   std::vector<db::Row_copy> _rows;
 
   std::list<std::unique_ptr<Warning>> _warnings;
+  std::vector<std::string> _gtids;
   bool _has_resultset = false;
   bool _fetched_warnings = false;
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,6 +78,7 @@ class SHCORE_PUBLIC IResult {
   virtual uint64_t get_fetched_row_count() const = 0;
   virtual uint64_t get_warning_count() const = 0;
   virtual std::string get_info() const = 0;
+  virtual const std::vector<std::string> &get_gtids() const = 0;
 
   virtual const std::vector<Column> &get_metadata() const = 0;
 

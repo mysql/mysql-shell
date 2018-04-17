@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,6 +56,9 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   bool next_resultset() override;
   std::unique_ptr<Warning> fetch_one_warning() override;
   std::string get_info() const override;
+  const std::vector<std::string> &get_gtids() const override {
+    throw std::logic_error("not implemented");
+  }
 
   // Read and buffer all rows for the active data set
   bool pre_fetch_rows(bool persistent = false);

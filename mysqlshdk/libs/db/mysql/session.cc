@@ -268,12 +268,32 @@ void Session_impl::prepare_fetch(Result *target, bool buffered) {
     target->reset(_prev_result);
 
     target->fetch_metadata();
+  } else {
+    // Update the result object for stmts that don't return a result
+    target->reset(nullptr);
   }
 }
 
 Session_impl::~Session_impl() {
   _prev_result.reset();
   close();
+}
+
+std::vector<std::string> Session_impl::get_last_gtids() const {
+  const char *data;
+  size_t length;
+  std::vector<std::string> gtids;
+
+  if (mysql_session_track_get_first(_mysql, SESSION_TRACK_GTIDS, &data,
+                                    &length) == 0) {
+    gtids.emplace_back(data, length);
+
+    while (mysql_session_track_get_next(_mysql, SESSION_TRACK_GTIDS, &data,
+                                        &length) == 0) {
+      gtids.emplace_back(std::string(data, length));
+    }
+  }
+  return gtids;
 }
 
 std::function<std::shared_ptr<Session>()> g_session_factory;
