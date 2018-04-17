@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -157,6 +157,9 @@ void Result::reset(std::shared_ptr<MYSQL_RES> res) {
   if (res) _has_resultset = true;
 
   _result = res;
+
+  if (auto s = _session.lock())
+    _gtids = s->get_last_gtids();
 }
 
 Type Result::map_data_type(int raw_type, int flags) {

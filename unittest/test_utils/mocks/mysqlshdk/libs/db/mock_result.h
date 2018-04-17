@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,6 +102,7 @@ class Mock_result : public mysqlshdk::db::IResult {
   MOCK_CONST_METHOD0(get_warning_count, uint64_t());
   MOCK_CONST_METHOD0(get_execution_time, unsigned long());
   MOCK_CONST_METHOD0(get_info, std::string());
+  MOCK_CONST_METHOD0(get_gtids, const std::vector<std::string>&());
 
   MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column> &());
 

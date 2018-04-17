@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 
 #include "mysqlshdk/libs/db/result.h"
 
+#include <string>
 #include <list>
 #include <memory>
 #include <vector>
@@ -61,6 +62,9 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
   virtual uint64_t get_warning_count() const { return _warning_count; }
   virtual std::string get_info() const { return _info; }
+  virtual const std::vector<std::string> &get_gtids() const {
+    return _gtids;
+  }
   virtual const std::vector<Column> &get_metadata() const { return _metadata; }
 
  protected:
@@ -75,6 +79,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   std::vector<Column> _metadata;
   std::unique_ptr<IRow> _row;
   std::weak_ptr<MYSQL_RES> _result;
+  std::vector<std::string> _gtids;
   uint64_t _affected_rows = 0;
   uint64_t _last_insert_id = 0;
   unsigned int _warning_count = 0;

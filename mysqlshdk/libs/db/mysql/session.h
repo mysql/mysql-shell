@@ -33,6 +33,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
@@ -123,7 +124,9 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return mysql_error(_mysql);
   }
 
-  const mysqlshdk::db::Connection_options &get_connection_options() const {
+  std::vector<std::string> get_last_gtids() const;
+
+  const mysqlshdk::db::Connection_options & get_connection_options() const {
     return _connection_options;
   }
 

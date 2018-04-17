@@ -1,0 +1,8 @@
+[
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:3316","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"7","connection_info":"localhost via TCP/IP","server_info":"5.7.22-enterprise-commercial-advanced-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"QUERY","index":3,"sql":"insert into testdb.a values (default)\n"},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":9,"affected_rows":1,"warning_count":0,"info":"","gtids":"eb1e22b4-4d0b-11e8-ac70-a691e3be0e09:11"},
+{"type":"request","subtype":"CLOSE","index":5},
+{"type":"response","subtype":"OK","index":6},
+null]
