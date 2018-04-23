@@ -54,11 +54,7 @@ TEST(Enumset, test) {
 }
 
 TEST(Enumset, operators) {
-  enum class Attrib {
-    Color,
-    Width,
-    Height
-  };
+  enum class Attrib { Color, Width, Height };
   using Attribs = Enum_set<Attrib, Attrib::Height>;
 
   Attribs a;
