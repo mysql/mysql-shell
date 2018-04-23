@@ -1309,14 +1309,14 @@ void Mysql_shell::process_sql_result(
 
     // temporary adapter code:
 
-    auto wrap_result =
-        [](std::shared_ptr<mysqlshdk::db::mysql::Result> result, double t) {
-          mysqlsh::mysql::ClassicResult *res;
-          shcore::Value ret_val = shcore::Value::wrap(
-              res = new mysqlsh::mysql::ClassicResult(result));
-          res->set_execution_time(t);
-          return ret_val;
-        };
+    auto wrap_result = [](std::shared_ptr<mysqlshdk::db::mysql::Result> result,
+                          double t) {
+      mysqlsh::mysql::ClassicResult *res;
+      shcore::Value ret_val =
+          shcore::Value::wrap(res = new mysqlsh::mysql::ClassicResult(result));
+      res->set_execution_time(t);
+      return ret_val;
+    };
 
     auto wrap_resultx =
         [](std::shared_ptr<mysqlshdk::db::mysqlx::Result> result, double t) {

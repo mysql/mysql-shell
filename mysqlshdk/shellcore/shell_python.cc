@@ -25,9 +25,9 @@
 
 #include "shellcore/shell_python.h"
 
+#include "mysqlshdk/include/shellcore/base_shell.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
-#include "mysqlshdk/include/shellcore/base_shell.h"
 
 #include "pythread.h"
 

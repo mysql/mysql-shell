@@ -36,9 +36,7 @@ class Enum_set {
 
   explicit Enum_set(Enum value) : _value(ord(value)) {}
 
-  static Enum_set any() {
-    return all();
-  }
+  static Enum_set any() { return all(); }
 
   static Enum_set all() {
     Enum_set tmp;
@@ -66,9 +64,7 @@ class Enum_set {
     return *this;
   }
 
-  bool is_set(Enum value) const {
-    return _value & ord(value);
-  }
+  bool is_set(Enum value) const { return _value & ord(value); }
 
   bool empty() const { return _value == 0; }
 
@@ -79,19 +75,13 @@ class Enum_set {
 
   operator bool() const { return !empty(); }
 
-  Enum_set operator&(Enum value) const {
-    return Enum_set(_value & ord(value));
-  }
+  Enum_set operator&(Enum value) const { return Enum_set(_value & ord(value)); }
 
-  Enum_set operator|(Enum value) const {
-    return Enum_set(_value | ord(value));
-  }
+  Enum_set operator|(Enum value) const { return Enum_set(_value | ord(value)); }
 
   bool operator==(Enum_set set) const { return _value == set._value; }
 
-  bool operator==(Enum value) const {
-    return _value == ord(value);
-  }
+  bool operator==(Enum value) const { return _value == ord(value); }
 
   bool operator!=(Enum_set set) const { return _value != set._value; }
 
