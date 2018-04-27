@@ -22,6 +22,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <tuple>
 #include "utils/utils_path.h"
 
 namespace shcore {
@@ -219,43 +220,76 @@ TEST(utils_path, splitdrive) {
   EXPECT_EQ("/root/drive/folder", res.second);
 }
 
+TEST(utils_path, split_extension) {
+  EXPECT_EQ(std::make_tuple("", ""), split_extension(""));
+  EXPECT_EQ(std::make_tuple("file", ""), split_extension("file"));
+  EXPECT_EQ(std::make_tuple(".dot-file", ""), split_extension(".dot-file"));
+  EXPECT_EQ(std::make_tuple("/home/user/", ""), split_extension("/home/user/"));
+  EXPECT_EQ(std::make_tuple("/home/user/.dot-file", ""),
+            split_extension("/home/user/.dot-file"));
+  EXPECT_EQ(std::make_tuple("/home/user/..dot-file", ""),
+            split_extension("/home/user/..dot-file"));
+  EXPECT_EQ(std::make_tuple("binary", ".exe"), split_extension("binary.exe"));
+  EXPECT_EQ(std::make_tuple("./binary", ".exe"),
+            split_extension("./binary.exe"));
+  EXPECT_EQ(std::make_tuple("/home/user/binary", ".exe"),
+            split_extension("/home/user/binary.exe"));
+  EXPECT_EQ(std::make_tuple("/home/name.surname/x", ".exe"),
+            split_extension("/home/name.surname/x.exe"));
+  EXPECT_EQ(std::make_tuple("/home/name.surname/.dot-file", ""),
+            split_extension("/home/name.surname/.dot-file"));
+  EXPECT_EQ(std::make_tuple("/home/name.surname/file", ""),
+            split_extension("/home/name.surname/file"));
+  EXPECT_EQ(std::make_tuple("/home/name.surname/.file", ".exe"),
+            split_extension("/home/name.surname/.file.exe"));
+  EXPECT_EQ(std::make_tuple("/home/name.surname/..file", ".exe"),
+            split_extension("/home/name.surname/..file.exe"));
+  EXPECT_EQ(std::make_tuple("/home/name.surname/...", ""),
+            split_extension("/home/name.surname/..."));
+  EXPECT_EQ(std::make_tuple("...", ""), split_extension("..."));
+  EXPECT_EQ(std::make_tuple("...file", ".txt"), split_extension("...file.txt"));
+  EXPECT_EQ(std::make_tuple(".", ""), split_extension("."));
+  EXPECT_EQ(std::make_tuple("/a/b.x/c/test", ""),
+            split_extension("/a/b.x/c/test"));
+}
+
 TEST(utils_path, normalize) {
-  EXPECT_EQ(normalize(""), ".");
-  EXPECT_EQ(normalize("/"), "/");
-  EXPECT_EQ(normalize("./"), ".");
-  EXPECT_EQ(normalize("./../"), "..");
-  EXPECT_EQ(normalize("./../a"), "../a");
-  EXPECT_EQ(normalize("/a/b/c/../../../../../"), "/");
-  EXPECT_EQ(normalize("/a/b/c/../../../../../d/e/"), "/d/e");
-  EXPECT_EQ(normalize("/a/b/c/../../"), "/a");
-  EXPECT_EQ(normalize("a/"), "a");
-  EXPECT_EQ(normalize("a"), "a");
-  EXPECT_EQ(normalize("a/b"), "a/b");
-  EXPECT_EQ(normalize("a/b/c"), "a/b/c");
-  EXPECT_EQ(normalize("a/b/./c"), "a/b/c");
-  EXPECT_EQ(normalize("a/b/../c"), "a/c");
-  EXPECT_EQ(normalize("a//b/../c"), "a/c");
+  EXPECT_EQ(".", normalize(""));
+  EXPECT_EQ("/", normalize("/"));
+  EXPECT_EQ(".", normalize("./"));
+  EXPECT_EQ("..", normalize("./../"));
+  EXPECT_EQ("../a", normalize("./../a"));
+  EXPECT_EQ("/", normalize("/a/b/c/../../../../../"));
+  EXPECT_EQ("/d/e", normalize("/a/b/c/../../../../../d/e/"));
+  EXPECT_EQ("/a", normalize("/a/b/c/../../"));
+  EXPECT_EQ("a", normalize("a/"));
+  EXPECT_EQ("a", normalize("a"));
+  EXPECT_EQ("a/b", normalize("a/b"));
+  EXPECT_EQ("a/b/c", normalize("a/b/c"));
+  EXPECT_EQ("a/b/c", normalize("a/b/./c"));
+  EXPECT_EQ("a/c", normalize("a/b/../c"));
+  EXPECT_EQ("a/c", normalize("a//b/../c"));
 
-  EXPECT_EQ(normalize("./a/b"), "a/b");
-  EXPECT_EQ(normalize(".././a/b"), "../a/b");
-  EXPECT_EQ(normalize("../.././a/b"), "../../a/b");
-  EXPECT_EQ(normalize(".././.././a/b"), "../../a/b");
-  EXPECT_EQ(normalize(".././.././a/b/../"), "../../a");
-  EXPECT_EQ(normalize(".././.././a/b/../../"), "../..");
-  EXPECT_EQ(normalize(".././.././a/b/../../../"), "../../..");
-  EXPECT_EQ(normalize(".././.././a/b/../../../../"), "../../../..");
-  EXPECT_EQ(normalize("a/../"), ".");
-  EXPECT_EQ(normalize("a/../.."), "..");
-  EXPECT_EQ(normalize("a/../../../"), "../..");
+  EXPECT_EQ("a/b", normalize("./a/b"));
+  EXPECT_EQ("../a/b", normalize(".././a/b"));
+  EXPECT_EQ("../../a/b", normalize("../.././a/b"));
+  EXPECT_EQ("../../a/b", normalize(".././.././a/b"));
+  EXPECT_EQ("../../a", normalize(".././.././a/b/../"));
+  EXPECT_EQ("../..", normalize(".././.././a/b/../../"));
+  EXPECT_EQ("../../..", normalize(".././.././a/b/../../../"));
+  EXPECT_EQ("../../../..", normalize(".././.././a/b/../../../../"));
+  EXPECT_EQ(".", normalize("a/../"));
+  EXPECT_EQ("..", normalize("a/../.."));
+  EXPECT_EQ("../..", normalize("a/../../../"));
 
-  EXPECT_EQ(normalize("///a/b/c"), "/a/b/c");
-  EXPECT_EQ(normalize("////a/b/c"), "/a/b/c");
-  EXPECT_EQ(normalize("/../a/b/c"), "/a/b/c");
+  EXPECT_EQ("/a/b/c", normalize("///a/b/c"));
+  EXPECT_EQ("/a/b/c", normalize("////a/b/c"));
+  EXPECT_EQ("/a/b/c", normalize("/../a/b/c"));
 
-  EXPECT_EQ(normalize("//"), "//");
-  EXPECT_EQ(normalize("//a"), "//a");
-  EXPECT_EQ(normalize("//a/"), "//a");
-  EXPECT_EQ(normalize("//a/b/c"), "//a/b/c");
+  EXPECT_EQ("//", normalize("//"));
+  EXPECT_EQ("//a", normalize("//a"));
+  EXPECT_EQ("//a", normalize("//a/"));
+  EXPECT_EQ("//a/b/c", normalize("//a/b/c"));
 }
 #endif
 

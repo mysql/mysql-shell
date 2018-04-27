@@ -24,7 +24,9 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 #include <algorithm>
+#include <iterator>
 #include <string>
+#include <tuple>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -53,6 +55,28 @@ std::string expand_user(const std::string &path, const std::string &sep) {
     }
   }
   return path;
+}
+
+std::tuple<std::string, std::string> split_extension(const std::string &path,
+                                                     const std::string &sep) {
+  if (path.empty()) {
+    return std::make_tuple("", "");
+  }
+
+  const auto basename =
+      std::find_first_of(path.crbegin(), path.crend(), begin(sep), end(sep))
+          .base();
+  auto not_dot = [](const char c) -> bool { return c != '.'; };
+  const auto leading_dots = std::find_if(basename, path.end(), not_dot);
+  const auto last_dot = path.rfind('.');
+  const auto barrier =
+      static_cast<size_t>(std::distance(path.begin(), leading_dots));
+
+  if (last_dot != std::string::npos && barrier <= last_dot) {
+    return std::make_tuple(path.substr(0, last_dot), path.substr(last_dot));
+  }
+
+  return std::make_tuple(path, "");
 }
 
 size_t span_dirname(const std::string &path) {
@@ -88,7 +112,6 @@ size_t span_dirname(const std::string &path) {
     return path.find_last_of(k_valid_path_separators, end);
   }
 }
-
 }  // namespace detail
 
 std::string search_stdpath(const std::string &name) {
@@ -121,5 +144,6 @@ std::string search_path_list(const std::string &name,
   }
   return "";
 }
+
 }  // namespace path
 }  // namespace shcore

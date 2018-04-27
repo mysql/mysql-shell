@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,6 +112,12 @@ std::string SHCORE_PUBLIC home(const std::string &username) {
 std::string SHCORE_PUBLIC expand_user(const std::string &path) {
   const char sep[] = "/";
   return detail::expand_user(path, sep);
+}
+
+std::tuple<std::string, std::string> SHCORE_PUBLIC
+split_extension(const std::string &path) {
+  const char sep[] = "/";
+  return detail::split_extension(path, sep);
 }
 
 // TODO(.) should use normpath() to match windows functionality
