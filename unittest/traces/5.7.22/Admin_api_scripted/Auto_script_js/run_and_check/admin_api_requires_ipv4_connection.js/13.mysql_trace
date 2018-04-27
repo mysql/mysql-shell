@@ -1,0 +1,4 @@
+[
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@[::1]:2137","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"25","connection_info":"::1 via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+null]

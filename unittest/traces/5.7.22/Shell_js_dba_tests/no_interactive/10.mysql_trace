@@ -1,0 +1,10 @@
+[
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2247","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"12","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"QUERY","index":3,"sql":"SELECT COUNT(*) FROM performance_schema.threads WHERE NAME = 'thread/group_rpl/THD_delayed_initialization'"},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"COUNT(*)","length":21,"fractional":0,"type":"Integer","collation":"binary","charset":"binary","collation_id":63,"unsigned":false,"zerofill":false,"binary":true}],"rows":[[0]]},
+{"type":"request","subtype":"QUERY","index":5,"sql":"select count(*) from performance_schema.replication_group_members where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND MEMBER_STATE <> 'OFFLINE';"},
+{"type":"response","subtype":"RESULT","index":6,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"count(*)","length":21,"fractional":0,"type":"Integer","collation":"binary","charset":"binary","collation_id":63,"unsigned":false,"zerofill":false,"binary":true}],"rows":[[0]]},
+{"type":"request","subtype":"QUERY","index":7,"sql":"show databases like 'mysql_innodb_cluster_metadata'"},
+{"type":"response","subtype":"RESULT","index":8,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"information_schema","table_name":"SCHEMATA","table_label":"SCHEMATA","column_name":"SCHEMA_NAME","column_label":"Database (mysql_innodb_cluster_metadata)","length":64,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false}],"rows":[]},
+null]

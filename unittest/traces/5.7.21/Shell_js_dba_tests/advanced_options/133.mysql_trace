@@ -1,6 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@127.0.0.1:2248","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"181","connection_info":"127.0.0.1 via TCP/IP","server_info":"5.7.21-log","server_version":"5.7.21","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
-{"type":"request","subtype":"QUERY","index":3,"sql":"select WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('', 120, 'group_replication_applier')"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS('', 120, 'group_replication_applier')","length":21,"fractional":0,"type":"Integer","collation":"binary","charset":"binary","collation_id":63,"unsigned":false,"zerofill":false,"binary":true}],"rows":[[0]]},
-null]
