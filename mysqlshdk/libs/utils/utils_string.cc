@@ -211,11 +211,26 @@ std::vector<std::string> str_break_into_lines(const std::string &line,
                                               std::size_t line_width) {
   std::vector<std::string> result;
   std::string rem(line);
-  while (rem.length() > line_width) {
-    std::size_t split_point = line_width - 1;
-    while (rem[split_point] != ' ' && split_point > 0) --split_point;
-    if (split_point == 0) break;
-    result.push_back(rem.substr(0, split_point));
+  std::string::size_type nl_pos = std::string::npos;
+
+  while (rem.length() > line_width ||
+         (nl_pos = rem.find('\n')) != std::string::npos) {
+    std::string::size_type split_point = std::min(line_width - 1, rem.length());
+    while (!std::isspace(rem[split_point]) && split_point > 0) --split_point;
+
+    if (split_point == 0) {
+      for (split_point = line_width; split_point < rem.length(); split_point++)
+        if (std::isspace(rem[split_point])) break;
+      if (split_point == rem.length()) break;
+    } else {
+      for (int i = split_point - 1; i >= 0; --i)
+        if (rem[i] == '\n') split_point = i;
+    }
+
+    if (split_point == 0)
+      result.push_back("");
+    else
+      result.push_back(rem.substr(0, split_point));
     rem = rem.substr(split_point + 1);
   }
   result.push_back(rem);

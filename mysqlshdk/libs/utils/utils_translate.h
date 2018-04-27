@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,34 +21,35 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _SHCORE_COMMON_H_
-#define _SHCORE_COMMON_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_UTILS_TRANSLATE_H_
+#define MYSQLSHDK_LIBS_UTILS_UTILS_TRANSLATE_H_
 
-#include "mysqlshdk/libs/utils/logger.h"
-#include "scripting/types_common.h"
+#include <fstream>
+#include <string>
+#include <unordered_set>
+#include <unordered_map>
 
-// TODO: This definition should be removed from here
-// The one on mysqlshdk_exports.h should be used instead for symbol exports
-#define SHCORE_PUBLIC
+namespace shcore {
 
-#ifdef UNUSED
-#elif defined(__GNUC__)
-#define UNUSED(x) UNUSED_##x __attribute__((unused))
-#elif defined(__LCLINT__)
-#define UNUSED(x) /*@unused@*/ x
-#elif defined(__cplusplus)
-#define UNUSED(x)
-#else
-#define UNUSED(x) x
-#endif
+class Translation_writer {
+ public:
+  explicit Translation_writer(const char* filename, int max_line_length = 100);
 
-#ifdef UNUSED_VARIABLE
-#elif defined(__GNUC__)
-#define UNUSED_VARIABLE(x) UNUSED_##x __attribute__((unused))
-#elif defined(__LCLINT__)
-#define UNUSED_VARIABLE(x) /*@unused@*/ x
-#else
-#define UNUSED_VARIABLE(x) x
-#endif
+  void write_header(const char* custom_text = nullptr);
 
-#endif
+  void write_entry(const char *id, const char *entry_format = nullptr,
+                 const char *initial_text = nullptr);
+
+ private:
+  std::ofstream m_file;
+  std::unordered_set<std::string> m_idset;
+  int m_max_line_length;
+};
+
+using Translation = std::unordered_map<std::string, std::string>;
+
+Translation read_translation_from_file(const char* filename);
+
+}  // namespace shcore
+
+#endif  // MYSQLSHDK_LIBS_UTILS_UTILS_TRANSLATE_H_

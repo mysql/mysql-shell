@@ -24,6 +24,7 @@
 #ifndef MODULES_UTIL_MOD_UTIL_H_
 #define MODULES_UTIL_MOD_UTIL_H_
 
+#include <memory>
 #include <string>
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/types_cpp.h"
@@ -48,9 +49,10 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   std::string class_name() const override { return "Util"; };
 
 #if DOXYGEN_JS
-  Integer checkForServerUpgrade(ConnectionData connectionData, String password);
+  Integer checkForServerUpgrade(ConnectionData connectionData,
+                                Dictionary options);
 #elif DOXYGEN_PY
-  int check_for_server_upgrade(ConnectionData connectionData, str password);
+  int check_for_server_upgrade(ConnectionData connectionData, dict options);
 #endif
   shcore::Value check_for_server_upgrade(const shcore::Argument_list &args);
 

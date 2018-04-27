@@ -472,4 +472,30 @@ TEST(UtilsString, rjust) {
   EXPECT_EQ("....xxxy", str_rjust("xxxy", 8, '.'));
 }
 
+TEST(UtilsString, str_break_into_lines) {
+  const char *text1 = "1234 678 910 1234 1234 12345\t1111111111111111111";
+  auto res = str_break_into_lines(text1, 14);
+  ASSERT_EQ(4, res.size());
+  EXPECT_EQ("1234 678 910", res[0]);
+  EXPECT_EQ("1234 1234", res[1]);
+  EXPECT_EQ("12345", res[2]);
+  EXPECT_EQ("1111111111111111111", res[3]);
+
+  const char *text2 = "1234 678 910 \n\n1234 1234 12345\t1111111111111111111";
+  res = str_break_into_lines(text2, 14);
+  ASSERT_EQ(5, res.size());
+  EXPECT_EQ("1234 678 910 ", res[0]);
+  EXPECT_EQ("", res[1]);
+  EXPECT_EQ("1234 1234", res[2]);
+  EXPECT_EQ("12345", res[3]);
+  EXPECT_EQ("1111111111111111111", res[4]);
+
+  const char *text3 = "12346789 12345 12346789";
+  res = str_break_into_lines(text3, 7);
+  ASSERT_EQ(3, res.size());
+  EXPECT_EQ("12346789", res[0]);
+  EXPECT_EQ("12345", res[1]);
+  EXPECT_EQ("12346789", res[2]);
+}
+
 }  // namespace shcore

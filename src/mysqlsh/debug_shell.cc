@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/util/upgrade_check.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "unittest/test_utils/mod_testutils.h"
@@ -121,6 +122,27 @@ void handle_debug_options(int *argc, char ***argv) {
     } else if (strncmp((*argv)[i], "--direct", strlen("--direct")) == 0) {
       mysqlshdk::db::replay::set_mode(Mode::Direct, 0);
       (*argc)--;
+    } else if (strncmp((*argv)[i], "--generate-uc-translation",
+                       strlen("--generate-uc-translation")) == 0) {
+#ifndef _MSC_VER
+      std::string filename("/tmp/");
+#else
+      char buf[MAX_PATH];
+      GetTempPathA(MAX_PATH, buf);
+      std::string filename(buf);
+#endif
+      filename += "upgrade_checker.msg";
+      if (strlen((*argv)[i]) > strlen("--generate-uc-translation") + 1)
+        filename = (*argv)[i] + strlen("--generate-uc-translation") + 1;
+      try {
+        mysqlsh::Upgrade_check::prepare_translation_file(filename.c_str());
+        std::cout << "Upgrade checker translation file written to: " << filename
+                  << std::endl;
+      } catch (const std::exception &e) {
+        std::cerr << "Failed to write upgrade checker translation file: "
+                  << e.what() << std::endl;
+      }
+      exit(0);
     } else {
       (*argv)[j++] = (*argv)[i];
     }

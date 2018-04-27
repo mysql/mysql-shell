@@ -29,6 +29,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "mysqlshdk/include/mysh_config.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
@@ -225,6 +226,10 @@ std::string get_binary_folder() {
   }
 
   return ret_val;
+}
+
+std::string get_share_folder() {
+  return shcore::get_binary_folder() + "/../" + INSTALL_SHAREDIR "/";
 }
 
 std::string SHCORE_PUBLIC get_mp_path() {

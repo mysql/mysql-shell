@@ -21,43 +21,56 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include <array>
 #include <sstream>
 #include <utility>
 
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/version.h"
+#include "mysqlshdk/libs/utils/utils_translate.h"
 
 namespace mysqlsh {
 
+using mysqlshdk::utils::Version;
+
 std::string to_string(const Upgrade_issue &problem) {
   std::stringstream ss;
-  ss << problem.schema;
-  if (!problem.table.empty()) ss << "." << problem.table;
-  if (!problem.column.empty()) ss << "." << problem.column;
+  ss << problem.get_db_object();
   if (!problem.description.empty()) ss << " - " << problem.description;
   return ss.str();
 }
 
-std::string Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
+const char *Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
   switch (level) {
     case Upgrade_issue::ERROR:
-      return "Error:";
+      return "Error";
     case Upgrade_issue::WARNING:
-      return "Warning:";
+      return "Warning";
     case Upgrade_issue::NOTICE:
-      return "Notice:";
+      return "Notice";
   }
-  return "Notice:";
+  return "Notice";
 }
+
+std::string Upgrade_issue::get_db_object() const {
+  std::stringstream ss;
+  ss << schema;
+  if (!table.empty()) ss << "." << table;
+  if (!column.empty()) ss << "." << column;
+  return ss.str();
+}
+
+const Version Upgrade_check::TRANSLATION_MODE("0.0.0");
+
+Upgrade_check::Collection Upgrade_check::s_available_checks;
 
 std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
     const std::string &src_ver, const std::string &dst_ver) {
-  using mysqlshdk::utils::Version;
   Version src_version(src_ver);
   Version dst_version(dst_ver);
   if (src_version < Version("5.7.0") || src_version >= Version("8.0"))
@@ -69,44 +82,84 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
         "Only Upgrade to MySQL 8.0 from 5.7 is currently supported");
 
   std::vector<std::unique_ptr<Upgrade_check>> result;
-  result.emplace_back(Sql_upgrade_check::get_reserved_keywords_check());
-  result.emplace_back(Sql_upgrade_check::get_utf8mb3_check());
-  // TODO(konrad): is it necessary?
-  // result.emplace_back(Sql_upgrade_check::get_innodb_rowformat_check());
-  result.emplace_back(Sql_upgrade_check::get_zerofill_check());
-  result.emplace_back(new Check_table_command());
-  result.emplace_back(Sql_upgrade_check::get_mysql_schema_check());
-  result.emplace_back(Sql_upgrade_check::get_old_temporal_check());
-  result.emplace_back(Sql_upgrade_check::get_foreign_key_length_check());
-  result.emplace_back(Sql_upgrade_check::get_maxdb_sql_mode_flags_check());
-  result.emplace_back(Sql_upgrade_check::get_obsolete_sql_mode_flags_check());
-  result.emplace_back(
-      Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check());
-  result.emplace_back(Sql_upgrade_check::get_removed_functions_check());
+  for (const auto &c : s_available_checks)
+    if (std::find(c.first.begin(), c.first.end(), dst_version) != c.first.end())
+      result.emplace_back(c.second(src_version, dst_version));
   return result;
 }
 
-Sql_upgrade_check::Sql_upgrade_check(
-    const char *name, std::vector<std::string> &&queries,
-    Upgrade_issue::Level level = Upgrade_issue::WARNING, const char *advice,
-    std::forward_list<std::string> &&set_up,
-    std::forward_list<std::string> &&clean_up)
+void Upgrade_check::prepare_translation_file(const char *filename) {
+  shcore::Translation_writer writer(filename);
+
+  writer.write_header();
+  for (const auto &it : s_available_checks) {
+    auto check = it.second(TRANSLATION_MODE, TRANSLATION_MODE);
+    std::string prefix(check->m_name);
+    prefix += ".";
+
+    writer.write_entry((prefix + "title").c_str(), check->get_title_internal(),
+                       get_text(check->m_name, "title"));
+
+    writer.write_entry((prefix + "description").c_str(),
+                       check->get_description_internal(),
+                       get_text(check->m_name, "description"));
+
+    writer.write_entry((prefix + "docLink").c_str(),
+                       check->get_doc_link_internal(),
+                       get_text(check->m_name, "docLink"));
+  }
+}
+
+const char *Upgrade_check::get_text(const char *name, const char *field) {
+  static shcore::Translation translation = shcore::read_translation_from_file(
+      (shcore::get_share_folder() + "upgrade_checker.msg").c_str());
+  std::stringstream str;
+  str << name << "." << field;
+  auto it = translation.find(str.str());
+  if (it == translation.end()) return nullptr;
+  return it->second.c_str();
+}
+
+const char *Upgrade_check::get_title() const {
+  const char *translated = get_text(get_name(), "title");
+  if (translated) return translated;
+  return get_title_internal();
+}
+
+const char *Upgrade_check::get_description() const {
+  const char *translated = get_text(get_name(), "description");
+  if (translated) return translated;
+  return get_description_internal();
+}
+
+const char *Upgrade_check::get_doc_link() const {
+  const char *translated = get_text(get_name(), "docLink");
+  if (translated) return translated;
+  return get_doc_link_internal();
+}
+
+Sql_upgrade_check::Sql_upgrade_check(const char *name, const char *title,
+                                     std::vector<std::string> &&queries,
+                                     Upgrade_issue::Level level,
+                                     const char *advice,
+                                     std::forward_list<std::string> &&set_up,
+                                     std::forward_list<std::string> &&clean_up)
     : Upgrade_check(name),
-      queries(queries),
-      set_up(set_up),
-      clean_up(clean_up),
-      level(level),
-      advice(advice) {
-  if (!this->advice.empty())
-    this->advice = Upgrade_issue::level_to_string(level) + " " + this->advice;
+      m_queries(queries),
+      m_set_up(set_up),
+      m_clean_up(clean_up),
+      m_level(level),
+      m_title(title),
+      m_advice(Upgrade_issue::level_to_string(level)) {
+  if (advice && strlen(advice) > 0) m_advice = m_advice + ": " + advice;
 }
 
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     std::shared_ptr<mysqlshdk::db::ISession> session) {
-  for (const auto &stm : set_up) session->execute(stm);
+  for (const auto &stm : m_set_up) session->execute(stm);
 
   std::vector<Upgrade_issue> issues;
-  for (const auto &query : queries) {
+  for (const auto &query : m_queries) {
     //    puts(query.c_str());
     auto result = session->query(query);
     const mysqlshdk::db::IRow *row = nullptr;
@@ -116,14 +169,18 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
     }
   }
 
-  for (const auto &stm : clean_up) session->execute(stm);
+  for (const auto &stm : m_clean_up) session->execute(stm);
 
   return issues;
 }
 
-const char *Sql_upgrade_check::get_long_advice() const {
-  if (advice.empty()) return nullptr;
-  return advice.c_str();
+const char *Sql_upgrade_check::get_description_internal() const {
+  if (m_advice.empty()) return nullptr;
+  return m_advice.c_str();
+}
+
+const char *Sql_upgrade_check::get_title_internal() const {
+  return m_title.c_str();
 }
 
 Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
@@ -134,14 +191,14 @@ Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
   if (fields_count > 3) problem.column = row->get_as_string(2);
   if (fields_count > 1)
     problem.description = row->get_as_string(3 - (4 - fields_count));
-  problem.level = level;
+  problem.level = m_level;
 
   return problem;
 }
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_old_temporal_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
-      "Usage of old temporal type",
+      "oldTemporalCheck", "Usage of old temporal type",
       {"SELECT table_schema, table_name,column_name,column_type "
        "FROM information_schema.columns WHERE column_type LIKE "
        "'timestamp /* 5.5 binary format */';"},
@@ -151,6 +208,11 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_old_temporal_check() {
       "before upgrading. It can by done by rebuilding the table using 'ALTER "
       "TABLE <table_name> FORCE' command",
       {"SET show_old_temporals = ON;"}, {"SET show_old_temporals = OFF;"}));
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_old_temporal) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_old_temporal_check), "8.0.11");
 }
 
 std::unique_ptr<Sql_upgrade_check>
@@ -164,6 +226,7 @@ Sql_upgrade_check::get_reserved_keywords_check() {
       "'RANK', 'RECURSIVE', 'ROW', 'ROWS', "
       "'ROW_NUMBER', 'SYSTEM', 'WINDOW');";
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "reservedKeywordsCheck",
       "Usage of db objects with names conflicting with reserved keywords "
       "in 8.0",
       {"select SCHEMA_NAME, 'Schema name' as WARNING from "
@@ -201,10 +264,15 @@ Sql_upgrade_check::get_reserved_keywords_check() {
       "`quotes` when referring to them or they will result in errors."));
 }
 
+namespace {
+bool UNUSED_VARIABLE(register_reserved) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_reserved_keywords_check), "8.0.11");
+}
+
 /// In this check we are only interested if any such table/database exists
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_utf8mb3_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
-      "Usage of utf8mb3 charset",
+      "utf8mb3Check", "Usage of utf8mb3 charset",
       {"select SCHEMA_NAME, concat(\"schema's default character set: \",  "
        "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
        "SCHEMA_NAME not in ('information_schema', 'performance_schema', 'sys') "
@@ -220,8 +288,14 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_utf8mb3_check() {
       "support."));
 }
 
+namespace {
+bool UNUSED_VARIABLE(register_utf8mb3) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_utf8mb3_check), "8.0.11");
+}
+
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_mysql_schema_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "mysqlSchemaCheck",
       "Table names in the mysql schema conflicting with new tables in 8.0",
       {"SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema "
        "in "
@@ -247,10 +321,15 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_mysql_schema_check() {
       "changes to applications that use the affected tables."));
 }
 
+namespace {
+bool UNUSED_VARIABLE(register_mysql_schema) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_mysql_schema_check), "8.0.11");
+}
+
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_innodb_rowformat_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
-      "InnoDB tables with non-default row format",
+      "innodbRowFormatCheck", "InnoDB tables with non-default row format",
       {"select table_schema, table_name, row_format from "
        "information_schema.tables where engine = 'innodb' "
        "and row_format != 'Dynamic';"},
@@ -260,7 +339,7 @@ Sql_upgrade_check::get_innodb_rowformat_check() {
 
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
-      "Usage of use ZEROFILL/display length type attributes",
+      "zerofillCheck", "Usage of use ZEROFILL/display length type attributes",
       {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE from "
        "information_schema.columns "
        "where TABLE_SCHEMA not in ('sys', 'performance_schema', "
@@ -283,9 +362,16 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
       "Please be aware that they will be ignored in MySQL 8.0"));
 }
 
+// Zerofill is still available in 8.0.11
+// namespace {
+// bool UNUSED_VARIABLE(register_zerofill) = Upgrade_check::register_check(
+//    std::bind(&Sql_upgrade_check::get_zerofill_check), "8.0.11");
+//}
+
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_foreign_key_length_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "foreignKeyLengthCheck",
       "Foreign key constraint names longer than 64 characters",
       {"select table_schema, table_name, 'Foreign key longer than 64 "
        "characters' as description from information_schema.tables where "
@@ -298,10 +384,15 @@ Sql_upgrade_check::get_foreign_key_length_check() {
       "than 64 characters (use ALTER TABLE)."));
 }
 
+namespace {
+bool UNUSED_VARIABLE(register_foreing_key) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_foreign_key_length_check), "8.0.11");
+}
+
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
-      "Usage of obsolete MAXDB sql_mode flag",
+      "maxdbFlagCheck", "Usage of obsolete MAXDB sql_mode flag",
       {"select routine_schema, routine_name, concat(routine_type, ' uses "
        "obsolete MAXDB sql_mode') from information_schema.routines where "
        "find_in_set('MAXDB', sql_mode);",
@@ -318,6 +409,11 @@ Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
       "behavior in case of dates earlier than 1970 or later than 2037. If this "
       "is a concern, please redefine these objects so that they do not rely on "
       "the MAXDB flag before running the upgrade to 8.0."));
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_maxdb) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_maxdb_sql_mode_flags_check), "8.0.11");
 }
 
 std::unique_ptr<Sql_upgrade_check>
@@ -344,15 +440,21 @@ Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
   }
 
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
-      "Usage of obsolete sql_mode flags", std::move(queries),
-      Upgrade_issue::NOTICE,
+      "sqlModeFlagCheck", "Usage of obsolete sql_mode flags",
+      std::move(queries), Upgrade_issue::NOTICE,
       "The following DB objects have obsolete options persisted for sql_mode, "
       "which will be cleared during upgrade to 8.0."));
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_sqlmode) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_obsolete_sql_mode_flags_check), "8.0.11");
 }
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
+      "partitionedTablesInSharedTablespaceCheck",
       "Usage of partitioned tables in shared tablespaces",
       {"SELECT TABLE_SCHEMA, TABLE_NAME, concat('Partition ', PARTITION_NAME, "
        "' is in shared tablespace ', TABLESPACE_NAME) as description FROM "
@@ -365,6 +467,14 @@ Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
       "You can do this by running query like 'ALTER TABLE table_name "
       "REORGANIZE PARTITION X INTO (PARTITION X VALUES LESS THAN (30) "
       "TABLESPACE=innodb_file_per_table);'"));
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_sharded_tablespaces) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::
+                      get_partitioned_tables_in_shared_tablespaces_check),
+        "8.0.11");
 }
 
 class Removed_functions_check : public Sql_upgrade_check {
@@ -445,7 +555,7 @@ class Removed_functions_check : public Sql_upgrade_check {
  public:
   Removed_functions_check()
       : Sql_upgrade_check(
-            "Usage of removed functions",
+            "removedFunctionsCheck", "Usage of removed functions",
             {"select routine_schema, routine_name, '', routine_type, "
              "UPPER(routine_definition) from information_schema.routines;",
              "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'COLUMN'"
@@ -508,7 +618,7 @@ class Removed_functions_check : public Sql_upgrade_check {
     res.table = row->get_as_string(1);
     res.column = row->get_as_string(2);
     res.description = ss.str();
-    res.level = level;
+    res.level = m_level;
     return res;
   }
 };
@@ -518,8 +628,14 @@ Sql_upgrade_check::get_removed_functions_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Removed_functions_check());
 }
 
+namespace {
+bool UNUSED_VARIABLE(register_removed_functions) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_removed_functions_check), "8.0.11");
+}
+
 Check_table_command::Check_table_command()
-    : Upgrade_check("Issues reported by 'check table x for upgrade' command") {}
+    : Upgrade_check("checkTableOutput") {}
 
 std::vector<Upgrade_issue> Check_table_command::run(
     std::shared_ptr<mysqlshdk::db::ISession> session) {
@@ -560,6 +676,14 @@ std::vector<Upgrade_issue> Check_table_command::run(
   }
 
   return issues;
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_check_table) = Upgrade_check::register_check(
+    [](const Version &, const Version &) {
+      return std::unique_ptr<Upgrade_check>(new Check_table_command());
+    },
+    "8.0.11");
 }
 
 } /* namespace mysqlsh */

@@ -475,6 +475,68 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   EXPECT_NO_THROW(session->execute("drop user 'percent'@'%';"));
 }
 
+TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  Util util(_interactive_shell->shell_context().get(),
+            _interactive_shell->console());
+  shcore::Argument_list args;
+
+  // valid mysql 5.7 superuser
+  args.push_back(shcore::Value(_mysql_uri));
+  shcore::Value::Map_type_ref opts(new shcore::Value::Map_type());
+  opts->set("outputFormat", shcore::Value("JSON"));
+  args.push_back(shcore::Value(opts));
+  try {
+    util.check_for_server_upgrade(args);
+    rapidjson::Document d;
+    d.Parse(output_handler.std_out.c_str());
+
+    ASSERT_FALSE(d.HasParseError());
+    ASSERT_TRUE(d.IsObject());
+    ASSERT_TRUE(d.HasMember("serverAddress"));
+    ASSERT_TRUE(d["serverAddress"].IsString());
+    ASSERT_TRUE(d.HasMember("serverVersion"));
+    ASSERT_TRUE(d["serverVersion"].IsString());
+    ASSERT_TRUE(d.HasMember("targetVersion"));
+    ASSERT_TRUE(d["targetVersion"].IsString());
+    ASSERT_TRUE(d.HasMember("errorCount"));
+    ASSERT_TRUE(d["errorCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("warningCount"));
+    ASSERT_TRUE(d["warningCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("noticeCount"));
+    ASSERT_TRUE(d["noticeCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("summary"));
+    ASSERT_TRUE(d["summary"].IsString());
+    ASSERT_TRUE(d.HasMember("checksPerformed"));
+    ASSERT_TRUE(d["checksPerformed"].IsArray());
+    auto checks = d["checksPerformed"].GetArray();
+    ASSERT_GT(checks.Size(), 1);
+    for (rapidjson::SizeType i = 0; i < checks.Size(); i++) {
+      ASSERT_TRUE(checks[i].IsObject());
+      ASSERT_TRUE(checks[i].HasMember("id"));
+      ASSERT_TRUE(checks[i]["id"].IsString());
+      ASSERT_TRUE(checks[i].HasMember("title"));
+      ASSERT_TRUE(checks[i]["title"].IsString());
+      ASSERT_TRUE(checks[i].HasMember("detectedProblems"));
+      ASSERT_TRUE(checks[i]["detectedProblems"].IsArray());
+      auto issues = checks[i]["detectedProblems"].GetArray();
+      for (rapidjson::SizeType j = 0; j < issues.Size(); j++) {
+        ASSERT_TRUE(issues[j].IsObject());
+        ASSERT_TRUE(issues[j].HasMember("level"));
+        ASSERT_TRUE(issues[j]["level"].IsString());
+        ASSERT_TRUE(issues[j].HasMember("dbObject"));
+        ASSERT_TRUE(issues[j]["dbObject"].IsString());
+      }
+    }
+  } catch (std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    EXPECT_TRUE(false);
+  }
+  args.clear();
+}
+
 TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
   // session established with 8.0 server
   if (_target_server_version < Version(8, 0, 0))
