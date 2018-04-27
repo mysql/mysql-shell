@@ -290,6 +290,7 @@ ENDIF()
 ADD_SUBDIRECTORY(python)
 ADD_SUBDIRECTORY(mysqlshdk)
 ADD_SUBDIRECTORY(modules)
+ADD_SUBDIRECTORY(res)
 ADD_SUBDIRECTORY(src)
 add_subdirectory(samples)
 

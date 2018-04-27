@@ -95,28 +95,34 @@ std::string Version::get_full() const {
   return ret_val;
 }
 
-bool Version::operator<(const Version &other) {
+bool Version::operator<(const Version &other) const {
   return _major < other._major ||
          (_major == other._major && (get_minor() < other.get_minor() ||
                                      (get_minor() == other.get_minor() &&
                                       get_patch() < other.get_patch())));
 }
 
-bool Version::operator<=(const Version &other) {
+bool Version::operator<=(const Version &other) const {
   return *this < other ||
          (_major == other._major && get_minor() == other.get_minor() &&
           get_patch() == other.get_patch());
 }
-bool Version::operator>(const Version &other) { return !(*this <= other); }
+bool Version::operator>(const Version &other) const {
+  return !(*this <= other);
+}
 
-bool Version::operator>=(const Version &other) { return !(*this < other); }
+bool Version::operator>=(const Version &other) const {
+  return !(*this < other);
+}
 
-bool Version::operator==(const Version &other) {
+bool Version::operator==(const Version &other) const {
   return _major == other._major && get_minor() == other.get_minor() &&
          get_patch() == other.get_patch();
 }
 
-bool Version::operator!=(const Version &other) { return !(*this == other); }
+bool Version::operator!=(const Version &other) const {
+  return !(*this == other);
+}
 
 }  // namespace utils
 }  // namespace mysqlshdk

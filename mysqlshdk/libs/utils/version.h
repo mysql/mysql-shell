@@ -48,12 +48,12 @@ class Version {
   std::string get_base() const;
   std::string get_full() const;
 
-  bool operator<(const Version &other);
-  bool operator<=(const Version &other);
-  bool operator>(const Version &other);
-  bool operator>=(const Version &other);
-  bool operator==(const Version &other);
-  bool operator!=(const Version &other);
+  bool operator<(const Version &other) const;
+  bool operator<=(const Version &other) const;
+  bool operator>(const Version &other) const;
+  bool operator>=(const Version &other) const;
+  bool operator==(const Version &other) const;
+  bool operator!=(const Version &other) const;
 
  private:
   int _major;

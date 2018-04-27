@@ -35,7 +35,7 @@ std::string SHCORE_PUBLIC get_global_config_path();
 std::string SHCORE_PUBLIC get_user_config_path();
 std::string SHCORE_PUBLIC get_mysqlx_home_path();
 std::string SHCORE_PUBLIC get_binary_folder();
-std::string SHCORE_PUBLIC get_binary_folder();
+std::string SHCORE_PUBLIC get_share_folder();
 std::string SHCORE_PUBLIC get_mp_path();
 bool SHCORE_PUBLIC is_folder(const std::string &filename);
 bool SHCORE_PUBLIC file_exists(const std::string &filename);

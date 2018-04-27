@@ -37,6 +37,7 @@ set(utils_SOURCE
     utils_uuid.cc
     utils_stacktrace.cc
     utils_lexing.cc
+    utils_translate.cc
     trandom.cc
     nullable_options.cc
     base_tokenizer.cc
