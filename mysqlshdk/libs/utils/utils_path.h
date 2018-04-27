@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_PATH_H_
 
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "scripting/common.h"
@@ -33,6 +34,8 @@ namespace shcore {
 namespace path {
 namespace detail {
 std::string expand_user(const std::string &path, const std::string &sep);
+std::tuple<std::string, std::string> split_extension(const std::string &path,
+                                                     const std::string &sep);
 size_t span_dirname(const std::string &path);
 }  // namespace detail
 
@@ -128,17 +131,27 @@ std::string SHCORE_PUBLIC expand_user(const std::string &path);
  */
 std::string SHCORE_PUBLIC normalize(const std::string &path);
 
-/*
+/**
+ * Split path to (root, extension) tuple such that [root + extenstion == path].
+ *
+ * @param path
+ * @return Tuple (root, extension). Leading periods on basename are ignored,
+ *         i.e. split_extension(".dotfile") returns (".dotfile", "").
+ */
+std::tuple<std::string, std::string> SHCORE_PUBLIC
+split_extension(const std::string &path);
+
+/**
  * Returns true if the path exists.
  */
 bool SHCORE_PUBLIC exists(const std::string &path);
 
-/*
+/**
  * Returns path to the given executable name searched in PATH.
  */
 std::string SHCORE_PUBLIC search_stdpath(const std::string &name);
 
-/*
+/**
  * Returns path to the given executable name searched in the given path list
  * string, separated by the given separator.
  *
