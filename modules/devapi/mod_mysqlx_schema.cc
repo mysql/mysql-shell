@@ -622,7 +622,7 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
             std::static_pointer_cast<Session>(_session.lock()));
         try {
           sess->executeAdminCommand("drop_collection", false, command_args);
-        } catch (const mysqlshdk::db::Error e) {
+        } catch (const mysqlshdk::db::Error &e) {
           if (e.code() != ER_BAD_TABLE_ERROR) throw;
         }
       }

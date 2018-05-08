@@ -22,7 +22,6 @@
  */
 
 #include "mysqlshdk/libs/db/replay/trace.h"
-#include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>

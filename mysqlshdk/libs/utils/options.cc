@@ -24,9 +24,22 @@
 #include "mysqlshdk/libs/utils/options.h"
 #include <rapidjson/error/en.h>
 #include <iostream>
+
+// The document.h file is generating warnings of type
+// class-memaccess
+// When built with GCC >= 8
+// For that reason we have decided to disable that warning
+#if defined __GNUC__ && __GNUC__ >= 8
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
 #include "rapidjson/document.h"
+#if defined __GNUC__ && __GNUC__ >= 8
+#pragma GCC diagnostic pop
+#endif
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
+
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
