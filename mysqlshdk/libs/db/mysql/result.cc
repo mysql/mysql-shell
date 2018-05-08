@@ -158,8 +158,7 @@ void Result::reset(std::shared_ptr<MYSQL_RES> res) {
 
   _result = res;
 
-  if (auto s = _session.lock())
-    _gtids = s->get_last_gtids();
+  if (auto s = _session.lock()) _gtids = s->get_last_gtids();
 }
 
 Type Result::map_data_type(int raw_type, int flags) {

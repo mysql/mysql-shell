@@ -29,9 +29,9 @@
 
 #include "mysqlshdk/libs/db/result.h"
 
-#include <string>
 #include <list>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <mysql.h>
@@ -62,9 +62,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
   virtual uint64_t get_warning_count() const { return _warning_count; }
   virtual std::string get_info() const { return _info; }
-  virtual const std::vector<std::string> &get_gtids() const {
-    return _gtids;
-  }
+  virtual const std::vector<std::string> &get_gtids() const { return _gtids; }
   virtual const std::vector<Column> &get_metadata() const { return _metadata; }
 
  protected:

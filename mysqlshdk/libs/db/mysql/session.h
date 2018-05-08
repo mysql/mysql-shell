@@ -126,7 +126,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::vector<std::string> get_last_gtids() const;
 
-  const mysqlshdk::db::Connection_options & get_connection_options() const {
+  const mysqlshdk::db::Connection_options &get_connection_options() const {
     return _connection_options;
   }
 
