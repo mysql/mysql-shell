@@ -240,7 +240,7 @@ size_t span_python_string(const std::string &s, size_t p) {
 
   if (s.length() - p >= 3 &&
       ((strncmp(&s[p], "\"\"\"", 3) == 0) || strncmp(&s[p], "'''", 3) == 0)) {
-    strncpy(multiline_q, &s[p], 3);
+    memcpy(multiline_q, &s[p], 3);
     multiline = true;
     p += 2;
   }

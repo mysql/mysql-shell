@@ -944,7 +944,7 @@ shcore::Value Collection::drop_index_(const shcore::Argument_list &args) {
     try {
       session_obj->_execute_mysqlx_stmt("drop_collection_index",
                                         drop_index_args);
-    } catch (const mysqlshdk::db::Error e) {
+    } catch (const mysqlshdk::db::Error &e) {
       if (e.code() != ER_CANT_DROP_FIELD_OR_KEY) throw;
     }
   }

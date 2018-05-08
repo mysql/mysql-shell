@@ -238,7 +238,7 @@ my_bool my_gethwaddr(unsigned char *to) {
     if (ifri->ifr_addr.sa_family == AF_INET) {
       /* Reset struct, copy interface name */
       std::memset(&ifr, 0, sizeof(ifr));
-      std::strncpy(ifr.ifr_name, ifri->ifr_name, sizeof(ifr.ifr_name));
+      std::memcpy(ifr.ifr_name, ifri->ifr_name, sizeof(ifr.ifr_name));
 
       /* Get HW address, break if not 0 */
       if (ioctl(fd, SIOCGIFHWADDR, &ifr) >= 0) {
