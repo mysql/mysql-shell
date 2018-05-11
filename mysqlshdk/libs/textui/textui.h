@@ -26,11 +26,32 @@
 
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 #include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk_export.h"  // NOLINT
 
 namespace mysqlshdk {
 namespace textui {
+namespace internal {
+/**
+ * Structure to hold color markers, including:
+ * - Position where coloring starts
+ * - Length where coloring ends
+ *
+ * NOTE: just highlights (bold) are being used atm so nothing else
+ * is required for now.
+ */
+typedef std::vector<std::pair<size_t, size_t>> Color_markers;
+
+std::string preprocess_markup(const std::string &line, Color_markers *markers);
+
+void postprocess_markup(std::vector<std::string> *lines,
+                        const Color_markers &markers);
+
+std::vector<std::string> get_sized_strings(const std::string &input,
+                                           size_t size);
+}  // namespace internal
 
 enum Color_capability { No_color, Color_16, Color_256, Color_rgb };
 
@@ -181,6 +202,57 @@ inline std::string notice(const std::string &text) {
   return vt100::attr(6, -1) + text + vt100::attr();
 }
 
+/**
+ * Multiparagraph markup formatting function.
+ *
+ * Each received line will create a paragraph which could be separated by the
+ * others either by a new line or a new line + a blank line.
+ *
+ * It also performs the correct formatting of bulleted lists: consecutive lines
+ * starting with @li will create a bulleted list.
+ *
+ * This function depends on the single string version of format_markup_text to
+ * achieve it's objective.
+ */
+std::string format_markup_text(const std::vector<std::string> &lines,
+                               size_t width, size_t left_padding,
+                               bool paragraph_per_line = true);
+
+/**
+ * This function allows applying format to a string for proper display in the
+ * console. At the moment supported formatting includes:
+ *
+ * - Removal of <code> and </code> tags.
+ * - Use of <b> and </b> tags to create highlighted text.
+ * - Use of @li to create a bulleted list
+ * - Replacement of @< by "<"
+ * - Replacement of @> by ">"
+ * - Replacement of &nbsp; by " "
+ * - Replacement of @li by "-" (To create bullet list)
+ *
+ * These formatting options are required to use the same documentation for
+ * online help and the doxygen generated documentation.
+ *
+ * @IMPORTANT: Any change or addition to the formatting options MUST be
+ * compliant with the Doxygen formatting options.
+ *
+ * In addition to the formatting the function allows returning strings of a
+ * specific size and has the option for padding.
+ *
+ * @param line is the line to be formatted.
+ * @param width is the max width per line of the returned string.
+ * @param left_padding is the number of whitespaces to be added at the beggining
+ * of every returned line.
+ *
+ * This function depends on the following functions to achieve it's purpose:
+ * - preprocess_markup: does tag replacement and extracts markers for <b></b>
+ * - get_sized_strings: splits the input string as required to guarantee output
+ *   lines of complete words of max width size.
+ * - postprocess_markup: uses th markers extracted on preprocess_markup to
+ *   format the text with the corresponding escape sequences
+ */
+std::string format_markup_text(const std::string &line, size_t width,
+                               size_t left_padding);
 }  // namespace textui
 }  // namespace mysqlshdk
 
