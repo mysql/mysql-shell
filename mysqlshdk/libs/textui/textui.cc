@@ -31,6 +31,218 @@
 
 namespace mysqlshdk {
 namespace textui {
+namespace internal {
+/**
+ * Removes all the formatting tags by either applying final format to be used in
+ * the console version of the hepl or extracting data to allow posprocessing
+ * once the text is properly splitted in lines to be printed on the console.
+ *
+ * The preprocessing consist on:
+ * - Eliminating tags that should not be on the console
+ * - Replacing tags with console version of the intended format
+ * - Identifying tags that must be processed after the whole formatting is done
+ *
+ * @param line The string to be formatted for console output.
+ * @param color_data An array to hold the position/length pairs of text that
+ * will be colored.
+ * @returns A string with NO formatting tags.
+ */
+std::string preprocess_markup(const std::string &line, Color_markers *markers) {
+  std::string ret_val = line;
+
+  // <code> tags are only used in Doxygen, in the console they are removed.
+  size_t start = ret_val.find("<code>");
+  size_t end = ret_val.find("</code>");
+  while (start != std::string::npos && end != std::string::npos) {
+    std::string tmp_line = ret_val.substr(0, start);
+    tmp_line += ret_val.substr(start + 6, end - start - 6);
+    tmp_line += ret_val.substr(end + 7);
+
+    ret_val = tmp_line;
+    start = ret_val.find("<code>");
+    end = ret_val.find("</code>");
+  }
+
+  // Some characters need to be specified using special doxygen format to
+  // to prevent generating doxygen warnings.
+  std::vector<std::pair<const char *, const char *>> replacements = {
+      {"@<", "<"}, {"@>", ">"}, {"&nbsp;", " "}, {"@li", "-"}};
+
+  for (const auto &rpl : replacements) {
+    ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);
+  }
+
+  // Finally the tags that will cause coloring formatting need to be removed
+  // But the corresponding color markers need to be saved
+  start = ret_val.find("<b>");
+  end = ret_val.find("</b>");
+  while (start != std::string::npos && end != std::string::npos) {
+    std::string tmp_line = ret_val.substr(0, start);
+
+    if (markers) markers->push_back({start, end - start - 3});
+
+    tmp_line += ret_val.substr(start + 3, end - start - 3);
+    tmp_line += ret_val.substr(end + 4);
+
+    ret_val = tmp_line;
+    start = ret_val.find("<b>");
+    end = ret_val.find("</b>");
+  }
+
+  return ret_val;
+}
+
+/**
+ * Applies proper formatting to the lines based on the received markers.
+ *
+ * At the moment only highlighting (bold) marker is supported.
+ */
+void postprocess_markup(std::vector<std::string> *lines,
+                        const Color_markers &markers) {
+  std::vector<Color_markers> line_markers;
+
+  // Copy of the markers to be able to 'consume' them.
+  Color_markers process_markers(markers);
+
+  size_t offset = 0;
+  size_t marker_index = 0;
+
+  if (markers.empty()) return;
+
+  for (size_t index = 0; index < lines->size(); index++) {
+    // Array of markers for this line
+    if (line_markers.size() < (index + 1)) line_markers.push_back({});
+
+    size_t end_offset = offset + lines->at(index).length();
+
+    while (marker_index < process_markers.size()) {
+      size_t start = std::get<0>(process_markers[marker_index]);
+      size_t length = std::get<1>(process_markers[marker_index]);
+
+      if (start <= end_offset) {
+        if ((start + length) <= end_offset) {
+          // Full marker fits in this line
+          line_markers[index].push_back({start - offset, length});
+          marker_index++;
+        } else {
+          // Part of the marker is in this line, part is on the next
+          size_t part_length = end_offset - start;
+
+          // Consumes from the original marker the part_length that will be
+          // used in this line
+          process_markers[marker_index] = {end_offset, length - part_length};
+
+          // Adjusts line marker to exclude trailing whitespaces
+          while (part_length &&
+                 lines->at(index).at(start - offset + part_length - 1) == ' ')
+            part_length--;
+
+          // If the marker is still valid adds it, otherwise ignores it
+          // An invalid marker would be one enclosing just an empty string
+          // like <b>   </b>
+          if (part_length)
+            line_markers[index].push_back({start - offset, part_length});
+
+          // Remaining of the marker is beyond this line, we are done
+          break;
+        }
+      } else {
+        // The marker is beyond this line, we are done
+        break;
+      }
+    }
+
+    if (marker_index >= process_markers.size()) break;
+
+    // Offset includes this line width
+    offset += lines->at(index).length();
+  }
+
+  for (size_t index = 0; index < lines->size(); index++) {
+    std::string line = lines->at(index);
+
+    if (line_markers.size() > index) {
+      auto marker = line_markers[index].rbegin();
+      while (marker != line_markers[index].rend()) {
+        size_t start = std::get<0>(*marker);
+        size_t length = std::get<1>(*marker);
+
+        std::string fline = line.substr(0, start);
+        fline += bold(line.substr(start, length));
+        fline += line.substr(start + length);
+        line = fline;
+        marker++;
+      }
+      (*lines)[index] = line;
+    }
+  }
+}
+
+/**
+ * Splits a string into substrings of complete words of maximum @size length.
+ *
+ * @param input The string to be split.
+ * @param size The character limit the strings will have.
+ * @returns The list of strings having the required lengths,
+ *
+ * NOTE: An important aspect of this function is to NOT lose any character
+ * from the input string, it is intended for use even when parsing formatted
+ * markup data, losing characters would break any formatting markers extracted
+ * on string pre-processing.
+ *
+ * Trailing spaces ignored on @size: once a string is found, any subsequent
+ * space is added to the end of the string no matter it exceeds the @size; this
+ * is done to ensure all the returned lines start in non space characters.
+ *
+ * It is expected that the caller trims trailing characters if needed, in such
+ * case, if post_processing is done it must be done before trimming such
+ * characters.
+ */
+std::vector<std::string> get_sized_strings(const std::string &input,
+                                           size_t size) {
+  std::vector<std::string> chunks;
+  size_t consumed = 0;
+  const size_t total_size = input.size();
+
+  while (consumed < total_size) {
+    size_t end = consumed + size;
+
+    if ((total_size - consumed) <= size) {
+      chunks.push_back(input.substr(consumed));
+      consumed = total_size;
+    } else {
+      if (input[end] == ' ') {
+        // Includes any subsequent space on the string
+        while (end < total_size && input[end + 1] == ' ') end++;
+      } else {
+        // Removes any non space character until the last space is found
+        while (end > consumed && input[end] != ' ') end--;
+      }
+
+      // If end was consumed a substring with the required length was found
+      if (end > consumed) {
+        // At this point end represents the position of the last character
+        // So be included on the substring, in the following line end represents
+        // string size so we add 1
+        end++;
+      } else {
+        // If unable to find a string with the required length we need to
+        // advance so the only available string is selected no matter it exceeds
+        // the required size
+        size_t first_space = input.find_first_of(' ', consumed);
+        end = input.find_first_not_of(' ', first_space);
+      }
+
+      chunks.push_back(input.substr(consumed, end - consumed));
+      consumed = end;
+    }
+  }
+
+  return chunks;
+}
+
+
+}
 
 Color_capability g_color_capability = Color_256;
 
@@ -262,6 +474,79 @@ void Style::merge(const Style &style) {
     bold = style.bold;
     underline = style.underline;
   }
+}
+
+std::string format_markup_text(const std::string &line, size_t width,
+                               size_t left_padding) {
+  std::string ret_val;
+
+  // Protect against invalid padding value
+  assert(left_padding < width);
+
+  // Aproximate number of resulting lines
+  size_t lines = (line.size() / (width - left_padding));
+
+  // Aproximate final string size
+  ret_val.reserve(lines * width);
+
+  // Processes markup and gets final output line (pure text)
+  internal::Color_markers markers;
+  std::string prep_line = internal::preprocess_markup(line, &markers);
+
+  std::string padding(left_padding, ' ');
+
+  // Splits the line for post processing
+  size_t size = width - (left_padding + 1);
+  std::vector<std::string> sublines = internal::get_sized_strings(prep_line, size);
+
+  // Now applies the markup
+  internal::postprocess_markup(&sublines, markers);
+
+  for (auto &subline : sublines)
+    subline = padding + shcore::str_rstrip(subline);
+
+  return shcore::str_join(sublines, "\n");
+}
+
+std::string format_markup_text(const std::vector<std::string> &lines,
+                               size_t width, size_t left_padding,
+                               bool paragraph_per_line) {
+  std::string ret_val;
+
+  if (!lines.empty()) {
+    // Determine if we start with a list of items or not
+    bool in_list = (0 == lines[0].find("@li"));
+
+    std::string new_line;
+    for (auto line : lines) {
+      if (!ret_val.empty()) ret_val += "\n";
+
+      // handles list items:
+      // - Padding increases in 2 to let the item bullet alone.
+      // - Blank line is inserted before the first item.
+      if (0 == line.find("@li ")) {
+        std::string formatted =
+            format_markup_text(line.substr(4), width, left_padding + 2);
+        formatted[left_padding] = '-';
+
+        if (!in_list) {
+          ret_val += "\n";
+          in_list = true;
+        }
+
+        ret_val += formatted;
+      } else {
+        if ((!ret_val.empty() && paragraph_per_line) || in_list) {
+          ret_val += "\n";
+          in_list = false;
+        }
+
+        ret_val += format_markup_text(line, width, left_padding);
+      }
+    }
+  }
+
+  return ret_val;
 }
 
 }  // namespace textui
