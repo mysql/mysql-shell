@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,56 +35,47 @@
  * Helper function to ensure the exceptions generated on the mysqlx_connector
  * are properly translated to the corresponding shcore::Exception type
  */
-inline void translate_crud_exception(const std::string &operation) {
-  try {
-    throw;
-  } catch (shcore::Exception &e) {
-    auto error = e.error();
-    (*error)["message"] = shcore::Value(operation + ": " + e.what());
-    throw shcore::Exception(error);
-  } catch (mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-  } catch (std::runtime_error &e) {
-    throw shcore::Exception::runtime_error(operation + ": " + e.what());
-  } catch (std::logic_error &e) {
-    throw shcore::Exception::logic_error(operation + ": " + e.what());
-  } catch (...) {
-    throw;
+#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(op)                             \
+  catch (...) {                                                            \
+    std::string operation(op);                                             \
+    try {                                                                  \
+      throw;                                                               \
+    } catch (shcore::Exception & e) {                                      \
+      auto error = e.error();                                              \
+      (*error)["message"] = shcore::Value(operation + ": " + e.what());    \
+      throw;                                                               \
+    } catch (mysqlshdk::db::Error & e) {                                   \
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());  \
+    } catch (std::runtime_error & e) {                                     \
+      throw shcore::Exception::runtime_error(operation + ": " + e.what()); \
+    } catch (std::logic_error & e) {                                       \
+      throw shcore::Exception::logic_error(operation + ": " + e.what());   \
+    } catch (...) {                                                        \
+      throw;                                                               \
+    }                                                                      \
   }
-}
 
-#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation) \
-  catch (...) {                                       \
-    translate_crud_exception(operation);              \
-    throw;                                            \
-  }
+#define CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(operation) \
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)
 
 /*
  * Helper function to ensure the exceptions generated on the mysqlx_connector
  * are properly translated to the corresponding shcore::Exception type
  */
-inline void translate_exception() {
-  try {
-    throw;
-  } catch (mysqlshdk::db::Error &e) {
-    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
-                                                             e.sqlstate());
-  } catch (std::runtime_error &e) {
-    throw shcore::Exception::runtime_error(e.what());
-  } catch (std::logic_error &e) {
-    throw shcore::Exception::logic_error(e.what());
-  } catch (...) {
-    throw;
-  }
-}
-
-#define CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(operation) \
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)
-
-#define CATCH_AND_TRANSLATE() \
-  catch (...) {               \
-    translate_exception();    \
-    throw;                    \
+#define CATCH_AND_TRANSLATE()                                   \
+  catch (...) {                                                 \
+    try {                                                       \
+      throw;                                                    \
+    } catch (mysqlshdk::db::Error & e) {                        \
+      throw shcore::Exception::mysql_error_with_code_and_state( \
+          e.what(), e.code(), e.sqlstate());                    \
+    } catch (std::runtime_error & e) {                          \
+      throw shcore::Exception::runtime_error(e.what());         \
+    } catch (std::logic_error & e) {                            \
+      throw shcore::Exception::logic_error(e.what());           \
+    } catch (...) {                                             \
+      throw;                                                    \
+    }                                                           \
   }
 
 #endif

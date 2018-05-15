@@ -54,7 +54,7 @@ join_path(const std::vector<std::string> &components) {
     return "";
   for (size_t i = 1; i < components.size(); ++i) {
     s = components.at(i);
-    if (s.front() == '/')
+    if (!s.empty() && s.front() == '/')
       // absolute path, so discard any previous results
       path = s;
     else if (path.empty() || path.back() == '/')
