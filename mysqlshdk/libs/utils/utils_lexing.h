@@ -91,11 +91,12 @@ inline size_t span_quoted_string_dq(const std::string &s, size_t offset) {
   int last_ch = 0;
   for (;;) {
     // Tight-loop to span until terminating 0 or closing quote
-    while (internal::k_quoted_string_span_skips_dq[last_ch = s[offset]] > 0) {
+    while (offset < s.length() &&
+           internal::k_quoted_string_span_skips_dq[last_ch = s[offset]] > 0) {
       offset += internal::k_quoted_string_span_skips_dq[last_ch];
     }
     // Now check why we exited the loop
-    if (last_ch == '\0') {
+    if (last_ch == '\0' || offset >= s.length()) {
       // there was a '\0', but the string is not over, continue spanning
       if (offset < s.length()) {
         ++offset;
@@ -123,11 +124,12 @@ inline size_t span_quoted_string_sq(const std::string &s, size_t offset) {
   int last_ch = 0;
   for (;;) {
     // Tight-loop to span until terminating 0 or closing quote
-    while (internal::k_quoted_string_span_skips_sq[last_ch = s[offset]] > 0) {
+    while (offset < s.length() &&
+           internal::k_quoted_string_span_skips_sq[last_ch = s[offset]] > 0) {
       offset += internal::k_quoted_string_span_skips_sq[last_ch];
     }
     // Now check why we exited the loop
-    if (last_ch == '\0') {
+    if (last_ch == '\0' || offset >= s.length()) {
       // there was a '\0', but the string is not over, continue spanning
       if (offset < s.length()) {
         ++offset;
