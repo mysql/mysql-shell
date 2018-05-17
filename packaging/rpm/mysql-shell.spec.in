@@ -21,6 +21,8 @@
 
 %{?with_static: %global static 1}
 
+%global commercial  @COMMERCIAL_VER@
+
 # define v8_includedir and v8_libdir for rpmbuild when building static
 
 Summary:        Command line shell and scripting environment for MySQL
@@ -42,6 +44,11 @@ BuildRequires:  openssl-devel
 #BuildRequires:  v8-devel
 #BuildRequires:  v8-python
 %endif
+%if 0%{?commercial}
+Provides:      mysql-shell = %{version}-%{release}
+Obsoletes:     mysql-shell < %{version}-%{release}
+%endif
+
 %description
 @PRODUCT@
 a query and administration shell client and framework.
