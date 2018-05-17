@@ -59,11 +59,13 @@ option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(LICENSE_TYPE   "Commercial")
+  set(COMMERCIAL_VER     "1")
   # We add ".1" to RPM release if commercial
   set(RPM_RELEASE "${RPM_RELEASE}.1")
 else()
   set(PRODUCT_SUFFIX "")
   set(LICENSE_TYPE   "GPLv2")
+  set(COMMERCIAL_VER     "0")
 endif()
 
 # ----------------------------------------------------------------------
