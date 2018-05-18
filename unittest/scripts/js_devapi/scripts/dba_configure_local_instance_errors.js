@@ -12,7 +12,7 @@ var cluster = dba.createCluster('Cluster');
 
 testutil.makeFileReadOnly(testutil.getSandboxConfPath(__mysql_sandbox_port1));
 
-//@# Error no write privileges {VER(<8.0.5)}
+//@# Error no write privileges {VER(<8.0.11)}
 var cnfPath = testutil.getSandboxConfPath(__mysql_sandbox_port1).split("\\").join("\\\\");
 var __sandbox1_conf_path = cnfPath;
 // This call is for persisting stuff like group_seeds, not configuring the instance

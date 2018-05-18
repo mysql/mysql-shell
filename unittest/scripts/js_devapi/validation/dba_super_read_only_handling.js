@@ -48,7 +48,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster
 
 Cluster admin user 'testUser'@'%' created.
 
-//@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt {VER(>=8.0.5)}
+//@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt {VER(>=8.0.11)}
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
@@ -76,7 +76,7 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-//@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt {VER(<8.0.5)}
+//@<OUT> Creates Cluster succeeds, answers 'yes' on read only prompt {VER(<8.0.11)}
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
@@ -105,7 +105,7 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-//@<OUT> Adds a read only instance {VER(>=8.0.5)}
+//@<OUT> Adds a read only instance {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -120,7 +120,7 @@ This instance reports its own address as <<<real_hostname>>>
 Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Adds a read only instance {VER(<8.0.5)}
+//@<OUT> Adds a read only instance {VER(<8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -137,7 +137,7 @@ WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change c
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Adds other instance {VER(>=8.0.5)}
+//@<OUT> Adds other instance {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -152,7 +152,7 @@ This instance reports its own address as <<<real_hostname>>>
 Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
-//@<OUT> Adds other instance {VER(<8.0.5)}
+//@<OUT> Adds other instance {VER(<8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -201,7 +201,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
 //@ Start sandbox 3
 ||
 
-//@<OUT> Reboot the cluster {VER(>=8.0.5)}
+//@<OUT> Reboot the cluster {VER(>=8.0.11)}
 Reconfiguring the cluster 'sample' from complete outage...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.
@@ -222,7 +222,7 @@ Do you want to disable super_read_only and continue? [y/N]:
 
 The cluster was successfully rebooted.
 
-//@<OUT> Reboot the cluster {VER(<8.0.5)}
+//@<OUT> Reboot the cluster {VER(<8.0.11)}
 Reconfiguring the cluster 'sample' from complete outage...
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.

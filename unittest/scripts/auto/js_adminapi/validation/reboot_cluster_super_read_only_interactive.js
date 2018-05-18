@@ -44,10 +44,10 @@ You may want to kill these sessions to prevent them from performing unexpected u
 
 Do you want to disable super_read_only and continue? [y/N]:
 
-//@<OUT> No flag, yes on prompt {VER(>=8.0.5)}
+//@<OUT> No flag, yes on prompt {VER(>=8.0.11)}
 The cluster was successfully rebooted.
 
-//@<OUT> No flag, yes on prompt {VER(<8.0.5)}
+//@<OUT> No flag, yes on prompt {VER(<8.0.11)}
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 
 The cluster was successfully rebooted.

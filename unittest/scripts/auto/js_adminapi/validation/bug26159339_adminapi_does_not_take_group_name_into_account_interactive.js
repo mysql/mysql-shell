@@ -34,7 +34,7 @@
     "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.5)}
+//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.11)}
 ||
 
 //@ Take third sandbox down, change group_name, start it back

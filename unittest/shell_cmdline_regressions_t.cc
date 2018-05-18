@@ -69,7 +69,7 @@ MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
   // In 8.0.4, the mysqlx_cache_cleaner is also supposed to be installed
-  // In 8.0.5+, both plugins are built-in, cannot be uninstalled
+  // In 8.0.11+, both plugins are built-in, cannot be uninstalled
   std::string uri = "--uri=" + _mysql_uri;
 
   execute({_mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;",

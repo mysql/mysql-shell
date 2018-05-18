@@ -187,10 +187,10 @@ bool Configure_instance::check_config_path_for_update() {
 
 /*
  * Validates the value of 'persisted_globals_load'.
- * NOTE: the validation is only performed for versions >= 8.0.5
+ * NOTE: the validation is only performed for versions >= 8.0.11
  */
 bool Configure_instance::check_persisted_globals_load() {
-  // Check if the instance version is >= 8.0.5
+  // Check if the instance version is >= 8.0.11
   assert(m_target_instance->get_version() >=
          mysqlshdk::utils::Version(8, 0, 5));
 
@@ -449,7 +449,7 @@ void Configure_instance::ensure_configuration_change_possible(
     bool needs_mycnf_change) {
   // Check whether we have everything needed to make config changes
   if (m_can_set_persist) {
-    // (FR2/FR3) If the instance has a version >= 8.0.5, verify the status of
+    // (FR2/FR3) If the instance has a version >= 8.0.11, verify the status of
     // persisted_globals_load. If its value is set to 'OFF' and the instance
     // is remote, issue an error
     // This should only be checked if we actually need to change configs
@@ -466,7 +466,7 @@ void Configure_instance::ensure_configuration_change_possible(
   // NOTE: if mycnfPath was used in the cmd call, we also use it
   if (needs_mycnf_change || !m_can_set_persist || !m_mycnf_path.empty() ||
       !m_output_mycnf_path.empty()) {
-    // (FR3/FR4) If the instance has a version < 8.0.5 the configuration file
+    // (FR3/FR4) If the instance has a version < 8.0.11 the configuration file
     // path is mandatory in case the instance is local. If the instance is
     // remote issue an error
     if (!check_config_path_for_update()) {
@@ -506,7 +506,7 @@ void Configure_instance::prepare() {
   // Check capabilities based on target server and user options
   m_can_set_persist = false;
   // NOTE: RESTART is only available in 8.0.4, but the command is only
-  // support in 8.0.5 or higher
+  // support in 8.0.11 or higher
   m_can_restart = false;
   if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5)) {
     m_can_set_persist = true;

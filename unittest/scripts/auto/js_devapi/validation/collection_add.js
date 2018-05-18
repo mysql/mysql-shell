@@ -21,7 +21,7 @@
 //@ WL11435_ET1_1 Collection.add error no id
 ||Document is missing a required field
 
-//@ Collection.add execution, Variations >=8.0.5
+//@ Collection.add execution, Variations >=8.0.11
 |Affected Rows Chained: 2|
 |Affected Rows Single Expression: 1|
 |Affected Rows Mixed List: 2|

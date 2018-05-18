@@ -43,7 +43,7 @@ crud = collection.add({name: 'sample'}, 'error');
 // ---------------------------------------
 var records;
 
-//@<> Collection.add execution {VER(>=8.0.5)}
+//@<> Collection.add execution {VER(>=8.0.11)}
 var result = collection.add({ name: 'document01', Passed: 'document', count: 1 }).execute();
 EXPECT_EQ(1, result.affectedItemCount);
 EXPECT_EQ(1, result.generatedIds.length);
@@ -60,10 +60,10 @@ EXPECT_EQ(0, result.generatedIds.length);
 EXPECT_EQ(0, result.getGeneratedIds().length);
 EXPECT_EQ('sample_document', collection.find('name = "document02"').execute().fetchOne()._id);
 
-//@ WL11435_ET1_1 Collection.add error no id {VER(<8.0.5)}
+//@ WL11435_ET1_1 Collection.add error no id {VER(<8.0.11)}
 var result = collection.add({ name: 'document03', Passed: 'document', count: 1 }).execute();
 
-//@<> Collection.add execution, Multiple {VER(>=8.0.5)}
+//@<> Collection.add execution, Multiple {VER(>=8.0.11)}
 var result = collection.add([{ name: 'document03', passed: 'again', count: 2 }, { name: 'document04', passed: 'once again', count: 3 }]).execute();
 EXPECT_EQ(2, result.affectedItemCount);
 
@@ -96,7 +96,7 @@ EXPECT_EQ(-1, result.affectedItemCount);
 EXPECT_EQ(0, result.generatedIds.length);
 EXPECT_EQ(0, result.getGeneratedIds().length);
 
-//@ Collection.add execution, Variations >=8.0.5 {VER(>=8.0.5)}
+//@ Collection.add execution, Variations >=8.0.11 {VER(>=8.0.11)}
 //! [CollectionAdd: Chained Calls]
 var result = collection.add({ name: 'my fourth', passed: 'again', count: 4 }).add({ name: 'my fifth', passed: 'once again', count: 5 }).execute();
 print("Affected Rows Chained:", result.affectedItemCount, "\n");
@@ -118,7 +118,7 @@ print("Affected Rows Multiple Params:", result.affectedItemCount, "\n")
 //! [CollectionAdd: Multiple Parameters]
 
 
-//@<> Collection.add execution, Variations <8.0.5 {VER(<8.0.5)}
+//@<> Collection.add execution, Variations <8.0.11 {VER(<8.0.11)}
 var result = collection.add({ _id: '1E9C92FDA74ED311944E00059A3C7A44', name: 'my fourth', passed: 'again', count: 4 }).add({_id: '1E9C92FDA74ED311944E00059A3C7A45', name: 'my fifth', passed: 'once again', count: 5 }).execute();
 EXPECT_EQ(2, result.affectedItemCount);
 

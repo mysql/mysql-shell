@@ -21,7 +21,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster state
 cluster.status();
 
-//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.5)}
+//@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.11)}
 var s3 = mysql.getSession(__sandbox_uri3);
 s3.runSql("RESET PERSIST IF EXISTS group_replication_start_on_boot");
 s3.runSql("RESET PERSIST IF EXISTS group_replication_group_name");

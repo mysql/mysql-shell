@@ -1,4 +1,4 @@
-//@ {VER(>8.0.5)}
+//@ {VER(>8.0.11)}
 shell.connect(__uripwd);
 session.dropSchema('my_schema');
 var schema = session.createSchema('my_schema');
