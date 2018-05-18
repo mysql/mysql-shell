@@ -282,9 +282,19 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
     set(&doc, "affected_rows", result->get_affected_row_count());
     set(&doc, "warning_count", result->get_warning_count());
     set(&doc, "info", result->get_info());
-    std::vector<std::string> gtids = result->get_gtids();
-    if (!gtids.empty()) {
-      set(&doc, "gtids", shcore::str_join(gtids, ","));
+
+    // Recording of gtids is not mandatory, i.e. is done only when they
+    // are available, and it only occurs for Classic Sessions at the moment
+    try {
+      std::vector<std::string> gtids = result->get_gtids();
+      if (!gtids.empty()) {
+        set(&doc, "gtids", shcore::str_join(gtids, ","));
+      }
+    } catch (const std::logic_error& error) {
+      // NO-OP: for 'not implemented' on the x protocol
+      std::string msg (error.what());
+      if (msg != "not implemented")
+        throw;
     }
     if (result->has_resultset()) {
       serialize_result_metadata(&doc, result);
