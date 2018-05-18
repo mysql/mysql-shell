@@ -143,11 +143,11 @@ var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 //--@<OUT> Dba: configureLocalInstance error 2
 //dba.configureLocalInstance('localhost:' + __mysql_port);
 
-//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.5)}
+//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
 testutil.expectPassword("*", "root");
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 
-//@<OUT> Dba: configureLocalInstance error 3 bad call {VER(>=8.0.5)}
+//@<OUT> Dba: configureLocalInstance error 3 bad call {VER(>=8.0.11)}
 testutil.expectPassword("*", "root");
 dba.configureLocalInstance('localhost:' + __mysql_sandbox_port1);
 

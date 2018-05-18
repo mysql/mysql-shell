@@ -43,11 +43,11 @@ cluster.addInstance(__sandbox_uri2);
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.5)}
+//@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {interactive: true, mycnfPath: cnfPath1, password:'root'});
 
-//@ Configure instance on port2 to persist auto-rejoin settings {VER(<8.0.5)}
+//@ Configure instance on port2 to persist auto-rejoin settings {VER(<8.0.11)}
 var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {interactive: true, mycnfPath: cnfPath2, password:'root'});
 

@@ -29,10 +29,10 @@
 //@ Add instance 3
 ||
 
-//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.5)}
+//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
 ||
 
-//@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.5)}
+//@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.11)}
 ||
 
 //@ Kill instance 2

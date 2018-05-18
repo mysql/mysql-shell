@@ -110,8 +110,8 @@ testutil.startSandbox(__mysql_sandbox_port3);
 // Add instance 3 back to the cluster
 testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
-//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.5)}
-// if server version is greater than 8.0.5 then the GR settings will be
+//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11)}
+// if server version is greater than 8.0.11 then the GR settings will be
 // persisted on instance 3 and it will rejoin the cluster that has been
 // rebooted. We just need to add it back to the metadata.
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
@@ -126,8 +126,8 @@ s3.close();
 uri3 = hostname + ":"  + __mysql_sandbox_port3;
 cluster.rescan();
 
-//@ Add instance 3 back to the cluster {VER(<8.0.5)}
-// if server version is smaller than 8.0.5 then no GR settings will be persisted
+//@ Add instance 3 back to the cluster {VER(<8.0.11)}
+// if server version is smaller than 8.0.11 then no GR settings will be persisted
 // on instance 3, such as gr_start_on_boot and gr_group_seeds so it will not
 // automatically rejoin the cluster. We need to manually add it back.
 cluster.addInstance(__sandbox_uri3);

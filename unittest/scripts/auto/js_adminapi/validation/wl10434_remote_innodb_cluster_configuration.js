@@ -1,10 +1,10 @@
-//@ FR1_1 SETUP {VER(>=8.0.5)}
+//@ FR1_1 SETUP {VER(>=8.0.11)}
 ||
 
 //@ ConfigureInstance should fail if there's no session nor parameters provided
 ||An open session is required to perform this operation.
 
-//@<OUT> FR_1 Configure instance not valid for InnoDB cluster {VER(>=8.0.5)}
+//@<OUT> FR_1 Configure instance not valid for InnoDB cluster {VER(>=8.0.11)}
 true
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -93,34 +93,34 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster
     "status": "ok"
 }
 
-//@ FR1_1 TEARDOWN {VER(>=8.0.5)}
+//@ FR1_1 TEARDOWN {VER(>=8.0.11)}
 ||
 
-//@ FR1.1_1 SETUP {VER(>=8.0.5)}
+//@ FR1.1_1 SETUP {VER(>=8.0.11)}
 ||
 
-//@# FR1.1_1 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.5)}
+//@# FR1.1_1 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
 |The following variable needs to be changed, but cannot be done dynamically: 'log_bin'|
 |WARNING: Some changes that require access to the MySQL configuration file need to be made. Please perform this operation in the same host as the target instance and use the mycnfPath option to update it.|
 |ERROR: The path to the MySQL configuration file is required to verify and fix InnoDB cluster related options.|
 ||Dba.configureInstance: Unable to update configuration
 
-//@# FR1.1_2 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.5)}
+//@# FR1.1_2 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
 |The following variable needs to be changed, but cannot be done dynamically: 'log_bin'|
 |The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.|
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.|
 
-//@ FR1.1 TEARDOWN {VER(>=8.0.5)}
+//@ FR1.1 TEARDOWN {VER(>=8.0.11)}
 ||
 
-//@ FR2_2 SETUP {VER(>=8.0.5)}
+//@ FR2_2 SETUP {VER(>=8.0.11)}
 ||
 
-//@ FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' but no cnf file path {VER(>=8.0.5)}
+//@ FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' but no cnf file path {VER(>=8.0.11)}
 |Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.|
 ||Dba.configureInstance: Unable to update configuration
 
-//@<OUT> FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' with cnf file path {VER(>=8.0.5)}
+//@<OUT> FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' with cnf file path {VER(>=8.0.11)}
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -153,13 +153,13 @@ Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 
-//@ FR2_2 TEARDOWN {VER(>=8.0.5)}
+//@ FR2_2 TEARDOWN {VER(>=8.0.11)}
 ||
 
-//@ FR3.1_1 SETUP {VER(<8.0.5)}
+//@ FR3.1_1 SETUP {VER(<8.0.11)}
 ||
 
-//@<OUT>FR3.1_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' {VER(<8.0.5)}
+//@<OUT>FR3.1_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' {VER(<8.0.11)}
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -222,13 +222,13 @@ Some configuration options need to be fixed:
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Please use the dba.configureInstance() command to repair these issues.
 
-//@ FR3.1_1 TEARDOWN {VER(<8.0.5)}
+//@ FR3.1_1 TEARDOWN {VER(<8.0.11)}
 ||
 
-//@ FR3.2_1 SETUP {VER(<8.0.5)}
+//@ FR3.2_1 SETUP {VER(<8.0.11)}
 ||
 
-//@# FR3.2_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' providing mycnfPath {VER(<8.0.5)}
+//@# FR3.2_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' providing mycnfPath {VER(<8.0.11)}
 |Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.|
 |MySQL server needs to be restarted for configuration changes to take effect.|
@@ -236,13 +236,13 @@ Please use the dba.configureInstance() command to repair these issues.
 |Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
 |Please use the dba.configureInstance() command to repair these issues.|
 
-//@ FR3.2_1 TEARDOWN {VER(<8.0.5)}
+//@ FR3.2_1 TEARDOWN {VER(<8.0.11)}
 ||
 
-//@ FR3.3_1 SETUP {VER(<8.0.5)}
+//@ FR3.3_1 SETUP {VER(<8.0.11)}
 ||
 
-//@# FR3.3_1 - Configure local instance that does not require changes {VER(<8.0.5)}
+//@# FR3.3_1 - Configure local instance that does not require changes {VER(<8.0.11)}
 |Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
 |1) Create remotely usable account for 'root' with same grants and password|
 |2) Create a new admin account for InnoDB cluster with minimal required grants|
@@ -250,13 +250,13 @@ Please use the dba.configureInstance() command to repair these issues.
 |4) Cancel|
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.|
 
-//@ FR3.3_1 TEARDOWN {VER(<8.0.5)}
+//@ FR3.3_1 TEARDOWN {VER(<8.0.11)}
 ||
 
-//@ FR5 SETUP {VER(>=8.0.5)}
+//@ FR5 SETUP {VER(>=8.0.11)}
 ||
 
-//@<OUT> FR5 Configure instance not valid for InnoDB cluster, with interaction enabled {VER(>=8.0.5)}
+//@<OUT> FR5 Configure instance not valid for InnoDB cluster, with interaction enabled {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -286,31 +286,31 @@ Restarting MySQL...
 ERROR: Remote restart of MySQL server failed: MySQL Error 3707 (HY000): Restart server failed (mysqld is not managed by supervisor process).
 Please restart MySQL manually
 
-//@ FR5 TEARDOWN {VER(>=8.0.5)}
+//@ FR5 TEARDOWN {VER(>=8.0.11)}
 ||
 
-//@ FR7 SETUP {VER(>=8.0.5)}
+//@ FR7 SETUP {VER(>=8.0.11)}
 ||
 
-//@ FR7 Configure instance already belonging to cluster {VER(>=8.0.5)}
+//@ FR7 Configure instance already belonging to cluster {VER(>=8.0.11)}
 ||Dba.configureInstance: This function is not available through a session to an instance already in an InnoDB cluster (RuntimeError)
 
-//@ FR7 TEARDOWN {VER(>=8.0.5)}
+//@ FR7 TEARDOWN {VER(>=8.0.11)}
 ||
 
 //@ ET SETUP
 ||
 
-//@ ET_5 - Call dba.configureInstance() with interactive flag set to true and not specifying username {VER(>=8.0.5)}
+//@ ET_5 - Call dba.configureInstance() with interactive flag set to true and not specifying username {VER(>=8.0.11)}
 ||Access denied for user 'root'@'<<<localhost>>>' (using password: YES) (MySQL Error 1045)
 
-//@ ET_7 - Call dba.configureInstance() with interactive flag set to true and not specifying a password {VER(>=8.0.5)}
+//@ ET_7 - Call dba.configureInstance() with interactive flag set to true and not specifying a password {VER(>=8.0.11)}
 ||Access denied for user 'root'@'<<<localhost>>>' (using password: YES) (MySQL Error 1045)
 
-//@ ET_8 - Call dba.configureInstance() with interactive flag set to false and not specifying a password {VER(>=8.0.5)}
+//@ ET_8 - Call dba.configureInstance() with interactive flag set to false and not specifying a password {VER(>=8.0.11)}
 ||Access denied for user 'root'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
 
-//@<OUT> ET_10 - Call dba.configuereInstance() with interactive flag set to true and using clusterAdmin {VER(>=8.0.5)}
+//@<OUT> ET_10 - Call dba.configuereInstance() with interactive flag set to true and using clusterAdmin {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -331,7 +331,7 @@ Cluster admin user 'clusterAdminAccount'@'%' created.
 Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
 
-//@<OUT> ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.5)}
+//@<OUT> ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 true
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -373,7 +373,7 @@ Please restart MySQL manually
 //@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set 5.7
 ||
 
-//@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.5)}
+//@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 |ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.|
 ||Dba.configureInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
 

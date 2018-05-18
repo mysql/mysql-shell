@@ -328,7 +328,7 @@ REGISTER_HELP(
     "field, an error will be generated.");
 REGISTER_HELP(
     RESULT_GETGENERATEDIDS_DETAIL1,
-    "At MySQL 8.0.5 if the documents being added do not have an '_id' field, "
+    "At MySQL 8.0.11 if the documents being added do not have an '_id' field, "
     "the server will automatically generate an ID and assign it to the "
     "document.");
 REGISTER_HELP(

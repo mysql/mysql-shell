@@ -98,11 +98,11 @@ Please use the dba.configureInstance() command to repair these issues.
 ||Access denied for user 'root'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
 ||Access denied for user 'sample'@'<<<localhost>>>' (using password: NO) (MySQL Error 1045)
 
-//@# Dba: configureLocalInstance errors 5.7 {VER(<8.0.5)}
+//@# Dba: configureLocalInstance errors 5.7 {VER(<8.0.11)}
 |ERROR: The path to the MySQL configuration file is required to verify and fix InnoDB cluster related options.|
 ||Dba.configureLocalInstance: Unable to update MySQL configuration file.
 
-//@# Dba: configureLocalInstance errors 8.0 {VER(>=8.0.5)}
+//@# Dba: configureLocalInstance errors 8.0 {VER(>=8.0.11)}
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
 |Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.|
 

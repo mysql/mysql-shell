@@ -16,14 +16,14 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
-//@<OUT> create_cluster.read_only_no_prompts {VER(>=8.0.5)}
+//@<OUT> create_cluster.read_only_no_prompts {VER(>=8.0.11)}
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-//@<OUT> create_cluster.read_only_no_prompts {VER(<8.0.5)}
+//@<OUT> create_cluster.read_only_no_prompts {VER(<8.0.11)}
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 Adding Seed Instance...
 
@@ -90,14 +90,14 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 Creating InnoDB cluster 'dev' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
 
-//@<OUT> create_cluster.read_only_flag_true {VER(>=8.0.5)}
+//@<OUT> create_cluster.read_only_flag_true {VER(>=8.0.11)}
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-//@<OUT> create_cluster.read_only_flag_true {VER(<8.0.5)}
+//@<OUT> create_cluster.read_only_flag_true {VER(<8.0.11)}
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 Adding Seed Instance...
 

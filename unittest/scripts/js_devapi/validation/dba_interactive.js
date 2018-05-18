@@ -49,7 +49,7 @@
 //@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375)
 ||
 
-//@<OUT> Dba: createCluster with interaction {VER(>=8.0.5)}
+//@<OUT> Dba: createCluster with interaction {VER(>=8.0.11)}
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
@@ -66,7 +66,7 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-//@<OUT> Dba: createCluster with interaction {VER(<8.0.5)}
+//@<OUT> Dba: createCluster with interaction {VER(<8.0.11)}
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
@@ -150,7 +150,7 @@ Some configuration options need to be fixed:
 The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Please use the dba.configureInstance() command to repair these issues.
 
-//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.5)}
+//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Persisting the cluster settings...
@@ -158,7 +158,7 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in a
 
 The instance cluster settings were successfully persisted.
 
-//@ Dba: configureLocalInstance error 3 bad call {VER(>=8.0.5)}
+//@ Dba: configureLocalInstance error 3 bad call {VER(>=8.0.11)}
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.|
 |Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.|
 

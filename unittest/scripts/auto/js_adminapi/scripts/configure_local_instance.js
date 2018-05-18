@@ -14,7 +14,7 @@ shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
@@ -23,7 +23,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root2', clusterAdminPassword:'root'});
@@ -31,13 +31,13 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});
@@ -47,7 +47,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 // an exception
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root4', clusterAdminPassword:'root', clearReadOnly: 'NotABool'});
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.5)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
@@ -56,7 +56,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 
 EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_port1+"' currently has the super_read_only");
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.5)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.11)}
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
@@ -64,7 +64,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 
 EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_port1+"' currently has the super_read_only");
 
-//@ Interactive_dba_configure_local_instance read_only_flag_false 8.0 {VER(>=8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_flag_false 8.0 {VER(>=8.0.11)}
 // Since the clusterAdmin 'root' was successfully created in the previous call
 // we need to specify a different user, otherwise there's nothing to be done so
 // the expected output regarding super-read-only won't be printed
@@ -76,7 +76,7 @@ EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive
 
 EXPECT_OUTPUT_NOT_CONTAINS("The instance 'localhost:"+__mysql_sandbox_port1+"' is valid for Cluster usage");
 
-//@ Interactive_dba_configure_local_instance read_only_flag_false 5.7 {VER(<8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_flag_false 5.7 {VER(<8.0.11)}
 // Since the clusterAdmin 'root' was successfully created in the previous call
 // we need to specify a different user, otherwise there's nothing to be done so
 // the expected output regarding super-read-only won't be printed

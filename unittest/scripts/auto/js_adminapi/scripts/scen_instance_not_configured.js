@@ -248,7 +248,7 @@ function prepare_instance(sandbox, server_flags) {
     if (server_flags & SCEN_RESTART_REQUIRED) {
       // for 5.7 server checks
       testutil.changeSandboxConf(port, "binlog_checksum", "none");
-      // for 8.0.5 server checks
+      // for 8.0.11 server checks
       if (__version_num >= 80005)
         testutil.runSql("set persist binlog_checksum=none");
     }

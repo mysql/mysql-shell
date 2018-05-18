@@ -57,8 +57,8 @@ CONNECTOR_MIN_VERSION = (2, 1, 7)
 # follows: [MIN_MYSQL_VERSION, MAX_MYSQL_VERSION [
 MIN_MYSQL_VERSION = (5, 7, 17)  # minimum required version (supported)
 MAX_MYSQL_VERSION = (9, )       # maximum mysql version (not supported)
-MIN_PERSIST_MYSQL_VERSION = (8, 0, 5)  # minimum mysql version that supports
-                                       # set persist syntax.
+MIN_PERSIST_MYSQL_VERSION = (8, 0, 11)  # minimum mysql version that supports
+                                        # set persist syntax.
 
 
 def check_expected_version(expected_version):

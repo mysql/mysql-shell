@@ -67,7 +67,7 @@ int g_test_trace_sql = 0;
 bool g_test_color_output = false;
 
 // Default trace set (MySQL version) to be used for replay mode
-mysqlshdk::utils::Version g_target_server_version = Version("8.0.5");
+mysqlshdk::utils::Version g_target_server_version = Version("8.0.11");
 mysqlshdk::utils::Version g_highest_tls_version = Version();
 
 // End test configuration block

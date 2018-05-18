@@ -559,8 +559,8 @@ def create_sandbox(**kwargs):
     # protocol if SSL is disabled.
     if mysqld_ver == (8, 0, 4):
         opt_dict["mysqld"]["mysqlx_cache_cleaner"] = "ON"
-    # MySQLx plugin is automatically loaded starting from versions 8.0.5.
-    if mysqld_ver < (8, 0, 5):
+    # MySQLx plugin is automatically loaded starting from versions 8.0.11.
+    if mysqld_ver < (8, 0, 11):
         opt_dict["mysqld"]["plugin_load"] = \
             "mysqlx.so" if os.name == "posix" else "mysqlx.dll"
     if opt_override_dict:

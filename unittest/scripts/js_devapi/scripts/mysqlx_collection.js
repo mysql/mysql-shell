@@ -47,13 +47,13 @@ print('schema:', collection.schema);
 //@<OUT> Testing help of dropIndex
 collection.help("dropIndex")
 
-//@ Testing dropping index {VER(>=8.0.5)}
+//@ Testing dropping index {VER(>=8.0.11)}
 collection.createIndex('_name', {fields: [{field: '$.myField', type: 'TEXT(10)'}]});
 print (collection.dropIndex('_name'));
 print (collection.dropIndex('_name'));
 print (collection.dropIndex('not_an_index'));
 
-//@ Testing dropping index using execute {VER(>=8.0.5)}
+//@ Testing dropping index using execute {VER(>=8.0.11)}
 collection.dropIndex('_name').execute()
 
 //@ Testing existence

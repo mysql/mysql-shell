@@ -1,4 +1,4 @@
-//@<OUT> checkInstanceConfiguration with server_id error. {VER(>=8.0.5)}
+//@<OUT> checkInstanceConfiguration with server_id error. {VER(>=8.0.11)}
 {
     "config_errors": [
         {
@@ -12,7 +12,7 @@
     "status": "error"
 }
 
-//@<OUT> checkInstanceConfiguration with server_id error. {VER(<8.0.5)}
+//@<OUT> checkInstanceConfiguration with server_id error. {VER(<8.0.11)}
 Some configuration options need to be fixed:
 +-----------+---------------+----------------+-----------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                          |

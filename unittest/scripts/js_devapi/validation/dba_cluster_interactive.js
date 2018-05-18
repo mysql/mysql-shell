@@ -32,7 +32,7 @@
 //@ Cluster: addInstance with interaction, error
 ||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
-//@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.5)}
+//@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -47,7 +47,7 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.5)}
+//@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -64,7 +64,7 @@ WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change c
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.5)}
+//@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -79,7 +79,7 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.5)}
+//@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -253,7 +253,7 @@ The following replicasets are currently registered:
 //@ Cluster: remove_instance 3
 ||
 
-//@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.5)}
+//@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -268,7 +268,7 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.5)}
+//@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -285,7 +285,7 @@ WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' membership change c
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.5)}
+//@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -300,7 +300,7 @@ This instance reports its own address as <<<hostname>>>
 Instance configuration is suitable.
 The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.5)}
+//@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.11)}
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 

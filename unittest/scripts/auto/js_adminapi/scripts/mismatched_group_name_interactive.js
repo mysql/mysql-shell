@@ -82,7 +82,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ Remove the persist group_replication_group_name {VER(>=8.0.5)}
+//@ Remove the persist group_replication_group_name {VER(>=8.0.11)}
 var s2 = mysql.getSession(__sandbox_uri2);
 s2.runSql("RESET PERSIST IF EXISTS group_replication_group_name");
 s2.close();

@@ -62,7 +62,7 @@ Configuring instance...
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.5)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -92,7 +92,7 @@ Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_
 Cluster admin user 'root2'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.5)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -128,16 +128,16 @@ Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_
 Cluster admin user 'root2'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
 ||Dba.configureLocalInstance: Cancelled (RuntimeError)
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
 ||Dba.configureLocalInstance: Cancelled (RuntimeError)
 
 //@ Interactive_dba_configure_local_instance read_only_invalid_flag_value
 ||Dba.configureLocalInstance: Option 'clearReadOnly' is expected to be of type Bool, but is String
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.5)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -156,7 +156,7 @@ Do you want to perform the required configuration changes? [y/n]: Do you want to
 Cluster admin user 'root5'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.5)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>
@@ -181,10 +181,10 @@ Do you want to perform the required configuration changes? [y/n]: Disabled super
 Cluster admin user 'root5'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 
-//@ Interactive_dba_configure_local_instance read_only_flag_false 8.0 {VER(>=8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_flag_false 8.0 {VER(>=8.0.11)}
 ||
 
-//@ Interactive_dba_configure_local_instance read_only_flag_false 5.7 {VER(<8.0.5)}
+//@ Interactive_dba_configure_local_instance read_only_flag_false 5.7 {VER(<8.0.11)}
 ||
 
 //@ Cleanup

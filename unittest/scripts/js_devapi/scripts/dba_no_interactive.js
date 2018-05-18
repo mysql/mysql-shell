@@ -118,9 +118,9 @@ testutil.rmfile(mycnf1_path);
 //dba.configureLocalInstance('sample:@someotherhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1);
 dba.configureLocalInstance('sample@localhost:' + __mysql_sandbox_port1);
-//@# Dba: configureLocalInstance errors 5.7 {VER(<8.0.5)}
+//@# Dba: configureLocalInstance errors 5.7 {VER(<8.0.11)}
 dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
-//@# Dba: configureLocalInstance errors 8.0 {VER(>=8.0.5)}
+//@# Dba: configureLocalInstance errors 8.0 {VER(>=8.0.11)}
 dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1, {password:'root'});
 
 // Restore config file

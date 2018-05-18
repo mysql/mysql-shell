@@ -56,13 +56,13 @@ print 'schema:', collection.schema
 #@<OUT> Testing help of drop_index
 collection.help("drop_index")
 
-#@ Testing dropping index {VER(>=8.0.5)}
+#@ Testing dropping index {VER(>=8.0.11)}
 collection.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}]});
 print collection.drop_index('_name')
 print collection.drop_index('_name')
 print collection.drop_index('not_an_index')
 
-#@ Testing dropping index using execute {VER(>=8.0.5)}
+#@ Testing dropping index using execute {VER(>=8.0.11)}
 collection.drop_index('_name').execute()
 
 #@ Testing existence
