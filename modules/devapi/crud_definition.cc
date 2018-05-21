@@ -120,7 +120,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
       while (result->next_resultset())
         ;
       result.reset();
-    } catch (const mysqlshdk::db::Error&) {
+    } catch (const mysqlshdk::db::Error &) {
       throw;
     }
     throw shcore::Exception::runtime_error(

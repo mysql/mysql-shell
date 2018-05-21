@@ -241,8 +241,7 @@ std::vector<std::string> get_sized_strings(const std::string &input,
   return chunks;
 }
 
-
-}
+}  // namespace internal
 
 Color_capability g_color_capability = Color_256;
 
@@ -497,7 +496,8 @@ std::string format_markup_text(const std::string &line, size_t width,
 
   // Splits the line for post processing
   size_t size = width - (left_padding + 1);
-  std::vector<std::string> sublines = internal::get_sized_strings(prep_line, size);
+  std::vector<std::string> sublines =
+      internal::get_sized_strings(prep_line, size);
 
   // Now applies the markup
   internal::postprocess_markup(&sublines, markers);
