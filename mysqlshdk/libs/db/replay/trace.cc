@@ -290,11 +290,10 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
       if (!gtids.empty()) {
         set(&doc, "gtids", shcore::str_join(gtids, ","));
       }
-    } catch (const std::logic_error& error) {
+    } catch (const std::logic_error &error) {
       // NO-OP: for 'not implemented' on the x protocol
-      std::string msg (error.what());
-      if (msg != "not implemented")
-        throw;
+      std::string msg(error.what());
+      if (msg != "not implemented") throw;
     }
     if (result->has_resultset()) {
       serialize_result_metadata(&doc, result);

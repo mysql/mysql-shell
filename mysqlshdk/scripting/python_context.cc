@@ -374,8 +374,7 @@ Value Python_context::execute_interactive(const std::string &code,
                            "character")) == 0) {
           // NOTE: These two characters will come if explicit line
           // continuation is specified
-          if (code.length() >= 2 &&
-              code[code.length() - 2] == '\\' &&
+          if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
               code[code.length() - 1] == '\n')
             r_state = Input_state::ContinuedSingle;
         } else if (strncmp(msg,
@@ -397,8 +396,7 @@ Value Python_context::execute_interactive(const std::string &code,
     return Value();
     // If no error was found butthe line has the implicit line continuation
     // we need to indicate so
-  } else if (code.length() >= 2 &&
-             code[code.length() - 2] == '\\' &&
+  } else if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
              code[code.length() - 1] == '\n') {
     r_state = Input_state::ContinuedSingle;
   }

@@ -416,7 +416,7 @@ TEST_F(Types_cpp, arg_check_overload) {
   try {
     obj.expose<int, int>("overload", &Test_object::f_overload, "?i");
     FAIL() << "Expected exception but didn't get one";
-  } catch (const std::logic_error&) {
+  } catch (const std::logic_error &) {
   }
 }
 
