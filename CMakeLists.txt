@@ -173,9 +173,11 @@ IF(WIN32 OR APPLE OR BUNDLED_OPENSSL_DIR)
   ENDIF()
 ENDIF()
 
-# Needed for protobuf header paths, which are needed to use libmysqlxclient
-INCLUDE(protobuf)
-INCLUDE(FindMySQLx)
+if (NOT BUILD_SOURCE_PACKAGE)
+  # Needed for protobuf header paths, which are needed to use libmysqlxclient
+  INCLUDE(protobuf)
+  INCLUDE(FindMySQLx)
+endif()
 
 ##
 ## Installation location
