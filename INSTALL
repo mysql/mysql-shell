@@ -15,7 +15,7 @@ Mandatory
 - python 2.7+
 
 Optional
-- gtest and gmock 1.7
+- gtest and gmock 1.8 (can be automatically downloaded)
 - v8 3.28.71.19
 
 Building From Source
@@ -123,6 +123,7 @@ Additional for windows only:
 Adding Unit Test Support
 ------------------------
 GTest is required to enable Unit Testing. Make them available by adding the
-next parameters to the cmake call.
+following parameters to the cmake call.
 -DWITH_TESTS=1
--DWITH_GTEST=<path_to_gtest>
+-DENABLE_DOWNLOADS=1
+

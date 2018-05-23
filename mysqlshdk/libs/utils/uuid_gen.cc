@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2.0,
@@ -442,7 +442,7 @@ void generate_uuid(uuid_type &uuid) {
     unsigned long tmp = sql_rnd_with_mutex();
     int i;
     if (my_gethwaddr(uuid_internal.hw_mac)) {
-    /* The thread key address will be used for random number generation */
+      /* The thread key address will be used for random number generation */
 #ifdef _WIN32
       static DWORD key;
 #else

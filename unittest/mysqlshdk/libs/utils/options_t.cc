@@ -32,10 +32,10 @@
 namespace shcore {
 
 using opts::Basic_type;
+using opts::cmdline;
 using opts::Range;
 using opts::Read_only;
 using opts::Source;
-using opts::cmdline;
 
 class Options_test : public Shell_core_test_wrapper, public Options {
  public:

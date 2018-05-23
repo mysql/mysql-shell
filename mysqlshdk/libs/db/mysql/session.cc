@@ -128,8 +128,8 @@ void Session_impl::connect(
     if (connection_info.find("via TCP/IP") != std::string::npos) {
       _connection_options.set_port(MYSQL_PORT);
     } else {
-    // If connection was not through TCP/IP it means either the default socket
-    // path or windows named pipe was used
+      // If connection was not through TCP/IP it means either the default socket
+      // path or windows named pipe was used
 #ifdef _WIN32
       _connection_options.set_pipe("MySQL");
 #else
