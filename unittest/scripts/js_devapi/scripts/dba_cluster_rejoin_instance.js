@@ -65,7 +65,8 @@ testutil.startSandbox(__mysql_sandbox_port2);
 //@<OUT> Cluster status
 cluster.status()
 
-//@ Rejoin instance 2
+//@<OUT> Rejoin instance 2
+// Regression for BUG#270621122: Deprecate memberSslMode
 if (__have_ssl)
   cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'REQUIRED', password: 'bar'});
 else

@@ -80,6 +80,9 @@ The options dictionary may contain the following attributes:
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
 
+@warning The memberSslMode option is deprecated and will be removed in a future
+release.
+
 The memberSslMode option supports these values:
 
  - REQUIRED: if used, SSL (encryption) will be enabled for the instance to
@@ -425,12 +428,15 @@ The options dictionary may contain the following attributes:
 
  - label: an identifier for the instance being added
  - password: the instance connection password
- - memberSslMode: SSL mode used to be used on the instance
+ - memberSslMode: SSL mode used on the instance
  - ipWhitelist: The list of hosts allowed to connect to the instance for group
    replication
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
+
+@warning The memberSslMode option is deprecated and will be removed in a future
+release.
 
 The memberSslMode option supports these values:
 

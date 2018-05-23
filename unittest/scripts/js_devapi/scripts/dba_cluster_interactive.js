@@ -147,10 +147,7 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {ipWhitelist: " ", password: "root"});
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
-if (__have_ssl)
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: "AUTO", password: 'root'});
-else
-  Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {password: 'root'});
+Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: "AUTO", password: 'root'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

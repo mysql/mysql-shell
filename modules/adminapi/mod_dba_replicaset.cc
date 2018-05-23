@@ -64,6 +64,12 @@ char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
 static const std::string kSandboxDatadir = "sandboxdata";
 
+const char *kWarningDeprecateSslMode =
+    "Option 'memberSslMode' is deprecated for this operation and it will be "
+    "removed in a future release. This option is not needed because the SSL "
+    "mode is automatically obtained from the cluster. Please do not use it "
+    "here.";
+
 enum class Gr_seeds_change_type {
   ADD,
   REMOVE,
@@ -432,8 +438,13 @@ shcore::Value ReplicaSet::add_instance(
     // Validate group seeds option
     validate_group_seeds_option(add_options);
 
-    if (add_options->has_key("memberSslMode"))
+    if (add_options->has_key("memberSslMode")) {
       ssl_mode = add_options->get_string("memberSslMode");
+      if (!seed_instance) {
+        m_console->print_warning(kWarningDeprecateSslMode);
+        m_console->println();
+      }
+    }
 
     if (add_options->has_key("ipWhitelist"))
       ip_whitelist = add_options->get_string("ipWhitelist");
@@ -884,8 +895,11 @@ shcore::Value ReplicaSet::rejoin_instance(
     // Validate ip whitelist option
     validate_ip_whitelist_option(rejoin_options);
 
-    if (rejoin_options->has_key("memberSslMode"))
+    if (rejoin_options->has_key("memberSslMode")) {
       ssl_mode = rejoin_options->get_string("memberSslMode");
+      m_console->print_warning(kWarningDeprecateSslMode);
+      m_console->println();
+    }
 
     if (rejoin_options->has_key("ipWhitelist"))
       ip_whitelist = rejoin_options->get_string("ipWhitelist");
