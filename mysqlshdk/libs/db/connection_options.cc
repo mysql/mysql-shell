@@ -30,8 +30,8 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::db::uri::Uri_encoder;
-using mysqlshdk::utils::Nullable_options;
 using mysqlshdk::utils::nullable;
+using mysqlshdk::utils::Nullable_options;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::nullable_options::Set_mode;
 

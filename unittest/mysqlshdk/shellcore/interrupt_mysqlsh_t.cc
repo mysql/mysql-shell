@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -401,7 +401,7 @@ TEST_F(Interrupt_mysqlsh, js_file_batch) {
   TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--js", "test_queryc.js");
 }
 
-  //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #if 0
 // Not feasible because signal is sent to the shell, not mp

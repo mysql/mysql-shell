@@ -20,6 +20,16 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 if(WITH_TESTS)
+    IF(WITH_GTEST)
+        ## Backwards compatibility with old scripts, remove once all
+        ## builds are updated
+        INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/gtest_legacy.cmake)
+        SET(GMOCK_INCLUDE_DIRS ${GTEST_INCLUDE_DIR} ${GMOCK_INCLUDE_DIR})
+        SET(GTEST_LIBRARIES gtest gmock)
+    ELSE()
+        INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/gtest.cmake)
+    ENDIF()
+
     ADD_DEFINITIONS(-DWITH_GTEST=1)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
@@ -34,8 +44,7 @@ if(WITH_TESTS)
                 ${CMAKE_SOURCE_DIR}/
                 ${CMAKE_SOURCE_DIR}/src
                 ${MYSQL_INCLUDE_DIRS}
-                ${GTEST_INCLUDE_DIR}
-                ${GMOCK_INCLUDE_DIR}
+                ${GMOCK_INCLUDE_DIRS}
                 ${PYTHON_INCLUDE_DIR}
                 ${V8_INCLUDE_DIR})
 
@@ -97,8 +106,7 @@ if(WITH_TESTS)
             api_modules
             db
             mysqlshdk-static
-            gtest
-            gmock
+            ${GTEST_LIBRARIES}
             ${MYSQLX_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES}
