@@ -1,11 +1,14 @@
 //@ Initialization
 ||
 
-//@ create first cluster
+//@ connect to instance
 ||
 
+//@ create first cluster
+|~WARNING: Option 'memberSslMode' is deprecated|
+
 //@ Success adding instance
-||
+|WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.|
 
 //@<OUT> Check auto_increment values for single-primary
 

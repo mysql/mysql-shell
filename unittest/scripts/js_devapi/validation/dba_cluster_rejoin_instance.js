@@ -49,8 +49,9 @@
     "groupInformationSourceMember": "mysql://foo@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ Rejoin instance 2
-||
+//@<OUT> Rejoin instance 2
+WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
+
 
 //@<OUT> Cluster status after rejoin
 {

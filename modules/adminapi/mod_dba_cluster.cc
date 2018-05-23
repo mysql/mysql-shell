@@ -364,26 +364,30 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
               "if it is specified on the options.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
+              "@warning The memberSslMode option is deprecated and will be "
+              "removed in a future release.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
               "The memberSslMode option supports "
               "these values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
               "@li REQUIRED: if used, SSL "
               "(encryption) will be enabled for "
               "the instance to communicate with "
               "other members of the cluster");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
               "@li DISABLED: if used, SSL "
               "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
               "@li AUTO: if used, SSL (encryption)"
               " will be automatically "
               "enabled or disabled based on the "
               "cluster configuration");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
               "If memberSslMode is not specified "
               "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
               "The ipWhitelist format is a comma "
               "separated list of IP "
               "addresses or subnet CIDR "
@@ -396,12 +400,12 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
               "automatically set for "
               "the whitelist.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
               "The localAddress and groupSeeds are advanced options and "
               "their usage is discouraged since incorrect values can lead to "
               "Group Replication errors.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
               "The value for localAddress is used to set the Group "
               "Replication system variable 'group_replication_local_address'. "
               "The localAddress option accepts values in the format: "
@@ -415,7 +419,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
               "determined default port value is invalid (> 65535) then a "
               "random value in the range [1000, 65535] is used.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
               "The value for groupSeeds is used to set the Group Replication "
               "system variable 'group_replication_group_seeds'. The "
               "groupSeeds option accepts a comma-separated list of addresses "
@@ -465,11 +469,11 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
  * $(CLUSTER_ADDINSTANCE_DETAIL10)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL11)
+ *
  * $(CLUSTER_ADDINSTANCE_DETAIL12)
  * $(CLUSTER_ADDINSTANCE_DETAIL13)
  * $(CLUSTER_ADDINSTANCE_DETAIL14)
  * $(CLUSTER_ADDINSTANCE_DETAIL15)
- *
  * $(CLUSTER_ADDINSTANCE_DETAIL16)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL17)
@@ -477,6 +481,8 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
  * $(CLUSTER_ADDINSTANCE_DETAIL18)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL19)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL20)
  */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
@@ -590,8 +596,8 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5,
               "@li password: the instance "
               "connection password");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL6,
-              "@li memberSslMode: SSL mode "
-              "used to be used on the instance");
+              "@li memberSslMode: SSL mode used "
+              "on the instance");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL7,
               "@li ipWhitelist: The list of "
               "hosts allowed to connect to the "
@@ -604,26 +610,30 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
               "if it is specified on the options.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
+              "@warning The memberSslMode option is deprecated and will be "
+              "removed in a future release.");
+
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10,
               "The memberSslMode option supports "
               "these values:");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11,
               "@li REQUIRED: if used, SSL "
               "(encryption) will be enabled "
               "for the instance to communicate "
               "with other members of the cluster");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL11,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12,
               "@li DISABLED: if used, SSL "
               "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL12,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13,
               "@li AUTO: if used, SSL "
               "(encryption) will be automatically "
               "enabled or disabled based on the cluster "
               "configuration");
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL13,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
               "If memberSslMode is not specified "
               "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL15,
               "The ipWhitelist format is a "
               "comma separated list of IP "
               "addresses or subnet CIDR notation, "
@@ -672,12 +682,14 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL14,
  * $(CLUSTER_REJOININSTANCE_DETAIL8)
  *
  * $(CLUSTER_REJOININSTANCE_DETAIL9)
+ *
  * $(CLUSTER_REJOININSTANCE_DETAIL10)
  * $(CLUSTER_REJOININSTANCE_DETAIL11)
  * $(CLUSTER_REJOININSTANCE_DETAIL12)
  * $(CLUSTER_REJOININSTANCE_DETAIL13)
- *
  * $(CLUSTER_REJOININSTANCE_DETAIL14)
+ *
+ * $(CLUSTER_REJOININSTANCE_DETAIL15)
  */
 #if DOXYGEN_JS
 Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}

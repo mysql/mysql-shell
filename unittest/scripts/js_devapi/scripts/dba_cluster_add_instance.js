@@ -4,18 +4,21 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
-//@ create first cluster
+//@ connect to instance
 shell.connect(__sandbox_uri1);
 var singleSession = session;
 
+//@ create first cluster
+// Regression for BUG#270621122: Deprecate memberSslMode (ensure no warning is showed for createCluster)
 if (__have_ssl)
   var single = dba.createCluster('single', {memberSslMode: 'REQUIRED'});
 else
   var single = dba.createCluster('single', {memberSslMode: 'DISABLED'});
 
 //@ Success adding instance
+// Regression for BUG#270621122: Deprecate memberSslMode
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-single.addInstance(__sandbox_uri2);
+single.addInstance(__sandbox_uri2, {memberSslMode: 'AUTO'});
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
