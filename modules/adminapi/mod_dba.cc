@@ -2799,7 +2799,13 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
       std::string current_group_replication_group_name =
           default_replicaset->get_group_name();
-
+      // the previous ssl mode must be preserved
+      std::string gr_ssl_mode;
+      get_server_variable(group_session, "global.group_replication_ssl_mode",
+                          gr_ssl_mode);
+      shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
+      (*options)["memberSslMode"] = shcore::Value(gr_ssl_mode);
+      new_args.push_back(shcore::Value(options));
       default_replicaset->add_instance(
           current_session_options, new_args, replication_user,
           replication_user_password, true, current_group_replication_group_name,

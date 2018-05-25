@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://remo_pass:@localhost:21670?ssl-mode=DISABLED","protocol":"x"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://remo_pass:@localhost:22870?ssl-mode=DISABLED","protocol":"x"},
 {"type":"response","subtype":"ERROR","index":2,"code":"1251","msg":"Invalid authentication method PLAIN","sqlstate":""},
 null]
