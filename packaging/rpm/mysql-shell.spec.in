@@ -75,9 +75,9 @@ cmake .. \
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
 %endif
-%if 0%{?with_gtest:1}
+%if 0%{?with_gmock:1}
     -DWITH_TESTS=ON \
-    -DWITH_GTEST=%{with_gtest} \
+    -DWITH_GMOCK=%{with_gmock} \
 %endif
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
