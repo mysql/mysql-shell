@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2287","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2257","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"3","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"create user unsecure@'%' identified with mysql_native_password by 'root'"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},

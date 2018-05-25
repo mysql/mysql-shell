@@ -1,0 +1,33 @@
+[client]
+port = 3321
+protocol = TCP
+user = root
+[mysqld]
+report_host = T460
+general_log = 1
+report_port = 3321
+loose_mysqlx_port = 33210
+secure_file_priv = /home/nelson/workspace/git/repos/ngshell/BUILD/bin/3321/mysql-files
+pid_file = /home/nelson/workspace/git/repos/ngshell/BUILD/bin/3321/3321.pid
+log_error = /home/nelson/workspace/git/repos/ngshell/BUILD/bin/3321/sandboxdata/error.log
+datadir = /home/nelson/workspace/git/repos/ngshell/BUILD/bin/3321/sandboxdata
+server_id = 15666
+port = 3321
+transaction_write_set_extraction = XXHASH64
+binlog_checksum = NONE
+gtid_mode = ON
+auto_increment_offset = 5
+basedir = /home/nelson/workspace/servers/RELEASED/mysql-5.7.22-linux-glibc2.12-x86_64
+log_bin
+loose_mysqlx_socket = mysqlx.sock
+log_slave_updates = ON
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+binlog_format = ROW
+innodb_log_buffer_size = 1M
+plugin_load = mysqlx.so
+enforce_gtid_consistency = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+log_syslog = OFF

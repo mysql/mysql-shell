@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://remo_blank:@localhost:2147?ssl-mode=DISABLED","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://remo_blank:@localhost:2187?ssl-mode=DISABLED","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"56","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},

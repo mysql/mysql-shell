@@ -5,7 +5,9 @@ testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
 
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, 'root', {'report_host': hostname});
 
 // Update __have_ssl and other with the real instance SSL support.
@@ -40,6 +42,12 @@ cluster.addInstance(__sandbox_uri3);
 
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+//@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
+var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 
 //@ Dba.rebootClusterFromCompleteOutage errors
 dba.rebootClusterFromCompleteOutage("dev");
