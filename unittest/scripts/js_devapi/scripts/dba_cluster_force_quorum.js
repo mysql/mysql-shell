@@ -111,6 +111,14 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster status after rejoins
 cluster.status();
 
+//@ STOP group_replication on instance where forceQuorumUsingPartitionOf() was executed.
+// Regression for BUG#28064621: group_replication_force_members should be unset after forcing quorum
+session.runSql('STOP group_replication');
+
+//@ Start group_replication on instance the same instance succeeds because group_replication_force_members is empty.
+// Regression for BUG#28064621: group_replication_force_members should be unset after forcing quorum
+session.runSql('START group_replication');
+
 //@ Finalization
 //  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
 clusterSession.close();
