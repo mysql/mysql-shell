@@ -2080,8 +2080,16 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     log_info("Setting the group_replication_force_members at instance %s",
              instance_address.c_str());
 
+    // Setting the group_replication_force_members will force a new group
+    // membership, triggering the necessary actions from GR upon being set to
+    // force the quorum. Therefore, the variable can be cleared immediately
+    // after it is set.
     set_global_variable(session, "group_replication_force_members",
                         group_peers);
+
+    // Clear group_replication_force_members at the end to allow GR to be
+    // restarted later on the instance (without error).
+    set_global_variable(session, "group_replication_force_members", "");
 
     session->close();
   }

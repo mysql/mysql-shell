@@ -172,5 +172,11 @@
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
+//@ STOP group_replication on instance where forceQuorumUsingPartitionOf() was executed.
+||
+
+//@ Start group_replication on instance the same instance succeeds because group_replication_force_members is empty.
+||
+
 //@ Finalization
 ||
