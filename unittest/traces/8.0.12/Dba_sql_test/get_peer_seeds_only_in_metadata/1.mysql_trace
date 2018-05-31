@@ -1,0 +1,14 @@
+[
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2147","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"34","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"QUERY","index":3,"sql":"insert into mysql_innodb_cluster_metadata.instances values (0, 1, 1, '54bad36f-6546-11e8-90bf-0010e08a7b78', 'localhost:2149', 'HA', NULL, '{\"mysqlX\": \"localhost:21490\", \"grLocal\": \"localhost:21491\", \"mysqlClassic\": \"localhost:2149\"}', NULL, NULL, NULL)"},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":3,"affected_rows":1,"warning_count":0,"info":""},
+{"type":"request","subtype":"QUERY","index":5,"sql":"SELECT @@global.group_replication_group_seeds"},
+{"type":"response","subtype":"RESULT","index":6,"auto_increment_value":3,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@global.group_replication_group_seeds","length":60,"fractional":31,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["localhost:21481"]]},
+{"type":"request","subtype":"QUERY","index":7,"sql":"SELECT JSON_UNQUOTE(addresses->'$.grLocal') FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' <> 'localhost:2147' AND replicaset_id IN (SELECT replicaset_id FROM mysql_innodb_cluster_metadata.instances WHERE addresses->'$.mysqlClassic' = 'localhost:2147')"},
+{"type":"response","subtype":"RESULT","index":8,"auto_increment_value":3,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"JSON_UNQUOTE(addresses->'$.grLocal')","length":67108864,"fractional":31,"type":"Bytes","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":true}],"rows":[["localhost:21481"],["localhost:21491"]]},
+{"type":"request","subtype":"QUERY","index":9,"sql":"delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '54bad36f-6546-11e8-90bf-0010e08a7b78'"},
+{"type":"response","subtype":"RESULT","index":10,"auto_increment_value":0,"affected_rows":1,"warning_count":0,"info":""},
+{"type":"request","subtype":"CLOSE","index":11},
+{"type":"response","subtype":"OK","index":12},
+null]

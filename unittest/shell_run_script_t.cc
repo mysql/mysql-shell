@@ -37,6 +37,8 @@
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
 
+extern mysqlshdk::utils::Version g_target_server_version;
+
 namespace shellcore {
 
 class ShellRunScript : public Shell_core_test_wrapper {
@@ -596,7 +598,12 @@ end)";
         password_followed_by_whitespace.c_str());
     // wrong password, exit code 1
     EXPECT_EQ(1, rc);
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid user or password");
+    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Access denied for user 'root'@'localhost'");
+    } else {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid user or password");
+    }
   }
 
   {
@@ -607,7 +614,13 @@ end)";
         wrong_password.c_str());
     // wrong password, exit code 1
     EXPECT_EQ(1, rc);
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid user or password");
+    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Access denied for user "
+          "'root'@'localhost'");
+    } else {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid user or password");
+    }
   }
 }
 

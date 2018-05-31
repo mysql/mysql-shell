@@ -29,6 +29,8 @@
 const int MAX_PATH = 4096;
 #endif
 
+extern mysqlshdk::utils::Version g_target_server_version;
+
 namespace tests {
 
 TEST_F(Command_line_test, bug24912358){
@@ -159,9 +161,15 @@ TEST_F(Command_line_test, bug24905066) {
     execute(
         {_mysqlsh, "--mysqlx", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
 
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "MySQL Error 1045: Unknown database "
-        "'some_unexisting_schema'");
+    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Access denied for user "
+          "'root'@'localhost'");
+    } else {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "MySQL Error 1045: Unknown database "
+          "'some_unexisting_schema'");
+    }
   }
 }
 

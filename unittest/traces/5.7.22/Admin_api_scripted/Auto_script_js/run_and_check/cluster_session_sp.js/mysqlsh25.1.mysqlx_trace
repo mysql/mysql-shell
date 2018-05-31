@@ -1,6 +1,6 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:33600","protocol":"x"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"7","connection_info":"localhost via TCP/IP","server_version":"5.7.22-log","ssl_cipher":"DHE-RSA-AES256-SHA"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:20490","protocol":"x"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"7","connection_info":"localhost via TCP/IP","server_version":"5.7.22-log","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT * FROM mysql_innodb_cluster_metadata.schema_version"},
 {"type":"response","subtype":"ERROR","index":4,"code":"1146","msg":"Table 'mysql_innodb_cluster_metadata.schema_version' doesn't exist","sqlstate":""},
 {"type":"request","subtype":"CLOSE","index":5},

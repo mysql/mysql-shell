@@ -52,6 +52,8 @@ xcl::Handler_result trace_send_messages(
   return xcl::Handler_result::Continue;
 }
 
+extern mysqlshdk::utils::Version g_target_server_version;
+
 xcl::Handler_result trace_received_messages(
     xcl::XProtocol *protocol,
     const xcl::XProtocol::Server_message_type_id msg_id,
@@ -100,8 +102,13 @@ TEST_F(Mysqlx_session, connect) {
     std::unique_ptr<Session> session(new Session());
     mysqlshdk::db::Connection_options opts(_uri_nopasswd);
     opts.set_password("???");
-    EXPECT_THROW_LIKE(session->connect(opts), shcore::Exception,
-                      "Invalid user or password");
+    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
+      EXPECT_THROW_LIKE(session->connect(opts), shcore::Exception,
+                        "Access denied for user 'root'@'localhost'");
+    } else {
+      EXPECT_THROW_LIKE(session->connect(opts), shcore::Exception,
+                        "Invalid user or password");
+    }
   }
 
   {
@@ -152,7 +159,7 @@ TEST_F(Mysqlx_session, get_uuid) {
   }
 }
 
-// Our own tests to check for regressions in libmysqlx
+  // Our own tests to check for regressions in libmysqlx
 
 #if 0
 // This is a libmysqlxclient test

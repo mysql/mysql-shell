@@ -101,7 +101,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   // Invalid user/password
   output_handler.passwords.push_back({"*", "whatever"});
   execute("\\connect -mx " + _uri_nopasswd);
-  MY_EXPECT_STDERR_CONTAINS("MySQL Error 1045: Invalid user or password");
+  if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
+    MY_EXPECT_STDERR_CONTAINS("Access denied for user 'root'@'localhost'");
+  } else {
+    MY_EXPECT_STDERR_CONTAINS("MySQL Error 1045: Invalid user or password");
+  }
   output_handler.wipe_all();
 }
 

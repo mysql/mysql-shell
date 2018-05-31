@@ -745,4 +745,4 @@ Create Table: CREATE TABLE `my_coll` (
 ||'Spatial index on virtual generated column' is not supported for generated columns. (MySQL Error 3106)
 
 //@ Create an index specifiying INDEX as the index type for a spatial data type (WL10858-ET_3)
-||BLOB/TEXT column '$ix_gj_r_B4C4FDF5AD30671EF010BCE1E67FA76778A889F7' used in key specification without a key length (MySQL Error 1170)
+||Column '$ix_gj_r_B4C4FDF5AD30671EF010BCE1E67FA76778A889F7' cannot be null
