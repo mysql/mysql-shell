@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_blank:@localhost:3340?ssl-mode=DISABLED","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_blank:@localhost:2117?ssl-mode=DISABLED","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"40","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},

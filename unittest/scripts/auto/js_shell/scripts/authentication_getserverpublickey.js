@@ -60,9 +60,9 @@ var uri_nossl = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_nossl_getpubkey = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 //@ shell connect classic -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -88,11 +88,11 @@ var uri_nossl = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_nossl_getpubkey = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 //@ shell classic -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -120,7 +120,7 @@ var uri_nossl_getpubkey = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--get-server-public-key', '-e', 'println(session)']);
@@ -130,7 +130,7 @@ EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supporte
 // Connect once more without SSL - should (SUCCESS)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 // ==== user:remo_pass / password:pass (SUCCESS)
 //@ session classic -- user:remo_pass / password:pass  {VER(>=8.0.4)}
@@ -157,7 +157,7 @@ var uri_nossl = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?s
 var uri_nossl_getpubkey = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell connect classic -- user:remo_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -183,7 +183,7 @@ var uri_nossl = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?s
 var uri_nossl_getpubkey = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell classic -- user:remo_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -211,7 +211,7 @@ var uri_nossl_getpubkey = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_p
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 // ==== user:local_blank / password: (SUCCESS)
 //@ session classic -- user:local_blank / password:  {VER(>=8.0.4)}
@@ -240,7 +240,7 @@ var uri_nossl = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl
 var uri_nossl_getpubkey = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost'");
 
 //@ shell connect classic -- user:local_blank / password: (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -268,7 +268,7 @@ var uri_nossl = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl
 var uri_nossl_getpubkey = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_blank'@'localhost'");
 
 //@ shell classic -- user:local_blank / password: (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -295,7 +295,7 @@ var uri_nossl_getpubkey = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_por
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
 // ==== user:remo_blank / password: (SUCCESS)
 //@ session classic -- user:remo_blank / password:  {VER(>=8.0.4)}
@@ -324,7 +324,7 @@ var uri_nossl = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_nossl_getpubkey = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost'");
 
 //@ shell connect classic -- user:remo_blank / password: (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -352,7 +352,7 @@ var uri_nossl = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_nossl_getpubkey = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost'");
 
 //@ shell classic -- user:remo_blank / password: (SUCCESS)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -379,7 +379,7 @@ var uri_nossl_getpubkey = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
 // ==== user:local_blank / password:pass (FAIL)
 //@ session classic -- user:local_blank / password:pass  {VER(>=8.0.4)}
@@ -402,13 +402,13 @@ var uri_nossl = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/
 var uri_nossl_getpubkey = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost'");
 
 //@ shell connect classic -- user:local_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -430,13 +430,13 @@ var uri_nossl = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/
 var uri_nossl_getpubkey = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { shell.connect(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_blank'@'localhost'");
 
 //@ shell classic -- user:local_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -466,7 +466,7 @@ var uri_nossl_getpubkey = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--get-server-public-key', '-e', 'println(session)']);
@@ -476,7 +476,7 @@ EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supporte
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
 // ==== user:remo_blank / password:pass (FAIL)
 //@ session classic -- user:remo_blank / password:pass  {VER(>=8.0.4)}
@@ -499,13 +499,13 @@ var uri_nossl = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_nossl_getpubkey = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost'");
 
 //@ shell connect classic -- user:remo_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -527,13 +527,13 @@ var uri_nossl = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_nossl_getpubkey = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { shell.connect(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost'");
 
 //@ shell classic -- user:remo_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -563,7 +563,7 @@ var uri_nossl_getpubkey = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '-e', 'println(session)']);
@@ -573,7 +573,7 @@ EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supporte
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
 // ==== user:local_pass / password: (FAIL)
 //@ session classic -- user:local_pass / password:  {VER(>=8.0.4)}
@@ -596,13 +596,13 @@ var uri_nossl = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_nossl_getpubkey = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 //@ shell connect classic -- user:local_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -624,13 +624,13 @@ var uri_nossl = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_nossl_getpubkey = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { shell.connect(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost'");
 
 //@ shell classic -- user:local_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -660,7 +660,7 @@ var uri_nossl_getpubkey = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
@@ -670,7 +670,7 @@ EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supporte
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 // ==== user:remo_pass / password: (FAIL)
 //@ session classic -- user:remo_pass / password:  {VER(>=8.0.4)}
@@ -693,13 +693,13 @@ var uri_nossl = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-m
 var uri_nossl_getpubkey = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell connect classic -- user:remo_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -721,13 +721,13 @@ var uri_nossl = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-m
 var uri_nossl_getpubkey = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 EXPECT_THROWS(function() { shell.connect(uri_nossl_getpubkey)}, "X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell classic -- user:remo_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -757,7 +757,7 @@ var uri_nossl_getpubkey = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
@@ -767,7 +767,7 @@ EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supporte
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 //@ GlobalTearDown {VER(>=8.0.4)}
 rootsess.close();

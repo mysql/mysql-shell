@@ -90,7 +90,7 @@ rootsess.runSql('flush privileges');
 
 var rc = testutil.callMysqlsh([x_uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 var rc = testutil.callMysqlsh([x_uri_nossl, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);

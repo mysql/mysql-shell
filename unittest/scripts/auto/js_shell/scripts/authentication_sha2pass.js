@@ -62,7 +62,7 @@ var uri_nossl = 'local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=
 var uri_ssl = 'local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (SUCCESS)
 var s = mysqlx.getSession(uri_ssl);
@@ -98,7 +98,7 @@ var uri_nossl = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_ssl = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (SUCCESS)
 var s = shell.connect(uri_ssl);
@@ -136,7 +136,7 @@ var uri_ssl = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ss
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (SUCCESS)
 var rc = testutil.callMysqlsh([uri_ssl, '--password=pass', '-e', 'println(session)']);
@@ -171,7 +171,7 @@ var uri_nossl = 'remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=D
 var uri_ssl = 'remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (SUCCESS)
 var s = mysqlx.getSession(uri_ssl);
@@ -207,7 +207,7 @@ var uri_nossl = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?s
 var uri_ssl = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (SUCCESS)
 var s = shell.connect(uri_ssl);
@@ -245,7 +245,7 @@ var uri_ssl = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (SUCCESS)
 var rc = testutil.callMysqlsh([uri_ssl, '--password=pass', '-e', 'println(session)']);
@@ -282,7 +282,7 @@ var uri_nossl = 'local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DIS
 var uri_ssl = 'local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // TODO() - ther's a bug in xplugin that won't let a user with no password login
 // // Connect again with SSL - should (SUCCESS)
@@ -321,7 +321,7 @@ var uri_nossl = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl
 var uri_ssl = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // TODO() - disabled because of xplugin bug
 // // Connect again with SSL - should (SUCCESS)
@@ -359,7 +359,7 @@ var uri_ssl = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-m
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // TODO() - disabled because of xplugin bug
 // // Connect again with SSL - should (SUCCESS)
@@ -397,7 +397,7 @@ var uri_nossl = 'remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISA
 var uri_ssl = 'remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // TODO() - xplugin bug
 // Connect again with SSL - should (SUCCESS)
@@ -436,7 +436,7 @@ var uri_nossl = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_ssl = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // TODO() xplugin bug
 // Connect again with SSL - should (SUCCESS)
@@ -474,7 +474,7 @@ var uri_ssl = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mo
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // TODO xplugin bug
 // // Connect again with SSL - should (SUCCESS)
@@ -508,13 +508,13 @@ var uri_nossl = 'local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode
 var uri_ssl = 'local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 //@ shell connect classic -- user:local_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -536,13 +536,13 @@ var uri_nossl = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/
 var uri_ssl = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 //@ shell classic -- user:local_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -572,17 +572,17 @@ var uri_ssl = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?s
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_ssl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid user or password");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost' (using password: YES)");
 
 // ==== user:remo_blank / password:pass (FAIL)
 //@ session classic -- user:remo_blank / password:pass  {VER(>=8.0.4)}
@@ -605,13 +605,13 @@ var uri_nossl = 'remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=
 var uri_ssl = 'remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 //@ shell connect classic -- user:remo_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -633,13 +633,13 @@ var uri_nossl = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_ssl = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 //@ shell classic -- user:remo_blank / password:pass (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -669,17 +669,17 @@ var uri_ssl = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ss
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_ssl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid user or password");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost' (using password: YES)");
 
 // ==== user:local_pass / password: (FAIL)
 //@ session classic -- user:local_pass / password:  {VER(>=8.0.4)}
@@ -702,13 +702,13 @@ var uri_nossl = 'local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISA
 var uri_ssl = 'local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Access denied for user 'local_pass'@'localhost' (using password: NO)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 //@ shell connect classic -- user:local_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -730,13 +730,13 @@ var uri_nossl = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_ssl = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Access denied for user 'local_pass'@'localhost' (using password: NO)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 //@ shell classic -- user:local_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -766,17 +766,17 @@ var uri_ssl = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mo
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_ssl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid user or password");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
 // ==== user:remo_pass / password: (FAIL)
 //@ session classic -- user:remo_pass / password:  {VER(>=8.0.4)}
@@ -799,13 +799,13 @@ var uri_nossl = 'remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISAB
 var uri_ssl = 'remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_ssl)}, "Access denied for user 'remo_pass'@'localhost' (using password: NO)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { mysqlx.getSession(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 //@ shell connect classic -- user:remo_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -827,13 +827,13 @@ var uri_nossl = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-m
 var uri_ssl = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED';
 
 // First connect without SSL - should fail
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Invalid user or password");
+EXPECT_THROWS(function() { shell.connect(uri_ssl)}, "Access denied for user 'remo_pass'@'localhost' (using password: NO)");
 
 // Connect once more without SSL - should (FAIL)
-EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Invalid authentication method PLAIN");
+EXPECT_THROWS(function() { shell.connect(uri_nossl)}, "Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 //@ shell classic -- user:remo_pass / password: (FAIL)  {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
@@ -863,17 +863,17 @@ var uri_ssl = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mod
 // First connect without SSL - should fail
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect again with SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_ssl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid user or password");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 // Connect once more without SSL - should (FAIL)
 var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Invalid authentication method PLAIN");
+EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost' (using password: YES)");
 
 //@ GlobalTearDown {VER(>=8.0.4)}
 rootsess.close();

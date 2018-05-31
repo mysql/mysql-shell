@@ -1,0 +1,32 @@
+[client]
+port = 2037
+protocol = TCP
+user = root
+[mysqld]
+server_id = 0
+report_host = siv14.no.oracle.com.
+general_log = 1
+report_port = 2037
+loose_mysqlx_port = 20370
+secure_file_priv = /export/home/jenkins-data/mysql-shell/shell-trace-maker-sandbox/workspace/traceroot/worker3/tmp/2037/mysql-files
+pid_file = /export/home/jenkins-data/mysql-shell/shell-trace-maker-sandbox/workspace/traceroot/worker3/tmp/2037/2037.pid
+log_error = /export/home/jenkins-data/mysql-shell/shell-trace-maker-sandbox/workspace/traceroot/worker3/tmp/2037/sandboxdata/error.log
+datadir = /export/home/jenkins-data/mysql-shell/shell-trace-maker-sandbox/workspace/traceroot/worker3/tmp/2037/sandboxdata
+port = 2037
+log_slave_updates = ON
+innodb_log_buffer_size = 1M
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+transaction_write_set_extraction = XXHASH64
+binlog_format = ROW
+log_syslog = OFF
+binlog_checksum = NONE
+enforce_gtid_consistency = ON
+gtid_mode = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+auto_increment_offset = 1
+basedir = /var/lib/jenkins/shell-deps/traces-mysql-8.0.12-mysql-commercial_8.0.12-1ubuntu16.04_amd64/usr
+log_bin
+loose_mysqlx_socket = mysqlx.sock

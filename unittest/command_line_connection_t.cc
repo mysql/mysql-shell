@@ -374,7 +374,9 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
     execute_in_session(ssl_uri, "--mysqlx");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to");
     if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid authentication method PLAIN");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Connections using insecure transport are "
+          "prohibited while --require_secure_transport=ON");
     } else {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
           "MySQL Error 1045: Secure transport required. To log in you must use "
