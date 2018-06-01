@@ -59,8 +59,10 @@ std::set<std::string> ReplicaSet::_add_instance_opts = {
     "label",       "password",     "memberSslMode",
     "ipWhitelist", "localAddress", "groupSeeds"};
 
-char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
-char const *ReplicaSet::kTopologyMultiMaster = "mm";
+// TODO(nelson): update the values to sm and mp respectively on the next version
+// bump
+char const *ReplicaSet::kTopologySinglePrimary = "pm";
+char const *ReplicaSet::kTopologyMultiPrimary = "mm";
 
 static const std::string kSandboxDatadir = "sandboxdata";
 
@@ -86,8 +88,8 @@ ReplicaSet::ReplicaSet(const std::string &name,
       _group_name(group_name),
       _metadata_storage(metadata_storage),
       m_console(console_handler) {
-  assert(topology_type == kTopologyMultiMaster ||
-         topology_type == kTopologyPrimaryMaster);
+  assert(topology_type == kTopologyMultiPrimary ||
+         topology_type == kTopologySinglePrimary);
   init();
 }
 
@@ -180,16 +182,16 @@ void ReplicaSet::verify_topology_type_change() const {
   // cluster instance, otherwise an error is issued.
   // NOTE: The GR primary mode is guaranteed (by GR) to be the same for all
   // instance of the same group.
-  if (gr_primary_mode == 1 && _topology_type == kTopologyMultiMaster)
+  if (gr_primary_mode == 1 && _topology_type == kTopologyMultiPrimary)
     throw shcore::Exception::runtime_error(
-        "The InnoDB Cluster topology type (Multi-Master) does not match the "
-        "current Group Replication configuration (Single-Master). Please "
+        "The InnoDB Cluster topology type (Multi-Primary) does not match the "
+        "current Group Replication configuration (Single-Primary). Please "
         "use <cluster>.rescan() or change the Group Replication "
         "configuration accordingly.");
-  else if (gr_primary_mode == 0 && _topology_type == kTopologyPrimaryMaster)
+  else if (gr_primary_mode == 0 && _topology_type == kTopologySinglePrimary)
     throw shcore::Exception::runtime_error(
-        "The InnoDB Cluster topology type (Single-Master) does not match the "
-        "current Group Replication configuration (Multi-Master). Please "
+        "The InnoDB Cluster topology type (Single-Primary) does not match the "
+        "current Group Replication configuration (Multi-Primary). Please "
         "use <cluster>.rescan() or change the Group Replication "
         "configuration accordingly.");
 }
@@ -696,7 +698,7 @@ bool ReplicaSet::do_join_replicaset(
   if (is_seed_instance) {
     exit_code = cluster->get_provisioning_interface()->start_replicaset(
         instance, repl_user, super_user_password, repl_user_password,
-        _topology_type == kTopologyMultiMaster, ssl_mode, ip_whitelist,
+        _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
@@ -1660,7 +1662,7 @@ std::string ReplicaSet::get_peer_instance() {
       }
     }
   } else if (!instances.empty()) {
-    // If in multi-master mode, any instance works
+    // If in multi-primary mode, any instance works
     // so we can get the first one that is online
     auto instance = instances[0];
     master_instance = instance.endpoint;
@@ -2143,7 +2145,7 @@ shcore::Value ReplicaSet::get_status(
   // retrieve the status correctly, otherwise issue an error.
   this->verify_topology_type_change();
 
-  bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
+  bool single_primary_mode = _topology_type == kTopologySinglePrimary;
 
   // get the current cluster session from the metadata
   auto instance_session = _metadata_storage->get_session();

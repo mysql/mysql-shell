@@ -47,7 +47,7 @@
 }
 
 //@ Error checking cluster status
-||The InnoDB Cluster topology type (Single-Master) does not match the current Group Replication configuration (Multi-Master).
+||The InnoDB Cluster topology type (Single-Primary) does not match the current Group Replication configuration (Multi-Primary).
 
 //@ Update the topology type to 'mm'
 ||
@@ -88,7 +88,7 @@
 }
 
 //@ Error checking cluster status again
-||The InnoDB Cluster topology type (Multi-Master) does not match the current Group Replication configuration (Single-Master).
+||The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary).
 
 //@ Finalization
 ||

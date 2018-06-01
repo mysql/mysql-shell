@@ -419,13 +419,16 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   _options->interactive = true;
   reset_replayable_shell();
 
-  //@<OUT> Dba: createCluster multiMaster with interaction, cancel
+  //@<OUT> Dba: createCluster multiPrimary with interaction, cancel
   output_handler.prompts.push_back({"*", "no"});
 
-  //@<OUT> Dba: createCluster multiMaster with interaction, ok
+  //@<OUT> Dba: createCluster multiPrimary with interaction, ok
   output_handler.prompts.push_back({"*", "yes"});
 
-  //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
+  //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+  output_handler.prompts.push_back({"*", "yes"});
+
+  //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
   output_handler.prompts.push_back({"*", "yes"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
@@ -438,7 +441,7 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   validate_interactive("dba_cluster_multimaster_interactive.js");
 
   std::vector<std::string> log = {
-      "The MySQL InnoDB cluster is going to be setup in advanced Multi-Master "
+      "The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary "
       "Mode. Consult its requirements and limitations in "
       "https://dev.mysql.com/doc/refman/en/group-replication-limitations.html"};
 

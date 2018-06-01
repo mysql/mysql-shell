@@ -103,8 +103,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       std::function<void(std::shared_ptr<mysqlshdk::db::ISession> session)>
           functor);
 
-  static char const *kTopologyPrimaryMaster;
-  static char const *kTopologyMultiMaster;
+  static char const *kTopologySinglePrimary;
+  static char const *kTopologyMultiPrimary;
 
 #if DOXYGEN_JS
   String getName();

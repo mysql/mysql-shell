@@ -101,10 +101,10 @@ cluster.dissolve({force: true})
 session.close();
 cluster.disconnect();
 
-// create cluster in multi-master mode
+// create cluster in multi-primary mode
 shell.connect(__sandbox_uri1);
 
-var cluster = dba.createCluster('testCluster', {multiMaster: true, memberSslMode: __ssl_mode, clearReadOnly: true, force: true});
+var cluster = dba.createCluster('testCluster', {multiPrimary: true, memberSslMode: __ssl_mode, clearReadOnly: true, force: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 cluster.addInstance(__sandbox_uri2);
@@ -124,9 +124,9 @@ cluster.disconnect();
 // and not 'localhost'
 shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
-//@<OUT> Create cluster adopting from multi-master GR - use 'adoptFromGR' option
+//@<OUT> Create cluster adopting from multi-primary GR - use 'adoptFromGR' option
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true, force: true});
-//@<OUT> Check cluster status - success - adopt from multi-master
+//@<OUT> Check cluster status - success - adopt from multi-primary
 cluster.status();
 
 //@ dissolve the cluster

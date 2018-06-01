@@ -134,7 +134,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   shcore::Value add_seed_instance(
       const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Argument_list &args, bool multi_master, bool is_adopted,
+      const shcore::Argument_list &args, bool multi_primary, bool is_adopted,
       const std::string &replication_user, const std::string &replication_pwd,
       const std::string &group_name);
 

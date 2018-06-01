@@ -688,7 +688,7 @@ int ProvisioningInterface::start_sandbox(
 int ProvisioningInterface::start_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     const std::string &repl_user, const std::string &super_user_password,
-    const std::string &repl_user_password, bool multi_master,
+    const std::string &repl_user_password, bool multi_primary,
     const std::string &ssl_mode, const std::string &ip_whitelist,
     const std::string &group_name, const std::string &gr_local_address,
     const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors) {
@@ -704,7 +704,7 @@ int ProvisioningInterface::start_replicaset(
   kwargs["rep_user_passwd"] = shcore::Value(repl_user_password);
   kwargs["replication_user"] = shcore::Value(repl_user);
 
-  if (multi_master) {
+  if (multi_primary) {
     kwargs["single_primary"] = shcore::Value("OFF");
   }
   if (!ssl_mode.empty()) {

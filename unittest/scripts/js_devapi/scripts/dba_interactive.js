@@ -42,20 +42,24 @@ validateMember(members, 'verbose');
 validateMember(members, 'rebootClusterFromCompleteOutage');
 
 //@# Dba: createCluster errors
-var c1 = dba.createCluster();
-var c1 = dba.createCluster(1,2,3,4);
-var c1 = dba.createCluster(5);
-var c1 = dba.createCluster('');
-var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
-var c1 = dba.createCluster('devCluster', {memberSslMode: 'foo'});
-var c1 = dba.createCluster('devCluster', {memberSslMode: ''});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'AUTO'});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
-var c1 = dba.createCluster('devCluster', {ipWhitelist: "  "});
-var c1 = dba.createCluster('#');
+dba.createCluster();
+dba.createCluster(1,2,3,4);
+dba.createCluster(5);
+dba.createCluster('');
+dba.createCluster('devCluster', {invalid:1, another:2});
+dba.createCluster('devCluster', {memberSslMode: 'foo'});
+dba.createCluster('devCluster', {memberSslMode: ''});
+dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'AUTO'});
+dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
+dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
+dba.createCluster('devCluster', {adoptFromGR: true, multiPrimary: true, force: true});
+dba.createCluster('devCluster', {adoptFromGR: true, multiPrimary: false});
+dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
+dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
+dba.createCluster('devCluster', {multiPrimary:false, multiMaster: false});
+dba.createCluster('devCluster', {multiPrimary:true, multiMaster: false});
+dba.createCluster('devCluster', {ipWhitelist: "  "});
+dba.createCluster('#');
 
 //@ Dba: createCluster with ANSI_QUOTES success
 // save current sql mode
@@ -115,8 +119,6 @@ if (__have_ssl)
   var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
   var c1 = dba.createCluster('devCluster', {memberSslMode: 'DISABLED', clearReadOnly: true});
-
-// TODO: add multi-master unit-tests
 
 //@ Dba: checkInstanceConfiguration error
 testutil.expectPassword("*", "root");

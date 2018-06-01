@@ -1,31 +1,65 @@
-//@<OUT> Dba: createCluster multiMaster with interaction, cancel
+//@<OUT> Dba: createCluster multiPrimary with interaction, cancel
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Master Mode. For more information see
+limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 before proceeding.
 
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
-and limitations of advanced Multi-Master Mode.
+and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 Cancelled
 
-//@<OUT> Dba: createCluster multiMaster with interaction, ok
+//@<OUT> Dba: createCluster multiPrimary with interaction, ok
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Master Mode. For more information see
+limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 before proceeding.
 
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
-and limitations of advanced Multi-Master Mode.
+and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
+Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<real_hostname>>>
+
+Instance configuration is suitable.
+Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' membership change cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.\n":""\>>>
+
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+<Cluster:devCluster>
+
+//@ Dissolve cluster
+|The cluster was successfully dissolved.|
+
+//@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
+
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+Before continuing you have to confirm that you understand the requirements and
+limitations of Multi-Primary Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+before proceeding.
+
+
+I have read the MySQL InnoDB cluster manual and I understand the requirements
+and limitations of advanced Multi-Primary Mode.
+Confirm [y/N]:
+WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
+
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -200,18 +234,18 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 //@ Dissolve cluster with success
 |The cluster was successfully dissolved.|
 
-//@<OUT> Dba: createCluster multiMaster with interaction 2, ok
+//@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
 A new InnoDB cluster will be created on instance 'root@localhost:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Master Mode. For more information see
+limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 before proceeding.
 
 
 I have read the MySQL InnoDB cluster manual and I understand the requirements
-and limitations of advanced Multi-Master Mode.
+and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.

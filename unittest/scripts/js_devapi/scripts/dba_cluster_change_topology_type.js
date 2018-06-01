@@ -31,7 +31,7 @@ print (row[0]);
 //@<OUT> Check cluster status
 cluster.status();
 
-// Change topology type manually to multimaster (on all instances)
+// Change topology type manually to multiprimary (on all instances)
 session.runSql('STOP GROUP_REPLICATION');
 session.runSql('SET GLOBAL group_replication_single_primary_mode=OFF');
 session.close();

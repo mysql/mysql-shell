@@ -100,7 +100,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ FR1-TS-7 SETUP {VER(>=8.0.11)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName",  {multiMaster: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName",  {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
 //@ FR1-TS-7 show persisted cluster variables {VER(>=8.0.11)}
 print_persisted_variables(session);
@@ -288,7 +288,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {multiMaster: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
+dba.createCluster("ClusterName", {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

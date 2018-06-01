@@ -46,9 +46,9 @@ var multiSession = session;
 
 //@ Create multi-primary cluster
 if (__have_ssl)
-  var multi = dba.createCluster('multi', {multiMaster: true, memberSslMode: 'REQUIRED', clearReadOnly: true, force: true});
+  var multi = dba.createCluster('multi', {multiPrimary: true, memberSslMode: 'REQUIRED', clearReadOnly: true, force: true});
 else
-  var multi = dba.createCluster('multi', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true, force: true});
+  var multi = dba.createCluster('multi', {multiPrimary: true, memberSslMode: 'DISABLED', clearReadOnly: true, force: true});
 
 //@ Success adding instance 2 mp
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -121,9 +121,9 @@ shell.connect(__sandbox_uri1);
 var multiSession2 = session;
 
 if (__have_ssl)
-  var multi2 = dba.createCluster('multi2', {memberSslMode: 'REQUIRED', clearReadOnly: true, multiMaster: true, force: true});
+  var multi2 = dba.createCluster('multi2', {memberSslMode: 'REQUIRED', clearReadOnly: true, multiPrimary: true, force: true});
 else
-  var multi2 = dba.createCluster('multi2', {memberSslMode: 'DISABLED', clearReadOnly: true, multiMaster: true, force: true});
+  var multi2 = dba.createCluster('multi2', {memberSslMode: 'DISABLED', clearReadOnly: true, multiPrimary: true, force: true});
 
 //@ Success adding instance 2 mp 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");

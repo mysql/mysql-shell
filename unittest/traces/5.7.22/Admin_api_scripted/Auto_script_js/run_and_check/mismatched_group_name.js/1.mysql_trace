@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2219","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2229","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"3","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"select concat(@@version, ' ', @@version_comment)"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"concat(@@version, ' ', @@version_comment)","length":45,"fractional":31,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["5.7.22-log MySQL Commercial Server (Advanced)"]]},
