@@ -99,7 +99,7 @@ Cluster successfully created based on existing replication group.
     "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> Create cluster adopting from multi-master GR - use 'adoptFromGR' option
+//@<OUT> Create cluster adopting from multi-primary GR - use 'adoptFromGR' option
 A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Creating InnoDB cluster 'testCluster' on 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'...
@@ -108,7 +108,7 @@ Adding Instance '<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>'...
 
 Cluster successfully created based on existing replication group.
 
-//@<OUT> Check cluster status - success - adopt from multi-master
+//@<OUT> Check cluster status - success - adopt from multi-primary
 {
     "clusterName": "testCluster",
     "defaultReplicaSet": {

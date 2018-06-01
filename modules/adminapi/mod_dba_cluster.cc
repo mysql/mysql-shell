@@ -210,7 +210,7 @@ None add_seed_instance(Document doc) {}
 #endif
 shcore::Value Cluster::add_seed_instance(
     const mysqlshdk::db::Connection_options &connection_options,
-    const shcore::Argument_list &args, bool multi_master, bool is_adopted,
+    const shcore::Argument_list &args, bool multi_primary, bool is_adopted,
     const std::string &replication_user, const std::string &replication_pwd,
     const std::string &group_name) {
   shcore::Value ret_val;
@@ -229,9 +229,9 @@ shcore::Value Cluster::add_seed_instance(
           "Default ReplicaSet already initialized. Please use: addInstance() "
           "to add more Instances to the ReplicaSet.");
   } else {
-    std::string topology_type = ReplicaSet::kTopologyPrimaryMaster;
-    if (multi_master) {
-      topology_type = ReplicaSet::kTopologyMultiMaster;
+    std::string topology_type = ReplicaSet::kTopologySinglePrimary;
+    if (multi_primary) {
+      topology_type = ReplicaSet::kTopologyMultiPrimary;
     }
     // Create the Default ReplicaSet and assign it to the Cluster's
     // default_replica_set var
@@ -1074,7 +1074,7 @@ REGISTER_HELP(
     "The defaultReplicaSet JSON object contains the following attributes:");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL8, "@li name: the ReplicaSet name");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL9,
-              "@li primary: the ReplicaSet single-master primary instance");
+              "@li primary: the ReplicaSet single-primary primary instance");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL10, "@li ssl: the ReplicaSet SSL mode");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL11, "@li status: the ReplicaSet status");
 REGISTER_HELP(CLUSTER_STATUS_DETAIL12,

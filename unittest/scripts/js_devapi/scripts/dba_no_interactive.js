@@ -29,20 +29,24 @@ validateMember(members, 'verbose');
 validateMember(members, 'rebootClusterFromCompleteOutage');
 
 //@# Dba: createCluster errors
-var c1 = dba.createCluster();
-var c1 = dba.createCluster(5);
-var c1 = dba.createCluster('', 5);
-var c1 = dba.createCluster('devCluster', 'bla');
-var c1 = dba.createCluster('devCluster', {invalid:1, another:2});
-var c1 = dba.createCluster('devCluster', {memberSslMode: 'foo'});
-var c1 = dba.createCluster('devCluster', {memberSslMode: ''});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'AUTO'});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
-var c1 = dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
-var c1 = dba.createCluster('devCluster', {ipWhitelist: " "});
-var c1 = dba.createCluster('1invalidN4me');
+dba.createCluster();
+dba.createCluster(5);
+dba.createCluster('', 5);
+dba.createCluster('devCluster', 'bla');
+dba.createCluster('devCluster', {invalid:1, another:2});
+dba.createCluster('devCluster', {memberSslMode: 'foo'});
+dba.createCluster('devCluster', {memberSslMode: ''});
+dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'AUTO'});
+dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
+dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
+dba.createCluster('devCluster', {adoptFromGR: true, multiPrimary: true, force: true});
+dba.createCluster('devCluster', {adoptFromGR: true, multiPrimary: false});
+dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
+dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
+dba.createCluster('devCluster', {multiPrimary:false, multiMaster: false});
+dba.createCluster('devCluster', {multiPrimary:true, multiMaster: false});
+dba.createCluster('devCluster', {ipWhitelist: " "});
+dba.createCluster('1invalidN4me');
 
 
 //@ Dba: createCluster with ANSI_QUOTES success
@@ -89,8 +93,6 @@ print(c1)
 
 //@# Dba: createCluster already exist
 var c1 = dba.createCluster('devCluster');
-
-// TODO: add multi-master unit-tests
 
 //@# Dba: checkInstanceConfiguration errors
 dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port1);

@@ -606,7 +606,7 @@ The returned JSON object contains the following attributes:
 The defaultReplicaSet JSON object contains the following attributes:
 
  - name: the ReplicaSet name
- - primary: the ReplicaSet single-master primary instance
+ - primary: the ReplicaSet single-primary primary instance
  - ssl: the ReplicaSet SSL mode
  - status: the ReplicaSet status
  - statusText: the descriptive text of ReplicaSet status

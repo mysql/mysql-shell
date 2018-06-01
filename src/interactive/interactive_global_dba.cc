@@ -324,7 +324,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   try {
     cluster_name = args.string_at(0);
-    bool multi_master = false;
+    bool multi_primary = false;
     bool force = false;
     bool prompt_read_only = true;
     // Validate the cluster_name
@@ -346,8 +346,17 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       // Validate ip whitelist option
       mysqlsh::dba::validate_ip_whitelist_option(options);
 
+      if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
+        throw shcore::Exception::argument_error(
+            "Cannot use the multiMaster and multiPrimary options "
+            "simultaneously. The multiMaster option is deprecated, please use "
+            "the multiPrimary option instead.");
+
       if (opt_map.has_key("multiMaster"))
-        multi_master = opt_map.bool_at("multiMaster");
+        multi_primary = opt_map.bool_at("multiMaster");
+
+      if (opt_map.has_key("multiPrimary"))
+        multi_primary = opt_map.bool_at("multiPrimary");
 
       if (opt_map.has_key("force")) force = opt_map.bool_at("force");
 
@@ -363,6 +372,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       if (adopt_from_gr && opt_map.has_key("multiMaster")) {
         throw shcore::Exception::argument_error(
             "Cannot use multiMaster option if adoptFromGR is set to true."
+            " Using adoptFromGR mode will adopt the primary mode in use by the "
+            "Cluster.");
+      }
+
+      if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
+        throw shcore::Exception::argument_error(
+            "Cannot use multiPrimary option if adoptFromGR is set to true."
             " Using adoptFromGR mode will adopt the primary mode in use by the "
             "Cluster.");
       }
@@ -430,13 +446,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
                 mysqlshdk::db::uri::formats::no_scheme_no_password()) +
             "'.\n");
 
-    if (multi_master && !force) {
+    if (multi_primary && !force) {
       println(
           "The MySQL InnoDB cluster is going to be setup in advanced "
-          "Multi-Master Mode.\n"
+          "Multi-Primary Mode.\n"
           "Before continuing you have to confirm that you understand the "
           "requirements and\n"
-          "limitations of Multi-Master Mode. For more information see\n"
+          "limitations of Multi-Primary Mode. For more information see\n"
           "https://dev.mysql.com/doc/refman/en/"
           "group-replication-limitations.html\n"
           "before proceeding.\n"
@@ -445,7 +461,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       println(
           "I have read the MySQL InnoDB cluster manual and I understand the "
           "requirements\n"
-          "and limitations of advanced Multi-Master Mode.");
+          "and limitations of advanced Multi-Primary Mode.");
       if (prompt("Confirm", Prompt_answer::NO) == Prompt_answer::NO) {
         println();
         println("Cancelled");
@@ -485,7 +501,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   assert(default_replicaset);
 
   bool single_primary_mode = default_replicaset->get_topology_type() ==
-                             mysqlsh::dba::ReplicaSet::kTopologyPrimaryMaster;
+                             mysqlsh::dba::ReplicaSet::kTopologySinglePrimary;
 
   std::string master_uuid;
 

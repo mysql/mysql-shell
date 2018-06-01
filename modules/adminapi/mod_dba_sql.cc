@@ -252,7 +252,7 @@ Cluster_check_info get_replication_group_state(
   std::string state = row->get_string(0);
 
   if (state == "ONLINE") {
-    // On multimaster the primary member status is empty
+    // On multiPrimary the primary member status is empty
     if (ret_val.master.empty() || ret_val.source == ret_val.master)
       ret_val.source_state = ManagedInstance::State::OnlineRW;
     else
@@ -334,7 +334,7 @@ ManagedInstance::State get_instance_state(
   std::string state = row->get_as_string(2);
 
   if (state.compare("ONLINE") == 0) {
-    // For multimaster the primary uuid is empty
+    // For multiPrimary the primary uuid is empty
     if (primary_uuid.empty() || primary_uuid.compare(instance_uuid) == 0)
       return ManagedInstance::State::OnlineRW;
     else

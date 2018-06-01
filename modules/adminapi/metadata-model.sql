@@ -98,6 +98,8 @@ CREATE TABLE replicasets (
   /*
     Specifies the type of topology of a replicaset.
   */
+   -- TODO(nelson): update the values to sm and mp respectively on the next
+   -- version bump.
   `topology_type` ENUM('pm', 'mm') NOT NULL DEFAULT 'pm',
   /*
     A replicaset can be assigned a name and this can be used to refer to it.

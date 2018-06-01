@@ -65,9 +65,9 @@ var multiSession = session;
 // We must use clearReadOnly because the instance 3 was removed from the cluster before
 // (BUG#26422638)
 if (__have_ssl)
-  var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiMaster:true, force:true, clearReadOnly: true});
+  var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiPrimary:true, force:true, clearReadOnly: true});
 else
-  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiMaster:true, force:true, clearReadOnly: true});
+  var multi = dba.createCluster('multi', {memberSslMode:'DISABLED', multiPrimary:true, force:true, clearReadOnly: true});
 
 //@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3;

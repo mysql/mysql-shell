@@ -9,17 +9,24 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
 
-//@<OUT> Dba: createCluster multiMaster with interaction, cancel
-dba.createCluster('devCluster', {multiMaster: true, clearReadOnly: true});
+//@<OUT> Dba: createCluster multiPrimary with interaction, cancel
+dba.createCluster('devCluster', {multiPrimary: true, clearReadOnly: true});
 
-//@<OUT> Dba: createCluster multiMaster with interaction, ok
-if (__have_ssl)
-  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
-else
-  dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+//@<OUT> Dba: createCluster multiPrimary with interaction, ok
+dba.createCluster('devCluster', {multiPrimary: true, clearReadOnly: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
+
+//@ Dissolve cluster
+Cluster.dissolve({force: true});
+Cluster.disconnect();
+
+//@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+dba.createCluster('devCluster', {multiMaster: true, clearReadOnly: true});
+
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+Cluster = dba.getCluster('devCluster');
 
 //@ Cluster: addInstance with interaction, error
 add_instance_options['port'] = __mysql_sandbox_port1;
@@ -60,14 +67,14 @@ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port1});
 //@ Dissolve cluster with success
 Cluster.dissolve({force: true});
 
-//@<OUT> Dba: createCluster multiMaster with interaction 2, ok
+//@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
 if (__have_ssl)
-    dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
+    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-    dba.createCluster('devCluster', {multiMaster: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+    dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-var Cluster = dba.getCluster('devCluster');
+Cluster = dba.getCluster('devCluster');
 
 //@<OUT> Cluster: addInstance with interaction, ok 2
 Cluster.addInstance(__sandbox_uri2);
@@ -80,7 +87,7 @@ Cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Cluster: status: success
-Cluster.status()
+Cluster.status();
 
 // Rejoin tests
 

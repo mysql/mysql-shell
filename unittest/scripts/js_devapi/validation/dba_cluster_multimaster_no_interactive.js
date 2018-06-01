@@ -1,5 +1,11 @@
-//@ Dba: createCluster multiMaster, ok
+//@ Dba: createCluster multiPrimary, ok
 ||
+
+//@ Dissolve cluster
+||
+
+//@ Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+|WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.|
 
 //@ Cluster: addInstance 2
 ||
@@ -128,7 +134,7 @@
 //@ Dissolve cluster with success
 ||
 
-//@ Dba: createCluster multiMaster 2, ok
+//@ Dba: createCluster multiPrimary 2, ok
 ||
 
 //@ Cluster: addInstance 2 again

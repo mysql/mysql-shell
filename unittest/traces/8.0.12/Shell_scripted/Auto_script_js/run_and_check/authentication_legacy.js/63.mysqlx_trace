@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_pass:@localhost:21470?ssl-mode=REQUIRED","protocol":"x"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"remo_pass:@localhost:21270?ssl-mode=REQUIRED","protocol":"x"},
 {"type":"response","subtype":"ERROR","index":2,"code":"1045","msg":"Access denied for user 'remo_pass'@'localhost' (using password: NO)","sqlstate":""},
 null]

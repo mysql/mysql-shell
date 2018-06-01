@@ -16,16 +16,25 @@ create_root_from_anywhere(session, true);
 shell.connect(__sandbox_uri1);
 create_root_from_anywhere(session, true);
 
-//@ Dba: createCluster multiMaster, ok
-if (__have_ssl)
-  var cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
-else
-  var cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
-
+//@ Dba: createCluster multiPrimary, ok
+var cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, clearReadOnly: true});
 cluster.disconnect();
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
+
+//@ Dissolve cluster
+Cluster.dissolve({force: true});
+
+Cluster.disconnect();
+
+//@ Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, clearReadOnly: true});
+
+Cluster.disconnect();
+
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+Cluster = dba.getCluster('devCluster');
 
 //@ Cluster: addInstance 2
 Cluster.addInstance(__sandbox_uri2);
@@ -63,11 +72,11 @@ Cluster.dissolve({force: true});
 
 Cluster.disconnect();
 
-//@ Dba: createCluster multiMaster 2, ok
+//@ Dba: createCluster multiPrimary 2, ok
 if (__have_ssl)
-    Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
+    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true});
 else
-    Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
+    Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'DISABLED', clearReadOnly: true});
 
 Cluster.disconnect();
 
