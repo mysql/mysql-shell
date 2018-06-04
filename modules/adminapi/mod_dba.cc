@@ -522,7 +522,15 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       connect_to_target_group({}, &metadata, &group_session,
                               connect_to_primary);
     } catch (mysqlshdk::innodbcluster::cluster_error &e) {
-      log_warning("Cluster error connecting to target: %s", e.format().c_str());
+      // Print warning in case a cluster error is found (e.g., no quorum).
+      if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
+        m_console->print_warning(
+            "Cluster has no quorum and cannot process write transactions: " +
+            std::string(e.what()));
+      } else {
+        m_console->print_warning("Cluster error connecting to target: " +
+                                 e.format());
+      }
 
       if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum &&
           fallback_to_anything && connect_to_primary) {

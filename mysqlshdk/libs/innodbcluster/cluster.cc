@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2048, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -43,10 +43,11 @@ void check_quorum(mysqlshdk::mysql::Instance *instance) {
   if (!gr::has_quorum(*instance, &unreachable, &total))
     throw cluster_error(
         Error::Group_has_no_quorum,
-        shcore::str_format(
-            "%i out of %i members of the InnoDB cluster are unreachable, which "
-            "is not sufficient for a quorum to be reached.",
-            unreachable, total));
+        shcore::str_format("%i out of %i members of the InnoDB cluster are "
+                           "unreachable from the member we’re connected to, "
+                           "which is not sufficient for a quorum to be "
+                           "reached.",
+                           unreachable, total));
 }
 
 std::string to_string(Error code) {

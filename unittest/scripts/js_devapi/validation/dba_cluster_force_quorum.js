@@ -83,6 +83,12 @@
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
+//@ Disconnect and reconnect to instance
+||
+
+//@<OUT> Get cluster operation must show a warning because there is no quorum
+WARNING: Cluster has no quorum and cannot process write transactions: 1 out of 2 members of the InnoDB cluster are unreachable from the member we’re connected to, which is not sufficient for a quorum to be reached.
+
 //@ Cluster.forceQuorumUsingPartitionOf errors
 ||Invalid number of arguments in Cluster.forceQuorumUsingPartitionOf, expected 1 to 2 but got 0
 ||Cluster.forceQuorumUsingPartitionOf: Invalid connection options, expected either a URI or a Dictionary
