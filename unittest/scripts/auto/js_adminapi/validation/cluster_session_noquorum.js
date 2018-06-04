@@ -97,11 +97,11 @@
 
 //@<OUT> Connect shell to surviving member with --redirect-primary (fail)
 ERROR: The cluster appears to be under a partial or total outage and the PRIMARY cannot be selected.
-1 out of 2 members of the InnoDB cluster are unreachable, which is not sufficient for a quorum to be reached.
+1 out of 2 members of the InnoDB cluster are unreachable from the member we’re connected to, which is not sufficient for a quorum to be reached.
 
 //@<OUT> Connect shell to surviving member with --redirect-secondary (fail)
 ERROR: The cluster appears to be under a partial or total outage and an ONLINE SECONDARY cannot be selected.
-1 out of 2 members of the InnoDB cluster are unreachable, which is not sufficient for a quorum to be reached.
+1 out of 2 members of the InnoDB cluster are unreachable from the member we’re connected to, which is not sufficient for a quorum to be reached.
 
 //@<OUT> Connect shell to surviving member with --cluster (ok)
 {
@@ -199,11 +199,11 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
 
 //@<OUT> 2 Connect shell to surviving member with --redirect-primary (fail)
 ERROR: The cluster appears to be under a partial or total outage and the PRIMARY cannot be selected.
-1 out of 2 members of the InnoDB cluster are unreachable, which is not sufficient for a quorum to be reached.
+1 out of 2 members of the InnoDB cluster are unreachable from the member we’re connected to, which is not sufficient for a quorum to be reached.
 
 //@<OUT> 2 Connect shell to surviving member with --redirect-secondary (fail)
 ERROR: The cluster appears to be under a partial or total outage and an ONLINE SECONDARY cannot be selected.
-1 out of 2 members of the InnoDB cluster are unreachable, which is not sufficient for a quorum to be reached.
+1 out of 2 members of the InnoDB cluster are unreachable from the member we’re connected to, which is not sufficient for a quorum to be reached.
 
 //@<OUT> 2 Connect shell to surviving member with --cluster (ok)
 {

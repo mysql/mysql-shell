@@ -15,7 +15,6 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 shell.connect(__sandbox_uri1);
-var clusterSession = session;
 
 //@<OUT> create cluster
 if (__have_ssl)
@@ -77,6 +76,16 @@ testutil.startSandbox(__mysql_sandbox_port3);
 //@<OUT> Cluster status
 cluster.status();
 
+//@ Disconnect and reconnect to instance
+// Regression for BUG#27148943: getCluster() should warn when connected to member with no quorum
+cluster.disconnect();
+session.close();
+shell.connect(__sandbox_uri1);
+
+//@<OUT> Get cluster operation must show a warning because there is no quorum
+// Regression for BUG#27148943: getCluster() should warn when connected to member with no quorum
+var cluster = dba.getCluster();
+
 //@ Cluster.forceQuorumUsingPartitionOf errors
 cluster.forceQuorumUsingPartitionOf();
 cluster.forceQuorumUsingPartitionOf(1);
@@ -121,7 +130,7 @@ session.runSql('START group_replication');
 
 //@ Finalization
 //  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
-clusterSession.close();
+session.close();
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
