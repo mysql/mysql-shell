@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"local_blank:@localhost:22170?ssl-mode=DISABLED","protocol":"x"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"local_blank:@localhost:21470?ssl-mode=DISABLED","protocol":"x"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"34","connection_info":"localhost via TCP/IP","server_version":"8.0.12-commercial"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},
