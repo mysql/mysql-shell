@@ -341,12 +341,14 @@ bool Shell_script_tester::validate(const std::string &context,
   size_t out_position = 0;
   size_t err_position = 0;
 
-  if (_chunk_validations.find(chunk_id) != _chunk_validations.end()) {
+  std::string validation_id = _chunks[chunk_id].def->validation_id;
+
+  if (_chunk_validations.find(validation_id) != _chunk_validations.end()) {
     bool expect_failures = false;
 
     // Identifies the validations to be done based on the context
     std::vector<std::shared_ptr<Validation>> validations;
-    for (const auto &val : _chunk_validations[chunk_id]) {
+    for (const auto &val : _chunk_validations[validation_id]) {
       bool enabled = false;
       try {
         enabled = context_enabled(val->def->context);
@@ -572,6 +574,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
                                              std::istream &stream) {
   Chunk_t chunk;
   chunk.def->id = "__global__";
+  chunk.def->validation_id = "__global__";
   chunk.def->validation = ValidationType::Optional;
   int linenum = 0;
   bool ret_val = true;
@@ -662,6 +665,7 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
 
   if (line.find(get_chunk_token()) == 0) {
     std::string chunk_id;
+    std::string validation_id;
     std::string chunk_context;
     ValidationType val_type = ValidationType::Simple;
     std::string stream;
@@ -678,8 +682,6 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
       chunk_context = chunk_id.substr(start + 1, end - start - 1);
       chunk_id = chunk_id.substr(0, start);
     }
-
-    chunk_id = str_strip(chunk_id);
 
     // Identifies the validation type and the stream if applicable
     if (chunk_id.find("<OUT>") == 0) {
@@ -699,6 +701,21 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
       val_type = ValidationType::Optional;
     }
 
+    // Identifies the version for the chunk expectations
+    // If no version is specified assigns '*'
+    start = chunk_id.find("[USE:");
+    end = chunk_id.find("]", start);
+
+    if (start != std::string::npos && end != std::string::npos) {
+      validation_id = chunk_id.substr(start + 5, end - start - 5);
+      chunk_id = chunk_id.substr(0, start);
+    } else {
+      validation_id = chunk_id;
+    }
+
+    chunk_id = str_strip(chunk_id);
+    validation_id = str_strip(validation_id);
+
     ret_val.reset(new Chunk_definition());
 
     ret_val->line = line;
@@ -706,6 +723,7 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
     ret_val->context = chunk_context;
     ret_val->validation = val_type;
     ret_val->stream = stream;
+    ret_val->validation_id = validation_id;
   }
 
   return ret_val;
@@ -784,11 +802,28 @@ void Shell_script_tester::load_validations(const std::string &path) {
           }
 
           bool optional = current_chunk->is_validation_optional();
+          bool reference =
+              current_chunk->def->id != current_chunk->def->validation_id;
 
-          while (optional && !match && chunk_index < _chunk_order.size()) {
+          while ((optional || reference) && !match &&
+                 chunk_index < _chunk_order.size()) {
+            if (reference) {
+              auto index =
+                  _chunk_validations.find(current_chunk->def->validation_id);
+
+              if (index == _chunk_validations.end()) {
+                ADD_FAILURE_AT(path.c_str(), line_no)
+                    << makered("CHUNK REFERENCES AN UNEXISTING VALIDATION")
+                    << current_chunk->def->line << "\n"
+                    << "\tLINE: " << line_no << "\n";
+              }
+            }
+
             chunk_index++;
             current_chunk = &_chunks[_chunk_order[chunk_index]];
             optional = current_chunk->is_validation_optional();
+            reference =
+                current_chunk->def->id != current_chunk->def->validation_id;
             match = current_val_def->id == current_chunk->def->id;
           }
 
@@ -984,18 +1019,22 @@ void Shell_script_tester::execute_script(const std::string &path,
           execute("");
 
           if (g_generate_validation_file) {
-            if (!output_handler.std_out.empty()) {
-              ofile << get_chunk_token() << "<OUT> " << _chunk_order[index]
-                    << std::endl;
-              ofile << output_handler.std_out << std::endl;
-            }
+            auto chunk = _chunks[_chunk_order[index]];
 
-            if (!output_handler.std_err.empty()) {
-              ofile << get_chunk_token() << "<ERR> " << _chunk_order[index]
-                    << std::endl;
-              ofile << output_handler.std_err << std::endl;
-            }
+            // Only saves the data if the chunk is not a reference
+            if (chunk.def->id == chunk.def->validation_id) {
+              if (!output_handler.std_out.empty()) {
+                ofile << get_chunk_token() << "<OUT> " << _chunk_order[index]
+                      << std::endl;
+                ofile << output_handler.std_out << std::endl;
+              }
 
+              if (!output_handler.std_err.empty()) {
+                ofile << get_chunk_token() << "<ERR> " << _chunk_order[index]
+                      << std::endl;
+                ofile << output_handler.std_err << std::endl;
+              }
+            }
             output_handler.wipe_all();
           } else {
             // Validation contexts is at chunk level
@@ -1050,7 +1089,7 @@ void Shell_script_tester::execute_script(const std::string &path,
 
       // When path is empty it is processing a setup script
       // If an error is found it will be printed here
-      if (path.empty()) {
+      if (path.empty() || is_pre_script) {
         if (!output_handler.std_err.empty()) {
           SCOPED_TRACE(output_handler.std_err);
           std::string text("Setup Script: " + _setup_script);

@@ -104,17 +104,14 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
     code = "var __mysql_port = " + _mysql_port + ";";
     exec_and_out_equals(code);
-    code =
-        "var __mysql_sandbox_port1 = " + std::to_string(_mysql_sandbox_port1) +
-        ";";
+    code = "var __mysql_sandbox_port1 = " +
+           std::to_string(_mysql_sandbox_port1) + ";";
     exec_and_out_equals(code);
-    code =
-        "var __mysql_sandbox_port2 = " + std::to_string(_mysql_sandbox_port2) +
-        ";";
+    code = "var __mysql_sandbox_port2 = " +
+           std::to_string(_mysql_sandbox_port2) + ";";
     exec_and_out_equals(code);
-    code =
-        "var __mysql_sandbox_port3 = " + std::to_string(_mysql_sandbox_port3) +
-        ";";
+    code = "var __mysql_sandbox_port3 = " +
+           std::to_string(_mysql_sandbox_port3) + ";";
     exec_and_out_equals(code);
     code = "var __mysql_sandbox_gr_port1 = " +
            std::to_string(_mysql_sandbox_port1 * 10 + 1) + ";";

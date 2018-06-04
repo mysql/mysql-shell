@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,55 +21,456 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __mysh__utils_help__
-#define __mysh__utils_help__
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_
 
+#include <map>
+#include <set>
 #include <string>
+#include <utility>
 #include <vector>
+#include "mysqlshdk/include/shellcore/ishell_core.h"
+#include "mysqlshdk/libs/utils/enumset.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "scripting/common.h"
 #include "scripting/types_cpp.h"
 
 namespace shcore {
-class SHCORE_PUBLIC Shell_help {
+
+enum class Topic_type {
+  CATEGORY = 1,
+  TOPIC,
+  SQL,
+  COMMAND,
+  MODULE,
+  CLASS,
+  OBJECT,
+  FUNCTION,
+  PROPERTY
+};
+
+typedef mysqlshdk::utils::Enum_set<Topic_type, Topic_type::PROPERTY> Topic_mask;
+
+class Help_registry;
+struct Help_topic;
+
+struct Help_topic_compare {
+  bool operator()(Help_topic *const &lhs, Help_topic *const &rhs) const;
+};
+
+struct icomp {
+  bool operator()(const std::string &lhs, const std::string &rhs) const;
+};
+
+typedef std::set<Help_topic *, Help_topic_compare> Help_topic_refs;
+
+struct Help_topic {
+  std::string m_id;
+  std::string m_name;
+  Topic_type m_type;
+  // Tag that dentifies the entry point on the help data
+  std::string m_help_tag;
+  Help_topic *m_parent;
+  Help_topic_refs m_childs;
+  Help_registry *m_help;
+
+  Help_topic *get_category();
+
+  bool is_module() const { return m_type == Topic_type::MODULE; }
+  bool is_class() const { return m_type == Topic_type::CLASS; }
+  bool is_object() const { return m_type == Topic_type::OBJECT; }
+  bool is_function() const { return m_type == Topic_type::FUNCTION; }
+  bool is_property() const { return m_type == Topic_type::PROPERTY; }
+  bool is_command() const { return m_type == Topic_type::COMMAND; }
+  bool is_category() const { return m_type == Topic_type::CATEGORY; }
+  bool is_topic() const { return m_type == Topic_type::TOPIC; }
+  bool is_sql() const { return m_type == Topic_type::SQL; }
+
+  bool is_api() const;
+  bool is_api_object() const;
+  bool is_member() const;
+
+  bool is_enabled(IShell_core::Mode mode) const;
+  std::string get_name(IShell_core::Mode mode) const;
+  std::string get_id(bool fully_qualified, IShell_core::Mode mode) const;
+};
+
+/**
+ * Singleton holding the help data which consist of two components
+ * - The help information: which is the actual text associated to each
+ *   registered topic.
+ * - The help tree: which contains all the registered topics and the relations
+ *   between them and their associations with the help data.
+ */
+class Help_registry {
+  // The Keyword Registry holds the relations between a keyword, a topic as well
+  // as when it is valid. The following requirements are satisfied by this:
+  // - Keywords are case insensitive.
+  // - Multiple topics may me assigned to the same keyword
+  // - The Keyword/Topic relation can be enabled for 1 or more modes
+  typedef std::map<std::string, std::map<Help_topic *, IShell_core::Mode_mask>,
+                   bool (*)(const std::string &, const std::string &)>
+      Keyword_registry;
+
+  typedef std::map<std::string, std::map<Help_topic *, IShell_core::Mode_mask>>
+      Keyword_case_sensitive_registry;
+
+  typedef std::map<std::string, std::string,
+                   bool (*)(const std::string &, const std::string &)>
+      Data_registry;
+
  public:
-  virtual ~Shell_help() {}
+  static const char HELP_ROOT[];
+  static const char HELP_COMMANDS[];
+  static const char HELP_SQL[];
 
-  // Retrieves the options directly, to be used from C++
-  static Shell_help *get();
+  virtual ~Help_registry() {}
 
+  // Access to the singleton
+  static Help_registry *get();
+
+  // Retrieves the help text associated to a specific token
   std::string get_token(const std::string &help);
 
+  // Registers the help text for a specific token
   void add_help(const std::string &token, const std::string &data);
 
+  // Registers a new topic and it's associated keywords
+  Help_topic *add_help_topic(const std::string &name, Topic_type type,
+                             const std::string &tag, const std::string &parent,
+                             IShell_core::Mode_mask mode);
+
+  // Registers class inheritance
+  void add_help_class(const std::string &name, const std::string &parent,
+                      const std::string &upper_class = "");
+  void inherit_members(Help_topic *parent, Help_topic *child);
+  void inherit_member(Help_topic *parent, Help_topic *member);
+
+  // Searches the help topics associated to a keyword matching the specified
+  // pattern if they are enabled for the indicated mode
+  std::vector<Help_topic *> search_topics(const std::string &pattern,
+                                          IShell_core::Mode mode);
+  std::vector<Help_topic *> search_topics(const std::string &pattern,
+                                          IShell_core::Mode_mask mode,
+                                          bool case_sensitive);
+
+  Help_topic *get_topic(const std::string &id, bool allow_unexisting = false);
+
+  Help_topic *get_class_parent(Help_topic *topic);
+
+  bool is_enabled(const Help_topic *topic, IShell_core::Mode mode) const;
+
+  void register_keyword(const std::string &keyword,
+                        IShell_core::Mode_mask context, Help_topic *topic,
+                        bool case_sensitive = false);
+
  private:
-  // Private constructor since this is a singleton
-  Shell_help() {}
-
   // Options will be stored on a MAP
-  std::map<std::string, std::string> _help_data;
+  Data_registry m_help_data;
 
-  // The only available instance
-  static Shell_help *_instance;
+  // Holds all the registered topics
+  std::map<size_t, Help_topic> m_topics;
+
+  // List of orphan topics
+  std::map<std::string, std::vector<Help_topic *>> m_orphans;
+
+  std::map<std::string, std::vector<Help_topic *>> m_class_childs;
+
+  std::map<Help_topic *, Help_topic *> m_class_parents;
+
+  // Keyword registry: 1 - *
+  Keyword_registry m_keywords;
+
+  Keyword_case_sensitive_registry m_cs_keywords;
+
+  // Private constructor since this is a singleton
+  Help_registry();
+
+  static bool icomp(const std::string &lhs, const std::string &rhs);
+
+  // Helper functions for add_help_topic
+  void register_topic(Help_topic *topic, bool new_topic,
+                      IShell_core::Mode_mask mode);
+  void register_keywords(Help_topic *topic, IShell_core::Mode_mask mode);
 };
 
+/**
+ * Helper structure to statically register help data.
+ */
 struct Help_register {
-  Help_register(const std::string &token, const std::string &data);
+  Help_register(const std::string &token, const std::string &data) {
+    shcore::Help_registry::get()->add_help(token, data);
+  }
 };
 
-std::vector<std::string> SHCORE_PUBLIC resolve_help_text(
-    const std::vector<std::string> &prefixes, const std::string &suffix);
-std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string &token);
-std::string get_function_help(shcore::NamingStyle style,
-                              const std::string &class_name,
-                              const std::string &bfname);
-std::string get_property_help(shcore::NamingStyle style,
-                              const std::string &class_name,
-                              const std::string &bfname);
-std::string get_chained_function_help(shcore::NamingStyle style,
-                                      const std::string &class_name,
-                                      const std::string &bfname);
+enum class Help_mode { ALL, SCRIPTING, JAVASCRIPT, PYTHON, SQL };
+/**
+ * Helper structure to statically register help topics
+ */
+struct Help_topic_register {
+  Help_topic_register(const std::string &name, Topic_type type,
+                      const std::string &tag, const std::string &parent,
+                      Help_mode mode) {
+    IShell_core::Mode_mask mask;
+    using Mode = IShell_core::Mode;
+
+    switch (mode) {
+      case Help_mode::ALL:
+        mask = IShell_core::Mode_mask::all();
+        break;
+      case Help_mode::SCRIPTING:
+        mask = IShell_core::Mode_mask(Mode::JavaScript).set(Mode::Python);
+        break;
+      case Help_mode::JAVASCRIPT:
+        mask = IShell_core::Mode_mask(Mode::JavaScript);
+        break;
+      case Help_mode::PYTHON:
+        mask = IShell_core::Mode_mask(Mode::Python);
+        break;
+      case Help_mode::SQL:
+        mask = IShell_core::Mode_mask(Mode::SQL);
+        break;
+    }
+
+    Help_registry::get()->add_help_topic(name, type, tag, parent, mask);
+  }
+};
+
+/**
+ * Helper structure to statically register help classes
+ */
+struct Help_class_register {
+  Help_class_register(const std::string &child, const std::string &parent,
+                      const std::string &upper_class) {
+    Help_registry::get()->add_help_class(child, parent, upper_class);
+  }
+};
+
+enum class Help_option {
+  Name,
+  Syntax,
+  Brief,
+  Detail,
+  Categories,
+  Modules,
+  Objects,
+  Classes,
+  Functions,
+  Properties,
+  Childs,
+  Closing,
+  Example,
+};
+
+typedef mysqlshdk::utils::Enum_set<Help_option, Help_option::Example>
+    Help_options;
+
+/**
+ * Enables querying the Help_registry to retrieve formatted help data
+ *
+ * The help lookup/formatting is performed using the active mode.
+ */
+class Help_manager {
+ public:
+  Help_manager();
+
+  static constexpr size_t MAX_HELP_WIDTH = 80;
+
+  // Define the mode for which the help is being retrieved
+  void set_mode(IShell_core::Mode mode) { m_mode = mode; }
+  IShell_core::Mode get_mode() { return m_mode; }
+
+  // Searches for topics matching the specified pattern
+  std::vector<Help_topic *> search_topics(const std::string &pattern);
+
+  /**
+   * Retrieves the help text for a topic uniquely identified by the given
+   * topic id.
+   * Throws logic error if:
+   * - No topics are found with the given topic id.
+   * - Multiple topics are found with the given topic id.
+   */
+  std::string get_help(const std::string &topic_id,
+                       Topic_mask type = Topic_mask(),
+                       const std::string &options = "");
+  std::string get_help(const std::string &topic_id, Topic_mask type,
+                       const Help_options &options);
+
+  /**
+   * Retrieves the help text associated to the given topic.
+   */
+  std::string get_help(const Help_topic &topic,
+                       const Help_options &options = Help_options::any());
+
+  void add_childs_section(const std::vector<Help_topic *> &childs,
+                          std::vector<std::string> *sections, size_t padding,
+                          bool members, const std::string &tag,
+                          const std::string &default_title, bool alias = false);
+
+  void add_section(const std::string &title, const std::string &tag,
+                   std::vector<std::string> *sections, size_t padding,
+                   bool insert_blank_lines = true);
+
+  void add_examples_section(const std::string &tag,
+                            std::vector<std::string> *sections, size_t padding);
+
+ private:
+  // Holds the active mode to be used for the help handling
+  IShell_core::Mode m_mode = IShell_core::Mode::None;
+  std::map<std::string, Help_option, icomp> m_option_vals;
+  Help_registry *m_registry;
+
+  std::string format_object_help(const Help_topic &object,
+                                 const Help_options &options);
+  std::string format_function_help(const Help_topic &function);
+  std::string format_property_help(const Help_topic &property);
+  std::string format_command_help(const Help_topic &property,
+                                  const Help_options &options);
+
+  /**
+   * Parses and updates the text_lines to update function names so they matches
+   * the required naming convention.
+   *
+   * These function names must named in camelCase format and enclosed between
+   * <<< and >>>
+   *
+   */
+  std::map<std::string, std::string> preprocess_help(
+      std::vector<std::string> *text_lines);
+  std::string format_help_text(std::vector<std::string> *lines, size_t width,
+                               size_t left_padding, bool paragraph_per_line);
+
+  /**
+   * Gets all the help data associated to the given token
+   */
+  std::vector<std::string> get_help_text(const std::string &token);
+
+  /**
+   * Searches in the class hierarchy to get the help data associated to the
+   * given suffix using a bottom up approach.
+   *
+   * This enables documentation inheritance.
+   */
+  std::vector<std::string> resolve_help_text(const Help_topic &object,
+                                             const std::string &suffix);
+
+  /**
+   * Parses a parameter definition list and returns the corresponding signature
+   * as well as a vector of parameters and descriptions.
+   */
+  std::vector<std::pair<std::string, std::string>> parse_function_parameters(
+      const std::vector<std::string> &parameters,
+      std::string *signature = nullptr);
+
+  void add_name_section(const Help_topic &topic,
+                        std::vector<std::string> *sections);
+
+  /**
+   * The following functions format the help data using a specific format for
+   * each topic type
+   */
+  void add_section_data(const std::string &title,
+                        std::vector<std::string> *details,
+                        std::vector<std::string> *sections, size_t padding,
+                        bool insert_blank_lines = true);
+
+  void add_member_section(const std::string &title, const std::string &tag,
+                          const Help_topic &parent,
+                          std::vector<std::string> *sections, size_t padding);
+
+  /**
+   * Inserts a new section with the content of a function definition
+   */
+  void add_simple_function_help(const Help_topic &function,
+                                std::vector<std::string> *sections);
+
+  /**
+   * Formats help for a function that supports chaining
+   */
+  void add_chained_function_help(const Help_topic &function,
+                                 std::vector<std::string> *sections);
+
+  std::string get_signature(const Help_topic &function);
+
+  /**
+   * Given a list of topic references, retrieves the max length either for
+   * - The topic names
+   * - Member names (honoring naming convention)
+   * - Topic aliases (command alias)
+   */
+  size_t get_max_topic_length(const std::vector<Help_topic *> &topics,
+                              bool members, bool alias = false);
+
+  /**
+   * Takes a list of topics and produces a formatted list as follows:
+   *
+   * - TopicName1 Topic1 brief description
+   * - TopicName2 Topic2 brief description
+   *   ...
+   * - TopicNameN TopicN brief description
+   *
+   * The alias parameter is used to also consider the topic aliases
+   * i.e. in shell command topics as:
+   *
+   * - CommandName1 (\a)     Command1 brief description
+   * - CommandName2 (\b, \c) Command1 brief description
+   *   ...
+   * - CommandNameN (\z)     CommandZ brief description
+   */
+  std::string format_topic_list(const std::vector<Help_topic *> &topics,
+                                size_t lpadding = 0, bool alias = false);
+  std::string format_list_description(const std::string &name,
+                                      std::vector<std::string> *help_text,
+                                      size_t name_max_len, size_t lpadding = 0,
+                                      const std::string &alias = "",
+                                      size_t alas_max_len = 0);
+
+  /**
+   * Takes a list of member topics and produces a formatted list as follows:
+   *
+   *      MemberName1
+   *            Member1 brief description
+   *
+   *      MemberName2
+   *            Member2 brief description
+   *      ...
+   *      MemberNameN
+   *            MemberN brief description
+   *
+   * Naming honors the active language naming convention
+   */
+  std::string format_member_list(const std::vector<Help_topic *> &topics,
+                                 size_t lpadding = 0);
+};
+
 };  // namespace shcore
 
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)
+#define REGISTER_HELP_TOPIC(name, type, tag, parent, mode) \
+  shcore::Help_topic_register topic_##tag(                 \
+      #name, shcore::Topic_type::type, #tag, #parent, shcore::Help_mode::mode)
+#define REGISTER_HELP_CLASS(name, parent) \
+  shcore::Help_class_register class_##parent##name(#name, #parent, "");
 
-#endif /* defined(__mysh__utils_help__) */
+#define REGISTER_HELP_SUB_CLASS(name, parent, upper) \
+  shcore::Help_class_register class_##parent##name(#name, #parent, #upper);
+
+#define REGISTER_HELP_OBJECT(name, parent)               \
+  shcore::Help_topic_register object_##parent##name(     \
+      #name, shcore::Topic_type::OBJECT, #name, #parent, \
+      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_MODULE(name, parent)               \
+  shcore::Help_topic_register module_##parent##name(     \
+      #name, shcore::Topic_type::MODULE, #name, #parent, \
+      shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_FUNCTION(name, parent)               \
+  shcore::Help_topic_register function_##parent##name(     \
+      #name, shcore::Topic_type::FUNCTION, #name, #parent, \
+      shcore::Help_mode::SCRIPTING)
+#define REGISTER_HELP_PROPERTY(name, parent)               \
+  shcore::Help_topic_register property_##parent##name(     \
+      #name, shcore::Topic_type::PROPERTY, #name, #parent, \
+      shcore::Help_mode::SCRIPTING)
+
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_

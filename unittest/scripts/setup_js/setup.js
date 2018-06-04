@@ -250,7 +250,8 @@ function validate_crud_functions(crud, expected)
         print("Missing Functions:", missing);
     }
 
-    if (actual.length == 0){
+    // help is ignored cuz it's always available
+    if (actual.length == 0 || actual[0] == 'help'){
         print("No additional functions are available\n")
     }
     else{

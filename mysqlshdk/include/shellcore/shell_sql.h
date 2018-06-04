@@ -60,7 +60,6 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
   virtual void clear_input();
   virtual std::string get_continued_input_context();
 
-  virtual bool print_help(const std::string &topic);
   void print_exception(const shcore::Exception &e);
 
   const std::string &get_main_delimiter() const {

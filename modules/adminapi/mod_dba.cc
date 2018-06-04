@@ -170,19 +170,53 @@ std::set<std::string> Dba::_reboot_cluster_opts = {
     "clearReadOnly"};
 
 // Documentation of the DBA Class
-REGISTER_HELP(DBA_BRIEF,
-              "Enables you to administer InnoDB clusters using the AdminAPI.");
+REGISTER_HELP_TOPIC(AdminAPI, CATEGORY, adminapi, Contents, SCRIPTING);
+REGISTER_HELP(ADMINAPI_BRIEF,
+              "Introduces to the <b>dba</b> global object and the InnoDB "
+              "cluster administration API.");
+REGISTER_HELP(ADMINAPI_DETAIL,
+              "MySQL InnoDB cluster provides a complete high "
+              "availability solution for MySQL.");
+REGISTER_HELP(ADMINAPI_OBJECTS_DESC, "IGNORE");
+REGISTER_HELP(ADMINAPI_CLASSES_DESC, "IGNORE");
+REGISTER_HELP(ADMINAPI_DETAIL1,
+              "The <b>AdminAPI</b> is an interactive API that "
+              "enables configuring and administering InnoDB clusters.");
+REGISTER_HELP(ADMINAPI_DETAIL2, "Use the <b>dba</b> global object to:");
+REGISTER_HELP(ADMINAPI_DETAIL3,
+              "@li Verify if a MySQL server is suitable for InnoDB cluster.");
+REGISTER_HELP(
+    ADMINAPI_DETAIL4,
+    "@li Configure a MySQL server to be used as an InnoDB cluster instance.");
+REGISTER_HELP(ADMINAPI_DETAIL5, "@li Create an InnoDB cluster.");
+REGISTER_HELP(
+    ADMINAPI_DETAIL6,
+    "@li Get a handle for performing operations on an InnoDB cluster.");
+REGISTER_HELP(ADMINAPI_DETAIL7, "@li Other InnoDB cluster maintenance tasks.");
+REGISTER_HELP(ADMINAPI_DETAIL8,
+              "In the AdminAPI, an InnoDB cluster is represented as an "
+              "instance of the <b>Cluster</b> class.");
+REGISTER_HELP(ADMINAPI_DETAIL9,
+              "For more information about the <b>dba</b> object use: \\? dba");
+REGISTER_HELP(
+    ADMINAPI_DETAIL10,
+    "For more information about the <b>Cluster</b> class use: \\? Cluster");
+
+REGISTER_HELP_OBJECT(dba, adminapi);
+REGISTER_HELP(DBA_BRIEF, "Global variable for InnoDB cluster management.");
+REGISTER_HELP(DBA_GLOBAL_BRIEF, "Used for InnoDB cluster administration.");
 REGISTER_HELP(
     DBA_DETAIL,
-    "The global variable 'dba' is used to access the AdminAPI functionality "
-    "and perform DBA operations. It is used for managing MySQL InnoDB "
-    "clusters.");
+    "The global variable <b>dba</b> is used to access the AdminAPI "
+    "functionality and perform DBA operations. It is used for managing MySQL "
+    "InnoDB clusters.");
 REGISTER_HELP(
     DBA_CLOSING,
     "For more help on a specific function use: dba.help('<functionName>')");
-REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deploySandboxInstance')");
+REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('<<<deploySandboxInstance>>>')");
 
-REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
+REGISTER_HELP(DBA_VERBOSE_BRIEF,
+              "Enables verbose mode on the <b>dba</b> operations.");
 REGISTER_HELP(DBA_VERBOSE_DETAIL,
               "The assigned value can be either boolean or integer, the result "
               "depends on the assigned value:");
@@ -267,6 +301,8 @@ void Dba::set_member(const std::string &prop, Value value) {
     Cpp_object_bridge::set_member(prop, value);
   }
 }
+
+REGISTER_HELP_PROPERTY(verbose, dba);
 /**
  * $(DBA_VERBOSE_BRIEF)
  *
@@ -409,6 +445,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
 }
 
 // Documentation of the getCluster function
+REGISTER_HELP_FUNCTION(getCluster, dba);
 REGISTER_HELP(DBA_GETCLUSTER_BRIEF,
               "Retrieves a cluster from the Metadata Store.");
 REGISTER_HELP(DBA_GETCLUSTER_PARAM,
@@ -598,6 +635,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   return cluster;
 }
 
+REGISTER_HELP_FUNCTION(createCluster, dba);
 REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
 REGISTER_HELP(DBA_CREATECLUSTER_PARAM,
               "@param name The name of the cluster object to be created.");
@@ -1119,6 +1157,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(dropMetadataSchema, dba);
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_BRIEF, "Drops the Metadata Schema.");
 REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM,
               "@param options Dictionary "
@@ -1219,6 +1258,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   return Value();
 }
 
+REGISTER_HELP_FUNCTION(checkInstanceConfiguration, dba);
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_BRIEF,
               "Validates an instance for MySQL InnoDB Cluster usage.");
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_PARAM,
@@ -1264,7 +1304,7 @@ REGISTER_HELP(
     "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(DBA_CHECKINSTANCECONFIGURATION_DETAIL3,
               "The options dictionary may contain the following options:");
@@ -1543,6 +1583,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(deploySandboxInstance, dba);
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_BRIEF,
               "Creates a new MySQL Server instance on localhost.");
 REGISTER_HELP(
@@ -1715,6 +1756,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(deleteSandboxInstance, dba);
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_BRIEF,
               "Deletes an existing MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_DELETESANDBOXINSTANCE_PARAM,
@@ -1786,6 +1828,7 @@ shcore::Value Dba::delete_sandbox_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(killSandboxInstance, dba);
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_BRIEF,
               "Kills a running MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_KILLSANDBOXINSTANCE_PARAM,
@@ -1858,6 +1901,7 @@ shcore::Value Dba::kill_sandbox_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(stopSandboxInstance, dba);
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_BRIEF,
               "Stops a running MySQL Server instance on localhost.");
 REGISTER_HELP(DBA_STOPSANDBOXINSTANCE_PARAM,
@@ -1938,6 +1982,7 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(startSandboxInstance, dba);
 REGISTER_HELP(DBA_STARTSANDBOXINSTANCE_BRIEF,
               "Starts an existing MySQL Server instance on localhost.");
 REGISTER_HELP(
@@ -2089,6 +2134,7 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(configureLocalInstance, dba);
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_BRIEF,
               "Validates and configures a local instance for MySQL InnoDB "
               "Cluster usage.");
@@ -2139,7 +2185,7 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL1,
               "instance.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL3,
               "The options dictionary may contain the following options:");
@@ -2257,6 +2303,7 @@ shcore::Value Dba::configure_local_instance(const shcore::Argument_list &args) {
       get_function_name("configureLocalInstance"));
 }
 
+REGISTER_HELP_FUNCTION(configureInstance, dba);
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_BRIEF,
               "Validates and configures an instance for MySQL InnoDB Cluster "
               "usage.");
@@ -2275,7 +2322,7 @@ REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL1,
               "The instance definition is the connection data for the "
               "instance.");
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL3,
               "The options dictionary may contain the following options:");
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL4,
@@ -2449,6 +2496,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_session(
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
 REGISTER_HELP(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE_BRIEF,
               "Brings a cluster back ONLINE when all members are OFFLINE.");
 REGISTER_HELP(

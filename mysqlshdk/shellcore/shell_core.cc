@@ -30,6 +30,7 @@
 #include <unistd.h>
 #endif
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
 #include "shellcore/base_session.h"
@@ -44,6 +45,19 @@
 using std::placeholders::_1;
 
 DEBUG_OBJ_ENABLE(Shell_core);
+REGISTER_HELP_TOPIC(Shell Commands, CATEGORY, commands, Contents, ALL);
+REGISTER_HELP(COMMANDS_BRIEF,
+              "Provides details about the available built-in shell commands.");
+REGISTER_HELP(COMMANDS_DETAIL,
+              "The shell commands allow executing specific operations "
+              "including updating the shell configuration.");
+REGISTER_HELP(COMMANDS_CHILDS_DESC,
+              "The following shell commands are available:");
+REGISTER_HELP(COMMANDS_CLOSING,
+              "For help on a specific command use <b>\\?</b> <command>");
+REGISTER_HELP(COMMANDS_EXAMPLE, "<b>\\?</b> \\connect");
+REGISTER_HELP(COMMANDS_EXAMPLE_DESC,
+              "Displays information about the <\b>\\connect</b> command.");
 namespace shcore {
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
@@ -84,10 +98,6 @@ Shell_core::~Shell_core() {
   if (_langs[Mode::Python]) delete _langs[Mode::Python];
 
   if (_langs[Mode::SQL]) delete _langs[Mode::SQL];
-}
-
-bool Shell_core::print_help(const std::string &topic) {
-  return _langs[_mode]->print_help(topic);
 }
 
 void Shell_core::print(const std::string &s) {
@@ -275,6 +285,9 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
 
 bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
   lang_initialized = false;
+
+  // Updates the shell help mode
+  m_help.set_mode(mode);
 
   if (_mode != mode) {
     _mode = mode;
@@ -609,10 +622,11 @@ bool Shell_command_handler::process(const std::string &command_line) {
 }
 
 void Shell_command_handler::add_command(const std::string &triggers,
-                                        const std::string &description,
-                                        const std::string &help,
-                                        Shell_command_function function) {
-  Shell_command command = {triggers, description, help, function};
+                                        const std::string &help_tag,
+                                        Shell_command_function function,
+                                        bool case_sensitive_help,
+                                        Mode_mask mode) {
+  Shell_command command = {triggers, function};
   _commands.push_back(command);
 
   std::vector<std::string> tokens;
@@ -625,6 +639,34 @@ void Shell_command_handler::add_command(const std::string &triggers,
     _command_dict.insert(std::pair<const std::string &, Shell_command *>(
         *index, &_commands.back()));
     index++;
+  }
+
+  if (m_use_help) {
+    // Verifies if the command is already registered to avoid double entry
+    auto topics = Help_registry::get()->search_topics(tokens[0], mode,
+                                                      case_sensitive_help);
+
+    if (topics.empty()) {
+      Help_topic *topic;
+      topic = Help_registry::get()->add_help_topic(
+          tokens[0], shcore::Topic_type::COMMAND, help_tag, "Commands", mode);
+
+      // If case insensitive, first trigger is already registered
+      if (!case_sensitive_help) tokens.erase(tokens.begin());
+
+      for (auto &token : tokens) {
+        Help_registry::get()->register_keyword(token, mode, topic,
+                                               case_sensitive_help);
+      }
+
+      // If case sensitive, we need now to remove the first trigger
+      if (case_sensitive_help) tokens.erase(tokens.begin());
+
+      if (!tokens.empty()) {
+        std::string alias = "(" + shcore::str_join(tokens, ",") + ")";
+        Help_registry::get()->add_help(help_tag + "_ALIAS", alias);
+      }
+    }
   }
 }
 
@@ -644,92 +686,4 @@ std::vector<std::string> Shell_command_handler::get_command_names_matching(
   return names;
 }
 
-std::string Shell_command_handler::get_commands(const std::string &title) {
-  // Gets the length of the longest command
-  Command_list::iterator index, end = _commands.end();
-  int max_length = 0;
-  int max_alias_length = 0;
-
-  std::vector<std::string> tmp_commands;
-  std::vector<std::string> tmp_alias;
-
-  for (index = _commands.begin(); index != end; index++) {
-    std::vector<std::string> tokens;
-    tokens = split_string((*index).triggers, "|", true);
-
-    tmp_commands.push_back(tokens[0]);
-    tokens.erase(tokens.begin());
-
-    if (!tokens.empty())
-      tmp_alias.push_back("(" + str_join(tokens, ",") + ")");
-    else
-      tmp_alias.push_back(" ");
-
-    int tmp_alias_length = tmp_alias.back().length();
-    if (tmp_alias_length > max_alias_length)
-      max_alias_length = tmp_alias_length;
-
-    int tmp_length = tmp_commands.back().length();
-    if (tmp_length > max_length) max_length = tmp_length;
-  }
-
-  // Prints the command list title
-  std::string ret_val;
-
-  ret_val = title;
-
-  // Prints the command list
-  std::string format = "%-";
-  format += str_format("%d", max_length);
-  format += "s %-";
-  format += str_format("%d", max_alias_length);
-  format += "s %s\n";
-
-  ret_val += "\n";
-
-  size_t tmpindex = 0;
-  for (index = _commands.begin(); index != end; index++, tmpindex++) {
-    ret_val +=
-        str_format(format.c_str(), tmp_commands[tmpindex].c_str(),
-                   tmp_alias[tmpindex].c_str(), (*index).description.c_str());
-  }
-
-  return ret_val;
-}
-
-bool Shell_command_handler::get_command_help(const std::string &command,
-                                             std::string &help) {
-  bool ret_val = false;
-  std::string cmd = command;
-
-  Command_registry::iterator item = _command_dict.find(command);
-
-  // Add the escape char in order to get the help on an escaped command
-  // even without escaping it on the call: \? <command>
-  if (item == _command_dict.end()) {
-    if (cmd[0] != '\\') {
-      cmd.insert(0, 1, '\\');
-      item = _command_dict.find(cmd);
-    }
-  }
-
-  if (item != _command_dict.end()) {
-    // Prints the command description.
-    help += item->second->description;
-
-    // Prints additional triggers if any
-    if (item->second->triggers != command) {
-      std::vector<std::string> triggers;
-      triggers = split_string(item->second->triggers, "|", true);
-      help += "\n\nNAME: " + str_join(triggers, " or ");
-    }
-
-    // Prints the additional help
-    if (!item->second->help.empty()) help += "\n\n" + item->second->help;
-
-    ret_val = true;
-  }
-
-  return ret_val;
-}
 }  // namespace shcore

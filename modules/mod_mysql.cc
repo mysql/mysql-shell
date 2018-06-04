@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,19 +31,32 @@ using namespace std::placeholders;
 namespace mysqlsh {
 namespace mysql {
 
-// clang-format off
-REGISTER_HELP(MYSQL_INTERACTIVE_BRIEF, "Used to work with classic MySQL sessions using SQL.");
-REGISTER_HELP(MYSQL_BRIEF, "Encloses the functions and classes available to interact with a MySQL Server using the traditional "\
-                           "MySQL Protocol.");
+REGISTER_HELP_MODULE(mysql, shellapi);
+REGISTER_HELP(MYSQL_GLOBAL_BRIEF,
+              "Support for connecting to MySQL servers using the classic MySQL "
+              "protocol.");
+REGISTER_HELP(MYSQL_BRIEF,
+              "Encloses the functions and classes available to interact with a "
+              "MySQL Server using the traditional "
+              "MySQL Protocol.");
 
-REGISTER_HELP(MYSQL_DETAIL, "Use this module to create a session using the traditional MySQL Protocol, for example for MySQL Servers where "\
-                            "the X Protocol is not available.");
-REGISTER_HELP(MYSQL_DETAIL1,"Note that the API interface on this module is very limited, even you can load schemas, tables and views as "\
-                            "objects there are no operations available on them.");
-REGISTER_HELP(MYSQL_DETAIL2,"The purpose of this module is to allow SQL Execution on MySQL Servers where the X Protocol is not enabled.");
-REGISTER_HELP(MYSQL_DETAIL3,"To use the properties and functions available on this module you first need to import it.");
-REGISTER_HELP(MYSQL_DETAIL4,"When running the shell in interactive mode, this module is automatically imported.");
-// clang-format on
+REGISTER_HELP(MYSQL_DETAIL,
+              "Use this module to create a session using the traditional MySQL "
+              "Protocol, for example for MySQL Servers where "
+              "the X Protocol is not available.");
+REGISTER_HELP(MYSQL_DETAIL1,
+              "Note that the API interface on this module is very limited, "
+              "even you can load schemas, tables and views as "
+              "objects there are no operations available on them.");
+REGISTER_HELP(MYSQL_DETAIL2,
+              "The purpose of this module is to allow SQL Execution on MySQL "
+              "Servers where the X Protocol is not enabled.");
+REGISTER_HELP(MYSQL_DETAIL3,
+              "To use the properties and functions available on this module "
+              "you first need to import it.");
+REGISTER_HELP(MYSQL_DETAIL4,
+              "When running the shell in interactive mode, this module is "
+              "automatically imported.");
 
 REGISTER_MODULE(Mysql, mysql) {
   REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
@@ -66,15 +79,19 @@ shcore::Value Mysql::get_member(const std::string &prop) const {
 }
 #endif
 
-// clang-format off
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF, "Opens a classic MySQL protocol session to a MySQL server.");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM,  "@param connectionData The connection data for the session");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM1, "@param password Optional password for the session");
+REGISTER_HELP_FUNCTION(getClassicSession, mysql);
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF,
+              "Opens a classic MySQL protocol session to a MySQL server.");
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM,
+              "@param connectionData The connection data for the session");
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM1,
+              "@param password Optional password for the session");
 REGISTER_HELP(MYSQL_GETCLASSICSESSION_RETURNS, "@returns A ClassicSession");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL, "A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the "\
-                                              "connected MySQL Server.");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
-// clang-format on
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL,
+              "A ClassicSession object uses the traditional MySQL Protocol to "
+              "allow executing operations on the "
+              "connected MySQL Server.");
+REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1, "${TOPIC_CONNECTION_DATA}");
 
 /**
  * \ingroup mysql
@@ -115,6 +132,7 @@ DEFINE_FUNCTION(Mysql, get_classic_session) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(getSession, mysql);
 REGISTER_HELP(MYSQL_GETSESSION_BRIEF,
               "Opens a classic MySQL protocol session to a MySQL server.");
 REGISTER_HELP(MYSQL_GETSESSION_PARAM,
@@ -126,7 +144,7 @@ REGISTER_HELP(MYSQL_GETSESSION_DETAIL,
               "A ClassicSession object uses the traditional MySQL Protocol to "
               "allow executing operations on the "
               "connected MySQL Server.");
-REGISTER_HELP(MYSQL_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(MYSQL_GETSESSION_DETAIL1, "${TOPIC_CONNECTION_DATA}");
 // clang-format on
 
 /**

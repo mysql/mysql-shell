@@ -51,12 +51,13 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of Schema class
-REGISTER_HELP(SCHEMA_INTERACTIVE_BRIEF,
+REGISTER_HELP_SUB_CLASS(Schema, mysqlx, DatabaseObject);
+REGISTER_HELP(SCHEMA_GLOBAL_BRIEF,
               "Used to work with database schema objects.");
 REGISTER_HELP(SCHEMA_BRIEF,
               "Represents a Schema as retrived from a session created using "
               "the X Protocol.");
-REGISTER_HELP(SCHEMA_DETAIL, "<b> View Support </b>");
+REGISTER_HELP(SCHEMA_DETAIL, "<b>View Support</b>");
 REGISTER_HELP(
     SCHEMA_DETAIL1,
     "MySQL Views are stored queries that when executed produce a result set.");
@@ -244,6 +245,7 @@ Value Schema::get_member(const std::string &prop) const {
 }
 
 // Documentation of getTables function
+REGISTER_HELP_FUNCTION(getTables, Schema);
 REGISTER_HELP(SCHEMA_GETTABLES_BRIEF,
               "Returns a list of Tables for this Schema.");
 REGISTER_HELP(
@@ -290,6 +292,7 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
 }
 
 // Documentation of getCollections function
+REGISTER_HELP_FUNCTION(getCollections, Schema);
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_BRIEF,
               "Returns a list of Collections for this Schema.");
 REGISTER_HELP(SCHEMA_GETCOLLECTIONS_RETURNS,
@@ -335,6 +338,7 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args) {
 }
 
 // Documentation of getTable function
+REGISTER_HELP_FUNCTION(getTable, Schema);
 REGISTER_HELP(SCHEMA_GETTABLE_BRIEF,
               "Returns the Table of the given name for this schema.");
 REGISTER_HELP(SCHEMA_GETTABLE_PARAM,
@@ -415,6 +419,7 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args) {
 }
 
 // Documentation of getCollection function
+REGISTER_HELP_FUNCTION(getCollection, Schema);
 REGISTER_HELP(SCHEMA_GETCOLLECTION_BRIEF,
               "Returns the Collection of the given name for this schema.");
 REGISTER_HELP(SCHEMA_GETCOLLECTION_PARAM,
@@ -484,6 +489,7 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args) {
 }
 
 // Documentation of getCollectionAsTable function
+REGISTER_HELP_FUNCTION(getCollectionAsTable, Schema);
 REGISTER_HELP(
     SCHEMA_GETCOLLECTIONASTABLE_BRIEF,
     "Returns a Table object representing a Collection on the database.");
@@ -522,6 +528,7 @@ shcore::Value Schema::get_collection_as_table(
 }
 
 // Documentation of createCollection function
+REGISTER_HELP_FUNCTION(createCollection, Schema);
 REGISTER_HELP(SCHEMA_CREATECOLLECTION_BRIEF,
               "Creates in the current schema a new collection with the "
               "specified name and "
@@ -580,6 +587,7 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
 }
 
 // Documentation of dropCollection function
+REGISTER_HELP_FUNCTION(dropCollection, Schema);
 REGISTER_HELP(SCHEMA_DROPCOLLECTION_BRIEF, "Drops the specified collection.");
 REGISTER_HELP(SCHEMA_DROPCOLLECTION_RETURNS, "@returns Nothing.");
 

@@ -446,24 +446,6 @@ TEST_F(Shell_history, history_linenoise) {
 
     capture.clear();
     shell.process_line("\\help history");
-    EXPECT_EQ(
-        "View and edit command line history.\n\n"
-        "NAME: \\history\n\n"
-        "SYNTAX:\n"
-        "   \\history                     Display history entries.\n"
-        "   \\history del <num>[-<num>]   Delete entry/entries from history.\n"
-        "   \\history clear               Clear history.\n"
-        "   \\history save                Save history to file.\n\n"
-        "EXAMPLES:\n"
-        "   \\history\n"
-        "   \\history del 123       Delete entry number 123\n"
-        "   \\history del 10-20     Delete entries 10 to 20\n"
-        "   \\history del 10-       Delete entries from 10 to last\n"
-        "\n"
-        "NOTE: The history.autoSave shell option must be set to true to "
-        "automatically save the contents of the command history when MySQL "
-        "Shell exits.\n\n",
-        capture);
 
     // TS_SC#1
     capture.clear();
@@ -1046,28 +1028,6 @@ TEST_F(Shell_history, history_entry_number_reset) {
   // This should get number 4, if numbering was not reset
   EXPECT_EQ("    1  \\history clear\n\n", capture);
   EXPECT_EQ(2, shell._history.size());
-}
-
-TEST_F(Shell_history, shell_options_help_history) {
-  mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
-
-  std::string capture;
-  shell._delegate->print = print_capture;
-  shell._delegate->print_error = print_capture;
-  shell._delegate->user_data = &capture;
-
-  shell.process_line("print(shell.help('options'))");
-
-  EXPECT_TRUE(strstr(
-      capture.c_str(),
-      "history.autoSave: true to save command history when exiting the shell"));
-  EXPECT_TRUE(strstr(capture.c_str(),
-                     "history.sql.ignorePattern: colon separated list of glob "
-                     "patterns to filter"));
-  EXPECT_TRUE(strstr(
-      capture.c_str(),
-      "history.autoSave: true to save command history when exiting the shell"));
 }
 
 TEST_F(Shell_history, history_delete_range) {

@@ -442,7 +442,7 @@ void generate_uuid(uuid_type &uuid) {
     unsigned long tmp = sql_rnd_with_mutex();
     int i;
     if (my_gethwaddr(uuid_internal.hw_mac)) {
-      /* The thread key address will be used for random number generation */
+    /* The thread key address will be used for random number generation */
 #ifdef _WIN32
       static DWORD key;
 #else

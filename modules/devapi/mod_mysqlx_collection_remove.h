@@ -54,13 +54,15 @@ class CollectionRemove : public Collection_crud_definition,
  public:
 #if DOXYGEN_JS
   CollectionRemove remove(String searchCondition);
-  CollectionRemove sort(List sortExprStr);
+  CollectionRemove sort(List sortExpr);
+  CollectionRemove sort(String sortExpr[, String sortExpr, ...]);
   CollectionRemove limit(Integer numberOfRows);
   CollectionFind bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
   CollectionRemove remove(str searchCondition);
-  CollectionRemove sort(list sortExprStr);
+  CollectionRemove sort(list sortExpr);
+  CollectionRemove sort(str sortExpr[, str sortExpr, ...]);
   CollectionRemove limit(int numberOfRows);
   CollectionFind bind(str name, Value value);
   Result execute();
@@ -115,6 +117,9 @@ class CollectionRemove : public Collection_crud_definition,
     }
     if ("execute" == s) {
       return F::execute;
+    }
+    if ("help" == s) {
+      return enabled_functions_;
     }
     return 0;
   }

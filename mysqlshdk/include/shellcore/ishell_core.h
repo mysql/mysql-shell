@@ -30,20 +30,15 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
 #include "scripting/types.h"
 #include "scripting/types_common.h"
 
-namespace mysqlsh {
-// The session types that can be produced by connect_session
-enum class SessionType { Auto, X, Classic };
-class ShellBaseSession;
-};  // namespace mysqlsh
-
 namespace shcore {
-
+class Help_manager;
 class SHCORE_PUBLIC IShell_core {
  public:
   enum class Mode { None = 0, SQL = 1, JavaScript = 2, Python = 3 };
@@ -83,7 +78,9 @@ class SHCORE_PUBLIC IShell_core {
   virtual bool password(const std::string &s, std::string &ret_pass) = 0;
   virtual const std::string &get_input_source() = 0;
   virtual const std::vector<std::string> &get_input_args() = 0;
-  virtual bool print_help(const std::string &topic) = 0;
+
+  virtual Help_manager *get_helper() = 0;
+  virtual std::vector<std::string> get_global_objects(Mode mode) = 0;
 };
 
 std::string to_string(const IShell_core::Mode mode);

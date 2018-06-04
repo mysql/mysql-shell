@@ -18,21 +18,11 @@ validateMember(exports, 'getClassicSession');
 validateMember(exports, 'getSession');
 validateMember(exports, 'help');
 
-//@<OUT> help
-mysql.help()
-
-//@<OUT> Help on getClassicSession
-mysql.help('getClassicSession');
-
 //@# getClassicSession errors
 mysql.getClassicSession()
 mysql.getClassicSession(1, 2, 3)
 mysql.getClassicSession(["bla"])
 mysql.getClassicSession("some@uri", 25)
-
-
-//@<OUT> Help on getSession
-mysql.help('getSession');
 
 //@# getSession errors
 mysql.getSession()

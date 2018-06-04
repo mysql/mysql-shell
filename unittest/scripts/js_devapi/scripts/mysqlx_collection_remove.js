@@ -108,9 +108,6 @@ var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
 //! [CollectionRemove: full remove]
 
-//@<OUT> CollectionRemove: help
-collection.help('remove');
-
 // Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();

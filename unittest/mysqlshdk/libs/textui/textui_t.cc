@@ -87,88 +87,93 @@ TEST(Textui, get_sized_strings) {
 
 TEST(Textui, preprocess_markup) {
   {
-    Color_markers markers;
-    auto result = preprocess_markup("<code>var sample = 3;</code>", &markers);
-    EXPECT_TRUE(markers.empty());
+    Highlights highlights;
+    auto result =
+        preprocess_markup("<code>var sample = 3;</code>", &highlights);
+    EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("var sample = 3;", result);
 
-    result =
-        preprocess_markup("Some text <code>var sample = 3;</code>", &markers);
-    EXPECT_TRUE(markers.empty());
+    result = preprocess_markup("Some text <code>var sample = 3;</code>",
+                               &highlights);
+    EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("Some text var sample = 3;", result);
 
-    result =
-        preprocess_markup("<code>var sample = 3;</code> Some text", &markers);
-    EXPECT_TRUE(markers.empty());
+    result = preprocess_markup("<code>var sample = 3;</code> Some text",
+                               &highlights);
+    EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("var sample = 3; Some text", result);
 
-    result =
-        preprocess_markup("Some <code>var sample = 3;</code> text", &markers);
-    EXPECT_TRUE(markers.empty());
+    result = preprocess_markup("Some <code>var sample = 3;</code> text",
+                               &highlights);
+    EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("Some var sample = 3; text", result);
 
     result = preprocess_markup(
         "<code>var sample = 3;</code>"
         "Some text "
         "<code>var other = 3;</code>",
-        &markers);
-    EXPECT_TRUE(markers.empty());
+        &highlights);
+    EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("var sample = 3;Some text var other = 3;", result);
   }
 
   {
-    Color_markers markers;
-    auto result = preprocess_markup("@<@>&nbsp;@li@<@>&nbsp;@li", &markers);
-    EXPECT_TRUE(markers.empty());
+    Highlights highlights;
+    auto result = preprocess_markup("@<@>&nbsp;@li@<@>&nbsp;@li", &highlights);
+    EXPECT_TRUE(highlights.empty());
     EXPECT_EQ("<> -<> -", result);
   }
 
   {
-    Color_markers markers;
-    auto result = preprocess_markup("<b>12345</b>", &markers);
-    EXPECT_EQ(1U, markers.size());
-    EXPECT_EQ(0U, std::get<0>(markers[0]));
-    EXPECT_EQ(5U, std::get<1>(markers[0]));
+    Highlights highlights;
+    auto result = preprocess_markup("<b>12345</b>", &highlights);
+    EXPECT_EQ(1U, highlights.size());
+    EXPECT_EQ(0U, std::get<0>(highlights[0]));
+    EXPECT_EQ(5U, std::get<1>(highlights[0]));
+    EXPECT_EQ(Text_style::Bold, std::get<2>(highlights[0]));
     EXPECT_EQ("12345", result);
-    markers.clear();
+    highlights.clear();
 
-    result = preprocess_markup("Some text <b>12345</b>", &markers);
-    EXPECT_EQ(1U, markers.size());
-    EXPECT_EQ(10U, std::get<0>(markers[0]));
-    EXPECT_EQ(5U, std::get<1>(markers[0]));
+    result = preprocess_markup("Some text <w>12345</w>", &highlights);
+    EXPECT_EQ(1U, highlights.size());
+    EXPECT_EQ(10U, std::get<0>(highlights[0]));
+    EXPECT_EQ(5U, std::get<1>(highlights[0]));
+    EXPECT_EQ(Text_style::Warning, std::get<2>(highlights[0]));
     EXPECT_EQ("Some text 12345", result);
-    markers.clear();
+    highlights.clear();
 
-    result = preprocess_markup("<b>123</b> Some text", &markers);
-    EXPECT_EQ(1U, markers.size());
-    EXPECT_EQ(0U, std::get<0>(markers[0]));
-    EXPECT_EQ(3U, std::get<1>(markers[0]));
+    result = preprocess_markup("<b>123</b> Some text", &highlights);
+    EXPECT_EQ(1U, highlights.size());
+    EXPECT_EQ(0U, std::get<0>(highlights[0]));
+    EXPECT_EQ(3U, std::get<1>(highlights[0]));
     EXPECT_EQ("123 Some text", result);
-    markers.clear();
+    highlights.clear();
 
-    result = preprocess_markup("Some <b>123456</b> text", &markers);
-    EXPECT_EQ(1U, markers.size());
-    EXPECT_EQ(5U, std::get<0>(markers[0]));
-    EXPECT_EQ(6U, std::get<1>(markers[0]));
+    result = preprocess_markup("Some <b>123456</b> text", &highlights);
+    EXPECT_EQ(1U, highlights.size());
+    EXPECT_EQ(5U, std::get<0>(highlights[0]));
+    EXPECT_EQ(6U, std::get<1>(highlights[0]));
     EXPECT_EQ("Some 123456 text", result);
-    markers.clear();
+    highlights.clear();
 
     result = preprocess_markup(
         "<b>12</b>"
         "Some text "
-        "<b>123456789</b>",
-        &markers);
-    EXPECT_EQ(2U, markers.size());
-    EXPECT_EQ(0U, std::get<0>(markers[0]));
-    EXPECT_EQ(2U, std::get<1>(markers[0]));
-    EXPECT_EQ(12U, std::get<0>(markers[1]));
-    EXPECT_EQ(9U, std::get<1>(markers[1]));
+        "<w>123456789</w>",
+        &highlights);
+    EXPECT_EQ(2U, highlights.size());
+    EXPECT_EQ(0U, std::get<0>(highlights[0]));
+    EXPECT_EQ(2U, std::get<1>(highlights[0]));
+    EXPECT_EQ(Text_style::Bold, std::get<2>(highlights[0]));
+    EXPECT_EQ(12U, std::get<0>(highlights[1]));
+    EXPECT_EQ(9U, std::get<1>(highlights[1]));
+    EXPECT_EQ(Text_style::Warning, std::get<2>(highlights[1]));
     EXPECT_EQ("12Some text 123456789", result);
-    markers.clear();
+    highlights.clear();
   }
 }
 
-TEST(Textui, postprocess_markup) {
+TEST(Textui, postprocess_markup_bold) {
   set_color_capability(Color_16);
   std::string B = "\x1B[1m";  // sequence for <b>
   std::string b = "\x1B[0m";  // sequence for </b>
@@ -176,7 +181,7 @@ TEST(Textui, postprocess_markup) {
   // Single post markup
   {
     std::vector<std::string> lines = {"1234567890", "1234567890"};
-    postprocess_markup(&lines, {{0, 3}});
+    postprocess_markup(&lines, {std::make_tuple(0, 3, Text_style::Bold)});
 
     EXPECT_EQ(B + "123" + b + "4567890", lines[0]);
     EXPECT_EQ("1234567890", lines[1]);
@@ -185,7 +190,8 @@ TEST(Textui, postprocess_markup) {
   // Double markup on the same line
   {
     std::vector<std::string> lines = {"1234567890", "1234567890"};
-    postprocess_markup(&lines, {{0, 3}, {5, 2}});
+    postprocess_markup(&lines, {std::make_tuple(0, 3, Text_style::Bold),
+                                std::make_tuple(5, 2, Text_style::Bold)});
 
     EXPECT_EQ(B + "123" + b + "45" + B + "67" + b + "890", lines[0]);
     EXPECT_EQ("1234567890", lines[1]);
@@ -194,7 +200,8 @@ TEST(Textui, postprocess_markup) {
   // Double markup, end of line beggining of another
   {
     std::vector<std::string> lines = {"1234567890", "1234567890"};
-    postprocess_markup(&lines, {{2, 2}, {9, 2}});
+    postprocess_markup(&lines, {std::make_tuple(2, 2, Text_style::Bold),
+                                std::make_tuple(9, 2, Text_style::Bold)});
 
     EXPECT_EQ("12" + B + "34" + b + "56789" + B + "0" + b, lines[0]);
     EXPECT_EQ(B + "1" + b + "234567890", lines[1]);
@@ -203,7 +210,8 @@ TEST(Textui, postprocess_markup) {
   // Double markup, different lines
   {
     std::vector<std::string> lines = {"1234567890", "1234567890"};
-    postprocess_markup(&lines, {{2, 2}, {12, 3}});
+    postprocess_markup(&lines, {std::make_tuple(2, 2, Text_style::Bold),
+                                std::make_tuple(12, 3, Text_style::Bold)});
 
     EXPECT_EQ("12" + B + "34" + b + "567890", lines[0]);
     EXPECT_EQ("12" + B + "345" + b + "67890", lines[1]);
@@ -212,12 +220,106 @@ TEST(Textui, postprocess_markup) {
   // markup, covers even 3 lines (1 complete)
   {
     std::vector<std::string> lines = {"12345", "67890", "12345", "67890"};
-    postprocess_markup(&lines, {{2, 10}});
+    postprocess_markup(&lines, {std::make_tuple(2, 10, Text_style::Bold)});
 
     EXPECT_EQ("12" + B + "345" + b, lines[0]);
     EXPECT_EQ(B + "67890" + b, lines[1]);
     EXPECT_EQ(B + "12" + b + "345", lines[2]);
     EXPECT_EQ("67890", lines[3]);
+  }
+}
+
+TEST(Textui, postprocess_markup_warning) {
+  set_color_capability(Color_16);
+  std::string W = "\x1B[33m";
+  std::string w = "\x1B[0m";
+
+  // Single post markup
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(0, 3, Text_style::Warning)});
+
+    EXPECT_EQ(W + "123" + w + "4567890", lines[0]);
+    EXPECT_EQ("1234567890", lines[1]);
+  }
+
+  // Double markup on the same line
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(0, 3, Text_style::Warning),
+                                std::make_tuple(5, 2, Text_style::Warning)});
+
+    EXPECT_EQ(W + "123" + w + "45" + W + "67" + w + "890", lines[0]);
+    EXPECT_EQ("1234567890", lines[1]);
+  }
+
+  // Double markup, end of line beggining of another
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(2, 2, Text_style::Warning),
+                                std::make_tuple(9, 2, Text_style::Warning)});
+
+    EXPECT_EQ("12" + W + "34" + w + "56789" + W + "0" + w, lines[0]);
+    EXPECT_EQ(W + "1" + w + "234567890", lines[1]);
+  }
+
+  // Double markup, different lines
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(2, 2, Text_style::Warning),
+                                std::make_tuple(12, 3, Text_style::Warning)});
+
+    EXPECT_EQ("12" + W + "34" + w + "567890", lines[0]);
+    EXPECT_EQ("12" + W + "345" + w + "67890", lines[1]);
+  }
+
+  // markup, covers even 3 lines (1 complete)
+  {
+    std::vector<std::string> lines = {"12345", "67890", "12345", "67890"};
+    postprocess_markup(&lines, {std::make_tuple(2, 10, Text_style::Warning)});
+
+    EXPECT_EQ("12" + W + "345" + w, lines[0]);
+    EXPECT_EQ(W + "67890" + w, lines[1]);
+    EXPECT_EQ(W + "12" + w + "345", lines[2]);
+    EXPECT_EQ("67890", lines[3]);
+  }
+}
+
+TEST(Textui, postprocess_markup_combined) {
+  set_color_capability(Color_16);
+  std::string W = "\x1B[33m";  // sequence for <w>
+  std::string w = "\x1B[0m";   // sequence for </w>
+  std::string B = "\x1B[1m";   // sequence for <b>
+  std::string b = "\x1B[0m";   // sequence for </b>
+
+  // Double markup on the same line
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(0, 3, Text_style::Bold),
+                                std::make_tuple(5, 2, Text_style::Warning)});
+
+    EXPECT_EQ(B + "123" + b + "45" + W + "67" + w + "890", lines[0]);
+    EXPECT_EQ("1234567890", lines[1]);
+  }
+
+  // Double markup, end of line beggining of another
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(2, 2, Text_style::Warning),
+                                std::make_tuple(9, 2, Text_style::Bold)});
+
+    EXPECT_EQ("12" + W + "34" + w + "56789" + B + "0" + b, lines[0]);
+    EXPECT_EQ(B + "1" + b + "234567890", lines[1]);
+  }
+
+  // Double markup, different lines
+  {
+    std::vector<std::string> lines = {"1234567890", "1234567890"};
+    postprocess_markup(&lines, {std::make_tuple(2, 2, Text_style::Bold),
+                                std::make_tuple(12, 3, Text_style::Warning)});
+
+    EXPECT_EQ("12" + B + "34" + b + "567890", lines[0]);
+    EXPECT_EQ("12" + W + "345" + w + "67890", lines[1]);
   }
 }
 }  // namespace internal

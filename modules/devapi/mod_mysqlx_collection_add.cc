@@ -39,6 +39,13 @@ namespace mysqlx {
 
 using std::placeholders::_1;
 
+REGISTER_HELP_CLASS(CollectionAdd, mysqlx);
+REGISTER_HELP(COLLECTIONADD_BRIEF,
+              "Operation to insert documents into a Collection.");
+REGISTER_HELP(COLLECTIONADD_DETAIL,
+              "A CollectionAdd object represents an operation to add documents "
+              "into a Collection, it is created through the <b>add</b> "
+              "function on the <b>Collection</b> class.");
 CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
           std::static_pointer_cast<DatabaseObject>(owner)) {
@@ -58,10 +65,11 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
   update_functions(F::_empty);
 }
 
+REGISTER_HELP_FUNCTION(add, CollectionAdd);
 REGISTER_HELP(COLLECTIONADD_ADD_BRIEF, "Adds documents into a collection.");
-REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX,
-              "add(document[, document, ...])[.add(...)]");
-REGISTER_HELP(COLLECTIONADD_ADD_SYNTAX1, "add(documentList)[.add(...)]");
+REGISTER_HELP(COLLECTIONADD_ADD_SIGNATURE, "(documentList)");
+REGISTER_HELP(COLLECTIONADD_ADD_SIGNATURE1, "(document[, document, ...])");
+REGISTER_HELP(COLLECTIONADD_ADD_SIGNATURE2, "(mysqlx.expr(...))");
 REGISTER_HELP(COLLECTIONADD_ADD_RETURNS, "@returns This CollectionAdd object.");
 REGISTER_HELP(COLLECTIONADD_ADD_DETAIL,
               "This function receives one or more document definitions to be "
@@ -230,11 +238,11 @@ void CollectionAdd::add_one_document(shcore::Value doc,
   message_.mutable_row()->Add()->mutable_field()->AddAllocated(docx.release());
 }
 
+REGISTER_HELP_FUNCTION(execute, CollectionAdd);
 REGISTER_HELP(COLLECTIONADD_EXECUTE_BRIEF,
               "Executes the add operation, the documents are added to the "
               "target collection.");
 REGISTER_HELP(COLLECTIONADD_EXECUTE_RETURNS, "@returns A Result object.");
-REGISTER_HELP(COLLECTIONADD_EXECUTE_SYNTAX, "execute()");
 
 /**
  * $(COLLECTIONADD_EXECUTE_BRIEF)

@@ -32,9 +32,67 @@ namespace mysqlsh {
 
 using shcore::Value;
 
+REGISTER_HELP_OBJECT(options, shell);
 REGISTER_HELP(OPTIONS_BRIEF,
-              "Gives access to options impacting shell behavior, accessible "
-              "via shell.options.");
+              "Gives access to options impacting shell behavior.");
+
+REGISTER_HELP(OPTIONS_DETAIL,
+              "The options object acts as a dictionary, it may contain "
+              "the following attributes:");
+REGISTER_HELP(OPTIONS_DETAIL1,
+              "@li batchContinueOnError: read-only, "
+              "boolean value to indicate if the "
+              "execution of an SQL script in batch "
+              "mode shall continue if errors occur");
+REGISTER_HELP(OPTIONS_DETAIL2,
+              "@li interactive: read-only, boolean "
+              "value that indicates if the shell is "
+              "running in interactive mode");
+REGISTER_HELP(OPTIONS_DETAIL3,
+              "@li outputFormat: controls the type of "
+              "output produced for SQL results.");
+REGISTER_HELP(OPTIONS_DETAIL4,
+              "@li sandboxDir: default path where the "
+              "new sandbox instances for InnoDB "
+              "cluster will be deployed");
+REGISTER_HELP(OPTIONS_DETAIL5,
+              "@li showWarnings: boolean value to "
+              "indicate whether warnings shall be "
+              "included when printing an SQL result");
+REGISTER_HELP(OPTIONS_DETAIL6,
+              "@li useWizards: read-only, boolean value "
+              "to indicate if the Shell is using the "
+              "interactive wrappers (wizard mode)");
+REGISTER_HELP(OPTIONS_DETAIL7,
+              "@li history.maxSize: number "
+              "of entries to keep in command history");
+REGISTER_HELP(OPTIONS_DETAIL8,
+              "@li history.autoSave: true "
+              "to save command history when exiting the shell");
+REGISTER_HELP(OPTIONS_DETAIL9,
+              "@li history.sql.ignorePattern: colon separated list of glob "
+              "patterns to filter"
+              " out of the command history in SQL mode");
+
+REGISTER_HELP(OPTIONS_DETAIL10,
+              "The outputFormat option supports the following values:");
+REGISTER_HELP(OPTIONS_DETAIL11,
+              "@li table: displays the output in table format (default)");
+REGISTER_HELP(OPTIONS_DETAIL12, "@li json: displays the output in JSON format");
+REGISTER_HELP(
+    OPTIONS_DETAIL13,
+    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(
+    OPTIONS_DETAIL14,
+    "@li vertical: displays the outputs vertically, one line per column value");
+REGISTER_HELP(OPTIONS_DETAIL15,
+              "@li autocomplete.nameCache: true if auto-refresh of DB object "
+              "name cache is "
+              "enabled. The \\rehash command can be used for manual refresh");
+REGISTER_HELP(SHELL_OPTIONS_DETAIL16,
+              "@li devapi.dbObjectHandles: true to enable schema collection "
+              "and table name aliases in the db "
+              "object, for DevAPI operations.");
 
 std::string &Options::append_descr(std::string &s_out, int indent,
                                    int quote_strings) const {
@@ -74,6 +132,7 @@ Options::Options(std::shared_ptr<mysqlsh::Shell_options> options)
              std::bind(&Options::unset_persist, this, std::placeholders::_1));
 }
 
+REGISTER_HELP_FUNCTION(set, options);
 REGISTER_HELP(OPTIONS_SET_BRIEF, "Sets value of an option.");
 REGISTER_HELP(OPTIONS_SET_PARAM,
               "@param optionName name of the option to set.");
@@ -101,19 +160,20 @@ shcore::Value Options::set(const shcore::Argument_list &args) {
   return Value();
 }
 
+REGISTER_HELP_FUNCTION(setPersist, options);
 REGISTER_HELP(
-    OPTIONS_SET_PERSIST_BRIEF,
+    OPTIONS_SETPERSIST_BRIEF,
     "Sets value of an option and stores it in the configuration file.");
-REGISTER_HELP(OPTIONS_SET_PERSIST_PARAM,
+REGISTER_HELP(OPTIONS_SETPERSIST_PARAM,
               "@param optionName name of the option to set.");
-REGISTER_HELP(OPTIONS_SET_PERSIST_PARAM1,
+REGISTER_HELP(OPTIONS_SETPERSIST_PARAM1,
               "@param value new value for the option.");
 /**
  * \ingroup ShellAPI
- * $(OPTIONS_SET_PERSIST_BRIEF)
+ * $(OPTIONS_SETPERSIST_BRIEF)
  *
- * $(OPTIONS_SET_PERSIST_PARAM)
- * $(OPTIONS_SET_PERSIST_PARAM1)
+ * $(OPTIONS_SETPERSIST_PARAM)
+ * $(OPTIONS_SETPERSIST_PARAM1)
  */
 #if DOXYGEN_JS
 Undefined Options::set_persist(String optionName, Value value);
@@ -131,6 +191,7 @@ shcore::Value Options::set_persist(const shcore::Argument_list &args) {
   return Value();
 }
 
+REGISTER_HELP_FUNCTION(unset, options);
 REGISTER_HELP(OPTIONS_UNSET_BRIEF, "Resets value of an option to default.");
 REGISTER_HELP(OPTIONS_UNSET_PARAM,
               "@param optionName name of the option to reset.");
@@ -157,17 +218,18 @@ shcore::Value Options::unset(const shcore::Argument_list &args) {
   return Value();
 }
 
-REGISTER_HELP(OPTIONS_UNSET_PERSIST_BRIEF,
+REGISTER_HELP_FUNCTION(unsetPersist, options);
+REGISTER_HELP(OPTIONS_UNSETPERSIST_BRIEF,
               "Resets value of an option to default and removes it from "
               "the configuration file.");
-REGISTER_HELP(OPTIONS_UNSET_PERSIST_PARAM,
+REGISTER_HELP(OPTIONS_UNSETPERSIST_PARAM,
               "@param optionName name of the option to reset.");
 
 /**
  * \ingroup ShellAPI
- * $(OPTIONS_UNSET_PERSIST_BRIEF)
+ * $(OPTIONS_UNSETPERSIST_BRIEF)
  *
- * $(OPTIONS_UNSET_PERSIST_PARAM)
+ * $(OPTIONS_UNSETPERSIST_PARAM)
  */
 #if DOXYGEN_JS
 Undefined Options::unset_persist(String optionName);

@@ -35,9 +35,9 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/ishell_core.h"
 
 namespace mysqlsh {
+enum class SessionType { Auto, X, Classic };
 #if DOXYGEN_CPP
 //! Abstraction layer with core elements for all the session types
 #endif
@@ -82,7 +82,7 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
                                        const std::string &name,
                                        const std::string &owner) = 0;
 
-  virtual void set_option(const char *option, int value) {}
+  virtual void set_option(const char *UNUSED(option), int UNUSED(value)) {}
   virtual uint64_t get_connection_id() const { return 0; }
   virtual std::string query_one_string(const std::string &query,
                                        int field = 0) = 0;

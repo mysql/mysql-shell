@@ -38,10 +38,10 @@ def validate_crud_functions(crud, expected):
 	else:
 		print "Missing Functions:", missing
 
-	if len(actual) == 0:
+	if len(actual) == 0 or actual[0] == 'help':
 		print "No additional functions are available\n"
 	else:
-		print "Extra Functions:", actual
+		print "Extra Func tions:", actual
 
 def validate_members(object, expected_members):
   all_members = dir(object)

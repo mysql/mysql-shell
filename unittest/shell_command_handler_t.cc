@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -46,17 +46,19 @@ class Environment {
 
 class Command_handler_tests : public ::testing::Test {
  public:
-  Command_handler_tests() {
-    SET_SHELL_COMMAND("cmdone", "No shortcut command.", "",
+  Command_handler_tests() : _shell_command_handler(false) {
+    SET_SHELL_COMMAND("cmdone", "No shortcut command.",
                       Command_handler_tests::cmd_one);
-    SET_SHELL_COMMAND("cmd2|\\2", "Shortcut command.", "",
+    SET_SHELL_COMMAND("cmd2|\\2", "Shortcut command.",
                       Command_handler_tests::cmd_two);
     SET_CUSTOM_SHELL_COMMAND(
-        "three", "No shortcut command with help.", "Third command.",
-        std::bind(&Command_handler_tests::cmd_other, this, "cmd_three", _1));
+        "three", "No shortcut command with help.",
+        std::bind(&Command_handler_tests::cmd_other, this, "cmd_three", _1),
+        true, IShell_core::Mode_mask::all());
     SET_CUSTOM_SHELL_COMMAND(
-        "four|\\4", "Shortcut command with help.", "Fourth command.",
-        std::bind(&Command_handler_tests::cmd_other, this, "cmd_four", _1));
+        "four|\\4", "Shortcut command with help.",
+        std::bind(&Command_handler_tests::cmd_other, this, "cmd_four", _1),
+        true, IShell_core::Mode_mask::all());
   }
 
  protected:
@@ -154,49 +156,5 @@ TEST_F(Command_handler_tests, processing_commands) {
   EXPECT_EQ("parameters", _params[4]);
 }
 
-TEST_F(Command_handler_tests, getting_commands) {
-  std::string commands =
-      _shell_command_handler.get_commands("These are the test commands:");
-  auto lines = shcore::split_string(commands, "\n");
-
-  EXPECT_EQ("These are the test commands:", lines[0]);
-  EXPECT_EQ("cmdone      No shortcut command.", lines[1]);
-  EXPECT_EQ("cmd2   (\\2) Shortcut command.", lines[2]);
-  EXPECT_EQ("three       No shortcut command with help.", lines[3]);
-  EXPECT_EQ("four   (\\4) Shortcut command with help.", lines[4]);
-}
-
-TEST_F(Command_handler_tests, getting_command_help) {
-  EXPECT_FALSE(_shell_command_handler.process("whatever"));
-
-  std::string help;
-
-  EXPECT_TRUE(_shell_command_handler.get_command_help("cmdone", help));
-  EXPECT_EQ("No shortcut command.", help);
-
-  help.clear();
-  EXPECT_TRUE(_shell_command_handler.get_command_help("cmd2", help));
-  EXPECT_EQ("Shortcut command.\n\nNAME: cmd2 or \\2", help);
-
-  help.clear();
-  EXPECT_TRUE(_shell_command_handler.get_command_help("\\2", help));
-  EXPECT_EQ("Shortcut command.\n\nNAME: cmd2 or \\2", help);
-
-  help.clear();
-  EXPECT_TRUE(_shell_command_handler.get_command_help("three", help));
-  EXPECT_EQ("No shortcut command with help.\n\nThird command.", help);
-
-  help.clear();
-  EXPECT_TRUE(_shell_command_handler.get_command_help("four", help));
-  EXPECT_EQ(
-      "Shortcut command with help.\n\nNAME: four or \\4\n\nFourth command.",
-      help);
-
-  help.clear();
-  EXPECT_TRUE(_shell_command_handler.get_command_help("\\4", help));
-  EXPECT_EQ(
-      "Shortcut command with help.\n\nNAME: four or \\4\n\nFourth command.",
-      help);
-}
 }  // namespace command_handler_tests
 }  // namespace shcore

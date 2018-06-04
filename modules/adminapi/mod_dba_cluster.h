@@ -51,7 +51,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
                 public shcore::Cpp_object_bridge {
  public:
 #if DOXYGEN_JS
-  String name;  //!< $(CLUSTER_NAME_BRIEF)
+  String name;  //!< $(CLUSTER_GETNAME_BRIEF)
   Undefined addInstance(InstanceDef instance, Dictionary options);
   Dictionary checkInstanceState(InstanceDef instance, String password);
   String describe();
@@ -64,7 +64,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined rescan();
   String status();
 #elif DOXYGEN_PY
-  str name;  //!< $(CLUSTER_NAME_BRIEF)
+  str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
   dict check_instance_state(InstanceDef instance, str password);
   str describe();

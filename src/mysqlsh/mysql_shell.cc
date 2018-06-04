@@ -25,7 +25,9 @@
 #include <mysqld_error.h>
 #include <algorithm>
 #include <iterator>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -48,7 +50,8 @@
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_resultset_dumper.h"
-#include "shellcore/utils_help.h"
+
+#include "commands/command_help.h"
 #include "src/interactive/interactive_dba_cluster.h"
 #include "src/interactive/interactive_global_dba.h"
 #include "src/interactive/interactive_global_shell.h"
@@ -59,8 +62,89 @@
 
 DEBUG_OBJ_ENABLE(Mysql_shell);
 
-namespace mysqlsh {
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_TITLE, "The available topics include:");
 
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_ALL, "@li The available shell commands.");
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_ALL1,
+              "@li Any word that is part of an SQL statement.");
+
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_SCRIPTING,
+              "${HELP_AVAILABLE_TOPICS_TITLE}");
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_SCRIPTING1,
+              "@li The <b>dba</b> global object and the classes available at "
+              "the AdminAPI.");
+REGISTER_HELP(
+    HELP_AVAILABLE_TOPICS_SCRIPTING2,
+    "@li The <b>mysqlx</b> module and the classes available at the X DevAPI.");
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_SCRIPTING3,
+              "@li The <b>mysql</b> module and the global objects and classes "
+              "available at the ShellAPI.");
+REGISTER_HELP(
+    HELP_AVAILABLE_TOPICS_SCRIPTING4,
+    "@li The functions and properties of the classes exposed by the APIs.");
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_SCRIPTING5, "${HELP_AVAILABLE_TOPICS_ALL}");
+
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_SQL, "${HELP_AVAILABLE_TOPICS_TITLE}");
+REGISTER_HELP(HELP_AVAILABLE_TOPICS_SQL1, "${HELP_AVAILABLE_TOPICS_ALL}");
+
+REGISTER_HELP(HELP_PATTERN,
+              "The pattern is a filter to identify topics for which help is "
+              "required, it can use the following wildcards:");
+REGISTER_HELP(HELP_PATTERN1, "@li <b>?</b> matches any single charecter.");
+REGISTER_HELP(HELP_PATTERN2, "@li <b>*</b> matches any character sequence.");
+
+REGISTER_HELP(CONTENTS_DETAIL,
+              "The Shell Help is organized in categories and topics. To get "
+              "help for a specific category or topic use: <b>\\?</b> "
+              "<pattern>");
+REGISTER_HELP(
+    CONTENTS_DETAIL1,
+    "The <pattern> argument should be the name of a category or a topic.");
+REGISTER_HELP(CONTENTS_DETAIL2, "${HELP_PATTERN}");
+
+REGISTER_HELP(GLOBALS_DESC,
+              "The following modules and objects are ready for use when the "
+              "shell starts:");
+REGISTER_HELP(GLOBALS_CLOSING_DESC,
+              "For additional information on these global objects use: "
+              "<object>.<b>help()</b>");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING, "<b>\\?</b> AdminAPI");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING_DESC,
+              "Displays information about the AdminAPI.");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING1, "<b>\\?</b> \\connect");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING1_DESC,
+              "Displays usage details for the <b>\\connect</b> command.");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING2,
+              "<b>\\?</b> <<<checkInstanceConfiguration>>>");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING2_DESC,
+              "Displays usage details for the "
+              "dba.<b><<<checkInstanceConfiguration>>></b> function.");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING3, "<b>\\?</b> sql syntax");
+REGISTER_HELP(GLOBALS_EXAMPLE_SCRIPTING3_DESC,
+              "Displays the main SQL help categories.");
+
+REGISTER_HELP(GLOBALS_EXAMPLE_SQL, "<b>\\?</b> sql syntax");
+REGISTER_HELP(GLOBALS_EXAMPLE_SQL_DESC,
+              "Displays the main SQL help categories.");
+REGISTER_HELP(GLOBALS_EXAMPLE_SQL1, "<b>\\?</b> select");
+REGISTER_HELP(GLOBALS_EXAMPLE_SQL1_DESC,
+              "Displays information about the <b>SELECT</b> SQL statement.");
+
+// The main category may have many topics created everywhere which are for
+// reference from different parts, we don't want those displayed.
+// i.e. For more information use: \? connection
+// Connection is a topic hung on the root node
+REGISTER_HELP(CONTENTS_CHILDS_DESC, "IGNORE");
+REGISTER_HELP(CONTENTS_CATEGORIES_DESC,
+              "The following are the main help categories:");
+REGISTER_HELP(CONTENTS_CATEGORIES_CLOSING_DESC, "${HELP_AVAILABLE_TOPICS}");
+REGISTER_HELP(CONTENTS_CLOSING,
+              "Use <b>\\? \\help</b> for additional details.");
+
+REGISTER_HELP(SQL_CONTENTS_BRIEF,
+              "Entry point to retrieve syntax help on SQL statements.");
+
+namespace mysqlsh {
 class Shell_command_provider : public shcore::completer::Provider {
  public:
   explicit Shell_command_provider(Mysql_shell *shell) : shell_(shell) {}
@@ -114,18 +198,175 @@ class Shell_command_provider : public shcore::completer::Provider {
     return {};
   }
 };
+REGISTER_HELP_TOPIC(ShellAPI, CATEGORY, shellapi, Contents, SCRIPTING);
+REGISTER_HELP(SHELLAPI_BRIEF,
+              "Contains information about the <b>shell</b> and <b>util</b> "
+              "global objects as well as the <b>mysql</b> module that enables "
+              "executing SQL on MySQL Servers.");
+REGISTER_HELP(CMD_CONNECT_BRIEF,
+              "Connects the shell to a MySQL server and "
+              "assigns the global session.");
+REGISTER_HELP(CMD_CONNECT_SYNTAX, "<b>\\connect</b> [<TYPE>] <URI>");
+REGISTER_HELP(CMD_CONNECT_SYNTAX1, "<b>\\c</b> [<TYPE>] <URI>");
+REGISTER_HELP(CMD_CONNECT_DETAIL,
+              "TYPE is an optional parameter to specify the session type. "
+              "Accepts the following values:");
+REGISTER_HELP(
+    CMD_CONNECT_DETAIL1,
+    "@li <b>-mc</b>, <b>--mysql</b>: create a classic MySQL protocol session "
+    "(default port 3306)");
+REGISTER_HELP(CMD_CONNECT_DETAIL2,
+              "@li <b>-mx</b>, <b>--mysqlx</b>: create an X protocol session "
+              "(default port 33060)");
+REGISTER_HELP(
+    CMD_CONNECT_DETAIL3,
+    "@li <b>-ma</b>: attempt to create a session using automatic detection "
+    "of the protocol type");
+REGISTER_HELP(
+    CMD_CONNECT_DETAIL4,
+    "If TYPE is omitted, <b>-ma</b> is assumed by default, unless the "
+    "protocol is given in the URI.");
+REGISTER_HELP(CMD_CONNECT_DETAIL5,
+              "URI format is: [user[:password]@]hostname[:port]");
+REGISTER_HELP(CMD_CONNECT_EXAMPLE, "<b>\\connect -mx</b> root@localhost");
+REGISTER_HELP(
+    CMD_CONNECT_EXAMPLE_DESC,
+    "Creates a global session using the X protocol to the indicated URI.");
 
-// clang-format off
-const char* cmd_help_option =
-  "USAGE:\n"
-  "   \\option -h, --help [<filter>]: print help for options matching filter.\n"
-  "   \\option -l, --list [--show-origin]: list all the options.\n"
-  "   \\option <option_name>: print value of he option.\n"
-  "   \\option [--persist] <option_name> [=] <value>: set value of the option,\n"
-  "           if --persist is specified save it to the configuration file.\n"
-  "   \\option --unset [--persist] <option_name>: reset option's value to default,\n"
-  "           if --persist is specified remove option from configuration file.\n";
-// clang-format on
+REGISTER_HELP(CMD_OPTION_BRIEF,
+              "Allows working with the available shell options.");
+REGISTER_HELP(CMD_OPTION_SYNTAX, "<b>\\option</b> [args]");
+REGISTER_HELP(CMD_OPTION_DETAIL,
+              "The given [args] define the operation to be done by this "
+              "command, the following values are accepted");
+REGISTER_HELP(
+    CMD_OPTION_DETAIL1,
+    "@li <b>-h</b>, <b>--help</b> [<filter>]: print help for the shell options "
+    "matching filter.");
+REGISTER_HELP(CMD_OPTION_DETAIL2,
+              "@li <b>-l</b>, <b>--list</b> [<b>--show-origin</b>]: list all "
+              "the shell options.");
+REGISTER_HELP(CMD_OPTION_DETAIL3,
+              "@li <shell_option>: print value of the shell option.");
+REGISTER_HELP(
+    CMD_OPTION_DETAIL4,
+    "@li <shell_option> [=] <value> sets the value for the shell option.");
+REGISTER_HELP(CMD_OPTION_DETAIL5,
+              "@li <b>--persist</b> causes an option to be stored on the "
+              "configuration file");
+REGISTER_HELP(
+    CMD_OPTION_DETAIL6,
+    "@li <b>--unset</b> resets an option value to the default value.");
+// REGISTER_HELP(CMD_OPTION_EXAMPLE, "\\option -mx root@localhost");
+
+REGISTER_HELP(CMD_SOURCE_BRIEF, "Loads and executes a script from a file.");
+REGISTER_HELP(CMD_SOURCE_SYNTAX, "<b>\\source</b> <path>");
+REGISTER_HELP(CMD_SOURCE_SYNTAX1, "<b>\\.</b> <path>");
+REGISTER_HELP(
+    CMD_SOURCE_DETAIL,
+    "Executes a script from a file, the following languages are supported:");
+REGISTER_HELP(CMD_SOURCE_DETAIL1, "@li JavaScript");
+REGISTER_HELP(CMD_SOURCE_DETAIL2, "@li Python");
+REGISTER_HELP(CMD_SOURCE_DETAIL3, "@li SQL");
+REGISTER_HELP(
+    CMD_SOURCE_DETAIL4,
+    "The file will be loaded and executed using the active language.");
+#ifdef _WIN32
+REGISTER_HELP(CMD_SOURCE_EXAMPLE,
+              "<b>\\source</b> C:\\Users\\MySQL\\sakila.sql");
+REGISTER_HELP(CMD_SOURCE_EXAMPLE1, "<b>\\.</b> C:\\Users\\MySQL\\sakila.sql");
+#else
+REGISTER_HELP(CMD_SOURCE_EXAMPLE, "<b>\\source</b> /home/me/sakila.sql");
+REGISTER_HELP(CMD_SOURCE_EXAMPLE1, "<b>\\.</b> /home/me/sakila.sql");
+#endif
+
+REGISTER_HELP(CMD_USE_BRIEF, "Sets the active schema.");
+REGISTER_HELP(CMD_USE_SYNTAX, "<b>\\use</b> <schema>");
+REGISTER_HELP(CMD_USE_SYNTAX1, "<b>\\u</b> <schema>");
+REGISTER_HELP(CMD_USE_DETAIL,
+              "Uses the global session to set the active schema.");
+REGISTER_HELP(CMD_USE_DETAIL1, "When this command is used:");
+REGISTER_HELP(CMD_USE_DETAIL2,
+              "@li The active schema in SQL mode will be updated.");
+REGISTER_HELP(
+    CMD_USE_DETAIL3,
+    "@li The <b>db</b> global variable available on the scripting modes "
+    "will be updated.");
+REGISTER_HELP(CMD_USE_EXAMPLE, "<b>\\use</b> mysql");
+REGISTER_HELP(CMD_USE_EXAMPLE1, "<b>\\u</b> mysql");
+
+REGISTER_HELP(CMD_REHASH_BRIEF, "Refresh the autocompletion cache.");
+REGISTER_HELP(CMD_REHASH_SYNTAX, "<b>\\rehash</b>");
+REGISTER_HELP(CMD_REHASH_DETAIL,
+              "Populate or refresh the schema object name cache used for SQL "
+              "auto-completion and the DevAPI schema object.");
+REGISTER_HELP(CMD_REHASH_DETAIL1,
+              "A rehash is automatically done whenever the 'use' command is "
+              "executed, unless the shell is started with --no-name-cache.");
+REGISTER_HELP(CMD_REHASH_DETAIL2,
+              "This may take a long time if you have many schemas or many "
+              "objects in the default schema.");
+
+REGISTER_HELP(CMD_HELP_BRIEF,
+              "Prints help information about a specific topic.");
+REGISTER_HELP(CMD_HELP_SYNTAX, "<b>\\help</b> [pattern]");
+REGISTER_HELP(CMD_HELP_SYNTAX1, "<b>\\h</b> [pattern]");
+REGISTER_HELP(CMD_HELP_SYNTAX2, "<b>\\?</b> [pattern]");
+REGISTER_HELP(CMD_HELP_DETAIL, "%{contents:detail,categories}");
+
+REGISTER_HELP(
+    CMD_HELP_DETAIL10,
+    "If no pattern is specified a generic help is going to be displayed.");
+REGISTER_HELP(
+    CMD_HELP_DETAIL11,
+    "To display the available help categories use <b>\\help<b> contents");
+REGISTER_HELP(CMD_HELP_EXAMPLE, "<b>\\help</b>");
+REGISTER_HELP(CMD_HELP_EXAMPLE_DESC,
+              "With no parameters this command prints the general shell help.");
+REGISTER_HELP(CMD_HELP_EXAMPLE1, "<b>\\?</b> contents");
+REGISTER_HELP(CMD_HELP_EXAMPLE1_DESC,
+              "Describes information about the help organization.");
+REGISTER_HELP(CMD_HELP_EXAMPLE2, "<b>\\h</b> cluster");
+REGISTER_HELP(CMD_HELP_EXAMPLE2_DESC,
+              "Prints the information available for the <b>Cluster</b> class.");
+REGISTER_HELP(CMD_HELP_EXAMPLE3, "<b>\\?</b> *sandbox*");
+REGISTER_HELP(CMD_HELP_EXAMPLE3_DESC,
+              "List the available functions for sandbox operations.");
+
+REGISTER_HELP(CMD_SQL_BRIEF, "Switches to SQL processing mode.");
+REGISTER_HELP(CMD_SQL_SYNTAX, "<b>\\sql</b>");
+
+REGISTER_HELP(CMD_JS_BRIEF, "Switches to JavaScript processing mode.");
+REGISTER_HELP(CMD_JS_SYNTAX, "<b>\\js</b>");
+
+REGISTER_HELP(CMD_PY_BRIEF, "Switches to Python processing mode.");
+REGISTER_HELP(CMD_PY_SYNTAX, "<b>\\py</b>");
+
+REGISTER_HELP(CMD_ML_BRIEF, "Start multi-line input when in SQL mode.");
+REGISTER_HELP(CMD_ML_SYNTAX, "<b>\\</b>");
+
+REGISTER_HELP(CMD_EXIT_BRIEF, "Exits the MySQL Shell, same as \\quit.");
+REGISTER_HELP(CMD_EXIT_SYNTAX, "<b>\\exit</b>");
+
+REGISTER_HELP(CMD_QUIT_BRIEF, "Exits the MySQL Shell.");
+REGISTER_HELP(CMD_QUIT_SYNTAX, "<b>\\quit</b>");
+
+REGISTER_HELP(CMD_RECONNECT_BRIEF, "Reconnects the global session.");
+REGISTER_HELP(CMD_RECONNECT_SYNTAX, "<b>\\reconnect</b>");
+
+REGISTER_HELP(CMD_STATUS_BRIEF,
+              "Print information about the current global session.");
+REGISTER_HELP(CMD_STATUS_SYNTAX, "<b>\\status</b>");
+REGISTER_HELP(CMD_STATUS_SYNTAX1, "<b>\\s</b>");
+
+REGISTER_HELP(CMD_WARNINGS_BRIEF, "Show warnings after every statement.");
+REGISTER_HELP(CMD_WARNINGS_SYNTAX, "<b>\\warnings</b>");
+REGISTER_HELP(CMD_WARNINGS_SYNTAX1, "<b>\\W</b>");
+
+REGISTER_HELP(CMD_NOWARNINGS_BRIEF,
+              "Don't show warnings after every statement.");
+REGISTER_HELP(CMD_NOWARNINGS_SYNTAX, "<b>\\nowarnings</b>");
+REGISTER_HELP(CMD_NOWARNINGS_SYNTAX1, "<b>\\w</b>");
 
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
@@ -197,129 +438,52 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   // Register custom auto-completion rules
   add_devapi_completions();
 
-  // clang-format off
-  std::string cmd_help_connect =
-      "SYNTAX:\n"
-      "   \\connect [<TYPE>] <URI>\n\n"
-      "WHERE:\n"
-      "   TYPE is an optional parameter to specify the session type. Accepts "
-      "the following values:\n"
-      "        -mc, --mysql: create a classic MySQL protocol session (default port 3306)\n"
-      "        -mx, --mysqlx: create an X protocol session (default port 33060)\n"
-      "        -ma: attempt to create a session using automatic detection of the protocol type\n"
-      "        If TYPE is omitted, -ma is assumed by default, unless the protocol is given in the URI.\n"
-      "   URI format is: [user[:password]@]hostname[:port]\n\n"
-      "EXAMPLE:\n"
-      "   \\connect -mx root@localhost";
-
-  std::string cmd_help_source =
-      "SYNTAX:\n"
-      "   \\source <sql_file_path>\n"
-      "   \\. <sql_file_path>\n\n"
-      "EXAMPLES:\n"
-#ifdef _WIN32
-      "   \\source C:\\Users\\MySQL\\sakila.sql\n"
-      "   \\. C:\\Users\\MySQL\\sakila.sql\n\n"
-#else
-      "   \\source /home/me/sakila.sql\n"
-      "   \\. /home/me/sakila.sql\n\n"
-#endif
-      "NOTE: Can execute files from the following supported types: SQL, JavaScript, or Python.\n"
-      "The file is processed using the active language set for processing mode.\n";
-
-  std::string cmd_help_use =
-    "SYNTAX:\n"
-    "   \\use <schema>\n"
-    "   \\u <schema>\n\n"
-    "EXAMPLES:\n"
-    "   \\use mysql"
-    "   \\u 'my schema'"
-    "NOTE: This command works with the active session.\n"
-    "If it is either an X Protocol or a classic MySQL protocol session, the current schema will be updated (affects SQL mode).\n"
-    "The global 'db' variable will be updated to hold the requested schema.\n";
-
-  std::string cmd_help_rehash =
-    "SYNTAX:\n"
-    "   \\rehash\n\n"
-    "Populate or refresh the schema object name cache used for SQL auto-completion and the DevAPI schema object.\n"
-    "A rehash is automatically done whenever the 'use' command is executed, unless the shell is started with --no-name-cache.\n"
-    "This may take a long time if you have many schemas or many objects in the default schema.\n";
-  // clang-format on
-
-  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "",
+  auto global_command = shcore::IShell_core::Mode_mask::all();
+  SET_SHELL_COMMAND("\\help|\\?|\\h", "CMD_HELP",
                     Mysql_shell::cmd_print_shell_help);
   SET_CUSTOM_SHELL_COMMAND(
-      "\\sql", "Switch to SQL processing mode.", "",
+      "\\sql", "CMD_SQL",
       [this](const std::vector<std::string> &args) -> bool {
         if (switch_shell_mode(shcore::Shell_core::Mode::SQL, args))
           refresh_completion();
         return true;
-      });
+      },
+      false, global_command);
 #ifdef HAVE_V8
   SET_CUSTOM_SHELL_COMMAND(
-      "\\js", "Switch to JavaScript processing mode.", "",
+      "\\js", "CMD_JS",
       [this](const std::vector<std::string> &args) -> bool {
         switch_shell_mode(shcore::Shell_core::Mode::JavaScript, args);
         return true;
-      });
+      },
+      false, global_command);
 #endif
 #ifdef HAVE_PYTHON
   SET_CUSTOM_SHELL_COMMAND(
-      "\\py", "Switch to Python processing mode.", "",
+      "\\py", "CMD_PY",
       [this](const std::vector<std::string> &args) -> bool {
         switch_shell_mode(shcore::Shell_core::Mode::Python, args);
         return true;
-      });
+      },
+      false, global_command);
 #endif
-  SET_SHELL_COMMAND("\\source|\\.",
-                    "Execute a script file. Takes a file name as an argument.",
-                    cmd_help_source, Mysql_shell::cmd_process_file);
-  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "",
-                    Mysql_shell::cmd_start_multiline);
-  SET_SHELL_COMMAND("\\quit|\\q", "Quit MySQL Shell.", "",
-                    Mysql_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\exit", "Exit MySQL Shell. Same as \\quit", "",
-                    Mysql_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect,
-                    Mysql_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\reconnect", "Reconnect with a server.", "",
-                    Mysql_shell::cmd_reconnect);
-  SET_SHELL_COMMAND("\\option", "Manage MySQL Shell options.", cmd_help_option,
-                    Mysql_shell::cmd_option);
-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.",
-                    "", Mysql_shell::cmd_warnings);
-  SET_SHELL_COMMAND("\\nowarnings|\\w",
-                    "Don't show warnings after every statement.", "",
-                    Mysql_shell::cmd_nowarnings);
-  SET_SHELL_COMMAND("\\status|\\s",
-                    "Print information about the current global connection.",
-                    "", Mysql_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u",
-                    "Set the current schema for the active session.",
-                    cmd_help_use, Mysql_shell::cmd_use);
-  SET_SHELL_COMMAND("\\rehash",
-                    "Update the auto-completion cache with database names.",
-                    cmd_help_rehash, Mysql_shell::cmd_rehash);
-
-  // clang-format off
-  const std::string cmd_help_store_connection =
-      "SYNTAX:\n"
-      "   \\savecon [-f] <SESSION_CONFIG_NAME> <URI>\n\n"
-      "   \\savecon <SESSION_CONFIG_NAME>\n\n"
-      "WHERE:\n"
-      "   SESSION_CONFIG_NAME is the name to be assigned to the session configuration. Must be a valid identifier\n"
-      "   -f is an optional flag, when specified the store operation will override the configuration associated to SESSION_CONFIG_NAME\n"
-      "   URI Optional. Must be a connection string following the URI convention. If not provided, use the URI of the current session.\n\n"
-      "EXAMPLES:\n"
-      "   \\saveconn my_config_name root:123@localhost:33060\n";
-  const std::string cmd_help_delete_connection =
-      "SYNTAX:\n"
-      "   \\rmconn <SESSION_CONFIG_NAME>\n\n"
-      "WHERE:\n"
-      "   SESSION_CONFIG_NAME is the name of session configuration to be deleted.\n\n"
-      "EXAMPLES:\n"
-      "   \\rmconn my_config_name\n";
-  // clang-format on
+  SET_SHELL_COMMAND("\\source|\\.", "CMD_SOURCE",
+                    Mysql_shell::cmd_process_file);
+  SET_SHELL_COMMAND("\\", "CMD_ML", Mysql_shell::cmd_start_multiline);
+  SET_SHELL_COMMAND("\\quit|\\q", "CMD_QUIT", Mysql_shell::cmd_quit);
+  SET_SHELL_COMMAND("\\exit", "CMD_EXIT", Mysql_shell::cmd_quit);
+  SET_SHELL_COMMAND("\\connect|\\c", "CMD_CONNECT", Mysql_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\reconnect", "CMD_RECONNECT", Mysql_shell::cmd_reconnect);
+  SET_SHELL_COMMAND("\\option", "CMD_OPTION", Mysql_shell::cmd_option);
+  SET_CUSTOM_SHELL_COMMAND("\\warnings|\\W", "CMD_WARNINGS",
+                           std::bind(&Mysql_shell::cmd_warnings, this, _1),
+                           true, global_command);
+  SET_CUSTOM_SHELL_COMMAND("\\nowarnings|\\w", "CMD_NOWARNINGS",
+                           std::bind(&Mysql_shell::cmd_nowarnings, this, _1),
+                           true, global_command);
+  SET_SHELL_COMMAND("\\status|\\s", "CMD_STATUS", Mysql_shell::cmd_status);
+  SET_SHELL_COMMAND("\\use|\\u", "CMD_USE", Mysql_shell::cmd_use);
+  SET_SHELL_COMMAND("\\rehash", "CMD_REHASH", Mysql_shell::cmd_rehash);
 }
 
 Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
@@ -593,84 +757,8 @@ std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
-  bool printed = false;
-
-  // If help came with parameter attempts to print the
-  // specific help on the active shell first and global commands
-  if (args.size() > 1) {
-    printed = _shell->print_help(args[1]);
-
-    if (!printed) {
-      std::string help;
-      if (_shell_command_handler.get_command_help(args[1], help)) {
-        _shell->println(help);
-        printed = true;
-      }
-    }
-
-    if (!printed) {
-      std::string topic = "TOPIC_" + args[1];
-      auto data = shcore::get_help_text(topic);
-
-      if (!data.empty()) {
-        _shell->println(shcore::format_markup_text(data, 80, 0));
-        printed = true;
-      }
-    }
-  }
-
-  // If not specific help found, prints the generic help
-  if (!printed) {
-    _shell->print(
-        _shell_command_handler.get_commands("===== Global Commands ====="));
-
-    // Prints the active shell specific help
-    _shell->print_help("");
-
-    println("");
-    println("For help on a specific command use the command as \\? <command>");
-    println("");
-    auto globals = _shell->get_global_objects(interactive_mode());
-    std::vector<std::pair<std::string, std::string>> global_names;
-
-    if (globals.size()) {
-      for (auto name : globals) {
-        auto object_val = _shell->get_global(name);
-        auto object = std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
-            object_val.as_object());
-        global_names.push_back({name, object->class_name()});
-      }
-    }
-
-    // Inserts the default modules
-    if (shcore::IShell_core::all_scripting_modes().is_set(interactive_mode())) {
-      global_names.push_back({"mysqlx", "mysqlx"});
-      global_names.push_back({"mysql", "mysql"});
-    }
-
-    std::sort(global_names.begin(), global_names.end());
-
-    if (!global_names.empty() &&
-        interactive_mode() != shcore::IShell_core::Mode::SQL) {
-      println("===== Global Objects =====");
-      for (auto name : global_names) {
-        auto brief = shcore::get_help_text(name.second + "_INTERACTIVE_BRIEF");
-        if (brief.empty())
-          brief = shcore::get_help_text(name.second + "_BRIEF");
-
-        if (!brief.empty())
-          println(shcore::str_format("%-10s %s", name.first.c_str(),
-                                     brief[0].c_str()));
-      }
-    }
-
-    println("");
-    println(
-        "For more help on a global variable use <var>.help(), e.g. dba.help()");
-    println("");
-  }
-
-  return true;
+  return Command_help(_shell, _console_handler)(args);
+  ;
 }
 
 bool Mysql_shell::cmd_start_multiline(const std::vector<std::string> &args) {
@@ -1050,7 +1138,7 @@ void Mysql_shell::refresh_completion(bool force) {
 bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
   try {
     if (args.size() < 2 || args.size() > 5) {
-      print_error(cmd_help_option);
+      print_error(_shell->get_helper()->get_help("Shell Commands \\option"));
     } else if (args[1] == "-h" || args[1] == "--help") {
       std::string filter = args.size() > 2 ? args[2] : "";
       auto help = get_options()->get_named_help(filter, 80, 1);
@@ -1341,13 +1429,16 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getSession", "ClassicSession", true}});
 
   registry->add_completable_type("Operation*", {{"execute", "Result", true}});
-  registry->add_completable_type(
-      "Bind*", {{"bind", "Bind*", true}, {"execute", "Result", true}});
-  registry->add_completable_type(
-      "SqlBind*", {{"bind", "SqlBind*", true}, {"execute", "SqlResult", true}});
-  registry->add_completable_type(
-      "SqlOperation*",
-      {{"bind", "SqlBind*", true}, {"execute", "SqlResult", true}});
+  registry->add_completable_type("Bind*", {{"bind", "Bind*", true},
+                                           {"execute", "Result", true},
+                                           {"help", "", true}});
+  registry->add_completable_type("SqlBind*", {{"bind", "SqlBind*", true},
+                                              {"execute", "SqlResult", true},
+                                              {"help", "", true}});
+  registry->add_completable_type("SqlOperation*",
+                                 {{"bind", "SqlBind*", true},
+                                  {"execute", "SqlResult", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("Session",
                                  {{"uri", "", false},
@@ -1419,7 +1510,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("CollectionFind*fields",
                                  {{"groupBy", "CollectionFind*groupBy", true},
                                   {"sort", "CollectionFind*sort", true},
@@ -1427,58 +1519,77 @@ void Mysql_shell::add_devapi_completions() {
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
-  registry->add_completable_type("CollectionFind*groupBy",
-                                 {{"having", "CollectionFind*having", true},
-                                  {"sort", "CollectionFind*sort", true},
-                                  {"limit", "CollectionFind*limit", true},
-                                  {"lockShared", "Bind*", true},
-                                  {"lockExclusive", "Bind*", true},
-                                  {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
+  registry->add_completable_type(
+      "CollectionFind*groupBy",
+      {{"having", "CollectionFind*having", true},
+       {"sort", "CollectionFind*sort", true},
+       {"limit", "CollectionFind*limit", true},
+       {"lockShared", "CollectionFind*lockShared", true},
+       {"lockExclusive", "CollectionFind*lockShared", true},
+       {"bind", "Bind*", true},
+       {"execute", "DocResult", true},
+       {"help", "", true}});
   registry->add_completable_type("CollectionFind*having",
                                  {{"sort", "CollectionFind*sort", true},
                                   {"limit", "CollectionFind*limit", true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("CollectionFind*sort",
                                  {{"limit", "CollectionFind*limit", true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("CollectionFind*limit",
                                  {{"skip", "CollectionFind*skip", true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("CollectionFind*skip",
                                  {{"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "DocResult", true}});
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
+  registry->add_completable_type("CollectionFind*lockShared",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
+  registry->add_completable_type("CollectionFind*lockExclusive",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "DocResult", true},
+                                  {"help", "", true}});
 
-  registry->add_completable_type(
-      "CollectionAdd",
-      {{"add", "CollectionAdd", true}, {"execute", "Result", true}});
+  registry->add_completable_type("CollectionAdd",
+                                 {{"add", "CollectionAdd", true},
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("CollectionRemove",
                                  {{"sort", "CollectionRemove*sort", true},
                                   {"limit", "CollectionRemove*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("CollectionRemove*sort",
                                  {{"limit", "CollectionRemove*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
-  registry->add_completable_type(
-      "CollectionRemove*limit",
-      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+  registry->add_completable_type("CollectionRemove*limit",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("CollectionModify",
                                  {{"set", "CollectionModify*", true},
@@ -1487,7 +1598,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"patch", "CollectionModify*", true},
                                   {"arrayInsert", "CollectionModify*", true},
                                   {"arrayAppend", "CollectionModify*", true},
-                                  {"arrayDelete", "CollectionModify*", true}});
+                                  {"arrayDelete", "CollectionModify*", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("CollectionModify*",
                                  {{"set", "CollectionModify*", true},
@@ -1500,16 +1612,19 @@ void Mysql_shell::add_devapi_completions() {
                                   {"sort", "CollectionModify*sort", true},
                                   {"limit", "CollectionModify*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("CollectionModify*sort",
                                  {{"limit", "CollectionModify*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
-  registry->add_completable_type(
-      "CollectionModify*limit",
-      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+  registry->add_completable_type("CollectionModify*limit",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   // Table
 
@@ -1527,15 +1642,16 @@ void Mysql_shell::add_devapi_completions() {
                                            {"name", "", false},
                                            {"help", "", true}});
 
-  registry->add_completable_type("TableSelect",
-                                 {{"where", "TableSelect*where", true},
-                                  {"groupBy", "TableSelect*groupBy", true},
-                                  {"orderBy", "TableSelect*sort", true},
-                                  {"limit", "TableSelect*limit", true},
-                                  {"lockShared", "Bind*", true},
-                                  {"lockExclusive", "Bind*", true},
-                                  {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
+  registry->add_completable_type(
+      "TableSelect", {{"where", "TableSelect*where", true},
+                      {"groupBy", "TableSelect*groupBy", true},
+                      {"orderBy", "TableSelect*sort", true},
+                      {"limit", "TableSelect*limit", true},
+                      {"lockShared", "TableSelect*lockShared", true},
+                      {"lockExclusive", "TableSelect*lockExclusive", true},
+                      {"bind", "Bind*", true},
+                      {"execute", "RowResult", true},
+                      {"help", "", true}});
   registry->add_completable_type("TableSelect*where",
                                  {{"groupBy", "TableSelect*groupBy", true},
                                   {"orderBy", "TableSelect*sort", true},
@@ -1543,7 +1659,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("TableSelect*groupBy",
                                  {{"having", "TableSelect*having", true},
                                   {"orderBy", "TableSelect*sort", true},
@@ -1551,62 +1668,81 @@ void Mysql_shell::add_devapi_completions() {
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("TableSelect*having",
                                  {{"orderBy", "TableSelect*sort", true},
                                   {"limit", "TableSelect*limit", true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("TableSelect*sort",
                                  {{"limit", "TableSelect*limit", true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("TableSelect*limit",
                                  {{"offset", "TableSelect*skip", true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
   registry->add_completable_type("TableSelect*skip",
                                  {{"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "RowResult", true}});
-
-  registry->add_completable_type("TableInsert",
-                                 {{"values", "TableInsert*values", true}});
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
+  registry->add_completable_type("TableSelect*lockShared",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
+  registry->add_completable_type("TableSelect*lockExclusive",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "RowResult", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type(
-      "TableInsert*values",
-      {{"values", "TableInsert", true}, {"execute", "Result", true}});
+      "TableInsert",
+      {{"values", "TableInsert*values", true}, {"help", "", true}});
+
+  registry->add_completable_type("TableInsert*values",
+                                 {{"values", "TableInsert", true},
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("TableDelete",
                                  {{"where", "TableDelete*where", true},
                                   {"orderBy", "TableDelete*sort", true},
                                   {"limit", "TableDelete*limit", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("TableDelete*where",
                                  {{"orderBy", "TableDelete*sort", true},
                                   {"limit", "TableDelete*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("TableDelete*sort",
                                  {{"limit", "TableDelete*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
+
+  registry->add_completable_type("TableDelete*limit",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type(
-      "TableDelete*limit",
-      {{"bind", "Bind*", true}, {"execute", "Result", true}});
-
-  registry->add_completable_type("TableUpdate",
-                                 {{"set", "TableUpdate*set", true}});
+      "TableUpdate", {{"set", "TableUpdate*set", true}, {"help", "", true}});
 
   registry->add_completable_type("TableUpdate*set",
                                  {{"set", "TableUpdate*", true},
@@ -1614,22 +1750,26 @@ void Mysql_shell::add_devapi_completions() {
                                   {"orderBy", "TableUpdate*sort", true},
                                   {"limit", "TableUpdate*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("TableUpdate*where",
                                  {{"orderBy", "TableUpdate*sort", true},
                                   {"limit", "TableUpdate*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   registry->add_completable_type("TableUpdate*sort",
                                  {{"limit", "TableUpdate*limit", true},
                                   {"bind", "Bind*", true},
-                                  {"execute", "Result", true}});
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
-  registry->add_completable_type(
-      "TableUpdate*limit",
-      {{"bind", "Bind*", true}, {"execute", "Result", true}});
+  registry->add_completable_type("TableUpdate*limit",
+                                 {{"bind", "Bind*", true},
+                                  {"execute", "Result", true},
+                                  {"help", "", true}});
 
   // Results
 

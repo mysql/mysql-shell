@@ -49,7 +49,8 @@ namespace mysqlsh {
 namespace dba {
 
 // Documentation of the Cluster Class
-REGISTER_HELP(CLUSTER_BRIEF, "Management handle to an InnoDB cluster.");
+REGISTER_HELP_CLASS(Cluster, adminapi);
+REGISTER_HELP(CLUSTER_BRIEF, "Represents an InnoDB cluster.");
 REGISTER_HELP(CLUSTER_DETAIL,
               "The cluster object is the entry point to manage and monitor "
               "a MySQL InnoDB cluster.");
@@ -64,8 +65,6 @@ REGISTER_HELP(
     CLUSTER_CLOSING,
     "For more help on a specific function use: cluster.help('<functionName>')");
 REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
-
-REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
 
 Cluster::Cluster(const std::string &name,
                  std::shared_ptr<mysqlshdk::db::ISession> group_session,
@@ -117,7 +116,10 @@ void Cluster::init() {
 }
 
 // Documentation of the getName function
+REGISTER_HELP_FUNCTION(getName, Cluster);
+REGISTER_HELP_PROPERTY(name, Cluster);
 REGISTER_HELP(CLUSTER_GETNAME_BRIEF, "Retrieves the name of the cluster.");
+REGISTER_HELP(CLUSTER_NAME_BRIEF, "${CLUSTER_GETNAME_BRIEF}");
 REGISTER_HELP(CLUSTER_GETNAME_RETURNS, "@returns The name of the cluster.");
 
 /**
@@ -258,6 +260,7 @@ shcore::Value Cluster::add_seed_instance(
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(addInstance, Cluster);
 REGISTER_HELP(CLUSTER_ADDINSTANCE_BRIEF, "Adds an Instance to the cluster.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM,
               "@param instance An instance "
@@ -328,7 +331,7 @@ REGISTER_HELP(
     "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3,
               "The options dictionary may contain "
@@ -362,7 +365,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
               "if it is specified on the options.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
-              "@warning The memberSslMode option is deprecated and will be "
+              "@note The memberSslMode option is deprecated and will be "
               "removed in a future release.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
@@ -520,6 +523,7 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);
 REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF,
               "Rejoins an Instance to the cluster.");
 REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM,
@@ -582,7 +586,7 @@ REGISTER_HELP(
     "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3,
               "The options dictionary may "
@@ -608,7 +612,7 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
               "if it is specified on the options.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
-              "@warning The memberSslMode option is deprecated and will be "
+              "@note The memberSslMode option is deprecated and will be "
               "removed in a future release.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10,
@@ -727,6 +731,7 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(removeInstance, Cluster);
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF,
               "Removes an Instance from the cluster.");
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM,
@@ -776,7 +781,7 @@ REGISTER_HELP(
     "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3,
               "The options dictionary may contain the following attributes:");
@@ -932,6 +937,7 @@ void Cluster::set_default_replicaset(const std::string &name,
     _default_replica_set->set_cluster(shared_from_this());
 }
 
+REGISTER_HELP_FUNCTION(describe, Cluster);
 REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
 REGISTER_HELP(CLUSTER_DESCRIBE_THROWS,
               "MetadataError in the following scenarios:");
@@ -1038,6 +1044,7 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(status, Cluster);
 REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
 
 REGISTER_HELP(CLUSTER_STATUS_THROWS,
@@ -1182,6 +1189,7 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(dissolve, Cluster);
 REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
 
 REGISTER_HELP(CLUSTER_DISSOLVE_THROWS,
@@ -1303,6 +1311,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP_FUNCTION(rescan, Cluster);
 REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
 
 REGISTER_HELP(CLUSTER_RESCAN_THROWS,
@@ -1378,6 +1387,7 @@ shcore::Value::Map_type_ref Cluster::_rescan(
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(disconnect, Cluster);
 REGISTER_HELP(CLUSTER_DISCONNECT_BRIEF,
               "Disconnects all internal sessions used by the cluster object.");
 
@@ -1418,6 +1428,7 @@ shcore::Value Cluster::disconnect(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP_FUNCTION(forceQuorumUsingPartitionOf, Cluster);
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_BRIEF,
               "Restores the cluster from quorum loss.");
 REGISTER_HELP(
@@ -1464,7 +1475,7 @@ REGISTER_HELP(
     "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(CLUSTER_FORCEQUORUMUSINGPARTITIONOF_DETAIL3,
               "The options dictionary may contain the following options:");
@@ -1584,6 +1595,7 @@ void Cluster::set_attribute(const std::string &attribute,
   (*_attributes)[attribute] = value;
 }
 
+REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_BRIEF,
               "Verifies the instance gtid state in relation with the cluster.");
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_PARAM,
@@ -1625,7 +1637,7 @@ REGISTER_HELP(
     "The instance definition is the connection data for the instance.");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL2,
-              "TOPIC_CONNECTION_MORE_INFO_TCP_ONLY");
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
 
 REGISTER_HELP(CLUSTER_CHECKINSTANCESTATE_DETAIL3,
               "The password may be contained on the instance definition, "

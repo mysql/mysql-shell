@@ -1,43 +1,3 @@
-//@<OUT> Schema: help
-**  View Support  **
-
-MySQL Views are stored queries that when executed produce a result set.
-
-MySQL supports the concept of Updatable Views: in specific conditions are met,
-Views can be used not only to retrieve data from them but also to update, add
-and delete records.
-
-For the purpose of this API, Views behave similar to a Table, and so they are
-treated as Tables.
-
-The following properties are currently supported.
-
- - name
- - session
- - schema
- - table1
- - view1
- - collection1
-
-
-The following functions are currently supported.
-
- - createCollection     Creates in the current schema a new collection with the
-                        specified name and retrieves an object representing the
-                        new collection created.
- - dropCollection       Drops the specified collection.
- - existsInDatabase
- - getCollection        Returns the Collection of the given name for this
-                        schema.
- - getCollectionAsTable Returns a Table object representing a Collection on the
-                        database.
- - getCollections       Returns a list of Collections for this Schema.
- - getName
- - getSchema
- - getSession
- - getTable             Returns the Table of the given name for this schema.
- - getTables            Returns a list of Tables for this Schema.
- - help                 Provides help about this class and it's members
 
 //@ Schema: validating members
 |Member Count: 18|
@@ -106,18 +66,6 @@ The following functions are currently supported.
 
 //@ Collection creation
 |createCollection(): <Collection:my_sample_collection>|
-
-//@<OUT> Testing help for dropCollection
-Drops the specified collection.
-
-SYNTAX
-
-  <Schema>.dropCollection()
-
-RETURNS
-
-  Nothing.
-
 
 //@ Testing dropping existing schema objects
 |<Collection:collection1>|

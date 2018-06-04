@@ -25,6 +25,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/object_factory.h"
 
 #ifdef __clang__

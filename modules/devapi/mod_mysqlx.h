@@ -68,10 +68,14 @@ namespace mysqlx {
 Types Types;  //!< $(MYSQLX_TYPE_BRIEF)
 Session getSession(ConnectionData connectionData, String password);
 Expression expr(String expressionStr);
+String dateValue(Integer year, Integer month, Integer day, Integer hour,
+                 Integer minutes, Integer seconds, Integer milliseconds);
 #elif DOXYGEN_PY
 Types Types;  //!< $(MYSQLX_TYPE_BRIEF)
 Session get_session(ConnectionData connectionData, str password);
 Expression expr(str expressionStr);
+String date_value(int year, int month, int day, int hour, int minutes,
+                  int seconds, int milliseconds);
 #endif
 
 DECLARE_MODULE(Mysqlx, mysqlx);

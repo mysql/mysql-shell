@@ -35,6 +35,7 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of SqlExecute class
+REGISTER_HELP_CLASS(SqlExecute, mysqlx);
 REGISTER_HELP(
     SQLEXECUTE_BRIEF,
     "Handler for execution SQL statements, supports parameter binding.");
@@ -62,6 +63,7 @@ SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
 }
 
 // Documentation of sql function
+REGISTER_HELP_FUNCTION(sql, SqlExecute);
 REGISTER_HELP(SQLEXECUTE_SQL_BRIEF,
               "Sets the sql statement to be executed by this handler.");
 REGISTER_HELP(
@@ -126,6 +128,7 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args) {
 }
 
 // Documentation of bind function
+REGISTER_HELP_FUNCTION(bind, SqlExecute);
 REGISTER_HELP(
     SQLEXECUTE_BIND_BRIEF,
     "Registers a parameter to be bound on the execution of the SQL statement.");
@@ -216,6 +219,7 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args) {
 }
 
 // Documentation of execute function
+REGISTER_HELP_FUNCTION(execute, SqlExecute);
 REGISTER_HELP(SQLEXECUTE_EXECUTE_BRIEF, "Executes the sql statement.");
 REGISTER_HELP(SQLEXECUTE_EXECUTE_RETURNS, "@returns A SqlResult object.");
 REGISTER_HELP(SQLEXECUTE_EXECUTE_DETAIL, "This function can be invoked after:");

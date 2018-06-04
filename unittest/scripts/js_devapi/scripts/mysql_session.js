@@ -21,9 +21,6 @@ validateMember(sessionMembers, 'defaultSchema');
 validateMember(sessionMembers, 'uri');
 validateMember(sessionMembers, 'currentSchema');
 
-//@<OUT> Session: help
-classicSession.help()
-
 //@ ClassicSession: accessing Schemas
 var schemas = classicSession.getSchemas();
 

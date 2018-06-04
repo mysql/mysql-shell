@@ -43,6 +43,7 @@ using namespace std::placeholders;
 using namespace mysqlsh;
 using namespace shcore;
 
+REGISTER_HELP_CLASS(DatabaseObject, mysqlx);
 REGISTER_HELP(DATABASEOBJECT_BRIEF,
               "Provides base functionality for database objects.");
 
@@ -97,7 +98,9 @@ bool DatabaseObject::operator==(const Object_bridge &other) const {
   return false;
 }
 
+REGISTER_HELP_PROPERTY(name, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_NAME_BRIEF, "The name of this database object.");
+REGISTER_HELP_FUNCTION(getName, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_GETNAME_BRIEF,
               "Returns the name of this database object.");
 
@@ -110,8 +113,10 @@ String DatabaseObject::getName() {}
 str DatabaseObject::get_name() {}
 #endif
 
+REGISTER_HELP_PROPERTY(session, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_SESSION_BRIEF,
               "The Session object of this database object.");
+REGISTER_HELP_FUNCTION(getSession, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_GETSESSION_BRIEF,
               "Returns the Session object of this database object.");
 REGISTER_HELP(DATABASEOBJECT_GETSESSION_RETURNS,
@@ -139,8 +144,10 @@ Object DatabaseObject::getSession() {}
 object DatabaseObject::get_session() {}
 #endif
 
+REGISTER_HELP_PROPERTY(schema, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_SCHEMA_BRIEF,
               "The Schema object of this database object.");
+REGISTER_HELP_FUNCTION(getSchema, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_GETSCHEMA_BRIEF,
               "Returns the Schema object of this database object.");
 REGISTER_HELP(DATABASEOBJECT_GETSCHEMA_RETURNS,
@@ -202,6 +209,7 @@ Value DatabaseObject::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(existsInDatabase, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_EXISTSINDATABASE_BRIEF,
               "Verifies if this object exists in the database.");
 REGISTER_HELP(DATABASEOBJECT_EXISTSINDATABASE_RETURNS,

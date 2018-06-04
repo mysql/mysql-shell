@@ -109,9 +109,6 @@ docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
 //! [CollectionRemove: full remove]
 
-#@<OUT> CollectionRemove: help
-collection.help('remove')
-
 # Cleanup
 mySession.drop_schema('js_shell_test')
 mySession.close()

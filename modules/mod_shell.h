@@ -36,6 +36,7 @@
 namespace mysqlsh {
 /**
  * \ingroup ShellAPI
+ * Sample
  * $(SHELL_BRIEF)
  */
 class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
@@ -54,7 +55,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   shcore::Value prompt(const shcore::Argument_list &args);
   shcore::Value connect(const shcore::Argument_list &args);
 
+#if !defined(DOXYGEN_PY)
   void set_current_schema(const std::string &name);
+#endif
 
   shcore::Value _set_current_schema(const shcore::Argument_list &args);
   shcore::Value set_session(const shcore::Argument_list &args);
@@ -68,14 +71,22 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Dictionary parseUri(String uri);
   String prompt(String message, Dictionary options);
   Undefined connect(ConnectionData connectionData, String password);
+  Session getSession();
+  Undefined setSession(Session session);
+  Undefined setCurrentSchema(String name);
   Undefined log(String level, String message);
+  Undefined reconnect();
   Undefined status();
 #elif DOXYGEN_PY
   Options options;
   dict parse_uri(str uri);
   str prompt(str message, dict options);
   None connect(ConnectionData connectionData, str password);
+  Session get_session();
+  None set_session(Session session);
+  None set_current_schema(str name);
   None log(str level, str message);
+  None reconnect();
   None status();
 #endif
 

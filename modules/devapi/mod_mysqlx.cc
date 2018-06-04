@@ -33,9 +33,41 @@
 using namespace std::placeholders;
 namespace mysqlsh {
 namespace mysqlx {
-
+REGISTER_HELP_TOPIC(X DevAPI, CATEGORY, devapi, Contents, SCRIPTING);
+REGISTER_HELP(DEVAPI_BRIEF,
+              "Details the <b>mysqlx</b> module as well as the capabilities of "
+              "the X DevAPI which enable working with MySQL as a Document "
+              "Store");
+REGISTER_HELP(DEVAPI_DETAIL,
+              "The X DevAPI allows working with MySQL databases through a "
+              "modern and fluent API. It specially simplifies using MySQL as a "
+              "Document Store.");
+REGISTER_HELP(DEVAPI_DETAIL1,
+              "The variety of operations available through this API includes:");
 REGISTER_HELP(
-    MYSQLX_INTERACTIVE_BRIEF,
+    DEVAPI_DETAIL2,
+    "@li Creation of a session to an X Protocol enabled MySQL Server.");
+REGISTER_HELP(DEVAPI_DETAIL3, "@li Schema management.");
+REGISTER_HELP(DEVAPI_DETAIL4, "@li Collection management.");
+REGISTER_HELP(DEVAPI_DETAIL5, "@li CRUD operations on Collections and Tables.");
+REGISTER_HELP(DEVAPI_DETAIL6,
+              "The X DevAPI is a collection of functions and classes contained "
+              "on the <b>mysqlx</b> module which is automatically loaded when "
+              "the shell starts.");
+REGISTER_HELP(DEVAPI_DETAIL7,
+              "To work on a MySQL Server with the X DevAPI, start by creating "
+              "a session using: <b>mysqlx.<<<createSession>>>(...)</b>.");
+REGISTER_HELP(
+    DEVAPI_DETAIL8,
+    "For more details about the <b>mysqlx</b> module use: <b>\\? mysqlx</b>");
+REGISTER_HELP(DEVAPI_DETAIL9,
+              "For more details about how to create a session with the X "
+              "DevAPI use: <b>\\? mysqlx</b><<<createSession>>>");
+REGISTER_HELP(DEVAPI_MODULES_DESC, "IGNORE");
+
+REGISTER_HELP_MODULE(mysqlx, devapi);
+REGISTER_HELP(
+    MYSQLX_GLOBAL_BRIEF,
     "Used to work with X Protocol sessions using the MySQL X DevAPI.");
 REGISTER_HELP(MYSQLX_BRIEF,
               "Encloses the functions and classes available to interact with "
@@ -61,7 +93,42 @@ REGISTER_HELP(MYSQLX_DETAIL3,
 REGISTER_HELP(MYSQLX_DETAIL4,
               "When running the shell in interactive mode, this module is "
               "automatically imported.");
+REGISTER_HELP(MYSQLX_OBJECTS_TITLE, "CONSTANTS");
+REGISTER_HELP_OBJECT(Type, mysqlx);
+REGISTER_HELP(TYPE_BRIEF, "Data type constants.");
+REGISTER_HELP(TYPE_DETAIL,
+              "The data type constants assigned to a Column object "
+              "retrieved through RowResult.<b><<<getColumns>>></b>(). The "
+              "following is the list of "
+              "supported data types:");
+REGISTER_HELP(TYPE_DETAIL1, "@li BIT");
+REGISTER_HELP(TYPE_DETAIL2, "@li TINYINT");
+REGISTER_HELP(TYPE_DETAIL3, "@li SMALLINT");
+REGISTER_HELP(TYPE_DETAIL4, "@li MEDIUMINT");
+REGISTER_HELP(TYPE_DETAIL5, "@li INT");
+REGISTER_HELP(TYPE_DETAIL6, "@li BIGINT");
+REGISTER_HELP(TYPE_DETAIL7, "@li FLOAT");
+REGISTER_HELP(TYPE_DETAIL8, "@li DECIMAL");
+REGISTER_HELP(TYPE_DETAIL9, "@li JSON");
+REGISTER_HELP(TYPE_DETAIL10, "@li STRING");
+REGISTER_HELP(TYPE_DETAIL11, "@li BYTES");
+REGISTER_HELP(TYPE_DETAIL12, "@li TIME");
+REGISTER_HELP(TYPE_DETAIL13, "@li DATE");
+REGISTER_HELP(TYPE_DETAIL14, "@li DATETIME");
+REGISTER_HELP(TYPE_DETAIL15, "@li SET");
+REGISTER_HELP(TYPE_DETAIL16, "@li ENUM");
+REGISTER_HELP(TYPE_DETAIL17, "@li GEOMETRY");
 
+REGISTER_HELP_OBJECT(LockContention, mysqlx);
+REGISTER_HELP(LOCKCONTENTION_BRIEF, "Row locking mode constants.");
+REGISTER_HELP(LOCKCONTENTION_DETAIL,
+              "These constants are used to indicate the locking mode to be "
+              "used at the <b><<<lockShared>>></b> and "
+              "<b><<<lockExclusive>>></b> functions of the TableSelect and "
+              "CollectionFind objects. The constants include:");
+REGISTER_HELP(LOCKCONTENTION_DETAIL1, "@li DEFAULT");
+REGISTER_HELP(LOCKCONTENTION_DETAIL2, "@li NOWAIT");
+REGISTER_HELP(LOCKCONTENTION_DETAIL3, "@li SKIP_LOCKED");
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
@@ -93,7 +160,7 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 //   return
 //   shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 // }
-
+REGISTER_HELP_FUNCTION(getSession, mysqlx);
 REGISTER_HELP(MYSQLX_GETSESSION_BRIEF,
               "Creates a Session instance using the provided connection data.");
 REGISTER_HELP(MYSQLX_GETSESSION_PARAM,
@@ -105,7 +172,7 @@ REGISTER_HELP(
     MYSQLX_GETSESSION_DETAIL,
     "A Session object uses the X Protocol to allow executing operations on the "
     "connected MySQL Server.");
-REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "${TOPIC_CONNECTION_DATA}");
 
 /**
  * \ingroup mysqlx
@@ -134,6 +201,7 @@ DEFINE_FUNCTION(Mysqlx, get_session) {
   return shcore::Value(Session::create(args));
 }
 
+REGISTER_HELP_FUNCTION(expr, mysqlx);
 REGISTER_HELP(MYSQLX_EXPR_BRIEF,
               "Creates an Expression object based on a string.");
 REGISTER_HELP(
@@ -174,6 +242,56 @@ DEFINE_FUNCTION(Mysqlx, expr) {
   return shcore::Value(Expression::create(args));
 }
 
+REGISTER_HELP_FUNCTION(dateValue, mysqlx);
+REGISTER_HELP(MYSQLX_DATEVALUE_BRIEF,
+              "Creates a <b>Date</b> object which represents a date time.");
+REGISTER_HELP(MYSQLX_DATEVALUE_PARAM,
+              "@param year The year to be used in the new Date object.");
+REGISTER_HELP(MYSQLX_DATEVALUE_PARAM1,
+              "@param month The month to be used in the new Date object.");
+REGISTER_HELP(MYSQLX_DATEVALUE_PARAM2,
+              "@param day The month to be used in the new Date object.");
+REGISTER_HELP(MYSQLX_DATEVALUE_PARAM3,
+              "@param hour Optional hour to be used in the new Date object.");
+REGISTER_HELP(
+    MYSQLX_DATEVALUE_PARAM4,
+    "@param minutes optional minutes to be used in the new Date object.");
+REGISTER_HELP(
+    MYSQLX_DATEVALUE_PARAM5,
+    "@param seconds optional seconds to be used in the new Date object.");
+REGISTER_HELP(MYSQLX_DATEVALUE_PARAM6,
+              "@param milliseconds optional milliseconds to be used in the new "
+              "Date object.");
+REGISTER_HELP(MYSQLX_DATEVALUE_SIGNATURE,
+              "(year, month, day[, hour, day, minute[, milliseconds]])");
+REGISTER_HELP(MYSQLX_DATEVALUE_DETAIL,
+              "This function creates a Date object containing:");
+REGISTER_HELP(MYSQLX_DATEVALUE_DETAIL1, "@li A date value.");
+REGISTER_HELP(MYSQLX_DATEVALUE_DETAIL2, "@li A date and time value.");
+REGISTER_HELP(MYSQLX_DATEVALUE_DETAIL3,
+              "@li A date and time value with milliseconds.");
+
+/**
+ * \ingroup mysqlx
+ * $(MYSQLX_DATEVALUE_BRIEF)
+ *
+ * $(MYSQLX_DATEVALUE_PARAM)
+ * $(MYSQLX_DATEVALUE_PARAM1)
+ * $(MYSQLX_DATEVALUE_PARAM2)
+ * $(MYSQLX_DATEVALUE_PARAM3)
+ * $(MYSQLX_DATEVALUE_PARAM4)
+ * $(MYSQLX_DATEVALUE_PARAM5)
+ * $(MYSQLX_DATEVALUE_PARAM6)
+ *
+ * $(MYSQLX_DATEVALUE_DETAIL)
+ */
+#if DOXYGEN_JS
+String dateValue(Integer year, Integer month, Integer day, Integer hour,
+                 Integer minutes, Integer seconds, Integer milliseconds) {}
+#elif DOXYGEN_PY
+String date_value(int year, int month, int day, int hour, int minutes,
+                  int seconds, int milliseconds) {}
+#endif
 DEFINE_FUNCTION(Mysqlx, date_value) {
   args.ensure_count(3, 7, get_function_name("dateValue").c_str());
   shcore::Value ret_val;

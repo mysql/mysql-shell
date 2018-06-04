@@ -35,19 +35,22 @@ namespace mysqlshdk {
 namespace textui {
 namespace internal {
 /**
- * Structure to hold color markers, including:
+ * Structure to hold color highlights, including:
  * - Position where coloring starts
  * - Length where coloring ends
  *
  * NOTE: just highlights (bold) are being used atm so nothing else
  * is required for now.
  */
-typedef std::vector<std::pair<size_t, size_t>> Color_markers;
+enum class Text_style { Bold, Warning };
 
-std::string preprocess_markup(const std::string &line, Color_markers *markers);
+typedef std::tuple<size_t, size_t, Text_style> Highlight;
+typedef std::vector<Highlight> Highlights;
+
+std::string preprocess_markup(const std::string &line, Highlights *highlights);
 
 void postprocess_markup(std::vector<std::string> *lines,
-                        const Color_markers &markers);
+                        const Highlights &highlights);
 
 std::vector<std::string> get_sized_strings(const std::string &input,
                                            size_t size);
@@ -245,10 +248,10 @@ std::string format_markup_text(const std::vector<std::string> &lines,
  * of every returned line.
  *
  * This function depends on the following functions to achieve it's purpose:
- * - preprocess_markup: does tag replacement and extracts markers for <b></b>
+ * - preprocess_markup: does tag replacement and extracts highlights for <b></b>
  * - get_sized_strings: splits the input string as required to guarantee output
  *   lines of complete words of max width size.
- * - postprocess_markup: uses th markers extracted on preprocess_markup to
+ * - postprocess_markup: uses th highlights extracted on preprocess_markup to
  *   format the text with the corresponding escape sequences
  */
 std::string format_markup_text(const std::string &line, size_t width,

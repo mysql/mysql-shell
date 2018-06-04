@@ -50,7 +50,8 @@ using namespace mysqlsh::mysql;
 using namespace shcore;
 
 // Documentation for ClassicSession class
-REGISTER_HELP(CLASSICSESSION_INTERACTIVE_BRIEF,
+REGISTER_HELP_CLASS(ClassicSession, mysql);
+REGISTER_HELP(CLASSICSESSION_GLOBAL_BRIEF,
               "Represents the currently "
               "open MySQL session.");
 REGISTER_HELP(CLASSICSESSION_BRIEF,
@@ -59,9 +60,6 @@ REGISTER_HELP(CLASSICSESSION_BRIEF,
 REGISTER_HELP(CLASSICSESSION_DETAIL,
               "Provides facilities to execute queries "
               "and retrieve database objects.");
-REGISTER_HELP(CLASSICSESSION_PARENTS,
-              "ShellDevelopmentSession,"
-              "ShellBaseSession");
 ClassicSession::ClassicSession() { init(); }
 
 ClassicSession::ClassicSession(const ClassicSession &session)
@@ -122,6 +120,7 @@ std::string ClassicSession::get_ssl_cipher() const {
 }
 
 // Documentation of close function
+REGISTER_HELP_FUNCTION(close, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_CLOSE_BRIEF,
               "Closes the internal connection to the MySQL Server held on this "
               "session object.");
@@ -151,6 +150,7 @@ Value ClassicSession::_close(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP_FUNCTION(isOpen, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_ISOPEN_BRIEF,
               "Returns true if session is "
               "known to be open.");
@@ -194,6 +194,7 @@ shcore::Value ClassicSession::_run_sql(const std::string &function,
 }
 
 // Documentation of runSql function
+REGISTER_HELP_FUNCTION(runSql, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_RUNSQL_BRIEF,
               "Executes a query and returns the "
               "corresponding ClassicResult object.");
@@ -232,6 +233,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) {
   return _run_sql("runSql", args);
 }
 
+REGISTER_HELP_FUNCTION(query, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_QUERY_BRIEF,
               "Executes a query and returns the "
               "corresponding ClassicResult object.");
@@ -353,9 +355,11 @@ void ClassicSession::create_schema(const std::string &name) {
 }
 
 // Documentation of getCurrentSchema function
+REGISTER_HELP_PROPERTY(uri, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_URI_BRIEF,
               "Retrieves the URI for the current "
               "session.");
+REGISTER_HELP_FUNCTION(getUri, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_GETURI_BRIEF,
               "Retrieves the URI for the current "
               "session.");
@@ -506,6 +510,7 @@ std::string ClassicSession::db_object_exists(std::string &type,
 }
 
 // Documentation of startTransaction function
+REGISTER_HELP_FUNCTION(startTransaction, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_BRIEF,
               "Starts a transaction context on the server.");
 REGISTER_HELP(CLASSICSESSION_STARTTRANSACTION_RETURNS,
@@ -550,6 +555,7 @@ shcore::Value ClassicSession::_start_transaction(
 }
 
 // Documentation of commit function
+REGISTER_HELP_FUNCTION(commit, ClassicSession);
 REGISTER_HELP(
     CLASSICSESSION_COMMIT_BRIEF,
     "Commits all the operations executed after a call to startTransaction().");
@@ -583,6 +589,7 @@ shcore::Value ClassicSession::_commit(const shcore::Argument_list &args) {
 }
 
 // Documentation of rollback function
+REGISTER_HELP_FUNCTION(rollback, ClassicSession);
 REGISTER_HELP(
     CLASSICSESSION_ROLLBACK_BRIEF,
     "Discards all the operations executed after a call to startTransaction().");

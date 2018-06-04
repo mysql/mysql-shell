@@ -28,9 +28,6 @@ validateMember(sessionMembers, 'default_schema')
 validateMember(sessionMembers, 'uri')
 validateMember(sessionMembers, 'current_schema')
 
-#@<OUT> Session: help
-classicSession.help()
-
 #@ ClassicSession: accessing Schemas
 schemas = classicSession.get_schemas();
 

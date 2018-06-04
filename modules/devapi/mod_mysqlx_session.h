@@ -45,7 +45,7 @@ namespace mysqlx {
 class Schema;
 /**
  * \ingroup XDevAPI
- * $(SESSION_BRIEF)
+ * @brief $(SESSION_BRIEF)
  *
  * $(SESSION_DETAIL)
  *

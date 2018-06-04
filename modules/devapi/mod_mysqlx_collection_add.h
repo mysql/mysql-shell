@@ -97,6 +97,9 @@ class CollectionAdd : public Collection_crud_definition,
     if ("execute" == s) {
       return F::execute;
     }
+    if ("help" == s) {
+      return enabled_functions_;
+    }
     return 0;
   }
 };

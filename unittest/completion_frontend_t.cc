@@ -699,14 +699,14 @@ TEST_F(Completer_frontend, js_devapi) {
   EXPECT_AFTER_TAB_TAB("session.sql('select 1')\t", strv({}));
 
   EXPECT_AFTER_TAB_TAB("session.sql('select 1').",
-                       strv({"bind()", "execute()"}));
+                       strv({"bind()", "execute()", "help()"}));
   EXPECT_AFTER_TAB("session.sql('select 1').b",
                    "session.sql('select 1').bind()");
   EXPECT_AFTER_TAB("session.sql('select 1').e",
                    "session.sql('select 1').execute()");
 
   EXPECT_AFTER_TAB_TAB("session.sql(\"select 1\").",
-                       strv({"bind()", "execute()"}));
+                       strv({"bind()", "execute()", "help()"}));
   EXPECT_AFTER_TAB("session.sql(\"select 1\").b",
                    "session.sql(\"select 1\").bind()");
   EXPECT_AFTER_TAB("session.sql(mkquery()).e",
@@ -782,7 +782,7 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   EXPECT_AFTER_TAB("db.people.find().bind().e",
                    "db.people.find().bind().execute()");
   EXPECT_AFTER_TAB("db.people.find().gr", "db.people.find().groupBy()");
-  EXPECT_AFTER_TAB("db.people.find().groupBy().h",
+  EXPECT_AFTER_TAB("db.people.find().groupBy().ha",
                    "db.people.find().groupBy().having()");
   EXPECT_AFTER_TAB("db.people.find().execute().fe",
                    "db.people.find().execute().fetch");
@@ -877,7 +877,7 @@ TEST_F(Completer_frontend, js_devapi_table) {
                    DB_PRODUCTTABLE ".select().bind().execute()");
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().gr",
                    DB_PRODUCTTABLE ".select().groupBy()");
-  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().groupBy().h",
+  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().groupBy().ha",
                    DB_PRODUCTTABLE ".select().groupBy().having()");
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().execute().fe",
                    DB_PRODUCTTABLE ".select().execute().fetch");
@@ -892,7 +892,7 @@ TEST_F(Completer_frontend, js_devapi_table) {
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select()");
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select().hav");
 
-  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".insert([]).",
+  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".insert([]).v",
                    DB_PRODUCTTABLE ".insert([]).values()");
 
   execute("var " PRODUCTTABLE " = " DB_PRODUCTTABLE);
@@ -1181,14 +1181,14 @@ TEST_F(Completer_frontend, py_devapi) {
   EXPECT_AFTER_TAB_TAB("session.sql('select 1')\t", strv({}));
 
   EXPECT_AFTER_TAB_TAB("session.sql('select 1').",
-                       strv({"bind()", "execute()"}));
+                       strv({"bind()", "execute()", "help()"}));
   EXPECT_AFTER_TAB("session.sql('select 1').b",
                    "session.sql('select 1').bind()");
   EXPECT_AFTER_TAB("session.sql('select 1').e",
                    "session.sql('select 1').execute()");
 
   EXPECT_AFTER_TAB_TAB("session.sql(\"select 1\").",
-                       strv({"bind()", "execute()"}));
+                       strv({"bind()", "execute()", "help()"}));
   EXPECT_AFTER_TAB("session.sql(\"select 1\").b",
                    "session.sql(\"select 1\").bind()");
   EXPECT_AFTER_TAB("session.sql(mkquery()).e",
@@ -1262,7 +1262,7 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB("db.people.find().bind().e",
                    "db.people.find().bind().execute()");
   EXPECT_AFTER_TAB("db.people.find().gr", "db.people.find().group_by()");
-  EXPECT_AFTER_TAB("db.people.find().group_by().h",
+  EXPECT_AFTER_TAB("db.people.find().group_by().ha",
                    "db.people.find().group_by().having()");
   EXPECT_AFTER_TAB("db.people.find().execute().fe",
                    "db.people.find().execute().fetch_");
@@ -1353,7 +1353,7 @@ TEST_F(Completer_frontend, py_devapi_table) {
                    DB_PRODUCTTABLE ".select().bind().execute()");
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().gr",
                    DB_PRODUCTTABLE ".select().group_by()");
-  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().group_by().h",
+  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().group_by().ha",
                    DB_PRODUCTTABLE ".select().group_by().having()");
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".select().execute().fe",
                    DB_PRODUCTTABLE ".select().execute().fetch_");
@@ -1368,7 +1368,7 @@ TEST_F(Completer_frontend, py_devapi_table) {
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select()");
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".select().hav");
 
-  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".insert([]).",
+  EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".insert([]).v",
                    DB_PRODUCTTABLE ".insert([]).values()");
 
   execute("productTable = " DB_PRODUCTTABLE);

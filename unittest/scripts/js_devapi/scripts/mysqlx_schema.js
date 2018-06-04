@@ -17,9 +17,6 @@ result = mySession.getSchema('js_shell_test').createCollection('collection1');
 
 var schema = mySession.getSchema('js_shell_test');
 
-//@<OUT> Schema: help
-schema.help()
-
 // We need to know the lower_case_table_names option to
 // properly handle the table shadowing unit tests
 var lcresult = mySession.sql('select @@lower_case_table_names').execute();
@@ -105,9 +102,6 @@ print('getCollectionAsTable().select():', mySchema.getCollectionAsTable('collect
 //@ Collection creation
 var collection = schema.createCollection('my_sample_collection');
 print('createCollection():', collection);
-
-//@<OUT> Testing help for dropCollection
-print (mySchema.help("dropCollection"))
 
 //@ Testing dropping existing schema objects
 print(mySchema.getCollection('collection1'));

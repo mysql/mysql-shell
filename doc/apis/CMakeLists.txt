@@ -51,7 +51,7 @@ foreach(file ${docs_SRC})
 
   foreach(line ${contents})
     IF ("${continued}" STREQUAL "0")
-      if("${line}" MATCHES "^REGISTER_HELP")
+      if("${line}" MATCHES "^REGISTER_HELP\\(")
         string(FIND "${line}" "\")" register_end)
         IF ("${register_end}" STREQUAL "-1")
           SET(ready_line "${line}")

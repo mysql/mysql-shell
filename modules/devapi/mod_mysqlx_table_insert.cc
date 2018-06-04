@@ -26,6 +26,7 @@
 #include <vector>
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "scripting/common.h"
 
@@ -33,6 +34,11 @@ using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
+REGISTER_HELP_CLASS(TableInsert, mysqlx);
+REGISTER_HELP(TABLEINSERT_BRIEF, "Operation to insert data into a table.");
+REGISTER_HELP(TABLEINSERT_DETAIL,
+              "A TableInsert object is created through the <b>insert</b> "
+              "function on the <b>Table</b> class.");
 /*
  * Class constructor represents the call to the first method on the
  * call chain, on this case insert.
@@ -63,9 +69,48 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
   update_functions(F::_empty);
 }
 
+REGISTER_HELP_FUNCTION(insert, TableInsert);
+REGISTER_HELP(TABLEINSERT_INSERT_BRIEF, "Initializes the insertion operation.");
+REGISTER_HELP(TABLEINSERT_INSERT_SIGNATURE, "()");
+REGISTER_HELP(TABLEINSERT_INSERT_SIGNATURE1, "(columnList)");
+REGISTER_HELP(TABLEINSERT_INSERT_SIGNATURE2, "(column[, column, ...])");
+REGISTER_HELP(TABLEINSERT_INSERT_SIGNATURE3,
+              "({column:value[, column:value, ...]})");
+REGISTER_HELP(TABLEINSERT_INSERT_RETURNS, "@returns This TableInsert object.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL,
+              "An insert operation requires the values to be inserted, "
+              "optionally the target colums can be defined.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL1,
+              "If this function is called without any parameter, no column "
+              "names will be defined yet.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL2,
+              "The column definition can be done by three ways:");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL3,
+              "@li Passing to the function call an array with the columns "
+              "names that will be used in the insertion.");
+REGISTER_HELP(
+    TABLEINSERT_INSERT_DETAIL4,
+    "@li Passing multiple parameters, each of them being a column name.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL5,
+              "@li Passing a JSON document, using the column names as the "
+              "document keys.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL6,
+              "If the columns are defined using either an array or multiple "
+              "parameters, the values must match the defined column names in "
+              "order and data type.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL7,
+              "If a JSON document was used, the operation is ready to be "
+              "completed and it will insert the associated value into the "
+              "corresponding column.");
+REGISTER_HELP(TABLEINSERT_INSERT_DETAIL8,
+              "If no columns are defined, insertion will suceed if the "
+              "provided values match the database columns in number and data "
+              "types.");
 #if DOXYGEN_CPP
 /**
- * Initializes the record insertion handler.
+ * $(TABLEINSERT_INSERT_BRIEF)
+ *
+ * $(TABLEINSERT_INSERT_BRIEF)
  * \param args contains the initialization data, possible values include:
  * \li An array of strings identifying the columns to be inserted. Sinsequent
  * calls to values must contain a value for each column defined here.
@@ -164,6 +209,8 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
     try {
       if (args.size()) {
         shcore::Value::Map_type_ref sh_columns_and_values;
+        REGISTER_HELP(TABLEINSERT_VALUES_RETURNS,
+                      "@returns This TableInsert object.");
 
         std::vector<std::string> columns;
 
@@ -215,40 +262,46 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the values for a row to be inserted.
-#if DOXYGEN_CPP
-//! \param args should contain a list of values to be used to insert a record.
-#else
-//! \param value1 The value for the first column.
-//! \param value2 The value for the second column.
-//! And so on.
-#endif
+REGISTER_HELP_FUNCTION(values, TableInsert);
+REGISTER_HELP(TABLEINSERT_VALUES_BRIEF,
+              "Adds a new row to the insert operation with the given values.");
+REGISTER_HELP(TABLEINSERT_VALUES_SIGNATURE, "(value[, value, ...])");
+REGISTER_HELP(TABLEINSERT_VALUES_RETURNS, "@returns This TableInsert object.");
+REGISTER_HELP(
+    TABLEINSERT_VALUES_DETAIL,
+    "Each parameter represents the value for a column in the target table.");
+REGISTER_HELP(TABLEINSERT_VALUES_DETAIL1,
+              "If the columns were defined on the <b>insert</b> function, the "
+              "number of values on this function must match the number of "
+              "defined columns.");
+REGISTER_HELP(TABLEINSERT_VALUES_DETAIL2,
+              "If no column was defined, the number of parameters must match "
+              "the number of columns on the target Table.");
+REGISTER_HELP(TABLEINSERT_VALUES_DETAIL3,
+              "This function is not available when the <b>insert</b> is called "
+              "passing a JSON object with columns and values.");
+REGISTER_HELP(TABLEINSERT_VALUES_DETAIL4, "<b>Using Expressions As Values</b>");
+REGISTER_HELP(TABLEINSERT_VALUES_DETAIL5,
+              "If a <b>mysqlx.expr(...)</b> object is defined as a value, it "
+              "will be evaluated in the server, the resulting value will be "
+              "inserted into the record.");
+
 /**
- * \return This TableInsert object.
+ * $(TABLEINSERT_VALUES_BRIEF)
  *
- * Each column value comes as a parameter on this function call.
+ * $(TABLEINSERT_VALUES_RETURNS)
  *
- * The number of parameters must match the length of the column list defined on
- * the called insert function.
- * If no column list was defined the number of parameters must match the number
- * of columns defined on the Table where the records will be inserted.
+ * $(TABLEINSERT_VALUES_DETAIL)
  *
- * The values must be positioned on the list in a way they match the column list
- * defined on the called insert function.
- * If no column list was defined the fields must match the column definition of
- * the Table where the records will be inserted.
+ * $(TABLEINSERT_VALUES_DETAIL1)
+ *
+ * $(TABLEINSERT_VALUES_DETAIL2)
+ *
+ * $(TABLEINSERT_VALUES_DETAIL3)
  *
  * #### Using Expressions for Values
  *
- * Tipically, the received values are inserted into the table in a literal way.
- *
- * An additional option is to pass an explicit expression which is evaluated on
- * the server, the resulting value is inserted on the table.
- *
- * To define an expression use:
- * \code{.py}
- * mysqlx.expr(expression)
- * \endcode
+ * $(TABLEINSERT_VALUES_DETAIL5)
  *
  * #### Method Chaining
  *
@@ -287,10 +340,15 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(execute, TableInsert);
+REGISTER_HELP(TABLEINSERT_EXECUTE_BRIEF, "Executes the insert operation.");
+REGISTER_HELP(TABLEINSERT_EXECUTE_RETURNS,
+              "@returns A <b>Result</b> object that can be used to retrieve "
+              "the results ofoperation.");
 /**
- * Executes the record insertion.
- * \return Result A result object that can be used to retrieve the results of
- * the insertion operation.
+ * $(TABLEINSERT_EXECUTE_BRIEF)
+ *
+ * $(TABLEINSERT_EXECUTE_RETURNS)
  *
  * #### Method Chaining
  *

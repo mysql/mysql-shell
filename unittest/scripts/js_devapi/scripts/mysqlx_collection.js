@@ -44,9 +44,6 @@ print('session:', collection.session);
 print('getSchema():', collection.getSchema());
 print('schema:', collection.schema);
 
-//@<OUT> Testing help of dropIndex
-collection.help("dropIndex")
-
 //@ Testing dropping index {VER(>=8.0.11)}
 collection.createIndex('_name', {fields: [{field: '$.myField', type: 'TEXT(10)'}]});
 print (collection.dropIndex('_name'));

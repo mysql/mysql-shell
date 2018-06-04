@@ -39,6 +39,13 @@ using namespace shcore;
 namespace mysqlsh {
 namespace mysqlx {
 
+REGISTER_HELP_CLASS(CollectionFind, mysqlx);
+REGISTER_HELP(COLLECTIONFIND_BRIEF,
+              "Operation to retrieve documents from a Collection.");
+REGISTER_HELP(COLLECTIONFIND_DETAIL,
+              "A CollectionFind object represents an operation to retreve "
+              "documents from a Collection, it is created through the "
+              "<b>find</b> function on the <b>Collection</b> class.");
 CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
           std::static_pointer_cast<DatabaseObject>(owner)) {
@@ -91,14 +98,13 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   update_functions(F::_empty);
 }
 
+REGISTER_HELP_FUNCTION(find, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_FIND_BRIEF,
               "Sets the search condition to identify the Documents to be "
               "retrieved from the owner Collection.");
 REGISTER_HELP(COLLECTIONFIND_FIND_PARAM,
               "@param searchCondition Optional String expression defining the "
               "condition to be used on the selection.");
-REGISTER_HELP(COLLECTIONFIND_FIND_SYNTAX, "find()");
-REGISTER_HELP(COLLECTIONFIND_FIND_SYNTAX1, "find(searchCondition)");
 REGISTER_HELP(COLLECTIONFIND_FIND_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL,
@@ -137,7 +143,7 @@ REGISTER_HELP(COLLECTIONFIND_FIND_DETAIL1,
 #endif
 /**
  * - sort(List sortExprStr)
- * - limit(Integer numberOfRows)
+ * - limit(Integer numberOfDocs)
  */
 #if DOXYGEN_JS
 /**
@@ -199,15 +205,16 @@ CollectionFind &CollectionFind::set_filter(const std::string &filter) {
   return *this;
 }
 
+REGISTER_HELP_FUNCTION(fields, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_FIELDS_BRIEF,
               "Sets the fields to be retrieved from each document matching the "
               "criteria on this find operation.");
 REGISTER_HELP(
     COLLECTIONFIND_FIELDS_PARAM,
     "@param fieldDefinition Definition of the fields to be retrieved.");
-REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX, "fields(field[, field, ...])");
-REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX1, "fields(fieldList)");
-REGISTER_HELP(COLLECTIONFIND_FIELDS_SYNTAX2, "fields(projectionExpression)");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_SIGNATURE, "(fieldList)");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_SIGNATURE1, "(field[, field, ...])");
+REGISTER_HELP(COLLECTIONFIND_FIELDS_SIGNATURE2, "(mysqlx.expr(...))");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL,
@@ -265,7 +272,7 @@ REGISTER_HELP(COLLECTIONFIND_FIELDS_DETAIL5,
 #endif
 /**
  * - sort(List sortExprStr)
- * - limit(Integer numberOfRows)
+ * - limit(Integer numberOfDocs)
  */
 #if DOXYGEN_JS
 /**
@@ -359,13 +366,11 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(groupBy, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_BRIEF,
               "Sets a grouping criteria for the resultset.");
-REGISTER_HELP(COLLECTIONFIND_GROUPBY_PARAM,
-              "@param groupCriteria A list of string expressions defining the "
-              "grouping criteria.");
-REGISTER_HELP(COLLECTIONFIND_GROUPBY_SYNTAX, "groupBy(fieldList)");
-REGISTER_HELP(COLLECTIONFIND_GROUPBY_SYNTAX1, "groupBy(field[, field, ...])");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_SIGNATURE, "(fieldList)");
+REGISTER_HELP(COLLECTIONFIND_GROUPBY_SIGNATURE1, "(field[, field, ...])");
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL,
@@ -389,7 +394,7 @@ REGISTER_HELP(COLLECTIONFIND_GROUPBY_DETAIL,
  *
  * - having(String searchCondition)
  * - sort(List sortExprStr)
- * - limit(Integer numberOfRows)
+ * - limit(Integer numberOfDocs)
  */
 #if DOXYGEN_JS
 /**
@@ -447,13 +452,13 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(having, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_HAVING_BRIEF,
               "Sets a condition for records to be considered in agregate "
               "function operations.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_PARAM,
-              "@param searchCondition A condition on the agregate functions "
+              "@param condition A condition on the agregate functions "
               "used on the grouping criteria.");
-REGISTER_HELP(COLLECTIONFIND_HAVING_SYNTAX, "having(searchCondition)");
 REGISTER_HELP(COLLECTIONFIND_HAVING_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
@@ -488,7 +493,7 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
  * After this function invocation, the following functions can be invoked:
  *
  * - sort(List sortExprStr)
- * - limit(Integer numberOfRows)
+ * - limit(Integer numberOfDocs)
  */
 #if DOXYGEN_JS
 /**
@@ -514,9 +519,9 @@ REGISTER_HELP(COLLECTIONFIND_HAVING_DETAIL,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::having(String searchCondition) {}
+CollectionFind CollectionFind::having(String condition) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::having(str searchCondition) {}
+CollectionFind CollectionFind::having(str condition) {}
 #endif
 //@}
 shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
@@ -534,14 +539,15 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(sort, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_SORT_BRIEF,
               "Sets the sorting criteria to be used on the DocResult.");
 REGISTER_HELP(
     COLLECTIONFIND_SORT_PARAM,
     "@param sortCriteria The sort criteria for the returned documents.");
-REGISTER_HELP(COLLECTIONFIND_SORT_SYNTAX,
-              "sort(sortCriterion[, sortCriterion, ...])");
-REGISTER_HELP(COLLECTIONFIND_SORT_SYNTAX1, "sort(sortCritera)");
+REGISTER_HELP(COLLECTIONFIND_SORT_SIGNATURE, "(sortCriteriaList)");
+REGISTER_HELP(COLLECTIONFIND_SORT_SIGNATURE1,
+              "(sortCriteria[, sortCriteria, ...])");
 REGISTER_HELP(COLLECTIONFIND_SORT_RETURNS,
               "@returns This CollectionFind object.");
 REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL,
@@ -589,7 +595,7 @@ REGISTER_HELP(COLLECTIONFIND_SORT_DETAIL3,
  *
  * After this function invocation, the following functions can be invoked:
  *
- * - limit(Integer numberOfRows)
+ * - limit(Integer numberOfDocs)
  */
 #if DOXYGEN_JS
 /**
@@ -646,18 +652,18 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-REGISTER_HELP(COLLECTIONFIND_LIMIT_BRIEF,
-              "Sets the maximum number of documents to be returned on the find "
-              "operation.");
+REGISTER_HELP_FUNCTION(limit, CollectionFind);
+REGISTER_HELP(
+    COLLECTIONFIND_LIMIT_BRIEF,
+    "Sets the maximum number of documents to be returned by the operation.");
 REGISTER_HELP(
     COLLECTIONFIND_LIMIT_PARAM,
-    "@param numberOfRows The maximum number of documents to be retrieved.");
+    "@param numberOfDocs The maximum number of documents to be retrieved.");
 REGISTER_HELP(COLLECTIONFIND_LIMIT_RETURNS,
               "@returns This CollectionFind object.");
-REGISTER_HELP(COLLECTIONFIND_LIMIT_SYNTAX, "limit(numberOfRows)");
 REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
-              "If used, the CollectionFind operation will return at most "
-              "numberOfRows documents.");
+              "If used, the operation will return at most <b>numberOfDocs</b> "
+              "documents.");
 
 /**
  * $(COLLECTIONFIND_LIMIT_BRIEF)
@@ -716,9 +722,9 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::limit(Integer numberOfRows) {}
+CollectionFind CollectionFind::limit(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::limit(int numberOfRows) {}
+CollectionFind CollectionFind::limit(int numberOfDocs) {}
 #endif
 //@}
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
@@ -734,18 +740,19 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(skip, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_SKIP_BRIEF,
               "Sets number of documents to skip on the resultset when a limit "
               "has been defined.");
-REGISTER_HELP(COLLECTIONFIND_SKIP_PARAM,
-              "@param offset The number of documents to skip before start "
-              "including them on the DocResult.");
+REGISTER_HELP(
+    COLLECTIONFIND_SKIP_PARAM,
+    "@param numberOfDocs The number of documents to skip before start "
+    "including them on the DocResult.");
 REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS,
               "@returns This CollectionFind object.");
-REGISTER_HELP(COLLECTIONFIND_SKIP_SYNTAX, "skip(offset)");
-REGISTER_HELP(
-    COLLECTIONFIND_SKIP_DETAIL,
-    "If used, the first 'offset' records will not be included on the result.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL,
+              "If used, the first <b>numberOfDocs</b>' records will not be "
+              "included on the result.");
 
 /**
  * $(COLLECTIONFIND_SKIP_BRIEF)
@@ -760,7 +767,7 @@ REGISTER_HELP(
  *
  * This function can be invoked only once after:
  *
- * - limit(Integer numberOfRows)
+ * - limit(Integer numberOfDocs)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -789,9 +796,9 @@ REGISTER_HELP(
  */
 //@{
 #if DOXYGEN_JS
-CollectionFind CollectionFind::skip(Integer offset) {}
+CollectionFind CollectionFind::skip(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::skip(int offset) {}
+CollectionFind CollectionFind::skip(int numberOfDocs) {}
 #endif
 //@}
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
@@ -832,6 +839,7 @@ void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
   }
 }
 
+REGISTER_HELP_FUNCTION(lockShared, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_LOCKSHARED_BRIEF,
               "Instructs the server to acquire shared row locks in documents "
               "matched by this find operation.");
@@ -963,6 +971,7 @@ shcore::Value CollectionFind::lock_shared(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(lockExclusive, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_LOCKEXCLUSIVE_BRIEF,
               "Instructs the server to acquire an exclusive lock on documents "
               "matched by this find operation.");
@@ -1095,6 +1104,7 @@ shcore::Value CollectionFind::lock_exclusive(
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(bind, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_BIND_BRIEF,
               "Binds a value to a specific placeholder used on this "
               "CollectionFind object.");
@@ -1114,7 +1124,7 @@ REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL1,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
 REGISTER_HELP(COLLECTIONFIND_BIND_DETAIL2,
-              "This function must be called once for each used placeohlder or "
+              "This function must be called once for each used placeholder or "
               "an error will be "
               "raised when the execute method is called.");
 
@@ -1167,12 +1177,12 @@ CollectionFind &CollectionFind::bind(const std::string &name,
   return *this;
 }
 
+REGISTER_HELP_FUNCTION(execute, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_BRIEF,
               "Executes the find operation with all the configured options.");
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_RETURNS,
               "@returns A DocResult object that can be used to traverse the "
               "documents returned by this operation.");
-REGISTER_HELP(COLLECTIONFIND_EXECUTE_SYNTAX, "execute()");
 
 /**
  * $(COLLECTIONFIND_EXECUTE_BRIEF)

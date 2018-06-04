@@ -79,10 +79,6 @@ class Shell_js_mysql_tests : public Shell_js_script_tester {
   }
 };
 
-TEST_F(Shell_js_mysql_tests, shell_help) {
-  validate_interactive("shell_help.js");
-}
-
 TEST_F(Shell_js_mysql_tests, mysql_module) {
   validate_interactive("mysql_module.js");
 }

@@ -63,11 +63,11 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind fields(DocExpression fieldDefinition);
   CollectionFind groupBy(List groupCriteria);
   CollectionFind groupBy(String groupCriteria[, String groupCriteria, ...]);
-  CollectionFind having(String searchCondition);
+  CollectionFind having(String condition);
   CollectionFind sort(List sortCriteria);
   CollectionFind sort(String sortCriteria[, String sortCriteria, ...]);
-  CollectionFind limit(Integer numberOfRows);
-  CollectionFind skip(Integer offset);
+  CollectionFind limit(Integer numberOfDocs);
+  CollectionFind skip(Integer numberOfDocs);
   CollectionFind lockShared(String lockContention);
   CollectionFind lockExclusive(String lockContention);
   CollectionFind bind(String name, Value value);
@@ -79,11 +79,11 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind fields(DocExpression fieldDefinition);
   CollectionFind group_by(list groupCriteria);
   CollectionFind group_by(str groupCriteria[, str groupCriteria, ...]);
-  CollectionFind having(str searchCondition);
+  CollectionFind having(str condition);
   CollectionFind sort(list sortCriteria);
   CollectionFind sort(str sortCriteria[, str sortCriteria, ...]);
-  CollectionFind limit(int numberOfRows);
-  CollectionFind skip(int offset);
+  CollectionFind limit(int numberOfDocs);
+  CollectionFind skip(int numberOfDocs);
   CollectionFind lock_shared(str lockContention);
   CollectionFind lock_exclusive(str lockContention);
   CollectionFind bind(str name, Value value);
@@ -165,6 +165,9 @@ class CollectionFind : public Collection_crud_definition,
     }
     if ("execute" == s) {
       return F::execute;
+    }
+    if ("help" == s) {
+      return enabled_functions_;
     }
     return 0;
   }

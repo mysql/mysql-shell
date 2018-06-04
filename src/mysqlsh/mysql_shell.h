@@ -36,7 +36,6 @@
 #include "modules/mod_sys.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "src/mysqlsh/shell_console.h"
-
 namespace mysqlsh {
 class Shell;  // from modules
 class Util;
@@ -116,6 +115,7 @@ class Mysql_shell : public mysqlsh::Base_shell,
   /// Last schema set by the user via \use command.
   std::string _last_active_schema;
 
+ private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);
   FRIEND_TEST(Cmdline_shell, check_history_overflow_del);

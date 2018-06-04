@@ -39,6 +39,7 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of Table class
+REGISTER_HELP_SUB_CLASS(Table, mysqlx, DatabaseObject);
 REGISTER_HELP(TABLE_BRIEF,
               "Represents a Table on an Schema, retrieved with a session "
               "created using mysqlx module.");
@@ -72,24 +73,17 @@ void Table::init() {
 Table::~Table() {}
 
 // Documentation of insert function
-REGISTER_HELP(TABLE_INSERT_BRIEF, "Creates a record insertion handler.");
-REGISTER_HELP(TABLE_INSERT_BRIEF1,
-              "Creates a record insertion handler using a column list to "
-              "insert records.");
-REGISTER_HELP(TABLE_INSERT_PARAM,
-              "@param columns The column list that will determine the order of "
-              "the values to be inserted on the table.");
-REGISTER_HELP(TABLE_INSERT_PARAM1, "@param col1 The first column name.");
-REGISTER_HELP(TABLE_INSERT_PARAM2, "@param col2 The second column name.");
+REGISTER_HELP_FUNCTION(insert, Table);
+REGISTER_HELP(
+    TABLE_INSERT_BRIEF,
+    "Creates <b>TableInsert</b> object to insert new records into the table.");
 REGISTER_HELP(TABLE_INSERT_RETURNS, "@returns A TableInsert object.");
+REGISTER_HELP(TABLE_INSERT_CHAINED, "TableInsert.insert.[values].[execute]");
 REGISTER_HELP(TABLE_INSERT_DETAIL,
-              "This function creates a TableInsert object which is a record "
-              "insertion handler.");
-REGISTER_HELP(TABLE_INSERT_DETAIL1,
               "The TableInsert class has other functions that allow specifying "
               "the way the insertion occurs.");
 REGISTER_HELP(
-    TABLE_INSERT_DETAIL2,
+    TABLE_INSERT_DETAIL1,
     "The insertion is done when the execute method is called on the handler.");
 
 /**
@@ -162,8 +156,12 @@ shcore::Value Table::insert_(const shcore::Argument_list &args) {
 }
 
 // Documentation of update function
+REGISTER_HELP_FUNCTION(update, Table);
 REGISTER_HELP(TABLE_UPDATE_BRIEF, "Creates a record update handler.");
 REGISTER_HELP(TABLE_UPDATE_RETURNS, "@returns A TableUpdate object.");
+REGISTER_HELP(
+    TABLE_UPDATE_CHAINED,
+    "TableUpdate.update.set.[where].[<<<orderBy>>>].[limit].[bind].[execute]");
 REGISTER_HELP(TABLE_UPDATE_DETAIL,
               "This function creates a TableUpdate object which is a record "
               "update handler.");
@@ -201,8 +199,13 @@ shcore::Value Table::update_(const shcore::Argument_list &args) {
 }
 
 // Documentation of delete function
+REGISTER_HELP_FUNCTION(delete, Table);
 REGISTER_HELP(TABLE_DELETE_BRIEF, "Creates a record deletion handler.");
 REGISTER_HELP(TABLE_DELETE_RETURNS, "@returns A TableDelete object.");
+REGISTER_HELP(
+    TABLE_DELETE_CHAINED,
+    "TableDelete.delete.[where].[<<<orderBy>>>].[limit].[bind].[execute]");
+
 REGISTER_HELP(TABLE_DELETE_DETAIL,
               "This function creates a TableDelete object which is a record "
               "deletion handler.");
@@ -240,9 +243,16 @@ shcore::Value Table::delete_(const shcore::Argument_list &args) {
 }
 
 // Documentation of select function
-REGISTER_HELP(TABLE_SELECT_BRIEF, "Creates a full record retrieval handler.");
-REGISTER_HELP(TABLE_SELECT_BRIEF1,
-              "Creates a partial record retrieval handler.");
+REGISTER_HELP_FUNCTION(select, Table);
+REGISTER_HELP(
+    TABLE_SELECT_CHAINED,
+    "TableSelect.select.[where].[<<<groupBy>>>->[having]].[<<<orderBy>>>]."
+    "[limit->[offset]].[<<<lockShared>>>].[<<<lockExclusive>>>].[bind].["
+    "execute]");
+
+REGISTER_HELP(
+    TABLE_SELECT_BRIEF,
+    "Creates a <b>TableSelect</b> object to retrieve rows from the table.");
 REGISTER_HELP(
     TABLE_SELECT_PARAM,
     "@param columns A list of strings defining the columns to be retrieved.");
@@ -271,17 +281,216 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
 /**
  * $(TABLE_SELECT_BRIEF)
  *
- * $(TABLE_SELECT_RETURNS)
+ * ### Full Syntax
  *
- * $(TABLE_SELECT_DETAIL)
+ * <code>
+ *   <table border = "0">
+ *     <tr><td>Table</td><td>.select(...)</td></tr>
+ *     <tr><td></td><td>[.where(expression)]</td></tr>
+ */
+#if DOXYGEN_JS
+/**
+ * <tr><td></td><td>[.groupBy(...)[.having(condition)]]</td></tr>*/
+#elif DOXYGEN_PY
+/**
+ * <tr><td></td><td>[.group_by(...)[.having(condition)]]</td></tr>*/
+#endif
+#if DOXYGEN_JS
+/**
+ * <tr><td></td><td>[.orderBy(...)]</td></tr>*/
+#elif DOXYGEN_PY
+/**
+ * <tr><td></td><td>[.order_by(...)]</td></tr>*/
+#endif
+/**
+ *     <tr><td></td><td>[.limit(numberOfRows)[.offset(numberOfRows)]]</td></tr>
+ */
+#if DOXYGEN_JS
+/**
+ * <tr><td></td><td>[.lockShared(lockContention)|.lockExclusive(lockContention)]</td></tr>*/
+#elif DOXYGEN_PY
+/**
+ * <tr><td></td><td>[.lock_shared(lockContention)|.lock_exclusive(lockContention)]</td></tr>*/
+#endif
+/**
+ *     <tr><td></td><td>[.bind(name, value)]</td></tr>
+ *     <tr><td></td><td>.execute()</td></tr>
+ *   </table>
+ * </code>
  *
- * $(TABLE_SELECT_DETAIL1)
+ * #### .select()
  *
- * $(TABLE_SELECT_DETAIL2)
+ * $(TABLESELECT_SELECT_DETAIL)
  *
- * $(TABLE_SELECT_DETAIL3)
+ * $(TABLESELECT_SELECT_DETAIL1)
  *
- * \sa TableSelect
+ * #### .where(...)
+ *
+ * $(TABLESELECT_WHERE_DETAIL)
+ */
+
+#if DOXYGEN_JS
+/**
+ *
+ * #### .groupBy(...)
+ *
+ */
+#elif DOXYGEN_PY
+/**
+ *
+ * #### .group_by(...)
+ *
+ */
+#endif
+
+/**
+ *
+ * $(TABLESELECT_GROUPBY_DETAIL)
+ *
+ * #### .having(condition)
+ *
+ * $(TABLESELECT_HAVING_DETAIL)
+ */
+
+#if DOXYGEN_JS
+/**
+ *
+ * #### .orderBy(...)
+ *
+ */
+#elif DOXYGEN_PY
+/**
+ *
+ * #### .order_by(...)
+ *
+ */
+#endif
+
+/**
+ * ##### Overloads
+ */
+#if DOXYGEN_JS
+/**
+ *
+ * @li orderBy(sortCriterion[, sortCriterion, ...])");
+ * @li orderBy(sortCriteria)");
+ *
+ */
+#elif DOXYGEN_PY
+/**
+ *
+ * @li order_by(sortCriterion[, sortCriterion, ...])");
+ * @li order_by(sortCriteria)");
+ *
+ */
+#endif
+/**
+ * $(TABLESELECT_ORDERBY_DETAIL)
+ *
+ * $(TABLESELECT_ORDERBY_DETAIL1)
+ *
+ * $(TABLESELECT_ORDERBY_DETAIL2)
+ *
+ * $(TABLESELECT_ORDERBY_DETAIL3)
+ *
+ * #### .limit(numberOfRows)
+ *
+ * $(TABLESELECT_LIMIT_DETAIL)
+ *
+ * #### .offset(numberOfRows)
+ *
+ * $(TABLESELECT_SKIP_DETAIL)
+ */
+
+#if DOXYGEN_JS
+/**
+ *
+ * #### .lockShared(lockContention)
+ *
+ */
+#elif DOXYGEN_PY
+/**
+ *
+ * #### .lock_shared(lockContention)
+ *
+ */
+#endif
+/**
+ * $(TABLESELECT_LOCKSHARED_DETAIL)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL1)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL2)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL3)
+ * $(TABLESELECT_LOCKSHARED_DETAIL4)
+ * $(TABLESELECT_LOCKSHARED_DETAIL5)
+ * $(TABLESELECT_LOCKSHARED_DETAIL6)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL7)
+ * $(TABLESELECT_LOCKSHARED_DETAIL8)
+ * $(TABLESELECT_LOCKSHARED_DETAIL9)
+ * $(TABLESELECT_LOCKSHARED_DETAIL10)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL11)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL12)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL13)
+ *
+ * $(TABLESELECT_LOCKSHARED_DETAIL14)
+ */
+#if DOXYGEN_JS
+/**
+ *
+ * #### .lockExclusive(lockContention)
+ *
+ */
+#elif DOXYGEN_PY
+/**
+ *
+ * #### .lock_exclusive(lockContention)
+ *
+ */
+#endif
+
+/**
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL1)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL2)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL3)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL4)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL5)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL6)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL7)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL8)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL9)
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL10)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL11)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL12)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL13)
+ *
+ * $(TABLESELECT_LOCKEXCLUSIVE_DETAIL14)
+ *
+ * #### .bind(name, value)
+ *
+ * $(TABLESELECT_BIND_DETAIL)
+ *
+ * $(TABLESELECT_BIND_DETAIL1)
+ *
+ * $(TABLESELECT_BIND_DETAIL2)
+ *
+ * #### .execute()
+ *
+ * $(TABLESELECT_EXECUTE_BRIEF)
  */
 #if DOXYGEN_JS
 TableSelect Table::select() {}
@@ -320,6 +529,7 @@ shcore::Value Table::select_(const shcore::Argument_list &args) {
 }
 
 // Documentation of isView function
+REGISTER_HELP_FUNCTION(isView, Table);
 REGISTER_HELP(
     TABLE_ISVIEW_BRIEF,
     "Indicates whether this Table object represents a View on the database.");
