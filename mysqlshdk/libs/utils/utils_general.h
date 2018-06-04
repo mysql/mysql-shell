@@ -89,8 +89,6 @@ std::vector<std::string> SHCORE_PUBLIC
 split_string(const std::string &input, const std::string &separator,
              bool compress = false);
 std::vector<std::string> SHCORE_PUBLIC
-split_string(const std::string &input, std::vector<size_t> max_lengths);
-std::vector<std::string> SHCORE_PUBLIC
 split_string_chars(const std::string &input, const std::string &separator_chars,
                    bool compress = false);
 
@@ -111,16 +109,6 @@ std::string SHCORE_PUBLIC make_account(const std::string &user,
 
 std::string SHCORE_PUBLIC get_member_name(const std::string &name,
                                           shcore::NamingStyle style);
-std::string SHCORE_PUBLIC format_text(const std::vector<std::string> &lines,
-                                      size_t width, size_t left_padding,
-                                      bool paragraph_per_line);
-std::string SHCORE_PUBLIC format_markup_text(
-    const std::vector<std::string> &lines, size_t width, size_t left_padding);
-
-// TODO(alfredo) - redundant
-std::string SHCORE_PUBLIC replace_text(const std::string &source,
-                                       const std::string &from,
-                                       const std::string &to);
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 

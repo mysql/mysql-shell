@@ -25,6 +25,7 @@
 #include <rapidjson/error/en.h>
 #include <iostream>
 
+#include "mysqlshdk/libs/textui/textui.h"
 // The document.h file is generating warnings of type
 // class-memaccess
 // When built with GCC >= 8
@@ -33,6 +34,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
+
 #include "rapidjson/document.h"
 #if defined __GNUC__ && __GNUC__ >= 8
 #pragma GCC diagnostic pop
@@ -43,6 +45,8 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
+
+namespace textui = mysqlshdk::textui;
 
 namespace shcore {
 
@@ -515,14 +519,15 @@ std::string Options::get_named_help(const std::string &filter,
     const char *help = opt->get_help();
     std::string first_column(first_column_width, ' ');
     first_column.replace(padding, opt->get_name().length(), opt->get_name());
-    if (std::strlen(help) <= second_column_width)
+    if (std::strlen(help) <= second_column_width) {
       res.append(first_column + help + "\n");
-    else
-      res.append(first_column +
-                 shcore::format_text({help},
-                                     second_column_width + first_column_width,
-                                     first_column_width, false) +
-                 "\n");
+    } else {
+      std::string final = textui::format_markup_text(
+          {help}, second_column_width + first_column_width, first_column_width,
+          false);
+      final.replace(0, first_column_width, first_column);
+      res.append(final + "\n");
+    }
   }
   return res;
 }

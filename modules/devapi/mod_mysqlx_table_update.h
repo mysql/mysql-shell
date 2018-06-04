@@ -53,7 +53,7 @@ class TableUpdate : public Table_crud_definition,
 #if DOXYGEN_JS
   TableUpdate update();
   TableUpdate set(String attribute, Value value);
-  TableUpdate where(String searchCondition);
+  TableUpdate where(String expression);
   TableUpdate orderBy(List sortExprStr);
   TableUpdate limit(Integer numberOfRows);
   TableUpdate bind(String name, Value value);
@@ -61,7 +61,7 @@ class TableUpdate : public Table_crud_definition,
 #elif DOXYGEN_PY
   TableUpdate update();
   TableUpdate set(str attribute, Value value);
-  TableUpdate where(str searchCondition);
+  TableUpdate where(str expression);
   TableUpdate order_by(list sortExprStr);
   TableUpdate limit(int numberOfRows);
   TableUpdate bind(str name, Value value);
@@ -123,6 +123,9 @@ class TableUpdate : public Table_crud_definition,
     }
     if ("execute" == s) {
       return F::execute;
+    }
+    if ("help" == s) {
+      return enabled_functions_;
     }
     return 0;
   }

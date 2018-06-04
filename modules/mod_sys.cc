@@ -31,6 +31,7 @@
 namespace mysqlsh {
 
 REGISTER_HELP(SYS_BRIEF, "Gives access to system specific parameters.");
+REGISTER_HELP(SYS_GLOBAL_BRIEF, "Gives access to system specific parameters.");
 
 Sys::Sys(shcore::IShell_core *owner) { init(); }
 

@@ -27,6 +27,7 @@
 #include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -256,7 +257,7 @@ shcore::Value Remove_instance::execute() {
       "instance being the Seed or not, the Metadata session might become "
       "invalid. If so, please start a new session to the Metadata Storage R/W "
       "instance.";
-  message = shcore::format_text({message}, 80, 0, false);
+  message = mysqlshdk::textui::format_markup_text({message}, 80, 0, false);
   m_console->print_info(message);
   m_console->println();
 

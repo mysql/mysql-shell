@@ -27,9 +27,6 @@ else:
     name_get_table="getTable"
     name_get_collection="getCollection"
 
-#@<OUT> Schema: help
-schema.help()
-
 #@ Schema: validating members
 all_members = dir(schema)
 
@@ -108,9 +105,6 @@ print 'get_collection_as_table().select():', mySchema.get_collection_as_table('c
 #@ Collection creation
 collection = schema.create_collection('my_sample_collection')
 print 'create_collection():', collection
-
-#@<OUT> Testing help for drop_collection
-print mySchema.help("drop_collection")
 
 #@ Testing dropping existing schema objects
 print mySchema.get_collection('collection1')

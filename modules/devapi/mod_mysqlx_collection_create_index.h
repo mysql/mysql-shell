@@ -96,6 +96,9 @@ class CollectionCreateIndex
     if ("execute" == s) {
       return F::execute;
     }
+    if ("help" == s) {
+      return enabled_functions_;
+    }
     return 0;
   }
 };

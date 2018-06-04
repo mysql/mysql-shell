@@ -2428,7 +2428,7 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
       b = multadd(b, 10, 0, &alloc);
     }
 
-    /* Round off last digit */
+      /* Round off last digit */
 
 #ifdef Honor_FLT_ROUNDS
   switch (rounding) {

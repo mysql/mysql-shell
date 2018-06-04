@@ -694,16 +694,6 @@ TEST_F(Shell_js_dba_tests, dba_configure_new_instance) {
   validate_interactive("dba_configure_new_instance.js");
 }
 
-TEST_F(Shell_js_dba_tests, dba_help) {
-  reset_shell();
-  validate_interactive("dba_help.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_help) {
-  reset_replayable_shell();
-  validate_interactive("dba_cluster_help.js");
-}
-
 TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   reset_replayable_shell();
   //@<OUT> Configures the instance, answers 'yes' on the read only prompt

@@ -82,6 +82,38 @@ static void auto_complete(const char *text, int *start_index,
   }
 }
 
+REGISTER_HELP(CMD_HISTORY_BRIEF, "View and edit command line history.");
+REGISTER_HELP(CMD_HISTORY_SYNTAX, "<b>\\history</b> [options].");
+REGISTER_HELP(CMD_HISTORY_DETAIL,
+              "The operation done by this command depends on the given "
+              "options. Valid options are:");
+REGISTER_HELP(
+    CMD_HISTORY_DETAIL1,
+    "@li <b>del</b> <num>[-<num>] Deletes entry/entries from history.");
+REGISTER_HELP(CMD_HISTORY_DETAIL2,
+              "@li <b>clear</b>             Clear history.");
+REGISTER_HELP(CMD_HISTORY_DETAIL3,
+              "@li <b>save</b>              Save history to file.");
+REGISTER_HELP(
+    CMD_HISTORY_DETAIL4,
+    "If no options are given the command will display the history entries.");
+REGISTER_HELP(CMD_HISTORY_DETAIL5,
+              "NOTE: The history.autoSave shell option must be set to true to "
+              "automatically save the contents of the command history when "
+              "MySQL Shell exits.");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE, "<b>\\history</b>");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE_DESC, "Displays the entire history.");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE1, "<b>\\history del</b> 123");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE1_DESC,
+              "Deletes entry number 123 from the history.");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE2, "<b>\\history del</b> 10-20");
+REGISTER_HELP(
+    CMD_HISTORY_EXAMPLE2_DESC,
+    "Deletes range of entries from number 10 to 20 from the history.");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE3, "<b>\\history del</b> 10-");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE3_DESC,
+              "Deletes entries from number 10 and ahead from the history.");
+
 Command_line_shell::Command_line_shell(
     std::shared_ptr<Shell_options> cmdline_options,
     std::unique_ptr<shcore::Interpreter_delegate> delegate)
@@ -102,23 +134,8 @@ Command_line_shell::Command_line_shell(
 
   linenoiseSetCompletionCallback(auto_complete);
 
-  const std::string cmd_help_history =
-      "SYNTAX:\n"
-      "   \\history                     Display history entries.\n"
-      "   \\history del <num>[-<num>]   Delete entry/entries from history.\n"
-      "   \\history clear               Clear history.\n"
-      "   \\history save                Save history to file.\n\n"
-      "EXAMPLES:\n"
-      "   \\history\n"
-      "   \\history del 123       Delete entry number 123\n"
-      "   \\history del 10-20     Delete entries 10 to 20\n"
-      "   \\history del 10-       Delete entries from 10 to last\n"
-      "\n"
-      "NOTE: The history.autoSave shell option must be set to true to "
-      "automatically save the contents of the command history when MySQL "
-      "Shell exits.";
-  SET_SHELL_COMMAND("\\history", "View and edit command line history.",
-                    cmd_help_history, Command_line_shell::cmd_history);
+  SET_SHELL_COMMAND("\\history", "CMD_HISTORY",
+                    Command_line_shell::cmd_history);
 }
 
 Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)

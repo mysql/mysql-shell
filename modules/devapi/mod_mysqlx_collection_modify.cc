@@ -41,16 +41,13 @@ using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
 // Documentation of CollectionModify class
+REGISTER_HELP_CLASS(CollectionModify, mysqlx);
 REGISTER_HELP(COLLECTIONMODIFY_BRIEF,
-              "Handler for document update operations on a Collection.");
+              "Operation to update documents on a Collection.");
 REGISTER_HELP(COLLECTIONMODIFY_DETAIL,
-              "This object provides the necessary functions to allow updating "
-              "documents on a collection.");
-REGISTER_HELP(COLLECTIONMODIFY_DETAIL1,
-              "This object should only be created by calling the modify "
-              "function on the collection object on which the documents will "
-              "be updated.");
-
+              "A CollectionModify object represents an operation to update "
+              "documents on a Collection, it is created through the "
+              "<b>modify</b> function on the <b>Collection</b> class.");
 CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
           std::static_pointer_cast<DatabaseObject>(owner)) {
@@ -138,6 +135,7 @@ void CollectionModify::set_operation(int type, const std::string &path,
 }
 
 // Documentation of modify function
+REGISTER_HELP_FUNCTION(modify, CollectionModify);
 REGISTER_HELP(
     COLLECTIONMODIFY_MODIFY_BRIEF,
     "Sets the search condition to identify the Documents to be updated on the "
@@ -145,7 +143,7 @@ REGISTER_HELP(
 
 REGISTER_HELP(
     COLLECTIONMODIFY_MODIFY_PARAM,
-    "@param searchCondition: An expression to identify the documents to be "
+    "@param searchCondition An expression to identify the documents to be "
     "updated.");
 
 REGISTER_HELP(COLLECTIONMODIFY_MODIFY_RETURNS,
@@ -187,9 +185,9 @@ REGISTER_HELP(
  * - set(String attribute, Value value)
  * - unset(String attribute)
  * - unset(List attributes)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * \sa Usage examples at execute().
  * \sa Collection
@@ -232,6 +230,7 @@ CollectionModify &CollectionModify::set_filter(const std::string &filter) {
 }
 
 // Documentation of set function
+REGISTER_HELP_FUNCTION(set, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_SET_BRIEF,
               "Sets or updates attributes on documents in a collection.");
 REGISTER_HELP(
@@ -252,7 +251,7 @@ REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL2,
               "@li If the attribute already exists on the document, it will be "
               "updated with the given value.");
 REGISTER_HELP(COLLECTIONMODIFY_SET_DETAIL3,
-              "<b> Using Expressions for Values </b>");
+              "<b>Using Expressions for Values</b>");
 REGISTER_HELP(
     COLLECTIONMODIFY_SET_DETAIL4,
     "The received values are set into the document in a literal way unless an "
@@ -302,9 +301,9 @@ REGISTER_HELP(
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -313,9 +312,9 @@ REGISTER_HELP(
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -344,10 +343,12 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
 }
 
 // Documentation of unset function
+REGISTER_HELP_FUNCTION(unset, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_BRIEF,
               "Removes attributes from documents in a collection.");
-REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX, "unset(String attribute)");
-REGISTER_HELP(COLLECTIONMODIFY_UNSET_SYNTAX1, "unset(List attributes)");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_SIGNATURE, "(attributeList)");
+REGISTER_HELP(COLLECTIONMODIFY_UNSET_SIGNATURE1,
+              "(attribute[, attribute, ...])");
 REGISTER_HELP(COLLECTIONMODIFY_UNSET_PARAM,
               "@param attribute A string with the document path of the "
               "attribute to be removed.");
@@ -385,9 +386,9 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -396,9 +397,9 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -408,9 +409,10 @@ REGISTER_HELP(COLLECTIONMODIFY_UNSET_DETAIL2,
  */
 //@{
 #if DOXYGEN_JS
-CollectionModify CollectionModify::unset(String attribute) {}
+CollectionModify CollectionModify::unset(
+    String attribute[, String attribute, ...]) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::unset(str attribute) {}
+CollectionModify CollectionModify::unset(str attribute[, str attribute, ...]) {}
 #endif
 //@}
 
@@ -436,9 +438,9 @@ CollectionModify CollectionModify::unset(str attribute) {}
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -447,9 +449,9 @@ CollectionModify CollectionModify::unset(str attribute) {}
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -521,6 +523,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
 }
 
 // Documentation of merge function
+REGISTER_HELP_FUNCTION(merge, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_BRIEF,
               "Adds attributes taken from a document into the documents in a "
               "collection.");
@@ -558,9 +561,9 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -569,9 +572,9 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -599,6 +602,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
 }
 
 // Documentation of merge function
+REGISTER_HELP_FUNCTION(patch, CollectionModify);
 REGISTER_HELP(
     COLLECTIONMODIFY_PATCH_BRIEF,
     "Performs modifications on a document based on a patch JSON object.");
@@ -676,9 +680,9 @@ REGISTER_HELP(
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -687,9 +691,9 @@ REGISTER_HELP(
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -717,12 +721,14 @@ shcore::Value CollectionModify::patch(const shcore::Argument_list &args) {
 }
 
 // Documentation of arrayInsert function
+REGISTER_HELP_FUNCTION(arrayInsert, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_BRIEF,
               "Inserts a value into a specific position in an array attribute "
               "in documents of a collection.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM,
-              "@param path A document path that identifies the array attribute "
-              "and position where the value will be inserted.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_ARRAYINSERT_PARAM,
+    "@param docPath A document path that identifies the array attribute "
+    "and position where the value will be inserted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_PARAM1,
               "@param value The value to be inserted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_RETURNS,
@@ -757,9 +763,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -768,9 +774,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -779,9 +785,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1,
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::arrayInsert(String path, Value value) {}
+CollectionModify CollectionModify::arrayInsert(String docPath, Value value) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::array_insert(str path, Value value) {}
+CollectionModify CollectionModify::array_insert(str docPath, Value value) {}
 #endif
 shcore::Value CollectionModify::array_insert(
     const shcore::Argument_list &args) {
@@ -801,12 +807,14 @@ shcore::Value CollectionModify::array_insert(
 }
 
 // Documentation of arrayAppend function
+REGISTER_HELP_FUNCTION(arrayAppend, CollectionModify);
 REGISTER_HELP(
     COLLECTIONMODIFY_ARRAYAPPEND_BRIEF,
     "Appends a value into an array attribute in documents of a collection.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM,
-              "@param path A document path that identifies the array attribute "
-              "where the value will be appended.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_ARRAYAPPEND_PARAM,
+    "@param docPath A document path that identifies the array attribute "
+    "where the value will be appended.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_PARAM1,
               "@param value The value to be appended.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_RETURNS,
@@ -836,9 +844,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * The attribute addition will be done on the collection's documents once the
  * execute method is called.
@@ -850,9 +858,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -861,9 +869,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL,
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::arrayAppend(String path, Value value) {}
+CollectionModify CollectionModify::arrayAppend(String docPath, Value value) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::array_append(str path, Value value) {}
+CollectionModify CollectionModify::array_append(str docPath, Value value) {}
 #endif
 shcore::Value CollectionModify::array_append(
     const shcore::Argument_list &args) {
@@ -882,12 +890,14 @@ shcore::Value CollectionModify::array_append(
 }
 
 // Documentation of arrayDelete function
+REGISTER_HELP_FUNCTION(arrayDelete, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_BRIEF,
               "Deletes the value at a specific position in an array attribute "
               "in documents of a collection.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_PARAM,
-              "@param path A document path that identifies the array attribute "
-              "and position of the value to be deleted.");
+REGISTER_HELP(
+    COLLECTIONMODIFY_ARRAYDELETE_PARAM,
+    "@param docPath A document path that identifies the array attribute "
+    "and position of the value to be deleted.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURNS,
               "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
@@ -919,9 +929,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -930,9 +940,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  * - sort(List sortExprStr)
  * - limit(Integer numberOfRows)
  * - bind(String name, Value value)
@@ -941,9 +951,9 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::arrayDelete(String path) {}
+CollectionModify CollectionModify::arrayDelete(String docPath) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::array_delete(str path) {}
+CollectionModify CollectionModify::array_delete(str docPath) {}
 #endif
 shcore::Value CollectionModify::array_delete(
     const shcore::Argument_list &args) {
@@ -963,12 +973,15 @@ shcore::Value CollectionModify::array_delete(
 }
 
 // Documentation of sort function
+REGISTER_HELP_FUNCTION(sort, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_SORT_BRIEF,
               "Sets the document order in which the update operations added to "
               "the handler should be done.");
-REGISTER_HELP(COLLECTIONMODIFY_SORT_PARAM,
-              "@param sortExprStr: A list of expression strings defining a "
-              "collection sort criteria.");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_SIGNATURE, "(sortDataList)");
+REGISTER_HELP(COLLECTIONMODIFY_SORT_SIGNATURE1, "(sortData[, sortData, ...])");
+// REGISTER_HELP(COLLECTIONMODIFY_SORT_PARAM,
+//              "@param sortExprStr: A list of expression strings defining a "
+//              "collection sort criteria.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_RETURNS,
               "@returns This CollectionModify object.");
 REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL,
@@ -1004,9 +1017,9 @@ REGISTER_HELP(COLLECTIONMODIFY_SORT_DETAIL2,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -1044,6 +1057,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
 }
 
 // Documentation of limit function
+REGISTER_HELP_FUNCTION(limit, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_LIMIT_BRIEF,
               "Sets a limit for the documents to be updated by the operations "
               "added to the handler.");
@@ -1074,9 +1088,9 @@ REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL,
  * - unset(List attributes)
  * - merge(Document document)
  * - patch(Document document)
- * - arrayAppend(String path, Value value)
- * - arrayInsert(String path, Value value)
- * - arrayDelete(String path)
+ * - arrayAppend(String docPath, Value value)
+ * - arrayInsert(String docPath, Value value)
+ * - arrayDelete(String docPath)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -1105,6 +1119,7 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
 }
 
 // Documentation of bind function
+REGISTER_HELP_FUNCTION(bind, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_BIND_BRIEF,
               "Binds a value to a specific placeholder used on this "
               "CollectionModify object.");
@@ -1136,7 +1151,7 @@ REGISTER_HELP(COLLECTIONMODIFY_BIND_RETURNS,
  *
  * An error will be raised if the placeholder indicated by name does not exist.
  *
- * This function must be called once for each used placeohlder or an error will
+ * This function must be called once for each used placeholder or an error will
  * be
  * raised when the execute method is called.
  *
@@ -1167,6 +1182,7 @@ CollectionModify &CollectionModify::bind(const std::string &name,
 }
 
 // Documentation of execute function
+REGISTER_HELP_FUNCTION(execute, CollectionModify);
 REGISTER_HELP(COLLECTIONMODIFY_EXECUTE_BRIEF,
               "Executes the update operations added to the handler with the "
               "configured filter and limit.");

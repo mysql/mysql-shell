@@ -40,16 +40,13 @@ namespace mysqlsh {
 namespace mysqlx {
 
 // Documentation of CollectionRemove class
+REGISTER_HELP_CLASS(CollectionRemove, mysqlx);
 REGISTER_HELP(COLLECTIONREMOVE_BRIEF,
-              "Handler for document removal from a Collection.");
+              "Operation to delete documents on a Collection.");
 REGISTER_HELP(COLLECTIONREMOVE_DETAIL,
-              "This object provides the necessary functions to allow removing "
-              "documents from a collection.");
-REGISTER_HELP(COLLECTIONREMOVE_DETAIL1,
-              "This object should only be created by calling the remove "
-              "function on the collection object "
-              "from which the documents will be removed.");
-
+              "A CollectionRemove object represents an operation to remove "
+              "documents on a Collection, it is created through the "
+              "<b>remove</b> function on the <b>Collection</b> class.");
 CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
     : Collection_crud_definition(
           std::static_pointer_cast<DatabaseObject>(owner)) {
@@ -78,13 +75,14 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
 }
 
 // Documentation of remove function
+REGISTER_HELP_FUNCTION(remove, CollectionRemove);
 REGISTER_HELP(
     COLLECTIONREMOVE_REMOVE_BRIEF,
     "Sets the search condition to filter the documents to be deleted from "
     "the owner Collection.");
 REGISTER_HELP(
     COLLECTIONREMOVE_REMOVE_PARAM,
-    "@param searchCondition: An expression to filter the documents to be "
+    "@param searchCondition An expression to filter the documents to be "
     "deleted.");
 REGISTER_HELP(COLLECTIONREMOVE_REMOVE_RETURNS,
               "@returns This CollectionRemove object.");
@@ -184,13 +182,17 @@ CollectionRemove &CollectionRemove::set_filter(const std::string &filter) {
 }
 
 // Documentation of sort function
+REGISTER_HELP_FUNCTION(sort, CollectionRemove);
 REGISTER_HELP(COLLECTIONREMOVE_SORT_BRIEF,
               "Sets the order in which the deletion should be done.");
-REGISTER_HELP(
-    COLLECTIONREMOVE_SORT_PARAM,
-    "@param sortExprStr: A list of expression strings defining a sort "
-    "criteria, "
-    "the deletion will be done following the order defined by this criteria.");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_SIGNATURE, "(sortExprList)");
+REGISTER_HELP(COLLECTIONREMOVE_SORT_SIGNATURE1, "(sortExpr[, sortExpr, ...])");
+// REGISTER_HELP(
+//    COLLECTIONREMOVE_SORT_PARAM,
+//    "@param sortExpr: A list of expression strings defining a sort "
+//    "criteria, "
+//    "the deletion will be done following the order defined by this
+//    criteria.");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_RETURNS,
               "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL,
@@ -207,8 +209,6 @@ REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2,
 
 /**
  * $(COLLECTIONREMOVE_SORT_BRIEF)
- *
- * $(COLLECTIONREMOVE_SORT_PARAM)
  *
  * $(COLLECTIONREMOVE_SORT_RETURNS)
  *
@@ -232,9 +232,12 @@ REGISTER_HELP(COLLECTIONREMOVE_SORT_DETAIL2,
  */
 //@{
 #if DOXYGEN_JS
-CollectionRemove CollectionRemove::sort(List sortExprStr) {}
+CollectionRemove CollectionRemove::sort(List sortExpr) {}
+CollectionRemove CollectionRemove::sort(
+    String sortExpr[, String sortExpr, ...]) {}
 #elif DOXYGEN_PY
-CollectionRemove CollectionRemove::sort(list sortExprStr) {}
+CollectionRemove CollectionRemove::sort(list sortExpr) {}
+CollectionRemove CollectionRemove::sort(str sortExpr[, str sortExpr, ...]) {}
 #endif
 //@}
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
@@ -260,6 +263,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
 }
 
 // Documentation of limit function
+REGISTER_HELP_FUNCTION(limit, CollectionRemove);
 REGISTER_HELP(COLLECTIONREMOVE_LIMIT_BRIEF,
               "Sets a limit for the documents to be deleted.");
 REGISTER_HELP(COLLECTIONREMOVE_LIMIT_PARAM,
@@ -315,28 +319,29 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
 }
 
 // Documentation of function
+REGISTER_HELP_FUNCTION(bind, CollectionRemove);
 REGISTER_HELP(COLLECTIONREMOVE_BIND_BRIEF,
               "Binds a value to a specific placeholder used on this "
               "CollectionRemove object.");
-REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM1,
-              "@param name: The name of the placeholder to which the value "
+REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM,
+              "@param name The name of the placeholder to which the value "
               "will be bound.");
-REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM2,
-              "@param value: The value to be bound on the placeholder.");
+REGISTER_HELP(COLLECTIONREMOVE_BIND_PARAM1,
+              "@param value The value to be bound on the placeholder.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_RETURNS,
               "@returns This CollectionRemove object.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL,
               "An error will be raised if the placeholder indicated by name "
               "does not exist.");
 REGISTER_HELP(COLLECTIONREMOVE_BIND_DETAIL1,
-              "This function must be called once for each used placeohlder or "
+              "This function must be called once for each used placeholder or "
               "an error will be raised when the execute method is called.");
 
 /**
  * $(COLLECTIONREMOVE_BIND_BRIEF)
  *
+ * $(COLLECTIONREMOVE_BIND_PARAM)
  * $(COLLECTIONREMOVE_BIND_PARAM1)
- * $(COLLECTIONREMOVE_BIND_PARAM2)
  *
  * $(COLLECTIONREMOVE_BIND_RETURNS)
  *
@@ -382,6 +387,7 @@ CollectionRemove &CollectionRemove::bind(const std::string &name,
 }
 
 // Documentation of function
+REGISTER_HELP_FUNCTION(execute, CollectionRemove);
 REGISTER_HELP(
     COLLECTIONREMOVE_EXECUTE_BRIEF,
     "Executes the document deletion with the configured filter and limit.");

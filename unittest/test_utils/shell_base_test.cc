@@ -205,6 +205,12 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
   bool ret_val = true;
   auto expected_lines = shcore::split_string(expected, "\n");
   auto actual_lines = shcore::split_string(actual, "\n");
+
+  // Removes empty lines at the beggining of the expectation
+  // Multiline comparison should start from first non empty line
+  while (expected_lines.begin()->empty())
+    expected_lines.erase(expected_lines.begin());
+
   std::string r_trimmed_actual, r_trimmed_expected;
   // Does expected line resolution using the pre-defined tokens
   for (decltype(expected_lines)::size_type index = 0;

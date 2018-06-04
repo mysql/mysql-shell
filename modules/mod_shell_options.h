@@ -34,7 +34,26 @@ namespace mysqlsh {
 
 /**
  * \ingroup ShellAPI
+ * @brief $(OPTIONS_BRIEF)
  * $(OPTIONS_BRIEF)
+ *
+ * $(OPTIONS_DETAIL)
+ * $(OPTIONS_DETAIL1)
+ * $(OPTIONS_DETAIL2)
+ * $(OPTIONS_DETAIL3)
+ * $(OPTIONS_DETAIL4)
+ * $(OPTIONS_DETAIL5)
+ * $(OPTIONS_DETAIL6)
+ * $(OPTIONS_DETAIL7)
+ * $(OPTIONS_DETAIL8)
+ * $(OPTIONS_DETAIL9)
+ * $(OPTIONS_DETAIL10)
+ * $(OPTIONS_DETAIL11)
+ * $(OPTIONS_DETAIL12)
+ * $(OPTIONS_DETAIL13)
+ * $(OPTIONS_DETAIL14)
+ * $(OPTIONS_DETAIL15)
+ * $(OPTIONS_DETAIL16)
  */
 class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
  public:

@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "scripting/obj_date.h"
@@ -37,6 +38,9 @@
 using namespace mysqlsh;
 using namespace shcore;
 
+REGISTER_HELP_CLASS(Column, shellapi);
+REGISTER_HELP(COLUMN_BRIEF,
+              "Represents the metadata for a column in a result.");
 bool ShellBaseResult::operator==(const Object_bridge &other) const {
   return this == &other;
 }
@@ -96,6 +100,31 @@ bool Column::is_number_signed() const {
   return is_numeric_type(_type) ? !_unsigned : false;
 }
 
+REGISTER_HELP_PROPERTY(schemaName, Column);
+REGISTER_HELP_PROPERTY(tableName, Column);
+REGISTER_HELP_PROPERTY(tableLabel, Column);
+REGISTER_HELP_PROPERTY(columnName, Column);
+REGISTER_HELP_PROPERTY(columnLabel, Column);
+REGISTER_HELP_PROPERTY(type, Column);
+REGISTER_HELP_PROPERTY(length, Column);
+REGISTER_HELP_PROPERTY(fractionalDigits, Column);
+REGISTER_HELP_PROPERTY(numberSigned, Column);
+REGISTER_HELP_PROPERTY(collationName, Column);
+REGISTER_HELP_PROPERTY(characterSetName, Column);
+REGISTER_HELP_PROPERTY(zeroFill, Column);
+
+REGISTER_HELP_FUNCTION(getSchemaName, Column);
+REGISTER_HELP_FUNCTION(getTableName, Column);
+REGISTER_HELP_FUNCTION(getTableLabel, Column);
+REGISTER_HELP_FUNCTION(getColumnName, Column);
+REGISTER_HELP_FUNCTION(getColumnLabel, Column);
+REGISTER_HELP_FUNCTION(getType, Column);
+REGISTER_HELP_FUNCTION(getLength, Column);
+REGISTER_HELP_FUNCTION(getFractionalDigits, Column);
+REGISTER_HELP_FUNCTION(getNumberSigned, Column);
+REGISTER_HELP_FUNCTION(getCollationName, Column);
+REGISTER_HELP_FUNCTION(getCharacterSetName, Column);
+REGISTER_HELP_FUNCTION(getZeroFill, Column);
 #if DOXYGEN_CPP
 /**
  * Use this function to retrieve an valid member of this class exposed to the
@@ -161,6 +190,22 @@ shcore::Value Column::get_member(const std::string &prop) const {
 
   return ret_val;
 }
+
+REGISTER_HELP_CLASS(Row, shellapi);
+REGISTER_HELP(ROW_BRIEF, "Represents the a Row in a Result.");
+REGISTER_HELP(ROW_DETAIL,
+              "When a row object is created, its fields are exposed as "
+              "properties of the Row object if two conditions are met:");
+REGISTER_HELP(
+    ROW_DETAIL1,
+    "@li Its name must be a valid identifier: [_a-zA-Z][_a-zA-Z0-9]*");
+REGISTER_HELP(
+    ROW_DETAIL2,
+    "@li Its name must be different from names of the members of this object.");
+REGISTER_HELP(ROW_DETAIL3,
+              "In the case a field does not met these conditions, it must be "
+              "retrieved through "
+              "<b>@<Row@>.<<<getField>>>(@<fieldName@>)</b>.");
 
 Row::Row() {
   add_property("length", "getLength");
@@ -275,16 +320,20 @@ std::string &Row::append_repr(std::string &s_out) const {
 
 bool Row::operator==(const Object_bridge &UNUSED(other)) const { return false; }
 
-//! Returns the value of a field on the Row based on the field name.
-#if DOXYGEN_CPP
-//! \param args : Should contain the name of the field to be returned
-#else
-//! \param fieldName : The name of the field to be returned
-#endif
+REGISTER_HELP_FUNCTION(getField, Row);
+REGISTER_HELP(ROW_GETFIELD_BRIEF,
+              "Returns the value of the field named <b>name</b>.");
+REGISTER_HELP(ROW_GETFIELD_PARAM,
+              "@param name The name of the field to be retrieved.");
+/**
+ * $(ROW_GETFIELD_BRIEF)
+ *
+ * $(ROW_GETFIELD_PARAM)
+ */
 #if DOXYGEN_JS
-Object Row::getField(String fieldName) {}
+Object Row::getField(String name) {}
 #elif DOXYGEN_PY
-object Row::get_field(str fieldName) {}
+object Row::get_field(str name) {}
 #endif
 shcore::Value Row::get_field(const shcore::Argument_list &args) {
   shcore::Value ret_val;
@@ -306,33 +355,17 @@ shcore::Value Row::get_field_(const std::string &field) const {
                                             " does not exist");
 }
 
-#if DOXYGEN_CPP
+REGISTER_HELP_FUNCTION(getLength, Row);
+REGISTER_HELP(ROW_GETLENGTH_BRIEF, "Returns number of fields in the Row.");
+REGISTER_HELP_PROPERTY(length, Row);
+REGISTER_HELP(ROW_LENGTH_BRIEF, "${ROW_GETLENGTH_BRIEF}");
 /**
- * Use this function to retrieve an valid member of this class exposed to the
- * scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this
- * function. The the content of the returned value depends on the property being
- * requested. The next list shows the valid properties as well as the returned
- * value for each of them:
- *
- * \li length: returns the number of fields contained on this Row object.
- * \li Each field is exposed as a member of this Row object, if prop is a valid
- * field name the value for that field will be returned.
- *
- * NOTE: if a field of on the Row is named "length", it´s value must be
- * retrieved using the get_field() function.
- */
-#else
-/**
- *  Returns the number of field contained on this Row object.
+ * $(ROW_GETLENGTH_BRIEF)
  */
 #if DOXYGEN_JS
 Integer Row::getLength() {}
 #elif DOXYGEN_PY
 int Row::get_length() {}
-#endif
 #endif
 shcore::Value Row::get_member(const std::string &prop) const {
   if (prop == "length") {

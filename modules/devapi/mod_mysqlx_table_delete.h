@@ -37,6 +37,8 @@ class Table;
 
 /**
  * \ingroup XDevAPI
+ * $(TABLEDELETE_BRIEF)
+ *
  * Handler for Delete operation on Tables.
  */
 class TableDelete : public Table_crud_definition,
@@ -57,14 +59,14 @@ class TableDelete : public Table_crud_definition,
   shcore::Value execute(const shcore::Argument_list &args) override;
 #if DOXYGEN_JS
   TableDelete delete ();
-  TableDelete where(String searchCondition);
+  TableDelete where(String expression);
   TableDelete orderBy(List sortExprStr);
   TableDelete limit(Integer numberOfRows);
   TableDelete bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
   TableDelete delete ();
-  TableDelete where(str searchCondition);
+  TableDelete where(str expression);
   TableDelete order_by(list sortExprStr);
   TableDelete limit(int numberOfRows);
   TableDelete bind(str name, Value value);
@@ -108,6 +110,9 @@ class TableDelete : public Table_crud_definition,
     }
     if ("execute" == s) {
       return F::execute;
+    }
+    if ("help" == s) {
+      return enabled_functions_;
     }
     return 0;
   }

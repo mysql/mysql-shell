@@ -55,13 +55,13 @@ class CollectionModify : public Collection_crud_definition,
 #if DOXYGEN_JS
   CollectionModify modify(String searchCondition);
   CollectionModify set(String attribute, Value value);
-  CollectionModify unset(String attribute);
+  CollectionModify unset(String attribute[, String attribute, ...]);
   CollectionModify unset(List attributes);
   CollectionModify merge(Document document);
   CollectionModify patch(Document document);
-  CollectionModify arrayAppend(String path, Value value);
-  CollectionModify arrayInsert(String path, Value value);
-  CollectionModify arrayDelete(String path);
+  CollectionModify arrayAppend(String docPath, Value value);
+  CollectionModify arrayInsert(String docPath, Value value);
+  CollectionModify arrayDelete(String docPath);
   CollectionModify sort(List sortExprStr);
   CollectionModify limit(Integer numberOfRows);
   CollectionModify skip(Integer limitOffset);
@@ -70,13 +70,13 @@ class CollectionModify : public Collection_crud_definition,
 #elif DOXYGEN_PY
   CollectionModify modify(str searchCondition);
   CollectionModify set(str attribute, Value value);
-  CollectionModify unset(str attribute);
+  CollectionModify unset(str attribute[, str attribute, ...]);
   CollectionModify unset(list attributes);
   CollectionModify merge(Document document);
   CollectionModify patch(Document document);
-  CollectionModify array_append(str path, Value value);
-  CollectionModify array_insert(str path, Value value);
-  CollectionModify array_delete(str path);
+  CollectionModify array_append(str docPath, Value value);
+  CollectionModify array_insert(str docPath, Value value);
+  CollectionModify array_delete(str docPath);
   CollectionModify sort(list sortExprStr);
   CollectionModify limit(int numberOfRows);
   CollectionModify skip(int limitOffset);
@@ -173,6 +173,9 @@ class CollectionModify : public Collection_crud_definition,
     }
     if ("execute" == s) {
       return F::execute;
+    }
+    if ("help" == s) {
+      return enabled_functions_;
     }
     return 0;
   }

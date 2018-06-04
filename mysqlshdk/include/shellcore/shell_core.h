@@ -29,6 +29,7 @@
 #include <list>
 #include <utility>
 
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
@@ -37,28 +38,29 @@ using namespace std::placeholders;
 
 // Helper to add commands in standard format to the dispatcher.
 // Use it as:
-// SET_SHELL_COMMAND("<name>", "<description>", "<help>", Class::method)
+// SET_SHELL_COMMAND("<name>", "<help_tag>", Class::method)
 // Assumptions:
 // - Caller class has a command handler defined as _shell_command_handler
 // - Command method has the required signature: void class::method(const
 // std::vector<std::string>& params)
 // - Command methid is a method on the caller class
-#define SET_SHELL_COMMAND(name, desc, help, function)  \
-  _shell_command_handler.add_command(name, desc, help, \
-                                     std::bind(&function, this, _1))
+#define SET_SHELL_COMMAND(name, help, function) \
+  _shell_command_handler.add_command(name, help, std::bind(&function, this, _1))
 
 // Helper to add commands in non standard format to the dispatcher.
 // Use it as:
-// SET_CUSTOM_SHELL_COMMAND("<name>", "<description>", "<help>", <bound
-// function>) Assumption:
+// SET_CUSTOM_SHELL_COMMAND("<name>", "<help_tag>", <bound
+// function>, <case_sensitive_help>) Assumption:
 // - Caller class has a command handler defined as _shell_command_handler
 // - Bound function receives const std::vector<std::string>& params
-#define SET_CUSTOM_SHELL_COMMAND(name, desc, help, function) \
-  _shell_command_handler.add_command(name, desc, help, function)
+#define SET_CUSTOM_SHELL_COMMAND(name, help, function, case_sensitive, mode) \
+  _shell_command_handler.add_command(name, help, function, case_sensitive, mode)
 
 namespace shcore {
 class Object_registry;
 class Shell_core;
+
+using Mode_mask = IShell_core::Mode_mask;
 
 // A command function should return true if handling was OK
 // Returning false tells the caller to continue processing it
@@ -67,8 +69,6 @@ typedef std::function<bool(const std::vector<std::string> &)>
 
 struct Shell_command {
   std::string triggers;
-  std::string description;
-  std::string help;
   Shell_command_function function;
 };
 
@@ -80,14 +80,15 @@ class SHCORE_PUBLIC Shell_command_handler {
   std::vector<std::string> split_command_line(const std::string &command_line);
   Command_registry _command_dict;
   Command_list _commands;
+  bool m_use_help;
 
  public:
+  Shell_command_handler(bool use_help = true) : m_use_help(use_help){};
   bool process(const std::string &command_line);
-  void add_command(const std::string &triggers, const std::string &description,
-                   const std::string &help, Shell_command_function function);
-  std::string get_commands(const std::string &title);
-  bool get_command_help(const std::string &command, std::string &help);
-
+  void add_command(const std::string &triggers, const std::string &help_tag,
+                   Shell_command_function function,
+                   bool case_sensitive_help = false,
+                   Mode_mask mode = Mode_mask::all());
   std::vector<std::string> get_command_names_matching(
       const std::string &prefix) const;
 };
@@ -110,7 +111,6 @@ class SHCORE_PUBLIC Shell_language {
   virtual void clear_input() {}
   virtual std::string get_continued_input_context() { return ""; }
 
-  virtual bool print_help(const std::string &) { return false; }
   virtual bool is_module(const std::string &UNUSED(file_name)) { return false; }
   virtual void execute_module(
       const std::string &UNUSED(file_name)) { /* Does Nothing by default */
@@ -135,23 +135,23 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   Shell_core(Interpreter_delegate *shdelegate);
   virtual ~Shell_core();
 
-  virtual Mode interactive_mode() const { return _mode; }
-  virtual bool switch_mode(Mode mode, bool &lang_initialized);
+  Mode interactive_mode() const override { return _mode; }
+  bool switch_mode(Mode mode, bool &lang_initialized) override;
 
   // sets a global variable, exposed to all supported scripting languages
   // the value is saved in a map, so that the exposing can be deferred in
   // case the context for some langauge is not yet created at the time this is
   // called
-  virtual void set_global(const std::string &name, const Value &value,
-                          Mode_mask mode = Mode_mask::any());
-  virtual Value get_global(const std::string &name);
-  std::vector<std::string> get_global_objects(Mode mode);
+  void set_global(const std::string &name, const Value &value,
+                  Mode_mask mode = Mode_mask::any()) override;
+  Value get_global(const std::string &name) override;
+  std::vector<std::string> get_global_objects(Mode mode) override;
 
-  virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(
-      const std::shared_ptr<mysqlsh::ShellBaseSession> &session);
-  virtual std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
+  std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(
+      const std::shared_ptr<mysqlsh::ShellBaseSession> &session) override;
+  std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session() override;
 
-  virtual Object_registry *registry() { return _registry; }
+  Object_registry *registry() override { return _registry; }
 
   Shell_language *language_object(Mode mode) {
     if (_langs.find(mode) != _langs.end()) return _langs[mode];
@@ -160,11 +160,11 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
  public:
   virtual std::string preprocess_input_line(const std::string &s);
-  virtual void handle_input(std::string &code, Input_state &state);
-  virtual bool handle_shell_command(const std::string &code);
-  virtual std::string get_handled_input();
-  virtual int process_stream(std::istream &stream, const std::string &source,
-                             const std::vector<std::string> &argv);
+  void handle_input(std::string &code, Input_state &state) override;
+  bool handle_shell_command(const std::string &code) override;
+  std::string get_handled_input() override;
+  int process_stream(std::istream &stream, const std::string &source,
+                     const std::vector<std::string> &argv) override;
   virtual bool is_module(const std::string &file_name) {
     return _langs[_mode]->is_module(file_name);
   }
@@ -173,24 +173,25 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
   virtual void clear_input();
 
-  virtual Interpreter_delegate *get_delegate() { return &_delegate; }
+  Interpreter_delegate *get_delegate() override { return &_delegate; }
 
   // To be used to stop processing from caller
   void set_error_processing() { _global_return_code = 1; }
 
+  Help_manager *get_helper() override { return &m_help; }
+
  public:
-  virtual void print(const std::string &s);
+  void print(const std::string &s) override;
   void println(const std::string &s = "", const std::string &tag = "");
   void print_value(const shcore::Value &value, const std::string &tag);
-  virtual void print_error(const std::string &s);
-  virtual bool password(const std::string &s, std::string &ret_pass);
+  void print_error(const std::string &s) override;
+  bool password(const std::string &s, std::string &ret_pass) override;
   bool prompt(const std::string &s, std::string &ret_val);
   void cancel_input();
-  virtual const std::string &get_input_source() { return _input_source; }
-  virtual const std::vector<std::string> &get_input_args() {
+  const std::string &get_input_source() override { return _input_source; }
+  const std::vector<std::string> &get_input_args() override {
     return _input_args;
   }
-  virtual bool print_help(const std::string &topic);
   std::string get_main_delimiter() const;
 
  private:
@@ -226,6 +227,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   std::vector<std::string> _input_args;
   Mode _mode;
   int _global_return_code;
+  Help_manager m_help;
 };
 };  // namespace shcore
 

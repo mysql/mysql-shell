@@ -11,32 +11,6 @@
 |uri: OK|
 |current_schema: Missing|
 
-#@<OUT> Session: help
-Provides facilities to execute queries and retrieve database objects.
-
-The following properties are currently supported.
-
- - uri Retrieves the URI for the current session.
-
-
-The following functions are currently supported.
-
- - close             Closes the internal connection to the MySQL Server held on
-                     this session object.
- - commit            Commits all the operations executed after a call to
-                     startTransaction().
- - get_uri           Retrieves the URI for the current session.
- - help              Provides help about this class and it's members
- - is_open           Returns true if session is known to be open.
- - query             Executes a query and returns the corresponding
-                     ClassicResult object.
- - rollback          Discards all the operations executed after a call to
-                     startTransaction().
- - run_sql           Executes a query and returns the corresponding
-                     ClassicResult object.
- - start_transaction Starts a transaction context on the server.
-
-
 #@ ClassicSession: accessing Schemas
 ||unknown attribute: get_schemas
 

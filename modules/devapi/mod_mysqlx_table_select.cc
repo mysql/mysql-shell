@@ -36,6 +36,12 @@ using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
+REGISTER_HELP_CLASS(TableSelect, mysqlx);
+REGISTER_HELP(TABLESELECT_BRIEF, "Operation to retrieve rows from a table.");
+REGISTER_HELP(TABLESELECT_DETAIL,
+              "A TableSelect represents a query to retrieve rows from a Table. "
+              "It is is created through the <b>select</b> function on the "
+              "<b>Table</b> class.");
 TableSelect::TableSelect(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   message_.mutable_collection()->set_schema(owner->schema()->name());
@@ -88,23 +94,32 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
   update_functions(F::_empty);
 }
 
-//! Initializes this record selection handler.
-#if DOXYGEN_CPP
-//! \param args should contain an optional list of string expressions
-//! identifying the columns to be retrieved, alias support is enabled on these
-//! fields.
-#else
-//! \param searchExprStr: An optional list of string expressions identifying the
-//! columns to be retrieved, alias support is enabled on these fields.
-#endif
+REGISTER_HELP_FUNCTION(select, TableSelect);
+REGISTER_HELP(TABLESELECT_SELECT_BRIEF,
+              "Defines the columns to be retrieved from the table.");
+REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE, "()");
+REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE1, "(colDefArray)");
+REGISTER_HELP(TABLESELECT_SELECT_SIGNATURE2, "(colDef, colDef, ...)");
+REGISTER_HELP(TABLESELECT_SELECT_RETURNS, "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_SELECT_DETAIL,
+              "Defines the columns that will be retrieved from the Table.");
+REGISTER_HELP(TABLESELECT_SELECT_DETAIL1,
+              "To define the column list either use a list object containing "
+              "the column definition or pass each column definition on a "
+              "separate parameter");
+REGISTER_HELP(TABLESELECT_SELECT_DETAIL2,
+              "If the function is called without specifying any column "
+              "definition, all the columns in the table will be retrieved.");
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_SELECT_BRIEF)
  *
- * The TableSelect handler will only retrieve the columns that were included on
- * the filter, if no filter was set then all the columns will be included.
+ * $(TABLESELECT_SELECT_RETURNS)
  *
- * Calling this function is allowed only for the first time and it is done
- * automatically when Table.select() is called.
+ * $(TABLESELECT_SELECT_DETAIL)
+ *
+ * $(TABLESELECT_SELECT_DETAIL1)
+ *
+ * $(TABLESELECT_SELECT_DETAIL2)
  *
  * #### Method Chaining
  *
@@ -175,19 +190,28 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the search condition to filter the records to be retrieved from the
-//! owner Table.
-#if DOXYGEN_CPP
-//! \param args should contain an optional expression to filter the records to
-//! be retrieved.
-#else
-//! \param searchCondition: An optional expression to filter the records to be
-//! retrieved.
-#endif
+REGISTER_HELP_FUNCTION(where, TableSelect);
+REGISTER_HELP(TABLESELECT_WHERE_BRIEF,
+              "Sets the search condition to filter the records to be retrieved "
+              "from the Table.");
+REGISTER_HELP(TABLESELECT_WHERE_PARAM,
+              "@param expression Optional condition to filter the records to "
+              "be retrieved.");
+REGISTER_HELP(TABLESELECT_WHERE_RETURNS, "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_WHERE_DETAIL,
+              "If used, only those rows satisfying the <b>expression</b> will "
+              "be retrieved");
+REGISTER_HELP(TABLESELECT_WHERE_DETAIL1,
+              "The <b>expression</b> supports parameter binding.");
+
 /**
- * if not specified all the records will be retrieved from the table unless a
- * limit is set.
- * \return This TableSelect object.
+ * $(TABLESELECT_WHERE_BRIEF)
+ *
+ * $(TABLESELECT_WHERE_PARAM)
+ *
+ * $(TABLESELECT_WHERE_RETURNS)
+ *
+ * $(TABLESELECT_WHERE_DETAIL)
  *
  * The searchCondition supports \a [Parameter Binding](param_binding.html).
  *
@@ -230,9 +254,9 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-TableSelect TableSelect::where(String searchCondition) {}
+TableSelect TableSelect::where(String expression) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::where(str searchCondition) {}
+TableSelect TableSelect::where(str expression) {}
 #endif
 shcore::Value TableSelect::where(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("where").c_str());
@@ -248,19 +272,18 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a grouping criteria for the resultset.
-#if DOXYGEN_CPP
-//! \param args should contain a list of string expressions identifying the
-//! grouping criteria.
-#else
-//! \param searchExprStr: A list of string expressions identifying the grouping
-//! criteria.
-#endif
+REGISTER_HELP_FUNCTION(groupBy, TableSelect);
+REGISTER_HELP(TABLESELECT_GROUPBY_BRIEF,
+              "Sets a grouping criteria for the retrieved rows.");
+REGISTER_HELP(TABLESELECT_GROUPBY_SIGNATURE, "(searchExprStrList)");
+REGISTER_HELP(TABLESELECT_GROUPBY_SIGNATURE1,
+              "(searchExprStr, searchExprStr, ...)");
+REGISTER_HELP(TABLESELECT_GROUPBY_RETURNS, "@returns This TableSelect object.");
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_GROUPBY_BRIEF)
  *
- * If used, the TableSelect handler will group the records using the stablished
- * criteria.
+ * $(TABLESELECT_GROUPBY_RETURNS)
+ *
  *
  * #### Method Chaining
  *
@@ -329,20 +352,25 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a condition for records to be considered in agregate function
-//! operations.
-#if DOXYGEN_CPP
-//! \param args should contain a condition on the agregate functions used on the
-//! grouping criteria.
-#else
-//! \param searchCondition: A condition on the agregate functions used on the
-//! grouping criteria.
-#endif
+REGISTER_HELP_FUNCTION(having, TableSelect);
+REGISTER_HELP(TABLESELECT_HAVING_BRIEF,
+              "Sets a condition for records to be considered in agregate "
+              "function operations.");
+REGISTER_HELP(
+    TABLESELECT_HAVING_PARAM,
+    "@param condition A condition to be used with agregate functions.");
+REGISTER_HELP(TABLESELECT_HAVING_RETURNS, "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_HAVING_DETAIL,
+              "If used the TableSelect operation will only consider the "
+              "records matching the established criteria.");
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_HAVING_BRIEF)
  *
- * If used the TableSelect operation will only consider the records matching the
- * stablished criteria.
+ * $(TABLESELECT_HAVING_PARAM)
+ *
+ * $(TABLESELECT_HAVING_RETURNS)
+ *
+ * $(TABLESELECT_HAVING_DETAIL)
  *
  * The searchCondition supports \a [Parameter Binding](param_binding.html).
  *
@@ -384,9 +412,9 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-TableSelect TableSelect::having(String searchCondition) {}
+TableSelect TableSelect::having(String condition) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::having(str searchCondition) {}
+TableSelect TableSelect::having(str condition) {}
 #endif
 shcore::Value TableSelect::having(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("having").c_str());
@@ -403,23 +431,35 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the sorting criteria to be used on the RowResult.
-#if DOXYGEN_CPP
-//! \param args should contain a list of expression strings defining the sort
-//! criteria for the returned records.
-#else
-//! \param sortExprStr: A list of expression strings defining the sort criteria
-//! for the returned records.
-#endif
+REGISTER_HELP_FUNCTION(orderBy, TableSelect);
+REGISTER_HELP(TABLESELECT_ORDERBY_BRIEF,
+              "Sets the order in which the records will be retrieved.");
+REGISTER_HELP(TABLESELECT_ORDERBY_SIGNATURE,
+              "(sortCriterion[, sortCriterion, ...])");
+REGISTER_HELP(TABLESELECT_ORDERBY_SIGNATURE1, "(sortCriteria)");
+REGISTER_HELP(TABLESELECT_ORDERBY_RETURNS, "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL,
+              "If used the records will be sorted with the defined criteria.");
+REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL1,
+              "The elements of <b>sortExprStr</b> list are strings defining "
+              "the column name on which the sorting will be based.");
+REGISTER_HELP(TABLESELECT_ORDERBY_DETAIL2,
+              "The format is as follows: columnIdentifier [ ASC | DESC ]");
+REGISTER_HELP(
+    TABLESELECT_ORDERBY_DETAIL3,
+    "If no order criteria is specified, ascending will be used by default.");
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_ORDERBY_BRIEF)
  *
- * If used the TableSelect handler will return the records sorted with the
- * defined criteria.
+ * $(TABLESELECT_ORDERBY_RETURNS)
  *
- * The elements of sortExprStr list are strings defining the column name on
- * which the sorting will be based in the form of "columnIdentifier [ ASC | DESC
- * ]". If no order criteria is specified, ascending will be used by default.
+ * $(TABLESELECT_ORDERBY_DETAIL)
+ *
+ * $(TABLESELECT_ORDERBY_DETAIL1)
+ *
+ * $(TABLESELECT_ORDERBY_DETAIL2)
+ *
+ * $(TABLESELECT_ORDERBY_DETAIL3)
  *
  * #### Method Chaining
  *
@@ -489,16 +529,26 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the maximum number of records to be returned on the select operation.
-#if DOXYGEN_CPP
-//! \param args should contain the maximum number of records to be retrieved.
-#else
-//! \param numberOfRows: The maximum number of records to be retrieved.
-#endif
+REGISTER_HELP_FUNCTION(limit, TableSelect);
+REGISTER_HELP(
+    TABLESELECT_LIMIT_BRIEF,
+    "Sets the maximum number of rows to be returned on the select operation.");
+REGISTER_HELP(
+    TABLESELECT_LIMIT_PARAM,
+    "@param numberOfRows The maximum number of rows to be retrieved.");
+REGISTER_HELP(TABLESELECT_LIMIT_RETURNS, "@returns This TableSelect object.");
+REGISTER_HELP(
+    TABLESELECT_LIMIT_DETAIL,
+    "If used, the operation will return at most <b>numberOfRows</b> rows.");
+
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_LIMIT_BRIEF)
  *
- * If used, the TableSelect operation will return at most numberOfRows records.
+ * $(TABLESELECT_LIMIT_PARAM)
+ *
+ * $(TABLESELECT_LIMIT_RETURNS)
+ *
+ * $(TABLESELECT_LIMIT_DETAIL)
  *
  * #### Method Chaining
  *
@@ -558,17 +608,26 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets number of records to skip on the RowResult when a limit has been
-//! defined.
-#if DOXYGEN_CPP
-//! \param args should contain the number of records to skip before start
-//! including them on the Resultset.
-#else
-//! \param limitOffset: The number of records to skip before start including
-//! them on the Resultset.
-#endif
+REGISTER_HELP_FUNCTION(offset, TableSelect);
+REGISTER_HELP(TABLESELECT_OFFSET_BRIEF,
+              "Sets number of rows to skip on the resultset when a limit has "
+              "been defined.");
+REGISTER_HELP(TABLESELECT_OFFSET_PARAM,
+              "@param numberOfRows The number of rows to skip before start "
+              "including them on the RowResult.");
+REGISTER_HELP(TABLESELECT_OFFSET_RETURNS,
+              "@returns This CollectionFind object.");
+REGISTER_HELP(TABLESELECT_OFFSET_DETAIL,
+              "If used, the first <b>numberOfRows</b> records will not be "
+              "included on the result.");
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_OFFSET_BRIEF)
+ *
+ * $(TABLESELECT_OFFSET_PARAM)
+ *
+ * $(TABLESELECT_OFFSET_RETURNS)
+ *
+ * $(TABLESELECT_OFFSET_DETAIL)
  *
  * #### Method Chaining
  *
@@ -584,9 +643,9 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-TableSelect TableSelect::offset(Integer limitOffset) {}
+TableSelect TableSelect::offset(Integer numberOfRows) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::offset(int limitOffset) {}
+TableSelect TableSelect::offset(int numberOfRows) {}
 #endif
 shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("offset").c_str());
@@ -626,60 +685,61 @@ void TableSelect::set_lock_contention(const shcore::Argument_list &args) {
   }
 }
 
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_BRIEF,
+REGISTER_HELP_FUNCTION(lockShared, TableSelect);
+REGISTER_HELP(TABLESELECT_LOCKSHARED_BRIEF,
               "Instructs the server to acquire shared row locks in documents "
               "matched by this find operation.");
 REGISTER_HELP(
-    TABLESELECT_LOCK_SHARED_PARAM,
+    TABLESELECT_LOCKSHARED_PARAM,
     "@param lockContention optional parameter to indicate how to handle rows "
     "that are already locked.");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_RETURNS,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_RETURNS,
               "@returns This TableSelect object.");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL,
               "When this function is called, the selected rows will be"
               "locked for write operations, they may be retrieved on a "
               "different session, but no updates will be allowed.");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL1,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL1,
               "The acquired locks will be released when the current "
               "transaction is commited or rolled back.");
 
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL2,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL2,
               "The lockContention parameter defines the behavior of the "
               "operation if another session contains an exlusive lock to "
               "matching rows.");
 
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL3,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL3,
               "The lockContention can be specified using the following "
               "constants:");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL4,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL4,
               "@li mysqlx.LockContention.DEFAULT");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL5,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL5,
               "@li mysqlx.LockContention.NOWAIT");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL6,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL6,
               "@li mysqlx.LockContention.SKIP_LOCKED");
 
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL7,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL7,
               "The lockContention can also be specified using the following "
               "string literals (no case sensitive):");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL8, "@li 'DEFAULT'");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL9, "@li 'NOWAIT'");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL10, "@li 'SKIP_LOCKED'");
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL8, "@li 'DEFAULT'");
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL9, "@li 'NOWAIT'");
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL10, "@li 'SKIP_LOCKED'");
 
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL11,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL11,
               "If no lockContention or the default is specified, the operation "
               "will block if another session already holds an exclusive lock "
               "on matching rows until the lock is released.");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL12,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL12,
               "If lockContention is set to NOWAIT and another session "
               "already holds an exclusive lock on matching rows, the "
               "operation will not block and an error will be generated.");
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL13,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL13,
               "If lockContention is set to SKIP_LOCKED and another session "
               "already holds an exclusive lock on matching rows, the "
               "operation will not block and will return only those rows "
               "not having an exclusive lock.");
 
-REGISTER_HELP(TABLESELECT_LOCK_SHARED_DETAIL14,
+REGISTER_HELP(TABLESELECT_LOCKSHARED_DETAIL14,
               "This operation only makes sense within a transaction.");
 
 /**
@@ -758,59 +818,60 @@ shcore::Value TableSelect::lock_shared(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_BRIEF,
+REGISTER_HELP_FUNCTION(lockExclusive, TableSelect);
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_BRIEF,
               "Instructs the server to acquire an exclusive lock on rows "
               "matched by this find operation.");
 REGISTER_HELP(
-    TABLESELECT_LOCK_EXCLUSIVE_PARAM,
+    TABLESELECT_LOCKEXCLUSIVE_PARAM,
     "@param lockContention optional parameter to indicate how to handle "
     "rows that are already locked.");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_RETURNS,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_RETURNS,
               "@returns This TableSelect object.");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL,
               "When this function is called, the selected rows will be"
               "locked for read operations, they will not be retrievable by "
               "other session.");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL1,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL1,
               "The acquired locks will be released when the current "
               "transaction is commited or rolled back.");
 
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL2,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL2,
               "The lockContention parameter defines the behavior of the "
               "operation if another session contains a lock to matching "
               "rows.");
 
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL3,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL3,
               "The lockContention can be specified using the following "
               "constants:");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL4,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL4,
               "@li mysqlx.LockContention.DEFAULT");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL5,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL5,
               "@li mysqlx.LockContention.NOWAIT");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL6,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL6,
               "@li mysqlx.LockContention.SKIP_LOCKED");
 
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL7,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL7,
               "The lockContention can also be specified using the following "
               "string literals (no case sensitive):");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL8, "@li 'DEFAULT'");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL9, "@li 'NOWAIT'");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL10, "@li 'SKIP_LOCKED'");
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL8, "@li 'DEFAULT'");
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL9, "@li 'NOWAIT'");
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL10, "@li 'SKIP_LOCKED'");
 
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL11,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL11,
               "If no lockContention or the default is specified, the operation "
               "will block if another session already holds a lock on matching "
               "rows until the lock is released.");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL12,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL12,
               "If lockContention is set to NOWAIT and another session "
               "already holds a lock on matching rows, the operation will not "
               "block and an error will be generated.");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL13,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL13,
               "If lockContention is set to SKIP_LOCKED and another session "
               "already holds a lock on matching rows, the operation will not "
               "block and will return only those rows not having an exclusive "
               "lock.");
-REGISTER_HELP(TABLESELECT_LOCK_EXCLUSIVE_DETAIL14,
+REGISTER_HELP(TABLESELECT_LOCKEXCLUSIVE_DETAIL14,
               "This operation only makes sense within a transaction.");
 
 /**
@@ -889,17 +950,35 @@ shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Binds a value to a specific placeholder used on this TableSelect object.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li The name of the placeholder to which the value will be bound.
-//! \li The value to be bound on the placeholder.
-#else
-//! \param name: The name of the placeholder to which the value will be bound.
-//! \param value: The value to be bound on the placeholder.
-#endif
+REGISTER_HELP_FUNCTION(bind, TableSelect);
+REGISTER_HELP(
+    TABLESELECT_BIND_BRIEF,
+    "Binds a value to a specific placeholder used on this operation.");
+REGISTER_HELP(TABLESELECT_BIND_PARAM,
+              "@param name The name of the placeholder to which the value will "
+              "be bound.");
+REGISTER_HELP(TABLESELECT_BIND_PARAM1,
+              "@param value The value to be bound on the placeholder.");
+REGISTER_HELP(TABLESELECT_BIND_RETURNS, "@returns This TableSelect object.");
+REGISTER_HELP(TABLESELECT_BIND_DETAIL, "${TABLESELECT_BIND_BRIEF}");
+REGISTER_HELP(TABLESELECT_BIND_DETAIL1,
+              "An error will be raised if the placeholder indicated by name "
+              "does not exist.");
+REGISTER_HELP(TABLESELECT_BIND_DETAIL2,
+              "This function must be called once for each used placeholder or "
+              "an error will be raised when the execute method is called.");
+
 /**
- * \return This TableSelect object.
+ * $(TABLESELECT_BIND_BRIEF)
+ *
+ * $(TABLESELECT_BIND_PARAM)
+ * $(TABLESELECT_BIND_PARAM1)
+ *
+ * $(TABLESELECT_BIND_RETURNS)
+ *
+ * $(TABLESELECT_BIND_DETAIL1)
+ *
+ * $(TABLESELECT_BIND_DETAIL2)
  *
  * #### Method Chaining
  *
@@ -912,7 +991,7 @@ shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
  *
  * An error will be raised if the placeholder indicated by name does not exist.
  *
- * This function must be called once for each used placeohlder or an error will
+ * This function must be called once for each used placeholder or an error will
  * be
  * raised when the execute method is called.
  *
@@ -937,10 +1016,16 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(execute, TableSelect);
+REGISTER_HELP(TABLESELECT_EXECUTE_BRIEF,
+              "Executes the select operation with all the configured options.");
+REGISTER_HELP(TABLESELECT_EXECUTE_RETURNS,
+              "@returns A RowResult object that can be used to traverse the "
+              "rows returned by this operation.");
 /**
- * Executes the Find operation with all the configured options and returns.
- * \return RowResult A Row result object that can be used to traverse the
- * records returned by rge select operation.
+ * $(TABLESELECT_EXECUTE_BRIEF)
+ *
+ * $(TABLESELECT_EXECUTE_RETURNS)
  *
  * #### Method Chaining
  *

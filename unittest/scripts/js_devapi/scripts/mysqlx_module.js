@@ -29,9 +29,6 @@ expr = mysqlx.expr(5);
 expr = mysqlx.expr('5+6');
 print(expr);
 
-//@<OUT> Help on getSession
-mysqlx.help('getSession');
-
 //@ mysqlx module: dateValue() diffrent parameters
 mysqlx.dateValue(2025, 10, 15);
 mysqlx.dateValue(2017, 12, 10, 10, 10, 10);

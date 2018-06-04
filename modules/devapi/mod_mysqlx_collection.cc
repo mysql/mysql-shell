@@ -40,6 +40,7 @@ namespace mysqlsh {
 namespace mysqlx {
 using namespace shcore;
 
+REGISTER_HELP_SUB_CLASS(Collection, mysqlx, DatabaseObject);
 REGISTER_HELP(COLLECTION_BRIEF,
               "A Collection is a container that may be used to store Documents "
               "in a MySQL database.");
@@ -52,7 +53,7 @@ REGISTER_HELP(COLLECTION_DETAIL1,
 REGISTER_HELP(COLLECTION_DETAIL2,
               "The values of fields can contain other documents, arrays, and "
               "lists of documents.");
-REGISTER_HELP(COLLECTION_PARENTS, "DatabaseObject");
+REGISTER_HELP(COLLECTION_UPPER_CLASS, "DatabaseObject");
 Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
     : DatabaseObject(owner->_session.lock(),
                      std::static_pointer_cast<DatabaseObject>(owner), name) {
@@ -84,6 +85,7 @@ void Collection::init() {
 
 Collection::~Collection() {}
 
+REGISTER_HELP_FUNCTION(add, Collection);
 REGISTER_HELP(COLLECTION_ADD_BRIEF,
               "Inserts one or more documents into a collection.");
 REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
@@ -96,16 +98,17 @@ REGISTER_HELP(COLLECTION_ADD_CHAINED, "CollectionAdd.add.[execute]");
  * <code>
  *   <table border = "0">
  *     <tr><td>Collection</td><td>.add(...)</td></tr>
- *     <tr><td></td><td>.$(COLLECTIONADD_EXECUTE_SYNTAX)</td></tr>
+ *     <tr><td></td><td>execute()</td></tr>
  *   </table>
  * </code>
  *
  * #### .add(...)
  *
- * ##### Alternatives
+ * ##### Overloads
  *
- * @li $(COLLECTIONADD_ADD_SYNTAX)
- * @li $(COLLECTIONADD_ADD_SYNTAX1)
+ * @li add$(COLLECTIONADD_ADD_SIGNATURE)
+ * @li add$(COLLECTIONADD_ADD_SIGNATURE1)
+ * @li add$(COLLECTIONADD_ADD_SIGNATURE2)
  *
  * $(COLLECTIONADD_ADD_DETAIL)
  *
@@ -175,47 +178,48 @@ shcore::Value Collection::add_(const shcore::Argument_list &args) {
   return collectionAdd->add(args);
 }
 
+REGISTER_HELP_FUNCTION(modify, Collection);
 REGISTER_HELP(COLLECTION_MODIFY_BRIEF, "Creates a collection update handler.");
 REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
-              "CollectionModify.modify.[set].[unset].[merge].[patch].["
-              "arrayInsert].[arrayAppend].[arrayDelete].[sort].[limit].[bind].["
-              "execute]");
+              "CollectionModify.modify.[set].[unset].[merge].[patch]."
+              "[<<<arrayInsert>>>].[<<<arrayAppend>>>].[<<<arrayDelete>>>]."
+              "[sort].[limit].[bind].[execute]");
 
 /**
- * $(COLLECTION_ADD_BRIEF)
+ * $(COLLECTION_MODIFY_BRIEF)
  *
  * ### Full Syntax
  *
  * <code>
  *   <table border = "0">
- *     <tr><td>Collection</td><td>.modify(...)</td></tr>
- *     <tr><td></td><td>[.set(...)]</td></tr>
- *     <tr><td></td><td>[.$(COLLECTIONMODIFY_UNSET_SYNTAX)]</td></tr>
- *     <tr><td></td><td>[.merge(...)]</td></tr>
- *     <tr><td></td><td>[.patch(...)]</td></tr>
+ *     <tr><td>Collection</td><td>.modify(searchCondition)</td></tr>
+ *     <tr><td></td><td>[.set(attribute, value)]</td></tr>
+ *     <tr><td></td><td>[.unset(...)]</td></tr>
+ *     <tr><td></td><td>[.merge(document)]</td></tr>
+ *     <tr><td></td><td>[.patch(document)]</td></tr>
  */
 #if DOXYGEN_JS
 /**
- *     <tr><td></td><td>[.arrayInsert(...)]</td></tr>
- *     <tr><td></td><td>[.arrayAppend(...)]</td></tr>
- *     <tr><td></td><td>[.arrayDelete(...)]</td></tr>
+ *     <tr><td></td><td>[.arrayInsert(docPath, value)]</td></tr>
+ *     <tr><td></td><td>[.arrayAppend(docPath, value)]</td></tr>
+ *     <tr><td></td><td>[.arrayDelete(docPath)]</td></tr>
  */
 #elif DOXYGEN_PY
 /**
- *     <tr><td></td><td>[.array_insert(...)]</td></tr>
- *     <tr><td></td><td>[.array_append(...)]</td></tr>
- *     <tr><td></td><td>[.array_delete(...)]</td></tr>
+ *     <tr><td></td><td>[.array_insert(docPath, value)]</td></tr>
+ *     <tr><td></td><td>[.array_append(docPath, value)]</td></tr>
+ *     <tr><td></td><td>[.array_delete(docPath)]</td></tr>
  */
 #endif
 /**
  *     <tr><td></td><td>[.sort(...)]</td></tr>
- *     <tr><td></td><td>[.limit(...)]</td></tr>
- *     <tr><td></td><td>[.bind(...)]</td></tr>
+ *     <tr><td></td><td>[.limit(numberOfDocs)]</td></tr>
+ *     <tr><td></td><td>[.bind(name, value)]</td></tr>
  *     <tr><td></td><td>[.execute()]</td></tr>
  *   </table>
  * </code>
  *
- * #### .modify()
+ * #### .modify(searchCondition)
  *
  * $(COLLECTIONMODIFY_MODIFY_PARAM)
  *
@@ -225,7 +229,7 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *
  * $(COLLECTIONMODIFY_MODIFY_DETAIL2)
  *
- * #### .set()
+ * #### .set(attribute, value)
  *
  * $(COLLECTIONMODIFY_SET_DETAIL)
  * $(COLLECTIONMODIFY_SET_DETAIL1)
@@ -248,18 +252,18 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  * The attribute addition will be done on the collection's documents once the
  * execute method is called.
  *
- * #### .unset()
+ * #### .unset(...)
  *
- * ##### Alternatives
+ * ##### Overloads
  *
- * @li $(COLLECTIONMODIFY_UNSET_SYNTAX)
- * @li $(COLLECTIONMODIFY_UNSET_SYNTAX1)
+ * @li unset$(COLLECTIONMODIFY_UNSET_SIGNATURE)
+ * @li unset$(COLLECTIONMODIFY_UNSET_SIGNATURE1)
  *
  * $(COLLECTIONMODIFY_UNSET_BRIEF)
  *
  * $(COLLECTIONMODIFY_UNSET_DETAIL)
  *
- * #### .merge()
+ * #### .merge(document)
  *
  * $(COLLECTIONMODIFY_MERGE_DETAIL)
  *
@@ -267,7 +271,7 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *
  * $(COLLECTIONMODIFY_MERGE_DETAIL2)
  *
- * #### .patch()
+ * #### .patch(document)
  *
  * $(COLLECTIONMODIFY_PATCH_BRIEF)
  *
@@ -286,34 +290,39 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  *
  * $(COLLECTIONMODIFY_PATCH_DETAIL9)
  *
- * #### .arrayInsert()
+ * #### .arrayInsert(docPath, value)
  *
  * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL)
  *
  * $(COLLECTIONMODIFY_ARRAYINSERT_DETAIL1)
  *
- * #### .arrayAppend()
+ * #### .arrayAppend(docPath, value)
  *
  * $(COLLECTIONMODIFY_ARRAYAPPEND_DETAIL)
  *
- * #### .arrayDelete()
+ * #### .arrayDelete(docPath)
  *
  * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
  *
  * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
  *
- * #### .sort()
+ * #### .sort(...)
+ *
+ * ##### Overloads
+ *
+ * @li sort$(COLLECTIONMODIFY_SORT_SIGNATURE)
+ * @li sort$(COLLECTIONMODIFY_SORT_SIGNATURE1)
  *
  * $(COLLECTIONMODIFY_SORT_DETAIL)
  * $(COLLECTIONMODIFY_SORT_DETAIL1)
  *
  * $(COLLECTIONMODIFY_SORT_DETAIL2)
  *
- * #### .limit()
+ * #### .limit(numberOfDocs)
  *
  * $(COLLECTIONMODIFY_LIMIT_DETAIL)
  *
- * #### .bind()
+ * #### .bind(name, value)
  *
  * $(COLLECTIONMODIFY_BIND_BRIEF)
  *
@@ -352,6 +361,7 @@ shcore::Value Collection::modify_(const shcore::Argument_list &args) {
   return collectionModify->modify(args);
 }
 
+REGISTER_HELP_FUNCTION(remove, Collection);
 REGISTER_HELP(COLLECTION_REMOVE_BRIEF, "Creates a document deletion handler.");
 REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
               "CollectionRemove.remove.[sort].[limit].[bind].[execute]");
@@ -363,15 +373,15 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
  *
  * <code>
  *   <table border = "0">
- *     <tr><td>Collection</td><td>.remove(...)</td></tr>
+ *     <tr><td>Collection</td><td>.remove(searchCondition)</td></tr>
  *     <tr><td></td><td>[.sort(...)]</td></tr>
- *     <tr><td></td><td>[.limit(...)]</td></tr>
- *     <tr><td></td><td>[.bind(...)]</td></tr>
- *     <tr><td></td><td>[.execute(...)]</td></tr>
+ *     <tr><td></td><td>[.limit(numberOfDocs)]</td></tr>
+ *     <tr><td></td><td>[.bind(name, value)]</td></tr>
+ *     <tr><td></td><td>[.execute()]</td></tr>
  *   </table>
  * </code>
  *
- * #### .remove()
+ * #### .remove(searchCondition)
  *
  * $(COLLECTIONREMOVE_REMOVE_DETAIL)
  *
@@ -381,7 +391,12 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
  *
  * $(COLLECTIONREMOVE_REMOVE_DETAIL3)
  *
- * #### .sort()
+ * #### .sort(...)
+ *
+ * ##### Overloads
+ *
+ * @li sort$(COLLECTIONREMOVE_SORT_SIGNATURE)
+ * @li sort$(COLLECTIONREMOVE_SORT_SIGNATURE1)
  *
  * $(COLLECTIONREMOVE_SORT_DETAIL)
  *
@@ -389,13 +404,13 @@ REGISTER_HELP(COLLECTION_REMOVE_CHAINED,
  *
  * $(COLLECTIONREMOVE_SORT_DETAIL2)
  *
- * #### .limit()
+ * #### .limit(numberOfDocs)
  *
  * $(COLLECTIONREMOVE_LIMIT_BRIEF)
  *
  * $(COLLECTIONREMOVE_LIMIT_DETAIL)
  *
- * #### .bind()
+ * #### .bind(name, value)
  *
  * $(COLLECTIONREMOVE_BIND_DETAIL)
  *
@@ -452,13 +467,14 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args) {
   return collectionRemove->remove(args);
 }
 
+REGISTER_HELP_FUNCTION(find, Collection);
 REGISTER_HELP(
     COLLECTION_FIND_BRIEF,
     "Retrieves documents from a collection, matching a specified criteria.");
-REGISTER_HELP(
-    COLLECTION_FIND_CHAINED,
-    "CollectionFind.find.[fields].[groupBy->[having]].[sort].[limit->[skip]]"
-    ".[lockShared].[lockExclusive].[bind].[execute]");
+REGISTER_HELP(COLLECTION_FIND_CHAINED,
+              "CollectionFind.find.[fields].[<<<groupBy>>>->[having]].[sort]."
+              "[limit->[skip]].[<<<lockShared>>>].[<<<lockExclusive>>>].[bind]."
+              "[execute]");
 
 /**
  * $(COLLECTION_FIND_BRIEF)
@@ -467,39 +483,34 @@ REGISTER_HELP(
  *
  * <code>
  *   <table border = "0">
- *     <tr><td>Collection</td><td>.find(...)</td></tr>
+ *     <tr><td>Collection</td><td>.find([searchCondition])</td></tr>
  *     <tr><td></td><td>[.fields(...)]</td></tr>
  */
 #if DOXYGEN_JS
 /**
- * <tr><td></td><td>[.groupBy(...)[.$(COLLECTIONFIND_HAVING_SYNTAX)]]</td></tr>*/
+ * <tr><td></td><td>[.groupBy(...)[.having(condition)]]</td></tr>*/
 #elif DOXYGEN_PY
 /**
- * <tr><td></td><td>[.group_by(...)[.$(COLLECTIONFIND_HAVING_SYNTAX)]]</td></tr>*/
+ * <tr><td></td><td>[.group_by(...)[.having(condition)]]</td></tr>*/
 #endif
 /**
  *     <tr><td></td><td>[.sort(...)]</td></tr>
- *     <tr><td></td><td>[.$(COLLECTIONFIND_LIMIT_SYNTAX)[.$(COLLECTIONFIND_SKIP_SYNTAX)]]</td></tr>
+ *     <tr><td></td><td>[.limit(numberOfDocs)[.skip(numberOfDocs)]]</td></tr>
  */
 #if DOXYGEN_JS
 /**
- * <tr><td></td><td>[.lockShared(lockContention)|.lockExclusive(lockContention)]</td></tr>*/
+ * <tr><td></td><td>[.lockShared([lockContention])|.lockExclusive([lockContention])]</td></tr>*/
 #elif DOXYGEN_PY
 /**
  * <tr><td></td><td>[.lock_shared(lockContention)|.lock_exclusive(lockContention)]</td></tr>*/
 #endif
 /**
- *     <tr><td></td><td>[.$(COLLECTIONFIND_BIND_SYNTAX)]</td></tr>
- *     <tr><td></td><td>.$(COLLECTIONFIND_EXECUTE_SYNTAX)</td></tr>
+ *     <tr><td></td><td>[.bind(name, value)]</td></tr>
+ *     <tr><td></td><td>.execute()</td></tr>
  *   </table>
  * </code>
  *
- * #### .find(...)
- *
- * ##### Alternatives
- *
- * @li $(COLLECTIONFIND_FIND_SYNTAX)
- * @li $(COLLECTIONFIND_FIND_SYNTAX1)
+ * #### .find([searchCondition])
  *
  * $(COLLECTIONFIND_FIND_DETAIL)
  *
@@ -507,11 +518,11 @@ REGISTER_HELP(
  *
  * #### .fields(...)
  *
- * ##### Alternatives
+ * ##### Overloads
  *
- * @li $(COLLECTIONFIND_FIELDS_SYNTAX)
- * @li $(COLLECTIONFIND_FIELDS_SYNTAX1)
- * @li $(COLLECTIONFIND_FIELDS_SYNTAX2)
+ * @li $(COLLECTIONFIND_FIELDS_SIGNATURE)
+ * @li $(COLLECTIONFIND_FIELDS_SIGNATURE1)
+ * @li $(COLLECTIONFIND_FIELDS_SIGNATURE2)
  *
  * $(COLLECTIONFIND_FIELDS_DETAIL)
  *
@@ -530,29 +541,36 @@ REGISTER_HELP(
  *
  * #### .groupBy(...)
  *
+ * ##### Overloads
+ *
+ * @li groupBy$(COLLECTIONFIND_GROUPBY_SIGNATURE)
+ * @li groupBy$(COLLECTIONFIND_GROUPBY_SIGNATURE1)
  */
 #elif DOXYGEN_PY
 /**
  *
  * #### .group_by(...)
  *
+ * ##### Overloads
+ *
+ * @li group_by$(COLLECTIONFIND_GROUPBY_SIGNATURE)
+ * @li group_by$(COLLECTIONFIND_GROUPBY_SIGNATURE1)
  */
 #endif
 
 /**
- *
  * $(COLLECTIONFIND_GROUPBY_DETAIL)
  *
- * #### .$(COLLECTIONFIND_HAVING_SYNTAX)
+ * #### .having(condition)
  *
  * $(COLLECTIONFIND_HAVING_DETAIL)
  *
  * #### .sort(...)
  *
- * ##### Alternatives
+ * ##### Overloads
  *
- * @li $(COLLECTIONFIND_SORT_SYNTAX)
- * @li $(COLLECTIONFIND_SORT_SYNTAX1)
+ * @li sort$(COLLECTIONFIND_SORT_SIGNATURE)
+ * @li sort$(COLLECTIONFIND_SORT_SIGNATURE1)
  *
  * $(COLLECTIONFIND_SORT_DETAIL)
  *
@@ -562,11 +580,11 @@ REGISTER_HELP(
  *
  * $(COLLECTIONFIND_SORT_DETAIL3)
  *
- * #### .$(COLLECTIONFIND_LIMIT_SYNTAX)
+ * #### .limit(numberOfDocs)
  *
  * $(COLLECTIONFIND_LIMIT_DETAIL)
  *
- * #### .$(COLLECTIONFIND_SKIP_SYNTAX)
+ * #### .skip(numberOfDocs)
  *
  * $(COLLECTIONFIND_SKIP_DETAIL)
  */
@@ -574,13 +592,13 @@ REGISTER_HELP(
 #if DOXYGEN_JS
 /**
  *
- * #### .lockShared(lockContention)
+ * #### .lockShared([lockContention])
  *
  */
 #elif DOXYGEN_PY
 /**
  *
- * #### .lock_shared(lockContention)
+ * #### .lock_shared([lockContention])
  *
  */
 #endif
@@ -612,13 +630,13 @@ REGISTER_HELP(
 #if DOXYGEN_JS
 /**
  *
- * #### .lockExclusive(lockContention)
+ * #### .lockExclusive([lockContention])
  *
  */
 #elif DOXYGEN_PY
 /**
  *
- * #### .lock_exclusive(lockContention)
+ * #### .lock_exclusive([lockContention])
  *
  */
 #endif
@@ -649,7 +667,7 @@ REGISTER_HELP(
  *
  * $(COLLECTIONFIND_LOCKEXCLUSIVE_DETAIL14)
  *
- * #### .$(COLLECTIONFIND_BIND_SYNTAX)
+ * #### .bind(name, value)
  *
  * $(COLLECTIONFIND_BIND_DETAIL)
  *
@@ -657,7 +675,7 @@ REGISTER_HELP(
  *
  * $(COLLECTIONFIND_BIND_DETAIL2)
  *
- * #### .$(COLLECTIONFIND_EXECUTE_SYNTAX)
+ * #### .execute()
  *
  * $(COLLECTIONFIND_EXECUTE_BRIEF)
  *
@@ -727,6 +745,7 @@ shcore::Value Collection::find_(const shcore::Argument_list &args) {
   return collectionFind->find(args);
 }
 
+REGISTER_HELP_FUNCTION(createIndex, Collection);
 REGISTER_HELP(COLLECTION_CREATEINDEX_BRIEF,
               "Creates an index on a collection.");
 REGISTER_HELP(COLLECTION_CREATEINDEX_PARAM,
@@ -917,6 +936,7 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(dropIndex, Collection);
 REGISTER_HELP(COLLECTION_DROPINDEX_BRIEF, "Drops an index from a collection.");
 
 /**
@@ -952,6 +972,7 @@ shcore::Value Collection::drop_index_(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP_FUNCTION(replaceOne, Collection);
 REGISTER_HELP(COLLECTION_REPLACEONE_BRIEF,
               "Replaces an existing document with a new document.");
 REGISTER_HELP(COLLECTION_REPLACEONE_PARAM,
@@ -1022,6 +1043,7 @@ shcore::Value Collection::replace_one_(const Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(addOrReplaceOne, Collection);
 REGISTER_HELP(COLLECTION_ADDORREPLACEONE_BRIEF,
               "Replaces or adds a document in a collection.");
 REGISTER_HELP(COLLECTION_ADDORREPLACEONE_PARAM,
@@ -1096,6 +1118,7 @@ shcore::Value Collection::add_or_replace_one(
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(getOne, Collection);
 REGISTER_HELP(COLLECTION_GETONE_BRIEF,
               "Fetches the document with the given _id from the collection.");
 REGISTER_HELP(COLLECTION_GETONE_PARAM,
@@ -1131,6 +1154,7 @@ shcore::Value Collection::get_one(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(removeOne, Collection);
 REGISTER_HELP(COLLECTION_REMOVEONE_BRIEF,
               "Removes document with the given _id value.");
 REGISTER_HELP(COLLECTION_REMOVEONE_PARAM,

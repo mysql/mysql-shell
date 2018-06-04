@@ -104,6 +104,9 @@ class TableInsert : public Table_crud_definition,
     if ("bind" == s) {
       return F::bind;
     }
+    if ("help" == s) {
+      return enabled_functions_;
+    }
     return 0;
   }
 };

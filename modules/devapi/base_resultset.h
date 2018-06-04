@@ -249,33 +249,24 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 
 /**
  * \ingroup ShellAPI
+ *
  * Represents the a Row in a Result.
- */
-#if !DOXYGEN_CPP
-/**
- * \b Dynamic \b Properties
  *
- * In addition to the length property documented above, when a row object is
- * created,
- * its fields are exposed as properties of the Row object if two conditions are
- * met:
- *
- * \li Its name must be a valid identifier: [_a-zA-Z][_a-zA-Z0-9]*
- * \li Its name must be different from the fixed members of this object: length,
- * get_length and get_field
+ * $(ROW_DETAIL)
+ * $(ROW_DETAIL1)
+ * $(ROW_DETAIL2)
  *
  * In the case a field does not met these conditions, it must be retrieved
- * through the
+ * through the&nbsp;
  */
 #if DOXYGEN_JS
-//! getField(String fieldName)
+//! getField(String name)
 #else
-//! get_field(str fieldName)
+//! get_field(str name)
 #endif
 /**
  * function.
  */
-#endif
 
 class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
  public:

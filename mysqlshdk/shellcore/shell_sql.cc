@@ -26,36 +26,39 @@
 #include <fstream>
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 
-using namespace shcore;
+REGISTER_HELP(CMD_G_UC_BRIEF,
+              "Send command to mysql server, display result vertically.");
+REGISTER_HELP(CMD_G_UC_SYNTAX, "<statement>\\G");
+REGISTER_HELP(CMD_G_UC_DETAIL,
+              "Execute the statement in the MySQL server and display results "
+              "in a vertical format, one field and value per line.");
+REGISTER_HELP(
+    CMD_G_UC_DETAIL1,
+    "Useful for results that are too wide to fit the screen horizontally.");
+
+REGISTER_HELP(CMD_G_LC_BRIEF, "Send command to mysql server.");
+REGISTER_HELP(CMD_G_LC_SYNTAX, "<statement>\\g");
+REGISTER_HELP(CMD_G_LC_DETAIL,
+              "Execute the statement in the MySQL server and display results.");
+REGISTER_HELP(CMD_G_LC_DETAIL1,
+              "Same as executing with the current delimiter (default ;).");
+
+namespace shcore {
 
 Shell_sql::Shell_sql(IShell_core *owner)
     : Shell_language(owner), _delimiters({";", "\\G", "\\g"}) {
-  static const std::string cmd_help_G =
-      "SYNTAX:\n"
-      "   <statement>\\G\n\n"
-      "Execute the statement in the MySQL server and display results in a "
-      "vertical\n"
-      "format, one field and value per line.\n"
-      "Useful for results that are too wide to fit the screen horizontally.\n";
-
-  static const std::string cmd_help_g =
-      "SYNTAX:\n"
-      "   <statement>\\g\n\n"
-      "Execute the statement in the MySQL server and display results.\n"
-      "Same as executing with the current delimiter (default ;)\n";
-
   // Inject help for statement commands. Actual handling of these
   // commands is done in a way different from other commands
-  SET_CUSTOM_SHELL_COMMAND(
-      "\\G", "Send command to mysql server, display result vertically.",
-      cmd_help_G, Shell_command_function());
-  SET_CUSTOM_SHELL_COMMAND("\\g", "Send command to mysql server.", cmd_help_g,
-                           Shell_command_function());
+  SET_CUSTOM_SHELL_COMMAND("\\G", "CMD_G_UC", Shell_command_function(), true,
+                           IShell_core::Mode_mask(IShell_core::Mode::SQL));
+  SET_CUSTOM_SHELL_COMMAND("\\g", "CMD_G_LC", Shell_command_function(), true,
+                           IShell_core::Mode_mask(IShell_core::Mode::SQL));
 }
 
 void Shell_sql::kill_query(uint64_t conn_id,
@@ -232,23 +235,6 @@ std::string Shell_sql::get_continued_input_context() {
   return _parsing_context_stack.top();
 }
 
-bool Shell_sql::print_help(const std::string &topic) {
-  bool ret_val = true;
-  if (topic.empty())
-    _owner->print(
-        _shell_command_handler.get_commands("===== SQL Mode Commands ====="));
-  else {
-    std::string help;
-    ret_val = _shell_command_handler.get_command_help(topic, help);
-    if (ret_val) {
-      help += "\n";
-      _owner->print(help);
-    }
-  }
-
-  return ret_val;
-}
-
 void Shell_sql::print_exception(const shcore::Exception &e) {
   // Sends a description of the exception data to the error handler wich will
   // define the final format.
@@ -256,3 +242,5 @@ void Shell_sql::print_exception(const shcore::Exception &e) {
   _owner->get_delegate()->print_value(_owner->get_delegate()->user_data,
                                       exception, "error");
 }
+
+}  // namespace shcore

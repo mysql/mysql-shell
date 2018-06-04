@@ -41,6 +41,7 @@ struct Chunk_definition {
   ValidationType validation;  // The validation type: single or multiline.
   std::string stream;         // The stream for multiline validation.
   int linenum;                // The line number
+  std::string validation_id;  // The id of the validation chunk to be used
 };
 
 /**

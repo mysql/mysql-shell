@@ -135,6 +135,7 @@ void Dynamic_object::update_functions(Allowed_function_mask f) {
 }
 
 bool Dynamic_object::is_enabled(const std::string &name) const {
+  // help should be always enabled
   auto func = lookup_function(name);
   if (func) {
     // filter out disabled functions

@@ -68,13 +68,13 @@ using namespace mysqlsh::mysqlx;
 #ifdef WIN32
 #define strcasecmp _stricmp
 #endif
-REGISTER_HELP(SESSION_PARENTS, "ShellBaseSession");
-
 // Documentation of BaseSession class
-REGISTER_HELP(
-    SESSION_DETAIL,
-    "Document Store functionality can be used through this object, in addition "
-    "to SQL.");
+REGISTER_HELP_CLASS(Session, mysqlx);
+REGISTER_HELP(SESSION_BRIEF,
+              "Enables interaction with a MySQL Server using the X Protocol.");
+REGISTER_HELP(SESSION_DETAIL,
+              "Document Store functionality can be used through this object, "
+              "in addition to SQL.");
 REGISTER_HELP(SESSION_DETAIL1,
               "This class allows performing database operations such as:");
 REGISTER_HELP(SESSION_DETAIL2, "@li Schema management operations.");
@@ -84,7 +84,7 @@ REGISTER_HELP(SESSION_DETAIL5, "@li Enabling/disabling warning generation.");
 REGISTER_HELP(SESSION_DETAIL6, "@li Retrieval of connection information.");
 
 // Documentation of Session class
-REGISTER_HELP(SESSION_INTERACTIVE_BRIEF,
+REGISTER_HELP(SESSION_GLOBAL_BRIEF,
               "Represents the currently open MySQL session.");
 
 Session::Session() : _case_sensitive_table_names(false), _savepoint_counter(0) {
@@ -93,6 +93,7 @@ Session::Session() : _case_sensitive_table_names(false), _savepoint_counter(0) {
 }
 
 // Documentation of isOpen function
+REGISTER_HELP_FUNCTION(isOpen, Session);
 REGISTER_HELP(SESSION_ISOPEN_BRIEF,
               "Returns true if session is "
               "known to be open.");
@@ -241,6 +242,7 @@ bool Session::table_name_compare(const std::string &n1, const std::string &n2) {
 }
 
 // Documentation of close function
+REGISTER_HELP_FUNCTION(close, Session);
 REGISTER_HELP(SESSION_CLOSE_BRIEF, "Closes the session.");
 REGISTER_HELP(
     SESSION_CLOSE_DETAIL,
@@ -287,6 +289,7 @@ void Session::close() {
 }
 
 // Documentation of createSchema function
+REGISTER_HELP_FUNCTION(createSchema, Session);
 REGISTER_HELP(
     SESSION_CREATESCHEMA_BRIEF,
     "Creates a schema on the database and returns the corresponding object.");
@@ -339,6 +342,7 @@ void Session::set_current_schema(const std::string &name) {
 }
 
 // Documentation of startTransaction function
+REGISTER_HELP_FUNCTION(startTransaction, Session);
 REGISTER_HELP(SESSION_STARTTRANSACTION_BRIEF,
               "Starts a transaction context on the server.");
 REGISTER_HELP(SESSION_STARTTRANSACTION_RETURNS, "@returns A SqlResult object.");
@@ -387,6 +391,7 @@ shcore::Value Session::_start_transaction(const shcore::Argument_list &args) {
 }
 
 // Documentation of commit function
+REGISTER_HELP_FUNCTION(commit, Session);
 REGISTER_HELP(
     SESSION_COMMIT_BRIEF,
     "Commits all the operations executed after a call to startTransaction().");
@@ -426,6 +431,7 @@ shcore::Value Session::_commit(const shcore::Argument_list &args) {
 }
 
 // Documentation of rollback function
+REGISTER_HELP_FUNCTION(rollback, Session);
 REGISTER_HELP(
     SESSION_ROLLBACK_BRIEF,
     "Discards all the operations executed after a call to startTransaction().");
@@ -464,6 +470,7 @@ shcore::Value Session::_rollback(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(setSavepoint, Session);
 REGISTER_HELP(
     SESSION_SETSAVEPOINT_BRIEF,
     "Creates or replaces a transaction savepoint with the given name.");
@@ -526,6 +533,7 @@ shcore::Value Session::_set_savepoint(const shcore::Argument_list &args) {
   return shcore::Value(new_name);
 }
 
+REGISTER_HELP_FUNCTION(releaseSavepoint, Session);
 REGISTER_HELP(SESSION_RELEASESAVEPOINT_BRIEF,
               "Removes a savepoint defined on a transaction.");
 REGISTER_HELP(
@@ -563,6 +571,7 @@ shcore::Value Session::_release_savepoint(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP_FUNCTION(rollbackTo, Session);
 REGISTER_HELP(
     SESSION_ROLLBACKTO_BRIEF,
     "Rolls back the transaction to the named savepoint without terminating the "
@@ -610,6 +619,8 @@ shcore::Value Session::_rollback_to(const shcore::Argument_list &args) {
 }
 
 // Documentation of getDefaultSchema function
+REGISTER_HELP_PROPERTY(defaultSchema, Session);
+REGISTER_HELP_FUNCTION(getDefaultSchema, Session);
 REGISTER_HELP(SESSION_DEFAULTSCHEMA_BRIEF,
               "Retrieves the Schema "
               "configured as default for the session.");
@@ -660,6 +671,7 @@ std::string Session::get_current_schema() {
 }
 
 // Documentation of getSchema function
+REGISTER_HELP_FUNCTION(getSchema, Session);
 REGISTER_HELP(
     SESSION_GETSCHEMA_BRIEF,
     "Retrieves a Schema object from the current session through it's name.");
@@ -723,6 +735,7 @@ shcore::Value Session::_get_schema(const shcore::Argument_list &args) {
 }
 
 // Documentation of  function
+REGISTER_HELP_FUNCTION(getSchemas, Session);
 REGISTER_HELP(SESSION_GETSCHEMAS_BRIEF,
               "Retrieves the Schemas available on the session.");
 REGISTER_HELP(
@@ -767,6 +780,7 @@ shcore::Value Session::get_schemas(const shcore::Argument_list &args) {
   return shcore::Value(schemas);
 }
 
+REGISTER_HELP_FUNCTION(setFetchWarnings, Session);
 REGISTER_HELP(SESSION_SETFETCHWARNINGS_BRIEF,
               "Enables or disables "
               "warning generation.");
@@ -824,8 +838,11 @@ shcore::Value Session::set_fetch_warnings(const shcore::Argument_list &args) {
 }
 
 // Documentation of dropSchema function
+REGISTER_HELP_FUNCTION(dropSchema, Session);
 REGISTER_HELP(SESSION_DROPSCHEMA_BRIEF,
               "Drops the schema with the specified name.");
+REGISTER_HELP(SESSION_DROPSCHEMA_PARAM,
+              "@param name The name of the schema to be dropped.");
 REGISTER_HELP(SESSION_DROPSCHEMA_RETURNS, "@returns Nothing.");
 
 /**
@@ -1206,9 +1223,11 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
 }
 
 // Documentation of sql function
+REGISTER_HELP_FUNCTION(sql, Session);
 REGISTER_HELP(SESSION_SQL_BRIEF,
               "Creates a SqlExecute object to allow "
               "running the received SQL statement on the target MySQL Server.");
+REGISTER_HELP(SESSION_SQL_CHAINED, "SqlExecute.sql.[bind].[execute]");
 REGISTER_HELP(SESSION_SQL_PARAM,
               "@param sql A string containing the SQL "
               "statement to be executed.");
@@ -1257,6 +1276,8 @@ shcore::Value Session::sql(const shcore::Argument_list &args) {
   return sql_execute->sql(args);
 }
 
+REGISTER_HELP_PROPERTY(uri, Session);
+REGISTER_HELP_FUNCTION(getUri, Session);
 REGISTER_HELP(SESSION_URI_BRIEF, "Retrieves the URI for the current session.");
 REGISTER_HELP(SESSION_GETURI_BRIEF,
               "Retrieves the URI for the current "
@@ -1271,6 +1292,8 @@ REGISTER_HELP(SESSION_GETURI_RETURNS,
  */
 
 // Documentation of getCurrentSchema function
+REGISTER_HELP_PROPERTY(currentSchema, Session);
+REGISTER_HELP_FUNCTION(getCurrentSchema, Session);
 REGISTER_HELP(SESSION_CURRENTSCHEMA_BRIEF,
               "Retrieves the active schema "
               "on the session.");
@@ -1326,7 +1349,10 @@ Value Session::get_member(const std::string &prop) const {
 }
 
 // Documentation of quoteName function
+REGISTER_HELP_FUNCTION(quoteName, Session);
 REGISTER_HELP(SESSION_QUOTENAME_BRIEF, "Escapes the passed identifier.");
+REGISTER_HELP(SESSION_QUOTENAME_PARAM,
+              "@param id The identifier to be quoted.");
 REGISTER_HELP(SESSION_QUOTENAME_RETURNS,
               "@return A String containing the escaped identifier.");
 
@@ -1353,6 +1379,7 @@ shcore::Value Session::quote_name(const shcore::Argument_list &args) {
 }
 
 // Documentation of setCurrentSchema function
+REGISTER_HELP_FUNCTION(setCurrentSchema, Session);
 REGISTER_HELP(SESSION_SETCURRENTSCHEMA_BRIEF,
               "Sets the current schema for this session, and returns the "
               "schema object for it.");

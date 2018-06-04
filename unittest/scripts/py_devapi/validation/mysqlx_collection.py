@@ -33,15 +33,6 @@
 |get_schema(): <Schema:py_shell_test>|
 |schema: <Schema:py_shell_test>|
 
-#@<OUT> Testing help of drop_index
-Drops an index from a collection.
-
-SYNTAX
-
-  <Collection>.drop_index()
-
-
-
 #@ Testing dropping index
 |None|
 |None|

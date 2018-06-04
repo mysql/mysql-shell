@@ -1526,6 +1526,7 @@ class XShell_TestCases(unittest.TestCase):
             results = "PASS"
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_01_01(self):
         '''[3.1.001]:1 Check that command  [ \help, \h, \? ] works: \help'''
         results = ''
@@ -1535,6 +1536,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_01_02(self):
         '''[3.1.001]:2 Check that command  [ \help, \h, \? ] works: \h'''
         results = ''
@@ -1544,6 +1546,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_01_03(self):
         '''[3.1.001]:3 Check that command  [ \help, \h, \? ] works: \?'''
         results = ''
@@ -1553,6 +1556,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_02_01(self):
         '''[3.1.002]:1 Check that help command with parameter  works: \help connect'''
         results = ''
@@ -1561,6 +1565,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_02_02(self):
         '''[3.1.002]:2 Check that help command with parameter  works: \h connect'''
         results = ''
@@ -1569,6 +1574,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_02_03(self):
         '''[3.1.002]:3 Check that help command with parameter  works: \? connect'''
         results = ''
@@ -1577,6 +1583,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_03_01(self):
         '''[3.1.003]:1 Check that help command with wrong parameter works: \help connect'''
         results = ''
@@ -1586,6 +1593,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_03_02(self):
         '''[3.1.003]:2 Check that help command with wrong parameter works: \h connect'''
         results = ''
@@ -1595,6 +1603,7 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_3_1_03_03(self):
         '''[3.1.003]:3 Check that help command with wrong parameter works: \? conect'''
         results = ''
@@ -5514,18 +5523,19 @@ class XShell_TestCases(unittest.TestCase):
         xPrompts.remove_last()
         self.assertEqual(results, 'PASS')
 
+    @unittest.skip("Redundant: Shell help is tested on the unit tests")
     def test_help_global_objects(self):
         '''Check help text "global objects" section. without and with an active session'''
 
         results = ''
         help_text = "===== Global Objects =====" + os.linesep + \
-                    "dba        Enables you to administer InnoDB clusters using the AdminAPI." + os.linesep + \
+                    "dba        Global variable for InnoDB cluster management." + os.linesep + \
                     "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep + \
                     "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep + \
                     "shell      Gives access to general purpose functions and properties." + os.linesep + \
                     "sys        Gives access to system specific parameters." + os.linesep
         help_text_session = "===== Global Objects =====" + os.linesep + \
-                    "dba        Enables you to administer InnoDB clusters using the AdminAPI." + os.linesep + \
+                    "dba        Global variable for InnoDB cluster management." + os.linesep + \
                     "mysql      Used to work with classic MySQL sessions using SQL." + os.linesep + \
                     "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI." + os.linesep + \
                     "session    Represents the currently open MySQL session." + os.linesep + \
@@ -8792,7 +8802,7 @@ class XShell_TestCases(unittest.TestCase):
                    "" + os.linesep +
                    "===== Global Objects ====="  + os.linesep +
                    "db         Used to work with database schema objects."+ os.linesep +
-                   "dba        Enables you to administer InnoDB clusters using the AdminAPI."+ os.linesep +
+                   "dba        Global variable for InnoDB cluster management."+ os.linesep +
                    "mysql      Used to work with classic MySQL sessions using SQL."+ os.linesep +
                    "mysqlx     Used to work with X Protocol sessions using the MySQL X DevAPI."+ os.linesep +
                    "session    Represents the currently open MySQL session."+ os.linesep +

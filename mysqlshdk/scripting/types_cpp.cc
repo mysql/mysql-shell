@@ -500,153 +500,37 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   std::string ret_val;
   std::string item;
 
-  std::string prefix = class_name();
-  std::string parent_classes;
-  std::vector<std::string> parents = get_help_text(prefix + "_PARENTS");
-
-  if (!parents.empty()) parent_classes = parents[0];
-
-  std::vector<std::string> help_prefixes =
-      shcore::split_string(parent_classes, ",");
-  help_prefixes.insert(help_prefixes.begin(), prefix);
-
-  if (args.size() == 1) item = args.string_at(0);
-
-  ret_val += "\n";
-
-  if (!item.empty()) {
-    std::string base_name = get_base_name(item);
-
-    // Checks for an invalid member
-    if (base_name.empty()) {
-      std::string error = get_function_name("help") + ": '" + item +
-                          "' is not recognized as a property or function.\n"
-                          "Use " +
-                          get_function_name("help") +
-                          "() to get a list of supported members.";
-      throw shcore::Exception::argument_error(error);
-    }
-
-    std::string suffix = "_" + base_name;
-
-    auto briefs = resolve_help_text(help_prefixes, suffix + "_BRIEF");
-
-    if (!briefs.empty()) {
-      ret_val += shcore::format_text(briefs, 80, 0, true);
-      ret_val += "\n";  // Second \n
-    }
-
-    auto chain_definition =
-        resolve_help_text(help_prefixes, suffix + "_CHAINED");
-
-    std::string additional_help;
-    if (chain_definition.empty()) {
-      if (has_method_advanced(item, naming_style))
-        additional_help =
-            shcore::get_function_help(naming_style, class_name(), base_name);
-      else if (has_member_advanced(item, naming_style))
-        additional_help =
-            shcore::get_property_help(naming_style, class_name(), base_name);
-    } else {
-      additional_help = shcore::get_chained_function_help(
-          naming_style, class_name(), base_name);
-    }
-
-    if (!additional_help.empty()) ret_val += "\n" + additional_help;
-
-  } else {
-    auto details = get_help_text(prefix + "_DETAIL");
-    // If there are no details at least includes the brief description
-    if (details.empty()) details = get_help_text(prefix + "_BRIEF");
-
-    if (!details.empty()) ret_val += shcore::format_markup_text(details, 80, 0);
-
-    if (_properties.size()) {
-      size_t text_col = 0;
-      for (auto &property : _properties) {
-        size_t new_length = property.name(naming_style).length();
-        text_col = new_length > text_col ? new_length : text_col;
-      }
-
-      // Adds the extra espace before the descriptions begin
-      // and the three spaces for the " - " before the property names
-      text_col += 4;
-
-      ret_val += "\n\nThe following properties are currently supported.\n\n";
-      for (auto &property : _properties) {
-        std::string name = property.name(naming_style);
-        std::string pname = property.name(shcore::NamingStyle::LowerCamelCase);
-
-        // Assuming briefs are one liners for now
-        auto help_text =
-            resolve_help_text(help_prefixes, "_" + pname + "_BRIEF");
-
-        std::string text = " - " + name;
-
-        std::string first_space(text_col - (name.size() + 3), ' ');
-
-        if (!help_text.empty())
-          text +=
-              first_space + shcore::format_text(help_text, 80, text_col, true);
-
-        text += "\n";
-
-        ret_val += text;
-      }
-
-      ret_val += "\n\n";
-    }
-
-    if (_funcs.size()) {
-      size_t text_col = 0;
-      for (auto function : _funcs) {
-        size_t new_length = function.second->_meta->name[naming_style].length();
-        text_col = new_length > text_col ? new_length : text_col;
-      }
-
-      // Adds the extra espace before the descriptions begins
-      // and the three spaces for the " - " before the function names
-      text_col += 4;
-
-      ret_val += "The following functions are currently supported.\n\n";
-
-      for (auto function : _funcs) {
-        std::string name = function.second->_meta->name[naming_style];
-
-        // Skips non public functions
-        if (name.find("__") == 0) continue;
-
-        std::string fname =
-            function.second->_meta->name[shcore::NamingStyle::LowerCamelCase];
-
-        std::string member_suffix = "_" + fname;
-
-        auto help_text =
-            resolve_help_text(help_prefixes, member_suffix + "_BRIEF");
-
-        std::string text = " - " + name;
-
-        if (help_text.empty() && fname == "help")
-          help_text.push_back(
-              "Provides help about this class and it's members");
-
-        std::string first_space(text_col - (name.size() + 3), ' ');
-        if (!help_text.empty())
-          text +=
-              first_space + shcore::format_text(help_text, 80, text_col, true);
-
-        text += "\n";
-
-        ret_val += text;
-      }
-
-      ret_val += "\n";
-    }
-
-    auto closing = get_help_text(prefix + "_CLOSING");
-    if (!closing.empty())
-      ret_val += shcore::format_markup_text(closing, 80, 0) + "\n";
+  try {
+    if (args.size() == 1) item = args.string_at(0);
+  } catch (const Exception &e) {
+    throw Exception::type_error(get_function_name("help") + ": " + e.what());
   }
+
+  IShell_core::Mode mode;
+
+  if (naming_style == NamingStyle::LowerCamelCase)
+    mode = IShell_core::Mode::JavaScript;
+  else
+    mode = IShell_core::Mode::Python;
+
+  Help_manager help;
+  help.set_mode(mode);
+
+  shcore::Topic_mask mask;
+  std::string pattern = class_name();
+  if (!item.empty()) {
+    pattern += "." + item;
+    mask.set(shcore::Topic_type::FUNCTION);
+    mask.set(shcore::Topic_type::PROPERTY);
+    mask.set(shcore::Topic_type::OBJECT);
+    mask.set(shcore::Topic_type::CLASS);
+  } else {
+    mask.set(shcore::Topic_type::MODULE);  // i.e. mysql, mysqlx
+    mask.set(shcore::Topic_type::OBJECT);  // i.e. Shell, Options
+    mask.set(shcore::Topic_type::CLASS);   // i.e. Anything else
+  }
+
+  ret_val = help.get_help(pattern, mask);
 
   return shcore::Value(ret_val);
 }

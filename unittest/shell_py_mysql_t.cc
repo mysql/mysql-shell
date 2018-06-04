@@ -73,10 +73,6 @@ class Shell_py_mysql_tests : public Shell_py_script_tester {
   }
 };
 
-TEST_F(Shell_py_mysql_tests, shell_help) {
-  validate_interactive("shell_help.py");
-}
-
 TEST_F(Shell_py_mysql_tests, mysql_module) {
   validate_interactive("mysql_module.py");
 }

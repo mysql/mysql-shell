@@ -26,21 +26,11 @@ validateMember(exports, 'get_classic_session');
 validateMember(exports, 'get_session');
 validateMember(exports, 'help');
 
-#@<OUT> help
-mysql.help()
-
-#@<OUT> Help on get_classic_session
-mysql.help('get_classic_session');
-
 #@# get_classic_session errors
 mysql.get_classic_session()
 mysql.get_classic_session(1, 2, 3)
 mysql.get_classic_session(["bla"])
 mysql.get_classic_session("some@uri", 25)
-
-
-#@<OUT> Help on get_session
-mysql.help('get_session');
 
 #@# get_session errors
 mysql.get_session()

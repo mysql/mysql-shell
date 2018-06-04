@@ -41,8 +41,9 @@
 
 namespace mysqlsh {
 
+REGISTER_HELP_OBJECT(util, shellapi);
 REGISTER_HELP(
-    UTIL_INTERACTIVE_BRIEF,
+    UTIL_GLOBAL_BRIEF,
     "Global object that groups miscellaneous tools like upgrade checker.");
 REGISTER_HELP(
     UTIL_BRIEF,
@@ -75,6 +76,7 @@ static std::string format_upgrade_issue(const Upgrade_issue &problem) {
                             ss.str().c_str(), problem.description.c_str());
 }
 
+REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_BRIEF,
               "Performs series of tests on specified MySQL server to check if "
               "the upgrade process will succeed.");
@@ -99,7 +101,7 @@ REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL2,
 
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL3,
               "@li password - password for connection.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4, "${TOPIC_CONNECTION_DATA}");
 
 /**
  * \ingroup util

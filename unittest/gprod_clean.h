@@ -32,7 +32,7 @@
 #ifdef WITH_GTEST
 #include <gtest/gtest_prod.h>
 #endif
-#ifdef __GNUC__
+#if defined __GNUC__
 #pragma GCC diagnostic pop
 #endif
 

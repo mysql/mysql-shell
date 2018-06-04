@@ -22,7 +22,8 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysh_config.h"
+#include "mysqlshdk/include/mysh_config.h"
+#include "mysqlshdk/libs/textui/textui.h"
 
 #ifdef WIN32
 #include <Lmcons.h>
@@ -366,38 +367,6 @@ std::vector<std::string> split_string(const std::string &input,
   return ret_val;
 }
 
-std::vector<std::string> SHCORE_PUBLIC
-split_string(const std::string &input, std::vector<size_t> max_lengths) {
-  std::vector<std::string> chunks;
-
-  size_t index = max_lengths[0];
-  size_t last_length = max_lengths[0];
-  size_t start = 0;
-
-  // Index will eventually overpass the input size
-  // As lines are added
-  while (input.size() > index) {
-    auto pos = input.rfind(" ", index);
-
-    if (pos == std::string::npos) {
-      break;
-    } else if (pos > start) {
-      chunks.push_back(input.substr(start, pos - start));
-      start = pos + 1;
-
-      if (max_lengths.size() > chunks.size())
-        last_length = max_lengths[chunks.size()];
-
-      index = start + last_length;
-    }
-  }
-
-  // Adds the remainder of the input
-  if (start < input.size()) chunks.push_back(input.substr(start));
-
-  return chunks;
-}
-
 /**
  * Splits string based on each of the individual characters of the separator
  * string
@@ -538,137 +507,6 @@ std::string from_camel_case(const std::string &name) {
   }
   if (upper_count == name.length()) return name;
   return new_name;
-}
-
-std::string format_text(const std::vector<std::string> &lines, size_t width,
-                        size_t left_padding, bool paragraph_per_line) {
-  std::string ret_val;
-
-  // Considers the new line character being added
-  std::vector<size_t> lengths = {width - (left_padding + 1)};
-  std::vector<std::string> sublines;
-  std::string space(left_padding, ' ');
-
-  if (!lines.empty()) {
-    ret_val.reserve(lines.size() * width);
-
-    sublines = split_string(lines[0], lengths);
-
-    // Processes the first line
-    // The first subline is meant to be returned without any space prefix
-    // Since this will be appended to an existing line
-    ret_val = sublines[0];
-    sublines.erase(sublines.begin());
-
-    // The remaining lines are just appended with the space prefix
-    for (auto subline : sublines) {
-      if (' ' == subline[0])
-        ret_val += "\n" + space + subline.substr(1);
-      else
-        ret_val += "\n" + space + subline;
-    }
-  }
-
-  if (lines.size() > 1) {
-    for (size_t index = 1; index < lines.size(); index++) {
-      if (paragraph_per_line) ret_val += "\n";
-
-      sublines = split_string(lines[index], lengths);
-      for (auto subline : sublines) {
-        if (' ' == subline[0])
-          ret_val += "\n" + space + subline.substr(1);
-        else
-          ret_val += "\n" + space + subline;
-      }
-    }
-  }
-
-  return ret_val;
-}
-
-std::string format_markup_text(const std::vector<std::string> &lines,
-                               size_t width, size_t left_padding) {
-  std::string ret_val;
-
-  ret_val.reserve(lines.size() * width);
-  std::string strpadding(left_padding, ' ');
-
-  bool previous_was_item = false;
-  bool current_is_item = false;
-
-  std::string new_line;
-  for (auto line : lines) {
-    ret_val.append(new_line);
-
-    std::string space;
-    std::vector<size_t> lengths;
-    // handles list items
-    // Text between <code> tags will skip line trimming and padding
-    // it is expected that such lines are formatted inline using
-    // &nbsp; @< and @>
-    if (0 == line.find("<code>")) {
-      auto pos = line.find("</code>", 6);
-      if (pos != std::string::npos) ret_val += line.substr(6, pos - 6);
-    } else if (0 == line.find("@li")) {
-      current_is_item = true;
-
-      // Adds an extra new line to separate the first item from the previous
-      // paragraph
-      if (previous_was_item != current_is_item) ret_val += new_line;
-
-      ret_val += strpadding + " - ";
-      ret_val +=
-          shcore::format_text({line.substr(4)}, width, left_padding + 3, false);
-    } else {
-      current_is_item = false;
-
-      // May be a header
-      size_t hstart = line.find("<b>");
-      size_t hend = line.find("</b>");
-      if (hstart != std::string::npos && hend != std::string::npos) {
-        ret_val += new_line;
-        line = "** " + line.substr(hstart + 3, hend - hstart - 3) + " **";
-      }
-
-      ret_val += new_line + strpadding +
-                 shcore::format_text({line}, width, left_padding, false);
-    }
-
-    previous_was_item = current_is_item;
-
-    // The new line only makes sense after the first line
-    new_line = "\n";
-  }
-
-  // Some characters need to be specified using special doxygen format to
-  // to prevent generating doxygen warnings.
-  std::vector<std::pair<const char *, const char *>> replacements = {
-      {"@<", "<"}, {"@>", ">"}, {"&nbsp;", " "}};
-
-  for (const auto &rpl : replacements) {
-    ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);
-  }
-
-  return ret_val;
-}
-
-std::string replace_text(const std::string &source, const std::string &from,
-                         const std::string &to) {
-  std::string ret_val;
-  size_t start = 0, index = 0;
-
-  index = source.find(from, start);
-  while (index != std::string::npos) {
-    ret_val += source.substr(start, index);
-    ret_val += to;
-    start = index + from.length();
-    index = source.find(from, start);
-  }
-
-  // Appends the remaining text
-  ret_val += source.substr(start);
-
-  return ret_val;
 }
 
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
@@ -1073,6 +911,7 @@ static bool _match_glob(const std::string &pat, size_t ppos,
   while (ppos < pend && spos <= send) {
     int sc = str[spos];
     int pc = pat[ppos];
+    int next = 0;
     switch (pc) {
       case '*':
         // skip multiple consecutive *
@@ -1086,10 +925,14 @@ static bool _match_glob(const std::string &pat, size_t ppos,
         // if there were no matches, then give up
         return false;
       case '\\':
-        ++ppos;
-        if (ppos >= pend)  // can't have an escape at the end of the pattern
+        if (ppos + 1 >= pend)  // can't have an escape at the end of the pattern
           throw std::logic_error("Invalid pattern " + pat);
-        pc = pat[ppos];
+
+        next = pat[ppos + 1];
+        if (next == '\\' || next == '?' || next == '*') {
+          ++ppos;
+          pc = next;
+        }
         if (sc != pc) return false;
         ++ppos;
         ++spos;

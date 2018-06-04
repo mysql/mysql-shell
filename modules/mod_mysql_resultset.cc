@@ -37,6 +37,7 @@ using namespace shcore;
 using namespace mysqlsh::mysql;
 
 // Documentation of the ClassicResult class
+REGISTER_HELP_CLASS(ClassicResult, mysql);
 REGISTER_HELP(CLASSICRESULT_BRIEF,
               "Allows browsing through the result information "
               "after performing an operation on the database through the MySQL "
@@ -76,6 +77,7 @@ ClassicResult::ClassicResult(
 }
 
 // Documentation of the hasData function
+REGISTER_HELP_FUNCTION(hasData, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_HASDATA_BRIEF,
               "Returns true if the last statement execution "
               "has a result set.");
@@ -95,6 +97,7 @@ shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const {
 }
 
 // Documentation of the fetchOne function
+REGISTER_HELP_FUNCTION(fetchOne, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_FETCHONE_BRIEF,
               "Retrieves the next Row on the ClassicResult.");
 REGISTER_HELP(
@@ -135,6 +138,7 @@ const mysqlshdk::db::IRow *ClassicResult::fetch_one() const {
 }
 
 // Documentation of the nextDataSet function
+REGISTER_HELP_FUNCTION(nextDataSet, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_NEXTDATASET_BRIEF,
               "Prepares the SqlResult to start reading data from the next "
               "Result (if many results were returned).");
@@ -159,6 +163,7 @@ shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args) {
 }
 
 // Documentation of the fetchAll function
+REGISTER_HELP_FUNCTION(fetchAll, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_FETCHALL_BRIEF,
               "Returns a list of Row objects which contains an element for "
               "every record left on the result.");
@@ -204,8 +209,12 @@ shcore::Value ClassicResult::fetch_all(
 }
 
 // Documentation of the getAffectedRowCount function
+REGISTER_HELP_FUNCTION(getAffectedRowCount, ClassicResult);
+REGISTER_HELP_PROPERTY(affectedRowCount, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF,
               "The number of affected rows for the last operation.");
+REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_BRIEF,
+              "${CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS,
               "@returns the number of affected rows.");
 REGISTER_HELP(
@@ -227,8 +236,12 @@ int ClassicResult::get_affected_row_count() {}
 #endif
 
 // Documentation of the getColumnCount function
+REGISTER_HELP_FUNCTION(getColumnCount, ClassicResult);
+REGISTER_HELP_PROPERTY(columnCount, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_BRIEF,
               "Retrieves the number of columns on the current result.");
+REGISTER_HELP(CLASSICRESULT_COLUMNCOUNT_BRIEF,
+              "${CLASSICRESULT_GETCOLUMNCOUNT_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_RETURNS,
               "@returns the number of columns on the current result.");
 
@@ -244,8 +257,12 @@ int ClassicResult::get_column_count() {}
 #endif
 
 // Documentation of the getColumnCount function
+REGISTER_HELP_FUNCTION(getColumnNames, ClassicResult);
+REGISTER_HELP_PROPERTY(columnNames, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_BRIEF,
               "Gets the columns on the current result.");
+REGISTER_HELP(CLASSICRESULT_COLUMNNAMES_BRIEF,
+              "${CLASSICRESULT_GETCOLUMNNAMES_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_RETURNS,
               "@returns A list with the names of the columns returned on the "
               "active result.");
@@ -262,8 +279,11 @@ list ClassicResult::get_column_names() {}
 #endif
 
 // Documentation of the getColumns function
+REGISTER_HELP_FUNCTION(getColumns, ClassicResult);
+REGISTER_HELP_PROPERTY(columns, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETCOLUMNS_BRIEF,
               "Gets the column metadata for the columns on the active result.");
+REGISTER_HELP(CLASSICRESULT_COLUMNS_BRIEF, "${CLASSICRESULT_GETCOLUMNS_BRIEF}");
 REGISTER_HELP(
     CLASSICRESULT_GETCOLUMNS_RETURNS,
     "@returns a list of column metadata objects "
@@ -281,9 +301,13 @@ list ClassicResult::get_columns() {}
 #endif
 
 // Documentation of the getExecutionTime function
+REGISTER_HELP_FUNCTION(getExecutionTime, ClassicResult);
+REGISTER_HELP_PROPERTY(executionTime, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETEXECUTIONTIME_BRIEF,
               "Retrieves a string value indicating the execution time of the "
               "executed operation.");
+REGISTER_HELP(CLASSICRESULT_EXECUTIONTIME_BRIEF,
+              "${CLASSICRESULT_GETEXECUTIONTIME_BRIEF}");
 
 /**
  * $(CLASSICRESULT_GETEXECUTIONTIME_BRIEF)
@@ -295,9 +319,12 @@ str ClassicResult::get_execution_time() {}
 #endif
 
 // Documentation of the getInfo function
+REGISTER_HELP_FUNCTION(getInfo, ClassicResult);
+REGISTER_HELP_PROPERTY(info, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETINFO_BRIEF,
               "Retrieves a string providing information about the most "
               "recently executed statement.");
+REGISTER_HELP(CLASSICRESULT_INFO_BRIEF, "${CLASSICRESULT_GETINFO_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETINFO_RETURNS,
               "@returns a string with the execution information");
 
@@ -316,9 +343,13 @@ str ClassicResult::get_info() {}
 #endif
 
 // Documentation of the getAutoIncrementValue function
+REGISTER_HELP_FUNCTION(getAutoIncrementValue, ClassicResult);
+REGISTER_HELP_PROPERTY(autoIncrementValue, ClassicResult);
 REGISTER_HELP(
     CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF,
     "Returns the last insert id auto generated (from an insert operation)");
+REGISTER_HELP(CLASSICRESULT_AUTOINCREMENTVALUE_BRIEF,
+              "${CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS,
               "@returns the integer "
               "representing the last insert id");
@@ -338,9 +369,13 @@ int ClassicResult::get_auto_increment_value() {}
 #endif
 
 // Documentation of the getWarningCount function
+REGISTER_HELP_FUNCTION(getWarningCount, ClassicResult);
+REGISTER_HELP_PROPERTY(warningCount, ClassicResult);
 REGISTER_HELP(
     CLASSICRESULT_GETWARNINGCOUNT_BRIEF,
     "The number of warnings produced by the last statement execution.");
+REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_BRIEF,
+              "${CLASSICRESULT_GETWARNINGCOUNT_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_RETURNS,
               "@returns the number of warnings.");
 
@@ -359,8 +394,12 @@ int ClassicResult::get_warning_count() {}
 #endif
 
 // Documentation of the getWarnings function
+REGISTER_HELP_FUNCTION(getWarnings, ClassicResult);
+REGISTER_HELP_PROPERTY(warnings, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETWARNINGS_BRIEF,
               "Retrieves the warnings generated by the executed operation.");
+REGISTER_HELP(CLASSICRESULT_WARNINGS_BRIEF,
+              "${CLASSICRESULT_GETWARNINGS_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETWARNINGS_RETURNS,
               "@returns a list containing a warning object "
               "for each generated warning.");

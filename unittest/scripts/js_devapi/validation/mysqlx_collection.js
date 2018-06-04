@@ -30,15 +30,6 @@
 |getSchema(): <Schema:js_shell_test>|
 |schema: <Schema:js_shell_test>|
 
-//@<OUT> Testing help of dropIndex
-
-Drops an index from a collection.
-
-SYNTAX
-
-  <Collection>.dropIndex()
-
-
 //@ Testing dropping index
 |undefined|
 |undefined|

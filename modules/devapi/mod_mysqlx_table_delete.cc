@@ -27,6 +27,7 @@
 #include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "scripting/common.h"
 
@@ -34,6 +35,12 @@ using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
+REGISTER_HELP_CLASS(TableDelete, mysqlx);
+REGISTER_HELP(TABLEDELETE_BRIEF, "Operation to delete data from a table.");
+REGISTER_HELP(TABLEDELETE_DETAIL,
+              "A TableDelete represents an operation to remove records from a "
+              "Table, it is created through the <b>delete</b> function on the "
+              "<b>Table</b> class.");
 TableDelete::TableDelete(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   message_.mutable_collection()->set_schema(owner->schema()->name());
@@ -63,6 +70,9 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
   update_functions(F::_empty);
 }
 
+REGISTER_HELP_FUNCTION(delete, TableDelete);
+REGISTER_HELP(TABLEDELETE_DELETE_BRIEF, "Initializes the deletion operation.");
+REGISTER_HELP(TABLEDELETE_DELETE_RETURNS, "@returns This TableDelete object.");
 /**
  * Initializes this record deletion handler.
  * \return This TableDelete object.
@@ -106,20 +116,30 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the search condition to filter the records to be deleted from the owner
-//! Table.
-#if DOXYGEN_CPP
-//! \param args should contain an optional string expression to filter the
-//! records to be deleted.
-#else
-//! \param searchCondition: An optional expression to filter the records to be
-//! deleted.
-#endif
+REGISTER_HELP_FUNCTION(where, TableDelete);
+REGISTER_HELP(TABLEDELETE_WHERE_BRIEF,
+              "Sets the search condition to filter the records to be deleted "
+              "from the Table.");
+REGISTER_HELP(TABLEDELETE_WHERE_PARAM,
+              "@param expression Optional condition to filter the records to "
+              "be deleted.");
+REGISTER_HELP(TABLEDELETE_WHERE_RETURNS, "@returns This TableDelete object.");
+REGISTER_HELP(TABLEDELETE_WHERE_DETAIL,
+              "If used, only those rows satisfying the <b>expression</b> will "
+              "be deleted");
+REGISTER_HELP(TABLEDELETE_WHERE_DETAIL1,
+              "The <b>expression</b> supports parameter binding.");
+
 /**
- * if not specified all the records will be deleted from the table unless a
- * limit is set. \return This TableDelete object.
+ * $(TABLEDELETE_WHERE_BRIEF)
  *
- * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ * $(TABLEDELETE_WHERE_PARAM)
+ *
+ * $(TABLEDELETE_WHERE_RETURNS)
+ *
+ * $(TABLEDELETE_WHERE_DETAIL)
+ *
+ * $(TABLEDELETE_WHERE_DETAIL1)
  *
  * #### Method Chaining
  *
@@ -137,9 +157,9 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-TableDelete TableDelete::where(String searchCondition) {}
+TableDelete TableDelete::where(String expression) {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::where(str searchCondition) {}
+TableDelete TableDelete::where(str expression) {}
 #endif
 shcore::Value TableDelete::where(const shcore::Argument_list &args) {
   // Each method validates the received parameters
@@ -161,24 +181,36 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the order in which the deletion should be done.
-#if DOXYGEN_CPP
-//! \param args should contain a list of expression strings defining a sort
-//! criteria, the deletion will be done following the order defined by this
-//! criteria.
-#else
-//! \param sortExprStr: A list of expression strings defining a sort criteria,
-//! the deletion will be done following the order defined by this criteria.
-#endif
+REGISTER_HELP_FUNCTION(orderBy, TableDelete);
+REGISTER_HELP(TABLEDELETE_ORDERBY_BRIEF,
+              "Sets the order in which the records will be deleted.");
+REGISTER_HELP(TABLEDELETE_ORDERBY_SIGNATURE, "(sortCriteria)");
+REGISTER_HELP(TABLEDELETE_ORDERBY_SIGNATURE1,
+              "(sortCriterion[, sortCriterion, ...])");
+REGISTER_HELP(TABLEDELETE_ORDERBY_RETURNS, "@returns This TableDelete object.");
+REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL,
+              "If used the records will be deleted in the order established by "
+              "the sort criteria.");
+REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL1,
+              "The elements of <b>sortExprStr</b> list are strings defining "
+              "the column name on which the sorting will be based.");
+REGISTER_HELP(TABLEDELETE_ORDERBY_DETAIL2,
+              "The format is as follows: columnIdentifier [ ASC | DESC ]");
+REGISTER_HELP(
+    TABLEDELETE_ORDERBY_DETAIL3,
+    "If no order criteria is specified, ASC will be used by default.");
 /**
- * \return This TableDelete object.
+ * $(TABLEDELETE_ORDERBY_BRIEF)
  *
- * The elements of sortExprStr list are strings defining the column name on
- * which the sorting will be based in the form of "columnIdentifier [ ASC | DESC
- * ]". If no order criteria is specified, ascending will be used by default.
+ * $(TABLEDELETE_ORDERBY_RETURNS)
  *
- * This method is usually used in combination with limit to fix the amount of
- * records to be deleted.
+ * $(TABLEDELETE_ORDERBY_DETAIL)
+ *
+ * $(TABLEDELETE_ORDERBY_DETAIL1)
+ *
+ * $(TABLEDELETE_ORDERBY_DETAIL2)
+ *
+ * $(TABLEDELETE_ORDERBY_DETAIL3)
  *
  * #### Method Chaining
  *
@@ -222,17 +254,24 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a limit for the records to be deleted.
-#if DOXYGEN_CPP
-//! \param args should contain the number of records to be deleted.
-#else
-//! \param numberOfRows the number of records to be deleted.
-#endif
+REGISTER_HELP_FUNCTION(limit, TableDelete);
+REGISTER_HELP(
+    TABLEDELETE_LIMIT_BRIEF,
+    "Sets the maximum number of rows to be deleted by the operation.");
+REGISTER_HELP(TABLEDELETE_LIMIT_PARAM,
+              "@param numberOfRows The maximum number of rows to be deleted.");
+REGISTER_HELP(TABLEDELETE_LIMIT_RETURNS, "@returns This TableDelete object.");
+REGISTER_HELP(
+    TABLEDELETE_LIMIT_DETAIL,
+    "If used, the operation will delete only <b>numberOfRows</b> rows.");
 /**
- * \return This TableDelete object.
+ * $(TABLEDELETE_LIMIT_BRIEF)
  *
- * This method is usually used in combination with sort to fix the amount of
- * records to be deleted.
+ * $(TABLEDELETE_LIMIT_PARAM)
+ *
+ * $(TABLEDELETE_LIMIT_RETURNS)
+ *
+ * $(TABLEDELETE_LIMIT_DETAIL)
  *
  * #### Method Chaining
  *
@@ -267,17 +306,37 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Binds a value to a specific placeholder used on this TableDelete object.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li The name of the placeholder to which the value will be bound.
-//! \li The value to be bound on the placeholder.
-#else
-//! \param name: The name of the placeholder to which the value will be bound.
-//! \param value: The value to be bound on the placeholder.
-#endif
+REGISTER_HELP_FUNCTION(bind, TableDelete);
+REGISTER_HELP(
+    TABLEDELETE_BIND_BRIEF,
+    "Binds a value to a specific placeholder used on this operation.");
+REGISTER_HELP(TABLEDELETE_BIND_PARAM,
+              "@param name The name of the placeholder to which the value will "
+              "be bound.");
+REGISTER_HELP(TABLEDELETE_BIND_PARAM1,
+              "@param value The value to be bound on the placeholder.");
+REGISTER_HELP(TABLEDELETE_BIND_RETURNS, "@returns This TableDelete object.");
+REGISTER_HELP(TABLEDELETE_BIND_DETAIL, "${TABLEDELETE_BIND_BRIEF}");
+REGISTER_HELP(TABLEDELETE_BIND_DETAIL1,
+              "An error will be raised if the placeholder indicated by name "
+              "does not exist.");
+REGISTER_HELP(TABLEDELETE_BIND_DETAIL2,
+              "This function must be called once for each used placeholder or "
+              "an error will be raised when the execute method is called.");
+
 /**
- * \return This TableDelete object.
+ * $(TABLEDELETE_BIND_BRIEF)
+ *
+ * $(TABLEDELETE_BIND_PARAM)
+ * $(TABLEDELETE_BIND_PARAM1)
+ *
+ * $(TABLEDELETE_BIND_RETURNS)
+ *
+ * $(TABLEDELETE_BIND_DETAIL)
+ *
+ * $(TABLEDELETE_BIND_DETAIL1)
+ *
+ * $(TABLEDELETE_BIND_DETAIL2)
  *
  * #### Method Chaining
  *
@@ -290,7 +349,7 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
  *
  * An error will be raised if the placeholder indicated by name does not exist.
  *
- * This function must be called once for each used placeohlder or an error will
+ * This function must be called once for each used placeholder or an error will
  * be
  * raised when the execute method is called.
  *
@@ -314,10 +373,14 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(execute, TableDelete);
+REGISTER_HELP(TABLEDELETE_EXECUTE_BRIEF,
+              "Executes the delete operation with all the configured options.");
+REGISTER_HELP(TABLEDELETE_EXECUTE_RETURNS, "@returns A Result object.");
 /**
- * Executes the record deletion with the configured filter and limit.
- * \return Result A result object that can be used to retrieve the results of
- * the deletion operation.
+ * $(TABLEDELETE_EXECUTE_BRIEF)
+ *
+ * $(TABLEDELETE_EXECUTE_RETURNS)
  *
  * #### Method Chaining
  *

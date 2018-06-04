@@ -52,24 +52,27 @@ class TableSelect : public Table_crud_definition,
  public:
 #if DOXYGEN_JS
   TableSelect select(List searchExprStr);
-  TableSelect where(String searchCondition);
+  TableSelect where(String expression);
   TableSelect groupBy(List searchExprStr);
-  TableSelect having(String searchCondition);
+  TableSelect having(String condition);
   TableSelect orderBy(List sortExprStr);
   TableSelect limit(Integer numberOfRows);
-  TableSelect offset(Integer limitOffset);
+  TableSelect offset(Integer numberOfRows);
   TableSelect lockShared(String lockContention);
   TableSelect lockExclusive(String lockContention);
+  /**
+   * $(TABLESELECT_BIND_BRIEF)
+   */
   TableSelect bind(String name, Value value);
   RowResult execute();
 #elif DOXYGEN_PY
   TableSelect select(list searchExprStr);
-  TableSelect where(str searchCondition);
+  TableSelect where(str expression);
   TableSelect group_by(list searchExprStr);
-  TableSelect having(str searchCondition);
+  TableSelect having(str condition);
   TableSelect order_by(list sortExprStr);
   TableSelect limit(int numberOfRows);
-  TableSelect offset(int limitOffset);
+  TableSelect offset(int numberOfRows);
   TableSelect lock_shared(str lockContention);
   TableSelect lock_exclusive(str lockContention);
   TableSelect bind(str name, Value value);
@@ -150,6 +153,9 @@ class TableSelect : public Table_crud_definition,
     }
     if ("execute" == s) {
       return F::execute;
+    }
+    if ("help" == s) {
+      return enabled_functions_;
     }
     return 0;
   }

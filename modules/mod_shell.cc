@@ -39,8 +39,10 @@
 using namespace std::placeholders;
 
 namespace mysqlsh {
-
+REGISTER_HELP_OBJECT(shell, shellapi);
 REGISTER_HELP(SHELL_BRIEF,
+              "Gives access to general purpose functions and properties.");
+REGISTER_HELP(SHELL_GLOBAL_BRIEF,
               "Gives access to general purpose functions and properties.");
 
 Shell::Shell(Mysql_shell *owner)
@@ -79,88 +81,11 @@ void Shell::set_member(const std::string &prop, shcore::Value value) {
 }
 
 // Documentation of shell.options
-REGISTER_HELP(SHELL_OPTIONS_BRIEF, "Dictionary of active shell options.");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL,
-              "The options dictionary may contain "
-              "the following attributes:");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL1,
-              "@li batchContinueOnError: read-only, "
-              "boolean value to indicate if the "
-              "execution of an SQL script in batch "
-              "mode shall continue if errors occur");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL2,
-              "@li interactive: read-only, boolean "
-              "value that indicates if the shell is "
-              "running in interactive mode");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL3,
-              "@li outputFormat: controls the type of "
-              "output produced for SQL results.");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL4,
-              "@li sandboxDir: default path where the "
-              "new sandbox instances for InnoDB "
-              "cluster will be deployed");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL5,
-              "@li showWarnings: boolean value to "
-              "indicate whether warnings shall be "
-              "included when printing an SQL result");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL6,
-              "@li useWizards: read-only, boolean value "
-              "to indicate if the Shell is using the "
-              "interactive wrappers (wizard mode)");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL7, "@li " SHCORE_HISTORY_MAX_SIZE
-                                     ": number "
-                                     "of entries to keep in command history");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL8,
-              "@li " SHCORE_HISTORY_AUTOSAVE
-              ": true "
-              "to save command history when exiting the shell");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL9,
-              "@li " SHCORE_HISTIGNORE
-              ": colon separated list of glob patterns to filter"
-              " out of the command history in SQL mode");
-
-REGISTER_HELP(SHELL_OPTIONS_DETAIL10,
-              "The outputFormat option supports the following values:");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL11,
-              "@li table: displays the output in table format (default)");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL12,
-              "@li json: displays the output in JSON format");
-REGISTER_HELP(
-    SHELL_OPTIONS_DETAIL13,
-    "@li json/raw: displays the output in a JSON format but in a single line");
-REGISTER_HELP(
-    SHELL_OPTIONS_DETAIL14,
-    "@li vertical: displays the outputs vertically, one line per column value");
-REGISTER_HELP(SHELL_OPTIONS_DETAIL15,
-              "@li " SHCORE_DB_NAME_CACHE
-              ": true if auto-refresh of DB object name cache is "
-              "enabled. The \\rehash command can be used for manual refresh");
-REGISTER_HELP(
-    SHELL_OPTIONS_DETAIL16,
-    "@li " SHCORE_DEVAPI_DB_OBJECT_HANDLES
-    ": true to enable schema collection and table name aliases in the db "
-    "object, for DevAPI operations.");
+REGISTER_HELP(SHELL_OPTIONS_BRIEF,
+              "Gives access to the options that modify the shell behavior.");
 
 /**
  * $(SHELL_OPTIONS_BRIEF)
- *
- * $(SHELL_OPTIONS_DETAIL)
- * $(SHELL_OPTIONS_DETAIL1)
- * $(SHELL_OPTIONS_DETAIL2)
- * $(SHELL_OPTIONS_DETAIL3)
- * $(SHELL_OPTIONS_DETAIL4)
- * $(SHELL_OPTIONS_DETAIL5)
- * $(SHELL_OPTIONS_DETAIL6)
- * $(SHELL_OPTIONS_DETAIL7)
- * $(SHELL_OPTIONS_DETAIL8)
- * $(SHELL_OPTIONS_DETAIL9)
- * $(SHELL_OPTIONS_DETAIL10)
- * $(SHELL_OPTIONS_DETAIL11)
- * $(SHELL_OPTIONS_DETAIL12)
- * $(SHELL_OPTIONS_DETAIL13)
- * $(SHELL_OPTIONS_DETAIL14)
- * $(SHELL_OPTIONS_DETAIL15)
- * $(SHELL_OPTIONS_DETAIL16)
  */
 #if DOXYGEN_JS
 Options Shell::options;
@@ -181,6 +106,7 @@ shcore::Value Shell::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(parseUri, shell);
 REGISTER_HELP(SHELL_PARSEURI_BRIEF, "Utility function to parse a URI string.");
 REGISTER_HELP(SHELL_PARSEURI_PARAM, "@param uri a URI string.");
 REGISTER_HELP(SHELL_PARSEURI_RETURNS,
@@ -192,7 +118,7 @@ REGISTER_HELP(SHELL_PARSEURI_DETAIL,
               "dictionary containing an item for each "
               "found element.");
 
-REGISTER_HELP(SHELL_PARSEURI_DETAIL1, "TOPIC_URI");
+REGISTER_HELP(SHELL_PARSEURI_DETAIL1, "${TOPIC_URI}");
 
 REGISTER_HELP(SHELL_PARSEURI_DETAIL2,
               "For more details about how a URI is "
@@ -236,6 +162,7 @@ shcore::Value Shell::parse_uri(const shcore::Argument_list &args) {
 }
 
 // clang-format off
+REGISTER_HELP_FUNCTION(prompt, shell);
 REGISTER_HELP(SHELL_PROMPT_BRIEF, "Utility function to prompt data from the user.");
 REGISTER_HELP(SHELL_PROMPT_PARAM, "@param message a string with the message to be shown to the user.");
 REGISTER_HELP(SHELL_PROMPT_PARAM1, "@param options Optional dictionary with "\
@@ -331,8 +258,11 @@ shcore::Value Shell::prompt(const shcore::Argument_list &args) {
 }
 
 // These two lines link the help to be shown on \? connection
-REGISTER_HELP(TOPIC_CONNECTION, "TOPIC_CONNECTION_DATA_BASIC");
-REGISTER_HELP(TOPIC_CONNECTION1, "TOPIC_CONNECTION_DATA_ADDITIONAL");
+REGISTER_HELP_TOPIC(Connection, TOPIC, TOPIC_CONNECTION, Contents, ALL);
+REGISTER_HELP(TOPIC_CONNECTION_BRIEF,
+              "Information about the data used to create sessions.");
+REGISTER_HELP(TOPIC_CONNECTION, "${TOPIC_CONNECTION_DATA_BASIC}");
+REGISTER_HELP(TOPIC_CONNECTION1, "${TOPIC_CONNECTION_DATA_ADDITIONAL}");
 
 // These lines link the help that will be shown on the help() for every
 // function using connection data
@@ -342,19 +272,19 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC,
 REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC1, "@li A URI string");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC2,
               "@li A dictionary with the connection options");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC3, "TOPIC_URI");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC4, "TOPIC_CONNECTION_OPTIONS");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC5, "TOPIC_CONNECTION_DATA_DETAILS");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC3, "${TOPIC_URI}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC4, "${TOPIC_CONNECTION_OPTIONS}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC5, "${TOPIC_CONNECTION_DATA_DETAILS}");
 
-REGISTER_HELP(TOPIC_CONNECTION_DATA, "TOPIC_CONNECTION_DATA_BASIC");
-REGISTER_HELP(TOPIC_CONNECTION_DATA1, "TOPIC_CONNECTION_MORE_INFO");
+REGISTER_HELP(TOPIC_CONNECTION_DATA, "${TOPIC_CONNECTION_DATA_BASIC}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA1, "${TOPIC_CONNECTION_MORE_INFO}");
 
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
               "For additional information on connection data use "
               "\\? connection.");
 
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY,
-              "TOPIC_CONNECTION_MORE_INFO");
+              "${TOPIC_CONNECTION_MORE_INFO}");
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO_TCP_ONLY1,
               "Only TCP/IP connections are allowed for this function.");
 
@@ -364,14 +294,15 @@ REGISTER_HELP(TOPIC_URI1,
               "schema][?option=value&option=value...]");
 
 // These lines group the description of ALL the available connection options
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS,
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "<b>SSL Connection Options</b>");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS1,
               "The following options are valid for use either in a URI or in a "
               "dictionary:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS1, "TOPIC_URI_CONNECTION_OPTIONS");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS2, "${TOPIC_URI_CONNECTION_OPTIONS}");
 REGISTER_HELP(
-    TOPIC_CONNECTION_OPTIONS2,
+    TOPIC_CONNECTION_OPTIONS3,
     "The following options are also valid when a dictionary is used:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS3, "TOPIC_DICT_CONNECTION_OPTIONS");
+REGISTER_HELP(TOPIC_CONNECTION_OPTIONS4, "${TOPIC_DICT_CONNECTION_OPTIONS}");
 
 // These lines group the connection options available for URI
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS,
@@ -415,27 +346,31 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS12,
               "URL encoded.");
 
 // These lines group the connection options available for dictionary
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS,
-              "@li scheme: the protocol to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS, "<b>Base Connection Options</b>");
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS1,
+              "@li scheme: the protocol to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS2,
               "@li user: the MySQL user name to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS2, "@li dbUser: alias for user.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS3,
-              "@li password: the password to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS3, "@li dbUser: alias for user.");
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS4,
+              "@li password: the password to be used on the connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS5,
               "@li dbPassword: same as password.");
 REGISTER_HELP(
-    TOPIC_DICT_CONNECTION_OPTIONS5,
+    TOPIC_DICT_CONNECTION_OPTIONS6,
     "@li host: the hostname or IP address to be used on a TCP connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS6,
-              "@li port: the port to be used in a TCP connection.");
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS7,
+              "@li port: the port to be used in a TCP connection.");
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS8,
               "@li socket: the socket file name to be used on a connection "
               "through unix sockets.");
 REGISTER_HELP(
-    TOPIC_DICT_CONNECTION_OPTIONS8,
+    TOPIC_DICT_CONNECTION_OPTIONS9,
     "@li schema: the schema to be selected once the connection is done.");
 
+REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS10,
+              "@note The dbUser and dbPassword options are deprecated and "
+              "will be removed in a future release.");
 // The rest of the lines provide additional details related to the connection
 // option definition
 REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS,
@@ -446,15 +381,16 @@ REGISTER_HELP(
     "If an option is defined more than once, an error will be generated.");
 
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL,
-              "TOPIC_CONNECTION_OPTION_SCHEME");
+              "${TOPIC_CONNECTION_OPTION_SCHEME}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1,
-              "TOPIC_CONNECTION_OPTION_SOCKET");
+              "${TOPIC_CONNECTION_OPTION_SOCKET}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL2,
-              "TOPIC_CONNECTION_OPTION_SSL_MODE");
+              "${TOPIC_CONNECTION_OPTION_SSL_MODE}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL3,
-              "TOPIC_CONNECTION_OPTION_TLS_VERSION");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "TOPIC_URI_ENCODED_VALUE");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5, "TOPIC_URI_ENCODED_ATTRIBUTE");
+              "${TOPIC_CONNECTION_OPTION_TLS_VERSION}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL4, "${TOPIC_URI_ENCODED_VALUE}");
+REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL5,
+              "${TOPIC_URI_ENCODED_ATTRIBUTE}");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME, "<b>Protocol Selection</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SCHEME1,
@@ -522,6 +458,7 @@ REGISTER_HELP(TOPIC_URI_ENCODED_VALUE5,
               "If host is a literal IPv6 address it should be enclosed in "
               "\"[\" and \"]\" characters.");
 
+REGISTER_HELP_FUNCTION(connect, shell);
 REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");
 REGISTER_HELP(SHELL_CONNECT_PARAM,
               "@param connectionData the connection data to be used to "
@@ -532,7 +469,7 @@ REGISTER_HELP(SHELL_CONNECT_PARAM1,
 REGISTER_HELP(SHELL_CONNECT_DETAIL,
               "This function will establish the global session with the "
               "received connection data.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL1, "TOPIC_CONNECTION_DATA");
+REGISTER_HELP(SHELL_CONNECT_DETAIL1, "${TOPIC_CONNECTION_DATA}");
 
 REGISTER_HELP(SHELL_CONNECT_DETAIL2,
               "If no scheme is provided, a first attempt will be made to "
@@ -604,6 +541,27 @@ void Shell::set_current_schema(const std::string &name) {
                           shcore::IShell_core::all_scripting_modes());
 }
 
+REGISTER_HELP_FUNCTION(setCurrentSchema, shell);
+REGISTER_HELP(SHELL_SETCURRENTSCHEMA_BRIEF,
+              "Sets the active schema on the global session.");
+REGISTER_HELP(SHELL_SETCURRENTSCHEMA_PARAM,
+              "@param name The name of the schema to be set as active.");
+REGISTER_HELP(SHELL_SETCURRENTSCHEMA_DETAIL,
+              "Once the schema is set as active, it will be available through "
+              "the <b>db</b> global object.");
+/**
+ * $(SHELL_SETCURRENTSCHEMA_BRIEF)
+ *
+ * $(SHELL_SETCURRENTSCHEMA_PARAM)
+ *
+ * $(SHELL_SETCURRENTSCHEMA_DETAIL)
+ */
+#if DOXYGEN_JS
+Undefined Shell::setCurrentSchema(String name) {}
+#elif DOXYGEN_PY
+None Shell::set_current_schema(str name) {}
+#endif
+
 shcore::Value Shell::_set_current_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
@@ -655,6 +613,25 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::get_dev_session() {
   return _shell_core->get_dev_session();
 }
 
+REGISTER_HELP_FUNCTION(setSession, shell);
+REGISTER_HELP(SHELL_SETSESSION_BRIEF, "Sets the global session.");
+REGISTER_HELP(
+    SHELL_SETSESSION_PARAM,
+    "@param session The session object to be used as global session.");
+REGISTER_HELP(SHELL_SETSESSION_DETAIL,
+              "Sets the global session using a session from a variable.");
+/**
+ * $(SHELL_SETSESSION_BRIEF)
+ *
+ * $(SHELL_SETSESSION_PARAM)
+ *
+ * $(SHELL_SETSESSION_DETAIL)
+ */
+#if DOXYGEN_JS
+Undefined Shell::setSession(Session session) {}
+#elif DOXYGEN_PY
+None Shell::set_session(Session session) {}
+#endif
 shcore::Value Shell::set_session(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("setSession").c_str());
   shcore::Value ret_val;
@@ -674,6 +651,20 @@ shcore::Value Shell::set_session(const shcore::Argument_list &args) {
   return args[0];
 }
 
+REGISTER_HELP_FUNCTION(getSession, shell);
+REGISTER_HELP(SHELL_GETSESSION_BRIEF, "Returns the global session.");
+REGISTER_HELP(SHELL_GETSESSION_DETAIL,
+              "The returned object will be either a <b>ClassicSession</b> or a "
+              "<b>Session</b> object, depending on how the global session was "
+              "created.");
+/**
+ * $(SHELL_GETSESSION_BRIEF)
+ */
+#if DOXYGEN_JS
+Session Shell::getSession() {}
+#elif DOXYGEN_PY
+Session Shell::get_session() {}
+#endif
 shcore::Value Shell::get_session(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getSession").c_str());
 
@@ -681,6 +672,16 @@ shcore::Value Shell::get_session(const shcore::Argument_list &args) {
       _shell_core->get_dev_session()));
 }
 
+REGISTER_HELP_FUNCTION(reconnect, shell);
+REGISTER_HELP(SHELL_RECONNECT_BRIEF, "Reconnect the global session.");
+/**
+ * $(SHELL_RECONNECT_BRIEF)
+ */
+#if DOXYGEN_JS
+Undefined Shell::reconnect() {}
+#elif DOXYGEN_PY
+None Shell::reconnect() {}
+#endif
 shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("reconnect").c_str());
 
@@ -696,6 +697,7 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
   return shcore::Value(ret_val);
 }
 
+REGISTER_HELP_FUNCTION(log, shell);
 REGISTER_HELP(SHELL_LOG_BRIEF, "Logs an entry to the shell's log file.");
 REGISTER_HELP(SHELL_LOG_PARAM,
               "@param level one of ERROR, WARNING, INFO, "
@@ -735,6 +737,7 @@ shcore::Value Shell::log(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+REGISTER_HELP_FUNCTION(status, shell);
 REGISTER_HELP(SHELL_STATUS_BRIEF,
               "Shows connection status info for the shell.");
 REGISTER_HELP(SHELL_STATUS_DETAIL,

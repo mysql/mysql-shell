@@ -29,6 +29,7 @@
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "scripting/common.h"
 
@@ -36,6 +37,12 @@ using namespace std::placeholders;
 using namespace mysqlsh::mysqlx;
 using namespace shcore;
 
+REGISTER_HELP_CLASS(TableUpdate, mysqlx);
+REGISTER_HELP(TABLEUPDATE_BRIEF, "Operation to add update records in a Table.");
+REGISTER_HELP(TABLEUPDATE_DETAIL,
+              "A TableUpdate object is used to update rows in a Table, is "
+              "created through the <b>update</b> function on the <b>Table</b> "
+              "class.");
 TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   message_.mutable_collection()->set_schema(owner->schema()->name());
@@ -67,14 +74,13 @@ TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
   update_functions(F::_empty);
 }
 
+REGISTER_HELP_FUNCTION(update, TableUpdate);
+REGISTER_HELP(TABLEUPDATE_UPDATE_BRIEF, "Initializes the update operation.");
+REGISTER_HELP(TABLEUPDATE_UPDATE_RETURNS, "@returns This TableUpdate object.");
 /**
- * Initializes this record update handler.
- * \return This TableUpdate object.
+ * $(TABLEUPDATE_UPDATE_BRIEF)
  *
- * This function is called automatically when Table.update() is called.
- *
- * The actual update of the records will occur only when the execute method is
- * called.
+ * $(TABLEUPDATE_UPDATE_RETURNS)
  *
  * #### Method Chaining
  *
@@ -111,35 +117,37 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Updates the column value on records in a table.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li A string with the column name to be updated.
-//! \li The value to be set on the specified column.
-#else
-//! \param attribute A string with the column name to be updated.
-//! \param value The value to be set on the specified column.
-#endif
+REGISTER_HELP_FUNCTION(set, TableUpdate);
+REGISTER_HELP(TABLEUPDATE_SET_BRIEF, "Adds an update operation.");
+REGISTER_HELP(
+    TABLEUPDATE_SET_PARAM,
+    "@param attribute Identifies the column to be updated by this operation.");
+REGISTER_HELP(
+    TABLEUPDATE_SET_PARAM1,
+    "@param value Defines the value to be set on the indicated column.");
+REGISTER_HELP(TABLEUPDATE_SET_RETURNS, "@returns This TableUpdate object.");
+REGISTER_HELP(TABLEUPDATE_SET_DETAIL,
+              "Adds an opertion into the update handler to update a column "
+              "value in on the records that were included on the selection "
+              "filter and limit.");
+REGISTER_HELP(TABLEINSERT_SET_DETAIL1, "<b>Using Expressions As Values</b>");
+REGISTER_HELP(TABLEINSERT_SET_DETAIL2,
+              "If a <b>mysqlx.expr(...)</b> object is defined as a value, it "
+              "will be evaluated in the server, the resulting value will be "
+              "set at the indicated column.");
 /**
- * \return This TableUpdate object.
+ * $(TABLEUPDATE_SET_BRIEF)
  *
- * Adds an opertion into the update handler to update a column value in on the
- * records that were included on the selection filter and limit.
+ * $(TABLEUPDATE_SET_PARAM)
+ * $(TABLEUPDATE_SET_PARAM1)
  *
- * The update will be done on the table's records once the execute method is
- * called.
+ * $(TABLEUPDATE_SET_RETURNS)
+ *
+ * $(TABLEUPDATE_SET_DETAIL)
  *
  * #### Using Expressions for Values
  *
- * Tipically, the received values are inserted into the table in a literal way.
- *
- * An additional option is to pass an explicit expression which is evaluated on
- * the server, the resulting value is inserted on the table.
- *
- * To define an expression use:
- * \code{.py}
- * mysqlx.expr(expression)
- * \endcode
+ * $(TABLEUPDATE_SET_DETAIL2)
  *
  * The expression also can be used for \a [Parameter
  * Binding](param_binding.html).
@@ -212,22 +220,28 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the search condition to filter the records to be updated from the owner
-//! Table.
-#if DOXYGEN_CPP
-//! \param args should contain an optional string expression to filter the
-//! records to be updated.
-#else
-//! \param searchCondition: An optional expression to filter the records to be
-//! updated.
-#endif
+REGISTER_HELP_FUNCTION(where, TableUpdate);
+REGISTER_HELP(TABLEUPDATE_WHERE_BRIEF,
+              "Sets the search condition to filter the records to be updated.");
+REGISTER_HELP(TABLEUPDATE_WHERE_PARAM,
+              "@param expression Optional condition to filter the records to "
+              "be updated.");
+REGISTER_HELP(TABLEUPDATE_WHERE_RETURNS, "@returns This TableUpdate object.");
+REGISTER_HELP(TABLEUPDATE_WHERE_DETAIL,
+              "If used, only those rows satisfying the <b>expression</b> will "
+              "be updated");
+REGISTER_HELP(TABLEUPDATE_WHERE_DETAIL1,
+              "The <b>expression</b> supports parameter binding.");
 /**
- * Sets the search condition to filter the records to be updated on the owner
- * Table.
- * if not specified all the records will be updated from the table unless a
- * limit is set. \return This TableUpdate object.
+ * $(TABLEUPDATE_WHERE_BRIEF)
  *
- * The searchCondition supports \a [Parameter Binding](param_binding.html).
+ * $(TABLEUPDATE_WHERE_PARAM)
+ *
+ * $(TABLEUPDATE_WHERE_RETURNS)
+ *
+ * $(TABLEUPDATE_WHERE_DETAIL)
+ *
+ * The expression supports \a [Parameter Binding](param_binding.html).
  *
  * #### Method Chaining
  *
@@ -245,9 +259,9 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
  * \sa Usage examples at execute().
  */
 #if DOXYGEN_JS
-TableUpdate TableUpdate::where(String searchCondition) {}
+TableUpdate TableUpdate::where(String expression) {}
 #elif DOXYGEN_PY
-TableUpdate TableUpdate::where(str searchCondition) {}
+TableUpdate TableUpdate::where(str expression) {}
 #endif
 shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
   // Each method validates the received parameters
@@ -265,24 +279,36 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets the order in which the update should be done.
-#if DOXYGEN_CPP
-//! \param args should contain a list of expression strings defining a sort
-//! criteria, the update will be done following the order defined by this
-//! criteria.
-#else
-//! \param sortExprStr: A list of expression strings defining a sort criteria,
-//! the update will be done following the order defined by this criteria.
-#endif
+REGISTER_HELP_FUNCTION(orderBy, TableUpdate);
+REGISTER_HELP(TABLEUPDATE_ORDERBY_BRIEF,
+              "Sets the order in which the records will be updated.");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_SIGNATURE, "(sortCriteria)");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_SIGNATURE1,
+              "(sortCriterion[, sortCriterion, ...])");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_RETURNS, "@returns This TableUpdate object.");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL,
+              "If used the records will be updated in the order established by "
+              "the sort criteria.");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL1,
+              "The elements of <b>sortExprStr</b> list are strings defining "
+              "the column name on which the sorting will be based.");
+REGISTER_HELP(TABLEUPDATE_ORDERBY_DETAIL2,
+              "The format is as follows: columnIdentifier [ ASC | DESC ]");
+REGISTER_HELP(
+    TABLEUPDATE_ORDERBY_DETAIL3,
+    "If no order criteria is specified, ASC will be used by default.");
 /**
- * \return This TableUpdate object.
+ * $(TABLEUPDATE_ORDERBY_BRIEF)
  *
- * The elements of sortExprStr list are strings defining the column name on
- * which the sorting will be based in the form of "columnIdentifier [ ASC | DESC
- * ]". If no order criteria is specified, ascending will be used by default.
+ * $(TABLEUPDATE_ORDERBY_RETURNS)
  *
- * This method is usually used in combination with limit to fix the amount of
- * records to be updated.
+ * $(TABLEUPDATE_ORDERBY_DETAIL)
+ *
+ * $(TABLEUPDATE_ORDERBY_DETAIL1)
+ *
+ * $(TABLEUPDATE_ORDERBY_DETAIL2)
+ *
+ * $(TABLEUPDATE_ORDERBY_DETAIL3)
  *
  * #### Method Chaining
  *
@@ -324,17 +350,24 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Sets a limit for the records to be updated.
-#if DOXYGEN_CPP
-//! \param args should contain the number of records to be updated.
-#else
-//! \param numberOfRows the number of records to be updated.
-#endif
+REGISTER_HELP_FUNCTION(limit, TableUpdate);
+REGISTER_HELP(
+    TABLEUPDATE_LIMIT_BRIEF,
+    "Sets the maximum number of rows to be updated by the operation.");
+REGISTER_HELP(TABLEUPDATE_LIMIT_PARAM,
+              "@param numberOfRows The maximum number of rows to be updated.");
+REGISTER_HELP(TABLEUPDATE_LIMIT_RETURNS, "@returns This TableUpdate object.");
+REGISTER_HELP(
+    TABLEUPDATE_LIMIT_DETAIL,
+    "If used, the operation will update only <b>numberOfRows</b> rows.");
 /**
- * \return This TableUpdate object.
+ * $(TABLEUPDATE_LIMIT_BRIEF)
  *
- * This method is usually used in combination with sort to fix the amount of
- * records to be updated.
+ * $(TABLEUPDATE_LIMIT_PARAM)
+ *
+ * $(TABLEUPDATE_LIMIT_RETURNS)
+ *
+ * $(TABLEUPDATE_LIMIT_DETAIL)
  *
  * #### Method Chaining
  *
@@ -369,17 +402,37 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-//! Binds a value to a specific placeholder used on this TableSelect object.
-#if DOXYGEN_CPP
-//! \param args should contain the next elements:
-//! \li The name of the placeholder to which the value will be bound.
-//! \li The value to be bound on the placeholder.
-#else
-//! \param name: The name of the placeholder to which the value will be bound.
-//! \param value: The value to be bound on the placeholder.
-#endif
+REGISTER_HELP_FUNCTION(bind, TableUpdate);
+REGISTER_HELP(
+    TABLEUPDATE_BIND_BRIEF,
+    "Binds a value to a specific placeholder used on this operation.");
+REGISTER_HELP(TABLEUPDATE_BIND_PARAM,
+              "@param name The name of the placeholder to which the value will "
+              "be bound.");
+REGISTER_HELP(TABLEUPDATE_BIND_PARAM1,
+              "@param value The value to be bound on the placeholder.");
+REGISTER_HELP(TABLEUPDATE_BIND_RETURNS, "@returns This TableUpdate object.");
+REGISTER_HELP(TABLEUPDATE_BIND_DETAIL, "${TABLEUPDATE_BIND_BRIEF}");
+REGISTER_HELP(TABLEUPDATE_BIND_DETAIL1,
+              "An error will be raised if the placeholder indicated by name "
+              "does not exist.");
+REGISTER_HELP(TABLEUPDATE_BIND_DETAIL2,
+              "This function must be called once for each used placeholder or "
+              "an error will be raised when the execute method is called.");
+
 /**
- * \return This TableUpdate object.
+ * $(TABLEUPDATE_BIND_BRIEF)
+ *
+ * $(TABLEUPDATE_BIND_PARAM)
+ * $(TABLEUPDATE_BIND_PARAM1)
+ *
+ * $(TABLEUPDATE_BIND_RETURNS)
+ *
+ * $(TABLEUPDATE_BIND_DETAIL)
+ *
+ * $(TABLEUPDATE_BIND_DETAIL1)
+ *
+ * $(TABLEUPDATE_BIND_DETAIL2)
  *
  * #### Method Chaining
  *
@@ -392,7 +445,7 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args) {
  *
  * An error will be raised if the placeholder indicated by name does not exist.
  *
- * This function must be called once for each used placeohlder or an error will
+ * This function must be called once for each used placeholder or an error will
  * be
  * raised when the execute method is called.
  *
@@ -416,10 +469,14 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+REGISTER_HELP_FUNCTION(execute, TableUpdate);
+REGISTER_HELP(TABLEUPDATE_EXECUTE_BRIEF,
+              "Executes the update operation with all the configured options.");
+REGISTER_HELP(TABLEUPDATE_EXECUTE_RETURNS, "@returns A Result object.");
 /**
- * Executes the record update with the configured filter and limit.
- * \return Result A result object that can be used to retrieve the results of
- * the update operation.
+ * $(TABLEDELETE_EXECUTE_BRIEF)
+ *
+ * $(TABLEDELETE_EXECUTE_RETURNS)
  *
  * #### Method Chaining
  *
