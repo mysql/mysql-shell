@@ -2023,6 +2023,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           static_cast<ManagedInstance::State>(state.source_state)));
       message.append(" state, and should be ONLINE");
 
+      session->close();
+
       throw shcore::Exception::runtime_error(message);
     }
   } else {
@@ -2030,18 +2032,35 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     message.append(
         " cannot be used to restore the cluster as it is not an active member "
         "of replication group.");
+
+    session->close();
+
     throw shcore::Exception::runtime_error(message);
   }
 
-  session->close();
+  // Check if there is quorum to issue an error.
+  mysqlshdk::mysql::Instance target_instance(session);
+  if (mysqlshdk::gr::has_quorum(target_instance, nullptr, nullptr)) {
+    m_console->print_error(
+        "Cannot perform operation on an healthy cluster because it can only "
+        "be used to restore a cluster from quorum loss.");
+
+    target_instance.close_session();
+
+    throw shcore::Exception::runtime_error(
+        "The cluster has quorum according to instance '" + instance_address +
+        "'");
+  }
 
   // Get the online instances of the ReplicaSet to user as group_peers
   auto online_instances =
       _metadata_storage->get_replicaset_online_instances(rset_id);
 
-  if (online_instances.empty())
+  if (online_instances.empty()) {
+    session->close();
     throw shcore::Exception::logic_error(
         "No online instances are visible from the given one.");
+  }
 
   std::string group_peers;
 
@@ -2052,26 +2071,30 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     // We assume the login credentials are the same on all instances
     instance_cnx_opts.set_login_options_from(instance_def);
 
+    std::shared_ptr<mysqlshdk::db::ISession> instance_session;
     try {
       log_info(
           "Opening a new session to a group_peer instance to obtain the XCOM "
           "address %s",
           instance_host.c_str());
-      session = get_session(instance_cnx_opts);
+      instance_session = get_session(instance_cnx_opts);
     } catch (std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
+      session->close();
       throw;
     }
 
     std::string group_peer_instance_xcom_address;
 
     // Get @@group_replication_local_address
-    get_server_variable(session, "group_replication_local_address",
+    get_server_variable(instance_session, "group_replication_local_address",
                         group_peer_instance_xcom_address);
 
     group_peers.append(group_peer_instance_xcom_address);
     group_peers.append(",");
+
+    instance_session->close();
   }
 
   // Force the reconfiguration of the GR group
