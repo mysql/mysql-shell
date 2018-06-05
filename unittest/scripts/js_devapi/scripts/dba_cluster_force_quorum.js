@@ -37,6 +37,10 @@ cluster.addInstance(__sandbox_uri3);
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
+//@<> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
+// Regression for BUG#27508698: forceQuorumUsingPartitionOf() on cluster with quorum should be forbidden
+cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', user:'root'});
+
 //@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 2 will
 // be still trying to join the cluster from the moment it was started again until

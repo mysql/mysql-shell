@@ -16,7 +16,7 @@ port = 2177
 transaction_write_set_extraction = XXHASH64
 binlog_checksum = NONE
 gtid_mode = ON
-auto_increment_offset = 3
+auto_increment_offset = 2
 basedir = /var/lib/jenkins/shell-deps/traces-mysql-5.7.22-mysql-commercial_5.7.22-1ubuntu16.04_amd64/usr
 log_bin
 loose_mysqlx_socket = mysqlx.sock

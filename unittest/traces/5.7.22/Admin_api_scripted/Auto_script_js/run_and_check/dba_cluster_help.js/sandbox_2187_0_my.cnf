@@ -1,0 +1,32 @@
+[client]
+port = 2187
+protocol = TCP
+user = root
+[mysqld]
+general_log = 1
+report_port = 2187
+loose_mysqlx_port = 21870
+secure_file_priv = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker18/tmp/2187/mysql-files
+pid_file = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker18/tmp/2187/2187.pid
+log_error = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker18/tmp/2187/sandboxdata/error.log
+datadir = /export/home/jenkins-data/mysql-shell/shell-trace-maker/workspace/traceroot/worker18/tmp/2187/sandboxdata
+server_id = 14532
+port = 2187
+transaction_write_set_extraction = XXHASH64
+binlog_checksum = NONE
+gtid_mode = ON
+auto_increment_offset = 2
+basedir = /var/lib/jenkins/shell-deps/traces-mysql-5.7.22-mysql-commercial_5.7.22-1ubuntu16.04_amd64/usr
+log_bin
+loose_mysqlx_socket = mysqlx.sock
+log_slave_updates = ON
+relay_log_info_repository = TABLE
+innodb_log_file_size = 1M
+master_info_repository = TABLE
+binlog_format = ROW
+innodb_log_buffer_size = 1M
+plugin_load = mysqlx.so
+enforce_gtid_consistency = ON
+innodb_data_file_path = ibdata1:10M:autoextend
+socket = mysqld.sock
+log_syslog = OFF

@@ -1,8 +1,8 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2107","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"36","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2047","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"34","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = 1"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"mysql_innodb_cluster_metadata","table_name":"instances","table_label":"instances","column_name":"mysql_server_uuid","column_label":"mysql_server_uuid","length":160,"fractional":0,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["96d23095-6e21-11e8-a718-0010e08a7b78"],["97ce589e-6e21-11e8-8e42-0010e08a7b78"]]},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"mysql_innodb_cluster_metadata","table_name":"instances","table_label":"instances","column_name":"mysql_server_uuid","column_label":"mysql_server_uuid","length":160,"fractional":0,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["ba7e4843-6e55-11e8-ab01-0010e08a7b78"],["bc6e8cae-6e55-11e8-9c9b-0010e08a7b78"]]},
 {"type":"request","subtype":"CLOSE","index":5},
 {"type":"response","subtype":"OK","index":6},
 null]

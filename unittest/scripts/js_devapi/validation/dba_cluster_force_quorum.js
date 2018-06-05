@@ -29,6 +29,12 @@
 //@ Add instance 3
 ||
 
+//@<OUT> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
+ERROR: Cannot perform operation on an healthy cluster because it can only be used to restore a cluster from quorum loss.
+
+//@<ERR> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
+Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' (RuntimeError)
+
 //@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
 ||
 
