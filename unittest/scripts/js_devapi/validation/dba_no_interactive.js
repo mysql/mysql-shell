@@ -32,7 +32,7 @@
 ||Cannot use multiMaster option if adoptFromGR is set to true. Using adoptFromGR mode will adopt the primary mode in use by the Cluster.
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
-||Invalid value for ipWhitelist, string value cannot be empty.
+||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@ Dba: createCluster with ANSI_QUOTES success
 |Current sql_mode is: ANSI_QUOTES|

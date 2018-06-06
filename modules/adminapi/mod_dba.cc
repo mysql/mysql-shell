@@ -46,6 +46,7 @@
 #include "scripting/object_factory.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
+#include "utils/utils_net.h"
 #include "utils/utils_sqlstring.h"
 
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -946,9 +947,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Validate SSL options for the cluster instance
       validate_ssl_instance_options(options);
 
-      // Validate ip whitelist option
-      validate_ip_whitelist_option(options);
-
       // Validate group name option
       validate_group_name_option(options);
 
@@ -988,6 +986,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
         // if the ipWhitelist option was provided, we know it is a valid value
         // since we've already done the validation above.
         ip_whitelist = opt_map.string_at("ipWhitelist");
+        bool hostnames_supported = false;
+
+        // Validate ip whitelist option
+        if (group_session->get_server_version() >=
+            mysqlshdk::utils::Version(8, 0, 4)) {
+          hostnames_supported = true;
+        }
+
+        validate_ip_whitelist_option(ip_whitelist, hostnames_supported);
       }
 
       if (adopt_from_gr && opt_map.has_key("multiMaster")) {
@@ -1066,7 +1073,21 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     metadata->create_metadata_schema();
 
     // Creates the replication account to for the primary instance
-    metadata->create_repl_account(replication_user, replication_pwd);
+
+    std::vector<std::string> netmask_list;
+
+    if (!ip_whitelist.empty()) {
+      // Strip any blank chars from the ip_whitelist value
+      std::vector<std::string> ip_whitelist_list =
+          shcore::str_split(ip_whitelist, ",", -1);
+
+      // Translate CIDR to netmask notation
+      netmask_list = convert_ipwhitelist_to_netmask(ip_whitelist_list);
+    }
+
+    metadata->create_repl_account(replication_user, replication_pwd,
+                                  netmask_list);
+
     log_debug("Created replication user '%s'", replication_user.c_str());
 
     MetadataStorage::Transaction tx(metadata);

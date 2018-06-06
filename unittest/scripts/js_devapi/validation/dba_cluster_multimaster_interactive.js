@@ -335,6 +335,9 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
+//@ Disable group_replication_start_on_boot if version >= 8.0.11 {VER(>=8.0.11)}
+||
+
 //@# Dba: stop instance 3
 ||
 

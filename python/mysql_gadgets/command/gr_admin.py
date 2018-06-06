@@ -421,10 +421,9 @@ def start(server_info, **kwargs):
         rpl_user_dict = None
         if not skip_rpl_user:
             rpl_user_dict = get_rpl_usr(kwargs)
-            req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
-                                    option_file=option_file)
-        else:
-            req_dict = get_req_dict(server, None, option_file=option_file)
+
+        # Do not check the replication user, already handled by the AdminAPI.
+        req_dict = get_req_dict(server, None, option_file=option_file)
 
         check_server_requirements(server, req_dict, rpl_user_dict, verbose,
                                   dry_run, skip_schema_checks,

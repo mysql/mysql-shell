@@ -30,6 +30,7 @@
 #include "modules/adminapi/mod_dba_sql.h"
 
 #include "mysqlshdk/libs/utils/trandom.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -959,16 +960,20 @@ void MetadataStorage::create_account(const std::string &username,
   query_log << "<secret>";
   query_log.done();
 
+  log_info("Creating account %s", username.c_str());
   execute_sql(query, false, query_log);
 }
 
 // generate a replication user account + password for an instance
 // This account will be replicated to all instances in the replicaset, so that
 // the newly joining instance can connect to any of them for recovery.
-void MetadataStorage::create_repl_account(std::string &username,
-                                          std::string &password) {
+void MetadataStorage::create_repl_account(
+    std::string &username, std::string &password,
+    const std::vector<std::string> &subnets) {
   shcore::sqlstring query;
+  std::vector<std::string> subnets_list = subnets;
   int password_length = PASSWORD_LENGTH;
+
   // Generate a password
   password = generate_password(password_length);
 
@@ -980,87 +985,94 @@ void MetadataStorage::create_repl_account(std::string &username,
     tstamp = tstamp.substr(tstamp.size() - 10);
   }
 
+  // Generate the username string
   std::string base_user = "mysql_innodb_cluster_rplusr";
   username = base_user.substr(0, 32 - tstamp.size()) + tstamp;
 
-  // TODO(miguel): Replication accounts should be created with grants
-  // for the joining instance only
-  // However, we don't have a reliable way of getting the external IP and/or
-  // fully qualified domain name
-  std::string hostname = "%";
-  std::string localhost = "localhost";
+  // F5. If 'ipWhitelist' is not used on the "ipWhitelist commands", thus
+  // getting the default value of 'AUTOMATIC', then the replication-user is
+  // created using the wildcard '%' for the host name value.
+  if (subnets_list.empty()) subnets_list.push_back("%");
 
-  Transaction tx(shared_from_this());
+  // Iterate the ip_whitelist list to create a replication account for each
+  // whitelist value used
+  for (const std::string &hostname : subnets_list) {
+    query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
+    query << username;
+    query << hostname;
+    query.done();
 
-  query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
-  query << username;
-  query << hostname;
-  query.done();
+    execute_sql(query);
 
-  execute_sql(query);
+    // If the hostname is '%', we must create the user in 'localhost' too
+    // otherwise the user may be treated as an anonymous user:
+    // https://dev.mysql.com/doc/refman/en/adding-users.html
+    if (hostname == "%") {
+      query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
+      query << username;
+      query << "localhost";
+      query.done();
 
-  query = shcore::sqlstring("DROP USER IF EXISTS ?@?", 0);
-  query << username;
-  query << localhost;
-  query.done();
+      execute_sql(query);
+    }
 
-  execute_sql(query);
+    // Try to create an account with the generated password,
+    // and if fails retry for 100 times with newly generated passwords
+    int retry_count = 100;
+    while (retry_count > 0) {
+      try {
+        create_account(username, password, hostname);
 
-  // Try to create an account with the generated password,
-  // and if fails retry for 100 times with newly generated passwords
-  int retry_count = 100;
-  while (retry_count > 0) {
-    try {
-      create_account(username, password, hostname);
-      create_account(username, password, localhost);
+        if (hostname == "%") create_account(username, password, "localhost");
 
-      // If it reached here it means there were no errors
-      retry_count = 0;
-    } catch (mysqlshdk::db::Error &e) {
-      // If the error is: ERROR 1819 (HY000): Your password does not satisfy
-      // the current policy requirements
-      // We regenerate the password to retry
-      if (e.code() == ER_NOT_VALID_PASSWORD) {
-        if (retry_count == 100) {
-          try {
-            auto result = execute_sql("select @@validate_password_length");
-            auto row = result->fetch_one();
-            if (row && password_length < row->get_int(0)) {
-              password_length = row->get_int(0);
+        // If it reached here it means there were no errors
+        retry_count = 0;
+      } catch (mysqlshdk::db::Error &e) {
+        // If the error is: ERROR 1819 (HY000): Your password does not satisfy
+        // the current policy requirements
+        // We regenerate the password to retry
+        if (e.code() == ER_NOT_VALID_PASSWORD) {
+          if (retry_count == 100) {
+            try {
+              auto result = execute_sql("select @@validate_password_length");
+              auto row = result->fetch_one();
+              if (row && password_length < row->get_int(0)) {
+                password_length = row->get_int(0);
+              }
+            } catch (...) {
+              password_length = 32;
             }
-          } catch (...) {
-            password_length = 32;
           }
+          if (--retry_count <= 0) {
+            throw shcore::Exception::runtime_error(
+                "Unable to create a replication account compliant with "
+                "the active MySQL server password policy.");
+          }
+          password = generate_password(password_length);
+        } else {
+          throw shcore::Exception::mysql_error_with_code_and_state(
+              e.what(), e.code(), e.sqlstate());
         }
-        if (--retry_count <= 0) {
-          throw shcore::Exception::runtime_error(
-              "Unable to create a replication account compliant with "
-              "the active MySQL server password policy.");
-        }
-        password = generate_password(password_length);
-      } else {
-        throw shcore::Exception::mysql_error_with_code_and_state(
-            e.what(), e.code(), e.sqlstate());
       }
     }
+
+    // Grant REPLICATION SLAVE grants to the created accounts
+    query = shcore::sqlstring(
+        "GRANT REPLICATION SLAVE ON *.* to /*(*/ ?@? /*)*/", 0);
+    query << username;
+    query << hostname;
+    query.done();
+
+    execute_sql(query);
+
+    if (hostname == "%") {
+      query = shcore::sqlstring(
+          "GRANT REPLICATION SLAVE ON *.* to /*(*/ ?@? /*(*/", 0);
+      query << username;
+      query << "localhost";
+      query.done();
+
+      execute_sql(query);
+    }
   }
-
-  // Grant REPLICATION SLAVE grants to the created accounts
-  query =
-      shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to /*(*/ ?@? /*)*/", 0);
-  query << username;
-  query << hostname;
-  query.done();
-
-  execute_sql(query);
-
-  query =
-      shcore::sqlstring("GRANT REPLICATION SLAVE ON *.* to /*(*/ ?@? /*(*/", 0);
-  query << username;
-  query << localhost;
-  query.done();
-
-  execute_sql(query);
-
-  tx.commit();
 }

@@ -46,8 +46,10 @@
 #include <cstring>
 #include <memory>
 #include <vector>
+#include <bitset>
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -255,6 +257,80 @@ bool Net::is_port_listening(const std::string &address, int port) {
   return get()->is_port_listening_impl(address, port);
 }
 
+bool Net::strip_cidr(std::string *address, int *cidr) {
+  // Strip the CIDR value, if specified
+  size_t pos = address->find("/");
+  if (pos != std::string::npos) {
+    std::string cidr_str = address->substr(pos + 1);
+
+    try {
+      *cidr = std::stoi(cidr_str);
+    } catch (const std::invalid_argument &e) {
+      throw std::invalid_argument("Invalid subnet CIDR value: '" + cidr_str +
+                                  "': " + e.what());
+    } catch (const std::out_of_range &e) {
+      throw std::out_of_range("Converted CIDR value: '" + cidr_str +
+                              "' out of range: " + e.what());
+    }
+
+    address->erase(pos);
+
+    return true;
+  }
+  return false;
+}
+
+std::string Net::cidr_to_netmask(const std::string &address) {
+  std::string ret = address;
+  int cidr = 0;
+
+  // Validate if the address value is not empty
+  if (shcore::str_strip(address).empty())
+    throw std::runtime_error(
+        "Invalid value for address: string value cannot be empty.");
+
+  // Strip the CIDR value, if specified
+  if (strip_cidr(&ret, &cidr)) {
+    if ((cidr < 1) || (cidr > 32))
+      throw std::runtime_error(
+          "Could not translate address: subnet value in CIDR notation is not "
+          "valid.");
+  }
+
+  // Convert the CIDR value to netmask notation
+  if (cidr != 0) {
+    std::bitset<32> bitset;
+
+    // Set the cidr bits in the bit_array
+    for (int i = 31; i > (31 - cidr); i--) bitset.set(i);
+
+    std::string full_bitset = bitset.to_string();
+
+    // Split the full bit_array in the 4 blocks of 8 bits
+    std::string bitset1_str = full_bitset.substr(0, 8);
+    std::string bitset2_str = full_bitset.substr(8, 8);
+    std::string bitset3_str = full_bitset.substr(16, 8);
+    std::string bitset4_str = full_bitset.substr(24, 8);
+
+    // Convert the bit arrays to decimal representation
+    std::bitset<8> bitset1(bitset1_str);
+    std::bitset<8> bitset2(bitset2_str);
+    std::bitset<8> bitset3(bitset3_str);
+    std::bitset<8> bitset4(bitset4_str);
+
+    // Construct the final translated address
+    bitset1_str = std::to_string(bitset1.to_ulong());
+    bitset2_str = std::to_string(bitset2.to_ulong());
+    bitset3_str = std::to_string(bitset3.to_ulong());
+    bitset4_str = std::to_string(bitset4.to_ulong());
+
+    ret += "/" + bitset1_str + "." + bitset2_str + "." + bitset3_str + "." +
+           bitset4_str;
+  }
+
+  return ret;
+}
+
 void Net::get_local_addresses(std::vector<std::string> *out_addrs) {
   assert(out_addrs);
   get_this_host_addresses(false, out_addrs);
@@ -414,6 +490,5 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
   }
   throw std::runtime_error("Could not resolve address");
 }
-
 }  // namespace utils
 }  // namespace mysqlshdk

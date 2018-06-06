@@ -429,9 +429,6 @@ shcore::Value ReplicaSet::add_instance(
     // Validate SSL options for the cluster instance
     validate_ssl_instance_options(add_options);
 
-    // Validate ip whitelist option
-    validate_ip_whitelist_option(add_options);
-
     // Validate local address option
     validate_local_address_option(add_options);
 
@@ -493,6 +490,16 @@ shcore::Value ReplicaSet::add_instance(
           "Cluster object is no longer valid");
     ensure_instance_configuration_valid(
         &target_instance, cluster->get_provisioning_interface(), m_console);
+  }
+
+  // Validate ip whitelist option if used
+  if (!ip_whitelist.empty()) {
+    bool hostnames_supported = false;
+
+    if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4))
+      hostnames_supported = true;
+
+    validate_ip_whitelist_option(ip_whitelist, hostnames_supported);
   }
 
   // Check replication filters before creating the Metadata.
@@ -576,8 +583,26 @@ shcore::Value ReplicaSet::add_instance(
     if (!skip_rpl_user && replication_user.empty()) {
       // TODO(.) Replication user is not a metadata thing... all the GR
       // things should be moved out of metadata class
-      _metadata_storage->create_repl_account(replication_user,
-                                             replication_user_password);
+
+      std::vector<std::string> subnets;
+      if (!ip_whitelist.empty()) {
+        std::vector<std::string> subnets_tmp =
+            shcore::str_split(ip_whitelist, ",", -1);
+
+        // Iterate over the ipWhitelist values to strip blank chars
+        for (std::string value : subnets_tmp) {
+          // Strip any blank chars from the ip_whitelist value
+          value = shcore::str_strip(value);
+
+          // Translate CIDR to netmask notation
+          value = mysqlshdk::utils::Net::cidr_to_netmask(value);
+
+          subnets.push_back(value);
+        }
+      }
+
+      _metadata_storage->create_repl_account(
+          replication_user, replication_user_password, subnets);
       log_debug("Created replication user '%s'", replication_user.c_str());
     }
 
@@ -895,9 +920,6 @@ shcore::Value ReplicaSet::rejoin_instance(
     // Validate SSL options for the cluster instance
     validate_ssl_instance_options(rejoin_options);
 
-    // Validate ip whitelist option
-    validate_ip_whitelist_option(rejoin_options);
-
     if (rejoin_options->has_key("memberSslMode")) {
       ssl_mode = rejoin_options->get_string("memberSslMode");
       m_console->print_warning(kWarningDeprecateSslMode);
@@ -943,6 +965,16 @@ shcore::Value ReplicaSet::rejoin_instance(
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
+    }
+
+    // Validate ip whitelist option if used
+    if (!ip_whitelist.empty()) {
+      bool hostnames_supported = false;
+
+      if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 4))
+        hostnames_supported = true;
+
+      validate_ip_whitelist_option(ip_whitelist, hostnames_supported);
     }
 
     if (!validate_replicaset_group_name(session, get_group_name())) {
@@ -1040,6 +1072,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   // join Instance to cluster
   {
     int exit_code;
+    std::string replication_user, replication_user_pwd;
 
     // Check replication filters before creating the Metadata.
     validate_replication_filters(session);
@@ -1061,12 +1094,44 @@ shcore::Value ReplicaSet::rejoin_instance(
              instance_address.c_str());
     session->execute("STOP GROUP_REPLICATION");
 
+    // F4. When a valid 'ipWhitelist' is used on the .rejoinInstance() command,
+    // the previously existing "replication-user" must be removed from all the
+    // cluster members and a new one created to match the 'ipWhitelist' defined
+    // filter.
+    bool keep_repl_user = ip_whitelist.empty();
+
+    if (!keep_repl_user) {
+      mysqlshdk::mysql::Instance instance(session);
+
+      log_info("Recreating replication accounts due to 'ipWhitelist' change.");
+
+      // Remove all the replication users of the instance and the
+      // replication-user of the rejoining instance on all the members of the
+      // replicaSet
+      remove_replication_users(instance, true);
+
+      // Create a new replication user to match the ipWhitelist filter
+
+      // Strip any blank chars from the ip_whitelist value
+      std::vector<std::string> ip_whitelist_list =
+          shcore::str_split(ip_whitelist, ",", -1);
+
+      // Translate CIDR to netmask notation
+      std::vector<std::string> netmask_list =
+          convert_ipwhitelist_to_netmask(ip_whitelist_list);
+
+      _metadata_storage->create_repl_account(
+          replication_user, replication_user_pwd, netmask_list);
+
+      log_debug("Created replication user '%s'", replication_user.c_str());
+    }
+
     // Get the seed session connection data
     // use mysqlprovision to rejoin the cluster.
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
-        session->get_connection_options(), seed_instance_def, "",
-        session->get_connection_options().get_password(), "", ssl_mode,
-        ip_whitelist, "", gr_group_seeds, true, &errors);
+        session->get_connection_options(), seed_instance_def, replication_user,
+        session->get_connection_options().get_password(), replication_user_pwd,
+        ssl_mode, ip_whitelist, "", gr_group_seeds, keep_repl_user, &errors);
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",
                instance_address.c_str());
