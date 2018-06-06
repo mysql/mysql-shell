@@ -91,8 +91,16 @@ Cluster.status();
 
 // Rejoin tests
 
+session.close();
+shell.connect(__sandbox_uri3);
+
+//@ Disable group_replication_start_on_boot if version >= 8.0.11 {VER(>=8.0.11)}
+session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
+
 //@# Dba: stop instance 3
 // Use stop sandbox instance to make sure the instance is gone before restarting it
+session.close();
+shell.connect(__sandbox_uri1);
 testutil.stopSandbox(__mysql_sandbox_port3);
 
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");

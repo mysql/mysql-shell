@@ -123,19 +123,92 @@ void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options) {
   }
 }
 
-void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options) {
-  // Validate the value of the ipWhitelist option an issue an exception
-  // if invalid.
-  shcore::Argument_map opt_map(*options);
-  // Just a very simple validation is enough since the GCS layer on top of
-  // which group replication runs has proper validation for the values provided
-  // to the ipWhitelist option.
-  if (opt_map.has_key("ipWhitelist")) {
-    std::string ip_whitelist = options->get_string("ipWhitelist");
-    ip_whitelist = shcore::str_strip(ip_whitelist);
-    if (ip_whitelist.empty())
+std::vector<std::string> convert_ipwhitelist_to_netmask(
+    const std::vector<std::string> &ip_whitelist) {
+  std::vector<std::string> ret;
+
+  for (std::string value : ip_whitelist) {
+    // Strip any blank chars from the ip_whitelist value
+    value = shcore::str_strip(value);
+
+    // Translate CIDR to netmask notation
+    value = mysqlshdk::utils::Net::cidr_to_netmask(value);
+
+    ret.push_back(value);
+  }
+
+  return ret;
+}
+
+void validate_ip_whitelist_option(const std::string &ip_whitelist,
+                                  bool hostnames_supported) {
+  // Validate if the ipWhiteList value is not empty
+  if (shcore::str_strip(ip_whitelist).empty())
+    throw shcore::Exception::argument_error(
+        "Invalid value for ipWhitelist: string value cannot be empty.");
+
+  // Iterate over the ipWhitelist values
+  std::vector<std::string> ip_whitelist_list =
+      shcore::str_split(ip_whitelist, ",", -1);
+
+  for (std::string value : ip_whitelist_list) {
+    // Strip any blank chars from the ip_whitelist value
+    value = shcore::str_strip(value);
+    std::string full_value = value;
+
+    // Check if a subnet using CIDR notation was used and validate its value
+    // and separate the address
+    //
+    // CIDR notation is a compact representation of an IP address and its
+    // associated routing prefix. The notation is constructed from an IP
+    // address, a slash ('/') character, and a decimal number. The number is the
+    // count of leading 1 bits in the routing mask, traditionally called the
+    // network mask. The IP address is expressed according to the standards of
+    // IPv4 or IPv6.
+
+    int cidr = 0;
+    if (mysqlshdk::utils::Net::strip_cidr(&value, &cidr)) {
+      if ((cidr < 1) || (cidr > 32))
+        throw shcore::Exception::argument_error(
+            "Invalid value for ipWhitelist '" + full_value +
+            "': subnet value "
+            "in CIDR notation is not valid.");
+
+      // Check if value is an hostname: hostname/cidr is not allowed
+      if (!mysqlshdk::utils::Net::is_ipv4(value))
+        throw shcore::Exception::argument_error(
+            "Invalid value for ipWhitelist '" + full_value +
+            "': CIDR "
+            "notation can only be used with IPv4 addresses.");
+    }
+
+    // Check if the ipWhiteList option is IPv6
+    if (mysqlshdk::utils::Net::is_ipv6(value))
       throw shcore::Exception::argument_error(
-          "Invalid value for ipWhitelist, string value cannot be empty.");
+          "Invalid value for ipWhitelist '" + value +
+          "': IPv6 not "
+          "supported.");
+
+    // Validate if the ipWhiteList option is IPv4
+    if (!mysqlshdk::utils::Net::is_ipv4(value)) {
+      // group_replication_ip_whitelist only support hostnames in server
+      // >= 8.0.4
+      if (hostnames_supported) {
+        try {
+          mysqlshdk::utils::Net::resolve_hostname_ipv4(value);
+        } catch (mysqlshdk::utils::net_error &error) {
+          throw shcore::Exception::argument_error(
+              "Invalid value for ipWhitelist '" + value +
+              "': address does "
+              "not resolve to a valid IPv4 address.");
+        }
+      } else {
+        throw shcore::Exception::argument_error(
+            "Invalid value for ipWhitelist '" + value +
+            "': string value is "
+            "not a valid IPv4 address.");
+      }
+    }
   }
 }
 

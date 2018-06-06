@@ -90,7 +90,40 @@ extern const char *kMemberSSLModeDisabled;
 extern const std::set<std::string> kMemberSSLModeValues;
 
 void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
-void validate_ip_whitelist_option(const shcore::Value::Map_type_ref &options);
+
+/**
+ * Converts an ipWhitelist to a list of addresses using the netmask notation
+ *
+ * @param ip_whitelist The vector of strings containing the ipWhitelist to
+ * convert
+ *
+ * @return A vector of strings containing the ipWhitelist converted to netmask
+ * notation
+ */
+std::vector<std::string> convert_ipwhitelist_to_netmask(
+    const std::vector<std::string> &ip_whitelist);
+
+/**
+ * Validates the ipWhitelist option
+ *
+ * Checks if the given ipWhitelist is valid for use in the AdminAPI.
+ *
+ * @param ip_whitelist The ipWhitelist to validate
+ * @param hostnames_supported boolean value to indicate whether hostnames are
+ * supported or not in the ipWhitelist. (supported since version 8.0.4)
+ *
+ * @throws argument_error if the ipWhitelist is empty
+ * @throws argument_error if the subnet in CIDR notation is not valid
+ * @throws argument_error if the address section is not an IPv4 address
+ * @throws argument_error if the address is IPv6
+ * @throws argument_error if hostnames_supported is true but the address does
+ * not resolve to a valid IPv4 address
+ * @throws argument error if hostnames_supports is false and the address it nos
+ * a valid IPv4 address
+ */
+void validate_ip_whitelist_option(const std::string &ip_whitelist,
+                                  bool hostnames_supported = false);
+
 void validate_local_address_option(const shcore::Value::Map_type_ref &options);
 void validate_group_seeds_option(const shcore::Value::Map_type_ref &options);
 void validate_group_name_option(const shcore::Value::Map_type_ref &options);

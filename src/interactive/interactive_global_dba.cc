@@ -343,9 +343,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       // Validate SSL options for the cluster instance
       mysqlsh::dba::validate_ssl_instance_options(options);
 
-      // Validate ip whitelist option
-      mysqlsh::dba::validate_ip_whitelist_option(options);
-
       if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
         throw shcore::Exception::argument_error(
             "Cannot use the multiMaster and multiPrimary options "

@@ -109,6 +109,30 @@ class Net {
   static std::vector<std::string> resolve_hostname_ipv4_all(
       const std::string &name);
 
+  /**
+   * Strips the CIDR value from the given address and converts it to integer
+   *
+   * @param address The address to be stripped.
+   * @param cidr The integer reference to store the resulting cidr value
+   *
+   * @return true if the address contains a CIDR value
+   *
+   * @throws invalid_argument if the address cannot be parsed
+   * @throws out_of_range if the converted integer value of cidr is out of range
+   */
+  static bool strip_cidr(std::string *address, int *cidr);
+
+  /**
+   * Translates the given address using CIDR notation to the equivalent address
+   * using netmask notation
+   *
+   * @param address The address to be translated.
+   *
+   * @return The translated address using netmask notation.
+   * @throws runtime_error if address cannot be translated
+   */
+  static std::string cidr_to_netmask(const std::string &address);
+
  protected:
   /**
    * Provides the singleton instance of this class.

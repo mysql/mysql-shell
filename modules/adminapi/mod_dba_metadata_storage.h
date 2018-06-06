@@ -117,8 +117,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   Instance_definition get_instance(const std::string &instance_address);
 
-  virtual void create_repl_account(std::string &username,
-                                   std::string &password);
+  virtual void create_repl_account(std::string &username, std::string &password,
+                                   const std::vector<std::string> &subnets);
 
   std::shared_ptr<mysqlshdk::db::ISession> get_session() const {
     return _session;

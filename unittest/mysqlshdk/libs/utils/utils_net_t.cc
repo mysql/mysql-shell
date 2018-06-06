@@ -165,5 +165,58 @@ TEST(utils_net, get_local_addresses) {
   }
 }
 
+TEST(utils_net, strip_cidr) {
+  std::string address;
+  int cidr;
+
+  // Test invalid_argument
+  address = "192.168.1.1/a bad value 1";
+  EXPECT_THROW(Net::strip_cidr(&address, &cidr), std::invalid_argument);
+
+  // Address without CIDR value should return false
+  address = "192.168.1.1";
+  EXPECT_FALSE(Net::strip_cidr(&address, &cidr));
+
+  // Address with CIDR value should return true and the values
+  // should be set
+  address = "192.168.1.1/8";
+  EXPECT_TRUE(Net::strip_cidr(&address, &cidr));
+  EXPECT_EQ("192.168.1.1", address);
+  EXPECT_EQ(8, cidr);
+}
+
+TEST(utils_net, cidr_to_netmask) {
+  // Validate CIDR notation
+  EXPECT_THROW(Net::cidr_to_netmask("192.168.255.255/0"), std::runtime_error);
+  EXPECT_THROW(Net::cidr_to_netmask("192.168.255.255/33"), std::runtime_error);
+  EXPECT_NO_THROW(Net::cidr_to_netmask("192.168.255.255/16"));
+
+  // Check if address is not empty
+  EXPECT_THROW(Net::cidr_to_netmask(""), std::runtime_error);
+  EXPECT_THROW(Net::cidr_to_netmask(" "), std::runtime_error);
+
+  // Validate CIDR to netmask conversion
+  EXPECT_EQ("192.168.1.1", Net::cidr_to_netmask("192.168.1.1"));
+  EXPECT_EQ("192.168.1.1/128.0.0.0", Net::cidr_to_netmask("192.168.1.1/1"));
+  EXPECT_EQ("192.168.1.1/192.0.0.0", Net::cidr_to_netmask("192.168.1.1/2"));
+  EXPECT_EQ("192.168.1.1/224.0.0.0", Net::cidr_to_netmask("192.168.1.1/3"));
+  EXPECT_EQ("192.168.1.1/240.0.0.0", Net::cidr_to_netmask("192.168.1.1/4"));
+  EXPECT_EQ("192.168.1.1/248.0.0.0", Net::cidr_to_netmask("192.168.1.1/5"));
+  EXPECT_EQ("192.168.1.1/252.0.0.0", Net::cidr_to_netmask("192.168.1.1/6"));
+  EXPECT_EQ("192.168.1.1/254.0.0.0", Net::cidr_to_netmask("192.168.1.1/7"));
+  EXPECT_EQ("192.168.1.1/255.0.0.0", Net::cidr_to_netmask("192.168.1.1/8"));
+  EXPECT_EQ("192.168.1.1/255.254.0.0", Net::cidr_to_netmask("192.168.1.1/15"));
+  EXPECT_EQ("192.168.1.1/255.255.0.0", Net::cidr_to_netmask("192.168.1.1/16"));
+  EXPECT_EQ("192.168.1.1/255.255.252.0",
+            Net::cidr_to_netmask("192.168.1.1/22"));
+  EXPECT_EQ("192.168.1.1/255.255.255.0",
+            Net::cidr_to_netmask("192.168.1.1/24"));
+  EXPECT_EQ("192.168.1.1/255.255.255.240",
+            Net::cidr_to_netmask("192.168.1.1/28"));
+  EXPECT_EQ("192.168.1.1/255.255.255.255",
+            Net::cidr_to_netmask("192.168.1.1/32"));
+  EXPECT_EQ("192.168.1.1/255.255.255.255",
+            Net::cidr_to_netmask("192.168.1.1/32"));
+}
 }  // namespace utils
 }  // namespace mysqlshdk

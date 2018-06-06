@@ -27,7 +27,7 @@
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Invalid value for ipWhitelist, string value cannot be empty.
+||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@ Cluster: addInstance with interaction, error
 ||Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
@@ -370,7 +370,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Invalid value for ipWhitelist, string value cannot be empty.
+||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 Rejoining the instance to the InnoDB cluster. Depending on the original

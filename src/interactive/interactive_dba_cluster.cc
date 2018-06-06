@@ -162,9 +162,6 @@ shcore::Value Interactive_dba_cluster::add_instance(
 
         // Validate SSL options for the cluster instance
         mysqlsh::dba::validate_ssl_instance_options(options);
-
-        // Validate ip whitelist option
-        mysqlsh::dba::validate_ip_whitelist_option(options);
       }
 
       instance_def.set_default_connection_data();
@@ -216,9 +213,6 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
 
       // Validate SSL options for the cluster instance
       mysqlsh::dba::validate_ssl_instance_options(options);
-
-      // Validate ip whitelist option
-      mysqlsh::dba::validate_ip_whitelist_option(options);
     }
 
     std::string message =
