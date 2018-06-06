@@ -42,7 +42,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was configured for us
 The instance cluster settings were successfully persisted.
 
 //@ Dba.rebootClusterFromCompleteOutage errors
-||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore from the quorum loss
+||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
 ||Dba.rebootClusterFromCompleteOutage: Invalid values in the options: invalidOpt
 
 //@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list

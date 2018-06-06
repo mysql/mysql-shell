@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"local_pass:pass@localhost:2197?ssl-mode=REQUIRED","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"local_pass:pass@localhost:2127?ssl-mode=REQUIRED","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"10","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"CLOSE","index":3},
 {"type":"response","subtype":"OK","index":4},

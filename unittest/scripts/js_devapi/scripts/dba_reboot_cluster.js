@@ -55,9 +55,13 @@ dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycn
 dba.rebootClusterFromCompleteOutage("");
 dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
 dba.rebootClusterFromCompleteOutage("dev2");
+// Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
 dba.rebootClusterFromCompleteOutage("dev");
 
 // Kill all the instances
+// Connect to instance 1 to properly check status of other killed instances.
+session.close();
+shell.connect(__sandbox_uri1);
 
 // Kill instance 2
 testutil.killSandbox(__mysql_sandbox_port2);
@@ -72,6 +76,10 @@ testutil.killSandbox(__mysql_sandbox_port3);
 // Waiting for the third added instance to become unreachable
 // Will remain unreachable since there's no quorum to kick it off
 testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
+
+//@ Reboot cluster fails because instance is online and there is no quorum.
+// Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
+dba.rebootClusterFromCompleteOutage("dev");
 
 // Kill instance 1
 testutil.killSandbox(__mysql_sandbox_port1);

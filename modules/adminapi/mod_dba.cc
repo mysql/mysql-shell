@@ -2991,12 +2991,17 @@ static void validate_instance_belongs_to_cluster(
       member_session->get_connection_options().as_uri(only_transport());
 
   switch (type) {
-    case GRInstanceType::InnoDBCluster:
-      throw Exception::runtime_error(
-          "The MySQL instance '" + member_session_address +
-          "' belongs "
-          "to an InnoDB Cluster and is reachable. Please use <Cluster>." +
-          restore_function + "() to restore from the quorum loss.");
+    case GRInstanceType::InnoDBCluster: {
+      std::string err_msg = "The MySQL instance '" + member_session_address +
+                            "' belongs to an InnoDB Cluster and is reachable.";
+      // Check if quorum is lost to add additional instructions to users.
+      mysqlshdk::mysql::Instance target_instance(member_session);
+      if (!mysqlshdk::gr::has_quorum(target_instance, nullptr, nullptr)) {
+        err_msg += " Please use <Cluster>." + restore_function +
+                   "() to restore from the quorum loss.";
+      }
+      throw Exception::runtime_error(err_msg);
+    }
 
     case GRInstanceType::GroupReplication:
       throw Exception::runtime_error("The MySQL instance '" +

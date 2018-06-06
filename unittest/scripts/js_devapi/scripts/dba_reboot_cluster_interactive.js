@@ -50,6 +50,7 @@ dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycn
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 
 //@ Dba.rebootClusterFromCompleteOutage errors
+// Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
 dba.rebootClusterFromCompleteOutage("dev");
 dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
 
