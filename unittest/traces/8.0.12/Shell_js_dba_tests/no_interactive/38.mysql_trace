@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://sample@localhost:2277","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://sample@localhost:2057","protocol":"classic"},
 {"type":"response","subtype":"ERROR","index":2,"code":"1045","msg":"Access denied for user 'sample'@'localhost' (using password: NO)","sqlstate":"28000"},
 null]

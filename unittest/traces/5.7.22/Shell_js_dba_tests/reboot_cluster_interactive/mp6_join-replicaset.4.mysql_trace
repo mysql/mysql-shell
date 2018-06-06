@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@siv14.no.oracle.com.:2218?ssl-mode=PREFERRED","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@siv14.no.oracle.com.:2118?ssl-mode=PREFERRED","protocol":"classic"},
 {"type":"response","subtype":"ERROR","index":2,"code":"1045","msg":"Access denied for user 'root'@'10.172.160.214' (using password: YES)","sqlstate":"28000"},
 null]

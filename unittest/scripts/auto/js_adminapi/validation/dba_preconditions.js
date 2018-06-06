@@ -49,7 +49,7 @@
 ||Dba.dropMetadataSchema: No operation executed, use the 'force' option
 
 //@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
-||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore from the quorum loss.
+||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable.
 
 //@ Cleanup
 ||
