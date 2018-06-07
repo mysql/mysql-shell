@@ -28,6 +28,7 @@
 #include <set>
 
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
 
 namespace textui = mysqlshdk::textui;
 using shcore::Topic_mask;
@@ -221,10 +222,11 @@ void Command_help::print_help_multiple_topics(
     }
   }
 
+  auto topic = *groups.begin()->second.begin();
   output.push_back("For help on a specific topic use: <b>\\?</b> <topic>");
   output.push_back(
       "e.g.: <b>\\?</b> " +
-      (*topics.begin())->get_id(groups.size() > 1, _shell->interactive_mode()));
+      topic->get_id(groups.size() > 1, _shell->interactive_mode()));
 
   _console->println(textui::format_markup_text(output, 80, 0));
 }

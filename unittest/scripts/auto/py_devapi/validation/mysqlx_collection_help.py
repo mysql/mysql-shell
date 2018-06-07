@@ -300,6 +300,9 @@ SYNTAX
             If used, the first numberOfDocs' records will not be included on
             the result.
 
+            ATTENTION: This function will be removed in a future release, use
+                       the offset function instead.
+
       lock_shared([lockContention])
             When this function is called, the selected documents will belocked
             for write operations, they may be retrieved on a different session,
@@ -518,6 +521,9 @@ SYNTAX
             The attribute addition will be done on the collection's documents
             once the execute method is called.
 
+            ATTENTION: This function will be removed in a future release, use
+                       the patch function instead.
+
       patch(document)
             This function adds an operation to update the documents of a
             collection, the patch operation follows the algorithm described on
@@ -567,6 +573,9 @@ SYNTAX
 
             The attribute deletion will be done on the collection's documents
             once the execute method is called.
+
+            ATTENTION: This function will be removed in a future release, use
+                       the unset function instead.
 
       sort(...)
             This function has the following overloads:

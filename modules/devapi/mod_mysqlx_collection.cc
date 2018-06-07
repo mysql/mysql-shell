@@ -702,8 +702,8 @@ REGISTER_HELP(COLLECTION_FIND_CHAINED,
  * #### Sorting
  * \snippet mysqlx_collection_find.js CollectionFind: Sorting
  *
- * #### Using Limit and Skip
- * \snippet mysqlx_collection_find.js CollectionFind: Limit and Skip
+ * #### Using Limit and Offset
+ * \snippet mysqlx_collection_find.js CollectionFind: Limit and Offset
  *
  * #### Parameter Binding
  * \snippet mysqlx_collection_find.js CollectionFind: Parameter Binding
@@ -730,8 +730,8 @@ CollectionFind Collection::find(...) {}
  * #### Sorting
  * \snippet mysqlx_collection_find.py CollectionFind: Sorting
  *
- * #### Using Limit and Skip
- * \snippet mysqlx_collection_find.py CollectionFind: Limit and Skip
+ * #### Using Limit and Offset
+ * \snippet mysqlx_collection_find.py CollectionFind: Limit and Offset
  *
  * #### Parameter Binding
  * \snippet mysqlx_collection_find.py CollectionFind: Parameter Binding

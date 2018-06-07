@@ -736,7 +736,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
               "the Group Replication peer addresses to be used instead of the "
               "automatically generated one.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12,
-              "@warning The multiMaster option will be removed in a "
+              "@attention The multiMaster option will be removed in a "
               "future release. Please use the multiPrimary option instead.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
               "A InnoDB cluster may be setup in two ways:");

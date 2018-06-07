@@ -30,12 +30,15 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
 #include "scripting/types.h"
 #include "scripting/types_common.h"
+
+namespace mysqlsh {
+  class ShellBaseSession;
+};
 
 namespace shcore {
 class Help_manager;

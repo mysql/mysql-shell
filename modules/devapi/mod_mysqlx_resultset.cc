@@ -52,8 +52,10 @@ REGISTER_HELP(
 
 BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : _result(result), _execution_time(0) {
+  add_property("affectedItemsCount", "getAffectedItemsCount");
   add_property("executionTime", "getExecutionTime");
   add_property("warningCount", "getWarningCount");
+  add_property("warningsCount", "getWarningsCount");
   add_property("warnings", "getWarnings");
 }
 
@@ -83,7 +85,7 @@ REGISTER_HELP(
     "@returns A list containing a warning object for each generated warning.");
 REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL,
               "This is the same value than C API mysql_warning_count, see "
-              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "https://dev.mysql.com/doc/refman/en/"
               "mysql-warning-count.html");
 REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL1,
               "Each warning object contains a key/value pair describing the "
@@ -99,6 +101,7 @@ REGISTER_HELP(BASERESULT_GETWARNINGS_DETAIL2,
  * $(BASERESULT_GETWARNINGS_DETAIL)
  *
  * $(BASERESULT_GETWARNINGS_DETAIL1)
+ *
  * $(BASERESULT_GETWARNINGS_DETAIL2)
  */
 #if DOXYGEN_JS
@@ -110,13 +113,18 @@ list BaseResult::get_warnings() {}
 shcore::Value BaseResult::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
-  if (prop == "executionTime")
+  if (prop == "affectedItemCount") {
+    ret_val = Value(get_affected_items_count());
+  } else if (prop == "executionTime") {
     return shcore::Value(get_execution_time());
-
-  else if (prop == "warningCount")
-    ret_val = Value(get_warning_count());
-
-  else if (prop == "warnings") {
+  } else if (prop == "warningCount") {
+    log_warning("'%s' is deprecated, use '%s' instead.",
+                get_function_name("warningCount").c_str(),
+                get_function_name("warningsCount").c_str());
+    ret_val = Value(get_warnings_count());
+  } else if (prop == "warningsCount") {
+    ret_val = Value(get_warnings_count());
+  } else if (prop == "warnings") {
     std::shared_ptr<shcore::Value::Array_type> array(
         new shcore::Value::Array_type);
     if (_result) {
@@ -148,6 +156,38 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+// Documentation of getAffectedItemCount function
+REGISTER_HELP_FUNCTION(getAffectedItemsCount, BaseResult);
+REGISTER_HELP(BASERESULT_GETAFFECTEDITEMSCOUNT_BRIEF,
+              "The the number of affected items for the last operation.");
+REGISTER_HELP_PROPERTY(affectedItemsCount, BaseResult);
+REGISTER_HELP(BASERESULT_AFFECTEDITEMSCOUNT_BRIEF,
+              "The the number of affected items for the last operation.");
+REGISTER_HELP(BASERESULT_GETAFFECTEDITEMSCOUNT_RETURNS,
+              "@returns the number of affected items.");
+REGISTER_HELP(BASERESULT_GETAFFECTEDITEMSCOUNT_DETAIL,
+              "Returns the number of records affected by the executed "
+              "operation");
+
+/**
+ * $(BASERESULT_GETAFFECTEDITEMSCOUNT_BRIEF)
+ *
+ * $(BASERESULT_GETAFFECTEDITEMSCOUNT_RETURNS)
+ *
+ * $(BASERESULT_GETAFFECTEDITEMSCOUNT_DETAIL)
+ */
+#if DOXYGEN_JS
+Integer BaseResult::getAffectedItemsCount() {}
+#elif DOXYGEN_PY
+int BaseResult::get_affected_items_count() {}
+#endif
+
+int64_t BaseResult::get_affected_items_count() const {
+  if (!_result) return -1;
+  return _result->get_affected_row_count();
+}
+
+
 // Documentation of getExecutionTime function
 REGISTER_HELP_PROPERTY(executionTime, BaseResult);
 REGISTER_HELP(BASERESULT_EXECUTIONTIME_BRIEF, "Same as <<<getExecutionTime>>>");
@@ -172,16 +212,27 @@ std::string BaseResult::get_execution_time() const {
 // Documentation of getWarningCount function
 REGISTER_HELP_PROPERTY(warningCount, BaseResult);
 REGISTER_HELP(BASERESULT_WARNINGCOUNT_BRIEF, "Same as <<<getWarningCount>>>");
+REGISTER_HELP(BASERESULT_WARNINGCOUNT_DETAIL,
+              "${BASERESULT_WARNINGCOUNT_DEPRECATED}");
+REGISTER_HELP(BASERESULT_WARNINGCOUNT_DEPRECATED,
+              "@attention This property will be removed in a future release, "
+              "use the <b><<<warningsCount>>></b> property instead.");
+
 REGISTER_HELP_FUNCTION(getWarningCount, BaseResult);
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_BRIEF,
-              "The number of warnings produced by the last statement "
-              "execution. See getWarnings() for more details.");
+              "The number of warnings produced by the last "
+              "statement execution. See getWarnings() for more details.");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_RETURNS,
               "@returns the number of warnings.");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL,
               "This is the same value than C API mysql_warning_count, see "
-              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "https://dev.mysql.com/doc/refman/en/"
               "mysql-warning-count.html");
+REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL1,
+              "${BASERESULT_GETWARNINGCOUNT_DEPRECATED}");
+REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<getWarningsCount>>></b> function instead.");
 
 /**
  * $(BASERESULT_GETWARNINGCOUNT_BRIEF)
@@ -190,6 +241,19 @@ REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL,
  *
  * $(BASERESULT_GETWARNINGCOUNT_DETAIL)
  *
+ */
+#if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the&nbsp;
+ * <b>getWarningsCount</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the&nbsp;
+ * <b>get_warnings_count</b> function instead.
+ */
+#endif
+/**
  * \sa warnings
  */
 #if DOXYGEN_JS
@@ -198,7 +262,38 @@ Integer BaseResult::getWarningCount() {}
 int BaseResult::get_warning_count() {}
 #endif
 
-uint64_t BaseResult::get_warning_count() const {
+// Documentation of getWarningCount function
+REGISTER_HELP_FUNCTION(getWarningsCount, BaseResult);
+REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_BRIEF,
+              "The number of warnings produced by the last statement "
+              "execution. See getWarnings() for more details.");
+REGISTER_HELP_PROPERTY(warningsCount, BaseResult);
+REGISTER_HELP(BASERESULT_WARNINGSCOUNT_BRIEF,
+              "The number of warnings produced by the last statement "
+              "execution. See getWarnings() for more details.");
+REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_RETURNS,
+              "@returns the number of warnings.");
+REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_DETAIL,
+              "This is the same value than C API mysql_warning_count, see "
+              "https://dev.mysql.com/doc/refman/en/"
+              "mysql-warning-count.html");
+
+/**
+ * $(BASERESULT_GETWARNINGSCOUNT_BRIEF)
+ *
+ * $(BASERESULT_GETWARNINGSCOUNT_RETURNS)
+ *
+ * $(BASERESULT_GETWARNINGSCOUNT_DETAIL)
+ *
+ * \sa warnings
+ */
+#if DOXYGEN_JS
+Integer BaseResult::getWarningsCount() {}
+#elif DOXYGEN_PY
+int BaseResult::get_warnings_count() {}
+#endif
+
+uint64_t BaseResult::get_warnings_count() const {
   if (_result) return _result->get_warning_count();
   return 0;
 }
@@ -246,13 +341,16 @@ Result::Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
 shcore::Value Result::get_member(const std::string &prop) const {
   Value ret_val;
 
-  if (prop == "affectedItemCount")
-    ret_val = Value(get_affected_item_count());
-
-  else if (prop == "autoIncrementValue")
+  if (prop == "affectedItemCount") {
+    ret_val = Value(get_affected_items_count());
+    log_warning("'%s' is deprecated, use '%s' instead.",
+                get_function_name("affectedItemCount").c_str(),
+                get_function_name("affectedItemsCount").c_str());
+  } else if (prop == "affectedItemsCount") {
+    ret_val = Value(get_affected_items_count());
+  } else if (prop == "autoIncrementValue") {
     ret_val = Value(get_auto_increment_value());
-
-  else if (prop == "generatedIds") {
+  } else if (prop == "generatedIds") {
     shcore::Value::Array_type_ref ret_val(new shcore::Value::Array_type);
     std::vector<std::string> doc_ids = get_generated_ids();
 
@@ -269,7 +367,12 @@ shcore::Value Result::get_member(const std::string &prop) const {
 // Documentation of getAffectedItemCount function
 REGISTER_HELP_PROPERTY(affectedItemCount, Result);
 REGISTER_HELP(RESULT_AFFECTEDITEMCOUNT_BRIEF,
-              "<<<Same as getAffectedItemCount>>>");
+              "Same as <<<getAffectedItemCount>>>");
+REGISTER_HELP(RESULT_AFFECTEDITEMCOUNT_DETAIL,
+              "${RESULT_AFFECTEDITEMCOUNT_DEPRECATED}");
+REGISTER_HELP(RESULT_AFFECTEDITEMCOUNT_DEPRECATED,
+              "@attention This property will be removed in a future release, "
+              "use the <b><<<affectedItemsCount>>></b> property instead.");
 REGISTER_HELP_FUNCTION(getAffectedItemCount, Result);
 REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_BRIEF,
               "The the number of affected items for the last operation.");
@@ -277,8 +380,13 @@ REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_RETURNS,
               "@returns the number of affected items.");
 REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_DETAIL,
               "This is the value of the C API mysql_affected_rows(), see "
-              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "https://dev.mysql.com/doc/refman/en/"
               "mysql-affected-rows.html");
+REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_DETAIL1,
+              "${RESULT_GETAFFECTEDITEMCOUNT_DEPRECATED}");
+REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<getAffectedItemsCount>>></b> function instead.");
 
 /**
  * $(RESULT_GETAFFECTEDITEMCOUNT_BRIEF)
@@ -286,6 +394,20 @@ REGISTER_HELP(RESULT_GETAFFECTEDITEMCOUNT_DETAIL,
  * $(RESULT_GETAFFECTEDITEMCOUNT_RETURNS)
  *
  * $(RESULT_GETAFFECTEDITEMCOUNT_DETAIL)
+ *
+ */
+#if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>getAffectedItemsCount</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>get_affected_items_count</b> function instead.
+ */
+#endif
+/**
  */
 #if DOXYGEN_JS
 Integer Result::getAffectedItemCount() {}
@@ -293,7 +415,7 @@ Integer Result::getAffectedItemCount() {}
 int Result::get_affected_item_count() {}
 #endif
 
-int64_t Result::get_affected_item_count() const {
+int64_t Result::get_affected_items_count() const {
   if (!_result) return -1;
   return _result->get_affected_row_count();
 }
@@ -309,7 +431,7 @@ REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_RETURNS,
               "@returns the integer representing the last insert id");
 REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_DETAIL,
               "For more details, see "
-              "https://dev.mysql.com/doc/refman/5.7/en/"
+              "https://dev.mysql.com/doc/refman/en/"
               "information-functions.html#function_last-insert-id");
 REGISTER_HELP(RESULT_GETAUTOINCREMENTVALUE_DETAIL1,
               "Note that this value will be available only when the result is "
@@ -791,6 +913,7 @@ SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : RowResult(result) {
   add_method("hasData", std::bind(&SqlResult::has_data, this, _1));
   add_method("nextDataSet", std::bind(&SqlResult::next_data_set, this, _1));
+  add_method("nextResult", std::bind(&SqlResult::next_result, this, _1));
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("affectedRowCount", "getAffectedRowCount");
 }
@@ -826,13 +949,41 @@ int64_t SqlResult::get_auto_increment_value() const {
 REGISTER_HELP_PROPERTY(affectedRowCount, SqlResult);
 REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_BRIEF,
               "Same as <<<getAffectedRowCount>>>");
+REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_DETAIL,
+              "${SQLRESULT_AFFECTEDROWCOUNT_DEPRECATED}");
+REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_DEPRECATED,
+              "@attention This property will be removed in a future release, "
+              "use the <b><<<affectedItemsCount>>></b> property instead.");
 REGISTER_HELP_FUNCTION(getAffectedRowCount, SqlResult);
 REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF,
               "Returns the number of rows affected by the executed query.");
+REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF1,
+              "${SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL1}");
+REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL,
+              "Returns the number of rows affected by the executed query.");
+REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL1,
+              "${SQLRESULT_GETAFFECTEDROWCOUNT_DEPRECATED}");
+REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<getAffectedItemsCount>>></b> function instead.");
 
 /**
  * $(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF)
+ *
+ * $(SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL)
+ *
  */
+#if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>getAffectedItemsCount</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>get_affected_items_count</b> function instead.
+ */
+#endif
 #if DOXYGEN_JS
 Integer SqlResult::getAffectedRowCount() {}
 #elif DOXYGEN_PY
@@ -845,12 +996,16 @@ int64_t SqlResult::get_affected_row_count() const {
 
 shcore::Value SqlResult::get_member(const std::string &prop) const {
   Value ret_val;
-  if (prop == "autoIncrementValue")
+  if (prop == "autoIncrementValue") {
     ret_val = Value(get_auto_increment_value());
-  else if (prop == "affectedRowCount")
+  } else if (prop == "affectedRowCount") {
     ret_val = Value(get_affected_row_count());
-  else
+    log_warning("'%s' is deprecated, use '%s' instead.",
+                get_function_name("affectedRowCount").c_str(),
+                get_function_name("affectedItemsCount").c_str());
+  } else {
     ret_val = RowResult::get_member(prop);
+  }
 
   return ret_val;
 }
@@ -880,6 +1035,11 @@ REGISTER_HELP_FUNCTION(nextDataSet, SqlResult);
 REGISTER_HELP(SQLRESULT_NEXTDATASET_BRIEF,
               "Prepares the SqlResult to start reading data from the next "
               "Result (if many results were returned).");
+REGISTER_HELP(SQLRESULT_NEXTDATASET_DETAIL,
+              "${SQLRESULT_NEXTDATASET_DEPRECATED}");
+REGISTER_HELP(SQLRESULT_NEXTDATASET_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<nextResult>>></b> function instead.");
 REGISTER_HELP(SQLRESULT_NEXTDATASET_RETURNS,
               "@returns A boolean value indicating whether there is another "
               "result or not.");
@@ -888,7 +1048,22 @@ REGISTER_HELP(SQLRESULT_NEXTDATASET_RETURNS,
  * $(SQLRESULT_NEXTDATASET_BRIEF)
  *
  * $(SQLRESULT_NEXTDATASET_RETURNS)
+ *
+ * $(SQLRESULT_NEXTDATASET_DETAIL)
+ *
  */
+#if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>nextResult</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>next_result</b> function instead.
+ */
+#endif
+
 #if DOXYGEN_JS
 Bool SqlResult::nextDataSet() {}
 #elif DOXYGEN_PY
@@ -896,6 +1071,35 @@ bool SqlResult::next_data_set() {}
 #endif
 shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());
+
+  log_warning("'%s' is deprecated, use '%s' instead.",
+              get_function_name("nextDataSet").c_str(),
+              get_function_name("nextResult").c_str());
+
+  return shcore::Value(_result->next_resultset());
+}
+
+// Documentation of nextDataSet function
+REGISTER_HELP_FUNCTION(nextResult, SqlResult);
+REGISTER_HELP(SQLRESULT_NEXTRESULT_BRIEF,
+              "Prepares the SqlResult to start reading data from the next "
+              "Result (if many results were returned).");
+REGISTER_HELP(SQLRESULT_NEXTRESULT_RETURNS,
+              "@returns A boolean value indicating whether there is another "
+              "result or not.");
+
+/**
+ * $(SQLRESULT_NEXTRESULT_BRIEF)
+ *
+ * $(SQLRESULT_NEXTRESULT_RETURNS)
+ */
+#if DOXYGEN_JS
+Bool SqlResult::nextResult() {}
+#elif DOXYGEN_PY
+bool SqlResult::next_result() {}
+#endif
+shcore::Value SqlResult::next_result(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("nextResult").c_str());
 
   return shcore::Value(_result->next_resultset());
 }

@@ -44,22 +44,27 @@ validate_crud_functions(crud, ['limit', 'lockShared', 'lockExclusive', 'bind', '
 
 //@ CollectionFind: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['skip', 'lockShared', 'lockExclusive', 'bind', 'execute']);
+validate_crud_functions(crud, ['skip', 'offset', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
-//@ CollectionFind: valid operations after skip
-var crud = crud.skip(1);
+//@ CollectionFind: valid operations after offset
+var crud = crud.offset(1);
 validate_crud_functions(crud, ['lockShared', 'lockExclusive', 'bind', 'execute']);
 
+//@ CollectionFind: valid operations after skip
+var crudSkip = collection.find().limit(10).skip(1);
+validate_crud_functions(crudSkip, ['lockShared', 'lockExclusive', 'bind', 'execute']);
+
+
 //@ CollectionFind: valid operations after lockShared
-var crud = crud = collection.find('name = :data').lockShared()
+var crud = collection.find('name = :data').lockShared()
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after lockExclusive
-var crud = crud = collection.find('name = :data').lockExclusive()
+var crud = collection.find('name = :data').lockExclusive()
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after bind
-var crud = crud = collection.find('name = :data').bind('data', 'adam')
+var crud = collection.find('name = :data').bind('data', 'adam')
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after execute
@@ -108,6 +113,10 @@ crud = collection.find().sort('name', 5);
 //@# CollectionFind: Error conditions on limit
 crud = collection.find().limit();
 crud = collection.find().limit('');
+
+//@# CollectionFind: Error conditions on offset
+crud = collection.find().limit(1).offset();
+crud = collection.find().limit(1).offset('');
 
 //@# CollectionFind: Error conditions on skip
 crud = collection.find().limit(1).skip();
@@ -188,15 +197,15 @@ for (index = 0; index < 7; index++) {
 //! [CollectionFind: Sorting]
 
 //@ Collection.Find Limit and Offset
-//! [CollectionFind: Limit and Skip]
+//! [CollectionFind: Limit and Offset]
 var records = collection.find().limit(4).execute().fetchAll();
-print('Limit-Skip 0 :', records.length, '\n');
+print('Limit-Offset 0 :', records.length, '\n');
 
 for (index = 1; index < 8; index++) {
-  var records = collection.find().limit(4).skip(index).execute().fetchAll();
-  print('Limit-Skip', index, ':', records.length, '\n');
+  var records = collection.find().limit(4).offset(index).execute().fetchAll();
+  print('Limit-Offset', index, ':', records.length, '\n');
 }
-//! [CollectionFind: Limit and Skip]
+//! [CollectionFind: Limit and Offset]
 
 //@ Collection.Find Parameter Binding
 //! [CollectionFind: Parameter Binding]

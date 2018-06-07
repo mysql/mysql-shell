@@ -757,8 +757,7 @@ std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
-  return Command_help(_shell, _console_handler)(args);
-  ;
+  return Command_help(_shell, m_console_handler.get())(args);
 }
 
 bool Mysql_shell::cmd_start_multiline(const std::vector<std::string> &args) {
@@ -1547,13 +1546,15 @@ void Mysql_shell::add_devapi_completions() {
                                   {"execute", "DocResult", true},
                                   {"help", "", true}});
   registry->add_completable_type("CollectionFind*limit",
-                                 {{"skip", "CollectionFind*skip", true},
+                                 {{"skip", "CollectionFind*skip_offset", true},
+                                  {"offset", "CollectionFind*skip_offset",
+                                    true},
                                   {"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
                                   {"execute", "DocResult", true},
                                   {"help", "", true}});
-  registry->add_completable_type("CollectionFind*skip",
+  registry->add_completable_type("CollectionFind*skip_offset",
                                  {{"lockShared", "Bind*", true},
                                   {"lockExclusive", "Bind*", true},
                                   {"bind", "Bind*", true},
@@ -1773,37 +1774,51 @@ void Mysql_shell::add_devapi_completions() {
 
   // Results
 
-  registry->add_completable_type("DocResult", {{"fetchOne", "", true},
+  registry->add_completable_type("DocResult", {{"affectedItemsCount", "",
+                                                false},
+                                               {"fetchOne", "", true},
                                                {"fetchAll", "", true},
                                                {"help", "", true},
                                                {"executionTime", "", false},
                                                {"warningCount", "", false},
                                                {"warnings", "", false},
+                                               {"warningsCount", "", false},
+                                               {"getAffectedItemsCount", "",
+                                                 false},
                                                {"getExecutionTime", "", true},
                                                {"getWarningCount", "", true},
-                                               {"getWarnings", "", true}});
+                                               {"getWarnings", "", true},
+                                               {"getWarningsCount", "", true}});
 
-  registry->add_completable_type("RowResult", {{"fetchOne", "Row", true},
+  registry->add_completable_type("RowResult", {{"affectedItemsCount", "", false},
+                                               {"fetchOne", "Row", true},
                                                {"fetchAll", "Row", true},
                                                {"help", "", true},
                                                {"columns", "", false},
                                                {"columnCount", "", false},
                                                {"columnNames", "", false},
+                                               {"getAffectedItemsCount", "",
+                                                 false},
                                                {"getColumns", "", true},
                                                {"getColumnCount", "", true},
                                                {"getColumnNames", "", true},
                                                {"executionTime", "", false},
                                                {"warningCount", "", false},
                                                {"warnings", "", false},
+                                               {"warningsCount", "", false},
                                                {"getExecutionTime", "", true},
                                                {"getWarningCount", "", true},
-                                               {"getWarnings", "", true}});
+                                               {"getWarnings", "", true},
+                                               {"getWarningsCount", "", true}});
 
-  registry->add_completable_type("Result", {{"executionTime", "", false},
+  registry->add_completable_type("Result", {{"affectedItemsCount", "", false},
+                                            {"executionTime", "", false},
                                             {"warningCount", "", false},
                                             {"warnings", "", false},
+                                            {"warningsCount", "", false},
                                             {"affectedItemCount", "", false},
                                             {"autoIncrementValue", "", false},
+                                            {"getAffectedItemsCount", "", false},
                                             {"generatedIds", "", false},
                                             {"getAffectedItemCount", "", true},
                                             {"getAutoIncrementValue", "", true},
@@ -1811,12 +1826,15 @@ void Mysql_shell::add_devapi_completions() {
                                             {"getGeneratedIds", "", true},
                                             {"getWarningCount", "", true},
                                             {"getWarnings", "", true},
+                                            {"getWarningsCount", "", true},
                                             {"help", "", true}});
 
   registry->add_completable_type("SqlResult",
-                                 {{"executionTime", "", true},
+                                 {{"affectedItemsCount", "", false},
+                                  {"executionTime", "", true},
                                   {"warningCount", "", true},
                                   {"warnings", "", true},
+                                  {"warningsCount", "", true},
                                   {"columnCount", "", true},
                                   {"columns", "", true},
                                   {"columnNames", "", true},
@@ -1824,6 +1842,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"affectedRowCount", "", false},
                                   {"fetchAll", "", true},
                                   {"fetchOne", "", true},
+                                  {"getAffectedItemsCount", "", false},
                                   {"getAffectedRowCount", "", true},
                                   {"getAutoIncrementValue", "", true},
                                   {"getColumnCount", "", true},
@@ -1832,9 +1851,11 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getExecutionTime", "", true},
                                   {"getWarningCount", "", true},
                                   {"getWarnings", "", true},
+                                  {"getWarningsCount", "", true},
                                   {"hasData", "", true},
                                   {"help", "", true},
-                                  {"nextDataSet", "", true}});
+                                  {"nextDataSet", "", true},
+                                  {"nextResult", "", true}});
 
   // ===
   registry->add_completable_type("ClassicSession",

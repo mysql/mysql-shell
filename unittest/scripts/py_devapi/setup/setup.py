@@ -18,7 +18,7 @@ def validate_crud_functions(crud, expected):
 		print "Missing Functions:", missing
 
   # help is ignored cuz it's always available
-	if len(actual) == 0 or actual[0] == "help":
+	if len(actual) == 0 or (len(actual) == 1 and actual[0] == "help"):
 		print "No additional functions are available\n"
 	else:
 		print "Extra Functions:", actual

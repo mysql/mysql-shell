@@ -104,8 +104,7 @@ DESCRIPTION
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
 
-      NOTE: The memberSslMode option is deprecated and will be removed in a
-            future release.
+      ATTENTION: The memberSslMode option will be removed in a future release.
 
       The memberSslMode option supports these values:
 
@@ -423,8 +422,7 @@ DESCRIPTION
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
 
-      NOTE: The memberSslMode option is deprecated and will be removed in a
-            future release.
+      ATTENTION: The memberSslMode option will be removed in a future release.
 
       The memberSslMode option supports these values:
 
@@ -581,7 +579,7 @@ DESCRIPTION
       The defaultReplicaSet JSON object contains the following attributes:
 
       - name: the ReplicaSet name
-      - primary: the ReplicaSet single-master primary instance
+      - primary: the ReplicaSet single-primary primary instance
       - ssl: the ReplicaSet SSL mode
       - status: the ReplicaSet status
       - statusText: the descriptive text of ReplicaSet status

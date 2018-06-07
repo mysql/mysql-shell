@@ -296,7 +296,7 @@ The following topics were found at the X DevAPI category:
 
 For help on a specific topic use: \? <topic>
 
-e.g.: \? mysqlx.Session
+e.g.: \? mysqlx.Collection.session
 
 //@<OUT> Help for sandbox operations
 Found several entries matching *sandbox*
@@ -327,7 +327,7 @@ The following topics were found at the X DevAPI category:
 
 For help on a specific topic use: \? <topic>
 
-e.g.: \? mysqlx.Table.select
+e.g.: \? SQL Syntax/SELECT
 
 //@ Switching to SQL mode, same test gives results
 |Syntax:|

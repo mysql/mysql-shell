@@ -159,8 +159,8 @@ DESCRIPTION
         sockets.
       - schema: the schema to be selected once the connection is done.
 
-      NOTE: The dbUser and dbPassword options are deprecated and will be
-            removed in a future release.
+      ATTENTION: The dbUser and dbPassword options are will be removed in a
+                 future release.
 
       The connection options are case insensitive and can only be defined once.
 

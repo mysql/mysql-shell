@@ -36,6 +36,10 @@
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
 
+namespace mysqlsh {
+  enum class SessionType { Auto, X, Classic };
+};
+
 namespace mysqlshdk {
 namespace db {
 using utils::Nullable_options;

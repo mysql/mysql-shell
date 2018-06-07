@@ -365,8 +365,8 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
               "if it is specified on the options.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
-              "@note The memberSslMode option is deprecated and will be "
-              "removed in a future release.");
+              "@attention The memberSslMode option will be removed in a "
+              "future release.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
               "The memberSslMode option supports "
@@ -612,8 +612,8 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL8,
               "if it is specified on the options.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL9,
-              "@note The memberSslMode option is deprecated and will be "
-              "removed in a future release.");
+              "@attention The memberSslMode option will be removed in a "
+              "future release.");
 
 REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL10,
               "The memberSslMode option supports "

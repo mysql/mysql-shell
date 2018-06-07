@@ -220,7 +220,7 @@ REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS,
 REGISTER_HELP(
     CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL,
     "This is the value of the C API mysql_affected_rows(), "
-    "see https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html");
+    "see https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html");
 
 /**
  * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF)
@@ -334,7 +334,7 @@ REGISTER_HELP(CLASSICRESULT_GETINFO_RETURNS,
  * $(CLASSICRESULT_GETINFO_RETURNS)
  *
  * For more details, see:
- * https://dev.mysql.com/doc/refman/5.7/en/mysql-info.html
+ * https://dev.mysql.com/doc/refman/en/mysql-info.html
  */
 #if DOXYGEN_JS
 String ClassicResult::getInfo() {}
@@ -360,7 +360,7 @@ REGISTER_HELP(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS,
  * $(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS)
  *
  * For more details, see
- * https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_last-insert-id
+ * https://dev.mysql.com/doc/refman/en/information-functions.html#function_last-insert-id
  */
 #if DOXYGEN_JS
 Integer ClassicResult::getAutoIncrementValue() {}
@@ -385,7 +385,7 @@ REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_RETURNS,
  * $(CLASSICRESULT_GETWARNINGCOUNT_RETURNS)
  *
  * This is the same value than C API mysql_warning_count, see
- * https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html
+ * https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
  */
 #if DOXYGEN_JS
 Integer ClassicResult::getWarningCount() {}
@@ -417,7 +417,7 @@ REGISTER_HELP(CLASSICRESULT_GETWARNINGS_DETAIL1,
  * $(CLASSICRESULT_GETWARNINGS_RETURNS)
  *
  * This is the same value than C API mysql_warning_count, see
- * https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html
+ * https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
  *
  * $(CLASSICRESULT_GETWARNINGS_DETAIL)
  * $(CLASSICRESULT_GETWARNINGS_DETAIL1)

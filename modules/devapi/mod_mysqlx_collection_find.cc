@@ -59,6 +59,7 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   add_method("having", std::bind(&CollectionFind::having, this, _1), "data");
   add_method("sort", std::bind(&CollectionFind::sort, this, _1), "data");
   add_method("skip", std::bind(&CollectionFind::skip, this, _1), "data");
+  add_method("offset", std::bind(&CollectionFind::offset, this, _1), "data");
   add_method("limit", std::bind(&CollectionFind::limit, this, _1), "data");
   add_method("lockShared", std::bind(&CollectionFind::lock_shared, this, _1));
   add_method("lockExclusive",
@@ -75,24 +76,27 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   register_dynamic_function(
       F::limit, F::find | F::fields | F::groupBy | F::having | F::sort);
   register_dynamic_function(F::skip, F::limit);
+  register_dynamic_function(F::offset, F::limit);
   register_dynamic_function(F::lockShared, F::find | F::fields | F::groupBy |
                                                F::having | F::sort | F::skip |
-                                               F::limit);
+                                               F::offset | F::limit);
   register_dynamic_function(F::lockExclusive, F::find | F::fields | F::groupBy |
                                                   F::having | F::sort |
-                                                  F::skip | F::limit);
+                                                  F::skip | F::offset |
+                                                  F::limit);
   register_dynamic_function(F::bind, F::find | F::fields | F::groupBy |
                                          F::having | F::sort | F::skip |
-                                         F::limit | F::lockShared |
+                                         F::offset | F::limit | F::lockShared |
                                          F::lockExclusive | F::bind);
   register_dynamic_function(F::execute, F::find | F::fields | F::groupBy |
                                             F::having | F::sort | F::skip |
-                                            F::limit | F::lockShared |
-                                            F::lockExclusive | F::bind);
+                                            F::limit | F::offset |
+                                            F::lockShared | F::lockExclusive |
+                                            F::bind);
   register_dynamic_function(F::__shell_hook__,
                             F::find | F::fields | F::groupBy | F::having |
-                                F::sort | F::skip | F::limit | F::lockShared |
-                                F::lockExclusive | F::bind);
+                                F::sort | F::skip | F::limit | F::offset |
+                                F::lockShared | F::lockExclusive | F::bind);
 
   // Initial function update
   update_functions(F::_empty);
@@ -753,6 +757,10 @@ REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS,
 REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL,
               "If used, the first <b>numberOfDocs</b>' records will not be "
               "included on the result.");
+REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL1, "${COLLECTIONFIND_SKIP_DEPRECATED}");
+REGISTER_HELP(COLLECTIONFIND_SKIP_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b>offset</b> function instead.");
 
 /**
  * $(COLLECTIONFIND_SKIP_BRIEF)
@@ -804,12 +812,90 @@ CollectionFind CollectionFind::skip(int numberOfDocs) {}
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.skip");
 
+  log_warning("'%s' is deprecated, use '%s' instead.",
+              get_function_name("skip").c_str(),
+              get_function_name("offset").c_str());
+
   try {
     message_.mutable_limit()->set_offset(args.uint_at(0));
 
     update_functions(F::skip);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.skip");
+
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+REGISTER_HELP(COLLECTIONFIND_OFFSET_BRIEF,
+              "Sets number of documents to skip on the resultset when a limit "
+              "has been defined.");
+REGISTER_HELP(COLLECTIONFIND_OFFSET_PARAM,
+              "@param quantity The number of documents to skip before start "
+              "including them on the DocResult.");
+REGISTER_HELP(COLLECTIONFIND_OFFSET_RETURNS,
+              "@returns This CollectionFind object.");
+REGISTER_HELP(COLLECTIONFIND_OFFSET_SYNTAX, "offset(quantity)");
+REGISTER_HELP(
+    COLLECTIONFIND_OFFSET_DETAIL,
+    "If used, the first <b>quantity</b> records will not be included on the "
+    "result.");
+
+/**
+ * $(COLLECTIONFIND_OFFSET_BRIEF)
+ *
+ * $(COLLECTIONFIND_OFFSET_PARAM)
+ *
+ * $(COLLECTIONFIND_OFFSET_RETURNS)
+ *
+ * $(COLLECTIONFIND_OFFSET_DETAIL)
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ *
+ * - limit(Integer numberOfRows)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+ */
+#endif
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+ */
+#endif
+/**
+ * - bind(String name, Value value)
+ * - execute()
+ */
+//@{
+#if DOXYGEN_JS
+CollectionFind CollectionFind::offset(Integer quantity) {}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::offset(int quantity) {}
+#endif
+//@}
+shcore::Value CollectionFind::offset(const shcore::Argument_list &args) {
+  args.ensure_count(1, get_function_name("offset").c_str());
+
+  try {
+    message_.mutable_limit()->set_offset(args.uint_at(0));
+
+    update_functions(F::skip);
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.offset");
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -1217,8 +1303,8 @@ REGISTER_HELP(COLLECTIONFIND_EXECUTE_RETURNS,
  * #### Sorting
  * \snippet mysqlx_collection_find.js CollectionFind: Sorting
  *
- * #### Using Limit and Skip
- * \snippet mysqlx_collection_find.js CollectionFind: Limit and Skip
+ * #### Using Limit and Offset
+ * \snippet mysqlx_collection_find.js CollectionFind: Limit and Offset
  *
  * #### Parameter Binding
  * \snippet mysqlx_collection_find.js CollectionFind: Parameter Binding
@@ -1245,8 +1331,8 @@ DocResult CollectionFind::execute() {}
  * #### Sorting
  * \snippet mysqlx_collection_find.py CollectionFind: Sorting
  *
- * #### Using Limit and Skip
- * \snippet mysqlx_collection_find.py CollectionFind: Limit and Skip
+ * #### Using Limit and Offset
+ * \snippet mysqlx_collection_find.py CollectionFind: Limit and Offset
  *
  * #### Parameter Binding
  * \snippet mysqlx_collection_find.py CollectionFind: Parameter Binding

@@ -68,6 +68,7 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(String sortCriteria[, String sortCriteria, ...]);
   CollectionFind limit(Integer numberOfDocs);
   CollectionFind skip(Integer numberOfDocs);
+  CollectionFind offset(Integer numberOfDocs);
   CollectionFind lockShared(String lockContention);
   CollectionFind lockExclusive(String lockContention);
   CollectionFind bind(String name, Value value);
@@ -84,6 +85,7 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(str sortCriteria[, str sortCriteria, ...]);
   CollectionFind limit(int numberOfDocs);
   CollectionFind skip(int numberOfDocs);
+  CollectionFind offset(int numberOfDocs);
   CollectionFind lock_shared(str lockContention);
   CollectionFind lock_exclusive(str lockContention);
   CollectionFind bind(str name, Value value);
@@ -96,6 +98,7 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value sort(const shcore::Argument_list &args);
   shcore::Value limit(const shcore::Argument_list &args);
   shcore::Value skip(const shcore::Argument_list &args);
+  shcore::Value offset(const shcore::Argument_list &args);
   shcore::Value lock_shared(const shcore::Argument_list &args);
   shcore::Value lock_exclusive(const shcore::Argument_list &args);
   shcore::Value bind_(const shcore::Argument_list &args);
@@ -119,10 +122,11 @@ class CollectionFind : public Collection_crud_definition,
     static constexpr Allowed_function_mask sort = 1 << 6;
     static constexpr Allowed_function_mask limit = 1 << 7;
     static constexpr Allowed_function_mask skip = 1 << 8;
-    static constexpr Allowed_function_mask lockShared = 1 << 9;
-    static constexpr Allowed_function_mask lockExclusive = 1 << 10;
-    static constexpr Allowed_function_mask bind = 1 << 11;
-    static constexpr Allowed_function_mask execute = 1 << 12;
+    static constexpr Allowed_function_mask offset = 1 << 9;
+    static constexpr Allowed_function_mask lockShared = 1 << 10;
+    static constexpr Allowed_function_mask lockExclusive = 1 << 11;
+    static constexpr Allowed_function_mask bind = 1 << 12;
+    static constexpr Allowed_function_mask execute = 1 << 13;
   };
 
   Allowed_function_mask function_name_to_bitmask(
@@ -153,6 +157,9 @@ class CollectionFind : public Collection_crud_definition,
     }
     if ("skip" == s) {
       return F::skip;
+    }
+    if ("offset" == s) {
+      return F::offset;
     }
     if ("lockShared" == s) {
       return F::lockShared;

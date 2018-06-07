@@ -312,7 +312,9 @@ DESCRIPTION
 
       - multiMaster: boolean value used to define an InnoDB cluster with
         multiple writable instances.
-      - force: boolean, confirms that the multiMaster option must be applied.
+      - multiPrimary: boolean value used to define an InnoDB cluster with
+        multiple writable instances.
+      - force: boolean, confirms that the multiPrimary option must be applied.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
       - memberSslMode: SSL mode used to configure the members of the cluster.
@@ -328,15 +330,18 @@ DESCRIPTION
         Replication peer addresses to be used instead of the automatically
         generated one.
 
+      ATTENTION: The multiMaster option will be removed in a future release.
+                 Please use the multiPrimary option instead.
+
       A InnoDB cluster may be setup in two ways:
 
-      - Single Master: One member of the cluster allows write operations while
+      - Single Primary: One member of the cluster allows write operations while
         the rest are in read only mode.
-      - Multi Master: All the members in the cluster support both read and
+      - Multi Primary: All the members in the cluster support both read and
         write operations.
 
-      By default this function create a Single Master cluster, use the
-      multiMaster option set to true if a Multi Master cluster is required.
+      By default this function create a Single Primary cluster, use the
+      multiPrimary option set to true if a Multi Primary cluster is required.
 
       The memberSslMode option supports these values:
 
@@ -389,7 +394,7 @@ EXCEPTIONS
       - If the options contain an invalid attribute.
       - If adoptFromGR is true and the memberSslMode option is used.
       - If the value for the memberSslMode option is not one of the allowed.
-      - If adoptFromGR is true and the multiMaster option is used.
+      - If adoptFromGR is true and the multiPrimary option is used.
       - If the value for the ipWhitelist, groupName, localAddress, or
         groupSeeds options is empty.
 

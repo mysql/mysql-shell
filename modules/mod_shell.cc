@@ -369,8 +369,8 @@ REGISTER_HELP(
     "@li schema: the schema to be selected once the connection is done.");
 
 REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS10,
-              "@note The dbUser and dbPassword options are deprecated and "
-              "will be removed in a future release.");
+              "@attention The dbUser and dbPassword options are will be "
+              "removed in a future release.");
 // The rest of the lines provide additional details related to the connection
 // option definition
 REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS,
