@@ -11,6 +11,7 @@ Usage: mysqlsh [OPTIONS] [URI]
        mysqlsh [OPTIONS] [URI] -f <path> [script args...]
        mysqlsh [OPTIONS] [URI] --dba [command]
        mysqlsh [OPTIONS] [URI] --cluster
+       mysqlsh [OPTIONS] [URI] --import file|- [collection] | [table [, column]
 
   -?, --help                    Display this help and exit.
   -e, --execute=<cmd>           Execute command and quit.
@@ -27,6 +28,10 @@ Usage: mysqlsh [OPTIONS] [URI]
   -p, --password[=name]         Password to use when connecting to server.
   --dbpassword[=name]           see above
   -p                            Request password prompt to set the password
+  --import file collection      Import JSON documents from file to collection
+  --import file table [column]  or table in MySQL Server. Set file to - if you
+                                want to read the data from stdin. Requires a
+                                default schema on the connection options.
   -D, --schema=name             Schema to use.
   --database=name               see above
   --recreate-schema             Drop and recreate the specified schema. Schema
@@ -124,3 +129,4 @@ $ mysqlsh root@localhost/schema
 $ mysqlsh mysqlx://root@some.server:3307/world_x
 $ mysqlsh --uri root@localhost --py -f sample.py sample param
 $ mysqlsh root@targethost:33070 -s world_x -f sample.js
+$ mysqlsh mysqlx://user@host/db --import ~/products.json shop

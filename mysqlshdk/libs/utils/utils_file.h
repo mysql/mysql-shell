@@ -38,6 +38,26 @@ std::string SHCORE_PUBLIC get_binary_path();
 std::string SHCORE_PUBLIC get_binary_folder();
 std::string SHCORE_PUBLIC get_share_folder();
 std::string SHCORE_PUBLIC get_mp_path();
+
+/**
+ * Tells if path is a regular file.
+ *
+ * @param path Path
+ * @return true is path is a regular file.
+ *         false is path is not a regular file.
+ */
+bool SHCORE_PUBLIC is_file(const char *path);
+bool SHCORE_PUBLIC is_file(const std::string &path);
+
+/**
+ * Retrieves the size of the specified file under path, in bytes.
+ *
+ * @param path Path to file.
+ * @return Size of file under the path, in bytes.
+ */
+size_t file_size(const char *path);
+size_t file_size(const std::string &path);
+
 bool SHCORE_PUBLIC is_folder(const std::string &filename);
 bool SHCORE_PUBLIC file_exists(const std::string &filename);
 void SHCORE_PUBLIC ensure_dir_exists(const std::string &path);  // delme

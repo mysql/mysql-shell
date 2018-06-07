@@ -71,7 +71,8 @@ The following modules and objects are ready for use when the shell starts:
  - shell    Gives access to general purpose functions and properties.
  - sys      Gives access to system specific parameters.
  - testutil
- - util     Global object that groups miscellaneous tools like upgrade checker.
+ - util     Global object that groups miscellaneous tools like upgrade checker
+            and JSON import.
 
 For additional information on these global objects use: <object>.help()
 
@@ -254,7 +255,8 @@ mysql module that enables executing SQL on MySQL Servers.
 
 OBJECTS
  - shell Gives access to general purpose functions and properties.
- - util  Global object that groups miscellaneous tools like upgrade checker.
+ - util  Global object that groups miscellaneous tools like upgrade checker and
+         JSON import.
 
 CLASSES
  - Column Represents the metadata for a column in a result.

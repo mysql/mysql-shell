@@ -30,7 +30,6 @@
 #include <windows.h>
 #else
 #include <unistd.h>
-//#  include <poll.h>
 #endif
 #include <stdint.h>
 #include <deque>

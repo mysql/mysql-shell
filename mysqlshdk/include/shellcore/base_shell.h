@@ -121,6 +121,7 @@ class SHCORE_PUBLIC Base_shell {
       const shcore::Sql_result_info &info);
 
   // Helper functions to print data through the console handler
+  void print(const std::string &str);
   void println(const std::string &str = "");
   void print_error(const std::string &error);
   void print_warning(const std::string &message);

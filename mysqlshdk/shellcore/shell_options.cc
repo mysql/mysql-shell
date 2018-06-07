@@ -166,6 +166,10 @@ Shell_options::Shell_options(int argc, char **argv,
     (cmdline("-p", "--password[=name] ", "--dbpassword[=name]"),
         "Password to use when connecting to server.")
     (cmdline("-p"), "Request password prompt to set the password")
+    (cmdline("--import file collection", "--import file table [column]"),
+        "Import JSON documents from file to collection or table in MySQL"
+        " Server. Set file to - if you want to read the data from stdin."
+        " Requires a default schema on the connection options.")
     (&storage.schema, "", "schema",
         cmdline("-D", "--schema=name", "--database=name"), "Schema to use.")
     (&storage.recreate_database, false, "recreateDatabase",
@@ -436,6 +440,7 @@ Shell_options::Shell_options(int argc, char **argv,
     check_port_conflicts();
     check_socket_conflicts();
     check_port_socket_conflicts();
+    check_import_options();
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     storage.exit_code = 1;
@@ -649,6 +654,21 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
       storage.prompt_password = true;
       (*argi)--;
     }
+  } else if (strcmp("--import", argv[*argi]) == 0) {
+    storage.import_args.push_back(argv[*argi]);
+    (*argi)++;  // omit --import
+
+    while (argv[*argi] != nullptr) {
+      // We append --import arguments until next shell option in program
+      // argument list, i.e. -* or --*. Single char '-' is a --import argument.
+      if (argv[*argi][0] == '-' && argv[*argi][1] != '\0') {
+        break;
+      }
+      storage.import_args.push_back(argv[*argi]);
+      (*argi)++;
+    }
+
+    (*argi)--;
   } else {
     return false;
   }
@@ -853,6 +873,21 @@ void Shell_options::set_output_format(const std::string &format) {
 
   storage.output_format = format;
   ngcommon::Logger::set_stderr_output_format(format);
+}
+
+void Shell_options::check_import_options() {
+  bool is_schema_set = !storage.schema.empty() || uri_data.has_schema();
+  if (!storage.import_args.empty()) {
+    if (!storage.has_connection_data()) {
+      const auto error = "Error: --import requires an active session.";
+      throw std::runtime_error(error);
+    }
+    if (!is_schema_set) {
+      const auto error =
+          "Error: --import requires a default schema on the active session.";
+      throw std::runtime_error(error);
+    }
+  }
 }
 
 }  // namespace mysqlsh

@@ -54,6 +54,14 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #endif
   shcore::Value check_for_server_upgrade(const shcore::Argument_list &args);
 
+#if DOXYGEN_JS
+  Undefined importJson(String file, Dictionary options);
+#elif DOXYGEN_PY
+  None import_json(str file, dict options);
+#endif
+  void import_json(const std::string &file,
+                   const shcore::Dictionary_t &options);
+
  private:
   shcore::IShell_core &_shell_core;
 };

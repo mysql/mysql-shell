@@ -23,15 +23,18 @@
 
 #include "modules/util/mod_util.h"
 #include <memory>
+#include <set>
 #include <vector>
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "modules/util/json_importer.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "rapidjson/document.h"
@@ -43,18 +46,20 @@
 namespace mysqlsh {
 
 REGISTER_HELP_OBJECT(util, shellapi);
-REGISTER_HELP(
-    UTIL_GLOBAL_BRIEF,
-    "Global object that groups miscellaneous tools like upgrade checker.");
-REGISTER_HELP(
-    UTIL_BRIEF,
-    "Global object that groups miscellaneous tools like upgrade checker.");
+REGISTER_HELP(UTIL_GLOBAL_BRIEF,
+              "Global object that groups miscellaneous tools like upgrade "
+              "checker and JSON import.");
+REGISTER_HELP(UTIL_BRIEF,
+              "Global object that groups miscellaneous tools like upgrade "
+              "checker and JSON import.");
 
 Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   add_method(
       "checkForServerUpgrade",
       std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
       "data", shcore::Map);
+
+  expose("importJson", &Util::import_json, "path", "options");
 }
 
 static std::string format_upgrade_issue(const Upgrade_issue &problem) {
@@ -464,4 +469,201 @@ shcore::Value Util::check_for_server_upgrade(
   return ret;
 }
 
-} /* namespace mysqlsh */
+REGISTER_HELP_FUNCTION(importJson, util);
+REGISTER_HELP(UTIL_IMPORTJSON_BRIEF,
+              "Import JSON documents from file to collection or table in MySQL "
+              "Server using X Protocol session.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_PARAM, "@param file Path to JSON documents file");
+
+REGISTER_HELP(UTIL_IMPORTJSON_PARAM1, "@param options Dictionary with options");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL, "Options dictionary:");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL1,
+              "@li schema: string - name of target schema.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL2,
+              "@li collection: string - name of collection where the data will "
+              "be imported.");
+
+REGISTER_HELP(
+    UTIL_IMPORTJSON_DETAIL3,
+    "@li table: string - name of table where the data will be imported.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL4,
+              "@li tableColumn: string (default: \"doc\") - name of column in "
+              "target table where the imported JSON documents will be stored.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL5,
+              "@li convertBsonOid: bool (default: false) - enable BSON "
+              "ObjectId type conversion in strict representation of MongoDB "
+              "Extended JSON");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL6,
+              "If the schema is not provided, an active schema on the global "
+              "session, if set, will be used.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL7,
+              "The collection and the table options cannot be combined. If "
+              "they are not provided, the basename of the file without "
+              "extension will be used as target collection name.");
+
+REGISTER_HELP(
+    UTIL_IMPORTJSON_DETAIL8,
+    "If the target collection or table does not exist, they are created, "
+    "otherwise the data is inserted into the existing collection or table.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_DETAIL9,
+              "The tableColumn imply use of the table and cannot be combined "
+              "with the collection.");
+
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS, "Throws ArgumentError when:");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS1, "@li Option name is invalid");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS2,
+              "@li Required options are not set and cannot be deduced");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS3,
+              "@li Shell is not connected to MySQL Server using X Protocol");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS4,
+              "@li Schema is not provided and there is no active schema on the "
+              "global session");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS5,
+              "@li Both collection and table are specified");
+
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS6, "Throws LogicError when:");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS7,
+              "@li Path to JSON document does not exists or is not a file");
+
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS8, "Throws RuntimeError when:");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS9, "@li The schema does not exists");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS10, "@li MySQL Server returns an error");
+
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS11, "Throws InvalidJson when:");
+REGISTER_HELP(UTIL_IMPORTJSON_THROWS12, "@li JSON document is ill-formed");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_IMPORTJSON_BRIEF)
+ *
+ * $(UTIL_IMPORTJSON_PARAM)
+ * $(UTIL_IMPORTJSON_PARAM1)
+ *
+ * $(UTIL_IMPORTJSON_DETAIL)
+ * $(UTIL_IMPORTJSON_DETAIL1)
+ * $(UTIL_IMPORTJSON_DETAIL2)
+ * $(UTIL_IMPORTJSON_DETAIL3)
+ * $(UTIL_IMPORTJSON_DETAIL4)
+ * $(UTIL_IMPORTJSON_DETAIL5)
+ * $(UTIL_IMPORTJSON_DETAIL6)
+ * $(UTIL_IMPORTJSON_DETAIL7)
+ * $(UTIL_IMPORTJSON_DETAIL8)
+ * $(UTIL_IMPORTJSON_DETAIL9)
+ *
+ * $(UTIL_IMPORTJSON_THROWS)
+ * $(UTIL_IMPORTJSON_THROWS1)
+ * $(UTIL_IMPORTJSON_THROWS2)
+ * $(UTIL_IMPORTJSON_THROWS3)
+ * $(UTIL_IMPORTJSON_THROWS4)
+ * $(UTIL_IMPORTJSON_THROWS5)
+ * $(UTIL_IMPORTJSON_THROWS6)
+ * $(UTIL_IMPORTJSON_THROWS7)
+ * $(UTIL_IMPORTJSON_THROWS8)
+ * $(UTIL_IMPORTJSON_THROWS9)
+ * $(UTIL_IMPORTJSON_THROWS10)
+ * $(UTIL_IMPORTJSON_THROWS11)
+ * $(UTIL_IMPORTJSON_THROWS12)
+ */
+#if DOXYGEN_JS
+Undefined Util::importJson(String file, Dictionary options);
+#elif DOXYGEN_PY
+None Util::import_json(str file, dict options);
+#endif
+void Util::import_json(const std::string &file,
+                       const shcore::Dictionary_t &options) {
+  try {
+    {
+      const shcore::Argument_map opts(*options);
+      const std::set<std::string> valid_options{
+          "schema", "collection", "table", "tableColumn", "convertBsonOid"};
+      opts.ensure_keys({}, valid_options, "the options");
+    }
+
+    auto shell_session = _shell_core.get_dev_session();
+
+    if (!shell_session) {
+      throw shcore::Exception::runtime_error(
+          "Please connect the shell to the MySQL server.");
+    }
+
+    auto node_type = shell_session->get_node_type();
+    if (node_type.compare("X") != 0) {
+      throw shcore::Exception::runtime_error(
+          "An X Protocol session is required for JSON import.");
+    }
+
+    Connection_options connection_options =
+        shell_session->get_connection_options();
+
+    std::shared_ptr<mysqlshdk::db::mysqlx::Session> xsession =
+        mysqlshdk::db::mysqlx::Session::create();
+
+    if (current_shell_options()->get().trace_protocol) {
+      xsession->enable_protocol_trace(true);
+    }
+    xsession->connect(connection_options);
+
+    Prepare_json_import prepare{xsession};
+
+    if (options->has_key("schema")) {
+      prepare.schema(options->get_string("schema"));
+    } else if (!shell_session->get_current_schema().empty()) {
+      prepare.schema(shell_session->get_current_schema());
+    } else {
+      throw std::runtime_error(
+          "There is no active schema on the current session, the target schema "
+          "for the import operation must be provided in the options.");
+    }
+
+    prepare.path(file);
+
+    if (options->has_key("table")) {
+      prepare.table(options->get_string("table"));
+    }
+
+    if (options->has_key("tableColumn")) {
+      prepare.column(options->get_string("tableColumn"));
+    }
+
+    if (options->has_key("collection")) {
+      if (options->has_key("tableColumn")) {
+        throw std::invalid_argument(
+            "tableColumn cannot be used with collection.");
+      }
+      prepare.collection(options->get_string("collection"));
+    }
+
+    // Validate provided parameters and build Json_importer object.
+    auto importer = prepare.build();
+
+    auto console = mysqlsh::current_console();
+    console->print_info(prepare.to_string() + " in MySQL Server at " +
+                        connection_options.as_uri(
+                            mysqlshdk::db::uri::formats::only_transport()) +
+                        "\n");
+
+    importer.set_print_callback([](const std::string &msg) -> void {
+      mysqlsh::current_console()->print(msg);
+    });
+
+    try {
+      importer.load_from(options->get_bool("convertBsonOid", false));
+    } catch (...) {
+      importer.print_stats();
+      throw;
+    }
+    importer.print_stats();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("importJson"));
+}
+}  // namespace mysqlsh

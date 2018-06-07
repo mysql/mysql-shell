@@ -171,6 +171,17 @@ inline size_t span_quoted_sql_identifier_bt(const std::string &s,
   return p;
 }
 
+// Span spaces. If offset is npos, return npos
+inline size_t span_spaces(const std::string &s, size_t offset) {
+  return s.find_first_not_of(" \t\r\n", offset);
+}
+
+inline size_t span_not_spaces(const std::string &s, size_t offset) {
+  size_t p = s.find_first_of(" \t\r\n", offset);
+  if (p == std::string::npos) return s.size();
+  return p;
+}
+
 inline size_t span_keyword(const std::string &s, size_t offset) {
   assert(!s.empty());
   assert(offset < s.length());
@@ -197,6 +208,24 @@ inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
   if (p == std::string::npos) return std::string::npos;
   return p + 2;
 }
+
+/**
+ * Function replace all occurrences of MongoDB's ObjectID JSON strict
+ * representation, i.e. `{ "$oid": "<hex-string>" }` to `"<hex-string>"` in
+ * `json_doc` string.
+ *
+ * Input:
+ *   { "_id" : { "$oid": "51f0188846a64a1ed98fde7c" }, "a" : 1 }
+ *   { "_id" : { "$oid": "520e61b0c6646578e3661b59" }, "a" : 1, "b" : 2 }
+ *
+ * Output:
+ *   { "_id" :           "51f0188846a64a1ed98fde7c"  , "a" : 1 }
+ *   { "_id" :           "520e61b0c6646578e3661b59"  , "a" : 1, "b" : 2 }
+ *
+ * @param json_doc JSON document string which you want to be stripped from
+ * MongoDB ObejctID in JSON strict representation.
+ */
+void strip_bson_object_id(std::string *json_doc);
 
 /** Class enabling iteration over characters in SQL string skipping comments and
  * quoted strings.

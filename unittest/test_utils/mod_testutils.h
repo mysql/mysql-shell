@@ -208,7 +208,8 @@ class Testutils : public shcore::Cpp_object_bridge {
   // These should produce test failure output similar to that of gtest,
   // possibly including a stacktrace in the target language
   // set_current_test_case(::testing::Test);
-  int call_mysqlsh(const shcore::Array_t &args);
+  int call_mysqlsh(const shcore::Array_t &args,
+                   const std::string &std_input = std::string{});
 
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail
