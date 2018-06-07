@@ -194,7 +194,7 @@ RETURNS
 
 DESCRIPTION
       This is the value of the C API mysql_affected_rows(), see
-      https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html
+      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
 
 //@<OUT> Help on getAutoIncrementValue
 NAME

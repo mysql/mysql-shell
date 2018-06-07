@@ -22,6 +22,10 @@
 |All expected functions are available|
 |No additional functions are available|
 
+#@ CollectionFind: valid operations after offset
+|All expected functions are available|
+|No additional functions are available|
+
 #@ CollectionFind: valid operations after skip
 |All expected functions are available|
 |No additional functions are available|
@@ -80,6 +84,10 @@
 #@# CollectionFind: Error conditions on limit
 ||Invalid number of arguments in CollectionFind.limit, expected 1 but got 0
 ||CollectionFind.limit: Argument #1 is expected to be an unsigned int
+
+#@# CollectionFind: Error conditions on offset
+||Invalid number of arguments in CollectionFind.offset, expected 1 but got 0
+||CollectionFind.offset: Argument #1 is expected to be an unsigned int
 
 #@# CollectionFind: Error conditions on skip
 ||Invalid number of arguments in CollectionFind.skip, expected 1 but got 0
@@ -140,14 +148,14 @@
 |Find Desc 6 : adam|
 
 #@ Collection.Find Limit and Offset
-|Limit-Skip 0 : 4|
-|Limit-Skip 1 : 4|
-|Limit-Skip 2 : 4|
-|Limit-Skip 3 : 4|
-|Limit-Skip 4 : 3|
-|Limit-Skip 5 : 2|
-|Limit-Skip 6 : 1|
-|Limit-Skip 7 : 0|
+|Limit-Offset 0 : 4|
+|Limit-Offset 1 : 4|
+|Limit-Offset 2 : 4|
+|Limit-Offset 3 : 4|
+|Limit-Offset 4 : 3|
+|Limit-Offset 5 : 2|
+|Limit-Offset 6 : 1|
+|Limit-Offset 7 : 0|
 
 
 #@ Collection.Find Parameter Binding

@@ -44,10 +44,14 @@ validate_crud_functions(crud, ['limit', 'lock_shared', 'lock_exclusive', 'bind',
 
 #@ CollectionFind: valid operations after limit
 crud = crud.limit(1)
-validate_crud_functions(crud, ['skip', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
+validate_crud_functions(crud, ['skip', 'offset', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
+
+#@ CollectionFind: valid operations after offset
+crud = crud.offset(1)
+validate_crud_functions(crud, ['lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after skip
-crud = crud.skip(1)
+crud = collection.find().limit(10).skip(1)
 validate_crud_functions(crud, ['lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after lock_shared
@@ -109,6 +113,10 @@ crud = collection.find().sort('name', 5)
 #@# CollectionFind: Error conditions on limit
 crud = collection.find().limit()
 crud = collection.find().limit('')
+
+#@# CollectionFind: Error conditions on offset
+crud = collection.find().limit(1).offset()
+crud = collection.find().limit(1).offset('')
 
 #@# CollectionFind: Error conditions on skip
 crud = collection.find().limit(1).skip()
@@ -199,14 +207,14 @@ for index in xrange(7):
 //! [CollectionFind: Sorting]
 
 #@ Collection.Find Limit and Offset
-//! [CollectionFind: Limit and Skip]
+//! [CollectionFind: Limit and Offset]
 records = collection.find().limit(4).execute().fetch_all()
-print 'Limit-Skip 0 :', len(records), '\n'
+print 'Limit-Offset 0 :', len(records), '\n'
 
 for index in xrange(8):
-	records = collection.find().limit(4).skip(index + 1).execute().fetch_all()
-	print 'Limit-Skip', index + 1, ':', len(records), '\n'
-//! [CollectionFind: Limit and Skip]
+	records = collection.find().limit(4).offset(index + 1).execute().fetch_all()
+	print 'Limit-Offset', index + 1, ':', len(records), '\n'
+//! [CollectionFind: Limit and Offset]
 
 #@ Collection.Find Parameter Binding
 //! [CollectionFind: Parameter Binding]

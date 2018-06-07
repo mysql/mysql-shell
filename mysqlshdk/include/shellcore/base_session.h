@@ -37,7 +37,6 @@
 #include "scripting/types_cpp.h"
 
 namespace mysqlsh {
-enum class SessionType { Auto, X, Classic };
 #if DOXYGEN_CPP
 //! Abstraction layer with core elements for all the session types
 #endif

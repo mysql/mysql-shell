@@ -539,6 +539,12 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL,
 REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
               "The attribute addition will be done on the collection's "
               "documents once the execute method is called.");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL2,
+              "${COLLECTIONMODIFY_MERGE_DEPRECATED}");
+REGISTER_HELP(COLLECTIONMODIFY_MERGE_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b>patch</b> function instead.");
+
 
 /**
  * $(COLLECTIONMODIFY_MERGE_BRIEF)
@@ -550,6 +556,8 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
  * $(COLLECTIONMODIFY_MERGE_DETAIL)
  *
  * $(COLLECTIONMODIFY_MERGE_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_MERGE_DEPRECATED)
  *
  * #### Method Chaining
  *
@@ -590,6 +598,11 @@ CollectionModify CollectionModify::merge(Document document) {}
 shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("merge").c_str());
+
+  log_warning("'%s' is deprecated, use '%s' instead.",
+              get_function_name("merge").c_str(),
+              get_function_name("patch").c_str());
+
 
   try {
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);
@@ -907,7 +920,11 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
 REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
               "The attribute deletion will be done on the collection's "
               "documents once the execute method is called.");
-
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL2,
+              "${COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED}");
+REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b>unset</b> function instead.");
 /**
  * $(COLLECTIONMODIFY_ARRAYDELETE_BRIEF)
  *
@@ -918,6 +935,8 @@ REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
  * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
  *
  * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
+ *
+ * $(COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED)
  *
  * #### Method Chaining
  *
@@ -959,6 +978,10 @@ shcore::Value CollectionModify::array_delete(
     const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("arrayDelete").c_str());
+
+  log_warning("'%s' is deprecated, use '%s' instead.",
+              get_function_name("arrayDelete").c_str(),
+              get_function_name("unset").c_str());
 
   try {
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, args.string_at(0),

@@ -64,7 +64,6 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify arrayDelete(String docPath);
   CollectionModify sort(List sortExprStr);
   CollectionModify limit(Integer numberOfRows);
-  CollectionModify skip(Integer limitOffset);
   CollectionFind bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
@@ -79,7 +78,6 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify array_delete(str docPath);
   CollectionModify sort(list sortExprStr);
   CollectionModify limit(int numberOfRows);
-  CollectionModify skip(int limitOffset);
   CollectionFind bind(str name, Value value);
   Result execute();
 #endif

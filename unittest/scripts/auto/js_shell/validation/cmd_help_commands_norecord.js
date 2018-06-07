@@ -214,11 +214,6 @@ DESCRIPTION
 
       The file will be loaded and executed using the active language.
 
-EXAMPLES
-      \source /home/me/sakila.sql
-
-      \. /home/me/sakila.sql
-
 //@<OUT> SQL Command
 NAME
       \sql - Switches to SQL processing mode.

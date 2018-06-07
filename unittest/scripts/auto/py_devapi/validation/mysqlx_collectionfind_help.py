@@ -52,6 +52,9 @@ FUNCTIONS
             Sets number of documents to skip on the resultset when a limit has
             been defined.
 
+            ATTENTION: This function will be removed in a future release, use
+                       the offset function instead.
+
       sort(...)
             Sets the sorting criteria to be used on the DocResult.
 

@@ -1041,6 +1041,12 @@ std::string Help_manager::format_topic_list(
 
     auto help_text = get_help_text(topic->m_help_tag + "_BRIEF");
 
+    // Deprecation notices are added as part of the description on list format
+    auto deprecated = get_help_text(topic->m_help_tag + "_DEPRECATED");
+    for(const auto& text: deprecated) {
+      help_text.push_back(text);
+    }
+
     formatted.push_back(format_list_description(topic->m_name, &help_text,
                                                 name_max_len, lpadding,
                                                 alias_str, alias_max_len));
@@ -1080,6 +1086,13 @@ std::string Help_manager::format_member_list(
 
     std::string tag = member->m_help_tag + "_BRIEF";
     auto help_text = resolve_help_text(*member->m_parent, tag);
+
+    // Deprecation notices are added as part of the description on list format
+    tag = member->m_help_tag + "_DEPRECATED";
+    auto deprecated = resolve_help_text(*member->m_parent, tag);
+    for(const auto& text: deprecated) {
+      help_text.push_back(text);
+    }
 
     if (!help_text.empty()) {
       description += format_help_text(&help_text, MAX_HELP_WIDTH,

@@ -59,22 +59,43 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   virtual bool rewind();
 
   // C++ Interface
+  int64_t get_affected_items_count() const;
   std::string get_execution_time() const;
-  uint64_t get_warning_count() const;
+  uint64_t get_warnings_count() const;
 
 #if DOXYGEN_JS
-  Integer warningCount;  //!< Same as getwarningCount()
+  Integer affectedItemsCount;   //!< Same as getAffectedItemsCount()
+  /**
+   * Same as getWarningCount()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>warningsCount</b> property instead.
+   */
+  Integer warningCount;
+  Integer warningsCount;  //!< Same as getwarningsCount()
   List warnings;         //!< Same as getWarnings()
   String executionTime;  //!< Same as getExecutionTime()
 
+  Integer getAffectedItemsCount();
+  Integer getWarningsCount();
   Integer getWarningCount();
   List getWarnings();
   String getExecutionTime();
 #elif DOXYGEN_PY
-  int warning_count;   //!< Same as get_warning_count()
+  int affected_item_count;   //!< Same as get_affected_items_count()
+  /**
+   * Same as get_warning_count()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>warnings_count</b> property instead.
+   */
+  int warning_count;
+  int warnings_count;   //!< Same as get_warnings_count()
   list warnings;       //!< Same as get_warnings()
   str execution_time;  //!< Same as get_execution_time()
 
+  int get_affected_items_count();
+  int get_warnings_count();
   int get_warning_count();
   list get_warnings();
   str get_execution_time();
@@ -108,12 +129,18 @@ class SHCORE_PUBLIC Result : public BaseResult {
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   // C++ Interface
-  int64_t get_affected_item_count() const;
+  int64_t get_affected_items_count() const;
   int64_t get_auto_increment_value() const;
   const std::vector<std::string> get_generated_ids() const;
 
 #if DOXYGEN_JS
-  Integer affectedItemCount;   //!< Same as getAffectedItemCount()
+  /**
+   * Same as getAffectedItemCount()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>affectedItemsCount</b> property instead.
+   */
+  Integer affectedItemCount;
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
   List generatedIds;           //!< Same as getGeneratedIds()
 
@@ -121,7 +148,13 @@ class SHCORE_PUBLIC Result : public BaseResult {
   Integer getAutoIncrementValue();
   List getGeneratedIds();
 #elif DOXYGEN_PY
-  int affected_item_count;   //!< Same as get_affected_item_count()
+  /**
+   * Same as get_affected_itemCount()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>affected_items_count</b> property instead.
+   */
+  int affected_item_count;
   int auto_increment_value;  //!< Same as get_auto_increment_value()
   list generated_ids;        //!< Same as get_generated_ids()
 
@@ -221,7 +254,8 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
   virtual shcore::Value get_member(const std::string &prop) const;
 
   shcore::Value has_data(const shcore::Argument_list &args) const;
-  virtual shcore::Value next_data_set(const shcore::Argument_list &args);
+  shcore::Value next_data_set(const shcore::Argument_list &args);
+  shcore::Value next_result(const shcore::Argument_list &args);
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   // C++ Interface
@@ -235,20 +269,34 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
 
 #if DOXYGEN_JS
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
-  Integer affectedRowCount;    //!< Same as getAffectedRowCount()
+  /**
+   * Same as getAffectedRowCount()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>affectedItemsCount</b> property instead.
+   */
+  Integer affectedRowCount;
 
   Integer getAutoIncrementValue();
   Integer getAffectedRowCount();
   Bool hasData();
   Bool nextDataSet();
+  Bool nextResult();
 #elif DOXYGEN_PY
   int auto_increment_value;  //!< Same as get_auto_increment_value()
-  int affected_row_count;    //!< Same as get_affected_row_count()
+  /**
+   * Same as get_affected_row_count()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>affected_items_count</b> property instead.
+   */
+  int affected_row_count;
 
   int get_auto_increment_value();
   int get_affected_row_count();
   bool has_data();
   bool next_data_set();
+  bool next_result();
 #endif
 };
 }  // namespace mysqlx

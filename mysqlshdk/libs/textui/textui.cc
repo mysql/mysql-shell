@@ -599,6 +599,12 @@ std::string format_markup_text(const std::vector<std::string> &lines,
 
           warning.replace(left_padding, 5, textui::notice("NOTE:"));
           ret_val += warning;
+        } else if (0 == line.find("@attention ")) {
+          std::string warning =
+              format_markup_text(line.substr(11), width, left_padding + 11);
+
+          warning.replace(left_padding, 10, textui::warning("ATTENTION:"));
+          ret_val += warning;
         } else {
           ret_val += format_markup_text(line, width, left_padding);
         }

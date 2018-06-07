@@ -19,6 +19,9 @@ FUNCTIONS
             Deletes the value at a specific position in an array attribute in
             documents of a collection.
 
+            ATTENTION: This function will be removed in a future release, use
+                       the unset function instead.
+
       arrayInsert(docPath, value)
             Inserts a value into a specific position in an array attribute in
             documents of a collection.
@@ -41,6 +44,9 @@ FUNCTIONS
       merge(document)
             Adds attributes taken from a document into the documents in a
             collection.
+
+            ATTENTION: This function will be removed in a future release, use
+                       the patch function instead.
 
       modify(searchCondition)
             Sets the search condition to identify the Documents to be updated
@@ -102,6 +108,9 @@ DESCRIPTION
 
       The attribute deletion will be done on the collection's documents once
       the execute method is called.
+
+      ATTENTION: This function will be removed in a future release, use the
+                 unset function instead.
 
 //@<OUT> Help on arrayInsert
 NAME
@@ -200,6 +209,9 @@ DESCRIPTION
 
       The attribute addition will be done on the collection's documents once
       the execute method is called.
+
+      ATTENTION: This function will be removed in a future release, use the
+                 patch function instead.
 
 //@<OUT> Help on modify
 NAME

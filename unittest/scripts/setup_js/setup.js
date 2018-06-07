@@ -251,7 +251,7 @@ function validate_crud_functions(crud, expected)
     }
 
     // help is ignored cuz it's always available
-    if (actual.length == 0 || actual[0] == 'help'){
+    if (actual.length == 0 || (actual.length == 1 && actual[0] == 'help')) {
         print("No additional functions are available\n")
     }
     else{

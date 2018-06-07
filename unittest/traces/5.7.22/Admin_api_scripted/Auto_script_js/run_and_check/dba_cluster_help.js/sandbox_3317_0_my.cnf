@@ -15,7 +15,7 @@ port = 3317
 transaction_write_set_extraction = XXHASH64
 binlog_checksum = NONE
 gtid_mode = ON
-auto_increment_offset = 6
+auto_increment_offset = 7
 basedir = /home/juanram/dev/deps/27500446.mysql-commercial_5.7.22-1ubuntu16.04_amd64/mysql/usr
 log_bin
 loose_mysqlx_socket = mysqlx.sock
