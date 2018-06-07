@@ -361,6 +361,10 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
   return lang_initialized;
 }
 
+void Base_shell::print(const std::string &str) {
+  m_console_handler.get()->print(str);
+}
+
 void Base_shell::println(const std::string &str) {
   m_console_handler.get()->println(str);
 }

@@ -63,13 +63,7 @@ class Auto_script_js : public Shell_js_script_tester,
       password = connection_options.get_password();
 
     if (_port.empty()) _port = "33060";
-
-    if (_port.empty()) {
-      _port = "33060";
-    }
-    if (_mysql_port.empty()) {
-      _mysql_port = "3306";
-    }
+    if (_mysql_port.empty()) _mysql_port = "3306";
 
     std::string code = "var hostname = '" + hostname() + "';";
     exec_and_out_equals(code);
@@ -166,6 +160,12 @@ class Auto_script_js : public Shell_js_script_tester,
       code = "var __recording = true;";
     else
       code = "var __recording = false;";
+    exec_and_out_equals(code);
+
+    code = "var __import_data_path = " +
+           shcore::quote_string(
+               shcore::path::join_path(g_test_home, "data", "import"), '\'') +
+           ";";
     exec_and_out_equals(code);
   }
 

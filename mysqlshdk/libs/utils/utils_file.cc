@@ -309,12 +309,37 @@ bool file_exists(const std::string &filename) {
   else
     return false;
 #else
-  if (access(filename.c_str(), F_OK) != -1)
+  if (::access(filename.c_str(), F_OK) != -1)
     return true;
   else
     return false;
 #endif
 }
+
+bool is_file(const char *path) {
+#ifdef WIN32
+  DWORD dwAttrib = GetFileAttributesA(path);
+  return dwAttrib != INVALID_FILE_ATTRIBUTES &&
+         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
+#else
+  struct stat st;
+  if (::stat(path, &st) < 0) return false;
+  return S_ISREG(st.st_mode);
+#endif
+}
+
+bool is_file(const std::string &path) { return is_file(path.c_str()); }
+
+size_t file_size(const char *path) {
+  struct stat fstat;
+  if (::stat(path, &fstat) != 0) {
+    return 0;
+  }
+  const off_t filesize = fstat.st_size;
+  return filesize;
+}
+
+size_t file_size(const std::string &path) { return file_size(path.c_str()); }
 
 /*
  * Returns true when the specified path is a folder
@@ -327,8 +352,8 @@ bool is_folder(const std::string &path) {
           (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 #else
   struct stat stbuf;
-  if (stat(path.c_str(), &stbuf) < 0) return false;
-  return (stbuf.st_mode & S_IFDIR) != 0;
+  if (::stat(path.c_str(), &stbuf) < 0) return false;
+  return S_ISDIR(stbuf.st_mode);
 #endif
 }
 

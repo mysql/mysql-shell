@@ -51,7 +51,7 @@ class SHCORE_PUBLIC IShell_core {
     return Mode_mask(Mode::JavaScript).set(Mode::Python);
   }
 
-  IShell_core(void);
+  IShell_core();
   virtual ~IShell_core();
 
   virtual Mode interactive_mode() const = 0;

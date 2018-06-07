@@ -113,6 +113,7 @@ class Shell_options : public shcore::Options {
     std::string server_public_key_path;
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
+    std::vector<std::string> import_args;
     std::string pager;
 
     int exit_code = 0;
@@ -177,6 +178,12 @@ class Shell_options : public shcore::Options {
   void check_port_conflicts();
   void check_socket_conflicts();
   void check_port_socket_conflicts();
+
+  /**
+   * --import option require default schema to be provided in connection
+   * options.
+   */
+  void check_import_options();
 
   Storage storage;
   mysqlshdk::db::Connection_options uri_data;

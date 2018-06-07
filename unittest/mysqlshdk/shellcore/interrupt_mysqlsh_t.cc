@@ -153,6 +153,26 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
       f.close();
     }
     {
+      std::ofstream f("test_jsonimport.js");
+      f << "util.importJson('test_jsonimport_big.json', {schema: 'itst'});\n";
+      f.close();
+    }
+    {
+      std::ofstream f("test_jsonimport.py");
+      f << "util.import_json('test_jsonimport_big.json', {'schema': 'itst', "
+           "'collection': 'test_jsonimport_big_py'})\n";
+      f.close();
+    }
+    {
+      std::ofstream docfile("test_jsonimport_big.json");
+      const char doc[] =
+          R"_DOC_("address": {"building": "8825", "coord": [-73.8803827, 40.7643124], "street": "Astoria Boulevard", "zipcode": "11369"}, "borough": "Queens", "cuisine": "American", "grades": [{"date": {"$date": 1416009600000}, "grade": "Z", "score": 38}, {"date": {"$date": 1398988800000}, "grade": "A", "score": 10}, {"date": {"$date": 1362182400000}, "grade": "A", "score": 7}, {"date": {"$date": 1328832000000}, "grade": "A", "score": 13}], "name": "Brunos On The Boulevard", "restaurant_id": "40356151"})_DOC_";
+      for (int i = 0; i < 300000; i++) {
+        docfile << "{\"_id\": \"" << std::to_string(i) << "\", " << doc << "\n";
+      }
+      docfile.close();
+    }
+    {
       std::ofstream f("test_query.sql");
       f << "select 'ready';\n"
         << "select * from mysql.user where sleep(10);\n"
@@ -172,17 +192,22 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
     shcore::delete_file("test_sleep.js");
     shcore::delete_file("test_queryx.js");
     shcore::delete_file("test_queryc.js");
+    shcore::delete_file("test_jsonimport.js");
+    shcore::delete_file("test_jsonimport.py");
+    shcore::delete_file("test_jsonimport_big.json");
 
     shcore::delete_file("test_query.sql");
   }
 
-  void kill_on_ready() {
-    kill_thread = std::thread([this]() {
+  void kill_on_ready() { kill_on_message("ready"); }
+
+  void kill_on_message(const std::string &msg) {
+    kill_thread = std::thread([this, msg]() {
       while (!_process) {
         shcore::sleep_ms(100);  // wait for process
       }
 
-      while (!grep_stdout("ready")) {
+      while (!grep_stdout(msg)) {
         if (!_process) return;
         shcore::sleep_ms(200);
       }
@@ -264,11 +289,14 @@ TEST_F(Interrupt_mysqlsh, js_cli) {
 }
 #endif
 
-#define TEST_INTERRUPT_SCRIPT_I(uri, lang, file)                              \
+#define TEST_INTERRUPT_SCRIPT_I(uri, lang, file) \
+  TEST_INTERRUPT_ON_MSG_SCRIPT_I(uri, lang, file, "ready")
+
+#define TEST_INTERRUPT_ON_MSG_SCRIPT_I(uri, lang, file, msg)                  \
   {                                                                           \
     SetUp();                                                                  \
     SCOPED_TRACE(file);                                                       \
-    kill_on_ready();                                                          \
+    kill_on_message(msg);                                                     \
     int rc =                                                                  \
         execute({_mysqlsh, uri, "--interactive", lang, "-f", file, nullptr}); \
     EXPECT_EQ(exitcode, rc);                                                  \
@@ -531,6 +559,19 @@ TEST_F(Interrupt_mysqlsh, sqlx_file_source) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Query execution was interrupted");
   // Uncomment when Bug #26417116 is fixed
   // MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("fail");
+}
+
+TEST_F(Interrupt_mysqlsh, json_import) {
+  const char *expect = "JSON documents import cancelled.";
+  const char *unexpect = nullptr;
+  const int exitcode = 0;
+#ifdef HAVE_V8
+  TEST_INTERRUPT_ON_MSG_SCRIPT_I(_uri.c_str(), "--js", "test_jsonimport.js",
+                                 "Importing from file ");
+#else
+  TEST_INTERRUPT_ON_MSG_SCRIPT_I(_uri.c_str(), "--py", "test_jsonimport.py",
+                                 "Importing from file ");
+#endif
 }
 
 }  // namespace mysqlsh

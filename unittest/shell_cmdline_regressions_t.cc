@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_file.h"
+#include "utils/utils_path.h"
 
 #ifndef MAX_PATH
 const int MAX_PATH = 4096;
@@ -33,40 +34,41 @@ extern mysqlshdk::utils::Version g_target_server_version;
 
 namespace tests {
 
-TEST_F(Command_line_test, bug24912358){
+TEST_F(Command_line_test, bug24912358) {
+  // Tests with X Protocol Session
+  {
+    std::string uri = "--uri=" + _uri;
+    execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
+    MY_EXPECT_MULTILINE_OUTPUT(
+        "select -127 << 1.1",
+        multiline({"-127 << 1.1", "18446744073709551362"}), _output);
+  }  // namespace tests
 
-    // Tests with X Protocol Session
-    {std::string uri = "--uri=" + _uri;
-execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
-MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
-                           multiline({"-127 << 1.1", "18446744073709551362"}),
-                           _output);
-}  // namespace tests
+  {
+    std::string uri = "--uri=" + _uri;
+    execute(
+        {_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
+    MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
+                               multiline({"-127 << -1.1", "0"}), _output);
+  }
 
-{
-  std::string uri = "--uri=" + _uri;
-  execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
-                             multiline({"-127 << -1.1", "0"}), _output);
-}
+  // Tests with Classic Session
+  {
+    std::string uri = "--uri=" + _mysql_uri;
+    execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
+    MY_EXPECT_MULTILINE_OUTPUT(
+        "select -127 << 1.1",
+        multiline({"-127 << 1.1", "18446744073709551362"}), _output);
+  }
 
-// Tests with Classic Session
-{
-  std::string uri = "--uri=" + _mysql_uri;
-  execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << 1.1", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
-                             multiline({"-127 << 1.1", "18446744073709551362"}),
-                             _output);
+  {
+    std::string uri = "--uri=" + _mysql_uri;
+    execute(
+        {_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
+    MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
+                               multiline({"-127 << -1.1", "0"}), _output);
+  }
 }
-
-{
-  std::string uri = "--uri=" + _mysql_uri;
-  execute({_mysqlsh, uri.c_str(), "--sql", "-e", "select -127 << -1.1", NULL});
-  MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
-                             multiline({"-127 << -1.1", "0"}), _output);
-}
-}
-;
 
 #ifdef HAVE_V8
 TEST_F(Command_line_test, bug23508428) {
@@ -346,11 +348,18 @@ TEST_F(Command_line_test, bug26970629) {
   session->connect(options);
 
   auto result = session->query("show variables like '" + variable + "'");
-
   auto row = result->fetch_one();
+  const std::string socket = row->get_as_string(1);
 
-  std::string socket = "--socket=" + row->get_as_string(1);
+  result = session->query("show variables like 'datadir'");
+  row = result->fetch_one();
+  const std::string datadir = row->get_as_string(1);
 
+  using shcore::path::join_path;
+  using shcore::path::normalize;
+
+  const std::string socket_path =
+      "--socket=" + normalize(join_path(datadir, socket));
   session->close();
 
   if (socket.empty()) {
@@ -358,16 +367,18 @@ TEST_F(Command_line_test, bug26970629) {
     FAIL();
   } else {
     std::string usr = "--user=" + _user;
+
 #ifdef HAVE_V8
     execute({_mysqlsh, "--js", usr.c_str(), pwd.c_str(), host.c_str(),
-             socket.c_str(), "-e", "dba.createCluster('sample')", NULL});
+             socket_path.c_str(), "-e", "dba.createCluster('sample')", NULL});
 #else
     execute({_mysqlsh, "--py", usr.c_str(), pwd.c_str(), host.c_str(),
-             socket.c_str(), "-e", "dba.create_cluster('sample')", NULL});
+             socket_path.c_str(), "-e", "dba.create_cluster('sample')", NULL});
 #endif
+
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "a MySQL session through TCP/IP is required to perform this operation");
   }
 }
 #endif
-}
+}  // namespace tests

@@ -141,7 +141,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
 
-  expose("callMysqlsh", &Testutils::call_mysqlsh, "args");
+  expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput");
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
@@ -2153,7 +2153,8 @@ void setup_recorder_environment() {
 }
 }  // namespace
 
-int Testutils::call_mysqlsh(const shcore::Array_t &args) {
+int Testutils::call_mysqlsh(const shcore::Array_t &args,
+                            const std::string &std_input) {
   std::vector<std::string> argv = shcore::Value(args).to_string_vector();
   std::vector<const char *> full_argv;
   std::string path;
@@ -2190,6 +2191,11 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
   try {
     // Starts the process
     process.start();
+
+    if (!std_input.empty()) {
+      process.write(&std_input[0], std_input.size());
+      process.finish_writing();  // Reader will see EOF
+    }
 
     // // The password should be provided when it is expected that the Shell
     // // will prompt for it, in such case, we give it on the stdin

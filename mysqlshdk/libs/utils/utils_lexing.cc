@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_lexing.h"
+#include <cctype>
 
 namespace mysqlshdk {
 namespace utils {
@@ -72,6 +73,142 @@ SQL_string_iterator &SQL_string_iterator::operator++() {
   } while (!incremented && m_offset < m_s.length());
 
   return *this;
+}
+
+using byte = unsigned char;
+enum class BsonObjectIdStripState : byte {
+  START = 0,
+  DICT,
+  K0,
+  K1,
+  K2,
+  K3,
+  K4,
+  K5,
+  COLON,
+  OID_BEGIN,
+  OID,
+  OID_END,
+  TERM
+};
+
+void strip_bson_object_id(std::string *json_doc) {
+  using position = std::string::size_type;
+  using S = BsonObjectIdStripState;
+  position array_first = 0;
+  position array_last_prim = 0;
+  position oid_first = 0;
+
+  S s = S::START;
+
+  for (position i = 0; i < json_doc->size(); i++) {
+    const byte &p = (*json_doc)[i];
+    switch (s) {
+      case S::START:
+        if (p == '{') {
+          s = S::DICT;
+          array_first = i;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::DICT:
+        if (::isspace(p)) {
+        } else if (p == '"') {
+          s = S::K0;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::K0:
+        if (p == '$') {
+          s = S::K1;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::K1:
+        if (p == 'o') {
+          s = S::K2;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::K2:
+        if (p == 'i') {
+          s = S::K3;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::K3:
+        if (p == 'd') {
+          s = S::K4;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::K4:
+        if (p == '"') {
+          s = S::K5;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::K5:
+        if (::isspace(p)) {
+        } else if (p == ':') {
+          s = S::COLON;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::COLON:
+        if (::isspace(p)) {
+        } else if (p == '"') {
+          s = S::OID_BEGIN;
+          oid_first = i;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::OID_BEGIN:
+        if (::isxdigit(p)) {
+          s = S::OID;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::OID:
+        if (::isxdigit(p)) {
+        } else if (p == '"') {
+          s = S::OID_END;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::OID_END:
+        if (::isspace(p)) {
+        } else if (p == '}') {
+          s = S::TERM;
+          array_last_prim = i;
+        } else {
+          s = S::START;
+        }
+        break;
+      case S::TERM:
+        for (position e = array_first; e < oid_first; e++) {
+          (*json_doc)[e] = ' ';
+        }
+        (*json_doc)[array_last_prim] = ' ';
+        s = S::START;
+        --i;
+        break;
+      default:
+        s = S::START;
+        break;
+    }
+  }
 }
 
 }  // namespace utils

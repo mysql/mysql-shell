@@ -435,9 +435,10 @@ int Process::write(const char *buf, size_t count) {
 
 void Process::finish_writing() {
   ensure_write_is_allowed();
-
   if (child_in_wr) {
-    CloseHandle(child_in_wr);
+    if (!CloseHandle(child_in_wr)) {
+      report_error(NULL);
+    }
     child_in_wr = nullptr;
   }
 }
