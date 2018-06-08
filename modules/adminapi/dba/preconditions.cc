@@ -34,6 +34,14 @@ namespace mysqlsh {
 namespace dba {
 
 namespace {
+// The AdminAPI maximum supported MySQL Server version
+const mysqlshdk::utils::Version k_max_adminapi_server_version =
+    mysqlshdk::utils::Version("8.1");
+
+// The AdminAPI minimum supported MySQL Server version
+const mysqlshdk::utils::Version k_min_adminapi_server_version =
+    mysqlshdk::utils::Version("5.7");
+
 // Note that this structure may be initialized using initializer
 // lists, so the order of the fields is very important
 struct FunctionAvailability {
@@ -119,16 +127,8 @@ const std::map<std::string, FunctionAvailability>
  */
 void validate_group_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
-  // A classic session is required to perform any of the AdminAPI operations
-  if (!group_session) {
-    throw shcore::Exception::runtime_error(
-        "The shell must be connected to a member of the InnoDB cluster being "
-        "managed");
-  } else if (!group_session->is_open()) {
-    throw shcore::Exception::runtime_error(
-        "The session was closed. An open session is required to perform "
-        "this operation");
-  }
+  // Validate if the server version is open and supported by the AdminAPI
+  validate_session(group_session);
 
   validate_connection_options(group_session->get_connection_options(),
                               shcore::Exception::runtime_error);
@@ -174,6 +174,39 @@ std::string describe(State state) {
   return ret_val;
 }
 };  // namespace ManagedInstance
+
+/**
+ * Validates the session for AdminAPI operations.
+ *
+ * Checks if the given session exists and is open and if the session version is
+ * valid for use with AdminAPI.
+ *
+ * @param group_session A session to validate.
+ *
+ * @throws shcore::Exception::runtime_error if session is not valid.
+ */
+void validate_session(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  // A classic session is required to perform any of the AdminAPI operations
+  if (!session) {
+    throw shcore::Exception::runtime_error(
+        "The shell must be connected to a member of the InnoDB cluster being "
+        "managed");
+  } else if (!session->is_open()) {
+    throw shcore::Exception::runtime_error(
+        "The session was closed. An open session is required to perform "
+        "this operation");
+  }
+
+  // Validate if the server version is supported by the AdminAPI
+  mysqlshdk::utils::Version server_version = session->get_server_version();
+
+  if (server_version >= k_max_adminapi_server_version ||
+      server_version < k_min_adminapi_server_version)
+    throw shcore::Exception::runtime_error(
+        "Unsupported server version: AdminAPI operations require MySQL server "
+        "versions 5.7 or 8.0");
+}
 
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {

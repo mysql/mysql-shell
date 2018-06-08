@@ -95,6 +95,9 @@ struct Cluster_check_info {
   ManagedInstance::State source_state;
 };
 
+void validate_session(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
 Cluster_check_info get_cluster_check_info(
     const std::shared_ptr<mysqlshdk::db::ISession> &group_session);
 
