@@ -81,7 +81,7 @@ const char *k_boilerplate_root_password = "root";
 static void print(void *, const char *s) { std::cout << s << "\n"; }
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
-                     std::shared_ptr<mysqlsh::Mysql_shell> shell,
+                     std::shared_ptr<mysqlsh::Command_line_shell> shell,
                      const std::string &mysqlsh_path)
     : _shell(shell), _mysqlsh_path(mysqlsh_path) {
   _use_boilerplate = true;
@@ -2120,7 +2120,7 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
 #ifdef _WIN32
   process.set_create_process_group();
 #endif
-  std::shared_ptr<mysqlsh::Mysql_shell> shell(_shell.lock());
+  std::shared_ptr<mysqlsh::Command_line_shell> shell(_shell.lock());
   try {
     // Starts the process
     process.start();

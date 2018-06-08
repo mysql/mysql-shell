@@ -30,7 +30,7 @@
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types_cpp.h"
-#include "src/mysqlsh/mysql_shell.h"
+#include "src/mysqlsh/cmdline_shell.h"
 
 namespace tests {
 
@@ -114,7 +114,7 @@ class Testutils : public shcore::Cpp_object_bridge {
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
-            std::shared_ptr<mysqlsh::Mysql_shell> shell = {},
+            std::shared_ptr<mysqlsh::Command_line_shell> shell = {},
             const std::string &mysqlsh_path = "");
 
   void set_sandbox_snapshot_dir(const std::string &dir);
@@ -230,7 +230,7 @@ class Testutils : public shcore::Cpp_object_bridge {
   std::string fetch_captured_stderr(bool eat_one);
 
  private:
-  std::weak_ptr<mysqlsh::Mysql_shell> _shell;
+  std::weak_ptr<mysqlsh::Command_line_shell> _shell;
   std::string _mysqlsh_path;
   shcore::Interpreter_delegate _delegate;
   std::unique_ptr<mysqlsh::dba::ProvisioningInterface> _mp;

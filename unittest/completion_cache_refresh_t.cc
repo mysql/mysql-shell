@@ -44,8 +44,7 @@ namespace mysqlsh {
 class Completion_cache_refresh : public Shell_core_test_wrapper {
  public:
   void reset_shell() override {
-    replace_shell<Command_line_shell>(
-        get_options(),
+    replace_shell(get_options(),
         std::unique_ptr<shcore::Interpreter_delegate>{
             new shcore::Interpreter_delegate(output_handler.deleg)});
     set_defaults();
