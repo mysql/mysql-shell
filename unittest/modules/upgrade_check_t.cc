@@ -455,6 +455,11 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   }
   args.clear();
 
+  // valid mysql 5.7 superuser X protocol
+  args.push_back(shcore::Value(_uri));
+  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
+  args.clear();
+
   // new user with all privileges sans grant option and '%' in host
   EXPECT_NO_THROW(session->execute(
       "create user if not exists 'percent'@'%' identified by 'percent';"));
