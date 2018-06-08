@@ -30,6 +30,153 @@
 #include "utils/debug.h"
 #include "utils/utils_general.h"
 
+#include "mysqld_error.h"
+#include "mysqlx_error.h"
+#include "xcapability_builder.h"
+#include "xsession_impl.h"
+
+// TODO(alfredo) #authworkaround - revert all changes from this commit
+// once 28135006 is fixed in libmysqlxclient
+namespace xcl {
+namespace details {
+
+const char *value_or_empty_string(const char *value);
+const char *value_or_default_string(const char *value,
+                                    const char *value_default);
+}  // namespace details
+
+XError authenticate(XSession *session, const char *user, const char *pass,
+                    const char *schema, Connection_type connection_type,
+                    const mysqlshdk::db::Ssl_options &ssl_options) {
+  auto &protocol = session->get_protocol();
+  auto &connection = protocol.get_connection();
+
+  {
+    Capabilities_builder builder;
+
+    Object m_capabilities;
+
+    m_capabilities["client.pwd_expire_ok"] = true;
+
+    auto capabilities_set =
+        builder.add_capabilities_from_object(m_capabilities).get_result();
+    auto error = protocol.execute_set_capability(capabilities_set);
+
+    if (error) return error;
+  }
+
+  if (!connection.state().is_ssl_activated()) {
+    // if (m_context->m_ssl_config.does_mode_requires_ca() &&
+    //     !m_context->m_ssl_config.is_ca_configured())
+    //   return XError{CR_X_TLS_WRONG_CONFIGURATION, ER_TEXT_CA_IS_REQUIRED};
+
+    if (connection.state().is_ssl_configured()) {
+      Capabilities_builder builder;
+      auto capability_set_tls =
+          builder.add_capability("tls", Argument_value{true}).get_result();
+      auto error = protocol.execute_set_capability(capability_set_tls);
+
+      if (!error) error = connection.activate_tls();
+
+      if (error) {
+        if (ER_X_CAPABILITIES_PREPARE_FAILED != error.error() ||
+            (ssl_options.has_mode() &&
+             ssl_options.get_mode() != mysqlshdk::db::Ssl_mode::Preferred)) {
+          return error;
+        }
+      }
+    }
+  }
+
+  const auto is_secure_connection =
+      connection.state().is_ssl_activated() ||
+      (connection_type == Connection_type::Unix_socket);
+
+  bool has_sha256_memory = false;
+  XError auth_error;
+  XError reported_error =
+      XError{ER_ACCESS_DENIED_ERROR, "Invalid user or password"};
+  for (const auto &auth_method :
+       std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"}) {
+    const bool is_last = auth_method == "PLAIN";
+    if (auth_method == "PLAIN" && !is_secure_connection) {
+      // If this is not the last authentication mechanism then do not report
+      // error but try those other methods instead.
+      if (is_last) {
+        return XError{
+            CR_X_INVALID_AUTH_METHOD,
+            "Invalid authentication method: PLAIN over unsecure channel"};
+      }
+    } else {
+      auth_error = protocol.execute_authenticate(
+          details::value_or_empty_string(user),
+          details::value_or_empty_string(pass),
+          details::value_or_empty_string(schema), auth_method);
+
+      const auto current_error_code = auth_error.error();
+
+      // In case of 'broken pipe', 'peer disconnected' and timeouts we should
+      // break the authentication sequence and return an error.
+      if (current_error_code == CR_SERVER_GONE_ERROR ||
+          current_error_code == CR_X_WRITE_TIMEOUT ||
+          current_error_code == CR_X_READ_TIMEOUT ||
+          current_error_code == CR_UNKNOWN_ERROR)
+        return auth_error;
+
+      if (current_error_code != ER_ACCESS_DENIED_ERROR ||
+          reported_error.error() == ER_ACCESS_DENIED_ERROR) {
+        reported_error = auth_error;
+      }
+
+      if (auth_method == "SHA256_MEMORY") has_sha256_memory = true;
+    }
+
+    // Authentication successful, otherwise try to use different auth method
+    if (!auth_error) return {};
+  }
+
+  if (has_sha256_memory && !is_secure_connection &&
+      reported_error.error() == ER_ACCESS_DENIED_ERROR) {
+    reported_error = XError{CR_X_AUTH_PLUGIN_ERROR,
+                            "Authentication failed, check username and \
+password or try a secure connection"};
+  }
+
+  return reported_error;
+}
+
+XError connect(XSession *session, const char *host, const uint16_t port,
+               const char *user, const char *pass, const char *schema,
+               const mysqlshdk::db::Ssl_options &ssl_options) {
+  auto result = session->get_protocol().get_connection().connect(
+      details::value_or_empty_string(host), port ? port : MYSQLX_TCP_PORT,
+      Internet_protocol::Any);
+
+  if (result) return result;
+
+  auto connection_type =
+      session->get_protocol().get_connection().state().get_connection_type();
+
+  return authenticate(session, user, pass, schema, connection_type,
+                      ssl_options);
+}
+
+XError connect(XSession *session, const char *socket_file, const char *user,
+               const char *pass, const char *schema,
+               const mysqlshdk::db::Ssl_options &ssl_options) {
+  auto result = session->get_protocol().get_connection().connect_to_localhost(
+      details::value_or_default_string(socket_file, MYSQLX_UNIX_ADDR));
+
+  if (result) return result;
+
+  auto connection_type =
+      session->get_protocol().get_connection().state().get_connection_type();
+
+  return authenticate(session, user, pass, schema, connection_type,
+                      ssl_options);
+}
+}  // namespace xcl
+
 namespace mysqlshdk {
 namespace db {
 namespace mysqlx {
@@ -202,6 +349,9 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql->set_capability(xcl::XSession::Capability_can_handle_expired_password,
                          true);
 
+  // TODO(alfredo) this should be set, but after checking if server supports it
+  // _mysql->set_capability(xcl::XSession::Capability_client_interactive, true);
+
   // In 8.0.4, trying to connect without SSL to a caching_sha2_password account
   // will not work. The error message that's given is also confusing, because
   // there's no hint the error is because of no SSL instead of wrong password
@@ -271,22 +421,22 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   std::string host = data.has_host() ? data.get_host() : "localhost";
 
   if ((host.empty() || host == "localhost") && data.has_socket()) {
-    err =
-        _mysql->connect(data.has_socket() ? data.get_socket().c_str() : nullptr,
-                        data.has_user() ? data.get_user().c_str() : "",
-                        data.has_password() ? data.get_password().c_str() : "",
-                        data.has_schema() ? data.get_schema().c_str() : "");
+    err = xcl::connect(
+        _mysql.get(), data.has_socket() ? data.get_socket().c_str() : nullptr,
+        data.has_user() ? data.get_user().c_str() : "",
+        data.has_password() ? data.get_password().c_str() : "",
+        data.has_schema() ? data.get_schema().c_str() : "", ssl_options);
 #ifdef _WIN32
     _connection_info = "Localhost via Named pipe";
 #else
     _connection_info = "Localhost via UNIX socket";
 #endif
   } else {
-    err =
-        _mysql->connect(host.c_str(), data.has_port() ? data.get_port() : 33060,
-                        data.has_user() ? data.get_user().c_str() : "",
-                        data.has_password() ? data.get_password().c_str() : "",
-                        data.has_schema() ? data.get_schema().c_str() : "");
+    err = xcl::connect(
+        _mysql.get(), host.c_str(), data.has_port() ? data.get_port() : 33060,
+        data.has_user() ? data.get_user().c_str() : "",
+        data.has_password() ? data.get_password().c_str() : "",
+        data.has_schema() ? data.get_schema().c_str() : "", ssl_options);
     _connection_info = host + " via TCP/IP";
   }
   if (err) {
