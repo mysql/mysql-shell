@@ -217,13 +217,13 @@ TEST_F(Shell_core_test, python_dictionary_key_handling) {
 TEST_F(Shell_core_test, regression_prompt_on_override_session) {
   connect();
 
-  EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
+  EXPECT_EQ("mysql-sql []> ", _interactive_shell->prompt());
   _options->wizards = false;
   _interactive_shell->shell_context()->set_global(
       "session", Value(std::static_pointer_cast<Object_bridge>(
                      std::make_shared<mysqlsh::Options>(get_options()))));
   _options->wizards = true;
-  EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
+  EXPECT_EQ("mysql-sql []> ", _interactive_shell->prompt());
 
   // The session object has been overriden, even so we need to close th session
   _interactive_shell->shell_context()->get_dev_session()->close();

@@ -115,14 +115,16 @@ void Shell_test_wrapper::reset_options() {
 }
 
 /**
- * Causes the enclosed instance of Mysql_shell to be re-created with using the
- * options defined at _opts.
+ * Causes the enclosed instance of Command_line_shell to be re-created with
+ * using the options defined at _opts.
  */
 void Shell_test_wrapper::reset() {
   // previous shell needs to be destroyed before a new one can be created
   _interactive_shell.reset();
   _interactive_shell.reset(
-      new mysqlsh::Mysql_shell(get_options(), &output_handler.deleg));
+      new mysqlsh::Command_line_shell(get_options(),
+                    std::unique_ptr<shcore::Interpreter_delegate>{
+                    new shcore::Interpreter_delegate(output_handler.deleg)}));
 
   _interactive_shell->finish_init();
 
@@ -153,7 +155,8 @@ void Shell_test_wrapper::execute(const std::string &line) {
 }
 
 /**
- * Returns a reference to the options that configure the inner Mysql_shell
+ * Returns a reference to the options that configure the inner
+ * Command_line_shell
  */
 std::shared_ptr<mysqlsh::Shell_options> Shell_test_wrapper::get_options() {
   if (!_opts) reset_options();

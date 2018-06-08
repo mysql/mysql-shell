@@ -70,7 +70,7 @@ class Test_debugger {
 
   void on_test_begin(Shell_core_test_wrapper *test) { m_test = test; }
 
-  void on_reset_shell(std::shared_ptr<mysqlsh::Mysql_shell> shell) {
+  void on_reset_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
     m_shell = shell;
   }
 
@@ -218,9 +218,11 @@ class Test_debugger {
 
   std::unique_ptr<mysqlsh::Shell_console> m_console;
   shcore::Interpreter_delegate m_deleg;
-  std::weak_ptr<mysqlsh::Mysql_shell> m_shell;
+  std::weak_ptr<mysqlsh::Command_line_shell> m_shell;
 
-  std::shared_ptr<mysqlsh::Mysql_shell> shell() { return m_shell.lock(); }
+  std::shared_ptr<mysqlsh::Command_line_shell> shell() {
+    return m_shell.lock();
+  }
 };
 }  // namespace mysqlsh
 

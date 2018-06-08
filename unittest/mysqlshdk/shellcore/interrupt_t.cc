@@ -150,10 +150,12 @@ struct Call_on_leave {
 };
 
 class Interrupt_mysql : public Shell_core_test_wrapper {
+ private:
+   shcore::Interpreter_delegate* m_final_delegate;
  public:
-  virtual void set_options() { _options->interactive = true; }
+  void set_options() override { _options->interactive = true; }
 
-  void SetUp() {
+  void SetUp() override {
     shcore::Interrupts::init(&interrupt_tester);
     Shell_core_test_wrapper::SetUp();
     execute("\\connect -mc " + _mysql_uri);
@@ -162,15 +164,35 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     wipe_all();
   }
 
+  // This function is overriden in order to grab a pointer to the final
+  // delegate so we can set the slow printer.
+  void reset_shell() override {
+    // If the options have not been set, they must be set now, otherwise
+    // they should be explicitly reset
+    if (!_opts) reset_options();
+
+
+    std::unique_ptr<shcore::Interpreter_delegate> delegate
+        (new shcore::Interpreter_delegate(output_handler.deleg));
+
+    m_final_delegate = delegate.get();
+
+    replace_shell(_opts, std::move(delegate));
+
+    _interactive_shell->finish_init();
+    set_defaults();
+    enable_testutil();
+  }
+
   static void slow_deleg_print(void *user_data, const char *text) {
     shcore::sleep_ms(10);
     Shell_test_output_handler::deleg_print(user_data, text);
   }
 
-  void make_output_slow() { output_handler.deleg.print = slow_deleg_print; }
+  void make_output_slow() { m_final_delegate->print = slow_deleg_print; }
 
   void unmake_output_slow() {
-    output_handler.deleg.print = Shell_test_output_handler::deleg_print;
+    m_final_delegate->print = Shell_test_output_handler::deleg_print;
   }
 
   static void SetUpTestCase() {

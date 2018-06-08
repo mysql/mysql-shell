@@ -38,7 +38,7 @@ namespace tests {
 /**
  * \ingroup UTFramework
  *
- * This class wrapps a Mysql_shell instance providing the required
+ * This class wrapps a Command_line_shell instance providing the required
  * hooks to feed input and retrieve output for validation.
  */
 class Shell_test_wrapper {
@@ -80,7 +80,7 @@ class Shell_test_wrapper {
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
   mysqlsh::Shell_options::Storage *_options;
-  std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
+  std::shared_ptr<mysqlsh::Command_line_shell> _interactive_shell;
   std::shared_ptr<tests::Testutils> _testutil;
   std::string _sandbox_dir;
   bool _recording_enabled;

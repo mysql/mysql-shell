@@ -36,7 +36,7 @@
 #include "scripting/lang_base.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
-#include "src/mysqlsh/mysql_shell.h"
+#include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils/mod_testutils.h"
 #include "unittest/test_utils/shell_base_test.h"
 
@@ -254,11 +254,11 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   void enable_replay();
   virtual void execute_setup() {}
 
-  template <typename T, typename... Args>
-  void replace_shell(Args &&... args) {
+  void replace_shell(std::shared_ptr<mysqlsh::Shell_options> options,
+                     std::unique_ptr<shcore::Interpreter_delegate> delegate) {
     // previous shell needs to be destroyed before a new one can be created
     _interactive_shell.reset();
-    _interactive_shell.reset(new T{std::forward<Args>(args)...});
+    _interactive_shell.reset(new mysqlsh::Command_line_shell(options,std::move(delegate)));
   }
 
   virtual void reset_shell() {
@@ -266,7 +266,9 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     // they should be explicitly reset
     if (!_opts) reset_options();
 
-    replace_shell<mysqlsh::Mysql_shell>(_opts, &output_handler.deleg);
+    replace_shell(_opts, std::unique_ptr<shcore::Interpreter_delegate>{
+            new shcore::Interpreter_delegate(output_handler.deleg)});
+
     _interactive_shell->finish_init();
     set_defaults();
     enable_testutil();
@@ -277,7 +279,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   void connect_x();
 
   Shell_test_output_handler output_handler;
-  std::shared_ptr<mysqlsh::Mysql_shell> _interactive_shell;
+  std::shared_ptr<mysqlsh::Command_line_shell> _interactive_shell;
   std::shared_ptr<mysqlsh::Shell_options> _opts;
   mysqlsh::Shell_options::Storage *_options;
 
@@ -293,7 +295,7 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   std::shared_ptr<tests::Testutils> testutil;
 
   static std::shared_ptr<tests::Testutils> make_testutils(
-      std::shared_ptr<mysqlsh::Mysql_shell> shell = {}) {
+      std::shared_ptr<mysqlsh::Command_line_shell> shell = {}) {
     return std::make_shared<tests::Testutils>(_sandbox_dir, false, shell,
                                               get_path_to_mysqlsh());
   }
