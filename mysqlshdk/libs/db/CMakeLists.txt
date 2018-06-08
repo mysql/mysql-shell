@@ -48,6 +48,8 @@ set(db_SOURCE
     replay/trace.cc
 )
 
+# Only needed for workaround (#authworkaround)
+INCLUDE_DIRECTORIES(${MYSQL_SOURCE_DIR})
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   SET(mysqlsh_tests_SRC
