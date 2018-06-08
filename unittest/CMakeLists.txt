@@ -68,6 +68,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_replicaset_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_preconditions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_collection_find_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_table_select_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
