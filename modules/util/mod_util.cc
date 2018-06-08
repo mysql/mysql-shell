@@ -374,7 +374,7 @@ shcore::Value Util::check_for_server_upgrade(
     auto print = Upgrade_check_output_formatter::get_formatter(&_shell_core,
                                                                output_format);
 
-    auto session = establish_mysql_session(
+    auto session = establish_session(
         connection_options, current_shell_options()->get().wizards);
 
     auto result = session->query("select current_user();");
