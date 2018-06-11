@@ -21,7 +21,7 @@ FUNCTIONS
       execute()
             Executes the sql statement.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       sql(statement)
@@ -83,7 +83,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <SqlExecute>.help()
+      <SqlExecute>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on sql
 NAME

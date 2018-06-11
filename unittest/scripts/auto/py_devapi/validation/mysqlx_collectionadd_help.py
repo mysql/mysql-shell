@@ -18,7 +18,7 @@ FUNCTIONS
             Executes the add operation, the documents are added to the target
             collection.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 #@<OUT> colladd.add
@@ -76,4 +76,7 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <CollectionAdd>.help()
+      <CollectionAdd>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.

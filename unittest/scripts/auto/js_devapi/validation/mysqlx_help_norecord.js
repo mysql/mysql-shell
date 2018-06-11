@@ -36,8 +36,8 @@ FUNCTIONS
       getSession(connectionData[, password])
             Creates a Session instance using the provided connection data.
 
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this module and it's members
 
 CLASSES
  - BaseResult       Base class for the different types of results returned by
@@ -81,15 +81,24 @@ SYNTAX
 DESCRIPTION
       These constants are used to indicate the locking mode to be used at the
       lockShared and lockExclusive functions of the TableSelect and
-      CollectionFind objects. The constants include:
+      CollectionFind objects.
 
-      - DEFAULT
-      - NOWAIT
-      - SKIP_LOCKED
+PROPERTIES
+      DEFAULT
+            A default locking mode.
+
+      NOWAIT
+            A locking read never waits to acquire a row lock. The query
+            executes immediately, failing with an error if a requested row is
+            locked.
+
+      SKIP_LOCKED
+            A locking read never waits to acquire a row lock. The query
+            executes immediately, removing locked rows from the result set.
 
 FUNCTIONS
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this object and it's members
 
 //@<OUT> Help on Type
 NAME
@@ -100,30 +109,63 @@ SYNTAX
 
 DESCRIPTION
       The data type constants assigned to a Column object retrieved through
-      RowResult.getColumns(). The following is the list of supported data
-      types:
+      RowResult.getColumns().
 
-      - BIT
-      - TINYINT
-      - SMALLINT
-      - MEDIUMINT
-      - INT
-      - BIGINT
-      - FLOAT
-      - DECIMAL
-      - JSON
-      - STRING
-      - BYTES
-      - TIME
-      - DATE
-      - DATETIME
-      - SET
-      - ENUM
-      - GEOMETRY
+PROPERTIES
+      BIGINT
+            A large integer.
+
+      BIT
+            A bit-value type.
+
+      BYTES
+            A binary string.
+
+      DATE
+            A date.
+
+      DATETIME
+            A date and time combination.
+
+      DECIMAL
+            A packed "exact" fixed-point number.
+
+      ENUM
+            An enumeration.
+
+      FLOAT
+            A floating-point number.
+
+      GEOMETRY
+            A geometry type.
+
+      INT
+            A normal-size integer.
+
+      JSON
+            A JSON-format string.
+
+      MEDIUMINT
+            A medium-sized integer.
+
+      SET
+            A set.
+
+      SMALLINT
+            A small integer.
+
+      STRING
+            A character string.
+
+      TIME
+            A time.
+
+      TINYINT
+            A very small integer.
 
 FUNCTIONS
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this object and it's members
 
 //@<OUT> Help on BaseResult
 NAME
@@ -175,7 +217,7 @@ FUNCTIONS
             The number of warnings produced by the last statement execution.
             See getWarnings() for more details.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on Collection
@@ -235,7 +277,7 @@ FUNCTIONS
       getSession()
             Returns the Session object of this database object.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       modify(searchCondition)
@@ -267,7 +309,7 @@ FUNCTIONS
             Executes the add operation, the documents are added to the target
             collection.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on CollectionFind
@@ -302,7 +344,7 @@ FUNCTIONS
             Sets a condition for records to be considered in agregate function
             operations.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfDocs)
@@ -360,7 +402,7 @@ FUNCTIONS
             Executes the update operations added to the handler with the
             configured filter and limit.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfDocs)
@@ -409,7 +451,7 @@ FUNCTIONS
             Executes the document deletion with the configured filter and
             limit.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfDocs)
@@ -452,7 +494,7 @@ FUNCTIONS
       getSession()
             Returns the Session object of this database object.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on DocResult
@@ -513,7 +555,7 @@ FUNCTIONS
             The number of warnings produced by the last statement execution.
             See getWarnings() for more details.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on Result
@@ -600,7 +642,7 @@ FUNCTIONS
             The number of warnings produced by the last statement execution.
             See getWarnings() for more details.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on RowResult
@@ -678,7 +720,7 @@ FUNCTIONS
             The number of warnings produced by the last statement execution.
             See getWarnings() for more details.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on Schema
@@ -744,7 +786,7 @@ FUNCTIONS
       getTables()
             Returns a list of Tables for this Schema.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on Session
@@ -804,7 +846,7 @@ FUNCTIONS
       getUri()
             Retrieves the URI for the current session.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       isOpen()
@@ -861,7 +903,7 @@ FUNCTIONS
       execute()
             Executes the sql statement.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       sql(statement)
@@ -902,7 +944,7 @@ FUNCTIONS
       getSession()
             Returns the Session object of this database object.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       insert(...)
@@ -936,7 +978,7 @@ FUNCTIONS
       execute()
             Executes the delete operation with all the configured options.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfRows)
@@ -961,7 +1003,7 @@ FUNCTIONS
       execute()
             Executes the insert operation.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       insert(...)
@@ -992,7 +1034,7 @@ FUNCTIONS
             Sets a condition for records to be considered in agregate function
             operations.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfRows)
@@ -1036,7 +1078,7 @@ FUNCTIONS
       execute()
             Executes the update operation with all the configured options.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfRows)

@@ -26,7 +26,7 @@ FUNCTIONS
       getLength()
             Returns number of fields in the Row.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 //@<OUT> Help on length
@@ -58,7 +58,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <Row>.help()
+      <Row>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@ Finalization
 ||

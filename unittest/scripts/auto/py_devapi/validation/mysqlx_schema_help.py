@@ -64,7 +64,7 @@ FUNCTIONS
       get_tables()
             Returns a list of Tables for this Schema.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 #@<OUT> schema.create_collection
@@ -240,7 +240,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <Schema>.help()
+      <Schema>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> schema.name
 NAME

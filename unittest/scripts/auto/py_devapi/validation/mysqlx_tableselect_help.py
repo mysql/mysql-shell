@@ -23,7 +23,7 @@ FUNCTIONS
             Sets a condition for records to be considered in agregate function
             operations.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfRows)
@@ -102,7 +102,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <TableSelect>.help()
+      <TableSelect>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> tableselect.limit
 NAME

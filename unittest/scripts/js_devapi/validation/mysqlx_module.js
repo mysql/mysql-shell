@@ -1,10 +1,11 @@
 //@ mysqlx module: exports
-|Exported Items: 5|
+|Exported Items: 6|
 |getSession: object|
 |expr: object|
 |dateValue: object|
 |help: object|
 |Type: <mysqlx.Type>|
+|LockContention: <mysqlx.LockContention>|
 
 //@# mysqlx module: expression errors
 ||Invalid number of arguments in mysqlx.expr, expected 1 but got 0

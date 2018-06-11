@@ -37,8 +37,8 @@ FUNCTIONS
       get_cluster([name][, options])
             Retrieves a cluster from the Metadata Store.
 
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this object and it's members
 
       kill_sandbox_instance(port[, options])
             Kills a running MySQL Server instance on localhost.
@@ -568,10 +568,13 @@ EXCEPTIONS
 
 #@<OUT> dba.help
 NAME
-      help - Provides help about this class and it's members
+      help - Provides help about this object and it's members
 
 SYNTAX
-      dba.help()
+      dba.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> dba.kill_sandbox_instance
 NAME

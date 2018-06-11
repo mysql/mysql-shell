@@ -27,8 +27,8 @@ FUNCTIONS
       getSession(connectionData[, password])
             Opens a classic MySQL protocol session to a MySQL server.
 
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this module and it's members
 
 CLASSES
  - ClassicResult  Allows browsing through the result information after
@@ -198,8 +198,10 @@ DESCRIPTION
 
 //@<OUT> mysql help on help
 NAME
-      help - Provides help about this class and it's members
+      help - Provides help about this module and it's members
 
 SYNTAX
-      mysql.help()
+      mysql.help([member])
 
+WHERE
+      member: If specified, provides detailed information on the given member.

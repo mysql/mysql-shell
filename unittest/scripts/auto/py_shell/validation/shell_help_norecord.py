@@ -15,8 +15,8 @@ FUNCTIONS
       get_session()
             Returns the global session.
 
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this object and it's members
 
       log(level, message)
             Logs an entry to the shell's log file.
@@ -137,10 +137,13 @@ DESCRIPTION
 
 #@<OUT> shell.help
 NAME
-      help - Provides help about this class and it's members
+      help - Provides help about this object and it's members
 
 SYNTAX
-      shell.help()
+      shell.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> shell.log
 NAME
@@ -194,8 +197,8 @@ DESCRIPTION
         enabled. The \rehash command can be used for manual refresh
 
 FUNCTIONS
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this object and it's members
 
       set(optionName, value)
             Sets value of an option.

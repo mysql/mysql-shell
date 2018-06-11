@@ -39,7 +39,7 @@ FUNCTIONS
       get_name()
             Retrieves the name of the cluster.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       rejoin_instance(instance[, options])
@@ -379,7 +379,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <Cluster>.help()
+      <Cluster>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> cluster.name
 NAME

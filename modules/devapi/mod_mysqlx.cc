@@ -98,26 +98,58 @@ REGISTER_HELP_OBJECT(Type, mysqlx);
 REGISTER_HELP(TYPE_BRIEF, "Data type constants.");
 REGISTER_HELP(TYPE_DETAIL,
               "The data type constants assigned to a Column object "
-              "retrieved through RowResult.<b><<<getColumns>>></b>(). The "
-              "following is the list of "
-              "supported data types:");
-REGISTER_HELP(TYPE_DETAIL1, "@li BIT");
-REGISTER_HELP(TYPE_DETAIL2, "@li TINYINT");
-REGISTER_HELP(TYPE_DETAIL3, "@li SMALLINT");
-REGISTER_HELP(TYPE_DETAIL4, "@li MEDIUMINT");
-REGISTER_HELP(TYPE_DETAIL5, "@li INT");
-REGISTER_HELP(TYPE_DETAIL6, "@li BIGINT");
-REGISTER_HELP(TYPE_DETAIL7, "@li FLOAT");
-REGISTER_HELP(TYPE_DETAIL8, "@li DECIMAL");
-REGISTER_HELP(TYPE_DETAIL9, "@li JSON");
-REGISTER_HELP(TYPE_DETAIL10, "@li STRING");
-REGISTER_HELP(TYPE_DETAIL11, "@li BYTES");
-REGISTER_HELP(TYPE_DETAIL12, "@li TIME");
-REGISTER_HELP(TYPE_DETAIL13, "@li DATE");
-REGISTER_HELP(TYPE_DETAIL14, "@li DATETIME");
-REGISTER_HELP(TYPE_DETAIL15, "@li SET");
-REGISTER_HELP(TYPE_DETAIL16, "@li ENUM");
-REGISTER_HELP(TYPE_DETAIL17, "@li GEOMETRY");
+              "retrieved through RowResult.<b><<<getColumns>>></b>().");
+
+REGISTER_HELP_PROPERTY(BIT, Type);
+REGISTER_HELP(TYPE_BIT_BRIEF, "A bit-value type.");
+
+REGISTER_HELP_PROPERTY(TINYINT, Type);
+REGISTER_HELP(TYPE_TINYINT_BRIEF, "A very small integer.");
+
+REGISTER_HELP_PROPERTY(SMALLINT, Type);
+REGISTER_HELP(TYPE_SMALLINT_BRIEF, "A small integer.");
+
+REGISTER_HELP_PROPERTY(MEDIUMINT, Type);
+REGISTER_HELP(TYPE_MEDIUMINT_BRIEF, "A medium-sized integer.");
+
+REGISTER_HELP_PROPERTY(INT, Type);
+REGISTER_HELP(TYPE_INT_BRIEF, "A normal-size integer.");
+
+REGISTER_HELP_PROPERTY(BIGINT, Type);
+REGISTER_HELP(TYPE_BIGINT_BRIEF, "A large integer.");
+
+REGISTER_HELP_PROPERTY(FLOAT, Type);
+REGISTER_HELP(TYPE_FLOAT_BRIEF, "A floating-point number.");
+
+REGISTER_HELP_PROPERTY(DECIMAL, Type);
+REGISTER_HELP(TYPE_DECIMAL_BRIEF, "A packed \"exact\" fixed-point number.");
+
+REGISTER_HELP_PROPERTY(JSON, Type);
+REGISTER_HELP(TYPE_JSON_BRIEF, "A JSON-format string.");
+
+REGISTER_HELP_PROPERTY(STRING, Type);
+REGISTER_HELP(TYPE_STRING_BRIEF, "A character string.");
+
+REGISTER_HELP_PROPERTY(BYTES, Type);
+REGISTER_HELP(TYPE_BYTES_BRIEF, "A binary string.");
+
+REGISTER_HELP_PROPERTY(TIME, Type);
+REGISTER_HELP(TYPE_TIME_BRIEF, "A time.");
+
+REGISTER_HELP_PROPERTY(DATE, Type);
+REGISTER_HELP(TYPE_DATE_BRIEF, "A date.");
+
+REGISTER_HELP_PROPERTY(DATETIME, Type);
+REGISTER_HELP(TYPE_DATETIME_BRIEF, "A date and time combination.");
+
+REGISTER_HELP_PROPERTY(SET, Type);
+REGISTER_HELP(TYPE_SET_BRIEF, "A set.");
+
+REGISTER_HELP_PROPERTY(ENUM, Type);
+REGISTER_HELP(TYPE_ENUM_BRIEF, "An enumeration.");
+
+REGISTER_HELP_PROPERTY(GEOMETRY, Type);
+REGISTER_HELP(TYPE_GEOMETRY_BRIEF, "A geometry type.");
 
 REGISTER_HELP_OBJECT(LockContention, mysqlx);
 REGISTER_HELP(LOCKCONTENTION_BRIEF, "Row locking mode constants.");
@@ -125,12 +157,26 @@ REGISTER_HELP(LOCKCONTENTION_DETAIL,
               "These constants are used to indicate the locking mode to be "
               "used at the <b><<<lockShared>>></b> and "
               "<b><<<lockExclusive>>></b> functions of the TableSelect and "
-              "CollectionFind objects. The constants include:");
-REGISTER_HELP(LOCKCONTENTION_DETAIL1, "@li DEFAULT");
-REGISTER_HELP(LOCKCONTENTION_DETAIL2, "@li NOWAIT");
-REGISTER_HELP(LOCKCONTENTION_DETAIL3, "@li SKIP_LOCKED");
+              "CollectionFind objects.");
+
+REGISTER_HELP_PROPERTY(DEFAULT, LockContention);
+REGISTER_HELP(LOCKCONTENTION_DEFAULT_BRIEF, "A default locking mode.");
+
+REGISTER_HELP_PROPERTY(NOWAIT, LockContention);
+REGISTER_HELP(LOCKCONTENTION_NOWAIT_BRIEF,
+              "A locking read never waits to acquire a row lock. The query "
+              "executes immediately, failing with an error if a requested row "
+              "is locked.");
+
+REGISTER_HELP_PROPERTY(SKIP_LOCKED, LockContention);
+REGISTER_HELP(LOCKCONTENTION_SKIP_LOCKED_BRIEF,
+              "A locking read never waits to acquire a row lock. The query "
+              "executes immediately, removing locked rows from the result "
+              "set.");
+
 REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
+  add_property("LockContention|LockContention");
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String);

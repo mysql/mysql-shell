@@ -34,7 +34,7 @@ FUNCTIONS
             Executes the update operations added to the handler with the
             configured filter and limit.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfDocs)
@@ -168,7 +168,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <CollectionModify>.help()
+      <CollectionModify>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on limit
 NAME

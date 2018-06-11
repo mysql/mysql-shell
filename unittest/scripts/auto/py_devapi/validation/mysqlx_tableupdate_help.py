@@ -16,7 +16,7 @@ FUNCTIONS
       execute()
             Executes the update operation with all the configured options.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfRows)
@@ -72,7 +72,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <TableUpdate>.help()
+      <TableUpdate>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> tableupdate.limit
 NAME
@@ -147,4 +150,3 @@ DESCRIPTION
       If used, only those rows satisfying the expression will be updated
 
       The expression supports parameter binding.
-

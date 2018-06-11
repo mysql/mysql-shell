@@ -76,7 +76,7 @@ FUNCTIONS
             The number of warnings produced by the last statement execution.
             See getWarnings() for more details.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
 #@<OUT> rowresult.column_count
@@ -211,7 +211,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <RowResult>.help()
+      <RowResult>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> rowresult.warning_count
 NAME
