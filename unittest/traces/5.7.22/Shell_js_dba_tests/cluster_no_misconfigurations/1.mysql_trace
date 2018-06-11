@@ -1,5 +1,5 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2107","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2197","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"3","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"select concat(@@version, ' ', @@version_comment)"},
 {"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"concat(@@version, ' ', @@version_comment)","length":45,"fractional":31,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["5.7.22-log MySQL Commercial Server (Advanced)"]]},
@@ -7,7 +7,7 @@
 {"type":"response","subtype":"RESULT","index":6,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"global_variables","table_label":"global_variables","column_name":"Variable_name","column_label":"Variable_name","length":64,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false},{"schema":"","table_name":"global_variables","table_label":"global_variables","column_name":"Value","column_label":"Value","length":1024,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["require_secure_transport","OFF"]]},
 {"type":"request","subtype":"QUERY","index":7,"sql":"SET @@global.require_secure_transport = ON"},
 {"type":"response","subtype":"RESULT","index":8,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
-{"type":"request","subtype":"QUERY","index":9,"sql":"SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 2107"},
+{"type":"request","subtype":"QUERY","index":9,"sql":"SELECT member_state FROM performance_schema.replication_group_members WHERE member_port = 2197"},
 {"type":"response","subtype":"RESULT","index":10,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"performance_schema","table_name":"replication_group_members","table_label":"replication_group_members","column_name":"MEMBER_STATE","column_label":"member_state","length":64,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":true}],"rows":[["ONLINE"]]},
 {"type":"request","subtype":"QUERY","index":11,"sql":"SET @@global.require_secure_transport = 'OFF'"},
 {"type":"response","subtype":"RESULT","index":12,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
