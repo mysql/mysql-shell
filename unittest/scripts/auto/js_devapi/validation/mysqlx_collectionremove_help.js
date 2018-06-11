@@ -19,7 +19,7 @@ FUNCTIONS
             Executes the document deletion with the configured filter and
             limit.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfDocs)
@@ -71,7 +71,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <CollectionRemove>.help()
+      <CollectionRemove>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on limit
 NAME

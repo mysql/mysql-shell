@@ -58,7 +58,7 @@ FUNCTIONS
       get_session()
             Returns the Session object of this database object.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       modify(searchCondition)
@@ -452,7 +452,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <Collection>.help()
+      <Collection>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> coll.modify
 NAME

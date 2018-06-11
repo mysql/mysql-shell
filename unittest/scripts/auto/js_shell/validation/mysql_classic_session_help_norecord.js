@@ -22,7 +22,7 @@ FUNCTIONS
       getUri()
             Retrieves the URI for the current session.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       isOpen()
@@ -91,7 +91,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <ClassicSession>.help()
+      <ClassicSession>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on isOpen
 NAME

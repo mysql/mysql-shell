@@ -80,7 +80,7 @@ FUNCTIONS
       hasData()
             Returns true if the last statement execution has a result set.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       nextDataSet()
@@ -297,7 +297,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <ClassicResult>.help()
+      <ClassicResult>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on nextDataSet
 NAME

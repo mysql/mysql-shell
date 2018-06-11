@@ -36,7 +36,7 @@ FUNCTIONS
       getSession()
             Returns the Session object of this database object.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       insert(...)
@@ -191,7 +191,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <Table>.help()
+      <Table>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on insert
 NAME

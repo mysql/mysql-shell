@@ -19,6 +19,7 @@ print('expr:', typeof mysqlx.expr, '\n');
 print('dateValue:', typeof mysqlx.dateValue, '\n');
 print('help:', typeof mysqlx.dateValue, '\n');
 print('Type:', mysqlx.Type, '\n');
+print('LockContention:', mysqlx.LockContention, '\n');
 
 //@# mysqlx module: expression errors
 var expr;

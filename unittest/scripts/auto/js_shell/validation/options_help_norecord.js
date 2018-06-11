@@ -35,8 +35,8 @@ DESCRIPTION
         enabled. The \rehash command can be used for manual refresh
 
 FUNCTIONS
-      help()
-            Provides help about this class and it's members
+      help([member])
+            Provides help about this object and it's members
 
       set(optionName, value)
             Sets value of an option.
@@ -53,10 +53,13 @@ FUNCTIONS
 
 //@<OUT> Help on help
 NAME
-      help - Provides help about this class and it's members
+      help - Provides help about this object and it's members
 
 SYNTAX
-      options.help()
+      options.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 //@<OUT> Help on set
 NAME

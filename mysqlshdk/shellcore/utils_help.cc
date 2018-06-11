@@ -140,7 +140,7 @@ const char Help_registry::HELP_COMMANDS[] = "Shell Commands";
 const char Help_registry::HELP_SQL[] = "SQL Syntax";
 
 Help_registry::Help_registry()
-    : m_help_data(Help_registry::icomp), m_keywords(Help_registry::icomp){
+    : m_help_data(Help_registry::icomp), m_keywords(Help_registry::icomp) {
   // The Contents category is registered right away since it is the root
   // Of the help system
   add_help_topic(HELP_ROOT, Topic_type::CATEGORY, "CONTENTS", "",
@@ -299,13 +299,31 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
   if (topic->is_api_object()) {
     // for it's help data
     std::string help_tag = shcore::str_upper(topic->m_name) + "_HELP";
+    std::string type;
 
-    if (topic->is_class())
-      add_help(help_tag + "_BRIEF",
-               "Provides help about this class and it's members");
-    else
-      add_help(help_tag + "_BRIEF",
-               "Provides help about this class and it's members");
+    switch (topic->m_type) {
+      case Topic_type::MODULE:
+        type = "module";
+        break;
+
+      case Topic_type::CLASS:
+        type = "class";
+        break;
+
+      case Topic_type::OBJECT:
+        type = "object";
+        break;
+
+      default:
+        throw std::logic_error("Unexpected topic type");
+    }
+
+    add_help(help_tag + "_BRIEF",
+             "Provides help about this " + type + " and it's members");
+
+    add_help(help_tag + "_PARAM",
+             "@param member Optional If specified, provides detailed "
+             "information on the given member.");
 
     add_help_topic("help", Topic_type::FUNCTION, "help", topic->m_id, mode);
   }
@@ -1043,7 +1061,7 @@ std::string Help_manager::format_topic_list(
 
     // Deprecation notices are added as part of the description on list format
     auto deprecated = get_help_text(topic->m_help_tag + "_DEPRECATED");
-    for(const auto& text: deprecated) {
+    for (const auto &text : deprecated) {
       help_text.push_back(text);
     }
 
@@ -1090,7 +1108,7 @@ std::string Help_manager::format_member_list(
     // Deprecation notices are added as part of the description on list format
     tag = member->m_help_tag + "_DEPRECATED";
     auto deprecated = resolve_help_text(*member->m_parent, tag);
-    for(const auto& text: deprecated) {
+    for (const auto &text : deprecated) {
       help_text.push_back(text);
     }
 

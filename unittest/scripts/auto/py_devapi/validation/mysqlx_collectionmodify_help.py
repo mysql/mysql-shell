@@ -34,7 +34,7 @@ FUNCTIONS
             Executes the update operations added to the handler with the
             configured filter and limit.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       limit(numberOfDocs)
@@ -141,7 +141,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <CollectionModify>.help()
+      <CollectionModify>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> collfind.merge
 NAME
@@ -164,6 +167,9 @@ DESCRIPTION
 
       The attribute addition will be done on the collection's documents once
       the execute method is called.
+
+      ATTENTION: This function will be removed in a future release, use the
+                 patch function instead.
 
 #@<OUT> collfind.modify
 NAME

@@ -102,7 +102,7 @@ FUNCTIONS
       has_data()
             Returns true if the last statement execution has a result set.
 
-      help()
+      help([member])
             Provides help about this class and it's members
 
       next_data_set()
@@ -304,7 +304,10 @@ NAME
       help - Provides help about this class and it's members
 
 SYNTAX
-      <SqlResult>.help()
+      <SqlResult>.help([member])
+
+WHERE
+      member: If specified, provides detailed information on the given member.
 
 #@<OUT> sqlresult.next_data_set
 NAME
