@@ -672,68 +672,76 @@ end)";
 #endif  // ! _WIN32
 
 TEST_F(ShellExeRunScript, reconnect_mysql_session) {
+  static constexpr auto first_execution =
+      R"(No default schema selected; type \use <schema> to set one.
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+mysql-js []> session.runSql('select 1');
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+  static constexpr auto second_execution =
+      R"(mysql-js []> session.runSql('select 1');
+ClassicSession.runSql: Lost connection to MySQL server during query (MySQL Error 2013)
+The global session got disconnected..
+Attempting to reconnect to 'mysql://)";
+  static constexpr auto third_execution =
+      R"(The global session was successfully reconnected.
+mysql-js []> session.runSql('select 1');
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+
   wipe_out();
   int rc = execute(
       {_mysqlsh, _mysql_uri.c_str(), "--js", "--interactive=full", nullptr},
       nullptr, "reconnect_mysql.js");
   // no error, exit code 0
   EXPECT_EQ(0, rc);
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      R"(No default schema selected; type \use <schema> to set one.
-NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
-mysql-js []> session.runSql('select 1');
-+---+
-| 1 |
-+---+
-| 1 |
-+---+
-1 row in set)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(mysql-js []> session.runSql('select 1');
-ClassicSession.runSql: Lost connection to MySQL server during query (MySQL Error 2013)
-The global session got disconnected..
-Attempting to reconnect to 'mysql://)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      R"(The global session was successfully reconnected.
-mysql-js []> session.runSql('select 1');
-+---+
-| 1 |
-+---+
-| 1 |
-+---+
-1 row in set)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(first_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(second_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(third_execution);
 }
 
 TEST_F(ShellExeRunScript, reconnect_mysqlx_session) {
+  static constexpr auto first_execution =
+      R"(No default schema selected; type \use <schema> to set one.
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+mysql-js []> session.sql('select 1').execute();
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+  static constexpr auto second_execution =
+      R"(mysql-js []> session.sql('select 1').execute();
+MySQL server has gone away (MySQL Error 2006)
+The global session got disconnected..
+Attempting to reconnect to 'mysqlx://)";
+  static constexpr auto third_execution =
+      R"(The global session was successfully reconnected.
+mysql-js []> session.sql('select 1').execute();
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
   wipe_out();
   int rc =
       execute({_mysqlsh, _uri.c_str(), "--js", "--interactive=full", nullptr},
               nullptr, "reconnect_mysqlx.js");
   // no error, exit code 0
   EXPECT_EQ(0, rc);
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      R"(No default schema selected; type \use <schema> to set one.
-NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
-mysql-js []> session.sql('select 1').execute();
-+---+
-| 1 |
-+---+
-| 1 |
-+---+
-1 row in set)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      R"(mysql-js []> session.sql('select 1').execute();
-MySQL server has gone away (MySQL Error 2006)
-The global session got disconnected..
-Attempting to reconnect to 'mysqlx://)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      R"(The global session was successfully reconnected.
-mysql-js []> session.sql('select 1').execute();
-+---+
-| 1 |
-+---+
-| 1 |
-+---+
-1 row in set)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(first_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(second_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(third_execution);
 }
 
 }  // namespace shellcore
