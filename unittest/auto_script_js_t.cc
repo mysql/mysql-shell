@@ -77,6 +77,7 @@ class Auto_script_js : public Shell_js_script_tester,
     exec_and_out_equals(code);
 
     code = "var hostname_ip = '" + hostname_ip() + "';";
+
     exec_and_out_equals(code);
     code = "var __user = '" + user + "';";
     exec_and_out_equals(code);

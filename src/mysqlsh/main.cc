@@ -35,6 +35,7 @@
 #include "shellcore/shell_init.h"
 
 #include <sys/stat.h>
+#include <clocale>
 #include <cstdio>
 #include <iostream>
 #include <sstream>
@@ -633,7 +634,11 @@ int main(int argc, char **argv) {
     SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
   }
 #endif  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#else
+  auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
+  if (!locale) log_error("Failed to set locale to en_US.UTF-8");
 #endif  // _WIN32
+
   int ret_val = 0;
   Interrupt_helper sighelper;
   shcore::Interrupts::init(&sighelper);

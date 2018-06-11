@@ -349,20 +349,18 @@ TEST_F(Command_line_test, bug26970629) {
 
   auto result = session->query("show variables like '" + variable + "'");
   auto row = result->fetch_one();
-  const std::string socket = row->get_as_string(1);
+  std::string socket_path = row->get_as_string(1);
+  if (!shcore::file_exists(socket_path)) {
+    result = session->query("show variables like 'datadir'");
+    row = result->fetch_one();
+    socket_path = shcore::path::normalize(
+        shcore::path::join_path(row->get_as_string(1), socket_path));
+  }
 
-  result = session->query("show variables like 'datadir'");
-  row = result->fetch_one();
-  const std::string datadir = row->get_as_string(1);
-
-  using shcore::path::join_path;
-  using shcore::path::normalize;
-
-  const std::string socket_path =
-      "--socket=" + normalize(join_path(datadir, socket));
   session->close();
+  socket_path = "--socket=" + socket_path;
 
-  if (socket.empty()) {
+  if (socket_path.empty()) {
     SCOPED_TRACE("Socket/Pipe Connections are Disabled, they must be enabled.");
     FAIL();
   } else {
@@ -375,7 +373,7 @@ TEST_F(Command_line_test, bug26970629) {
     execute({_mysqlsh, "--py", usr.c_str(), pwd.c_str(), host.c_str(),
              socket_path.c_str(), "-e", "dba.create_cluster('sample')", NULL});
 #endif
-
+    SCOPED_TRACE(socket_path.c_str());
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "a MySQL session through TCP/IP is required to perform this operation");
   }

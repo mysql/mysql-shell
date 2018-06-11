@@ -8859,50 +8859,50 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--uri={0}:{1}@{2}:{3}/world_x'.
             format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port)]
         expectedDataInFirst20Rows = \
-            "+------+------------------------------------+-------------+------------------------+--------------------------+" + os.linesep + \
-            "| ID   | Name                               | CountryCode | District               | Info                     |" + os.linesep + \
-            "+------+------------------------------------+-------------+------------------------+--------------------------+" + os.linesep + \
-            "|    1 | Kabul                              | AFG         | Kabol                  | {\"Population\": 1780000}  |" + os.linesep + \
-            "|    2 | Qandahar                           | AFG         | Qandahar               | {\"Population\": 237500}   |" + os.linesep + \
-            "|    3 | Herat                              | AFG         | Herat                  | {\"Population\": 186800}   |" + os.linesep + \
-            "|    4 | Mazar-e-Sharif                     | AFG         | Balkh                  | {\"Population\": 127800}   |" + os.linesep + \
-            "|    5 | Amsterdam                          | NLD         | Noord-Holland          | {\"Population\": 731200}   |" + os.linesep + \
-            "|    6 | Rotterdam                          | NLD         | Zuid-Holland           | {\"Population\": 593321}   |" + os.linesep + \
-            "|    7 | Haag                               | NLD         | Zuid-Holland           | {\"Population\": 440900}   |" + os.linesep + \
-            "|    8 | Utrecht                            | NLD         | Utrecht                | {\"Population\": 234323}   |" + os.linesep + \
-            "|    9 | Eindhoven                          | NLD         | Noord-Brabant          | {\"Population\": 201843}   |" + os.linesep + \
-            "|   10 | Tilburg                            | NLD         | Noord-Brabant          | {\"Population\": 193238}   |" + os.linesep + \
-            "|   11 | Groningen                          | NLD         | Groningen              | {\"Population\": 172701}   |" + os.linesep + \
-            "|   12 | Breda                              | NLD         | Noord-Brabant          | {\"Population\": 160398}   |" + os.linesep + \
-            "|   13 | Apeldoorn                          | NLD         | Gelderland             | {\"Population\": 153491}   |" + os.linesep + \
-            "|   14 | Nijmegen                           | NLD         | Gelderland             | {\"Population\": 152463}   |" + os.linesep + \
-            "|   15 | Enschede                           | NLD         | Overijssel             | {\"Population\": 149544}   |" + os.linesep + \
-            "|   16 | Haarlem                            | NLD         | Noord-Holland          | {\"Population\": 148772}   |" + os.linesep + \
-            "|   17 | Almere                             | NLD         | Flevoland              | {\"Population\": 142465}   |" + os.linesep + \
-            "|   18 | Arnhem                             | NLD         | Gelderland             | {\"Population\": 138020}   |" + os.linesep + \
-            "|   19 | Zaanstad                           | NLD         | Noord-Holland          | {\"Population\": 135621}   |"
+            "+------+-----------------------------------+-------------+----------------------+--------------------------+" + os.linesep + \
+            "| ID   | Name                              | CountryCode | District             | Info                     |" + os.linesep + \
+            "+------+-----------------------------------+-------------+----------------------+--------------------------+" + os.linesep + \
+            "|    1 | Kabul                             | AFG         | Kabol                | {\"Population\": 1780000}  |" + os.linesep + \
+            "|    2 | Qandahar                          | AFG         | Qandahar             | {\"Population\": 237500}   |" + os.linesep + \
+            "|    3 | Herat                             | AFG         | Herat                | {\"Population\": 186800}   |" + os.linesep + \
+            "|    4 | Mazar-e-Sharif                    | AFG         | Balkh                | {\"Population\": 127800}   |" + os.linesep + \
+            "|    5 | Amsterdam                         | NLD         | Noord-Holland        | {\"Population\": 731200}   |" + os.linesep + \
+            "|    6 | Rotterdam                         | NLD         | Zuid-Holland         | {\"Population\": 593321}   |" + os.linesep + \
+            "|    7 | Haag                              | NLD         | Zuid-Holland         | {\"Population\": 440900}   |" + os.linesep + \
+            "|    8 | Utrecht                           | NLD         | Utrecht              | {\"Population\": 234323}   |" + os.linesep + \
+            "|    9 | Eindhoven                         | NLD         | Noord-Brabant        | {\"Population\": 201843}   |" + os.linesep + \
+            "|   10 | Tilburg                           | NLD         | Noord-Brabant        | {\"Population\": 193238}   |" + os.linesep + \
+            "|   11 | Groningen                         | NLD         | Groningen            | {\"Population\": 172701}   |" + os.linesep + \
+            "|   12 | Breda                             | NLD         | Noord-Brabant        | {\"Population\": 160398}   |" + os.linesep + \
+            "|   13 | Apeldoorn                         | NLD         | Gelderland           | {\"Population\": 153491}   |" + os.linesep + \
+            "|   14 | Nijmegen                          | NLD         | Gelderland           | {\"Population\": 152463}   |" + os.linesep + \
+            "|   15 | Enschede                          | NLD         | Overijssel           | {\"Population\": 149544}   |" + os.linesep + \
+            "|   16 | Haarlem                           | NLD         | Noord-Holland        | {\"Population\": 148772}   |" + os.linesep + \
+            "|   17 | Almere                            | NLD         | Flevoland            | {\"Population\": 142465}   |" + os.linesep + \
+            "|   18 | Arnhem                            | NLD         | Gelderland           | {\"Population\": 138020}   |" + os.linesep + \
+            "|   19 | Zaanstad                          | NLD         | Noord-Holland        | {\"Population\": 135621}   |"
         expectedDataInLast20Rows = \
-            "| 4060 | Santa Monica                       | USA         | California             | {\"Population\": 91084}    |" + os.linesep + \
-            "| 4061 | Fall River                         | USA         | Massachusetts          | {\"Population\": 90555}    |" + os.linesep + \
-            "| 4062 | Kenosha                            | USA         | Wisconsin              | {\"Population\": 89447}    |" + os.linesep + \
-            "| 4063 | Elgin                              | USA         | Illinois               | {\"Population\": 89408}    |" + os.linesep + \
-            "| 4064 | Odessa                             | USA         | Texas                  | {\"Population\": 89293}    |" + os.linesep + \
-            "| 4065 | Carson                             | USA         | California             | {\"Population\": 89089}    |" + os.linesep + \
-            "| 4066 | Charleston                         | USA         | South Carolina         | {\"Population\": 89063}    |" + os.linesep + \
-            "| 4067 | Charlotte Amalie                   | VIR         | St Thomas              | {\"Population\": 13000}    |" + os.linesep + \
-            "| 4068 | Harare                             | ZWE         | Harare                 | {\"Population\": 1410000}  |" + os.linesep + \
-            "| 4069 | Bulawayo                           | ZWE         | Bulawayo               | {\"Population\": 621742}   |" + os.linesep + \
-            "| 4070 | Chitungwiza                        | ZWE         | Harare                 | {\"Population\": 274912}   |" + os.linesep + \
-            "| 4071 | Mount Darwin                       | ZWE         | Harare                 | {\"Population\": 164362}   |" + os.linesep + \
-            "| 4072 | Mutare                             | ZWE         | Manicaland             | {\"Population\": 131367}   |" + os.linesep + \
-            "| 4073 | Gweru                              | ZWE         | Midlands               | {\"Population\": 128037}   |" + os.linesep + \
-            "| 4074 | Gaza                               | PSE         | Gaza                   | {\"Population\": 353632}   |" + os.linesep + \
-            "| 4075 | Khan Yunis                         | PSE         | Khan Yunis             | {\"Population\": 123175}   |" + os.linesep + \
-            "| 4076 | Hebron                             | PSE         | Hebron                 | {\"Population\": 119401}   |" + os.linesep + \
-            "| 4077 | Jabaliya                           | PSE         | North Gaza             | {\"Population\": 113901}   |" + os.linesep + \
-            "| 4078 | Nablus                             | PSE         | Nablus                 | {\"Population\": 100231}   |" + os.linesep + \
-            "| 4079 | Rafah                              | PSE         | Rafah                  | {\"Population\": 92020}    |" + os.linesep + \
-            "+------+------------------------------------+-------------+------------------------+--------------------------+" + os.linesep + \
+            "| 4060 | Santa Monica                      | USA         | California           | {\"Population\": 91084}    |" + os.linesep + \
+            "| 4061 | Fall River                        | USA         | Massachusetts        | {\"Population\": 90555}    |" + os.linesep + \
+            "| 4062 | Kenosha                           | USA         | Wisconsin            | {\"Population\": 89447}    |" + os.linesep + \
+            "| 4063 | Elgin                             | USA         | Illinois             | {\"Population\": 89408}    |" + os.linesep + \
+            "| 4064 | Odessa                            | USA         | Texas                | {\"Population\": 89293}    |" + os.linesep + \
+            "| 4065 | Carson                            | USA         | California           | {\"Population\": 89089}    |" + os.linesep + \
+            "| 4066 | Charleston                        | USA         | South Carolina       | {\"Population\": 89063}    |" + os.linesep + \
+            "| 4067 | Charlotte Amalie                  | VIR         | St Thomas            | {\"Population\": 13000}    |" + os.linesep + \
+            "| 4068 | Harare                            | ZWE         | Harare               | {\"Population\": 1410000}  |" + os.linesep + \
+            "| 4069 | Bulawayo                          | ZWE         | Bulawayo             | {\"Population\": 621742}   |" + os.linesep + \
+            "| 4070 | Chitungwiza                       | ZWE         | Harare               | {\"Population\": 274912}   |" + os.linesep + \
+            "| 4071 | Mount Darwin                      | ZWE         | Harare               | {\"Population\": 164362}   |" + os.linesep + \
+            "| 4072 | Mutare                            | ZWE         | Manicaland           | {\"Population\": 131367}   |" + os.linesep + \
+            "| 4073 | Gweru                             | ZWE         | Midlands             | {\"Population\": 128037}   |" + os.linesep + \
+            "| 4074 | Gaza                              | PSE         | Gaza                 | {\"Population\": 353632}   |" + os.linesep + \
+            "| 4075 | Khan Yunis                        | PSE         | Khan Yunis           | {\"Population\": 123175}   |" + os.linesep + \
+            "| 4076 | Hebron                            | PSE         | Hebron               | {\"Population\": 119401}   |" + os.linesep + \
+            "| 4077 | Jabaliya                          | PSE         | North Gaza           | {\"Population\": 113901}   |" + os.linesep + \
+            "| 4078 | Nablus                            | PSE         | Nablus               | {\"Population\": 100231}   |" + os.linesep + \
+            "| 4079 | Rafah                             | PSE         | Rafah                | {\"Population\": 92020}    |" + os.linesep + \
+            "+------+-----------------------------------+-------------+----------------------+--------------------------+" + os.linesep + \
             "4079 rows in set"
         x_cmds = [("city = db.getTable('City')\n", "mysql-js>"),
                   ("city.select()\n", expectedDataInFirst20Rows),

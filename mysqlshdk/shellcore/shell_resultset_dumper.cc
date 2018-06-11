@@ -26,7 +26,9 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <deque>
 
+#include "ext/linenoise-ng/include/linenoise.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/mod_mysql_resultset.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
@@ -34,20 +36,219 @@
 #include "shellcore/interrupt_handler.h"
 #include "utils/utils_string.h"
 
-class Field_formatter {
- public:
-  Field_formatter(bool align_right, size_t width,
-                  const mysqlsh::Column &column) {
-    _allocated = std::max<size_t>(1024, width + 1);
-    _zerofill = column.is_zerofill() ? column.get_length() : 0;
-    _align_right = align_right;
-    _buffer = new char[_allocated];
-    _column_width = width;
+#define MAX_DISPLAY_LENGTH 1024
+
+namespace mysqlsh {
+
+/* Calculates the required buffer size and display size considering:
+ * - Some single byte characters may require injection of escaped sequence \\
+ * - Some multibyte characters are displayed in the space of a single character
+ * - Some multibyte characters are displayed in the space of two characters
+ *
+ * For the reasons above, the real buffer required to store the formatted text
+ * might be bigger than the original length and the space required on screen
+ * might be either lower (mb chars) or bigger (injected escapes) than the
+ * original length.
+ *
+ * This function returns a tuple containing:
+ * - Real display character count
+ * - Real byte size
+ */
+std::tuple<size_t, size_t> get_utf8_sizes(const char *text, size_t length,
+                                          Print_flags flags) {
+  size_t char_count = 0;
+  size_t byte_count = 0;
+
+  const char *index = text;
+  const char *end = index + length;
+
+#ifdef _WIN32
+  // By default, we assume no multibyte content on the string and
+  // no escaped characters.
+  bool is_multibyte = false;
+  byte_count = length;
+  char_count = length;
+
+  if (length) {
+    // Calculates the required size for the buffer
+    int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text,
+                                       length, nullptr, 0);
+    // Required would be 0 in case of error, possible errors include:
+    // ERROR_INSUFFICIENT_BUFFER. A supplied buffer size was not large enough,
+    // or it was incorrectly set to NULL. ERROR_INVALID_FLAGS. The values
+    // supplied for flags were not valid. ERROR_INVALID_PARAMETER. Any of the
+    // parameter values was invalid. ERROR_NO_UNICODE_TRANSLATION. Invalid
+    // Unicode was found in a string.
+    //
+    // We know ERROR_INSUFFICIENT_BUFFER is not since we were calculating the
+    // buffer size We assume ERROR_INVALID_FLAGS and ERROR_INVALID_PARAMETER are
+    // not, since the function succeeds in most of the cases. So only posibility
+    // is ERROR_NO_UNICODE_TRANSLATION which would be the case i.e. for binary
+    // data. In such case the function simply exits returning the original
+    // lengths.
+    if (required > 0) {
+      std::wstring wstr;
+      wstr = std::wstring(required, 0);
+      required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text,
+                                     length, &wstr[0], required);
+
+      // If the final number of characters is different from the input
+      // length, it means there are characters that are multibyte
+      if (required != length) {
+        is_multibyte = true;
+
+        // Character count will be totally calculated on the loop
+        // not only escaped characters
+        char_count = 0;
+      }
+
+      auto character = wstr.begin();
+
+      // This loop is used to calculates two things
+      // 1) The "screen spaces" to be required by the string
+      //    - Some are injected spaces
+      //    - For multibyte strings, it includes width calculation
+      // 2) The injected bytes due to escape handling
+      while (character != wstr.end()) {
+        if (*character == '\0') {
+          if (flags.is_set(Print_flag::PRINT_0_AS_SPC)) {
+            // If it's multibyte, length is being calculated so we need
+            // to add 1 on this case, otherwise it is already considered
+            if (is_multibyte) char_count++;
+          } else if (flags.is_set(Print_flag::PRINT_0_AS_ESC)) {
+            char_count += is_multibyte ? 2 : 1;
+            byte_count++;
+          } else {
+            // If not multibyte, we need to remove one char since unescaped \0
+            // should not occupy space
+            if (!is_multibyte) char_count--;
+          }
+        } else if (flags.is_set(Print_flag::PRINT_CTRL) &&
+                   (*character == '\t' || *character == '\n' ||
+                    *character == '\\')) {
+          char_count += is_multibyte ? 2 : 1;
+          byte_count++;
+        } else if (is_multibyte) {
+          // Get the character width
+          int size = getWcwidth(*character);
+
+          // We ignore control characters which may return -1
+          // since no character will really remove screen space
+          if (size > 0) char_count += size;
+        }
+
+        character++;
+      }
+    }
   }
 
-  Field_formatter() {
-    _buffer = nullptr;
-    _allocated = 0;
+#else
+  std::mblen(NULL, 0);
+  while (index < end) {
+    int width = std::mblen(index, end - index);
+
+    // handles single byte characters
+    if (width == 1) {
+      // Controls characters to be printed add one extra char to the output
+      if (flags.is_set(Print_flag::PRINT_CTRL) &&
+          (*index == '\t' || *index == '\n' || *index == '\\')) {
+        char_count++;
+        byte_count++;
+      }
+
+      // The character itself
+      char_count++;
+      byte_count++;
+      index++;
+    } else if (width == 0) {
+      // handles the \0 character
+      index += 1;
+
+      // Printed as a space
+      if (flags.is_set(Print_flag::PRINT_0_AS_SPC)) {
+        char_count += 1;
+        byte_count += 1;
+
+        // Escape injection to be printed as \\0
+      } else if (flags.is_set(Print_flag::PRINT_0_AS_ESC)) {
+        char_count += 2;
+        byte_count += 2;
+      } else {
+        // No char_count but byte is needed
+        byte_count++;
+      }
+    } else if (width == -1) {
+      // If a so weird character was found, then it makes no sense to continue
+      // processing since the final measure will not be accurate anyway, so we
+      // return the original data
+      // This could be the case on any binary data column.
+      char_count = length;
+      byte_count = length;
+      break;
+    } else {
+      // Multibyte characters handling
+      // We need to find out whether they are printed in single or double space
+      wchar_t mbchar;
+      int size = 0;
+      if (std::mbtowc(&mbchar, index, width) > 0) {
+        size = getWcwidth(mbchar);
+        // We ignore control characters which may return -1
+        // since no character will really remove screen space
+        if (size < 0) size = 0;
+      } else {
+        size = 1;
+      }
+
+      char_count += size;
+      byte_count += width;
+      index += width;
+    }
+  }
+#endif
+
+  std::tuple<size_t, size_t> ret_val{char_count, byte_count};
+
+  return ret_val;
+}
+
+enum class ResultFormat { VERTICAL, TABBED, TABLE };
+
+class Field_formatter {
+ public:
+  Field_formatter(ResultFormat format, const mysqlsh::Column &column)
+      : m_buffer(nullptr),
+        m_max_display_length(0),
+        m_max_buffer_length(0),
+        m_max_mb_holes(0),
+        m_format(format) {
+    m_zerofill = column.is_zerofill() ? column.get_length() : 0;
+    m_binary = column.is_binary();
+
+    switch (m_format) {
+      case ResultFormat::TABBED:
+        m_flags = Print_flags(Print_flag::PRINT_0_AS_ESC);
+        m_flags.set(Print_flag::PRINT_CTRL);
+        m_align_right = false;
+        break;
+      case ResultFormat::VERTICAL:
+        m_flags = Print_flags(Print_flag::PRINT_0_AS_SPC);
+        m_align_right = false;
+        break;
+      case ResultFormat::TABLE:
+        m_flags = Print_flags(Print_flag::PRINT_0_AS_SPC);
+        m_align_right = column.is_zerofill() || column.is_numeric();
+
+        // Gets the column name display/buffer sizes
+        auto col_sizes =
+            get_utf8_sizes(column.get_column_label().c_str(),
+                           column.get_column_label().length(),
+                           Print_flags(Print_flag::PRINT_0_AS_ESC));
+
+        m_max_mb_holes = std::get<1>(col_sizes) - std::get<0>(col_sizes);
+        m_max_display_length = std::max(std::get<0>(col_sizes), m_zerofill);
+        m_max_buffer_length = std::get<1>(col_sizes);
+        break;
+    }
   }
 
   Field_formatter(Field_formatter &&other) {
@@ -55,31 +256,59 @@ class Field_formatter {
   }
 
   void operator=(Field_formatter &&other) {
-    _allocated = other._allocated;
-    _zerofill = other._zerofill;
-    _align_right = other._align_right;
-    _buffer = other._buffer;
-    _column_width = other._column_width;
+    m_allocated = other.m_allocated;
+    m_zerofill = other.m_zerofill;
+    m_align_right = other.m_align_right;
+    m_buffer = std::move(other.m_buffer);
+    m_binary = other.m_binary;
 
-    other._buffer = nullptr;
-    other._allocated = 0;
+    other.m_buffer = nullptr;
+    other.m_allocated = 0;
+
+    m_max_display_length = other.m_max_display_length;
+    m_max_buffer_length = other.m_max_buffer_length;
+    m_max_mb_holes = other.m_max_mb_holes;
+
+    // Length cache for each data to be printed with this formatter
+    m_display_lengths = std::move(other.m_display_lengths);
+    m_buffer_lengths = std::move(other.m_buffer_lengths);
+
+    m_format = other.m_format;
+    m_flags = other.m_flags;
   }
 
-  ~Field_formatter() { delete[] _buffer; }
+  void process(const shcore::Value &value) {
+    // This function is meant to be called only for tables
+    assert(m_format == ResultFormat::TABLE);
+
+    auto fsizes =
+        get_utf8_sizes(value.descr().c_str(), value.descr().length(), m_flags);
+
+    size_t dlength = std::get<0>(fsizes);
+    size_t blength = std::get<1>(fsizes);
+
+    m_max_mb_holes = std::max<size_t>(m_max_mb_holes, blength - dlength);
+
+    m_max_display_length = std::max<size_t>(m_max_display_length, dlength);
+
+    m_max_buffer_length = std::max<size_t>(m_max_buffer_length, blength);
+
+    m_display_lengths.push_back(dlength);
+    m_buffer_lengths.push_back(blength);
+
+    m_max_mb_holes = std::max<size_t>(m_max_mb_holes, blength - dlength);
+  }
+
+  ~Field_formatter() {}
 
   bool put(const shcore::Value &value) {
     reset();
 
     switch (value.type) {
-      case shcore::String:
-        if (value.value.s->length() < _allocated && _column_width > 0) {
-          append(value.value.s->c_str(), value.value.s->length());
-        } else {
-          // text too long (or not padded), let caller dump it raw
-          return false;
-        }
+      case shcore::String: {
+        return append(value.value.s->c_str(), value.value.s->length());
         break;
-
+      }
       case shcore::Null:
         append("NULL", 4);
         break;
@@ -92,8 +321,13 @@ class Field_formatter {
       case shcore::Integer:
       case shcore::UInteger: {
         std::string tmp = value.descr();
-        if (_zerofill > tmp.length()) {
-          tmp = std::string(_zerofill - tmp.length(), '0').append(tmp);
+        if (m_zerofill > tmp.length()) {
+          tmp = std::string(m_zerofill - tmp.length(), '0').append(tmp);
+
+          // Updates the display length with the new size
+          if (m_format == ResultFormat::TABLE) {
+            m_display_lengths[0] = tmp.length();
+          }
         }
         append(tmp.data(), tmp.length());
         break;
@@ -112,49 +346,111 @@ class Field_formatter {
     return true;
   }
 
-  const char *c_str() const { return _buffer; }
+  const char *c_str() const { return m_buffer.get(); }
+  size_t get_max_display_length() const { return m_max_display_length; }
+  size_t get_max_buffer_length() const { return m_max_buffer_length; }
 
  private:
-  void reset() { memset(_buffer, ' ', _allocated); }
+  std::unique_ptr<char> m_buffer;
+  size_t m_allocated;
+  size_t m_zerofill;
+  bool m_binary;
+  bool m_align_right;
 
-  inline void append(const char *text, size_t length) {
-    if (_column_width > 0) {
-      if (_align_right)
-        memcpy(_buffer + _column_width - length, text, length);
-      else
-        memcpy(_buffer, text, length);
-      _buffer[_column_width] = 0;
-    } else {
-      memcpy(_buffer, text, length);
-      _buffer[length] = 0;
+  size_t m_max_display_length;
+  size_t m_max_buffer_length;
+  size_t m_max_mb_holes;
+
+  // Length cache for each data to be printed with this formatter
+  std::deque<size_t> m_display_lengths;
+  std::deque<size_t> m_buffer_lengths;
+
+  ResultFormat m_format;
+  Print_flags m_flags;
+
+  void reset() {
+    // sets the buffer only once
+    if (!m_buffer) {
+      if (m_format == ResultFormat::TABLE) {
+        m_allocated = std::max<size_t>(m_max_display_length,
+                                       m_max_buffer_length + m_max_mb_holes) +
+                      1;
+
+        if (m_allocated > MAX_DISPLAY_LENGTH) m_allocated = MAX_DISPLAY_LENGTH;
+      } else {
+        m_allocated = MAX_DISPLAY_LENGTH;
+      }
+
+      m_buffer.reset(new char[m_allocated]);
     }
+
+    memset(m_buffer.get(), ' ', m_allocated);
   }
 
- private:
-  char *_buffer;
-  size_t _allocated;
-  size_t _column_width;
-  size_t _zerofill;
-  bool _align_right;
+  bool append(const char *text, size_t length) {
+    size_t display_size;
+    size_t buffer_size;
+    if (m_format == ResultFormat::TABLE) {
+      display_size = m_display_lengths.front();
+      buffer_size = m_buffer_lengths.front();
+      m_display_lengths.pop_front();
+      m_buffer_lengths.pop_front();
+    } else {
+      auto fsizes = get_utf8_sizes(text, length, m_flags);
+      display_size = std::get<0>(fsizes);
+      buffer_size = std::get<1>(fsizes);
+    }
+
+    if (buffer_size > m_allocated) return false;
+
+    size_t next_index = 0;
+    if (m_format == ResultFormat::TABLE) {
+      if (m_align_right && m_max_display_length > display_size) {
+        next_index = m_max_display_length - display_size;
+      }
+    }
+
+    auto buffer = m_buffer.get();
+    for (size_t index = 0; index < length; index++) {
+      if (m_flags.is_set(Print_flag::PRINT_0_AS_ESC) && text[index] == '\0') {
+        buffer[next_index++] = '\\';
+        buffer[next_index++] = '0';
+      } else if (m_flags.is_set(Print_flag::PRINT_0_AS_SPC) &&
+                 text[index] == '\0') {
+        buffer[next_index++] = ' ';
+      } else if (m_flags.is_set(Print_flag::PRINT_CTRL) &&
+                 text[index] == '\t') {
+        buffer[next_index++] = '\\';
+        buffer[next_index++] = 't';
+      } else if (m_flags.is_set(Print_flag::PRINT_CTRL) &&
+                 text[index] == '\n') {
+        buffer[next_index++] = '\\';
+        buffer[next_index++] = 'n';
+      } else if (m_flags.is_set(Print_flag::PRINT_CTRL) &&
+                 text[index] == '\\') {
+        buffer[next_index++] = '\\';
+        buffer[next_index++] = '\\';
+      } else {
+        buffer[next_index++] = text[index];
+      }
+    }
+
+    if (m_format == ResultFormat::TABLE) {
+      if (buffer_size > display_size) {
+        // It means some multibyte characters were found, and so we need to
+        // truncate the buffer adding the 'lost' characters
+        buffer[m_max_display_length + (buffer_size - display_size)] = 0;
+      } else {
+        // Ohterwise, we truncate at _column_width
+        buffer[m_max_display_length] = 0;
+      }
+    } else {
+      buffer[next_index] = 0;
+    }
+
+    return true;
+  }
 };
-
-// TODO(alfredo) this should be used instead of the below check once
-// code is changed to use mysqlshdk::db
-// static bool is_numeric_type(mysqlshdk::db::Type type) {
-//   return (type == mysqlshdk::db::Type::Integer ||
-//     type == mysqlshdk::db::Type::UInteger ||
-//     type == mysqlshdk::db::Type::Float ||
-//     type == mysqlshdk::db::Type::Double ||
-//     type == mysqlshdk::db::Type::Decimal);
-// }
-
-static bool is_numeric_type(shcore::Value value) {
-  std::string id = value.descr();
-  if (id.length() > 7) id = id.substr(6, id.length() - 7);
-  return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
-          id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
-          id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
-}
 
 ResultsetDumper::ResultsetDumper(
     std::shared_ptr<mysqlsh::ShellBaseResult> target, bool buffer_data)
@@ -351,12 +647,11 @@ size_t ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
 
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
-  fmt.resize(field_count);
   for (index = 0; index < field_count; index++) {
     auto column = std::static_pointer_cast<mysqlsh::Column>(
         metadata->at(index).as_object());
-    fmt[index] = Field_formatter(false, 0, *column);
-    console->print(column->get_column_label());
+    fmt.emplace_back(ResultFormat::TABBED, *column);
+    console->print(column->get_column_label().c_str());
     console->print(index < (field_count - 1) ? "\t" : "\n");
   }
 
@@ -367,6 +662,7 @@ size_t ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       shcore::Value value = row->get_member(field_index);
+
       if (fmt[field_index].put(value)) {
         console->print(fmt[field_index].c_str());
       } else {
@@ -393,7 +689,7 @@ size_t ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
     auto column = std::static_pointer_cast<mysqlsh::Column>(
         metadata->at(col_index).as_object());
     max_col_len = std::max(max_col_len, column->get_column_label().length());
-    fmt.push_back({false, 0, *column});
+    fmt.emplace_back(ResultFormat::VERTICAL, *column);
   }
 
   auto console = mysqlsh::current_console();
@@ -433,8 +729,8 @@ size_t ResultsetDumper::dump_vertical(shcore::Value::Array_type_ref records) {
 size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   std::shared_ptr<shcore::Value::Array_type> metadata =
       _resultset->get_member("columns").as_array();
-  std::vector<uint64_t> max_lengths;
-  std::vector<std::shared_ptr<mysqlsh::Column>> column_meta;
+  std::vector<std::string> columns;
+  std::vector<Field_formatter> fmt;
 
   size_t field_count = metadata->size();
   if (field_count == 0) return 0;
@@ -445,48 +741,29 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
     auto column = std::static_pointer_cast<mysqlsh::Column>(
         metadata->at(field_index).as_object());
 
-    column_meta.push_back(column);
-
-    if (column->is_zerofill()) {
-      max_lengths.push_back(column->get_length());
-    } else {
-      max_lengths.push_back(0);
-    }
-    max_lengths[field_index] = std::max<uint64_t>(
-        max_lengths[field_index], column->get_column_label().length());
+    columns.push_back(column->get_column_label());
+    fmt.emplace_back(ResultFormat::TABLE, *column);
   }
 
-  // Now updates the length with the real column data lengths
   size_t row_index;
   for (row_index = 0; row_index < records->size() && !_cancelled; row_index++) {
     auto row = (*records)[row_index].as_object<mysqlsh::Row>();
     for (size_t field_index = 0; field_index < field_count; field_index++) {
-      max_lengths[field_index] =
-          std::max<uint64_t>(max_lengths[field_index],
-                             row->get_member(field_index).descr().length());
+      fmt[field_index].process(row->get_member(field_index));
     }
   }
+
   if (_cancelled) return 0;
 
   //-----------
 
   size_t index = 0;
-  std::vector<Field_formatter> fmt;
 
   std::string separator("+");
   for (index = 0; index < field_count; index++) {
-    std::string field_separator(max_lengths[index] + 2, '-');
+    std::string field_separator(fmt[index].get_max_display_length() + 2, '-');
     field_separator.append("+");
     separator.append(field_separator);
-
-    if (column_meta[index]->is_zerofill()) {
-      fmt.push_back(
-          {true, static_cast<size_t>(max_lengths[index]), *column_meta[index]});
-    } else {
-      fmt.push_back({is_numeric_type(column_meta[index]->get_type()),
-                     static_cast<size_t>(max_lengths[index]),
-                     *column_meta[index]});
-    }
   }
   separator.append("\n");
 
@@ -497,10 +774,12 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   console->print("| ");
   for (index = 0; index < field_count; index++) {
     std::string format = "%-";
-    format.append(std::to_string(max_lengths[index]));
+    format.append(std::to_string(fmt[index].get_max_display_length()));
     format.append((index == field_count - 1) ? "s |\n" : "s | ");
-    console->print(shcore::str_format(
-        format.c_str(), column_meta[index]->get_column_label().c_str()));
+    auto column = std::static_pointer_cast<mysqlsh::Column>(
+        metadata->at(index).as_object());
+    console->print(
+        shcore::str_format(format.c_str(), column->get_column_label().c_str()));
   }
   console->print(separator);
 
@@ -614,20 +893,4 @@ void ResultsetDumper::dump_warnings(bool classic) {
   }
 }
 
-/*Value ResultsetDumper::get_all_records(mysqlsh::mysql::ClassicResult* result)
-{
-return result->all(shcore::Argument_list());
-}
-Value ResultsetDumper::get_all_records(mysqlsh::mysqlx::SqlResult* result)
-{
-return result->fetch_all(shcore::Argument_list());
-}
-
-bool ResultsetDumper::move_next_data_set(mysqlsh::mysql::ClassicResult* result)
-{
-return result->next_result(shcore::Argument_list());
-}
-bool ResultsetDumper::move_next_data_set(mysqlsh::mysqlx::SqlResult* result)
-{
-return result->next_result(shcore::Argument_list());
-}*/
+}  // namespace mysqlsh

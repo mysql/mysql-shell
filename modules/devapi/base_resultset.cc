@@ -88,16 +88,27 @@ bool Column::operator==(const Object_bridge &other) const {
   return this == &other;
 }
 
-static bool is_numeric_type(shcore::Value value) {
-  std::string id = value.descr();
+bool Column::is_numeric() const {
+  std::string id = _type.descr();
   if (id.length() > 7) id = id.substr(6, id.length() - 7);
+
   return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
           id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
           id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
 }
 
 bool Column::is_number_signed() const {
-  return is_numeric_type(_type) ? !_unsigned : false;
+  return is_numeric() ? !_unsigned : false;
+}
+
+bool Column::is_binary() const {
+  std::string id = _type.descr();
+  if (id.length() > 7) id = id.substr(6, id.length() - 7);
+
+  return (_charset == "binary" &&
+          (id == "BIT" || id == "BYTES" || id == "BLOB" || id == "LONG_BLOB" ||
+           id == "MEDIUM_BLOB" || id == "TINY_BLOB" || id == "VAR_STRING" ||
+           id == "STRING" || id == "VARCHAR" || id == "GEOMETRY"));
 }
 
 REGISTER_HELP_PROPERTY(schemaName, Column);

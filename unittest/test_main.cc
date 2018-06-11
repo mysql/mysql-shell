@@ -31,6 +31,7 @@
 
 #include <mysql.h>
 #include <stdlib.h>
+#include <clocale>
 #include <fstream>
 #include <iostream>
 
@@ -38,6 +39,7 @@
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "shellcore/interrupt_handler.h"
@@ -493,6 +495,23 @@ void setup_test_environment() {
 
 int main(int argc, char **argv) {
   mysqlshdk::utils::init_stacktrace();
+#ifdef WIN32
+  UINT origcp = GetConsoleCP();
+  UINT origocp = GetConsoleOutputCP();
+
+  // Enable UTF-8 input and output
+  SetConsoleCP(CP_UTF8);
+  SetConsoleOutputCP(CP_UTF8);
+
+  auto restore_cp = shcore::on_leave_scope([origcp, origocp]() {
+    // Restore original codepage
+    SetConsoleCP(origcp);
+    SetConsoleOutputCP(origocp);
+  });
+#else
+  auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
+  if (!locale) log_error("Failed to set locale to en_US.UTF-8");
+#endif
 
 #if defined(WIN32)
   g_test_color_output = _isatty(_fileno(stdout));

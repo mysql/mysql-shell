@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -357,14 +357,14 @@ TEST_F(Mysqlsh_fieldtypes_all, Binary_types_X) {
       "SELECT * FROM t_lob;",
       multiline({"c1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\t"
                  "c9\tc10\tc11\tc12",
-                 "\t\t\t\t\t\t\t\t"
-                 "\t\t\t",
+                 "\t\t\t\t\t\t\t\t\t\t\t",
                  "tinyblob-text readable\tblob-text readable\t"
                  "mediumblob-text readable\tlongblob-text readable\t"
                  "tinytext\ttext\tmediumtext\tlongtext\t"
-                 "tinytext-binary",
-                 "next line\ttext-binary", "next line\tmediumtext-binary",
-                 "next line\tlongtext-binary ", "next line"}),
+                 "tinytext-binary\\nnext line\t"
+                 "text-binary\\nnext line\t"
+                 "mediumtext-binary\\nnext line\t"
+                 "longtext-binary \\nnext line"}),
       _output);
 }
 
@@ -375,14 +375,14 @@ TEST_F(Mysqlsh_fieldtypes_all, Binary_types_classic) {
       "SELECT * FROM t_lob;",
       multiline({"c1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\t"
                  "c9\tc10\tc11\tc12",
-                 "\t\t\t\t\t\t\t\t"
-                 "\t\t\t",
+                 "\t\t\t\t\t\t\t\t\t\t\t",
                  "tinyblob-text readable\tblob-text readable\t"
                  "mediumblob-text readable\tlongblob-text readable\t"
                  "tinytext\ttext\tmediumtext\tlongtext\t"
-                 "tinytext-binary",
-                 "next line\ttext-binary", "next line\tmediumtext-binary",
-                 "next line\tlongtext-binary ", "next line"}),
+                 "tinytext-binary\\nnext line\t"
+                 "text-binary\\nnext line\t"
+                 "mediumtext-binary\\nnext line\t"
+                 "longtext-binary \\nnext line"}),
       _output);
 }
 

@@ -554,6 +554,10 @@ namespace linenoise_ng {
 int mk_wcwidth(char32_t ucs);
 }
 
+int getWcwidth(char32_t ucs) {
+  return mk_wcwidth(ucs);
+}
+
 static void recomputeCharacterWidths(const char32_t* text, char* widths,
                                      int charCount) {
   for (int i = 0; i < charCount; ++i) {
