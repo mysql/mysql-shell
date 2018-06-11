@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"local_pass:@localhost:2127?ssl-mode=REQUIRED","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"local_pass:@localhost:2297?ssl-mode=REQUIRED","protocol":"classic"},
 {"type":"response","subtype":"ERROR","index":2,"code":"1045","msg":"Access denied for user 'local_pass'@'localhost' (using password: YES)","sqlstate":"28000"},
 null]
