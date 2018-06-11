@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://remo_blank:pass@localhost:21470?ssl-mode=DISABLED&get-server-public-key=true","protocol":"x"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://remo_blank:pass@localhost:22470?ssl-mode=DISABLED&get-server-public-key=true","protocol":"x"},
 {"type":"response","subtype":"ERROR","index":2,"code":"","msg":"X Protocol: Option get-server-public-key is not supported.","sqlstate":""},
 null]

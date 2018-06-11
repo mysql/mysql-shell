@@ -11,6 +11,34 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
+function get_rpl_users() {
+    var result = session.runSql(
+        "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
+        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
+    return result.fetchAll();
+}
+
+function has_new_rpl_users(rows) {
+    var sql =
+        "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
+        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\" " +
+        "AND GRANTEE NOT IN (";
+    for (i = 0; i < rows.length; i++) {
+        sql += "\"" + rows[i][0] + "\"";
+        if (i != rows.length-1) {
+            sql += ", ";
+        }
+    }
+    sql += ")";
+    var result = session.runSql(sql);
+    var new_user_rows = result.fetchAll();
+    if (new_user_rows.length == 0) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 // Update __have_ssl and other with the real instance SSL support.
 // NOTE: Workaround BUG#25503817 to display the right ssl info for status()
 update_have_ssl(__mysql_sandbox_port1);
@@ -57,6 +85,14 @@ dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
 dba.rebootClusterFromCompleteOutage("dev2");
 // Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
 dba.rebootClusterFromCompleteOutage("dev");
+
+// Connect to instance 1 to properly check status of other killed instances.
+session.close();
+shell.connect(__sandbox_uri1);
+
+//@ Get data about existing replication users before reboot.
+//Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
+var rpl_users_rows = get_rpl_users();
 
 // Kill all the instances
 // Connect to instance 1 to properly check status of other killed instances.
@@ -121,12 +157,22 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+//@<OUT> Confirm no new replication user was created on bootstrap member.
+//Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
+print(has_new_rpl_users(rpl_users_rows) + "\n");
+
 //@<OUT> cluster status after reboot
 cluster.status();
+cluster.disconnect();
+session.close();
+
+//@<OUT> Confirm no new replication user was created on other rejoinning member.
+//Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
+shell.connect(__sandbox_uri2);
+print(has_new_rpl_users(rpl_users_rows) + "\n");
 session.close();
 
 //@ Finalization
-cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

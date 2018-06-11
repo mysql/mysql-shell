@@ -2858,11 +2858,6 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       validate_super_read_only(group_session, clear_read_only, m_console);
 
       shcore::Argument_list new_args;
-      std::string replication_user, replication_user_password;
-      // A new replication user and password must be created
-      // so we pass an empty string to the MP call
-      replication_user = "";
-      replication_user_password = "";
 
       // The current 'group_replication_group_name' must be kept otherwise
       // if instances are rejoined later the operation may fail because
@@ -2878,10 +2873,15 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
       (*options)["memberSslMode"] = shcore::Value(gr_ssl_mode);
       new_args.push_back(shcore::Value(options));
+
+      // BUG#27344040: REBOOT CLUSTER SHOULD NOT CREATE NEW USER
+      // No new replication user should be created when rebooting a cluster and
+      // existing recovery users should be reused. Therefore the boolean to
+      // skip replication users is set to true and the respective replication
+      // user credentials left empty.
       default_replicaset->add_instance(
-          current_session_options, new_args, replication_user,
-          replication_user_password, true, current_group_replication_group_name,
-          true);
+          current_session_options, new_args, "", "", true,
+          current_group_replication_group_name, true, true);
     }
 
     // 7. Update the Metadata Schema information

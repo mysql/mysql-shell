@@ -68,13 +68,16 @@ class ProvisioningInterface {
                    shcore::Value::Array_type_ref *errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
                     shcore::Value::Array_type_ref *errors);
-  int start_replicaset(
-      const mysqlshdk::db::Connection_options &instance,
-      const std::string &repl_user, const std::string &super_user_password,
-      const std::string &repl_user_password, bool multi_primary,
-      const std::string &ssl_mode, const std::string &ip_whitelist,
-      const std::string &group_name, const std::string &gr_local_address,
-      const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors);
+  int start_replicaset(const mysqlshdk::db::Connection_options &instance,
+                       const std::string &repl_user,
+                       const std::string &super_user_password,
+                       const std::string &repl_user_password,
+                       bool multi_primary, const std::string &ssl_mode,
+                       const std::string &ip_whitelist,
+                       const std::string &group_name,
+                       const std::string &gr_local_address,
+                       const std::string &gr_group_seeds, bool skip_rpl_user,
+                       shcore::Value::Array_type_ref *errors);
   int join_replicaset(const mysqlshdk::db::Connection_options &instance,
                       const mysqlshdk::db::Connection_options &peer,
                       const std::string &repl_user,

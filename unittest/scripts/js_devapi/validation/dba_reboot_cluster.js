@@ -52,6 +52,9 @@ The instance cluster settings were successfully persisted.
 ||Dba.rebootClusterFromCompleteOutage: The cluster with the name 'dev2' does not exist.
 ||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
 
+//@ Get data about existing replication users before reboot.
+||
+
 //@ Reboot cluster fails because instance is online and there is no quorum.
 ||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore from the quorum loss.
 
@@ -63,6 +66,9 @@ The instance cluster settings were successfully persisted.
 
 //@ Dba.rebootClusterFromCompleteOutage success
 ||
+
+//@<OUT> Confirm no new replication user was created on bootstrap member.
+false
 
 //@<OUT> cluster status after reboot
 {
@@ -92,6 +98,9 @@ The instance cluster settings were successfully persisted.
     },
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
+
+//@<OUT> Confirm no new replication user was created on other rejoinning member.
+false
 
 //@ Finalization
 ||

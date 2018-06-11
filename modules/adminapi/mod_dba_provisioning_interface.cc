@@ -691,7 +691,8 @@ int ProvisioningInterface::start_replicaset(
     const std::string &repl_user_password, bool multi_primary,
     const std::string &ssl_mode, const std::string &ip_whitelist,
     const std::string &group_name, const std::string &gr_local_address,
-    const std::string &gr_group_seeds, shcore::Value::Array_type_ref *errors) {
+    const std::string &gr_group_seeds, bool skip_rpl_user,
+    shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
 
@@ -701,8 +702,13 @@ int ProvisioningInterface::start_replicaset(
     args.push_back(shcore::Value(map));
   }
 
-  kwargs["rep_user_passwd"] = shcore::Value(repl_user_password);
-  kwargs["replication_user"] = shcore::Value(repl_user);
+  if (!repl_user.empty()) {
+    kwargs["rep_user_passwd"] = shcore::Value(repl_user_password);
+    kwargs["replication_user"] = shcore::Value(repl_user);
+  }
+  if (skip_rpl_user) {
+    kwargs["skip_rpl_user"] = shcore::Value::True();
+  }
 
   if (multi_primary) {
     kwargs["single_primary"] = shcore::Value("OFF");

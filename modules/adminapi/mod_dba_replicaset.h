@@ -138,7 +138,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &existing_replication_user = "",
       const std::string &existing_replication_password = "",
       bool overwrite_seed = false, const std::string &group_name = "",
-      bool skip_instance_check = false);
+      bool skip_instance_check = false, bool skip_rpl_user = false);
 
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rejoin_instance_(const shcore::Argument_list &args);
@@ -205,16 +205,14 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
  private:
   void init();
 
-  bool do_join_replicaset(const mysqlshdk::db::Connection_options &instance,
-                          mysqlshdk::db::Connection_options *peer,
-                          const std::string &super_user_password,
-                          const std::string &repl_user,
-                          const std::string &repl_user_password,
-                          const std::string &ssl_mode,
-                          const std::string &ip_whitelist,
-                          const std::string &group_name = "",
-                          const std::string &local_address = "",
-                          const std::string &group_seeds = "");
+  bool do_join_replicaset(
+      const mysqlshdk::db::Connection_options &instance,
+      mysqlshdk::db::Connection_options *peer,
+      const std::string &super_user_password, const std::string &repl_user,
+      const std::string &repl_user_password, const std::string &ssl_mode,
+      const std::string &ip_whitelist, const std::string &group_name = "",
+      const std::string &local_address = "",
+      const std::string &group_seeds = "", bool skip_rpl_user = false);
 
   std::string get_peer_instance();
 
