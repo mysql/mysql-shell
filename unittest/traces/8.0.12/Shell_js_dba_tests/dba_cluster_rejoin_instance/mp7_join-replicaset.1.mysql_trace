@@ -75,7 +75,7 @@
 {"type":"response","subtype":"RESULT","index":74,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":75,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":76,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
-{"type":"request","subtype":"QUERY","index":77,"sql":"SET PERSIST group_replication_group_name = 'd464c14c-6e55-11e8-8e71-0010e08a7b78'"},
+{"type":"request","subtype":"QUERY","index":77,"sql":"SET PERSIST group_replication_group_name = '5f5cb717-6efe-11e8-aa4a-0010e08a7b78'"},
 {"type":"response","subtype":"RESULT","index":78,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":79,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":80,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},

@@ -1,8 +1,8 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2217","protocol":"classic"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://root:root@localhost:2097","protocol":"classic"},
 {"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"12","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"insert into testdb.a values (default)\n"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":9,"affected_rows":1,"warning_count":0,"info":"","gtids":"8d039a72-6e55-11e8-a24a-0010e08a7b78:11"},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":9,"affected_rows":1,"warning_count":0,"info":"","gtids":"219db803-6efe-11e8-a49f-0010e08a7b78:11"},
 {"type":"request","subtype":"CLOSE","index":5},
 {"type":"response","subtype":"OK","index":6},
 null]

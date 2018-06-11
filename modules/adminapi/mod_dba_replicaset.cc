@@ -400,7 +400,8 @@ shcore::Value ReplicaSet::add_instance(
     const shcore::Argument_list &args,
     const std::string &existing_replication_user,
     const std::string &existing_replication_password, bool overwrite_seed,
-    const std::string &group_name, bool skip_instance_check) {
+    const std::string &group_name, bool skip_instance_check,
+    bool skip_rpl_user) {
   shcore::Value ret_val;
   bool success = false;
 
@@ -570,8 +571,9 @@ shcore::Value ReplicaSet::add_instance(
     std::string replication_user(existing_replication_user);
     std::string replication_user_password(existing_replication_password);
 
-    // Creates the replication user ONLY if not already given
-    if (replication_user.empty()) {
+    // Creates the replication user ONLY if not already given and if
+    // skip_rpl_user was not set to true.
+    if (!skip_rpl_user && replication_user.empty()) {
       // TODO(.) Replication user is not a metadata thing... all the GR
       // things should be moved out of metadata class
       _metadata_storage->create_repl_account(replication_user,
@@ -595,7 +597,7 @@ shcore::Value ReplicaSet::add_instance(
       success = do_join_replicaset(
           instance_cnx_opt, nullptr, super_user_password, replication_user,
           replication_user_password, ssl_mode, ip_whitelist, group_name,
-          local_address, group_seeds);
+          local_address, group_seeds, skip_rpl_user);
     } else {
       // We need to retrieve a peer instance, so let's use the Seed one
       // NOTE(rennox): In add instance this function is not used, the peer
@@ -634,7 +636,7 @@ shcore::Value ReplicaSet::add_instance(
       success = do_join_replicaset(instance_cnx_opt, &peer, super_user_password,
                                    replication_user, replication_user_password,
                                    ssl_mode, ip_whitelist, group_name,
-                                   local_address, group_seeds);
+                                   local_address, group_seeds, skip_rpl_user);
     }
   }
   if (success) {
@@ -683,7 +685,8 @@ bool ReplicaSet::do_join_replicaset(
     const std::string &super_user_password, const std::string &repl_user,
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &group_name,
-    const std::string &local_address, const std::string &group_seeds) {
+    const std::string &local_address, const std::string &group_seeds,
+    bool skip_rpl_user) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -699,11 +702,12 @@ bool ReplicaSet::do_join_replicaset(
     exit_code = cluster->get_provisioning_interface()->start_replicaset(
         instance, repl_user, super_user_password, repl_user_password,
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
-        group_name, local_address, group_seeds, &errors);
+        group_name, local_address, group_seeds, skip_rpl_user, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, super_user_password, repl_user_password,
-        ssl_mode, ip_whitelist, local_address, group_seeds, false, &errors);
+        ssl_mode, ip_whitelist, local_address, group_seeds, skip_rpl_user,
+        &errors);
   }
 
   if (exit_code == 0) {

@@ -407,6 +407,7 @@ def start(server_info, **kwargs):
     skip_schema_checks = kwargs.get("skip_schema_checks", [])
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
+    skip_rpl_user = kwargs.get("skip_rpl_user", False)
 
     _LOGGER.step("Checking Group Replication prerequisites.")
     try:
@@ -416,10 +417,14 @@ def start(server_info, **kwargs):
                 kwargs["ssl_mode"] != GR_SSL_DISABLED:
             raise GadgetError(_ERROR_NO_HAVE_SSL.format(server))
 
-        rpl_user_dict = get_rpl_usr(kwargs)
-
-        req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
-                                option_file=option_file)
+        # Skip replication user checks if requested.
+        rpl_user_dict = None
+        if not skip_rpl_user:
+            rpl_user_dict = get_rpl_usr(kwargs)
+            req_dict = get_req_dict(server, rpl_user_dict["replication_user"],
+                                    option_file=option_file)
+        else:
+            req_dict = get_req_dict(server, None, option_file=option_file)
 
         check_server_requirements(server, req_dict, rpl_user_dict, verbose,
                                   dry_run, skip_schema_checks,
@@ -471,8 +476,10 @@ def start(server_info, **kwargs):
         setup_gr_config(server, gr_config_vars, dry_run=dry_run)
 
         # Run the change master to store MySQL replication user name or
-        # password information in the master info repository
-        do_change_master(server, rpl_user_dict, dry_run=dry_run)
+        # password information in the master info repository, but only if
+        # replication user is NOT skipped.
+        if not skip_rpl_user:
+            do_change_master(server, rpl_user_dict, dry_run=dry_run)
 
         set_bootstrap(server, dry_run)
 
