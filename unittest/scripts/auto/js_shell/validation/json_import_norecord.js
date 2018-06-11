@@ -321,52 +321,52 @@
 +---------------+---------+------+-----+---------+----------------+
 
 //@<OUT> FRB3-01b 8.0 {VER(>=8.0)}
-+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
-| ident | json_data                                                                                                                                                              | default_value |
-+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
-|     1 | {"_id": "0000000000001", "City": "Kraków", "area": 556.76, "District": "Dzielnica I Stare Miasto", "residents": 35573, "population density": 6382.82}                 |            42 |
-|     2 | {"_id": "0000000000002", "City": "Kraków", "area": 584.52, "District": "Dzielnica II Grzegórzki", "residents": 29230, "population density": 5000.68}                 |            42 |
-|     3 | {"_id": "0000000000003", "City": "Kraków", "area": 643.79, "District": "Dzielnica III Prądnik Czerwony", "residents": 47775, "population density": 7420.9}           |            42 |
-|     4 | {"_id": "0000000000004", "City": "Kraków", "area": 2341.87, "District": "Dzielnica IV Prądnik Biały", "residents": 69135, "population density": 2952.13}            |            42 |
-|     5 | {"_id": "0000000000005", "City": "Kraków", "area": 561.9, "District": "Dzielnica V Krowodrza", "residents": 31870, "population density": 5671.83}                     |            42 |
-|     6 | {"_id": "0000000000006", "City": "Kraków", "area": 955.96, "District": "Dzielnica VI Bronowice", "residents": 23465, "population density": 2454.6}                    |            42 |
-|     7 | {"_id": "0000000000007", "City": "Kraków", "area": 2873.1, "District": "Dzielnica VII Zwierzyniec", "residents": 20454, "population density": 711.91}                 |            42 |
-|     8 | {"_id": "0000000000008", "City": "Kraków", "area": 4618.87, "District": "Dzielnica VIII Dębniki", "residents": 59395, "population density": 1295.92}                 |            42 |
++-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| ident | json_data                                                                                                                                                          | default_value |
++-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
+|     1 | {"_id": "0000000000001", "City": "Kraków", "area": 556.76, "District": "Dzielnica I Stare Miasto", "residents": 35573, "population density": 6382.82}              |            42 |
+|     2 | {"_id": "0000000000002", "City": "Kraków", "area": 584.52, "District": "Dzielnica II Grzegórzki", "residents": 29230, "population density": 5000.68}               |            42 |
+|     3 | {"_id": "0000000000003", "City": "Kraków", "area": 643.79, "District": "Dzielnica III Prądnik Czerwony", "residents": 47775, "population density": 7420.9}         |            42 |
+|     4 | {"_id": "0000000000004", "City": "Kraków", "area": 2341.87, "District": "Dzielnica IV Prądnik Biały", "residents": 69135, "population density": 2952.13}           |            42 |
+|     5 | {"_id": "0000000000005", "City": "Kraków", "area": 561.9, "District": "Dzielnica V Krowodrza", "residents": 31870, "population density": 5671.83}                  |            42 |
+|     6 | {"_id": "0000000000006", "City": "Kraków", "area": 955.96, "District": "Dzielnica VI Bronowice", "residents": 23465, "population density": 2454.6}                 |            42 |
+|     7 | {"_id": "0000000000007", "City": "Kraków", "area": 2873.1, "District": "Dzielnica VII Zwierzyniec", "residents": 20454, "population density": 711.91}              |            42 |
+|     8 | {"_id": "0000000000008", "City": "Kraków", "area": 4618.87, "District": "Dzielnica VIII Dębniki", "residents": 59395, "population density": 1295.92}               |            42 |
 |     9 | {"_id": "0000000000009", "City": "Kraków", "area": 541.51, "District": "Dzielnica IX Łagiewniki-Borek Fałęcki", "residents": 14859, "population density": 2743.99} |            42 |
-|    10 | {"_id": "000000000000a", "City": "Kraków", "area": 2560.4, "District": "Dzielnica X Swoszowice", "residents": 25608, "population density": 1000.16}                   |            42 |
-|    11 | {"_id": "000000000000b", "City": "Kraków", "area": 954.0, "District": "Dzielnica XI Podgórze Duchackie", "residents": 52859, "population density": 5540.78}          |            42 |
-|    12 | {"_id": "000000000000c", "City": "Kraków", "area": 1847.39, "District": "Dzielnica XII Bieżanów-Prokocim", "residents": 63026, "population density": 3411.62}       |            42 |
-|    13 | {"_id": "000000000000d", "City": "Kraków", "area": 2566.71, "District": "Dzielnica XIII Podgórze", "residents": 34045, "population density": 1326.41}                |            42 |
-|    14 | {"_id": "000000000000e", "City": "Kraków", "area": 1225.68, "District": "Dzielnica XIV Czyżyny", "residents": 26699, "population density": 2178.3}                   |            42 |
-|    15 | {"_id": "000000000000f", "City": "Kraków", "area": 559.0, "District": "Dzielnica XV Mistrzejowice", "residents": 53015, "population density": 9483.9}                 |            42 |
-|    16 | {"_id": "0000000000010", "City": "Kraków", "area": 369.9, "District": "Dzielnica XVI Bieńczyce", "residents": 42633, "population density": 11525.55}                 |            42 |
-|    17 | {"_id": "0000000000011", "City": "Kraków", "area": 2381.55, "District": "Dzielnica XVII Wzgórza Krzesławickie", "residents": 20303, "population density": 852.51}   |            42 |
-|    18 | {"_id": "0000000000012", "City": "Kraków", "area": 6540.99, "District": "Dzielnica XVIII Nowa Huta", "residents": 54588, "population density": 834.55}                |            42 |
-+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
+|    10 | {"_id": "000000000000a", "City": "Kraków", "area": 2560.4, "District": "Dzielnica X Swoszowice", "residents": 25608, "population density": 1000.16}                |            42 |
+|    11 | {"_id": "000000000000b", "City": "Kraków", "area": 954.0, "District": "Dzielnica XI Podgórze Duchackie", "residents": 52859, "population density": 5540.78}        |            42 |
+|    12 | {"_id": "000000000000c", "City": "Kraków", "area": 1847.39, "District": "Dzielnica XII Bieżanów-Prokocim", "residents": 63026, "population density": 3411.62}      |            42 |
+|    13 | {"_id": "000000000000d", "City": "Kraków", "area": 2566.71, "District": "Dzielnica XIII Podgórze", "residents": 34045, "population density": 1326.41}              |            42 |
+|    14 | {"_id": "000000000000e", "City": "Kraków", "area": 1225.68, "District": "Dzielnica XIV Czyżyny", "residents": 26699, "population density": 2178.3}                 |            42 |
+|    15 | {"_id": "000000000000f", "City": "Kraków", "area": 559.0, "District": "Dzielnica XV Mistrzejowice", "residents": 53015, "population density": 9483.9}              |            42 |
+|    16 | {"_id": "0000000000010", "City": "Kraków", "area": 369.9, "District": "Dzielnica XVI Bieńczyce", "residents": 42633, "population density": 11525.55}               |            42 |
+|    17 | {"_id": "0000000000011", "City": "Kraków", "area": 2381.55, "District": "Dzielnica XVII Wzgórza Krzesławickie", "residents": 20303, "population density": 852.51}  |            42 |
+|    18 | {"_id": "0000000000012", "City": "Kraków", "area": 6540.99, "District": "Dzielnica XVIII Nowa Huta", "residents": 54588, "population density": 834.55}             |            42 |
++-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
 
 //@<OUT> FRB3-01b 5.7 {VER(<8.0)}
-+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
-| ident | json_data                                                                                                                                                              | default_value |
-+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
-|     1 | {"_id": "0000000000001", "City": "Kraków", "area": 556.76, "District": "Dzielnica I Stare Miasto", "residents": 35573, "population density": 6382.82}                 |            42 |
-|     2 | {"_id": "0000000000002", "City": "Kraków", "area": 584.52, "District": "Dzielnica II Grzegórzki", "residents": 29230, "population density": 5000.68}                 |            42 |
-|     3 | {"_id": "0000000000003", "City": "Kraków", "area": 643.79, "District": "Dzielnica III Prądnik Czerwony", "residents": 47775, "population density": 7420.9}           |            42 |
-|     4 | {"_id": "0000000000004", "City": "Kraków", "area": 2341.87, "District": "Dzielnica IV Prądnik Biały", "residents": 69135, "population density": 2952.13}            |            42 |
-|     5 | {"_id": "0000000000005", "City": "Kraków", "area": 561.9, "District": "Dzielnica V Krowodrza", "residents": 31870, "population density": 5671.83}                     |            42 |
-|     6 | {"_id": "0000000000006", "City": "Kraków", "area": 955.96, "District": "Dzielnica VI Bronowice", "residents": 23465, "population density": 2454.6}                    |            42 |
-|     7 | {"_id": "0000000000007", "City": "Kraków", "area": 2873.1, "District": "Dzielnica VII Zwierzyniec", "residents": 20454, "population density": 711.91}                 |            42 |
-|     8 | {"_id": "0000000000008", "City": "Kraków", "area": 4618.87, "District": "Dzielnica VIII Dębniki", "residents": 59395, "population density": 1295.92}                 |            42 |
++-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| ident | json_data                                                                                                                                                          | default_value |
++-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
+|     1 | {"_id": "0000000000001", "City": "Kraków", "area": 556.76, "District": "Dzielnica I Stare Miasto", "residents": 35573, "population density": 6382.82}              |            42 |
+|     2 | {"_id": "0000000000002", "City": "Kraków", "area": 584.52, "District": "Dzielnica II Grzegórzki", "residents": 29230, "population density": 5000.68}               |            42 |
+|     3 | {"_id": "0000000000003", "City": "Kraków", "area": 643.79, "District": "Dzielnica III Prądnik Czerwony", "residents": 47775, "population density": 7420.9}         |            42 |
+|     4 | {"_id": "0000000000004", "City": "Kraków", "area": 2341.87, "District": "Dzielnica IV Prądnik Biały", "residents": 69135, "population density": 2952.13}           |            42 |
+|     5 | {"_id": "0000000000005", "City": "Kraków", "area": 561.9, "District": "Dzielnica V Krowodrza", "residents": 31870, "population density": 5671.83}                  |            42 |
+|     6 | {"_id": "0000000000006", "City": "Kraków", "area": 955.96, "District": "Dzielnica VI Bronowice", "residents": 23465, "population density": 2454.6}                 |            42 |
+|     7 | {"_id": "0000000000007", "City": "Kraków", "area": 2873.1, "District": "Dzielnica VII Zwierzyniec", "residents": 20454, "population density": 711.91}              |            42 |
+|     8 | {"_id": "0000000000008", "City": "Kraków", "area": 4618.87, "District": "Dzielnica VIII Dębniki", "residents": 59395, "population density": 1295.92}               |            42 |
 |     9 | {"_id": "0000000000009", "City": "Kraków", "area": 541.51, "District": "Dzielnica IX Łagiewniki-Borek Fałęcki", "residents": 14859, "population density": 2743.99} |            42 |
-|    10 | {"_id": "000000000000a", "City": "Kraków", "area": 2560.4, "District": "Dzielnica X Swoszowice", "residents": 25608, "population density": 1000.16}                   |            42 |
-|    11 | {"_id": "000000000000b", "City": "Kraków", "area": 954, "District": "Dzielnica XI Podgórze Duchackie", "residents": 52859, "population density": 5540.78}            |            42 |
-|    12 | {"_id": "000000000000c", "City": "Kraków", "area": 1847.39, "District": "Dzielnica XII Bieżanów-Prokocim", "residents": 63026, "population density": 3411.62}       |            42 |
-|    13 | {"_id": "000000000000d", "City": "Kraków", "area": 2566.71, "District": "Dzielnica XIII Podgórze", "residents": 34045, "population density": 1326.41}                |            42 |
-|    14 | {"_id": "000000000000e", "City": "Kraków", "area": 1225.68, "District": "Dzielnica XIV Czyżyny", "residents": 26699, "population density": 2178.3}                   |            42 |
-|    15 | {"_id": "000000000000f", "City": "Kraków", "area": 559, "District": "Dzielnica XV Mistrzejowice", "residents": 53015, "population density": 9483.9}                   |            42 |
-|    16 | {"_id": "0000000000010", "City": "Kraków", "area": 369.9, "District": "Dzielnica XVI Bieńczyce", "residents": 42633, "population density": 11525.55}                 |            42 |
-|    17 | {"_id": "0000000000011", "City": "Kraków", "area": 2381.55, "District": "Dzielnica XVII Wzgórza Krzesławickie", "residents": 20303, "population density": 852.51}   |            42 |
-|    18 | {"_id": "0000000000012", "City": "Kraków", "area": 6540.99, "District": "Dzielnica XVIII Nowa Huta", "residents": 54588, "population density": 834.55}                |            42 |
-+-------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
+|    10 | {"_id": "000000000000a", "City": "Kraków", "area": 2560.4, "District": "Dzielnica X Swoszowice", "residents": 25608, "population density": 1000.16}                |            42 |
+|    11 | {"_id": "000000000000b", "City": "Kraków", "area": 954, "District": "Dzielnica XI Podgórze Duchackie", "residents": 52859, "population density": 5540.78}          |            42 |
+|    12 | {"_id": "000000000000c", "City": "Kraków", "area": 1847.39, "District": "Dzielnica XII Bieżanów-Prokocim", "residents": 63026, "population density": 3411.62}      |            42 |
+|    13 | {"_id": "000000000000d", "City": "Kraków", "area": 2566.71, "District": "Dzielnica XIII Podgórze", "residents": 34045, "population density": 1326.41}              |            42 |
+|    14 | {"_id": "000000000000e", "City": "Kraków", "area": 1225.68, "District": "Dzielnica XIV Czyżyny", "residents": 26699, "population density": 2178.3}                 |            42 |
+|    15 | {"_id": "000000000000f", "City": "Kraków", "area": 559, "District": "Dzielnica XV Mistrzejowice", "residents": 53015, "population density": 9483.9}                |            42 |
+|    16 | {"_id": "0000000000010", "City": "Kraków", "area": 369.9, "District": "Dzielnica XVI Bieńczyce", "residents": 42633, "population density": 11525.55}               |            42 |
+|    17 | {"_id": "0000000000011", "City": "Kraków", "area": 2381.55, "District": "Dzielnica XVII Wzgórza Krzesławickie", "residents": 20303, "population density": 852.51}  |            42 |
+|    18 | {"_id": "0000000000012", "City": "Kraków", "area": 6540.99, "District": "Dzielnica XVIII Nowa Huta", "residents": 54588, "population density": 834.55}             |            42 |
++-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+
 
 //@ E2
 ||

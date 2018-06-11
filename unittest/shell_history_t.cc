@@ -838,21 +838,44 @@ TEST_F(Shell_history, history_management) {
   shcore::ensure_dir_exists(histfile.c_str());
   capture.clear();
   shell.process_line("\\history save");
+
+  auto base = "Could not save command history to";
 #ifdef _WIN32
-  EXPECT_EQ("Could not save command history to ./history: Permission denied\n",
-            capture);
+  auto specific = "history: Permission denied";
 #else
-  EXPECT_EQ("Could not save command history to ./history: Is a directory\n",
-            capture);
+  auto specific = "history: Is a directory";
 #endif
+  auto base_found = capture.find(base) != std::string::npos;
+  auto specific_found = capture.find(specific) != std::string::npos;
+
+  if (!base_found || !specific_found) {
+    SCOPED_TRACE(specific);
+    SCOPED_TRACE(base);
+    SCOPED_TRACE("Expected:");
+    SCOPED_TRACE(capture);
+    SCOPED_TRACE("Actual:");
+    FAIL();
+  }
+
 #ifndef _WIN32
   EXPECT_EQ(0, chmod(histfile.c_str(), 0));
 
   capture.clear();
   EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
-  EXPECT_EQ(
-      "Could not load command history from ./history: Permission denied\n\n",
-      capture);
+
+  base = "Could not load command history from";
+  specific = "history: Permission denied";
+  base_found = capture.find(base) != std::string::npos;
+  specific_found = capture.find(specific) != std::string::npos;
+
+  if (!base_found || !specific_found) {
+    SCOPED_TRACE(specific);
+    SCOPED_TRACE(base);
+    SCOPED_TRACE("Expected:");
+    SCOPED_TRACE(capture);
+    SCOPED_TRACE("Actual:");
+    FAIL();
+  }
 #endif
 
   shcore::remove_directory(histfile, false);

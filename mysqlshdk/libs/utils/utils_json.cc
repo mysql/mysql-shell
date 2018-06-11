@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,7 @@ void JSON_dumper::append_value(const Value &value) {
       _writer->append_float(value.as_double());
       break;
     case String:
-      _writer->append_string(value.as_string().c_str());
+      _writer->append_string(value.as_string());
       break;
     case Object: {
       auto object = value.as_object();

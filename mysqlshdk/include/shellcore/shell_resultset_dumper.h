@@ -28,7 +28,9 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <tuple>
 #include "modules/devapi/base_resultset.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "scripting/lang_base.h"
 
 namespace mysqlsh {
@@ -42,7 +44,19 @@ class DocResult;
 namespace mysql {
 class ClassicResult;
 };
-}  // namespace mysqlsh
+
+enum class Print_flag {
+  PRINT_0_AS_SPC = 1,
+  PRINT_0_AS_ESC = 2,
+  PRINT_CTRL = 4
+};
+
+using Print_flags =
+    mysqlshdk::utils::Enum_set<Print_flag, Print_flag::PRINT_CTRL>;
+
+std::tuple<size_t, size_t> get_utf8_sizes(const char *text, size_t length,
+                                          Print_flags flags);
+
 class ResultsetDumper {
  public:
   ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target,
@@ -74,4 +88,6 @@ class ResultsetDumper {
   size_t dump_vertical(shcore::Value::Array_type_ref records);
   void dump_warnings(bool classic = false);
 };
+
+}  // namespace mysqlsh
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_

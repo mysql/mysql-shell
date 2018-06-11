@@ -69,6 +69,8 @@ void linenoisePrintKeyCodes(void);
 int linenoiseInstallWindowChangeHandler(void);
 int linenoiseKeyType(void);
 
+int getWcwidth(char32_t ucs);
+
 #ifdef __cplusplus
 }
 #endif
