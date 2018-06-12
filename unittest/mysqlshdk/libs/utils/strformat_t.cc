@@ -54,14 +54,38 @@ TEST(UtilsStrformat, format_bytes) {
 }
 
 TEST(UtilsStrformat, format_throughput_items) {
-  EXPECT_EQ("65.00 queries/s", format_throughput_items("queries", 65, 1));
-  EXPECT_EQ("10.00K queries/s", format_throughput_items("queries", 10000, 1));
+  EXPECT_EQ("1.00 query/s", format_throughput_items("query", "queries", 1, 1));
+  EXPECT_EQ("65.00 queries/s",
+            format_throughput_items("query", "queries", 65, 1));
+  EXPECT_EQ("10.00K queries/s",
+            format_throughput_items("query", "queries", 10000, 1));
   EXPECT_EQ("11.00M queries/s",
-            format_throughput_items("queries", 11000000, 1));
+            format_throughput_items("query", "queries", 11000000, 1));
   EXPECT_EQ("11.00G queries/s",
-            format_throughput_items("queries", 11000000000, 1));
+            format_throughput_items("query", "queries", 11000000000, 1));
   EXPECT_EQ("11.23T queries/s",
-            format_throughput_items("queries", 11230000000000, 1));
+            format_throughput_items("query", "queries", 11230000000000, 1));
+
+  EXPECT_EQ("0.00 documents/s",
+            format_throughput_items("document", "documents", 0, 1));
+  EXPECT_EQ("0.50 document/s",
+            format_throughput_items("document", "documents", 1, 2));
+  EXPECT_EQ("1.00 document/s",
+            format_throughput_items("document", "documents", 1, 1));
+  EXPECT_EQ("1.50 documents/s",
+            format_throughput_items("document", "documents", 3, 2));
+  EXPECT_EQ("400.00 documents/s",
+            format_throughput_items("document", "documents", 400, 1));
+  EXPECT_EQ("410.00 documents/s",
+            format_throughput_items("document", "documents", 410 * 2, 2));
+  EXPECT_EQ("12.00K documents/s",
+            format_throughput_items("document", "documents", 12000, 1));
+  EXPECT_EQ("403.81 documents/s",
+            format_throughput_items("document", "documents", 25359, 62.8));
+
+  EXPECT_EQ("1.00 byte/s", format_throughput_items("byte", "bytes", 1e6, 1e6));
+  EXPECT_EQ("0.50 byte/s", format_throughput_items("byte", "bytes", 1e6, 2e6));
+  EXPECT_EQ("2.00 bytes/s", format_throughput_items("byte", "bytes", 2e6, 1e6));
 }
 
 TEST(UtilsStrformat, format_throughput_bytes) {
