@@ -64,7 +64,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   uint64_t get_warnings_count() const;
 
 #if DOXYGEN_JS
-  Integer affectedItemsCount;   //!< Same as getAffectedItemsCount()
+  Integer affectedItemsCount;  //!< Same as getAffectedItemsCount()
   /**
    * Same as getWarningCount()
    *
@@ -73,8 +73,8 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
    */
   Integer warningCount;
   Integer warningsCount;  //!< Same as getwarningsCount()
-  List warnings;         //!< Same as getWarnings()
-  String executionTime;  //!< Same as getExecutionTime()
+  List warnings;          //!< Same as getWarnings()
+  String executionTime;   //!< Same as getExecutionTime()
 
   Integer getAffectedItemsCount();
   Integer getWarningsCount();
@@ -82,7 +82,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   List getWarnings();
   String getExecutionTime();
 #elif DOXYGEN_PY
-  int affected_item_count;   //!< Same as get_affected_items_count()
+  int affected_item_count;  //!< Same as get_affected_items_count()
   /**
    * Same as get_warning_count()
    *
@@ -90,7 +90,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
    * <b>warnings_count</b> property instead.
    */
   int warning_count;
-  int warnings_count;   //!< Same as get_warnings_count()
+  int warnings_count;  //!< Same as get_warnings_count()
   list warnings;       //!< Same as get_warnings()
   str execution_time;  //!< Same as get_execution_time()
 

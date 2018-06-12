@@ -37,7 +37,7 @@
 #include "scripting/types_common.h"
 
 namespace mysqlsh {
-  class ShellBaseSession;
+class ShellBaseSession;
 };
 
 namespace shcore {

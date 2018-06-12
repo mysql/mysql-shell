@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -151,7 +151,8 @@ struct Call_on_leave {
 
 class Interrupt_mysql : public Shell_core_test_wrapper {
  private:
-   shcore::Interpreter_delegate* m_final_delegate;
+  shcore::Interpreter_delegate *m_final_delegate;
+
  public:
   void set_options() override { _options->interactive = true; }
 
@@ -171,9 +172,8 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     // they should be explicitly reset
     if (!_opts) reset_options();
 
-
-    std::unique_ptr<shcore::Interpreter_delegate> delegate
-        (new shcore::Interpreter_delegate(output_handler.deleg));
+    std::unique_ptr<shcore::Interpreter_delegate> delegate(
+        new shcore::Interpreter_delegate(output_handler.deleg));
 
     m_final_delegate = delegate.get();
 

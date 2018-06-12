@@ -80,19 +80,17 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   register_dynamic_function(F::lockShared, F::find | F::fields | F::groupBy |
                                                F::having | F::sort | F::skip |
                                                F::offset | F::limit);
-  register_dynamic_function(F::lockExclusive, F::find | F::fields | F::groupBy |
-                                                  F::having | F::sort |
-                                                  F::skip | F::offset |
-                                                  F::limit);
+  register_dynamic_function(
+      F::lockExclusive, F::find | F::fields | F::groupBy | F::having | F::sort |
+                            F::skip | F::offset | F::limit);
   register_dynamic_function(F::bind, F::find | F::fields | F::groupBy |
                                          F::having | F::sort | F::skip |
                                          F::offset | F::limit | F::lockShared |
                                          F::lockExclusive | F::bind);
-  register_dynamic_function(F::execute, F::find | F::fields | F::groupBy |
-                                            F::having | F::sort | F::skip |
-                                            F::limit | F::offset |
-                                            F::lockShared | F::lockExclusive |
-                                            F::bind);
+  register_dynamic_function(
+      F::execute, F::find | F::fields | F::groupBy | F::having | F::sort |
+                      F::skip | F::limit | F::offset | F::lockShared |
+                      F::lockExclusive | F::bind);
   register_dynamic_function(F::__shell_hook__,
                             F::find | F::fields | F::groupBy | F::having |
                                 F::sort | F::skip | F::limit | F::offset |

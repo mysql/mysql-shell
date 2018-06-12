@@ -258,7 +258,8 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
                      std::unique_ptr<shcore::Interpreter_delegate> delegate) {
     // previous shell needs to be destroyed before a new one can be created
     _interactive_shell.reset();
-    _interactive_shell.reset(new mysqlsh::Command_line_shell(options,std::move(delegate)));
+    _interactive_shell.reset(
+        new mysqlsh::Command_line_shell(options, std::move(delegate)));
   }
 
   virtual void reset_shell() {
@@ -266,8 +267,9 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     // they should be explicitly reset
     if (!_opts) reset_options();
 
-    replace_shell(_opts, std::unique_ptr<shcore::Interpreter_delegate>{
-            new shcore::Interpreter_delegate(output_handler.deleg)});
+    replace_shell(_opts,
+                  std::unique_ptr<shcore::Interpreter_delegate>{
+                      new shcore::Interpreter_delegate(output_handler.deleg)});
 
     _interactive_shell->finish_init();
     set_defaults();

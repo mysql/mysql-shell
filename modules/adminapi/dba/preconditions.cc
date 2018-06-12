@@ -185,8 +185,7 @@ std::string describe(State state) {
  *
  * @throws shcore::Exception::runtime_error if session is not valid.
  */
-void validate_session(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   // A classic session is required to perform any of the AdminAPI operations
   if (!session) {
     throw shcore::Exception::runtime_error(

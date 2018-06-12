@@ -187,7 +187,6 @@ int64_t BaseResult::get_affected_items_count() const {
   return _result->get_affected_row_count();
 }
 
-
 // Documentation of getExecutionTime function
 REGISTER_HELP_PROPERTY(executionTime, BaseResult);
 REGISTER_HELP(BASERESULT_EXECUTIONTIME_BRIEF, "Same as <<<getExecutionTime>>>");

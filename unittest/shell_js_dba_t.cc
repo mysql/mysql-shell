@@ -425,7 +425,8 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   //@<OUT> Dba: createCluster multiPrimary with interaction, ok
   output_handler.prompts.push_back({"*", "yes"});
 
-  //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+  //@<OUT> Dba: createCluster multiMaster with interaction, regression for
+  // BUG#25926603
   output_handler.prompts.push_back({"*", "yes"});
 
   //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok

@@ -37,7 +37,7 @@
 #include "mysqlshdk/libs/utils/nullable_options.h"
 
 namespace mysqlsh {
-  enum class SessionType { Auto, X, Classic };
+enum class SessionType { Auto, X, Classic };
 };
 
 namespace mysqlshdk {

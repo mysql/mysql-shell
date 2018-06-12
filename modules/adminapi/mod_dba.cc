@@ -162,9 +162,9 @@ std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 
 std::set<std::string> Dba::_create_cluster_opts = {
-    "multiMaster",   "adoptFromGR",  "force", "multiPrimary",
-    "memberSslMode", "ipWhitelist",  "clearReadOnly",
-    "groupName",     "localAddress", "groupSeeds"};
+    "multiMaster",   "adoptFromGR", "force",         "multiPrimary",
+    "memberSslMode", "ipWhitelist", "clearReadOnly", "groupName",
+    "localAddress",  "groupSeeds"};
 std::set<std::string> Dba::_reboot_cluster_opts = {
     "user",         "dbUser", "password", "removeInstances", "rejoinInstances",
     "clearReadOnly"};
@@ -966,8 +966,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
       if (opt_map.has_key("multiMaster")) {
         multi_primary = opt_map.bool_at("multiMaster");
-        std::string warn_msg = "The multiMaster option is deprecated. "
-                               "Please use the multiPrimary option instead.";
+        std::string warn_msg =
+            "The multiMaster option is deprecated. "
+            "Please use the multiPrimary option instead.";
         m_console->print_warning(warn_msg);
         m_console->println();
       }

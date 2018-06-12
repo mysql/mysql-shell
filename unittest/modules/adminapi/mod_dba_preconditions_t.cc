@@ -23,10 +23,10 @@
 
 #include "modules/adminapi/dba/preconditions.h"
 
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/shell_base_test.h"
-#include "mysqlshdk/libs/utils/version.h"
-#include "mysqlshdk/include/scripting/types.h"
 
 namespace testing {
 
@@ -38,9 +38,7 @@ class Dba_preconditions : public tests::Shell_base_test {
     m_mock_session = std::make_shared<Mock_session>();
   }
 
-  void TearDown() {
-    tests::Shell_base_test::TearDown();
-  }
+  void TearDown() { tests::Shell_base_test::TearDown(); }
 
   std::shared_ptr<Mock_session> m_mock_session;
 };
@@ -89,9 +87,7 @@ TEST_F(Dba_preconditions, validate_session) {
   }
 
   // Test different invalid server versions
-  EXPECT_CALL(*m_mock_session, is_open())
-              .Times(5)
-              .WillRepeatedly(Return(true));
+  EXPECT_CALL(*m_mock_session, is_open()).Times(5).WillRepeatedly(Return(true));
 
   EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.1")));
@@ -133,9 +129,7 @@ TEST_F(Dba_preconditions, validate_session) {
   }
 
   // Test different valid server versions
-  EXPECT_CALL(*m_mock_session, is_open())
-              .Times(5)
-              .WillRepeatedly(Return(true));
+  EXPECT_CALL(*m_mock_session, is_open()).Times(5).WillRepeatedly(Return(true));
 
   EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.0.1")));
@@ -145,7 +139,7 @@ TEST_F(Dba_preconditions, validate_session) {
       .WillOnce(Return(mysqlshdk::utils::Version("8.0.11")));
   EXPECT_NO_THROW(mysqlsh::dba::validate_session(m_mock_session));
 
-    EXPECT_CALL(*m_mock_session, get_server_version())
+  EXPECT_CALL(*m_mock_session, get_server_version())
       .WillOnce(Return(mysqlshdk::utils::Version("8.0.99")));
   EXPECT_NO_THROW(mysqlsh::dba::validate_session(m_mock_session));
 
