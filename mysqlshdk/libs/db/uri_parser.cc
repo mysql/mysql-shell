@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -251,6 +251,12 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
   _tokenizer.set_simple_tokens(":.[]");
   _tokenizer.set_complex_token("digits", DIGIT);
   _tokenizer.set_complex_token("hex-digits", HEXDIG);
+  // RFC6874: IPv6 address with zone ID is defined as:
+  //          IPv6address "%25" ZoneID
+  //          ZoneID = 1*( unreserved / pct-encoded )
+  _tokenizer.set_complex_token("zone-delimiter", {"%", "2", "5"});
+  _tokenizer.set_complex_token("unreserved", UNRESERVED);
+  _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
 
   _tokenizer.process(range);
 
@@ -266,6 +272,13 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
   bool double_colon_allowed = true;
   bool last_was_colon = false;
   int segment_count = 0;
+  auto throw_unexpected_data = [this, &offset]() {
+    throw std::invalid_argument(
+        shcore::str_format("Unexpected data [%s] found at position %u",
+                           _tokenizer.peek_token().get_text().c_str(),
+                           static_cast<uint32_t>(*offset)));
+  };
+
   while (!_tokenizer.cur_token_type_is("]")) {
     if (host.empty()) {
       // An IP Address may begin with ::
@@ -277,6 +290,11 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
         double_colon_allowed = false;
         ipv4_allowed = true;
         last_was_colon = true;
+      } else if (_tokenizer.cur_token_type_is("unreserved") ||
+                 _tokenizer.cur_token_type_is("pct-encoded") ||
+                 _tokenizer.cur_token_type_is("zone-delimiter")) {
+        // these tokens are not allowed at the beginning of the address
+        throw_unexpected_data();
       } else {
         std::string value;
         auto token = _tokenizer.peek_token();
@@ -308,10 +326,39 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
       if (ipv4_allowed && !ipv4_host.empty()) {
         host += ipv4_host;
         ipv4_found = true;
-        break;
+      } else if (_tokenizer.cur_token_type_is("unreserved") ||
+                 _tokenizer.cur_token_type_is("pct-encoded")) {
+        // these tokens are allowed only after zone delimiter
+        throw_unexpected_data();
+      } else if (_tokenizer.cur_token_type_is("zone-delimiter")) {
+        std::string zone_id;
 
-        // Colon is allowed after each hex-digit or after one colon
+        // zone delimiter detected, all remaining tokens belong to zone ID
+        while (!_tokenizer.cur_token_type_is("]")) {
+          const auto &token = _tokenizer.peek_token();
+          const auto &type = token.get_type();
+          const auto &text = token.get_text();
+
+          if (type == ":" || type == "[" || type == "]") {
+            // reserved characters, cannot be used in zone ID
+            throw_unexpected_data();
+          } else if (type == "zone-delimiter" || type == "pct-encoded") {
+            zone_id += percent_decode(text);
+          } else {
+            zone_id += text;
+          }
+
+          _tokenizer.consume_any_token();
+          (*offset) += text.length();
+        }
+
+        if (zone_id.length() <= 1) {
+          throw std::invalid_argument("Zone ID cannot be empty");
+        }
+
+        host += zone_id;
       } else if (colon_allowed && _tokenizer.cur_token_type_is(":")) {
+        // Colon is allowed after each hex-digit or after one colon
         host += _tokenizer.consume_token(":");
         (*offset)++;
 
@@ -333,10 +380,7 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
             token = _tokenizer.peek_token();
           }
           if (value.empty())
-            throw std::invalid_argument(
-                shcore::str_format("Unexpected data [%s] found at position %u",
-                                   _tokenizer.peek_token().get_text().c_str(),
-                                   static_cast<uint32_t>(*offset)));
+            throw_unexpected_data();
           else if (value.length() > 4)
             throw std::invalid_argument(
                 "Invalid IPv6 value [" + value +
@@ -362,7 +406,7 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
     }
   }
 
-  // At this point we should be done wiht the IPv6 Address
+  // At this point we should be done with the IPv6 Address
   _tokenizer.consume_token("]");
   (*offset)++;
 

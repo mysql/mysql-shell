@@ -460,13 +460,17 @@ REGISTER_HELP(TOPIC_URI_ENCODED_VALUE2,
               "Any other character must be URL encoded.");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE3,
               "URL encoding is done by replacing the character being encoded "
-              "by the sequence: %XX");
+              "by the sequence: @%XX");
 REGISTER_HELP(
     TOPIC_URI_ENCODED_VALUE4,
     "Where XX is the hexadecimal ASCII value of the character being encoded.");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE5,
               "If host is a literal IPv6 address it should be enclosed in "
               "\"[\" and \"]\" characters.");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE6,
+              "If host is a literal IPv6 address with zone ID, the '@%' "
+              "character separating address from the zone ID needs to be URL "
+              "encoded.");
 
 REGISTER_HELP_FUNCTION(connect, shell);
 REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -159,8 +159,10 @@ void validate_uri(
   }
 }
 
-void validate_ipv6(const std::string &address) {
-  std::string result = address.substr(1, address.length() - 2);
+void validate_ipv6(const std::string &address,
+                   const std::string &expected = "") {
+  std::string result =
+      expected.empty() ? address.substr(1, address.length() - 2) : expected;
   validate_uri("mysqlx://user:sample@" + address + ":2540/testing", "mysqlx",
                "user", "sample", result.c_str(), 2540, NO_SOCK, "testing",
                HAS_PASSWORD, HAS_PORT, Transport_type::Tcp);
@@ -479,7 +481,7 @@ TEST(Uri_parser, parse_host_ipv6) {
   //                0    0    1    1    2    2    3    3    4    4    5    5
   //                0    5    0    5    0    5    0    5    0    5    0    5
   validate_bad_uri("mysqlx://user:sample@[A:B:C:D:E:G:7:8]:2540/testing",
-                   "Illegal character [G] found at position 32");
+                   "Unexpected data [G] found at position 32");
   validate_bad_uri(
       "mysqlx://user:sample@[A:B:C:D:E:A1B23:7:8]:2540/testing",
       "Invalid IPv6 value [A1B23], maximum 4 hexadecimal digits accepted");
@@ -491,6 +493,138 @@ TEST(Uri_parser, parse_host_ipv6) {
       "Invalid IPv6: the number of segments does not match the specification");
   validate_bad_uri("mysqlx://user:sample@[1::3:4::6:7:8]:2540/testing",
                    "Unexpected data [:] found at position 29");
+  validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7]:8]:2540/testing",
+                   "Invalid IPv6: the number of segments does not match the "
+                   "specification");
+
+  // zone ID
+  validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25enp0s3]",
+                "fe80::850a:5a7c:6ab7:aec4%enp0s3");
+  validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25%65%6e%70%30%733]",
+                "fe80::850a:5a7c:6ab7:aec4%enp0s3");
+  validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25%65%6E%70%30%733]",
+                "fe80::850a:5a7c:6ab7:aec4%enp0s3");
+  validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25eth%25]",
+                "fe80::850a:5a7c:6ab7:aec4%eth%");
+  validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25eth%3F]",
+                "fe80::850a:5a7c:6ab7:aec4%eth?");
+  validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%2513]",
+                "fe80::850a:5a7c:6ab7:aec4%13");
+
+  validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7:8%25eth:]:2540/testing",
+                   "Unexpected data [:] found at position 43");
+  validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7:8%25eth[]:2540/testing",
+                   "Unexpected data [[] found at position 43");
+  validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7:8%25eth]]:2540/testing",
+                   "Illegal character []] found at position 44");
+  validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7:8%25eth#]:2540/testing",
+                   "Illegal character [#] found at position 43");
+  validate_bad_uri("mysqlx://user:sample@[1:2:x:4:5:6:7:8%25eth0]:2540/testing",
+                   "Unexpected data [x] found at position 26");
+  validate_bad_uri(
+      "mysqlx://user:sample@[1:2%3A3:4:5:6:7:8%25eth0]:2540/testing",
+      "Unexpected data [%3A] found at position 25");
+  validate_bad_uri(
+      "mysqlx://user:sample@[1%252:3:4:5:6:7:8%25eth0]:2540/testing",
+      "Unexpected data [:] found at position 27");
+  validate_bad_uri("mysqlx://user:sample@[1:2:3:4:5:6:7:8%25]:2540/testing",
+                   "Zone ID cannot be empty");
+
+  // IPv6 + zone ID
+  // Complete
+  validate_ipv6("[1:2:3:4:5:6:7:8%25eth0]", "1:2:3:4:5:6:7:8%eth0");
+
+  // Hiding 1
+  validate_ipv6("[::1:2:3:4:5:6:7%25eth0]", "::1:2:3:4:5:6:7%eth0");
+  validate_ipv6("[1::2:3:4:5:6:7%25eth0]", "1::2:3:4:5:6:7%eth0");
+  validate_ipv6("[1:2::3:4:5:6:7%25eth0]", "1:2::3:4:5:6:7%eth0");
+  validate_ipv6("[1:2:3::4:5:6:7%25eth0]", "1:2:3::4:5:6:7%eth0");
+  validate_ipv6("[1:2:3:4::5:6:7%25eth0]", "1:2:3:4::5:6:7%eth0");
+  validate_ipv6("[1:2:3:4:5::6:7%25eth0]", "1:2:3:4:5::6:7%eth0");
+  validate_ipv6("[1:2:3:4:5:6::7%25eth0]", "1:2:3:4:5:6::7%eth0");
+  validate_ipv6("[1:2:3:4:5:6:7::%25eth0]", "1:2:3:4:5:6:7::%eth0");
+
+  // Hiding 2
+  validate_ipv6("[::1:2:3:4:5:6%25eth0]", "::1:2:3:4:5:6%eth0");
+  validate_ipv6("[1::2:3:4:5:6%25eth0]", "1::2:3:4:5:6%eth0");
+  validate_ipv6("[1:2::3:4:5:6%25eth0]", "1:2::3:4:5:6%eth0");
+  validate_ipv6("[1:2:3::4:5:6%25eth0]", "1:2:3::4:5:6%eth0");
+  validate_ipv6("[1:2:3:4::5:6%25eth0]", "1:2:3:4::5:6%eth0");
+  validate_ipv6("[1:2:3:4:5::6%25eth0]", "1:2:3:4:5::6%eth0");
+  validate_ipv6("[1:2:3:4:5:6::%25eth0]", "1:2:3:4:5:6::%eth0");
+
+  // Hiding 3
+  validate_ipv6("[::1:2:3:4:5%25eth0]", "::1:2:3:4:5%eth0");
+  validate_ipv6("[1::2:3:4:5%25eth0]", "1::2:3:4:5%eth0");
+  validate_ipv6("[1:2::3:4:5%25eth0]", "1:2::3:4:5%eth0");
+  validate_ipv6("[1:2:3::4:5%25eth0]", "1:2:3::4:5%eth0");
+  validate_ipv6("[1:2:3:4::5%25eth0]", "1:2:3:4::5%eth0");
+  validate_ipv6("[1:2:3:4:5::%25eth0]", "1:2:3:4:5::%eth0");
+
+  // Hiding 4
+  validate_ipv6("[::1:2:3:4%25eth0]", "::1:2:3:4%eth0");
+  validate_ipv6("[1::2:3:4%25eth0]", "1::2:3:4%eth0");
+  validate_ipv6("[1:2::3:4%25eth0]", "1:2::3:4%eth0");
+  validate_ipv6("[1:2:3::4%25eth0]", "1:2:3::4%eth0");
+  validate_ipv6("[1:2:3:4::%25eth0]", "1:2:3:4::%eth0");
+
+  // Hiding 5
+  validate_ipv6("[::1:2:3%25eth0]", "::1:2:3%eth0");
+  validate_ipv6("[1::2:3%25eth0]", "1::2:3%eth0");
+  validate_ipv6("[1:2::3%25eth0]", "1:2::3%eth0");
+  validate_ipv6("[1:2:3::%25eth0]", "1:2:3::%eth0");
+
+  // Hiding 6
+  validate_ipv6("[::1:2%25eth0]", "::1:2%eth0");
+  validate_ipv6("[1::2%25eth0]", "1::2%eth0");
+  validate_ipv6("[1:2::%25eth0]", "1:2::%eth0");
+
+  // Hiding 7
+  validate_ipv6("[::1%25eth0]", "::1%eth0");
+  validate_ipv6("[1::%25eth0]", "1::%eth0");
+
+  // Hiding 8
+  validate_ipv6("[::%25eth0]", "::%eth0");
+
+  // IPv4 Embedded
+  // Complete
+  validate_ipv6("[1:2:3:4:5:6:1.2.3.4%25eth0]", "1:2:3:4:5:6:1.2.3.4%eth0");
+
+  // Hiding 1
+  validate_ipv6("[::1:2:3:4:5:1.2.3.4%25eth0]", "::1:2:3:4:5:1.2.3.4%eth0");
+  validate_ipv6("[1::2:3:4:5:1.2.3.4%25eth0]", "1::2:3:4:5:1.2.3.4%eth0");
+  validate_ipv6("[1:2::3:4:5:1.2.3.4%25eth0]", "1:2::3:4:5:1.2.3.4%eth0");
+  validate_ipv6("[1:2:3::4:5:1.2.3.4%25eth0]", "1:2:3::4:5:1.2.3.4%eth0");
+  validate_ipv6("[1:2:3:4::5:1.2.3.4%25eth0]", "1:2:3:4::5:1.2.3.4%eth0");
+  validate_ipv6("[1:2:3:4:5::1.2.3.4%25eth0]", "1:2:3:4:5::1.2.3.4%eth0");
+
+  // Hiding 2
+  validate_ipv6("[::1:2:3:4:1.2.3.4%25eth0]", "::1:2:3:4:1.2.3.4%eth0");
+  validate_ipv6("[1::2:3:4:1.2.3.4%25eth0]", "1::2:3:4:1.2.3.4%eth0");
+  validate_ipv6("[1:2::3:4:1.2.3.4%25eth0]", "1:2::3:4:1.2.3.4%eth0");
+  validate_ipv6("[1:2:3::4:1.2.3.4%25eth0]", "1:2:3::4:1.2.3.4%eth0");
+  validate_ipv6("[1:2:3:4::1.2.3.4%25eth0]", "1:2:3:4::1.2.3.4%eth0");
+
+  // Hiding 3
+  validate_ipv6("[::1:2:3:1.2.3.4%25eth0]", "::1:2:3:1.2.3.4%eth0");
+  validate_ipv6("[1::2:3:1.2.3.4%25eth0]", "1::2:3:1.2.3.4%eth0");
+  validate_ipv6("[1:2::3:1.2.3.4%25eth0]", "1:2::3:1.2.3.4%eth0");
+  validate_ipv6("[1:2:3::1.2.3.4%25eth0]", "1:2:3::1.2.3.4%eth0");
+
+  // Hiding 4
+  validate_ipv6("[::1:2:1.2.3.4%25eth0]", "::1:2:1.2.3.4%eth0");
+  validate_ipv6("[1::2:1.2.3.4%25eth0]", "1::2:1.2.3.4%eth0");
+  validate_ipv6("[1:2::1.2.3.4%25eth0]", "1:2::1.2.3.4%eth0");
+
+  // Hiding 5
+  validate_ipv6("[::1:1.2.3.4%25eth0]", "::1:1.2.3.4%eth0");
+  validate_ipv6("[1::1.2.3.4%25eth0]", "1::1.2.3.4%eth0");
+
+  // Hiding 6
+  validate_ipv6("[::1.2.3.4%25eth0]", "::1.2.3.4%eth0");
+
+  // Hexadecimals are OK
+  validate_ipv6("[A:B:C:D:E:F:7:8%25eth0]", "A:B:C:D:E:F:7:8%eth0");
 }
 
 TEST(Uri_parser, parse_socket) {
