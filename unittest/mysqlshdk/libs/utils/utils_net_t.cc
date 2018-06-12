@@ -106,6 +106,8 @@ TEST(utils_net, is_ipv6) {
   EXPECT_TRUE(Net::is_ipv6("2010:836B:4179::836B:4179"));
   // IPv6 scoped addressing zone identifiers
   EXPECT_TRUE(Net::is_ipv6("fe80::850a:5a7c:6ab7:aec4%1"));
+  EXPECT_TRUE(Net::is_ipv6("fe80::850a:5a7c:6ab7:aec4%eth0"));
+  EXPECT_TRUE(Net::is_ipv6("fe80::850a:5a7c:6ab7:aec4%enp0s3"));
 
   EXPECT_FALSE(Net::is_ipv6(""));
   EXPECT_FALSE(Net::is_ipv6("localhost"));

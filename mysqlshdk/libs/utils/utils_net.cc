@@ -240,7 +240,13 @@ bool Net::is_ipv4(const std::string &host) {
 }
 
 bool Net::is_ipv6(const std::string &host) {
-  return get_protocol_family(host) == AF_INET6;
+  // Handling of the zone ID by getaddrinfo() varies on different platforms:
+  // numeric values are always accepted, some of them require the zone ID to
+  // match the name of one of the network interfaces, while others accept
+  // any value. To accommodate for that, we strip the zone ID part from
+  // the address as it's enough to check the remaining part to decide if the
+  // whole address is IPv6.
+  return get_protocol_family(host.substr(0, host.find('%'))) == AF_INET6;
 }
 
 bool Net::is_loopback(const std::string &address) {

@@ -230,7 +230,10 @@ TEST(Connection_options, pipe_functions) {
 }
 
 TEST(Connection_options, uri_constructor) {
-  const std::string hosts[][2] = {{"localhost", "localhost"}, {"[::1]", "::1"}};
+  const std::string hosts[][2] = {{"localhost", "localhost"},
+                                  {"[::1]", "::1"},
+                                  {"[fe80::850a:5a7c:6ab7:aec4%25enp0s3]",
+                                   "fe80::850a:5a7c:6ab7:aec4%enp0s3"}};
 
   for (const auto &test : hosts) {
     std::string uri = "mysqlx://user:password@" + test[0] +
