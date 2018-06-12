@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -545,7 +545,6 @@ REGISTER_HELP(COLLECTIONMODIFY_MERGE_DEPRECATED,
               "@attention This function will be removed in a future release, "
               "use the <b>patch</b> function instead.");
 
-
 /**
  * $(COLLECTIONMODIFY_MERGE_BRIEF)
  *
@@ -602,7 +601,6 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   log_warning("'%s' is deprecated, use '%s' instead.",
               get_function_name("merge").c_str(),
               get_function_name("patch").c_str());
-
 
   try {
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);

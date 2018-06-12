@@ -27,8 +27,8 @@
 #include <map>
 #include <set>
 
-#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/libs/textui/textui.h"
 
 namespace textui = mysqlshdk::textui;
 using shcore::Topic_mask;

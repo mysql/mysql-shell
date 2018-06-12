@@ -121,10 +121,10 @@ void Shell_test_wrapper::reset_options() {
 void Shell_test_wrapper::reset() {
   // previous shell needs to be destroyed before a new one can be created
   _interactive_shell.reset();
-  _interactive_shell.reset(
-      new mysqlsh::Command_line_shell(get_options(),
-                    std::unique_ptr<shcore::Interpreter_delegate>{
-                    new shcore::Interpreter_delegate(output_handler.deleg)}));
+  _interactive_shell.reset(new mysqlsh::Command_line_shell(
+      get_options(),
+      std::unique_ptr<shcore::Interpreter_delegate>{
+          new shcore::Interpreter_delegate(output_handler.deleg)}));
 
   _interactive_shell->finish_init();
 

@@ -196,8 +196,8 @@ class Completer_frontend : public Shell_core_test_wrapper {
     _options->db_name_cache = true;
 
     replace_shell(get_options(),
-        std::unique_ptr<shcore::Interpreter_delegate>(
-            new shcore::Interpreter_delegate(output_handler.deleg)));
+                  std::unique_ptr<shcore::Interpreter_delegate>(
+                      new shcore::Interpreter_delegate(output_handler.deleg)));
 
     execute("\\py");
     execute("import sys");

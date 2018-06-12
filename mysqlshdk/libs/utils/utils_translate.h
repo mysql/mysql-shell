@@ -26,19 +26,19 @@
 
 #include <fstream>
 #include <string>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace shcore {
 
 class Translation_writer {
  public:
-  explicit Translation_writer(const char* filename, int max_line_length = 100);
+  explicit Translation_writer(const char *filename, int max_line_length = 100);
 
-  void write_header(const char* custom_text = nullptr);
+  void write_header(const char *custom_text = nullptr);
 
   void write_entry(const char *id, const char *entry_format = nullptr,
-                 const char *initial_text = nullptr);
+                   const char *initial_text = nullptr);
 
  private:
   std::ofstream m_file;
@@ -48,7 +48,7 @@ class Translation_writer {
 
 using Translation = std::unordered_map<std::string, std::string>;
 
-Translation read_translation_from_file(const char* filename);
+Translation read_translation_from_file(const char *filename);
 
 }  // namespace shcore
 
