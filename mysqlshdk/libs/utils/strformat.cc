@@ -73,14 +73,21 @@ std::string format_bytes(uint64_t bytes) {
   }
 }
 
-std::string format_throughput_items(const std::string &item_name,
-                                    uint64_t items, double seconds) {
-  char buffer[64];
+std::string format_throughput_items(const std::string &item_name_singular,
+                                    const std::string &item_name_plural,
+                                    const uint64_t items, double seconds) {
+  char buffer[64] = {};
+  double ratio = items / seconds;
   std::string unit;
-  double nitems;
-  std::tie(unit, nitems) = scale_value(items);
-  snprintf(buffer, sizeof(buffer), "%.2f", nitems / seconds);
-  return buffer + unit + " " + item_name + "/s";
+  double scaled_items;
+  std::tie(unit, scaled_items) = scale_value(ratio);
+  snprintf(buffer, sizeof(buffer), "%.2f", scaled_items);
+
+  // Singular/plural form for English language.
+  if (ratio > 0 && ratio <= 1.0) {
+    return buffer + unit + " " + item_name_singular + "/s";
+  }
+  return buffer + unit + " " + item_name_plural + "/s";
 }
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds) {

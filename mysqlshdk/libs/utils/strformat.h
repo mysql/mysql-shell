@@ -30,7 +30,8 @@
 namespace mysqlshdk {
 namespace utils {
 
-inline std::pair<std::string, double> scale_value(uint64_t n) {
+template <typename T>
+inline std::pair<std::string, double> scale_value(T n) {
   if (n > 1000000000000)
     return {"T", n / 1000000000000.0};
   else if (n > 1000000000)
@@ -45,8 +46,9 @@ inline std::pair<std::string, double> scale_value(uint64_t n) {
 std::string format_seconds(double secs);
 std::string format_bytes(uint64_t bytes);
 
-std::string format_throughput_items(const std::string &item_name,
-                                    uint64_t items, double seconds);
+std::string format_throughput_items(const std::string &item_name_singular,
+                                    const std::string &item_name_plural,
+                                    const uint64_t items, double seconds);
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds);
 
