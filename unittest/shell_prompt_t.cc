@@ -927,6 +927,17 @@ class Shell_prompt_exe : public tests::Command_line_test {
 };
 
 TEST_F(Shell_prompt_exe, environment) {
+  std::string no_theme_prompt = "mysql-js>";
+
+#ifdef _WIN32
+  // In windows this prompt is not necessarily mysql-js>
+  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
+  size_t position = _output.rfind("\n");
+  if (position != std::string::npos)
+    no_theme_prompt = _output.substr(position + 1);
+#endif
+
   // TS_CP#1 set MYSQLSH_PROMPT_THEME environment variable to a file name , it
   // configures prompt correctly accordingly to file
   char altpro[] = "MYSQLSH_PROMPT_THEME=altprompt.json";
@@ -950,7 +961,7 @@ TEST_F(Shell_prompt_exe, environment) {
 
   // no prompt theme
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("mysql-js>");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(no_theme_prompt);
 
   // TS_EV#3 MYSQLSH_TERM_COLOR_MODE= with invalid value will force the shell to
   // use a default prompt with no colors and log an error to the log file and
