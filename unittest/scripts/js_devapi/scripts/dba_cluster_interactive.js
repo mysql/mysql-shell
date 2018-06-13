@@ -100,6 +100,8 @@ Cluster.describe();
 Cluster.status();
 
 //@<OUT> Cluster: dissolve error: not empty
+// WL11889 FR2_01: prompt to confirm dissolve in interactive mode.
+// Regression for BUG#27837231: useless 'force' parameter for dissolve
 Cluster.dissolve();
 
 //@ Cluster: dissolve errors
@@ -157,8 +159,11 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster: status for rejoin: success
 Cluster.status();
 
-//@ Cluster: final dissolve
-Cluster.dissolve({force: true});
+//@<OUT> Cluster: final dissolve
+// WL11889 FR2_01: prompt to confirm dissolve in interactive mode.
+// WL11889 FR2_02: force option no longer required.
+// Regression for BUG#27837231: useless 'force' parameter for dissolve
+Cluster.dissolve();
 
 //@ Cluster: no operations can be done on a dissolved cluster
 Cluster.name;

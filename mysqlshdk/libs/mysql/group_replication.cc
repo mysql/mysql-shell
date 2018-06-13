@@ -100,7 +100,7 @@ Member_state to_member_state(const std::string &state) {
   else if (shcore::str_casecmp("UNREACHABLE", state.c_str()) == 0)
     return Member_state::UNREACHABLE;
   else if (shcore::str_casecmp("(MISSING)", state.c_str()) == 0 ||
-           shcore::str_casecmp("MISSING", state.c_str()) == 0)
+           shcore::str_casecmp("MISSING", state.c_str()) == 0 || state.empty())
     return Member_state::MISSING;
   else
     throw std::runtime_error("Unsupported member state value: " + state);

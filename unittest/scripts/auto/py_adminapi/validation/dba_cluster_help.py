@@ -292,9 +292,24 @@ DESCRIPTION
 
       It keeps all the user's data intact.
 
-      The following is the only option supported:
+      The options dictionary may contain the following attributes:
 
-      - force: boolean, confirms that the dissolve operation must be executed.
+      - force: boolean value used to confirm that the dissolve operation must
+        be executed, even if some members of the cluster cannot be reached or
+        the timeout was reached when waiting for members to catch up with
+        replication changes. By default, set to false.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+
+      The force option (set to true) must only be used to dissolve a cluster
+      with instances that are permanently not available (no longer reachable)
+      or never to be reused again in a cluster. This allows to dissolve a
+      cluster and remove it from the metadata, including instances than can no
+      longer be recovered. Otherwise, the instances must be brought back ONLINE
+      and the cluster dissolved without the force option to avoid errors trying
+      to reuse the instances and add them back to a cluster.
 
 EXCEPTIONS
       MetadataError in the following scenarios:
@@ -493,9 +508,10 @@ DESCRIPTION
       - force: boolean, indicating if the instance must be removed (even if
         only from metadata) in case it cannot be reached. By default, set to
         false.
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
 
       The password may be contained in the instance definition, however, it can
       be overwritten if it is specified on the options.

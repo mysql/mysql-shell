@@ -57,6 +57,7 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/check_instance.cc"
       "adminapi/dba/configure_local_instance.cc"
       "adminapi/dba/configure_instance.cc"
+      "adminapi/dba/dissolve.cc"
       "adminapi/dba/preconditions.cc"
       "adminapi/dba/provision.cc"
       "adminapi/dba/remove_instance.cc")

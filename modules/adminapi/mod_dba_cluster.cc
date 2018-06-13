@@ -71,7 +71,7 @@ Cluster::Cluster(const std::string &name,
                  std::shared_ptr<MetadataStorage> metadata_storage,
                  std::shared_ptr<IConsole> console_handler)
     : _name(name),
-      _dissolved(false),
+      m_invalidated(false),
       _group_session(group_session),
       _metadata_storage(metadata_storage),
       m_console(console_handler) {
@@ -159,7 +159,7 @@ void Cluster::assert_valid(const std::string &option_name) const {
 
   if (option_name == "disconnect") return;
 
-  if (has_member(option_name) && _dissolved) {
+  if (has_member(option_name) && m_invalidated) {
     if (has_method(option_name)) {
       name = get_function_name(option_name, false);
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
@@ -794,9 +794,10 @@ REGISTER_HELP(
     "false.");
 REGISTER_HELP(
     CLUSTER_REMOVEINSTANCE_DETAIL6,
-    "@li interactive: boolean value used to disable the wizards in the command "
-    "execution, i.e. prompts are not provided to the user and confirmation "
-    "prompts are not shown.");
+    "@li interactive: boolean value used to disable/enable the wizards in the "
+    "command execution, i.e. prompts and confirmations will be provided or "
+    "not according to the value set. The default value is equal to MySQL Shell "
+    "wizard mode.");
 REGISTER_HELP(
     CLUSTER_REMOVEINSTANCE_DETAIL7,
     "The password may be contained in the instance definition, however, it can "
@@ -1211,10 +1212,28 @@ REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL,
               "the the cluster from the metadata.");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL1, "It keeps all the user's data intact.");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL2,
-              "The following is the only option supported:");
-REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3,
-              "@li force: boolean, confirms that the "
-              "dissolve operation must be executed.");
+              "The options dictionary may contain the following attributes:");
+REGISTER_HELP(
+    CLUSTER_DISSOLVE_DETAIL3,
+    "@li force: boolean value used to confirm that the dissolve operation must "
+    "be executed, even if some members of the cluster cannot be reached or the "
+    "timeout was reached when waiting for members to catch up with replication "
+    "changes. By default, set to false.");
+REGISTER_HELP(
+    CLUSTER_DISSOLVE_DETAIL4,
+    "@li interactive: boolean value used to disable/enable the wizards in the "
+    "command execution, i.e. prompts and confirmations will be provided or "
+    "not according to the value set. The default value is equal to MySQL Shell "
+    "wizard mode.");
+REGISTER_HELP(
+    CLUSTER_DISSOLVE_DETAIL5,
+    "The force option (set to true) must only be used to dissolve a cluster "
+    "with instances that are permanently not available (no longer reachable) "
+    "or never to be reused again in a cluster. This allows to dissolve a "
+    "cluster and remove it from the metadata, including instances than can no "
+    "longer be recovered. Otherwise, the instances must be brought back ONLINE "
+    "and the cluster dissolved without the force option to avoid errors trying "
+    "to reuse the instances and add them back to a cluster.");
 
 /**
  * $(CLUSTER_DISSOLVE_BRIEF)
@@ -1231,6 +1250,9 @@ REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3,
  * $(CLUSTER_DISSOLVE_DETAIL1)
  * $(CLUSTER_DISSOLVE_DETAIL2)
  * $(CLUSTER_DISSOLVE_DETAIL3)
+ * $(CLUSTER_DISSOLVE_DETAIL4)
+ *
+ * $(CLUSTER_DISSOLVE_DETAIL5)
  */
 #if DOXYGEN_JS
 Undefined Cluster::dissolve(Dictionary options) {}
@@ -1239,10 +1261,16 @@ None Cluster::dissolve(Dictionary options) {}
 #endif
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  // Check arguments count.
+  // NOTE: check for arguments need to be performed here for the correct
+  // context "Cluster.removeInstance" to be used in the error message
+  // (not ReplicaSet.removeInstance).
+  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
+
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
-
-  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
   // We need to check if the group has quorum and if not we must abort the
   // operation otherwise GR blocks the writes to preserve the consistency
@@ -1250,65 +1278,17 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   // This check is done at check_preconditions()
   check_preconditions("dissolve");
 
+  // Dissolve the default replicaset.
   try {
-    shcore::Value::Map_type_ref options;
+    // Check if we have a Default ReplicaSet
+    if (!_default_replica_set)
+      throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-    bool force = false;
-    if (args.size() == 1) options = args.map_at(0);
-
-    if (options) {
-      // Verification of invalid attributes on the instance creation options
-      shcore::Argument_map opt_map(*options);
-
-      opt_map.ensure_keys({}, {"force"}, "dissolve options");
-
-      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
-    }
-
-    MetadataStorage::Transaction tx(_metadata_storage);
-    std::string cluster_name = get_name();
-
-    // check if the Cluster is empty
-    if (_metadata_storage->is_cluster_empty(get_id())) {
-      _metadata_storage->drop_cluster(cluster_name);
-      tx.commit();
-      // Set the flag, marking this cluster instance as invalid.
-      _dissolved = true;
-    } else {
-      if (force) {
-        // We must stop GR on the online instances only, otherwise we'll
-        // get connection failures to the (MISSING) instances
-        // BUG#26001653.
-        // Get the online instances on the only available replica set
-        auto online_instances =
-            _metadata_storage->get_replicaset_online_instances(
-                _default_replica_set->get_id());
-
-        _metadata_storage->drop_replicaset(_default_replica_set->get_id());
-
-        // TODO(miguel): we only have the Default ReplicaSet
-        // but will have more in the future
-        _metadata_storage->drop_cluster(cluster_name);
-
-        tx.commit();
-
-        // once the data changes are done, we proceed doing the remove from GR
-        _default_replica_set->remove_instances_from_gr(online_instances);
-
-        // Set the flag, marking this cluster instance as invalid.
-        _dissolved = true;
-      } else {
-        throw shcore::Exception::logic_error(
-            "Cannot drop cluster: The cluster is not empty.");
-      }
-    }
-
-    // Disconnect all internal sessions
-    disconnect({});
+    ret_val = _default_replica_set->dissolve(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"))
 
-  return shcore::Value();
+  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
@@ -1751,7 +1731,6 @@ Cluster_check_info Cluster::check_preconditions(
                                         _group_session);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return Cluster_check_info{};
 }
 
 void Cluster::sync_transactions(

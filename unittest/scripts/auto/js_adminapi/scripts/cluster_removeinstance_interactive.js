@@ -409,6 +409,7 @@ cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port1);
 
 //@ Dissolve cluster with success
 // Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 cluster.dissolve({force: true});
 
 cluster.disconnect();

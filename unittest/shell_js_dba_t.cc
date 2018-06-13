@@ -393,14 +393,20 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
 
   output_handler.set_log_level(ngcommon::Logger::LOG_DEBUG);
 
+  // @<OUT> Cluster: dissolve error: not empty
+  output_handler.prompts.push_back({"*", "no"});
+
   //@# Cluster: rejoin_instance with interaction, error
   output_handler.passwords.push_back({"*", "n"});
 
   //@# Cluster: rejoin_instance with interaction, error 2
   output_handler.passwords.push_back({"*", "n"});
 
-  //@<OUT> Cluster: rejoin_instance with interaction, ok
+  // @<OUT> Cluster: rejoinInstance with interaction, ok
   output_handler.passwords.push_back({"*", "root"});
+
+  // @<OUT> Cluster: final dissolve
+  output_handler.prompts.push_back({"*", "yes"});
 
   // Tests cluster functionality, adding, removing instances
   // error conditions
@@ -425,15 +431,25 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   //@<OUT> Dba: createCluster multiPrimary with interaction, ok
   output_handler.prompts.push_back({"*", "yes"});
 
+  //@ Dissolve cluster
+  output_handler.prompts.push_back({"*", "yes"});
+
   //@<OUT> Dba: createCluster multiMaster with interaction, regression for
   // BUG#25926603
   output_handler.prompts.push_back({"*", "yes"});
 
-  //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
+  //@ Dissolve cluster with success
+  output_handler.prompts.push_back({"*", "yes"});
+
+  //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
   output_handler.prompts.push_back({"*", "yes"});
 
   //@<OUT> Cluster: rejoin_instance with interaction, ok
   output_handler.passwords.push_back({"*", "root"});
+
+  // @<OUT> Cluster: status for rejoin: success
+  // Dissolve cluster.
+  output_handler.prompts.push_back({"*", "yes"});
 
   output_handler.set_log_level(ngcommon::Logger::LOG_INFO);
 
@@ -739,7 +755,15 @@ TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
   // group? [Y/n]:
   output_handler.prompts.push_back({"*", "n"});
 
+  // Are you sure you want to dissolve the cluster? [y/N]:
+  // Dismantle the cluster
+  output_handler.prompts.push_back({"*", "y"});
+
   // Are you sure you want to remove the Metadata? [y/N]:
+  output_handler.prompts.push_back({"*", "y"});
+
+  // Are you sure you want to dissolve the cluster? [y/N]:
+  //@ dissolve the cluster
   output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_adopt_from_gr_interactive.js");

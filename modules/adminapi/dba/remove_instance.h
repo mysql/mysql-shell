@@ -44,8 +44,7 @@ class Remove_instance : public Command_interface {
                   mysqlshdk::utils::nullable<bool> force,
                   std::shared_ptr<Cluster> cluster,
                   std::shared_ptr<ReplicaSet> replicaset,
-                  const shcore::NamingStyle &naming_style,
-                  std::shared_ptr<mysqlsh::IConsole> console_handler);
+                  const shcore::NamingStyle &naming_style);
 
   ~Remove_instance() override;
 

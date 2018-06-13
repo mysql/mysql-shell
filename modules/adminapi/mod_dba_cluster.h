@@ -168,14 +168,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   }
 
   /**
-   * Returns a boolean value indicating if the interactive mode is enabled in
-   * the shell options (wizards).
-   *
-   * @return Boolean value indicative if the interactive mode is enabled.
-   */
-  bool is_interactive() const { return current_shell_options()->get().wizards; }
-
-  /**
    * Synchronize transactions on target instance.
    *
    * Wait for all current cluster transactions to be applied on the specified
@@ -189,6 +181,11 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void sync_transactions(
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
+  /**
+   * Mark the cluster as invalid (e.g., dissolved).
+   */
+  void invalidate() { m_invalidated = true; }
+
  protected:
   uint64_t _id;
   std::string _name;
@@ -197,7 +194,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value::Map_type_ref _accounts;
   shcore::Value::Map_type_ref _options;
   shcore::Value::Map_type_ref _attributes;
-  bool _dissolved;
+  bool m_invalidated;
   // Session to a member of the group so we can query its status and other
   // stuff from pfs
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;

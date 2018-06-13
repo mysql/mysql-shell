@@ -894,7 +894,7 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
   for (auto i : removed_members) {
     shcore::sqlstring query(
         "SELECT mysql_server_uuid, instance_name, "
-        "JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) AS host "
+        "JSON_UNQUOTE(JSON_EXTRACT(addresses, '$.mysqlClassic')) AS host "
         "FROM mysql_innodb_cluster_metadata.instances "
         "WHERE mysql_server_uuid = ?",
         0);
