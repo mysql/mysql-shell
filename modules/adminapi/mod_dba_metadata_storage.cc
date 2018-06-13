@@ -385,36 +385,71 @@ void MetadataStorage::drop_cluster(const std::string &cluster_name) {
   if (!cluster_exists(cluster_name)) {
     throw Exception::logic_error("The cluster with the name '" + cluster_name +
                                  "' does not exist.");
-  } else {  // It exists, so let's get the cluster_id and move on
+  } else {
+    Transaction tx(shared_from_this());
+
+    // It exists, so let's get the cluster_id and move on
     uint64_t cluster_id = get_cluster_id(cluster_name);
 
-    // Check if the Cluster is empty
+    // Get all replicasets belonging to the cluster.
     query = shcore::sqlstring(
-        "SELECT * from mysql_innodb_cluster_metadata.replicasets "
-        "where cluster_id = ?",
+        "SELECT DISTINCT replicaset_id "
+        "FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = ?",
         0);
     query << cluster_id;
     query.done();
 
     auto result = execute_sql(query);
-
     auto row = result->fetch_one();
 
-    // result->flush();
+    std::vector<std::string> replicaset_ids_in_cluster;
+    while (row) {
+      replicaset_ids_in_cluster.push_back(std::to_string(row->get_int(0)));
+      row = result->fetch_one();
+    }
 
-    if (row)
-      throw Exception::logic_error("The cluster with the name '" +
-                                   cluster_name + "' is not empty.");
+    // If the cluster contains replicasets (not empty) then remove them as
+    // well as all associated instances.
+    if (!replicaset_ids_in_cluster.empty()) {
+      // Set the default_replicaset to NULL (needed to avoid foreign key
+      // constraint error when removing replicasets data).
+      query = shcore::sqlstring(
+          "UPDATE mysql_innodb_cluster_metadata.clusters SET "
+          "default_replicaset = NULL WHERE cluster_id = ?",
+          0);
+      query << cluster_id;
+      query.done();
+      execute_sql(query);
 
-    // OK the cluster exists and is empty, we can remove it
+      // Remove instance for all replicasets in cluster
+      std::string replicaset_ids = str_join(replicaset_ids_in_cluster, ",");
+      query = shcore::sqlstring(
+          "DELETE FROM mysql_innodb_cluster_metadata.instances "
+          "WHERE replicaset_id IN (" +
+              replicaset_ids + ")",
+          0);
+      query.done();
+      execute_sql(query);
+
+      query = shcore::sqlstring(
+          "DELETE FROM mysql_innodb_cluster_metadata.replicasets "
+          "WHERE cluster_id = ?",
+          0);
+      query << cluster_id;
+      query.done();
+      execute_sql(query);
+    }
+
+    // Remove the cluster
     query = shcore::sqlstring(
-        "DELETE from mysql_innodb_cluster_metadata.clusters where "
-        "cluster_id = ?",
+        "DELETE from mysql_innodb_cluster_metadata.clusters "
+        "WHERE cluster_id = ?",
         0);
     query << cluster_id;
     query.done();
-
     execute_sql(query);
+
+    tx.commit();
   }
 }
 

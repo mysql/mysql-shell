@@ -48,7 +48,6 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
   shcore::Value add_seed_instance(const shcore::Argument_list &args);
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
-  shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(

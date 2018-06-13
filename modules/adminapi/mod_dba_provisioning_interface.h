@@ -88,9 +88,6 @@ class ProvisioningInterface {
                       const std::string &gr_local_address,
                       const std::string &gr_group_seeds, bool skip_rpl_user,
                       shcore::Value::Array_type_ref *errors);
-  int leave_replicaset(
-      const mysqlshdk::db::Connection_options &connection_options,
-      shcore::Value::Array_type_ref *errors);
 
   void set_verbose(int verbose) { _verbose = verbose; }
   int get_verbose() const { return _verbose; }

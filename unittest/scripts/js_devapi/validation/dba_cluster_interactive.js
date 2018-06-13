@@ -219,11 +219,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 }
 
 //@<OUT> Cluster: dissolve error: not empty
-The cluster still has active ReplicaSets.
-Please use cluster.dissolve({force: true}) to deactivate replication
-and unregister the ReplicaSets from the cluster.
-
-The following replicasets are currently registered:
+The cluster still has the following registered ReplicaSets:
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -242,13 +238,19 @@ The following replicasets are currently registered:
         ]
     }
 }
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+
+Are you sure you want to dissolve the cluster? [y/N]:
+
+//@<ERR> Cluster: dissolve error: not empty
+Cluster.dissolve: Operation canceled by user. (RuntimeError)
 
 //@ Cluster: dissolve errors
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: Invalid values in dissolve options: enforce
-||Cluster.dissolve: Argument 'force' is expected to be a bool
+||Cluster.dissolve: Invalid options: enforce
+||Cluster.dissolve: Option 'force' is expected to be of type Bool, but is String
 
 //@ Cluster: remove_instance 3
 ||
@@ -423,9 +425,43 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
     "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ Cluster: final dissolve
-|The cluster was successfully dissolved.|
-|Replication was disabled but user data was left intact.|
+//@<OUT> Cluster: final dissolve
+The cluster still has the following registered ReplicaSets:
+{
+    "clusterName": "devCluster",
+    "defaultReplicaSet": {
+        "name": "default",
+        "topology": [
+            {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
+                "role": "HA"
+            },
+            {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
+                "label": "second_sandbox",
+                "role": "HA"
+            },
+            {
+                "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
+                "label": "third_sandbox",
+                "role": "HA"
+            }
+        ]
+    }
+}
+WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
+
+Are you sure you want to dissolve the cluster? [y/N]:
+Instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+Instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+Instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
+<<<(__version_num<80011)?"WARNING: On instance 'localhost:"+__mysql_sandbox_port1+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
+
+The cluster was successfully dissolved.
+Replication was disabled but user data was left intact.
 
 //@ Cluster: no operations can be done on a dissolved cluster
 ||Cluster.name: Can't access object member 'name' on a dissolved cluster

@@ -318,7 +318,7 @@ ManagedInstance::State get_instance_state(
       "FROM mysql_innodb_cluster_metadata.instances "
       "LEFT JOIN performance_schema.replication_group_members "
       "ON `mysql_server_uuid`=`member_id` "
-      "WHERE addresses->\"$.mysqlClassic\" = ?",
+      "WHERE addresses->'$.mysqlClassic' = ?",
       0);
   query << address;
   query.done();

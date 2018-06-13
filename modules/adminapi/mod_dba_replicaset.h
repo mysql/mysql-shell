@@ -146,7 +146,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                                 const shcore::Value::Map_type_ref &options);
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
-  shcore::Value disable(const shcore::Argument_list &args);
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
   shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(
@@ -155,10 +154,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const shcore::Argument_list &args);
   shcore::Value get_status(const mysqlsh::dba::Cluster_check_info &state) const;
 
-  void remove_instances_from_gr(
-      const std::vector<Instance_definition> &instances);
-  void remove_instance_from_gr(const std::string &instance_str,
-                               const mysqlshdk::db::Connection_options &data);
   Cluster_check_info check_preconditions(
       std::shared_ptr<mysqlshdk::db::ISession> group_session,
       const std::string &function_name) const;
@@ -188,6 +183,40 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const mysqlshdk::mysql::Instance &instance,
       bool remove_rpl_user_on_group);
 
+  /**
+   * Remove the replication (recovery) users from the given instance.
+   *
+   * @param instance target Instance object to remove the replication users.
+   * @param remove_rpl_user_on_group boolean indicating if the replication
+   *        (recovery) user used by the instance should be removed on the
+   *        remaining members of the GR group (replicaset). If true then remove
+   *        the recovery user used by the instance on the other members through
+   *        a primary instance, otherwise skip it (just remove replication users
+   *        on the target instance).
+   */
+  void remove_replication_users(const mysqlshdk::mysql::Instance &instance,
+                                bool remove_rpl_user_on_group);
+
+  /**
+   * Get the primary instance address.
+   *
+   * This funtion retrieves the address of a primary instance in the
+   * replicaset. In single primary mode, only one instance is the primary and
+   * its address is returned, otherwise it is assumed that multi primary mode
+   * is used. In multi primary mode, the address of any available instance
+   * or an empty string is returned, depending on the value set for the
+   * only_single_primary parameter: if false (default) the address of any
+   * available instance is returned; if true an empty string is returned (the
+   * primary address is only returned in single primary mode).
+   *
+   * @param only_single_primary optional boolean value indicating if the address
+   *        of a primary should only be returned for single primary mode
+   *        (true) or also for multi primary mode (false). Default value: false.
+   * @return string with the address '<host>:<port>' of a primary instance, or
+   *         empty string if multi-primary mode and only_single_primary = true.
+   */
+  std::string get_primary_instance(bool only_single_primary = false);
+
  private:
   // TODO(miguel) these should go to a GroupReplication file
   friend Cluster;
@@ -214,8 +243,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &local_address = "",
       const std::string &group_seeds = "", bool skip_rpl_user = false);
 
-  std::string get_peer_instance();
-
   void validate_instance_address(
       std::shared_ptr<mysqlshdk::db::ISession> session,
       const std::string &hostname, int port);
@@ -225,13 +252,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
   std::string get_cluster_group_seeds(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);
-
-  void remove_replication_users(const mysqlshdk::mysql::Instance &instance,
-                                bool remove_rpl_user_on_group);
-
-  void finalize_instance_removal(
-      const mysqlshdk::db::Connection_options &instance_cnx_opts,
-      bool remove_rpl_user_on_group);
 
   std::weak_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;

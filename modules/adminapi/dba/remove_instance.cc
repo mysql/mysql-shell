@@ -27,6 +27,7 @@
 #include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -37,19 +38,17 @@ Remove_instance::Remove_instance(
     mysqlshdk::db::Connection_options instance_cnx_opts, const bool interactive,
     mysqlshdk::utils::nullable<bool> force, std::shared_ptr<Cluster> cluster,
     std::shared_ptr<ReplicaSet> replicaset,
-    const shcore::NamingStyle &naming_style,
-    std::shared_ptr<mysqlsh::IConsole> console_handler)
+    const shcore::NamingStyle &naming_style)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_interactive(interactive),
       m_force(force),
       m_cluster(cluster),
       m_replicaset(replicaset),
-      m_naming_style(naming_style),
-      m_console(console_handler) {
+      m_naming_style(naming_style) {
   assert(&instance_cnx_opts);
   assert(cluster);
   assert(replicaset);
-  assert(console_handler);
+  m_console = current_console();
   m_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
 }

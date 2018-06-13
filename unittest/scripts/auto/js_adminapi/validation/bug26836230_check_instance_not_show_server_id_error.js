@@ -162,3 +162,6 @@ WARNING: User 'root' can only connect from localhost.
 If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
+
+//@ Clean-up deployed instances.
+||

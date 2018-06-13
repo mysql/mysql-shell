@@ -79,6 +79,7 @@ else
 print(c1);
 
 //@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 c1.dissolve({force:true});
 
 // Set old_sql_mode
@@ -103,6 +104,7 @@ c1 = dba.createCluster("devCluster", {clearReadOnly: true});
 c1
 
 //@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375)
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 c1.dissolve({force:true});
 session.close()
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

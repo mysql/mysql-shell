@@ -47,8 +47,6 @@ void Interactive_dba_cluster::init() {
   add_method("rejoinInstance",
              std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1),
              "data");
-  add_varargs_method("dissolve",
-                     std::bind(&Interactive_dba_cluster::dissolve, this, _1));
   add_varargs_method(
       "checkInstanceState",
       std::bind(&Interactive_dba_cluster::check_instance_state, this, _1));
@@ -249,60 +247,6 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
           ""
           "' was successfully rejoined on the cluster.");
   println();
-
-  return ret_val;
-}
-
-shcore::Value Interactive_dba_cluster::dissolve(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  bool force = false;
-  shcore::Value::Map_type_ref options;
-
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("dissolve");
-
-  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
-
-  check_preconditions("dissolve");
-
-  try {
-    if (args.size() == 1) options = args.map_at(0);
-
-    if (options) {
-      shcore::Argument_map opt_map(*options);
-
-      opt_map.ensure_keys({}, {"force"}, "dissolve options");
-
-      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"));
-
-  if (!force) {
-    std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-    if (cluster) object = cluster->get_default_replicaset();
-
-    if (object) {
-      println("The cluster still has active ReplicaSets.");
-      println(
-          "Please use cluster.dissolve({force: true}) to deactivate "
-          "replication");
-      println("and unregister the ReplicaSets from the cluster.");
-      println();
-
-      println("The following replicasets are currently registered:");
-
-      ret_val = call_target("describe", shcore::Argument_list());
-    }
-  } else {
-    ret_val = call_target("dissolve", args);
-
-    println("The cluster was successfully dissolved.");
-    println("Replication was disabled but user data was left intact.");
-    println();
-  }
 
   return ret_val;
 }

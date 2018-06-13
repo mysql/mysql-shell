@@ -452,6 +452,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 cluster.dissolve({force:true});
 
 //@ Check if Cluster dissolve will reset persisted variables {VER(>=8.0.11)}

@@ -783,19 +783,3 @@ int ProvisioningInterface::join_replicaset(
   return execute_mysqlprovision("join-replicaset", args, kwargs, errors,
                                 _verbose);
 }
-
-int ProvisioningInterface::leave_replicaset(
-    const mysqlshdk::db::Connection_options &connection_options,
-    shcore::Value::Array_type_ref *errors) {
-  shcore::Argument_map kwargs;
-  shcore::Argument_list args;
-
-  {
-    auto map = get_connection_map(connection_options);
-    if (map->has_key("password")) (*map)["passwd"] = (*map)["password"];
-    args.push_back(shcore::Value(map));
-  }
-
-  return execute_mysqlprovision("leave-replicaset", args, kwargs, errors,
-                                _verbose);
-}

@@ -42,8 +42,8 @@ void leave_replicaset(const mysqlshdk::mysql::Instance &instance,
   if (state != mysqlshdk::gr::Member_state::OFFLINE &&
       state != mysqlshdk::gr::Member_state::MISSING) {
     // Stop Group Replication (metadata already removed)
-    console->print_info(
-        "Attempting to leave from the Group Replication group...");
+    console->print_info("Instance '" + instance_address +
+                        "' is attempting to leave the cluster...");
     mysqlshdk::gr::stop_group_replication(instance);
     // Get final state and log info.
     state = mysqlshdk::gr::get_member_state(instance);

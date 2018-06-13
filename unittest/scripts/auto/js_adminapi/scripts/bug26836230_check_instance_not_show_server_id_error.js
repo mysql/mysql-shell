@@ -40,6 +40,6 @@ testutil.restartSandbox(__mysql_sandbox_port2);
 //@<OUT> configureLocalInstance no issues after restart for sandbox 2. {VER(>=8.0.3)}
 dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: mycnf2});
 
-// Clean-up deployed instances.
+//@ Clean-up deployed instances.
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

@@ -191,7 +191,6 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 Cluster.status();
 
 //@ Cluster: dissolve errors
-Cluster.dissolve();
 Cluster.dissolve(1);
 Cluster.dissolve(1,2);
 Cluster.dissolve("");
