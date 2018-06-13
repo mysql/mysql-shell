@@ -73,7 +73,7 @@
 {"type":"response","subtype":"RESULT","index":72,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":73,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":74,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
-{"type":"request","subtype":"QUERY","index":75,"sql":"SET GLOBAL group_replication_group_name = '0041fdb8-6efe-11e8-94fd-0010e08a7b78'"},
+{"type":"request","subtype":"QUERY","index":75,"sql":"SET GLOBAL group_replication_group_name = '89c66237-6f49-11e8-a4ef-0010e08a7b78'"},
 {"type":"response","subtype":"RESULT","index":76,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},
 {"type":"request","subtype":"QUERY","index":77,"sql":"commit"},
 {"type":"response","subtype":"RESULT","index":78,"auto_increment_value":0,"affected_rows":0,"warning_count":0,"info":""},

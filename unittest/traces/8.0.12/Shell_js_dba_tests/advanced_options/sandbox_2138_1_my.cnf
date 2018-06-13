@@ -25,7 +25,7 @@ enforce_gtid_consistency = ON
 gtid_mode = ON
 innodb_data_file_path = ibdata1:10M:autoextend
 socket = mysqld.sock
-auto_increment_offset = 7
+auto_increment_offset = 6
 basedir = /var/lib/jenkins/shell-deps/traces-mysql-8.0.12-mysql-commercial_8.0.12-1ubuntu16.04_amd64/usr
 log_bin
 loose_mysqlx_socket = mysqlx.sock

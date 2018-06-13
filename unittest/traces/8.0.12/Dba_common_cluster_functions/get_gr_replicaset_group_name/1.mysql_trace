@@ -1,8 +1,8 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2147","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"37","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2047","protocol":"classic"},
+{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"39","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
 {"type":"request","subtype":"QUERY","index":3,"sql":"SELECT @@group_replication_group_name"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@group_replication_group_name","length":144,"fractional":31,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["4d8c0aa2-6efe-11e8-b1cb-0010e08a7b78"]]},
+{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@group_replication_group_name","length":144,"fractional":31,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["b74ae586-6f49-11e8-8b54-0010e08a7b78"]]},
 {"type":"request","subtype":"CLOSE","index":5},
 {"type":"response","subtype":"OK","index":6},
 null]
