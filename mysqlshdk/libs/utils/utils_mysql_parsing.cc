@@ -285,38 +285,15 @@ std::vector<Statement_range> determineStatementRanges(
       }
     }
 
-    for (size_t i = 0; i < delimiters.size(); i++) {
-      auto delimiter = delimiters[i];
-      if (*tail == delimiter[0]) {
-        // Found possible start of the delimiter. Check if it really is.
-        size_t count = delimiter.size();
-        if (count == 1) {
-          // Most common case. Trim the statement and check if it is not empty
-          // before adding the range.
-          head = skip_leading_whitespace(head, tail);
-          if (head < tail || (!input_context_stack.empty() &&
-                              input_context_stack.top() == "-")) {
-            if (!input_context_stack.empty()) input_context_stack.pop();
-
-            if (head < tail)
-              ranges.emplace_back(head - (unsigned char *)sql, tail - head,
-                                  delimiter);
-            else
-              ranges.emplace_back(
-                  0, 0, delimiter);  // Empty line with just a delimiter
-          }
-          head = ++tail;
-          have_content = false;
-        } else {
-          const unsigned char *run = tail + 1;
-          const char *del = delimiter.c_str() + 1;
-          while (count-- > 1 && (*run++ == *del++))
-            ;
-
-          if (count == 0) {
-            // Multi char delimiter is complete. Tail still points to the start
-            // of the delimiter. Run points to the first character after the
-            // delimiter.
+    if (input_context_stack.empty() || input_context_stack.top() != "/*")
+      for (size_t i = 0; i < delimiters.size(); i++) {
+        auto delimiter = delimiters[i];
+        if (*tail == delimiter[0]) {
+          // Found possible start of the delimiter. Check if it really is.
+          size_t count = delimiter.size();
+          if (count == 1) {
+            // Most common case. Trim the statement and check if it is not empty
+            // before adding the range.
             head = skip_leading_whitespace(head, tail);
             if (head < tail || (!input_context_stack.empty() &&
                                 input_context_stack.top() == "-")) {
@@ -329,14 +306,38 @@ std::vector<Statement_range> determineStatementRanges(
                 ranges.emplace_back(
                     0, 0, delimiter);  // Empty line with just a delimiter
             }
-
-            tail = run;
-            head = run;
+            head = ++tail;
             have_content = false;
+          } else {
+            const unsigned char *run = tail + 1;
+            const char *del = delimiter.c_str() + 1;
+            while (count-- > 1 && (*run++ == *del++))
+              ;
+
+            if (count == 0) {
+              // Multi char delimiter is complete. Tail still points to the
+              // start of the delimiter. Run points to the first character after
+              // the delimiter.
+              head = skip_leading_whitespace(head, tail);
+              if (head < tail || (!input_context_stack.empty() &&
+                                  input_context_stack.top() == "-")) {
+                if (!input_context_stack.empty()) input_context_stack.pop();
+
+                if (head < tail)
+                  ranges.emplace_back(head - (unsigned char *)sql, tail - head,
+                                      delimiter);
+                else
+                  ranges.emplace_back(
+                      0, 0, delimiter);  // Empty line with just a delimiter
+              }
+
+              tail = run;
+              head = run;
+              have_content = false;
+            }
           }
         }
       }
-    }
 
     // Multiline comments are ignored, everything else is not
     if (*tail > ' ' &&

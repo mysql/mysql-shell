@@ -257,6 +257,20 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
 
   sql =
       "/*\n"
+      "this is a comment;\n"
+      "and should be ignored;\n"
+      "* foo; bar\n"
+      "and ends here */\n"
+      "show databases;";
+  send_sql(sql);
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(";", ranges[0].get_delimiter());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  sql =
+      "/*\n"
       "this is a comment\n"
       "and should be ignored\n"
       "and ends here */\n"
