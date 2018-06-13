@@ -1,4 +1,4 @@
 [
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://local_pass:@localhost:22170?ssl-mode=DISABLED","protocol":"x"},
+{"type":"request","subtype":"CONNECT","index":1,"uri":"mysqlx://local_pass:@localhost:21470?ssl-mode=DISABLED","protocol":"x"},
 {"type":"response","subtype":"ERROR","index":2,"code":"1045","msg":"Invalid user or password","sqlstate":""},
 null]
