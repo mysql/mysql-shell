@@ -34,8 +34,20 @@
 #include <thread>
 
 #ifdef _WIN32
+// clang-format off
+#include <WinSock2.h>
+#include <Ws2tcpip.h>
+#include <Iphlpapi.h>
 #include <windows.h>
+// clang-format on
+// for GetIpAddrTable()
+#pragma comment(lib, "IPHLPAPI.lib")
 #else
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -960,17 +972,16 @@ void Testutils::wait_sandbox_dead(int port) {
   log_info("Waiting for ports (%d)...", port);
   // wait until classic, x and Xcom ports are free
   if (port * 10 + 1 < 65535) {
-    while (
-        mysqlshdk::utils::Net::is_port_listening("localhost", port * 10 + 1)) {
+    while (!is_port_available_for_sandbox_to_bind(port * 10 + 1)) {
       shcore::sleep_ms(500);
     }
   }
   if (port * 10 < 65535) {
-    while (mysqlshdk::utils::Net::is_port_listening("localhost", port * 10)) {
+    while (!is_port_available_for_sandbox_to_bind(port * 10)) {
       shcore::sleep_ms(500);
     }
   }
-  while (mysqlshdk::utils::Net::is_port_listening("localhost", port)) {
+  while (!is_port_available_for_sandbox_to_bind(port)) {
     shcore::sleep_ms(500);
   }
 
@@ -1009,6 +1020,65 @@ void Testutils::wait_sandbox_dead(int port) {
 #endif
 
   log_info("Finished waiting");
+}
+
+bool Testutils::is_port_available_for_sandbox_to_bind(int port) const {
+  addrinfo hints;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+
+  addrinfo *info = nullptr, *p = nullptr;
+  // Get the list of network address structures for all IPs (0.0.0.0) on the
+  // given service port
+  int result =
+      getaddrinfo("0.0.0.0", std::to_string(port).c_str(), &hints, &info);
+
+  if (result != 0) throw mysqlshdk::utils::net_error(gai_strerror(result));
+
+  if (info != nullptr) {
+    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+    // initialize socket
+    int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+#ifndef _WIN32
+    const int socket_error = -1;
+#else
+    const int socket_error = INVALID_SOCKET;
+#endif
+    if (sock == socket_error) {
+      throw std::runtime_error("Could not create socket: " +
+                               shcore::errno_to_string(errno));
+    }
+    for (p = info; p != nullptr; p = p->ai_next) {
+#ifndef _WIN32
+      const int opt_val = 1;
+#else
+      const char opt_val = 0;
+#endif
+      // set socket as reusable for non windows systems since according to
+      // sql/conn_handler/socket_connection.cc:383 mysqld doesn't set
+      // SO_REUSEADDR for Windows.
+      if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof opt_val) <
+          0) {
+        throw std::runtime_error("Could not set socket as reusable: " +
+                                 shcore::errno_to_string(errno));
+      }
+      if (bind(sock, p->ai_addr, p->ai_addrlen) != 0) {
+        // cannot bind
+        return false;
+      } else {
+#ifdef _WIN32
+        closesocket(sock);
+#else
+        close(sock);
+#endif
+      }
+    }
+    // could bind on all
+    return true;
+  } else {
+    throw std::runtime_error("Could not resolve address 0.0.0.0");
+  }
 }
 
 bool is_configuration_option(const std::string &option,
