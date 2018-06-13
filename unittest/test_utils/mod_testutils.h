@@ -251,6 +251,8 @@ class Testutils : public shcore::Cpp_object_bridge {
 
   void wait_sandbox_dead(int port);
 
+  bool is_port_available_for_sandbox_to_bind(int port) const;
+
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port);
   bool deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts,
