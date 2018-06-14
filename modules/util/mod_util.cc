@@ -179,13 +179,17 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
     std::function<std::string(const Upgrade_issue &)> issue_formater(to_string);
 
-    if (results.empty())
+    if (results.empty()) {
       m_shell_core.print("  No issues found\n");
-    else if (check.get_description() != nullptr)
-      m_shell_core.print(
-          shcore::str_format("  %s\n\n", check.get_description()));
-    else
+    } else if (check.get_description() != nullptr) {
+      m_shell_core.print(shcore::str_format("  %s", check.get_description()));
+      if (check.get_doc_link() != nullptr)
+        m_shell_core.print(shcore::str_format("\n  More information: %s",
+                                              check.get_doc_link()));
+      m_shell_core.print("\n\n");
+    } else {
       issue_formater = format_upgrade_issue;
+    }
 
     for (const auto &issue : results)
       m_shell_core.print(
@@ -204,6 +208,9 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
   void summarize(int error, int warning, int notice,
                  const std::string &text) override {
     m_shell_core.print("\n");
+    m_shell_core.print(shcore::str_format("Errors:   %d\n", error));
+    m_shell_core.print(shcore::str_format("Warnings: %d\n", warning));
+    m_shell_core.print(shcore::str_format("Notices:  %d\n\n", notice));
     m_shell_core.print(text);
   }
 

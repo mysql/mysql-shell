@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -215,10 +215,11 @@ std::vector<std::string> str_break_into_lines(const std::string &line,
 
   while (rem.length() > line_width ||
          (nl_pos = rem.find('\n')) != std::string::npos) {
-    std::string::size_type split_point = std::min(line_width - 1, rem.length());
+    std::string::size_type split_point =
+        std::min(line_width - 1, rem.length() - 1);
     while (!std::isspace(rem[split_point]) && split_point > 0) --split_point;
 
-    if (split_point == 0) {
+    if (split_point == 0 && !std::isspace(rem[0])) {
       for (split_point = line_width; split_point < rem.length(); split_point++)
         if (std::isspace(rem[split_point])) break;
       if (split_point == rem.length()) break;
@@ -231,9 +232,10 @@ std::vector<std::string> str_break_into_lines(const std::string &line,
       result.push_back("");
     else
       result.push_back(rem.substr(0, split_point));
-    rem = rem.substr(split_point + 1);
+    rem = split_point + 1 >= rem.length() ? std::string()
+                                          : rem.substr(split_point + 1);
   }
-  result.push_back(rem);
+  if (!rem.empty()) result.push_back(rem);
   return result;
 }
 

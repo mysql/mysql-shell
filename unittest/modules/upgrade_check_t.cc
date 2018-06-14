@@ -90,6 +90,7 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_old_temporal_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   EXPECT_TRUE(issues.empty());
@@ -102,6 +103,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_reserved_keywords_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   for (auto &warning : issues) puts(to_string(warning).c_str());
@@ -145,6 +147,7 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_utf8mb3_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
 
   session->execute(
@@ -166,6 +169,7 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
       Sql_upgrade_check::get_mysql_schema_check();
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
+  EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
@@ -246,6 +250,7 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_foreign_key_length_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   EXPECT_TRUE(issues.empty());
@@ -259,6 +264,7 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   PrepareTestDatabase("aaa_test_maxdb_sql_mode");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_maxdb_sql_mode_flags_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   ASSERT_TRUE(issues.empty());
@@ -297,6 +303,7 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
   PrepareTestDatabase("aaa_test_obsolete_sql_modes");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_obsolete_sql_mode_flags_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   ASSERT_TRUE(issues.empty());
@@ -375,6 +382,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   PrepareTestDatabase("aaa_test_removed_functions");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_removed_functions_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   for (const auto &issue : issues) puts(to_string(issue).c_str());

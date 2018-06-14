@@ -496,6 +496,13 @@ TEST(UtilsString, str_break_into_lines) {
   EXPECT_EQ("12346789", res[0]);
   EXPECT_EQ("12345", res[1]);
   EXPECT_EQ("12346789", res[2]);
+
+  const char *text4 = "\n\n\n";
+  res = str_break_into_lines(text4, 7);
+  ASSERT_EQ(3, res.size());
+  EXPECT_EQ("", res[0]);
+  EXPECT_EQ("", res[1]);
+  EXPECT_EQ("", res[2]);
 }
 
 }  // namespace shcore
