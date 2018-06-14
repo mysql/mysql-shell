@@ -34,6 +34,7 @@ namespace shcore {
 std::string SHCORE_PUBLIC get_global_config_path();
 std::string SHCORE_PUBLIC get_user_config_path();
 std::string SHCORE_PUBLIC get_mysqlx_home_path();
+std::string SHCORE_PUBLIC get_binary_path();
 std::string SHCORE_PUBLIC get_binary_folder();
 std::string SHCORE_PUBLIC get_share_folder();
 std::string SHCORE_PUBLIC get_mp_path();

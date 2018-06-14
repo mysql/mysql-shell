@@ -43,7 +43,7 @@
 // used to identify a proper SHELL context object as a PyCObject
 static const char *SHELLTypeSignature = "SHELLCONTEXT";
 
-extern const char *g_mysqlsh_argv0;
+extern const char *g_mysqlsh_path;
 
 namespace shcore {
 bool Python_context::exit_error = false;
@@ -128,7 +128,7 @@ class Python_init_singleton {
 #endif
       }
 #endif  // !_WIN32
-      Py_SetProgramName(const_cast<char *>(g_mysqlsh_argv0));
+      Py_SetProgramName(const_cast<char *>(g_mysqlsh_path));
       Py_InitializeEx(0);
 
       _local_initialization = true;

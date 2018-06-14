@@ -27,7 +27,7 @@
 #include "unittest/test_utils/mod_testutils.h"
 
 using mysqlshdk::db::replay::Mode;
-extern const char *g_mysqlsh_argv0;
+extern const char *g_mysqlsh_path;
 
 // Needed by testutil
 bool g_test_color_output = false;
@@ -154,7 +154,7 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
       new tests::Testutils(shell->options().sandbox_directory,
                            mysqlshdk::db::replay::g_replay_mode ==
                                mysqlshdk::db::replay::Mode::Replay,
-                           shell, g_mysqlsh_argv0));
+                           shell, g_mysqlsh_path));
 
   if (mysqlshdk::db::replay::g_replay_mode !=
       mysqlshdk::db::replay::Mode::Direct)
