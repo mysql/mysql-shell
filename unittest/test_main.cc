@@ -79,7 +79,7 @@ mysqlshdk::utils::Version g_highest_tls_version = Version();
 extern "C" {
 const char *g_test_home = nullptr;
 }
-const char *g_mysqlsh_argv0;
+const char *g_mysqlsh_path;
 char *g_mppath = nullptr;
 bool g_profile_test_scripts = false;
 
@@ -659,13 +659,13 @@ int main(int argc, char **argv) {
   mysqlsh_path.append(".exe");
 #endif
 
-  g_mysqlsh_argv0 = mysqlsh_path.c_str();
+  g_mysqlsh_path = mysqlsh_path.c_str();
 
   if (!getenv("MYSQLSH_HOME"))
     std::cout << "Testing: Shell Build." << std::endl;
   else
     std::cout << "Testing: Shell Package." << std::endl;
-  std::cout << "Shell Binary: " << g_mysqlsh_argv0 << std::endl;
+  std::cout << "Shell Binary: " << g_mysqlsh_path << std::endl;
   std::cout << "Shell Home: " << shcore::get_mysqlx_home_path() << std::endl;
   std::cout << "MySQL Provision: " << g_mppath << std::endl;
   std::cout << "Test Data Home: " << g_test_home << std::endl;

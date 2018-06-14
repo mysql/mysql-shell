@@ -49,7 +49,7 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell);
 void finalize_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell);
 #endif
 
-const char *g_mysqlsh_argv0;
+const char *g_mysqlsh_path;
 static mysqlsh::Command_line_shell *g_shell_ptr;
 
 #ifdef WIN32
@@ -448,8 +448,6 @@ bool stdout_is_tty = false;
 
 static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
                                                             char ***argv) {
-  g_mysqlsh_argv0 = (*argv)[0];
-
 #ifdef ENABLE_SESSION_RECORDING
   handle_debug_options(argc, argv);
 #endif
@@ -490,6 +488,9 @@ static void finalize_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
 }
 
 int main(int argc, char **argv) {
+  std::string mysqlsh_path = shcore::get_binary_path();
+  g_mysqlsh_path = mysqlsh_path.c_str();
+
 #ifdef WIN32
   UINT origcp = GetConsoleCP();
   UINT origocp = GetConsoleOutputCP();

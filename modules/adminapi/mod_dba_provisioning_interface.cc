@@ -38,7 +38,7 @@
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 
-extern const char *g_mysqlsh_argv0;
+extern const char *g_mysqlsh_path;
 
 using namespace mysqlsh;
 using namespace mysqlsh::dba;
@@ -111,7 +111,7 @@ int ProvisioningInterface::execute_mysqlprovision(
   log_level.append(std::to_string(
       static_cast<int>(ngcommon::Logger::singleton()->get_log_level())));
 
-  args_script.push_back(g_mysqlsh_argv0);
+  args_script.push_back(g_mysqlsh_path);
   args_script.push_back(log_level.c_str());
   args_script.push_back("--py");
   args_script.push_back("-f");

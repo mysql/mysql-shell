@@ -162,10 +162,8 @@ std::string get_global_config_path() {
   return path;
 }
 
-std::string get_binary_folder() {
-  std::string ret_val;
+std::string get_binary_path() {
   std::string exe_path;
-  std::string path_separator;
 
   // TODO: warning should be printed with log_warning when available
 #ifdef WIN32
@@ -174,7 +172,6 @@ std::string get_binary_folder() {
     char path[MAX_PATH]{'\0'};
     if (GetModuleFileNameA(hModule, path, MAX_PATH)) {
       exe_path.assign(path);
-      path_separator = "\\";
     } else
       throw std::runtime_error(str_format(
           "get_binary_folder: GetModuleFileNameA failed with error %s\n",
@@ -184,7 +181,6 @@ std::string get_binary_folder() {
         str_format("get_binary_folder: GetModuleHandleA failed with error %s\n",
                    GetLastError()));
 #else
-  path_separator = "/";
 #ifdef __APPLE__
   char path[PATH_MAX]{'\0'};
   char real_path[PATH_MAX]{'\0'};
@@ -215,6 +211,23 @@ std::string get_binary_folder() {
 #endif
 #endif
 #endif
+
+  return exe_path;
+}
+
+std::string get_binary_folder() {
+  std::string path_separator;
+
+  // TODO: warning should be printed with log_warning when available
+#ifdef WIN32
+  path_separator = "\\";
+#else
+  path_separator = "/";
+#endif
+
+  std::string ret_val;
+  std::string exe_path = get_binary_path();
+
   // If the exe path was found now we check if it can be considered the standard
   // installation by checking the parent folder is "bin"
   if (!exe_path.empty()) {
