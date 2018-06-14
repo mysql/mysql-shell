@@ -1,3 +1,24 @@
+# Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License, version 2.0,
+# as published by the Free Software Foundation.
+#
+# This program is also distributed with certain software (including
+# but not limited to OpenSSL) that is licensed under separate terms, as
+# designated in a particular file or component or in included license
+# documentation.  The authors of MySQL hereby grant you an additional
+# permission to link the program and your derivative works with the
+# separately licensed software that they have included with MySQL.
+# This program is distributed in the hope that it will be useful,  but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+# the GNU General Public License, version 2.0, for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
 # This file defines translations one by one (comments can be added for readability starting with
 # '#' character). Format for single translation is as follows:
 #
@@ -21,6 +42,7 @@
 # the table using 'ALTER TABLE <table_name> FORCE' command
 
 * oldTemporalCheck.docLink
+https://mysqlserverteam.com/mysql-8-0-removing-support-for-old-temporal-datatypes/
 
 * reservedKeywordsCheck.title
 # Usage of db objects with names conflicting with reserved keywords in 8.0
@@ -31,6 +53,7 @@
 # result in errors.
 
 * reservedKeywordsCheck.docLink
+https://dev.mysql.com/doc/refman/en/keywords.html
 
 * utf8mb3Check.title
 # Usage of utf8mb3 charset
@@ -40,6 +63,7 @@
 # to use utf8mb4 instead, for improved Unicode support.
 
 * utf8mb3Check.docLink
+https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
 
 * mysqlSchemaCheck.title
 # Table names in the mysql schema conflicting with new tables in 8.0
@@ -50,6 +74,7 @@
 # command). This may also entail changes to applications that use the affected tables.
 
 * mysqlSchemaCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prerequisites
 
 * foreignKeyLengthCheck.title
 # Foreign key constraint names longer than 64 characters
@@ -59,6 +84,7 @@
 # (use ALTER TABLE).
 
 * foreignKeyLengthCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prerequisites
 
 * maxdbFlagCheck.title
 # Usage of obsolete MAXDB sql_mode flag
@@ -71,6 +97,7 @@
 # objects so that they do not rely on the MAXDB flag before running the upgrade to 8.0.
 
 * maxdbFlagCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
 * sqlModeFlagCheck.title
 # Usage of obsolete sql_mode flags
@@ -80,6 +107,7 @@
 # cleared during upgrade to 8.0.
 
 * sqlModeFlagCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
 * partitionedTablesInSharedTablespaceCheck.title
 # Usage of partitioned tables in shared tablespaces
@@ -100,6 +128,7 @@
 # make sure to update them to use supported alternatives before upgrade.
 
 * removedFunctionsCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command

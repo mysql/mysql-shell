@@ -91,6 +91,28 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
 void Upgrade_check::prepare_translation_file(const char *filename) {
   shcore::Translation_writer writer(filename);
 
+  const char *oracle_copyright =
+      "Copyright (c) 2018, Oracle and/or its affiliates. All rights "
+      "reserved.\n\n"
+      "This program is free software; you can redistribute it and/or modify\n"
+      "it under the terms of the GNU General Public License, version 2.0,\n"
+      "as published by the Free Software Foundation.\n\n"
+      "This program is also distributed with certain software (including\n"
+      "but not limited to OpenSSL) that is licensed under separate terms, as\n"
+      "designated in a particular file or component or in included license\n"
+      "documentation.  The authors of MySQL hereby grant you an additional\n"
+      "permission to link the program and your derivative works with the\n"
+      "separately licensed software that they have included with MySQL.\n"
+      "This program is distributed in the hope that it will be useful,  but\n"
+      "WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+      "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See\n"
+      "the GNU General Public License, version 2.0, for more details.\n\n"
+      "You should have received a copy of the GNU General Public License\n"
+      "along with this program; if not, write to the Free Software Foundation, "
+      "Inc.,\n"
+      "51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA";
+
+  writer.write_header(oracle_copyright);
   writer.write_header();
   for (const auto &it : s_available_checks) {
     auto check = it.second(TRANSLATION_MODE, TRANSLATION_MODE);
