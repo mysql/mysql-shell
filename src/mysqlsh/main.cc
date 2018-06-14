@@ -536,7 +536,7 @@ int main(int argc, char **argv) {
       if (*MYSH_BUILD_ID && shell_options->action_print_version_extra()) {
         snprintf(&version_msg[0], version_msg.size(),
                  "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
-                 argv[0], MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
+                 argv[0], MYSH_FULL_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
                  LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT, MYSH_BUILD_ID);
         version_msg.resize(strlen(&version_msg[0]));
         if (*MYSH_COMMIT_ID) {
@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
       } else {
         snprintf(&version_msg[0], version_msg.size(),
                  "%s   Ver %s for %s on %s - for MySQL %s (%s)", argv[0],
-                 MYSH_VERSION, SYSTEM_TYPE, MACHINE_TYPE, LIBMYSQL_VERSION,
+                 MYSH_FULL_VERSION, SYSTEM_TYPE, MACHINE_TYPE, LIBMYSQL_VERSION,
                  MYSQL_COMPILATION_COMMENT);
         version_msg.resize(strlen(&version_msg[0]));
       }
