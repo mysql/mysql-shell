@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -30,10 +30,5 @@ SET(PROMPT_SAMPLES
     prompt/prompt_nocolor.json
 )
 
-IF(WIN32)
-  INSTALL(FILES ${PROMPT_SAMPLES}
-        DESTINATION prompt/ COMPONENT main)
-ELSE()
-  INSTALL(FILES ${PROMPT_SAMPLES}
-    DESTINATION ${INSTALL_SHAREDIR}/prompt/ COMPONENT main)
-ENDIF()
+INSTALL(FILES ${PROMPT_SAMPLES}
+  DESTINATION ${INSTALL_SHAREDIR}/prompt/ COMPONENT main)

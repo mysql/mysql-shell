@@ -242,7 +242,13 @@ std::string get_binary_folder() {
 }
 
 std::string get_share_folder() {
-  return shcore::get_binary_folder() + "/../" + INSTALL_SHAREDIR "/";
+  std::string path;
+  path = shcore::path::join_path(get_mysqlx_home_path(), "share", "mysqlsh");
+  if (!shcore::path::exists(path))
+    throw std::runtime_error(
+        path + ": share folder not found, shell installation likely invalid");
+
+  return path;
 }
 
 std::string SHCORE_PUBLIC get_mp_path() {
