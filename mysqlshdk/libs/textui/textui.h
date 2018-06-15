@@ -60,6 +60,11 @@ enum Color_capability { No_color, Color_16, Color_256, Color_rgb };
 
 void SHCORE_PUBLIC set_color_capability(Color_capability cap);
 
+inline Color_capability get_color_capability() {
+  extern Color_capability g_color_capability;
+  return g_color_capability;
+}
+
 inline bool has_color() {
   extern Color_capability g_color_capability;
   return g_color_capability != No_color;

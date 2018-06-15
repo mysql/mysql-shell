@@ -275,60 +275,61 @@ void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
   options->set_interactive(is_interactive);
 }
 
-static mysqlshdk::textui::Color_capability detect_color_capability() {
+static bool detect_color_capability() {
   mysqlshdk::textui::Color_capability color_mode = mysqlshdk::textui::Color_256;
-#ifdef _WIN32
-  // Try to enable VT100 escapes... if it doesn't work,
-  // then it disables the ansi escape sequences
-  // Supported in Windows 10 command window and some other terminals
-  HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-  DWORD mode;
-  GetConsoleMode(handle, &mode);
 
-  // ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-  if (!SetConsoleMode(handle, mode | 0x004)) {
-    if (getenv("ANSICON")) {
-      // ConEmu
-      color_mode = mysqlshdk::textui::Color_rgb;
-    } else {
-      color_mode = mysqlshdk::textui::No_color;
-    }
-  } else {
-    color_mode = mysqlshdk::textui::Color_rgb;
-  }
-#else
-  const char *term = getenv("TERM");
-  if (term) {
-    if (shcore::str_endswith(term, "-256color") == 0) {
-      color_mode = mysqlshdk::textui::Color_256;
-    }
-  } else {
-    color_mode = mysqlshdk::textui::Color_16;
-  }
-#endif
-  return color_mode;
-}
-
-std::string pick_prompt_theme(const char *argv0) {
-  mysqlshdk::textui::Color_capability mode = detect_color_capability();
   if (const char *force_mode = getenv("MYSQLSH_TERM_COLOR_MODE")) {
     if (strcmp(force_mode, "rgb") == 0) {
-      mode = mysqlshdk::textui::Color_rgb;
+      color_mode = mysqlshdk::textui::Color_rgb;
     } else if (strcmp(force_mode, "256") == 0) {
-      mode = mysqlshdk::textui::Color_256;
+      color_mode = mysqlshdk::textui::Color_256;
     } else if (strcmp(force_mode, "16") == 0) {
-      mode = mysqlshdk::textui::Color_16;
+      color_mode = mysqlshdk::textui::Color_16;
     } else if (strcmp(force_mode, "nocolor") == 0) {
-      mode = mysqlshdk::textui::No_color;
+      color_mode = mysqlshdk::textui::No_color;
     } else if (strcmp(force_mode, "") != 0) {
       std::cout << "NOTE: MYSQLSH_TERM_COLOR_MODE environment variable set to "
                    "invalid value. Must be one of rgb, 256, 16, nocolor\n";
-      return "";
+      return false;
     }
-  }
-  log_debug("Using color mode %i", static_cast<int>(mode));
-  mysqlshdk::textui::set_color_capability(mode);
+  } else {
+#ifdef _WIN32
+    // Try to enable VT100 escapes... if it doesn't work,
+    // then it disables the ansi escape sequences
+    // Supported in Windows 10 command window and some other terminals
+    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode;
+    GetConsoleMode(handle, &mode);
 
+    // ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(handle, mode | 0x004)) {
+      if (getenv("ANSICON")) {
+        // ConEmu
+        color_mode = mysqlshdk::textui::Color_rgb;
+      } else {
+        color_mode = mysqlshdk::textui::No_color;
+      }
+    } else {
+      color_mode = mysqlshdk::textui::Color_rgb;
+    }
+#else
+    const char *term = getenv("TERM");
+    if (term) {
+      if (shcore::str_endswith(term, "-256color") == 0) {
+        color_mode = mysqlshdk::textui::Color_256;
+      }
+    } else {
+      color_mode = mysqlshdk::textui::Color_16;
+    }
+#endif
+  }
+  log_debug("Using color mode %i", static_cast<int>(color_mode));
+  mysqlshdk::textui::set_color_capability(color_mode);
+
+  return true;
+}
+
+std::string pick_prompt_theme() {
   // check environment variable to override prompt theme
   if (char *theme = getenv("MYSQLSH_PROMPT_THEME")) {
     if (*theme) {
@@ -350,31 +351,26 @@ std::string pick_prompt_theme(const char *argv0) {
     log_debug("Using prompt theme file %s", path.c_str());
     return path;
   }
-
-#ifdef _WIN32
-  path = shcore::get_binary_folder();
-  path += "/../prompt/";
-#else
-  path = shcore::get_binary_folder();
-  path += "/../";
-  path += INSTALL_SHAREDIR;
-  path += "/prompt/";
-#endif
+  mysqlshdk::textui::Color_capability mode;
+  mode = mysqlshdk::textui::get_color_capability();
   switch (mode) {
     case mysqlshdk::textui::Color_rgb:
     case mysqlshdk::textui::Color_256:
-      path += "prompt_256.json";
+      path = "prompt_256.json";
       break;
     case mysqlshdk::textui::Color_16:
-      path += "prompt_16.json";
+      path = "prompt_16.json";
       break;
     case mysqlshdk::textui::No_color:
-      path += "prompt_nocolor.json";
+      path = "prompt_nocolor.json";
       break;
     default:
-      path += "prompt_classic.json";
+      path = "prompt_classic.json";
       break;
   }
+
+  path = shcore::path::join_path(shcore::get_share_folder(), "prompt", path);
+
   log_debug("Using prompt theme file %s", path.c_str());
   return path;
 }
@@ -526,6 +522,9 @@ int main(int argc, char **argv) {
     }
 
     shell.reset(new mysqlsh::Command_line_shell(shell_options));
+
+    bool valid_color_capability = detect_color_capability();
+
     init_shell(shell);
 
     auto cleanup = shcore::on_leave_scope([shell]() { finalize_shell(shell); });
@@ -621,7 +620,7 @@ int main(int argc, char **argv) {
       }
 
       g_shell_ptr = shell.get();
-      shell->load_prompt_theme(pick_prompt_theme(argv[0]));
+      if (valid_color_capability) shell->load_prompt_theme(pick_prompt_theme());
 
       if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);

@@ -30,6 +30,7 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_translate.h"
@@ -133,8 +134,15 @@ void Upgrade_check::prepare_translation_file(const char *filename) {
 }
 
 const char *Upgrade_check::get_text(const char *name, const char *field) {
-  static shcore::Translation translation = shcore::read_translation_from_file(
-      (shcore::get_share_folder() + "upgrade_checker.msg").c_str());
+  std::string path = shcore::get_share_folder();
+  path = shcore::path::join_path(path, "upgrade_checker.msg");
+
+  if (!shcore::path::exists(path))
+    throw std::runtime_error(path +
+                             ": not found, shell installation likely invalid");
+
+  static shcore::Translation translation =
+      shcore::read_translation_from_file(path.c_str());
   std::stringstream str;
   str << name << "." << field;
   auto it = translation.find(str.str());
