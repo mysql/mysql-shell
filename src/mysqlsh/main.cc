@@ -82,6 +82,11 @@ static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
 class Interrupt_helper : public shcore::Interrupt_helper {
  public:
   virtual void setup() {
+    // if we're being executed using CreateProcess() with
+    // CREATE_NEW_PROCESS_GROUP flag set, an implicit call to
+    // SetConsoleCtrlHandler(NULL, TRUE) is made, need to revert that
+    SetConsoleCtrlHandler(nullptr, FALSE);
+    // set our own handler
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
   }
 
@@ -123,7 +128,10 @@ static void handle_ctrlc_signal(int sig) {
 }
 
 static void install_signal_handler() {
+  // install signal handler
   signal(SIGINT, handle_ctrlc_signal);
+  // allow system calls to be interrupted
+  siginterrupt(SIGINT, 1);
   // Ignore broken pipe signal
   signal(SIGPIPE, SIG_IGN);
 }

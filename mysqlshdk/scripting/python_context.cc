@@ -37,6 +37,7 @@
 #include "modules/mod_utils.h"
 
 #ifdef _WINDOWS
+#include <signal.h>
 #include <windows.h>
 #endif
 
@@ -130,6 +131,25 @@ class Python_init_singleton {
 #endif  // !_WIN32
       Py_SetProgramName(const_cast<char *>(g_mysqlsh_path));
       Py_InitializeEx(0);
+
+#ifdef _WIN32
+      // Initialize the signal module, so we can use PyErr_SetInterrupt().
+      // We don't want that module to overwrite the default signal handler,
+      // hence we store and restore the current one. This will give us
+      // an initialized module with python callback for SIGINT set, but with no
+      // python signal handler, meaning that notification about CTRL-C has to be
+      // delivered to python.
+      // Initializing the signal module early and in a controlled way will also
+      // prevent an issue when user imports this module and calls time.sleep().
+      // In that case sleep cannot be interrupted by CTRL-C, because signal
+      // module will overwrite the default signal handler and the mechanism
+      // used by python 2.7 to wake up will not work.
+      {
+        const auto prev_signal = signal(SIGINT, SIG_DFL);
+        PyOS_InitInterrupts();
+        signal(SIGINT, prev_signal);
+      }
+#endif
 
       _local_initialization = true;
     }

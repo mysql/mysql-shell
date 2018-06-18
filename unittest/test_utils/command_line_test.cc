@@ -142,7 +142,15 @@ void Command_line_test::send_ctrlc() {
 #ifdef _WIN32
   std::lock_guard<std::mutex> lock(_process_mutex);
   if (_process) {
-    GenerateConsoleCtrlEvent(CTRL_C_EVENT, _process->get_process_id());
+    // CTRL-C cannot be delivered to a process group, must be set to 0 and
+    // delivered to all processes which share the console of calling process.
+    // If tests are run by a batch script, it will also receive CTRL-C
+    // and interrupt its execution displaying "Terminate batch job (Y/N)?"
+    // prompt.
+    // We're simulating CTRL-C with CTRL-BREAK which can be delivered to
+    // specific process group, using the fact that Shell handles both
+    // interrupts the same way.
+    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, _process->get_process_id());
   }
 #else
   std::lock_guard<std::mutex> lock(_process_mutex);

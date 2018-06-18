@@ -71,54 +71,51 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
         << "import sys\n"
         << "x=0\n"
         << "try:\n"
-        << "  while 1:\n"
-        << "    if x == 0:\n"
-        << "      x = 1\n"
-        << "      print 'ready'\n"
-        << "except BaseException, e:\n"
-        << "  print repr(e)\n"
-        << "  sys.exit(2)\n\n"
-        << "print 'failed'\n";
+        << "    while 1:\n"
+        << "        if x == 0:\n"
+        << "            x = 1\n"
+        << "            print('ready')\n"
+        << "except BaseException as e:\n"
+        << "    print(repr(e))\n"
+        << "    sys.exit(2)\n\n"
+        << "print('failed')\n";
       f.close();
     }
     {
       std::ofstream f("test_sleep.py");
       f << "import time\n"
         << "import sys\n"
-        << "x=0\n"
         << "try:\n"
-        << "  if x == 0:\n"
-        << "    x = 1\n"
-        << "    print 'ready'\n"
-        << "  time.sleep(10)\n"
-        << "except BaseException, e:\n"
-        << "  print repr(e)\n"
-        << "  sys.exit(2)\n\n"
-        << "print 'failed'\n";
+        << "    print('ready')\n"
+        << "    time.sleep(10)\n"
+        << "except BaseException as e:\n"
+        << "    print(repr(e))\n"
+        << "    sys.exit(2)\n\n"
+        << "print('failed')\n";
       f.close();
     }
     {
       std::ofstream f("test_queryx.py");
       f << "import sys\n"
         << "try:\n"
-        << "  print 'ready'\n"
-        << "  session.sql('select sleep(10)').execute()\n"
-        << "except BaseException, e:\n"
-        << "  print repr(e)\n"
-        << "  sys.exit(2)\n\n"
-        << "print 'failed'\n";
+        << "    print('ready')\n"
+        << "    session.sql('select sleep(10)').execute()\n"
+        << "except BaseException as e:\n"
+        << "    print(repr(e))\n"
+        << "    sys.exit(2)\n\n"
+        << "print('failed')\n";
       f.close();
     }
     {
       std::ofstream f("test_queryc.py");
       f << "import sys\n"
         << "try:\n"
-        << "  print 'ready'\n"
-        << "  session.run_sql('select sleep(10)')\n"
-        << "except BaseException, e:\n"
-        << "  print repr(e)\n"
-        << "  sys.exit(2)\n\n"
-        << "print 'failed'\n";
+        << "    print('ready')\n"
+        << "    session.run_sql('select sleep(10)')\n"
+        << "except BaseException as e:\n"
+        << "    print(repr(e))\n"
+        << "    sys.exit(2)\n\n"
+        << "print('failed')\n";
       f.close();
     }
 
@@ -219,8 +216,6 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
   std::thread kill_thread;
 };
 
-#ifndef _WIN32
-// Sending CTRL_C via code in windows is not working
 TEST_F(Interrupt_mysqlsh, crud_js_x_cli) {
   // FR8-b-8 FR9-b-9
   kill_on_ready();
@@ -531,6 +526,5 @@ TEST_F(Interrupt_mysqlsh, sqlx_file_source) {
   // Uncomment when Bug #26417116 is fixed
   // MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("fail");
 }
-#endif
 
 }  // namespace mysqlsh

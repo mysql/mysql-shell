@@ -2639,6 +2639,10 @@ int InputBuffer::getInputLine(PromptBase& pi) {
     int c;
     if (terminatingKeystroke == -1) {
       c = linenoiseReadChar();  // get a new keystroke
+      // BUG27894642: on Windows, the character may have flags set to indicate
+      // that i.e. CTRL key was pressed; need to remove them to correctly
+      // identify the key type
+      c = cleanupCtrl(c);       // convert CTRL + <char> into normal ctrl
 
       keyType = 0;
       if (c != 0) {
@@ -2665,8 +2669,6 @@ int InputBuffer::getInputLine(PromptBase& pi) {
       c = terminatingKeystroke;   // use the terminating keystroke from search
       terminatingKeystroke = -1;  // clear it once we've used it
     }
-
-    c = cleanupCtrl(c);  // convert CTRL + <char> into normal ctrl
 
     if (c == 0) {
       return len;
