@@ -106,11 +106,27 @@ int Shell_python::check_signals(void *thread_id) {
 
 void Shell_python::abort(long thread_id) noexcept {
   _pending_interrupt_thread = thread_id;
+#ifdef _WIN32
+  // On Windows, signal is always delivered asynchronously, from another thread.
+  // If the main python thread is executing a long-lasting call which is also
+  // interrupted by CTRL-C (i.e. time.sleep()), it will generate a python
+  // exception, unwind the stack, and move the instruction pointer to the
+  // beginning of the "catch" block. If we use check_signals() to inject the
+  // KeyboardInterrupt exception, it will be raised from that "catch" block
+  // interfering with the program flow.
+  // Python code is relying on PyErr_CheckSignals() to detect keyboard
+  // interrupts and to act accordingly (i.e. changing the reported exception to
+  // KeyboardInterrupt), so we're using PyErr_SetInterrupt() to trigger the
+  // signal which is going to be picked up by PyErr_CheckSignals().
+  log_info("User aborted Python execution (^C)");
+  PyErr_SetInterrupt();
+#else
   if (Py_AddPendingCall(&Shell_python::check_signals,
                         static_cast<void *>(this)) < 0)
     log_warning("Could not interrupt Python");
   else
     log_info("User aborted Python execution (^C)");
+#endif
 }
 
 bool Shell_python::is_module(const std::string &file_name) {
@@ -132,6 +148,14 @@ bool Shell_python::is_module(const std::string &file_name) {
 
 void Shell_python::execute_module(const std::string &file_name) {
   shcore::Value ret_val;
+
+  auto tid = PyThread_get_thread_ident();
+  shcore::Interrupt_handler inth([this, tid]() {
+    _aborted = true;
+    abort(tid);
+    return true;
+  });
+
   try {
     WillEnterPython lock;
 
