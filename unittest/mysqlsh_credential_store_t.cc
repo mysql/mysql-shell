@@ -73,7 +73,8 @@ TEST_F(Mysqlsh_credential_store, cmdline_invalid_helper) {
            "println(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Failed to initialize the user-specified helper \"unknown\": Credential "
-      "helper named \"unknown\" does not exist.");
+      "helper named \"unknown\" could not be found or is invalid. "
+      "See logs for more information.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Credential store mechanism is going to be disabled.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<invalid>");
@@ -107,7 +108,8 @@ TEST_F(Mysqlsh_credential_store, env_invalid_helper) {
            "println(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Failed to initialize the user-specified helper \"unknown\": Credential "
-      "helper named \"unknown\" does not exist.");
+      "helper named \"unknown\" could not be found or is invalid. "
+      "See logs for more information.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Credential store mechanism is going to be disabled.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<invalid>");
