@@ -73,7 +73,8 @@ Helper_name get_helper_by_name(const std::string &name) {
 
   if (helper == helpers.end()) {
     throw std::runtime_error{"Credential helper named \"" + name +
-                             "\" does not exist."};
+                             "\" could not be found or is invalid. "
+                             "See logs for more information."};
   } else {
     return *helper;
   }
@@ -166,22 +167,20 @@ void Credential_manager::initialize() {
         log_info("Using credential store helper: %s",
                  m_helper->name().path().c_str());
       } catch (const std::exception &ex) {
-        auto handle_error = [](const std::string &msg,
-                               const std::exception &ex) {
-          mysqlsh::current_console()->print_error(msg + ": " + ex.what());
-          mysqlsh::current_console()->print_info(
-              "Credential store mechanism is going to be disabled.");
-        };
+        static constexpr auto disable_message =
+            "Credential store mechanism is going to be disabled.";
         if (k_default_helper == m_helper_string) {
           // initialization of the default helper has failed
-          handle_error("Failed to initialize the default helper \"" +
-                           get_default_helper_name() + "\"",
-                       ex);
+          const auto name = get_default_helper_name();
+          log_error("Failed to initialize the default helper \"%s\": %s",
+                    name.c_str(), ex.what());
+          log_info(disable_message);
         } else {
           // stored option is invalid, inform the user
-          handle_error("Failed to initialize the user-specified helper \"" +
-                           m_helper_string + "\"",
-                       ex);
+          mysqlsh::current_console()->print_error(
+              "Failed to initialize the user-specified helper \"" +
+              m_helper_string + "\": " + ex.what());
+          mysqlsh::current_console()->print_info(disable_message);
         }
       }
     }
