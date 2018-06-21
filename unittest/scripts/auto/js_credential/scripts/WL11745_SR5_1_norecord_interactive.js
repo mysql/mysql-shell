@@ -1,4 +1,4 @@
-// Verify that passing complete credentials (user and password) are saved automatically and are used in future session creation
+// Verify that passing complete credentials (user and password) are not saved automatically and cannot be used in future session creation
 
 //@ Initialization
 shell.options["credentialStore.helper"] = "plaintext";
@@ -11,5 +11,6 @@ shell.options["credentialStore.savePasswords"] = "always";
 shell.connect(__cred.x.uri_pwd);
 
 //@ Create a new Session to a server using the previous credentials given but not passing the password
-// The Session must be created successfully
+// Type the password when prompted
+testutil.expectPassword("Please provide the password for '" + __cred.x.uri + "':", __cred.pwd);
 shell.connect(__cred.x.uri);

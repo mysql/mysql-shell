@@ -1,4 +1,4 @@
-// Verify that passing complete credentials (user and password) are saved automatically and are used in future session creation
+// Verify that passing complete credentials (user and password) are not saved automatically and cannot be used in future session creation
 
 //@ Initialization
 |plaintext|
