@@ -6,7 +6,7 @@
 //@ [SR6]Verify that shell.options["credentialStore.savePasswords"] is enabled, if not then enable it.
 |always|
 
-//@ Create a Session to a server using valid credentials including the password
+//@ Create a Session to a server using valid credentials without the password
 // The Session must be created successfully
 |<Session:<<<__cred.x.uri>>>>|
 
