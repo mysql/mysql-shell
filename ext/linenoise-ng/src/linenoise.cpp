@@ -1344,6 +1344,10 @@ void InputBuffer::refreshLine(PromptBase& pi) {
     if (write32(1, buf32 + highlight + 1, len - highlight - 1) == -1) return;
   }
 
+  // BUG27068352: we have to generate our own newline on line wrap
+  if (xEndOfInput == 0 && yEndOfInput > 0)
+    if (write(1, "\n", 1) == -1) return;
+
   // position the cursor
   GetConsoleScreenBufferInfo(console_out, &inf);
   inf.dwCursorPosition.X = xCursorPos;  // 0-based on Win32
