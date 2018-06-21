@@ -432,15 +432,20 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
 
   if (prompt_for_password) {
     do {
+      bool prompted_for_password = false;
+
       if (!copy.has_password()) {
         password_prompt(&copy);
+        prompted_for_password = true;
       }
 
       try {
         auto session = create_session(copy);
 
-        shcore::Credential_manager::get().save_password(
-            session->get_connection_options());
+        if (prompted_for_password) {
+          shcore::Credential_manager::get().save_password(
+              session->get_connection_options());
+        }
 
         return session;
       } catch (const mysqlshdk::db::Error &e) {

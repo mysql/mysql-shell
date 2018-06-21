@@ -6,9 +6,11 @@ shell.options["credentialStore.helper"] = "plaintext";
 //@ [SR6]Verify that shell.options["credentialStore.savePasswords"] is enabled, if not then enable it.
 shell.options["credentialStore.savePasswords"] = "always";
 
-//@ Create a Session to a server using valid credentials including the password
+//@ Create a Session to a server using valid credentials without the password
+// A prompt to type the password must be displayed, type the password
+testutil.expectPassword("Please provide the password for '" + __cred.x.uri + "':", __cred.pwd);
 // The Session must be created successfully
-shell.connect(__cred.x.uri_pwd);
+shell.connect(__cred.x.uri);
 
 //@ Call the function shell.deleteCredential(url) using the same credentials
 // The credentials must be deleted from the storage
