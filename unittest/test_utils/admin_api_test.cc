@@ -64,11 +64,13 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   args.emplace_back("sample");
   args.emplace_back(options);
   auto cluster = dba->create_cluster(args).as_object<mysqlsh::dba::Cluster>();
+
   args.clear();
   args.emplace_back("root:root@localhost:" + shell_env.sb_str_port2());
   cluster->add_instance(args);
   _replicaset =
       cluster->get_replicaset({}).as_object<mysqlsh::dba::ReplicaSet>();
+
   shell_env.execute("session.close()");
 
   {

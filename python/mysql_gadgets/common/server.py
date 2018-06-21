@@ -951,8 +951,6 @@ class Server(object):
         raw = options.get('raw', True)
         do_commit = options.get('commit', True)
 
-        query_str = query_str.replace("%s", "?")
-
         # Guard for connect() prerequisite
         if not self.db_conn:
             raise GadgetCnxError(

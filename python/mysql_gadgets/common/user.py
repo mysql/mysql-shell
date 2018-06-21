@@ -282,7 +282,7 @@ class User(object):
             user, host = parse_user_host(user_name)
 
         res = self.server1.exec_query("SELECT * FROM mysql.user "
-                                      "WHERE user = %s and host = %s",
+                                      "WHERE user = ? and host = ?",
                                       {'params': (user, host)})
 
         return res is not None and len(res) >= 1
