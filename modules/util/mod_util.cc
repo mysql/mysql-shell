@@ -392,13 +392,14 @@ shcore::Value Util::check_for_server_upgrade(
     std::string user;
     std::string host;
     shcore::split_account(row->get_string(0), &user, &host);
-
-    mysqlshdk::mysql::Instance instance(session);
-    auto res = instance.get_user_privileges(user, host)->validate({"all"});
-    if (res.has_missing_privileges())
-      throw std::invalid_argument(
-          "The upgrade check needs to be performed by user with ALL "
-          "privileges.");
+    if (user != "skip-grants user" && host != "skip-grants host") {
+      mysqlshdk::mysql::Instance instance(session);
+      auto res = instance.get_user_privileges(user, host)->validate({"all"});
+      if (res.has_missing_privileges())
+        throw std::invalid_argument(
+            "The upgrade check needs to be performed by user with ALL "
+            "privileges.");
+    }
 
     auto version_result = session->query("select @@version, @@version_comment");
     row = version_result->fetch_one();
