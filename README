@@ -36,6 +36,9 @@ Store see https://dev.mysql.com/doc/refman/en/document-store.html
 For JavaScript API documentation, see:
 https://dev.mysql.com/doc/dev/mysqlsh-api-javascript/8.0/
 
+For Python API documentation, see:
+https://dev.mysql.com/doc/dev/mysqlsh-api-python/8.0/
+
 For full documentation on MySQL Server, MySQL Shell and related
 topics, see: https://dev.mysql.com/doc/refman/en/
 
