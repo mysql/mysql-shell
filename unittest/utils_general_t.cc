@@ -89,7 +89,16 @@ TEST(utils_general, split_account) {
        " .::1lol\\t\\n\\r\\b\\0'\"&$%"},
       {"root@foo.bar.warblegarble.com", "root", "foo.bar.warblegarble.com"},
       {"root@192.168.0.3", "root", "192.168.0.3"},
-      {"root@%", "root", "%"}};
+      {"root@%", "root", "%"},
+      {"test_user", "test_user", ""},
+      {"123@bar", "123", "bar"},
+      {"@@@", "@@", ""},
+      {"@foo@@localhost", "@foo@", "localhost"},
+      {"@\"''\"foo@localhost", "@\"''\"foo", "localhost"},
+      {"skip-grants user@skip-grants host", "skip-grants user",
+       "skip-grants host"},
+      {"foo@@'stuf'", "foo@", "stuf"},
+      {"foo bar@localhost", "foo bar", "localhost"}};
   for (auto &t : good_cases_no_auto_quote) {
     a.clear();
     b.clear();
@@ -118,9 +127,7 @@ TEST(utils_general, split_account) {
       "'foo'@@bar",
       "'foo@bar",
       "''foo",
-      "123@bar",
       "\"foo'@bar",
-      "@@@",
       "'foo'x",
       "'foo'bar",
       "'foo'@'bar'z",
@@ -128,10 +135,10 @@ TEST(utils_general, split_account) {
       "\"foo\"-",
       "''foo''@",
       "@",
+      "@localhost",
       "''foo''@",
       "foo@'",
       "foo@''nope",
-      "foo@@'stuf'",
       "foo@''host''",
       "foo@'ho''st",
       "foo@'host",

@@ -794,13 +794,25 @@ void split_account(const std::string &account, std::string *out_user,
 
   // Check if account starts with string literal or identifier depending on the
   // first character being a backtick or not.
-  if (account.size() > 0 && account[0] == '`')
-    pos = span_quotable_identifier(account, 0, out_user);
-  else
-    pos = span_quotable_string_literal(account, 0, out_user);
-  if (account[pos] == '@') {
-    pos = span_account_hostname_relaxed(account, pos + 1, out_host,
-                                        auto_quote_hosts);
+  if (!account.empty()) {
+    if (account[0] == '`') {
+      pos = span_quotable_identifier(account, 0, out_user);
+    } else if (account[0] == '\'' || account[0] == '"') {
+      pos = span_quotable_string_literal(account, 0, out_user);
+    } else {
+      pos = account.rfind('@');
+      if (pos == 0) throw std::runtime_error("Empty user name: " + account);
+      if (out_user != nullptr) out_user->assign(account, 0, pos);
+    }
+  }
+  if (account[pos] == '@' && ++pos < account.length()) {
+    if (account.compare(pos, std::string::npos, "skip-grants host") == 0) {
+      pos = account.length();
+      if (out_host != nullptr) *out_host = "skip-grants host";
+    } else {
+      pos = span_account_hostname_relaxed(account, pos, out_host,
+                                          auto_quote_hosts);
+    }
   }
   if (pos < account.size())
     throw std::runtime_error("Invalid syntax in account name '" + account +
