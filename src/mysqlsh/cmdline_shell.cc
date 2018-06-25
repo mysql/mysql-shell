@@ -481,7 +481,7 @@ void Command_line_shell::command_loop() {
 
 void Command_line_shell::print_banner() {
   std::string welcome_msg("MySQL Shell ");
-  welcome_msg += MYSH_VERSION;
+  welcome_msg += MYSH_FULL_VERSION;
   welcome_msg += "\n\n";
   welcome_msg +=
       "Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights "
@@ -498,7 +498,7 @@ void Command_line_shell::print_banner() {
 void Command_line_shell::print_cmd_line_helper() {
   // clang-format off
   std::string help_msg("MySQL Shell ");
-  help_msg += MYSH_VERSION;
+  help_msg += MYSH_FULL_VERSION;
   println(help_msg);
   println("");
   println("Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.");
