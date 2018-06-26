@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,10 @@
 %{?with_static: %global static 1}
 
 %global commercial  @COMMERCIAL_VER@
+
+%if 0%{?commercial}
+%global product_suffix @PRODUCT_SUFFIX@
+%endif
 
 # define v8_includedir and v8_libdir for rpmbuild when building static
 
@@ -61,6 +65,9 @@ rm -rf build && mkdir build && cd build
 cmake .. \
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+%if 0%{?commercial}
+    -DEXTRA_NAME_SUFFIX="%{?product_suffix}" \
+%endif
 %if "%{_lib}" == "lib64"
     -DLIB_SUFFIX=64 \
 %endif
