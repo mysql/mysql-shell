@@ -145,25 +145,26 @@ std::vector<Security_invoker::Entry> Security_invoker::list() {
           should_add = false;
         }
       } else {
-        auto attributes =
-            shcore::str_split(shcore::str_strip(line), "=", -1, true);
+        const auto stripped_line = shcore::str_strip(line);
+        const auto pos = stripped_line.find("=");
 
-        if (attributes.size() == 2) {
-          std::string value;
+        if (std::string::npos != pos) {
+          const auto attribute = stripped_line.substr(0, pos);
+          auto value = stripped_line.substr(pos + 1);
 
-          if (attributes[1] != empty_marker) {
-            value = shcore::str_strip(attributes[1], "\"");
+          if (value != empty_marker) {
+            value = shcore::str_strip(value, "\"");
           }
 
-          if (attributes[0] == id_marker) {
+          if (attribute == id_marker) {
             if (value == k_creator_code) {
               should_add = true;
             }
-          } else if (attributes[0] == account_marker) {
+          } else if (attribute == account_marker) {
             entry.account = value;
-          } else if (attributes[0] == type_marker) {
+          } else if (attribute == type_marker) {
             entry.type = value;
-          } else if (attributes[0] == service_marker) {
+          } else if (attribute == service_marker) {
             entry.service = value;
           }
         }

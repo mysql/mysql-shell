@@ -1001,129 +1001,180 @@ void test_available_helpers() {
     op("user@host3", "\\\"\\'");                                            \
     op("user@host4", "\"password\"");                                       \
     op("user@host5", "'password'");                                         \
+    op("user@[::1]", "seven");                                              \
+    op("user@[::1]:7777", "eight");                                         \
+    op("user@[fe80::850a:5a7c:6ab7:aec4%25enp0s3]", "nine");                \
+    op("user@[fe80::850a:5a7c:6ab7:aec4%25enp0s3]:8888", "ten");            \
+    op("test%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"            \
+       "@example.com:9999",                                                 \
+       "eleven");                                                           \
   } while (false)
 
-#define ADD_TESTS(test_case_name)                                          \
-  VALIDATION_TEST(test_case_name, store_invalid_url) {                     \
-    OP_INVALID_URL_TESTS(STORE_INVALID_URL);                               \
-  }                                                                        \
-                                                                           \
-  VALIDATION_TEST(test_case_name, get_invalid_url) {                       \
-    if (!tester.has_get()) {                                               \
-      return;                                                              \
-    }                                                                      \
-    OP_INVALID_URL_TESTS(GET_INVALID_URL);                                 \
-  }                                                                        \
-                                                                           \
-  VALIDATION_TEST(test_case_name, erase_invalid_url) {                     \
-    OP_INVALID_URL_TESTS(ERASE_INVALID_URL);                               \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, store_and_check) {                                \
-    STORE_AND_OP_TESTS(STORE_AND_CHECK);                                   \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, store_and_erase) {                                \
-    STORE_AND_OP_TESTS(STORE_AND_ERASE);                                   \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, list) {                                           \
-    std::set<std::string> urls{"user@host", "user@host:3306",              \
-                               "user@host:33060", "user@/socket"};         \
-    for (const auto &url : urls) {                                         \
-      STORE_AND_CHECK(url, url);                                           \
-    }                                                                      \
-    expect_list(urls);                                                     \
-    STORE_AND_CHECK(*urls.begin(), "new pass");                            \
-    expect_list(urls);                                                     \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, get_nonexistent_url) {                            \
-    constexpr auto error = "Could not find the secret";                    \
-    GET_EXPECT_ERROR("user@nonexistent.host", "secret", error);            \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, erase_nonexistent_url) {                          \
-    constexpr auto error = "Could not find the secret";                    \
-    MY_EXPECT_ERROR(erase("user@nonexistent.host"), error);                \
-  }                                                                        \
-                                                                           \
-  NORMALIZATION_TEST(test_case_name, url_normalization) {                  \
-    STORE_AND_CHECK("user@/socket", "one");                                \
-    STORE_AND_CHECK("user@(/socket)", "two");                              \
-    expect_contains("user@/socket", "two");                                \
-  }                                                                        \
-                                                                           \
-  TEST(Helpers, test_case_name##_list_helpers) {                           \
-    test_available_helpers<test_case_name>();                              \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, login_path_external_entry) {                      \
-    if (GetParam() != "login-path") {                                      \
-      return;                                                              \
-    }                                                                      \
-    Config_editor_invoker invoker;                                         \
-    invoker.clear();                                                       \
-    std::set<std::string> urls{"user@host", "user@host:3306",              \
-                               "user@host:33060", "user@/socket"};         \
-    for (const auto &url : urls) {                                         \
-      invoker.store(url, url, url);                                        \
-      expect_contains(url, url);                                           \
-    }                                                                      \
-    expect_list(urls);                                                     \
-    invoker.clear();                                                       \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, login_path_external_and_helper_entries) {         \
-    if (GetParam() != "login-path") {                                      \
-      return;                                                              \
-    }                                                                      \
-    Config_editor_invoker invoker;                                         \
-    invoker.clear();                                                       \
-    invoker.store("one", "user@host", "one");                              \
-    STORE_AND_CHECK("user@host", "two");                                   \
-    expect_contains("user@host", "two");                                   \
-    expect_list({"user@host"});                                            \
-    erase("user@host");                                                    \
-    expect_contains("user@host", "one");                                   \
-    expect_list({"user@host"});                                            \
-    erase("user@host");                                                    \
-    expect_list({});                                                       \
-    invoker.clear();                                                       \
-  }                                                                        \
-                                                                           \
-  TEST_P(test_case_name, login_path_external_entry_with_port_and_socket) { \
-    if (GetParam() != "login-path") {                                      \
-      return;                                                              \
-    }                                                                      \
-    Config_editor_invoker invoker;                                         \
-    invoker.clear();                                                       \
-    auto initialize = [&invoker]() {                                       \
-      std::vector<std::string> args = {"set",         "--skip-warn",       \
-                                       "--password",  "--login-path=one",  \
-                                       "--user=user", "--host=localhost",  \
-                                       "--port=3306", "--socket=/socket"}; \
-      invoker.invoke(args, true, "one");                                   \
-    };                                                                     \
-    initialize();                                                          \
-    expect_list({"user@localhost:3306", "user@/socket"});                  \
-    STORE_AND_CHECK("user@localhost:3306", "two");                         \
-    STORE_AND_CHECK("user@/socket", "three");                              \
-    expect_list({"user@localhost:3306", "user@/socket"});                  \
-    erase("user@/socket");                                                 \
-    expect_contains("user@/socket", "one");                                \
-    expect_contains("user@localhost:3306", "two");                         \
-    expect_list({"user@localhost:3306", "user@/socket"});                  \
-    erase("user@localhost:3306");                                          \
-    expect_contains("user@/socket", "one");                                \
-    expect_contains("user@localhost:3306", "one");                         \
-    expect_list({"user@localhost:3306", "user@/socket"});                  \
-    erase("user@/socket");                                                 \
-    expect_contains("user@localhost:3306", "one");                         \
-    expect_list({"user@localhost:3306"});                                  \
-    erase("user@localhost:3306");                                          \
-    expect_list({});                                                       \
-    invoker.clear();                                                       \
+#define ADD_TESTS(test_case_name)                                             \
+  VALIDATION_TEST(test_case_name, store_invalid_url) {                        \
+    OP_INVALID_URL_TESTS(STORE_INVALID_URL);                                  \
+  }                                                                           \
+                                                                              \
+  VALIDATION_TEST(test_case_name, get_invalid_url) {                          \
+    if (!tester.has_get()) {                                                  \
+      return;                                                                 \
+    }                                                                         \
+    OP_INVALID_URL_TESTS(GET_INVALID_URL);                                    \
+  }                                                                           \
+                                                                              \
+  VALIDATION_TEST(test_case_name, erase_invalid_url) {                        \
+    OP_INVALID_URL_TESTS(ERASE_INVALID_URL);                                  \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, store_and_check) {                                   \
+    STORE_AND_OP_TESTS(STORE_AND_CHECK);                                      \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, store_and_erase) {                                   \
+    STORE_AND_OP_TESTS(STORE_AND_ERASE);                                      \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, list) {                                              \
+    std::set<std::string> urls{"user@host", "user@host:3306",                 \
+                               "user@host:33060", "user@/socket"};            \
+    for (const auto &url : urls) {                                            \
+      STORE_AND_CHECK(url, url);                                              \
+    }                                                                         \
+    expect_list(urls);                                                        \
+    STORE_AND_CHECK(*urls.begin(), "new pass");                               \
+    expect_list(urls);                                                        \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, get_nonexistent_url) {                               \
+    constexpr auto error = "Could not find the secret";                       \
+    GET_EXPECT_ERROR("user@nonexistent.host", "secret", error);               \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, erase_nonexistent_url) {                             \
+    constexpr auto error = "Could not find the secret";                       \
+    MY_EXPECT_ERROR(erase("user@nonexistent.host"), error);                   \
+  }                                                                           \
+                                                                              \
+  NORMALIZATION_TEST(test_case_name, url_normalization) {                     \
+    STORE_AND_CHECK("user@/socket", "one");                                   \
+    STORE_AND_CHECK("user@(/socket)", "two");                                 \
+    expect_contains("user@/socket", "two");                                   \
+  }                                                                           \
+                                                                              \
+  TEST(Helpers, test_case_name##_list_helpers) {                              \
+    test_available_helpers<test_case_name>();                                 \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, login_path_external_entry) {                         \
+    if (GetParam() != "login-path") {                                         \
+      return;                                                                 \
+    }                                                                         \
+    Config_editor_invoker invoker;                                            \
+    invoker.clear();                                                          \
+    std::set<std::string> urls{"user@host", "user@host:3306",                 \
+                               "user@host:33060", "user@/socket"};            \
+    for (const auto &url : urls) {                                            \
+      invoker.store(url, url, url);                                           \
+      expect_contains(url, url);                                              \
+    }                                                                         \
+    expect_list(urls);                                                        \
+    invoker.clear();                                                          \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, login_path_external_and_helper_entries) {            \
+    if (GetParam() != "login-path") {                                         \
+      return;                                                                 \
+    }                                                                         \
+    Config_editor_invoker invoker;                                            \
+    invoker.clear();                                                          \
+    invoker.store("one", "user@host", "one");                                 \
+    STORE_AND_CHECK("user@host", "two");                                      \
+    expect_contains("user@host", "two");                                      \
+    expect_list({"user@host"});                                               \
+    erase("user@host");                                                       \
+    expect_contains("user@host", "one");                                      \
+    expect_list({"user@host"});                                               \
+    erase("user@host");                                                       \
+    expect_list({});                                                          \
+    invoker.clear();                                                          \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, login_path_external_entry_with_port_and_socket) {    \
+    if (GetParam() != "login-path") {                                         \
+      return;                                                                 \
+    }                                                                         \
+    Config_editor_invoker invoker;                                            \
+    invoker.clear();                                                          \
+    auto initialize = [&invoker]() {                                          \
+      std::vector<std::string> args = {"set",         "--skip-warn",          \
+                                       "--password",  "--login-path=one",     \
+                                       "--user=user", "--host=localhost",     \
+                                       "--port=3306", "--socket=/socket"};    \
+      invoker.invoke(args, true, "one");                                      \
+    };                                                                        \
+    initialize();                                                             \
+    expect_list({"user@localhost:3306", "user@/socket"});                     \
+    STORE_AND_CHECK("user@localhost:3306", "two");                            \
+    STORE_AND_CHECK("user@/socket", "three");                                 \
+    expect_list({"user@localhost:3306", "user@/socket"});                     \
+    erase("user@/socket");                                                    \
+    expect_contains("user@/socket", "one");                                   \
+    expect_contains("user@localhost:3306", "two");                            \
+    expect_list({"user@localhost:3306", "user@/socket"});                     \
+    erase("user@localhost:3306");                                             \
+    expect_contains("user@/socket", "one");                                   \
+    expect_contains("user@localhost:3306", "one");                            \
+    expect_list({"user@localhost:3306", "user@/socket"});                     \
+    erase("user@/socket");                                                    \
+    expect_contains("user@localhost:3306", "one");                            \
+    expect_list({"user@localhost:3306"});                                     \
+    erase("user@localhost:3306");                                             \
+    expect_list({});                                                          \
+    invoker.clear();                                                          \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, login_path_ipv6_stored_by_config_editor) {           \
+    if (GetParam() != "login-path") {                                         \
+      return;                                                                 \
+    }                                                                         \
+    Config_editor_invoker invoker;                                            \
+    auto initialize = [&invoker](const std::string &host) {                   \
+      std::vector<std::string> args = {                                       \
+          "set",         "--skip-warn",    "--password", "--login-path=path", \
+          "--user=user", "--host=" + host, "--port=3306"};                    \
+      invoker.clear();                                                        \
+      invoker.invoke(args, true, "pass");                                     \
+    };                                                                        \
+    initialize("::1");                                                        \
+    expect_list({"user@[::1]:3306"});                                         \
+    initialize("fe80::850a:5a7c:6ab7:aec4");                                  \
+    expect_list({"user@[fe80::850a:5a7c:6ab7:aec4]:3306"});                   \
+    initialize("fe80::850a:5a7c:6ab7:aec4%enp0s3");                           \
+    expect_list({"user@[fe80::850a:5a7c:6ab7:aec4%25enp0s3]:3306"});          \
+    invoker.clear();                                                          \
+  }                                                                           \
+                                                                              \
+  TEST_P(test_case_name, login_path_ipv6_stored_by_helper) {                  \
+    if (GetParam() != "login-path") {                                         \
+      return;                                                                 \
+    }                                                                         \
+    Config_editor_invoker invoker;                                            \
+    invoker.clear();                                                          \
+    STORE_AND_CHECK("user@[::1]", "one");                                     \
+    auto output = invoker.invoke({"print", "--all"});                         \
+    EXPECT_THAT(output, ::testing::HasSubstr("host = ::1"));                  \
+    invoker.clear();                                                          \
+    STORE_AND_CHECK("user@[fe80::850a:5a7c:6ab7:aec4]:4321", "two");          \
+    output = invoker.invoke({"print", "--all"});                              \
+    EXPECT_THAT(output,                                                       \
+                ::testing::HasSubstr("host = fe80::850a:5a7c:6ab7:aec4"));    \
+    EXPECT_THAT(output, ::testing::HasSubstr("port = 4321"));                 \
+    invoker.clear();                                                          \
+    STORE_AND_CHECK("user@[fe80::850a:5a7c:6ab7:aec4%25enp0s3]", "three");    \
+    output = invoker.invoke({"print", "--all"});                              \
+    EXPECT_THAT(output, ::testing::HasSubstr(                                 \
+                            "host = fe80::850a:5a7c:6ab7:aec4%enp0s3"));      \
+    invoker.clear();                                                          \
   }
 
 #define REGISTER_TESTS(test_case_name)                               \

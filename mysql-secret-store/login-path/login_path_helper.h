@@ -55,11 +55,9 @@ class Login_path_helper : public common::Helper {
 
   Entry find(const common::Secret_id &);
 
-  Entry to_entry(const common::Secret &) const;
+  Entry to_entry(const common::Secret_id &) const;
 
   std::string load(const Entry &);
-
-  std::string get_url(const Entry &);
 
   Config_editor_invoker m_invoker;
 };

@@ -32,6 +32,7 @@
 
 #include "mysql-secret-store/login-path/entry.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -58,21 +59,23 @@ std::vector<Entry> parse_ini(const std::string &ini) {
         result.emplace_back();
         result.back().name = line.substr(1, line.length() - 2);
       } else {
-        auto option = shcore::str_split(line, " =", -1, true);
+        const auto pos = line.find(" = ");
+        const auto option = line.substr(0, pos);
+        const auto value = line.substr(pos + 3);
 
-        if (option[0] == "user") {
-          result.back().user = option[1];
-        } else if (option[0] == "host") {
-          result.back().host = option[1];
-        } else if (option[0] == "socket") {
-          result.back().socket = option[1];
-        } else if (option[0] == "port") {
-          result.back().port = option[1];
-        } else if (option[0] == "password") {
+        if (option == "user") {
+          result.back().user = value;
+        } else if (option == "host") {
+          result.back().host = value;
+        } else if (option == "socket") {
+          result.back().socket = value;
+        } else if (option == "port") {
+          result.back().port = value;
+        } else if (option == "password") {
           result.back().has_password = true;
         } else {
           throw Helper_exception{
-              "Failed to parse INI output, unknown option: " + option[0]};
+              "Failed to parse INI output, unknown option: " + option};
         }
       }
     }
@@ -86,6 +89,29 @@ void validate_secret_type(const common::Secret_id &id) {
     throw Helper_exception{
         "The login-path helper is only able to store passwords."};
   }
+}
+
+std::string get_url(const Entry &entry, bool encode) {
+  mysqlshdk::db::uri::Uri_encoder encoder;
+  return (entry.user.empty()
+              ? ""
+              : (encode ? encoder.encode_userinfo(entry.user) : entry.user) +
+                    "@") +
+         (encode ? encoder.encode_host(entry.host) : entry.host) +
+         (entry.port.empty()
+              ? entry.socket.empty()
+                    ? ""
+                    : (encode ? encoder.encode_socket(entry.socket)
+                              : entry.socket)
+              : ":" + (encode ? encoder.encode_port(entry.port) : entry.port));
+}
+
+std::string get_encoded_url(const Entry &entry) { return get_url(entry, true); }
+
+std::string get_name(const Entry &entry) {
+  // name is used as a section name in an INI file, cannot contain [] characters
+  return shcore::str_replace(
+      shcore::str_replace(get_url(entry, false), "[", "%5B"), "]", "%5D");
 }
 
 }  // namespace
@@ -112,7 +138,7 @@ void Login_path_helper::store(const common::Secret &secret) {
         "are prepended with '\\', decreasing available space."};
   }
 
-  m_invoker.store(to_entry(secret), s);
+  m_invoker.store(to_entry(secret.id), s);
 }
 
 void Login_path_helper::get(const common::Secret_id &id, std::string *secret) {
@@ -154,7 +180,8 @@ void Login_path_helper::erase(const common::Secret_id &id) {
 
 void Login_path_helper::list(std::vector<common::Secret_id> *secrets) {
   for (const auto &entry : list()) {
-    secrets->emplace_back(common::Secret_id{entry.secret_type, get_url(entry)});
+    secrets->emplace_back(
+        common::Secret_id{entry.secret_type, get_encoded_url(entry)});
   }
 }
 
@@ -168,7 +195,7 @@ std::vector<Entry> Login_path_helper::list() {
     if (entry.has_password) {
       entry.secret_type = k_secret_type_password;
 
-      if (entry.name == get_url(entry)) {
+      if (entry.name == get_name(entry)) {
         // entry was created by helper
         entry.entry_type = Entry_type::SET_BY_HELPER;
 
@@ -220,11 +247,13 @@ Entry Login_path_helper::find(const common::Secret_id &secret) {
 
   auto entries = list();
   std::vector<Entry> result;
+  const auto secret_entry = to_entry(secret);
+  const auto encoded_entry = get_encoded_url(secret_entry);
 
   std::copy_if(entries.begin(), entries.end(), std::back_inserter(result),
-               [&secret, this](const Entry &entry) {
-                 return get_url(entry) == secret.url &&
-                        entry.secret_type == secret.secret_type;
+               [&secret_entry, &encoded_entry](const Entry &entry) {
+                 return get_encoded_url(entry) == encoded_entry &&
+                        entry.secret_type == secret_entry.secret_type;
                });
 
   switch (result.size()) {
@@ -250,16 +279,15 @@ Entry Login_path_helper::find(const common::Secret_id &secret) {
   }
 }
 
-Entry Login_path_helper::to_entry(const common::Secret &secret) const {
-  validate_secret_type(secret.id);
+Entry Login_path_helper::to_entry(const common::Secret_id &secret) const {
+  validate_secret_type(secret);
 
   Entry entry;
-  entry.secret_type = secret.id.secret_type;
+  entry.secret_type = secret.secret_type;
   entry.has_password = true;
   entry.entry_type = Entry_type::SET_BY_HELPER;
-  entry.name = secret.id.url;
 
-  mysqlshdk::db::Connection_options options{secret.id.url};
+  mysqlshdk::db::Connection_options options{secret.url};
 
   if (options.has_user()) {
     entry.user = options.get_user();
@@ -273,6 +301,8 @@ Entry Login_path_helper::to_entry(const common::Secret &secret) const {
   if (options.has_socket()) {
     entry.socket = options.get_socket();
   }
+
+  entry.name = get_name(entry);
 
   return entry;
 }
@@ -310,12 +340,6 @@ std::string Login_path_helper::load(const Entry &entry) {
   }
 
   throw Helper_exception{"Failed to read the secret"};
-}
-
-std::string Login_path_helper::get_url(const Entry &entry) {
-  return (entry.user.empty() ? "" : entry.user + "@") + entry.host +
-         (entry.port.empty() ? entry.socket.empty() ? "" : entry.socket
-                             : ":" + entry.port);
 }
 
 }  // namespace login_path
