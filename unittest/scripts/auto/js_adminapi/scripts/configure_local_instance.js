@@ -24,7 +24,6 @@ set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.11)}
-testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root2', clusterAdminPassword:'root'});
 
@@ -38,7 +37,6 @@ testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
-testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});
 
@@ -59,7 +57,6 @@ EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_p
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.11)}
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
-testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root5', clusterAdminPassword:'root', clearReadOnly: true});
 
 EXPECT_OUTPUT_NOT_CONTAINS("The MySQL instance at 'localhost:"+__mysql_sandbox_port1+"' currently has the super_read_only");
@@ -82,11 +79,29 @@ EXPECT_OUTPUT_NOT_CONTAINS("The instance 'localhost:"+__mysql_sandbox_port1+"' i
 // the expected output regarding super-read-only won't be printed
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
-testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root6', clusterAdminPassword:'root', clearReadOnly: false})}, "Server in SUPER_READ_ONLY mode");
 
 EXPECT_OUTPUT_NOT_CONTAINS("The instance 'localhost:"+__mysql_sandbox_port1+"' is valid for Cluster usage");
 
-//@ Cleanup
+//@ Cleanup raw sandbox
 session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ deploy sandbox, change dynamic variable values on the configuration and make it read-only (BUG#27702439)
+testutil.deploySandbox(__mysql_sandbox_port1, "rskioot", {'report_host': hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum",
+    "CRC32");
+var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+testutil.makeFileReadOnly(mycnf_path);
+
+//@<OUT> Interactive_dba_configure_local_instance should ask for creation of new configuration file and then ask user to copy it. (BUG#27702439)
+//answer to create a new root@% account
+testutil.expectPrompt("Please select an option [1]: ", "1");
+testutil.expectPrompt("Account Host:", "%");
+testutil.expectPrompt("Output path for updated configuration file:", mycnf_path+"2");
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
+dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
+
+//@ Cleanup (BUG#27702439)
 testutil.destroySandbox(__mysql_sandbox_port1);

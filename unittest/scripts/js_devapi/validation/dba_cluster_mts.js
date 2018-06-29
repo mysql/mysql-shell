@@ -13,7 +13,6 @@ Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
 Checking instance configuration...
-<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
 
 Some configuration options need to be fixed:
 +---------------------+---------------+----------------+----------------------------+
@@ -28,7 +27,7 @@ Please use the dba.configureInstance() command to repair these issues.
 ||Dba.createCluster: Instance check failed (RuntimeError)
 
 //@ fix config including parallel type
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.|
+|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
 
 //@ Create cluster (succeed this time).
 ||
@@ -45,7 +44,6 @@ Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
 Checking instance configuration...
-<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
 
 Some configuration options need to be fixed:
 +-----------------------------+---------------+----------------+----------------------------+
@@ -72,7 +70,6 @@ Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
 Checking instance configuration...
-<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
 
 Some configuration options need to be fixed:
 +-----------------------------+---------------+----------------+----------------------------+
@@ -87,7 +84,7 @@ Please use the dba.configureInstance() command to repair these issues.
 
 //@ configure instance and update type and commit order with valid values.
 |WARNING: User 'root' can only connect from localhost.|
-|The instance 'localhost:<<<__mysql_sandbox_port3>>>' was configured for use in an InnoDB cluster.|
+|The instance 'localhost:<<<__mysql_sandbox_port3>>>' was configured for InnoDB cluster usage.|
 
 //@<OUT> check instance, no invalid values after configure.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
@@ -101,7 +98,6 @@ Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
 Checking instance configuration...
-<<<(__version_num<80005)?"Note: verifyMyCnf option was not given so only dynamic configuration will be verified.\n":""\>>>
 Instance configuration is compatible with InnoDB cluster
 
 The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB cluster usage.

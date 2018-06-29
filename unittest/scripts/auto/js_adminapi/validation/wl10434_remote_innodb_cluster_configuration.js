@@ -25,6 +25,7 @@ Some configuration options need to be fixed:
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server.
 Please use the dba.configureInstance() command to repair these issues.
 
 {
@@ -54,7 +55,6 @@ Please use the dba.configureInstance() command to repair these issues.
             "required": "<unique ID>"
         }
     ],
-    "errors": [],
     "status": "error"
 }
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -74,8 +74,9 @@ Some configuration options need to be fixed:
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -100,14 +101,12 @@ The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster
 ||
 
 //@# FR1.1_1 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
-|The following variable needs to be changed, but cannot be done dynamically: 'log_bin'|
-|WARNING: Some changes that require access to the MySQL configuration file need to be made. Please perform this operation in the same host as the target instance and use the mycnfPath option to update it.|
+
 |ERROR: The path to the MySQL configuration file is required to verify and fix InnoDB cluster related options.|
 ||Dba.configureInstance: Unable to update configuration
 
 //@# FR1.1_2 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
-|The following variable needs to be changed, but cannot be done dynamically: 'log_bin'|
-|The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.|
+|The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
 |The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.|
 
 //@ FR1.1 TEARDOWN {VER(>=8.0.11)}
@@ -130,27 +129,26 @@ WARNING: User 'root' can only connect from localhost.
 If you need to manage this instance while connected from other hosts, new account(s) with the proper source address specification must be created.
 
 Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------+--------------------------------------------------+
-| Variable                         | Current Value | Required Value | Note                                             |
-+----------------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
-| binlog_format                    | <not set>     | ROW            | Update the config file                           |
-| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
-| gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
-| log_bin                          | <not set>     | <no value>     | Update the config file                           |
-| log_slave_updates                | <not set>     | ON             | Update the config file                           |
-| master_info_repository           | <not set>     | TABLE          | Update the config file                           |
-| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                           |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                           |
-| server_id                        | 1             | <unique ID>    | Update read-only variable and restart the server |
-| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                           |
-+----------------------------------+---------------+----------------+--------------------------------------------------+
++----------------------------------+---------------+----------------+------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                           |
++----------------------------------+---------------+----------------+------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file                         |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
+| log_slave_updates                | <not set>     | ON             | Update the config file                         |
+| master_info_repository           | <not set>     | TABLE          | Update the config file                         |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                         |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                         |
+| server_id                        | 1             | <unique ID>    | Update the config file and restart the server  |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                         |
++----------------------------------+---------------+----------------+------------------------------------------------+
 
-The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
+Some variables need to be changed, but cannot be done dynamically on the server: set persist support is disabled. Enable it or provide an option file.
 persisted_globals_load option is OFF
 Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 
 //@ FR2_2 TEARDOWN {VER(>=8.0.11)}
@@ -182,18 +180,19 @@ Some configuration options need to be fixed:
 | binlog_format                    | <not set>     | ROW            | Update the config file                           |
 | enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
 | gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
-| log_bin                          | 0             | 1              | Update the config file and restart the server    |
-| log_slave_updates                | 0             | ON             | Update the config file and restart the server    |
+| log_bin                          | <not set>     | <no value>     | Update the config file                           |
+| log_bin                          | OFF           | ON             | Update read-only variable and restart the server |
+| log_slave_updates                | OFF           | ON             | Update the config file and restart the server    |
 | master_info_repository           | FILE          | TABLE          | Update the config file and restart the server    |
 | relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server    |
 | report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                           |
-| server_id                        | 0             | <unique ID>    | Update read-only variable and restart the server |
+| server_id                        | 0             | <unique ID>    | Update the config file and restart the server    |
 | transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server    |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
-The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
+Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -203,7 +202,7 @@ Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
 Checking instance configuration...
-Note: verifyMyCnf option was not given so only dynamic configuration will be verified.
+Configuration file <<<sandbox_cnf1>>> will also be checked.
 
 Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -211,16 +210,16 @@ Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | enforce_gtid_consistency         | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                        | OFF           | ON             | Update read-only variable and restart the server |
-| log_bin                          | 0             | 1              | Update read-only variable and restart the server |
-| log_slave_updates                | 0             | ON             | Update read-only variable and restart the server |
+| log_bin                          | OFF           | ON             | Update read-only variable and restart the server |
+| log_slave_updates                | OFF           | ON             | Update read-only variable and restart the server |
 | master_info_repository           | FILE          | TABLE          | Update read-only variable and restart the server |
 | relay_log_info_repository        | FILE          | TABLE          | Update read-only variable and restart the server |
 | server_id                        | 0             | <unique ID>    | Update read-only variable and restart the server |
 | transaction_write_set_extraction | OFF           | XXHASH64       | Update read-only variable and restart the server |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
-The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
-Please use the dba.configureInstance() command to repair these issues.
+Some variables need to be changed, but cannot be done dynamically on the server.
+Please restart the MySQL server and try again.
 
 //@ FR3.1_1 TEARDOWN {VER(<8.0.11)}
 ||
@@ -230,7 +229,7 @@ Please use the dba.configureInstance() command to repair these issues.
 
 //@# FR3.2_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' providing mycnfPath {VER(<8.0.11)}
 |Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
 |MySQL server needs to be restarted for configuration changes to take effect.|
 
 |Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...|
@@ -280,8 +279,9 @@ Some configuration options need to be fixed:
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 Restarting MySQL...
 ERROR: Remote restart of MySQL server failed: MySQL Error 3707 (HY000): Restart server failed (mysqld is not managed by supervisor process).
 Please restart MySQL manually
@@ -326,10 +326,11 @@ Some configuration options need to be fixed:
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
 Cluster admin user 'clusterAdminAccount'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 
 //@<OUT> ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 true
@@ -347,6 +348,7 @@ Some configuration options need to be fixed:
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only
 system variable set to protect it from inadvertent updates from applications.
@@ -362,7 +364,7 @@ Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_
 Cluster admin user 'newClusterAdminAccount'@'%' created.
 Enabling super_read_only on the instance 'localhost:<<<__mysql_sandbox_port1>>>'
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 Restarting MySQL...
 ERROR: Remote restart of MySQL server failed: MySQL Error 3707 (HY000): Restart server failed (mysqld is not managed by supervisor process).
 Please restart MySQL manually

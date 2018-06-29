@@ -44,15 +44,6 @@ class ProvisioningInterface {
   explicit ProvisioningInterface(const std::string &provision_path);
   ~ProvisioningInterface();
 
-  int check(const mysqlshdk::db::Connection_options &connection_options,
-            const std::string &cnfpath, const std::string &output_cnfpath,
-            bool update, bool remote, shcore::Value::Array_type_ref *errors);
-
-  shcore::Value exec_check_ret_handler(
-      const mysqlshdk::db::Connection_options &connection_options,
-      const std::string &mycnf_path, const std::string &output_mycnf_path,
-      bool update, bool remote);
-
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const shcore::Value &mycnf_options, bool start,
@@ -106,9 +97,6 @@ class ProvisioningInterface {
                       const std::string &sandbox_dir,
                       const shcore::Argument_map &extra_kwargs,
                       shcore::Value::Array_type_ref *errors);
-  void set_ssl_args(const std::string &prefix,
-                    const mysqlshdk::db::Connection_options &instance,
-                    std::vector<const char *> *args);
 };
 }  // namespace dba
 }  // namespace mysqlsh

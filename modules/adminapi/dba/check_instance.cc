@@ -24,11 +24,16 @@
 #include <memory>
 
 #include "modules/adminapi/dba/check_instance.h"
+
+#include "modules/adminapi/dba/provision.h"
 #include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/instance_validations.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config_file_handler.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -88,15 +93,7 @@ bool Check_instance::check_configuration() {
 
     bool local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
-    if (m_mycnf_path.empty()) {
-      if (m_target_instance->get_version() <
-          mysqlshdk::utils::Version(8, 0, 5)) {
-        console->print_note(
-            "Note: verifyMyCnf option was not given so only dynamic "
-            "configuration "
-            "will be verified.");
-      }
-    } else {
+    if (!m_mycnf_path.empty()) {
       if (!local_target) {
         throw shcore::Exception::argument_error(
             "mycnfPath or verifyMyCnf not allowed for remote instances");
@@ -109,21 +106,13 @@ bool Check_instance::check_configuration() {
     log_debug("Checking instance configuration...");
   }
   // Perform check with no update
-  bool fatal_errors;
   bool restart;
   bool config_file_change;
   bool dynamic_sysvar_change;
-
   if (!checks::validate_configuration(
-          m_target_instance, m_mycnf_path, m_provisioning_interface, &restart,
-          &config_file_change, &dynamic_sysvar_change, &fatal_errors,
-          &m_ret_val)) {
-    // If there are fatal errors, abort immediately
-    if (fatal_errors) {
-      console->print_note("Please fix issues and try again.");
-      return false;
-    }
-
+           m_target_instance, m_mycnf_path, m_cfg.get(), m_can_set_persist,
+           &restart, &config_file_change, &dynamic_sysvar_change, &m_ret_val)
+           .empty()) {
     if (config_file_change || dynamic_sysvar_change) {
       console->print_note(
           "Please use the dba.configureInstance() command to repair these "
@@ -164,6 +153,14 @@ void Check_instance::prepare() {
                           " for use in an InnoDB cluster...");
     }
   }
+
+  // Get the capabilities to use set persist by the server.
+  m_can_set_persist = m_target_instance->is_set_persist_supported();
+
+  // Set the internal configuration object properly according to the given
+  // command options (to read configuration from the server and/or option
+  // file (e.g., my.cnf).
+  prepare_config_object();
 
   m_is_valid = true;
   bool bad_schema = false;
@@ -213,8 +210,35 @@ void Check_instance::rollback() {
   // nothing to rollback
 }
 
-void Check_instance::finish() {
-  // nothing to finish
+void Check_instance::finish() {}
+
+void Check_instance::prepare_config_object() {
+  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
+  bool use_cfg_handler = false;
+  // if the configuration file was provided and exists, we add it to the
+  // config object.
+  if (!m_mycnf_path.empty() && shcore::file_exists(m_mycnf_path)) {
+    use_cfg_handler = true;
+  }
+  // Add server configuration handler depending on SET PERSIST support.
+  // NOTE: Add server handler first to set it has the default handler.
+  m_cfg->add_handler(
+      mysqlshdk::config::k_dft_cfg_server_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_server_handler(
+              m_target_instance,
+              (!m_can_set_persist.is_null() && *m_can_set_persist)
+                  ? mysqlshdk::mysql::Var_qualifier::PERSIST
+                  : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
+
+  // Add configuration handle to update option file (if provided) and not to
+  // be skipped
+  if (use_cfg_handler) {
+    m_cfg->add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                       std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                           new mysqlshdk::config::Config_file_handler(
+                               m_mycnf_path, m_mycnf_path)));
+  }
 }
 
 }  // namespace dba

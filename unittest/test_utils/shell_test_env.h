@@ -118,6 +118,8 @@ class Shell_test_env : public ::testing::Test {
   static void setup_env(int sandbox_port1, int sandbox_port2,
                         int sandbox_port3);
 
+  std::string query_replace_hook(const std::string &sql);
+
  protected:
   static std::string _host;  //!< localhost
   static std::string _port;  //!< The port for X protocol, env:MYSQLX_PORT

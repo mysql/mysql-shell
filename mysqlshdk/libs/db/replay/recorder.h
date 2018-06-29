@@ -40,6 +40,8 @@ extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
     on_recorder_connect_hook;
 extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
     on_recorder_close_hook;
+extern std::function<std::string(const std::string &sql)>
+    on_recorder_query_replace_hook;
 
 class Recorder_mysql : public mysql::Session {
  public:

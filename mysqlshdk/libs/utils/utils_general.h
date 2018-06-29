@@ -217,6 +217,15 @@ lexical_cast(const S &data) {
   return t;
 }
 
+/**
+ * Temporary implementation for make_unique
+ * Should be deleted when we migrate to C++14
+ */
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args &&... args) {
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_GENERAL_H_

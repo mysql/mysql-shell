@@ -23,6 +23,7 @@ Some configuration options need to be fixed:
 | server_id       | 0             | <unique ID>    | Update the config file and restart the server  |
 +-----------------+---------------+----------------+------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Please use the dba.configureInstance() command to repair these issues.
 
 {
@@ -46,7 +47,6 @@ Please use the dba.configureInstance() command to repair these issues.
             "required": "<unique ID>"
         }
     ],
-    "errors": [],
     "status": "error"
 }
 
@@ -72,6 +72,7 @@ Some configuration options need to be fixed:
 | server_id       | 0             | <unique ID>    | Update the config file and restart the server  |
 +-----------------+---------------+----------------+------------------------------------------------+
 
+Some variables need to be changed, but cannot be done dynamically on the server.
 Please use the dba.configureInstance() command to repair these issues.
 
 {
@@ -95,7 +96,6 @@ Please use the dba.configureInstance() command to repair these issues.
             "required": "<unique ID>"
         }
     ],
-    "errors": [],
     "status": "error"
 }
 
@@ -196,10 +196,11 @@ Some configuration options need to be fixed:
 | server_id       | 0             | <unique ID>    | Update the config file and restart the server  |
 +-----------------+---------------+----------------+------------------------------------------------+
 
-Do you want to perform the required configuration changes? [y/n]: 
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]:
 Cluster admin user 'myAdmin'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 
 #@<OUT> configure_instance() - instance not valid for cluster usage {VER(<8.0.11)}
@@ -219,10 +220,11 @@ Some configuration options need to be fixed:
 | server_id       | 0             | <unique ID>    | Update the config file and restart the server  |
 +-----------------+---------------+----------------+------------------------------------------------+
 
-Do you want to perform the required configuration changes? [y/n]: 
+Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
+Do you want to perform the required configuration changes? [y/n]:
 Cluster admin user 'myAdmin'@'%' created.
 Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.
+The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.
 MySQL server needs to be restarted for configuration changes to take effect.
 
 #@<OUT> configure_instance() - create admin account 2
@@ -279,7 +281,6 @@ Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
 Checking instance configuration...
-Note: verifyMyCnf option was not given so only dynamic configuration will be verified.
 Instance configuration is compatible with InnoDB cluster
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
@@ -338,7 +339,7 @@ This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'testCluster' on 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.24 does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
@@ -373,8 +374,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>
 
 Instance configuration is suitable.
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version 5.7.24 does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version 5.7.24 does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
 The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 #@ add_instance() 2
@@ -807,9 +808,9 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
 
 #@<OUT> Dissolve cluster {VER(<8.0.11)}
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version 5.7.24 does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' configuration cannot be persisted since MySQL version 5.7.24 does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
 
 The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.

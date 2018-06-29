@@ -1203,4 +1203,87 @@ TEST_F(Instance_test, cached_sysvars) {
   _session->close();
 }
 
+TEST_F(Instance_test, get_system_variables_like) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // Get system variable using a pattern, using default scope (i.e., SESSION).
+  session.expect_query("SHOW SESSION VARIABLES LIKE '%error_count%'")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"error_count", "0"}, {"max_error_count", "64"}}}});
+
+  std::map<std::string, mysqlshdk::utils::nullable<std::string>> res =
+      instance.get_system_variables_like("%error_count%");
+
+  // Verify result.
+  std::vector<std::string> vars;
+  std::vector<std::string> values;
+  for (const auto &element : res) {
+    vars.push_back(element.first);
+    values.push_back(*element.second);
+  }
+  EXPECT_THAT(vars, UnorderedElementsAre("error_count", "max_error_count"));
+  EXPECT_THAT(values, UnorderedElementsAre("0", "64"));
+
+  // Get SESSION system variable using a pattern.
+  session.expect_query("SHOW SESSION VARIABLES LIKE '%error_count%'")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"error_count", "0"}, {"max_error_count", "64"}}}});
+
+  res = instance.get_system_variables_like(
+      "%error_count%", mysqlshdk::mysql::Var_qualifier::SESSION);
+
+  // Verify result.
+  vars.clear();
+  values.clear();
+  for (const auto &element : res) {
+    vars.push_back(element.first);
+    values.push_back(*element.second);
+  }
+  EXPECT_THAT(vars, UnorderedElementsAre("error_count", "max_error_count"));
+  EXPECT_THAT(values, UnorderedElementsAre("0", "64"));
+
+  // Get GLOBAL system variable using a pattern.
+  session.expect_query("SHOW GLOBAL VARIABLES LIKE 'flush%'")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"flush", "OFF"}, {"flush_time", "0"}}}});
+
+  res = instance.get_system_variables_like(
+      "flush%", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  // Verify result.
+  vars.clear();
+  values.clear();
+  for (const auto &element : res) {
+    vars.push_back(element.first);
+    values.push_back(*element.second);
+  }
+  EXPECT_THAT(vars, UnorderedElementsAre("flush", "flush_time"));
+  EXPECT_THAT(values, UnorderedElementsAre("OFF", "0"));
+
+  // Error getting system variables from an non valid scope.
+  EXPECT_THROW_LIKE(
+      instance.get_system_variables_like(
+          "%error_count%", mysqlshdk::mysql::Var_qualifier::PERSIST),
+      std::runtime_error,
+      "Invalid variable scope to get variables value, only GLOBAL and SESSION "
+      "is supported.");
+  EXPECT_THROW_LIKE(
+      instance.get_system_variables_like(
+          "%error_count%", mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
+      std::runtime_error,
+      "Invalid variable scope to get variables value, only GLOBAL and SESSION "
+      "is supported.");
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
 }  // namespace testing

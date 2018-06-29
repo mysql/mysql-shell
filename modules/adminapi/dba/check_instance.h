@@ -54,14 +54,27 @@ class Check_instance : public Command_interface {
   bool check_schema_compatibility();
   bool check_configuration();
 
+  /**
+   * Prepare the internal mysqlshdk::config::Config object to use.
+   *
+   * Initialize the mysqlshdk::config::Config object adding the proper
+   * configuration handlers based on the target instance settings (e.g., server
+   * version) and operation input parameters.
+   */
+  void prepare_config_object();
+
  private:
   mysqlshdk::mysql::IInstance *m_target_instance;
   std::shared_ptr<ProvisioningInterface> m_provisioning_interface;
   std::string m_mycnf_path;
   bool m_is_valid = false;
+  mysqlshdk::utils::nullable<bool> m_can_set_persist;
   shcore::Value m_ret_val;
 
   const bool m_silent;
+
+  // Configuration object (to read and set instance configurations).
+  std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 };
 
 }  // namespace dba

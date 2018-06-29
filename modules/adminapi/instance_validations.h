@@ -26,7 +26,10 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
@@ -42,20 +45,13 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session);
 
 void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 
-bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
-                            const std::string &mycnf_path,
-                            std::shared_ptr<ProvisioningInterface> mp,
-                            bool *restart_needed, bool *mycnf_change_needed,
-                            bool *sysvar_change_needed, bool *fatal_errors,
-                            shcore::Value *ret_val = nullptr);
+std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
+    mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
+    mysqlshdk::config::Config *const config,
+    const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
+    bool *mycnf_change_needed, bool *sysvar_change_needed,
+    shcore::Value *ret_val = nullptr);
 
-void ensure_instance_configuration_valid(
-    mysqlshdk::mysql::IInstance *target_instance, const std::string &mycnf_path,
-    std::shared_ptr<ProvisioningInterface> mp);
-
-void check_required_actions(const shcore::Dictionary_t &result, bool *restart,
-                            bool *dynamic_sysvar_change,
-                            bool *config_file_change);
 }  // namespace checks
 }  // namespace dba
 }  // namespace mysqlsh

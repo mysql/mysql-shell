@@ -56,6 +56,7 @@ if(WITH_TESTS)
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/shellcore/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/db/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/config/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/mysql/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/textui/*.cc"

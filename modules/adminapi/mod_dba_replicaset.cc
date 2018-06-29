@@ -385,7 +385,7 @@ void set_group_replication_member_options(
       ssl_mode == dba::kMemberSSLModeDisabled) {
     // We need to install the GR plugin to have GR sysvars available
     mysqlshdk::mysql::Instance instance(session);
-    mysqlshdk::gr::install_plugin(instance);
+    mysqlshdk::gr::install_plugin(instance, nullptr);
 
     // This option required to connect using the new caching_sha256_password
     // authentication method without SSL

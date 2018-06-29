@@ -45,8 +45,7 @@ class Configure_local_instance : public Configure_instance {
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
       mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-      mysqlshdk::utils::nullable<bool> restart,
-      std::shared_ptr<ProvisioningInterface> provisioning_interface);
+      mysqlshdk::utils::nullable<bool> restart);
   ~Configure_local_instance();
 
   void prepare() override;
@@ -56,8 +55,6 @@ class Configure_local_instance : public Configure_instance {
 
  private:
   GRInstanceType m_instance_type;
-
-  void update_mycnf();
 };
 
 }  // namespace dba

@@ -2207,13 +2207,11 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
     if (local)
       op_configure_instance.reset(new Configure_local_instance(
           &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
-          cluster_admin_password, clear_read_only, interactive, restart,
-          _provisioning_interface));
+          cluster_admin_password, clear_read_only, interactive, restart));
     else
       op_configure_instance.reset(new Configure_instance(
           &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
-          cluster_admin_password, clear_read_only, interactive, restart,
-          _provisioning_interface));
+          cluster_admin_password, clear_read_only, interactive, restart));
 
     op_configure_instance->prepare();
     ret_val = shcore::Value(op_configure_instance->execute());
@@ -2307,29 +2305,33 @@ REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL10,
               "user and confirmation prompts are not shown.");
 
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL11,
+              "If the outputMycnfPath option is used, only that file is "
+              "updated and mycnfPath is treated as read-only.");
+
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL12,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13,
               "The returned descriptive text of the operation result indicates "
               "whether the instance was successfully configured for InnoDB "
               "Cluster usage or if it was already valid for InnoDB Cluster "
               "usage.");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL13,
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14,
               "If the instance was not valid for InnoDB Cluster and "
               "interaction is enabled, before configuring the instance a "
               "prompt to confirm the changes is presented and a table with the "
               "following information:");
 
-REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL14,
-              "@li Variable: the invalid configuration variable.");
 REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL15,
+              "@li Variable: the invalid configuration variable.");
+REGISTER_HELP(DBA_CONFIGURELOCALINSTANCE_DETAIL16,
               "@li Current Value: the current value for the invalid "
               "configuration variable.");
 REGISTER_HELP(
-    DBA_CONFIGURELOCALINSTANCE_DETAIL16,
+    DBA_CONFIGURELOCALINSTANCE_DETAIL17,
     "@li Required Value: the required value for the configuration variable.");
 /**
  * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
@@ -2378,6 +2380,7 @@ REGISTER_HELP(
  * $(DBA_CONFIGURELOCALINSTANCE_DETAIL14)
  * $(DBA_CONFIGURELOCALINSTANCE_DETAIL15)
  * $(DBA_CONFIGURELOCALINSTANCE_DETAIL16)
+ * $(DBA_CONFIGURELOCALINSTANCE_DETAIL17)
  */
 #if DOXYGEN_JS
 Undefined Dba::configureLocalInstance(InstanceDef instance,
@@ -2444,32 +2447,36 @@ REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL11,
               "restart of the target instance should be performed to finalize "
               "the operation.");
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL12,
+              "If the outputMycnfPath option is used, only that file is "
+              "updated and mycnfPath is treated as read-only.");
+
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL13,
               "The connection password may be contained on the instance "
               "definition, however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL13,
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL14,
               "This function reviews the instance configuration to identify if "
               "it is valid for usage in group replication and cluster. "
               "An exception is thrown if not.");
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL14,
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL15,
               "If the instance was not valid for InnoDB Cluster and "
               "interaction is enabled, before configuring the instance a "
               "prompt to confirm the changes is presented and a table with the "
               "following information:");
 
-REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL15,
-              "@li Variable: the invalid configuration variable.");
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL16,
+              "@li Variable: the invalid configuration variable.");
+REGISTER_HELP(DBA_CONFIGUREINSTANCE_DETAIL17,
               "@li Current Value: the current value for the invalid "
               "configuration variable.");
 REGISTER_HELP(
-    DBA_CONFIGUREINSTANCE_DETAIL17,
+    DBA_CONFIGUREINSTANCE_DETAIL18,
     "@li Required Value: the required value for the configuration variable.");
 
 REGISTER_HELP(
-    DBA_CONFIGUREINSTANCE_DETAIL18,
+    DBA_CONFIGUREINSTANCE_DETAIL19,
     "@li Required Value: the required value for the configuration variable.");
 
 REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS,
@@ -2546,6 +2553,7 @@ REGISTER_HELP(DBA_CONFIGUREINSTANCE_THROWS13,
  * $(DBA_CONFIGUREINSTANCE_DETAIL16)
  * $(DBA_CONFIGUREINSTANCE_DETAIL17)
  * $(DBA_CONFIGUREINSTANCE_DETAIL18)
+ * $(DBA_CONFIGUREINSTANCE_DETAIL19)
  *
  * $(DBA_CONFIGUREINSTANCE_THROWS)
  * $(DBA_CONFIGUREINSTANCE_THROWS1)

@@ -32,9 +32,9 @@ function EXPECT_VALIDATING_INSTANCE(address) {
 // Check that the return value of a checkInstance() matches the expected one for a raw, non-configured instance
 function EXPECT_RETVAL_CHECK_INSTANCE_RAW_INSTANCE(result) {
   if (__version_num > 80000) {  // MySQL 5.7 had different defaults
-    var errors = {"config_errors": [{"action": "server_update", "current": "CRC32", "option": "binlog_checksum", "required": "NONE"}, {"action": "restart", "current": "<no value>", "option": "disabled_storage_engines", "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"}, {"action": "restart", "current": "OFF", "option": "enforce_gtid_consistency", "required": "ON"}, {"action": "restart", "current": "OFF", "option": "gtid_mode", "required": "ON"}, {"action": "restart", "current": "1", "option": "server_id", "required": "<unique ID>"}], "errors": [], "status": "error"};
+    var errors = {"config_errors": [{"action": "server_update", "current": "CRC32", "option": "binlog_checksum", "required": "NONE"}, {"action": "restart", "current": "<no value>", "option": "disabled_storage_engines", "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"}, {"action": "restart", "current": "OFF", "option": "enforce_gtid_consistency", "required": "ON"}, {"action": "restart", "current": "OFF", "option": "gtid_mode", "required": "ON"}, {"action": "restart", "current": "1", "option": "server_id", "required": "<unique ID>"}], "status": "error"};
   } else {
-    var errors = {"config_errors": [{"action": "server_update", "current": "CRC32", "option": "binlog_checksum", "required": "NONE"}, {"action": "restart", "current": "<no value>", "option": "disabled_storage_engines", "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"}, {"action": "restart", "current": "OFF", "option": "enforce_gtid_consistency", "required": "ON"}, {"action": "restart", "current": "OFF", "option": "gtid_mode", "required": "ON"}, {"action": "restart", "current": "0", "option": "log_bin", "required": "1"}, {"action": "restart", "current": "0", "option": "log_slave_updates", "required": "ON"}, {"action": "restart", "current": "FILE", "option": "master_info_repository", "required": "TABLE"}, {"action": "restart", "current": "FILE", "option": "relay_log_info_repository", "required": "TABLE"}, {"action": "restart", "current": "0", "option": "server_id", "required": "<unique ID>"}, {"action": "restart", "current": "OFF", "option": "transaction_write_set_extraction", "required": "XXHASH64"}], "errors": [], "status": "error"};
+    var errors = {"config_errors": [{"action": "server_update", "current": "CRC32", "option": "binlog_checksum", "required": "NONE"}, {"action": "restart", "current": "<no value>", "option": "disabled_storage_engines", "required": "MyISAM,BLACKHOLE,FEDERATED,CSV,ARCHIVE"}, {"action": "restart", "current": "OFF", "option": "enforce_gtid_consistency", "required": "ON"}, {"action": "restart", "current": "OFF", "option": "gtid_mode", "required": "ON"}, {"action": "restart", "current": "0", "option": "log_bin", "required": "1"}, {"action": "restart", "current": "0", "option": "log_slave_updates", "required": "ON"}, {"action": "restart", "current": "FILE", "option": "master_info_repository", "required": "TABLE"}, {"action": "restart", "current": "FILE", "option": "relay_log_info_repository", "required": "TABLE"}, {"action": "restart", "current": "0", "option": "server_id", "required": "<unique ID>"}, {"action": "restart", "current": "OFF", "option": "transaction_write_set_extraction", "required": "XXHASH64"}], "status": "error"};
   }
 
   EXPECT_EQ(errors, result);
@@ -123,14 +123,6 @@ function EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(silent) {
 
 function EXPECT_REQUIRE_RESTART() {
 
-}
-
-function EXPECT_LOGBIN_CHANGE_IF_57() {
-  if (__version_num < 80005) {
-    var line = testutil.fetchCapturedStdout(true);
-    while (line == "\n") line = testutil.fetchCapturedStdout(true);
-    EXPECT_CONTAINS("The following variable needs to be changed, but cannot be done dynamically: 'log_bin'", line);
-  }
 }
 
 function EXPECT_REQUIRE_CONFIGURE() {
@@ -320,8 +312,6 @@ if (real_host_is_loopback) EXPECT_LOOPBACK_ERROR();
 EXPECT_SCHEMA_OK();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE();
 
-EXPECT_LOGBIN_CHANGE_IF_57();
-
 EXPECT_REQUIRE_CONFIGURE()
 EXPECT_END();
 
@@ -334,8 +324,6 @@ EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+
 EXPECT_REPORTED_HOST();
 // createCluster and addInstance don't do schema check
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
-
-EXPECT_LOGBIN_CHANGE_IF_57();
 
 EXPECT_REQUIRE_CONFIGURE();
 EXPECT_NEXT_OUTPUT("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
@@ -353,8 +341,6 @@ EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
 
-EXPECT_LOGBIN_CHANGE_IF_57();
-
 EXPECT_REQUIRE_CONFIGURE();
 EXPECT_NEXT_OUTPUT("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
 EXPECT_END();
@@ -366,8 +352,6 @@ EXPECT_THROWS(function() {cluster.addInstance(__hostname_uri2)}, "Instance check
 EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
-
-EXPECT_LOGBIN_CHANGE_IF_57();
 
 EXPECT_REQUIRE_CONFIGURE();
 EXPECT_NEXT_OUTPUT("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
@@ -382,8 +366,6 @@ EXPECT_THROWS(function() {cluster.addInstance(__hostname_uri2)}, "Instance check
 EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
-
-EXPECT_LOGBIN_CHANGE_IF_57();
 
 EXPECT_REQUIRE_CONFIGURE();
 EXPECT_NEXT_OUTPUT("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
@@ -413,8 +395,6 @@ if (real_host_is_loopback) EXPECT_LOOPBACK_ERROR();
 EXPECT_SCHEMA_BROKEN(["mydb.bad_engine"], ["mydb.badpk", "mydb.baduk"]);
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE();
 
-EXPECT_LOGBIN_CHANGE_IF_57();
-
 EXPECT_REQUIRE_CONFIGURE()
 EXPECT_END();
 
@@ -427,8 +407,6 @@ EXPECT_THROWS(function() {dba.createCluster("c")}, "Instance check failed");
 EXPECT_NEXT_OUTPUT("Validating instance at "+hostname+":"+__mysql_sandbox_port2+"...");
 EXPECT_REPORTED_HOST();
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
-
-EXPECT_LOGBIN_CHANGE_IF_57();
 
 EXPECT_REQUIRE_CONFIGURE();
 EXPECT_NEXT_OUTPUT("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
@@ -446,8 +424,6 @@ if (real_host_is_loopback)
   EXPECT_LOOPBACK_ERROR();
 
 EXPECT_CONFIGURATION_ISSUES_RAW_INSTANCE(true);
-
-EXPECT_LOGBIN_CHANGE_IF_57();
 
 EXPECT_REQUIRE_CONFIGURE();
 EXPECT_NEXT_OUTPUT("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");

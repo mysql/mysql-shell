@@ -21,8 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/mysql/replication.h"
+#include <random>
 #include <string>
+
+#include "mysqlshdk/libs/mysql/replication.h"
 
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -51,6 +53,15 @@ bool wait_for_gtid_set_from(const mysqlshdk::mysql::IInstance &target,
   if (!row || row->is_null(0) || row->get_string(0).empty()) return true;
 
   return wait_for_gtid_set(target, row->get_string(0), timeout);
+}
+
+int64_t generate_server_id() {
+  // Setup uniform random generation of integers between [1, 4294967295] using
+  // Mersenne Twister algorithm and a non-determinist seed.
+  std::random_device rd_seed;
+  std::mt19937 rnd_gen(rd_seed());
+  std::uniform_int_distribution<int64_t> distribution(1, 4294967295);
+  return distribution(rnd_gen);
 }
 
 }  // namespace mysql

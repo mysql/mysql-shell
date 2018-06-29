@@ -26,12 +26,15 @@
 #include <vector>
 
 #include "modules/adminapi/dba/configure_instance.h"
+#include "modules/adminapi/dba/provision.h"
 #include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/instance_validations.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config_file_handler.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -49,8 +52,7 @@ Configure_instance::Configure_instance(
     const std::string &output_mycnf_path, const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-    mysqlshdk::utils::nullable<bool> restart,
-    std::shared_ptr<ProvisioningInterface> provisioning_interface)
+    mysqlshdk::utils::nullable<bool> restart)
     : m_mycnf_path(mycnf_path),
       m_output_mycnf_path(output_mycnf_path),
       m_cluster_admin(cluster_admin),
@@ -58,10 +60,8 @@ Configure_instance::Configure_instance(
       m_interactive(interactive),
       m_clear_read_only(clear_read_only),
       m_restart(restart),
-      m_target_instance(target_instance),
-      m_provisioning_interface(provisioning_interface) {
+      m_target_instance(target_instance) {
   assert(target_instance);
-  assert(provisioning_interface);
 
   m_local_target = mysqlshdk::utils::Net::is_local_address(
       m_target_instance->get_connection_options().get_host());
@@ -96,11 +96,7 @@ bool Configure_instance::check_config_path_for_update() {
 
   // If the cnf file path is empty attempt to resolve it
   if (m_mycnf_path.empty()) {
-    if (is_sandbox(*m_target_instance, &m_mycnf_path)) {
-      console->println("Sandbox MySQL configuration file at: " + m_mycnf_path);
-    } else {
-      if (m_interactive) m_mycnf_path = prompt_cnf_path(*m_target_instance);
-    }
+    if (m_interactive) m_mycnf_path = prompt_cnf_path(*m_target_instance);
 
     // If interactive is disabled or the attempt to resolve the cnf file
     // path wasn't successful throw an error
@@ -111,6 +107,9 @@ bool Configure_instance::check_config_path_for_update() {
       console->println("Please provide its path with the mycnfPath option.");
       return false;
     }
+  } else {
+    if (m_is_cnf_from_sandbox)
+      console->println("Sandbox MySQL configuration file at: " + m_mycnf_path);
   }
 
   bool prompt_output_path = false;
@@ -179,33 +178,14 @@ bool Configure_instance::check_config_path_for_update() {
         if (!prompt_output_path) return false;
       }
     }
-  }
-  return true;
-}
-
-/*
- * Validates the value of 'persisted_globals_load'.
- * NOTE: the validation is only performed for versions >= 8.0.11
- */
-bool Configure_instance::check_persisted_globals_load() {
-  // Check if the instance version is >= 8.0.11
-  assert(m_target_instance->get_version() >=
-         mysqlshdk::utils::Version(8, 0, 5));
-
-  // Check the value of persisted_globals_load
-  mysqlshdk::utils::nullable<bool> persist_global =
-      m_target_instance->get_cached_global_sysvar_as_bool(
-          "persisted_globals_load");
-
-  if (!*persist_global) {
-    auto console = mysqlsh::current_console();
-    console->print_note("persisted_globals_load option is OFF");
-    console->println(
-        "Remote configuration of the instance is not possible because "
-        "options changed with SET PERSIST will not be loaded, unless "
-        "'persisted_globals_load' is set to ON.");
-
-    return false;
+    if (prompt_output_path) {
+      // update the value for the output_cnf_path on the config_file_handler
+      // since it has changed.
+      auto file_cfg_handler =
+          dynamic_cast<mysqlshdk::config::Config_file_handler *>(
+              m_cfg->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
+      file_cfg_handler->set_output_config_path(m_output_mycnf_path);
+    }
   }
   return true;
 }
@@ -359,81 +339,27 @@ bool Configure_instance::check_configuration_updates(
     cnf_path.clear();
   }
 
-  bool fatal_errors;
-  if (!checks::validate_configuration(
-          m_target_instance, cnf_path, m_provisioning_interface, restart,
-          config_file_change, dynamic_sysvar_change, &fatal_errors)) {
-    // If there are fatal errors, abort immediately
-    if (fatal_errors) {
-      throw shcore::Exception::runtime_error("errors found");
-    }
-
-    // FR1.1 - if any of the variables needed to be changed cannot be remotely
-    // persisted, an error must be issued to indicate the user to run the
-    // command locally in the target instance.
-    // The only variable that cannot be persisted remotely is 'log_bin'
-    // Fortunately, in 8.0 log_bin is ON by default, so this should be rare
-
-    if (*config_file_change && m_can_set_persist && m_mycnf_path.empty()) {
-      console->print_warning(
-          "Some changes that require access to the MySQL configuration file "
-          "need to be made. Please perform this operation in the same host as "
-          "the target instance and use the mycnfPath option to update it.");
-    }
-
-    if (*restart && !*config_file_change && !*dynamic_sysvar_change) {
-      console->print_note(
-          "MySQL server restart is required for configuration to take effect.");
-    }
-    return false;
+  m_invalid_cfgs = checks::validate_configuration(
+      m_target_instance, cnf_path, m_cfg.get(), m_can_set_persist, restart,
+      config_file_change, dynamic_sysvar_change);
+  if (!m_invalid_cfgs.empty()) {
+    // If no option file change or dynamic variable changes are required but
+    // restart variable was set to true, then it means that only read-only
+    // variables were detected as invalid configs on the server. If SET PERSIST
+    // is supported then those variables still need to be updated (persisted),
+    // otherwise only a restart is required because the value for those
+    // variables is correct in the option file.
+    // NOTE: validate_configuration() requires changes to the option file for
+    //       any invalid server variable, unless it was able to confirm that
+    //       the value is correct in the given option file or SET PERSIST is
+    //       supported.
+    return !(*restart && !*config_file_change && !*dynamic_sysvar_change &&
+             (m_can_set_persist.is_null() || !*m_can_set_persist));
   } else {
     console->println();
-    if (*restart) {
-      console->print_note(
-          "The instance '" + m_target_instance->descr() +
-          "' needs to be restarted for configuration changes to take effect.");
-    } else {
-      console->print_note("The instance '" + m_target_instance->descr() +
-                          "' is valid for InnoDB cluster usage.");
-    }
-    return !*restart;
-  }
-}
-
-/*
- * Parses and handles the MP check operation result in order to print
- * human-readable descriptive results
- *
- * @param result The result object of the MP check operation
- */
-void Configure_instance::handle_mp_op_result(
-    const shcore::Dictionary_t &result) {
-  auto console = mysqlsh::current_console();
-
-  // Handle the results of the configure instance operation
-  if (result->get_string("status") == "ok") {
-    console->print_info("The instance '" + m_target_instance->descr() +
-                        "' was configured for use in an InnoDB cluster.");
-  } else {
-    auto errors = result->get_array("errors");
-
-    if (!errors->empty()) {
-      for (const shcore::Value &err : *errors) {
-        console->print_error(err.get_string());
-      }
-      throw shcore::Exception::runtime_error(
-          "Error updating MySQL configuration");
-    }
-
-    console->print_info("The instance '" + m_target_instance->descr() +
-                        "' was configured for cluster usage.");
-
-    bool restart = false;
-    bool dynamic_sysvar_change = false;
-    bool config_file_change = false;
-    checks::check_required_actions(result, &restart, &dynamic_sysvar_change,
-                                   &config_file_change);
-    m_needs_restart = restart;
+    console->print_note("The instance '" + m_target_instance->descr() +
+                        "' is valid for InnoDB cluster usage.");
+    return false;
   }
 }
 
@@ -454,25 +380,26 @@ void Configure_instance::ensure_instance_address_usable() {
 
 void Configure_instance::ensure_configuration_change_possible(
     bool needs_mycnf_change) {
-  // Check whether we have everything needed to make config changes
-  if (m_can_set_persist) {
-    // (FR2/FR3) If the instance has a version >= 8.0.11, verify the status of
-    // persisted_globals_load. If its value is set to 'OFF' and the instance
-    // is remote, issue an error
-    // This should only be checked if we actually need to change configs
-    if (!check_persisted_globals_load()) {
-      // if persisted globals won't be loaded, then SET PERSIST is unusable
-      // which means our only hope is editing my.cnf locally...
-      m_can_set_persist = false;
-    }
+  // (FR2/FR3) If the instance has a version >= 8.0.5, verify the status of
+  // persisted_globals_load. If its value is set to 'OFF' and the instance
+  // is remote, issue an error
+  // This should only be checked if we actually need to change configs
+  if (!m_can_set_persist.is_null() && !*m_can_set_persist) {
+    auto console = mysqlsh::current_console();
+    console->print_note("persisted_globals_load option is OFF");
+    console->println(
+        "Remote configuration of the instance is not possible because "
+        "options changed with SET PERSIST will not be loaded, unless "
+        "'persisted_globals_load' is set to ON.");
   }
 
   // If we need to make config changes and either some of these changes
   // can only be done in the my.cnf (e.g. log_bin) or we can't use SET PERSIST
   // then ensure that we can update my.cnf
   // NOTE: if mycnfPath was used in the cmd call, we also use it
-  if (needs_mycnf_change || !m_can_set_persist || !m_mycnf_path.empty() ||
-      !m_output_mycnf_path.empty()) {
+  if (needs_mycnf_change ||
+      (m_can_set_persist.is_null() || !*m_can_set_persist) ||
+      !m_mycnf_path.empty() || !m_output_mycnf_path.empty()) {
     // (FR3/FR4) If the instance has a version < 8.0.11 the configuration file
     // path is mandatory in case the instance is local. If the instance is
     // remote issue an error
@@ -490,7 +417,60 @@ void Configure_instance::ensure_configuration_change_possible(
             "file through the mycnfPath option.");
       throw shcore::Exception::runtime_error("Unable to update configuration");
     }
-    m_can_update_mycnf = true;
+  }
+}
+
+void Configure_instance::validate_config_path() {
+  // If the configuration file was provided but doesn't exist, then issue an
+  // error (BUG#27702439).
+  if (!m_mycnf_path.empty() && !shcore::file_exists(m_mycnf_path)) {
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "The specified MySQL option file does not exist. A valid path is "
+        "required for the mycnfPath option.");
+    console->println(
+        "Please provide a valid path for the mycnfPath option or leave it "
+        "empty if you which to skip the verification of the MySQL option "
+        "file.");
+    throw std::runtime_error("File '" + m_mycnf_path + "' does not exist.");
+  }
+}
+
+void Configure_instance::prepare_config_object() {
+  m_cfg = shcore::make_unique<mysqlshdk::config::Config>();
+
+  // Add server configuration handler depending on SET PERSIST support.
+  // NOTE: Add server handler first to set it has the default handler.
+  m_cfg->add_handler(
+      mysqlshdk::config::k_dft_cfg_server_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_server_handler(
+              m_target_instance,
+              (!m_can_set_persist.is_null() && *m_can_set_persist)
+                  ? mysqlshdk::mysql::Var_qualifier::PERSIST
+                  : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
+
+  // Add configuration handle to update option file (if provided).
+  if (!m_mycnf_path.empty() || !m_output_mycnf_path.empty()) {
+    if (m_output_mycnf_path.empty()) {
+      // Read and update mycnf.
+      m_cfg->add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                         std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                             new mysqlshdk::config::Config_file_handler(
+                                 m_mycnf_path, m_mycnf_path)));
+    } else if (m_mycnf_path.empty()) {
+      // Update output_mycnf (creating it if needed).
+      m_cfg->add_handler(
+          mysqlshdk::config::k_dft_cfg_file_handler,
+          std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+              new mysqlshdk::config::Config_file_handler(m_output_mycnf_path)));
+    } else {
+      // Read from mycnf but update output_mycnf (creating it if needed).
+      m_cfg->add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                         std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                             new mysqlshdk::config::Config_file_handler(
+                                 m_mycnf_path, m_output_mycnf_path)));
+    }
   }
 }
 
@@ -513,18 +493,26 @@ void Configure_instance::prepare() {
                         " for use in an InnoDB cluster...");
   }
 
-  // Check capabilities based on target server and user options
-  m_can_set_persist = false;
-  // NOTE: RESTART is only available in 8.0.4, but the command is only
-  // support in 8.0.11 or higher
-  m_can_restart = false;
-  if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5)) {
-    m_can_set_persist = true;
-    m_can_restart = true;
-    if (is_sandbox(*m_target_instance)) m_can_restart = false;
+  // Check if we are dealing with a sandbox instance
+  std::string cnf_path;
+  m_is_sandbox = is_sandbox(*m_target_instance, &cnf_path);
+  // if instance is sandbox and the mycnf path is empty, fill it.
+  if (m_is_sandbox && m_mycnf_path.empty()) {
+    m_mycnf_path = std::move(cnf_path);
+    m_is_cnf_from_sandbox = true;
   }
-  // this is checked again later, after prompting user
-  m_can_update_mycnf = !m_mycnf_path.empty() && m_local_target;
+
+  // Check capabilities based on target server and user options
+  // NOTE: RESTART is only available in 8.0.4, but the command is only
+  // supported in 8.0.11 or higher
+  m_can_restart = false;
+  if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
+    m_can_restart = true;
+    if (m_is_sandbox) m_can_restart = false;
+  }
+
+  // Get the capabilities to use set persist by the server.
+  m_can_set_persist = m_target_instance->is_set_persist_supported();
 
   // Ensure the user has privs to do all these checks
   ensure_user_privileges(*m_target_instance);
@@ -540,6 +528,14 @@ void Configure_instance::prepare() {
   //     user account
   check_create_admin_user();
 
+  // validate the mycnfpath parameter
+  validate_config_path();
+
+  // Set the internal configuration object properly according to the given
+  // command options (to read/write configuration from the server and/or option
+  // file (e.g., my.cnf).
+  prepare_config_object();
+
   // If interactive is enabled we have to ask the user if accepts
   // the changes to be done. For such purpose, we must call
   // checkInstanceConfiguration to obtain the list of issues to present
@@ -547,12 +543,8 @@ void Configure_instance::prepare() {
   // Also, in order to verify if there's any variable that cannot be remotely
   // changed we use the output from checkInstanceConfiguration
   bool needs_sysvar_change = false;
-  m_needs_configuration_update = false;
-  if (!check_configuration_updates(&m_needs_restart, &needs_sysvar_change,
-                                   &m_needs_update_mycnf)) {
-    if (needs_sysvar_change || m_needs_update_mycnf)
-      m_needs_configuration_update = true;
-  }
+  m_needs_configuration_update = check_configuration_updates(
+      &m_needs_restart, &needs_sysvar_change, &m_needs_update_mycnf);
 
   if (m_needs_configuration_update) {
     ensure_configuration_change_possible(m_needs_update_mycnf);
@@ -574,16 +566,16 @@ void Configure_instance::prepare() {
         if (console->confirm(
                 "Do you want to restart the instance after configuring it?",
                 Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_restart = true;
+          m_restart = mysqlshdk::utils::nullable<bool>(true);
         } else {
-          m_restart = false;
+          m_restart = mysqlshdk::utils::nullable<bool>(false);
         }
       } else {
         if (console->confirm("Do you want to restart the instance now?",
                              Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_restart = true;
+          m_restart = mysqlshdk::utils::nullable<bool>(true);
         } else {
-          m_restart = false;
+          m_restart = mysqlshdk::utils::nullable<bool>(true);
         }
       }
     }
@@ -597,33 +589,6 @@ void Configure_instance::prepare() {
         m_clear_read_only = true;
     }
   }
-}
-
-void Configure_instance::perform_configuration_updates(bool use_set_persist) {
-  shcore::Value ret_val;
-
-  assert(use_set_persist || m_local_target);
-
-  // If outputMycnfPath was used in the cmd call but myCnfPath not then we
-  // must set the value of myCnfPath to outputMycnfPath and clear
-  // outputMycnfPath since the behavior expected from MP is the same when only
-  // either the outputMycnfPath or mycnfPath are provided (create/override the
-  // configuration file) but MP only implemented the case where just the
-  // mycnfPath is provided.
-  if (m_mycnf_path.empty() && !m_output_mycnf_path.empty()) {
-    m_mycnf_path = m_output_mycnf_path;
-    m_output_mycnf_path.clear();
-  }
-
-  // Call MP
-  // Execute the configure operation
-  ret_val = m_provisioning_interface->exec_check_ret_handler(
-      m_target_instance->get_connection_options(), m_mycnf_path,
-      m_output_mycnf_path, true, use_set_persist);
-
-  log_debug("Configuration update op returned: %s", ret_val.descr().c_str());
-
-  handle_mp_op_result(ret_val.as_map());
 }
 
 /*
@@ -643,16 +608,24 @@ shcore::Value Configure_instance::execute() {
   auto console = mysqlsh::current_console();
 
   if (m_needs_configuration_update) {
-    // TODO(someone): as soon as MP is fully rewritten to C++,we must use pure
-    // C++ types instead of shcore types. The function return type should be
-    // changed to std::map<std::string, std::string>
-
     // Execute the configure instance operation
     console->println("Configuring instance...");
-
-    bool use_set_persist = !m_needs_update_mycnf && m_can_set_persist;
-
-    perform_configuration_updates(use_set_persist);
+    m_needs_restart =
+        mysqlsh::dba::configure_instance(m_cfg.get(), m_invalid_cfgs);
+    if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path &&
+        m_needs_configuration_update) {
+      console->print_info("The instance '" + m_target_instance->descr() +
+                          "' was configured for InnoDB cluster usage but you "
+                          "must copy " +
+                          m_output_mycnf_path +
+                          " to the MySQL option file path.");
+    } else {
+      console->print_info("The instance '" + m_target_instance->descr() +
+                          "' was configured for InnoDB cluster usage.");
+    }
+  } else {
+    console->print_info("The instance '" + m_target_instance->descr() +
+                        "' is already ready for InnoDB cluster usage.");
   }
 
   if (m_needs_restart) {
@@ -670,17 +643,9 @@ shcore::Value Configure_instance::execute() {
         console->println("Please restart MySQL manually");
       }
     } else {
-      if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path &&
-          m_needs_configuration_update) {
-        console->print_note("You must now copy " + m_output_mycnf_path +
-                            " to the MySQL "
-                            "configuration file path and restart MySQL for "
-                            "changes to take effect.");
-      } else {
-        console->print_note(
-            "MySQL server needs to be restarted for configuration changes to "
-            "take effect.");
-      }
+      console->print_note(
+          "MySQL server needs to be restarted for configuration changes to "
+          "take effect.");
     }
   }
   return shcore::Value();

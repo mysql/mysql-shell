@@ -65,6 +65,33 @@ bool wait_for_gtid_set_from(const mysqlshdk::mysql::IInstance &target,
                             const mysqlshdk::mysql::IInstance &source,
                             int timeout);
 
+/**
+ * Generate a random server ID.
+ *
+ * Generate a pseudo-random server_id, with a value between 1 and 4294967295.
+ * Two generated values have a low probability of being the same (independently
+ * of the time they are generated). Minimum value generated is 1 and maximum
+ * 4294967295.
+ *
+ * For the random generation (assuming random generation is uniformly) the
+ * probability of the same value being generated is given by:
+ *      P(n, t) = 1 - t!/(t^n * (t-n)!)
+ * where t is the total number of different values that can be generated, and
+ * n is the number of values that are generated.
+ *
+ * In this case, t = 4294967295 (max number of values that can be generated),
+ * and for example the probability of generating the same id for 15, 100, and
+ * 1000 servers (n=15, n=100, and n=1000) is approximately:
+ *      P(15, 4294967295)   = 2.44 * 10^-8    (0.00000244 %)
+ *      P(100, 4294967295)  = 1.15 * 10^-6    (0.000115 %)
+ *      P(1000, 4294967295) = 1.16 * 10^-4    (0.0116 %)
+ *
+ *  Note: Zero is not a valid sever_id.
+ *
+ * @return an integer with a random between 1 and 4294967295.
+ */
+int64_t generate_server_id();
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 #endif  // MYSQLSHDK_LIBS_MYSQL_REPLICATION_H_

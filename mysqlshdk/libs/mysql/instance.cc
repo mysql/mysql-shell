@@ -128,17 +128,15 @@ utils::nullable<int64_t> Instance::get_sysvar_int(
     std::string value = variables[name];
 
     if (!value.empty()) {
-      size_t end_pos;
-      int64_t int_val = std::stol(value, &end_pos);
-
-      if (end_pos == value.size())
+      try {
+        int64_t int_val = shcore::lexical_cast<int64_t>(value);
         ret_val = int_val;
-      else
+      } catch (const std::invalid_argument &) {
         throw std::runtime_error("The variable " + name +
                                  " is not an integer.");
+      }
     }
   }
-
   return ret_val;
 }
 
@@ -301,6 +299,86 @@ Instance::get_system_variables(const std::vector<std::string> &names,
   }
 
   return ret_val;
+}
+
+std::map<std::string, utils::nullable<std::string>>
+Instance::get_system_variables_like(const std::string &pattern,
+                                    const Var_qualifier scope) const {
+  std::map<std::string, utils::nullable<std::string>> ret_val;
+
+  std::string query_format;
+  if (scope == Var_qualifier::GLOBAL)
+    query_format = "SHOW GLOBAL VARIABLES LIKE ?";
+  else if (scope == Var_qualifier::SESSION)
+    query_format = "SHOW SESSION VARIABLES LIKE ?";
+  else
+    throw std::runtime_error(
+        "Invalid variable scope to get variables value, "
+        "only GLOBAL and SESSION is supported.");
+
+  shcore::sqlstring query(query_format.c_str(), 0);
+  query << pattern;
+  query.done();
+
+  std::shared_ptr<db::IResult> result;
+  result = _session->query(query);
+
+  auto row = result->fetch_one();
+  while (row) {
+    if (row->is_null(1))
+      ret_val[row->get_string(0)] = nullptr;
+    else
+      ret_val[row->get_string(0)] = row->get_string(1);
+    row = result->fetch_one();
+  }
+
+  return ret_val;
+}
+
+/**
+ * Check if the performance schema is enabled on the instance.
+ *
+ * @return true if performance_schema is enabled and false otherwise.
+ */
+
+bool Instance::is_performance_schema_enabled() const {
+  utils::nullable<bool> perf_schema_on =
+      get_sysvar_bool("performance_schema", Var_qualifier::GLOBAL);
+  return (!perf_schema_on.is_null() && *perf_schema_on);
+}
+
+/**
+ * Returns true if a given variable still has the default (compiled) value.
+ * @param name string with the name of the variable to check
+ * @return true if the given variable has the default (compiled) value and false
+ * otherwise.
+ * @throw std::runtime_error if performance_schema is not enabled.
+ * @throw std::invalid_argument if name cannot be found in the
+ * performance_schema variables_info table.
+ */
+
+bool Instance::has_variable_compiled_value(const std::string &name) const {
+  bool perf_schema_on = is_performance_schema_enabled();
+  if (!perf_schema_on)
+    throw std::runtime_error("Unable to check if variable '" + name +
+                             "' has the default (compiled) value since "
+                             "performance_schema is not enabled.");
+  std::string variable_default_stmt_fmt =
+      "SELECT variable_source "
+      "FROM performance_schema.variables_info "
+      "WHERE variable_name = ?";
+  shcore::sqlstring variable_default_stmt =
+      shcore::sqlstring(variable_default_stmt_fmt, 0);
+  variable_default_stmt << name;
+  variable_default_stmt.done();
+  auto resultset = _session->query(variable_default_stmt);
+  auto row = resultset->fetch_one();
+  if (row)
+    return row->get_string(0) == "COMPILED";
+  else
+    throw std::runtime_error(
+        "Unable to find variable '" + name +
+        "' in the performance_schema.variables_info table.");
 }
 
 /**
@@ -585,5 +663,16 @@ bool Instance::user_exists(const std::string &username,
   return true;
 }
 
+utils::nullable<bool> Instance::is_set_persist_supported() const {
+  // Check if the instance version is >= 8.0.11 to support the SET PERSIST.
+  if (get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
+    // Check the value of persisted_globals_load
+    mysqlshdk::utils::nullable<bool> persist_global =
+        get_cached_global_sysvar_as_bool("persisted_globals_load");
+    return utils::nullable<bool>(*persist_global != 0);
+  } else {
+    return utils::nullable<bool>();
+  }
+}
 }  // namespace mysql
 }  // namespace mysqlshdk
