@@ -227,8 +227,13 @@ Shell_options::Shell_options(int argc, char **argv,
         })
     (cmdline("--table"),
         "Produce output in table format (default for interactive mode). This "
-        "option can be used to, force that format when running in batch mode.",
+        "option can be used to force that format when running in batch mode.",
         assign_value(&storage.output_format, "table"))
+    (cmdline("--tabbed"),
+        "Produce output in tab separated format (default for batch mode). This "
+        "option can be used to force that format when running in interactive "
+        "mode.",
+        assign_value(&storage.output_format, "tabbed"))
     (cmdline("-E", "--vertical"),
         "Print the output of a query (rows) vertically.",
         assign_value(&storage.output_format, "vertical"))
