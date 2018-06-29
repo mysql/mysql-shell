@@ -1,4 +1,3 @@
-
 //@ FR1-TS-01 SETUP{VER(>=8.0.12)}
 ||
 
@@ -86,7 +85,7 @@ one server failure.
 ||
 
 //@ FR1-TS-04/05 SETUP {VER(>=8.0.12)}
-|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for cluster usage.|
+|The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for InnoDB cluster usage.|
 |Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
 
 //@<OUT> FR1-TS-04/05 {VER(>=8.0.12)}

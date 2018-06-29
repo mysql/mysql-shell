@@ -24,6 +24,7 @@
 #include "modules/adminapi/mod_dba_common.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <iterator>
 #include <map>
 #include <set>
@@ -1325,51 +1326,84 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
 
   console->println();
   console->println("Detecting the configuration file...");
+  std::vector<std::string> config_paths, default_paths;
 
-  shcore::OperatingSystem os = shcore::get_os_type();
-  log_info("OS detected as %s", shcore::to_string(os).c_str());
-  std::vector<std::string> default_paths;
-
-  switch (os) {
-    case shcore::OperatingSystem::DEBIAN:
-      default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
-      break;
-    case shcore::OperatingSystem::REDHAT:
-    case shcore::OperatingSystem::SOLARIS:
-      default_paths.push_back("/etc/my.cnf");
-      break;
-    case shcore::OperatingSystem::LINUX:
-      default_paths.push_back("/etc/my.cnf");
-      default_paths.push_back("/etc/mysql/my.cnf");
-      break;
-    case shcore::OperatingSystem::WINDOWS:
-      default_paths.push_back(
-          "C:\\ProgramData\\MySQL\\MySQL Server 5.7\\my.ini");
-      default_paths.push_back(
-          "C:\\ProgramData\\MySQL\\MySQL Server 8.0\\my.ini");
-      break;
-    case shcore::OperatingSystem::MACOS:
-      default_paths.push_back("/etc/my.cnf");
-      default_paths.push_back("/etc/mysql/my.cnf");
-      default_paths.push_back("/usr/local/mysql/etc/my.cnf");
-      break;
-    default:
-      // The non-handled OS case will keep default_paths and cnfPath empty
-      break;
+  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+    // use the performance schema table to try and find the existing
+    // configuration files
+    auto session = instance.get_session();
+    auto result = session->query(
+        "select DISTINCT VARIABLE_PATH from performance_schema.variables_info "
+        "WHERE VARIABLE_PATH <> ''");
+    auto row = result->fetch_one();
+    while (row) {
+      config_paths.emplace_back(row->get_string(0));
+      row = result->fetch_one();
+    }
   }
-
-  // Iterate the default_paths to check if the files exist and if so,
-  // set cnfPath
-  for (const auto &value : default_paths) {
-    if (shcore::file_exists(value)) {
-      // Prompt the user to validate if shall use it or not
-      console->println("Found configuration file at standard location: " +
-                       value);
-
-      if (console->confirm("Do you want to modify this file?") ==
-          Prompt_answer::YES) {
-        cnfPath = value;
+  // if no config files were found, try to look in the default paths
+  if (config_paths.empty()) {
+    shcore::OperatingSystem os = shcore::get_os_type();
+    log_info("OS detected as %s", shcore::to_string(os).c_str());
+    switch (os) {
+      case shcore::OperatingSystem::DEBIAN:
+        default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
         break;
+      case shcore::OperatingSystem::REDHAT:
+      case shcore::OperatingSystem::SOLARIS:
+        default_paths.push_back("/etc/my.cnf");
+        break;
+      case shcore::OperatingSystem::LINUX:
+        default_paths.push_back("/etc/my.cnf");
+        default_paths.push_back("/etc/mysql/my.cnf");
+        break;
+      case shcore::OperatingSystem::WINDOWS: {
+        char *program_data_ptr = std::getenv("PROGRAMDATA");
+        if (program_data_ptr) {
+          default_paths.push_back(std::string(program_data_ptr) +
+                                  R"(\MySQL\MySQL Server 5.7\my.ini)");
+          default_paths.push_back(std::string(program_data_ptr) +
+                                  R"(\MySQL\MySQL Server 8.0\my.ini)");
+        }
+      } break;
+      case shcore::OperatingSystem::MACOS:
+        default_paths.push_back("/etc/my.cnf");
+        default_paths.push_back("/etc/mysql/my.cnf");
+        default_paths.push_back("/usr/local/mysql/etc/my.cnf");
+        break;
+      default:
+        // The non-handled OS case will keep default_paths and cnfPath empty
+        break;
+    }
+  }
+  // Iterate the config_paths found in the instance checking if the user wants
+  // to modify any of them
+  for (const auto &value : config_paths) {
+    // Prompt the user to validate if shall use it or not
+    console->println("Found configuration file being used by instance '" +
+                     instance.get_connection_options().uri_endpoint() +
+                     "' at location: " + value);
+
+    if (console->confirm("Do you want to modify this file?") ==
+        Prompt_answer::YES) {
+      cnfPath = value;
+      break;
+    }
+  }
+  if (cnfPath.empty()) {
+    // Iterate the default_paths to check if the files exist and if so,
+    // set cnfPath
+    for (const auto &value : default_paths) {
+      if (shcore::file_exists(value)) {
+        // Prompt the user to validate if shall use it or not
+        console->println("Found configuration file at standard location: " +
+                         value);
+
+        if (console->confirm("Do you want to modify this file?") ==
+            Prompt_answer::YES) {
+          cnfPath = value;
+          break;
+        }
       }
     }
   }
@@ -1847,11 +1881,7 @@ ConfigureInstanceAction get_configure_instance_action(
  */
 void print_validation_results(const shcore::Value::Map_type_ref &result,
                               bool print_note) {
-  auto errors = result->get_array("errors");
-
   auto console = mysqlsh::current_console();
-
-  for (auto error : *errors) console->print_error(error.get_string());
 
   if (result->has_key("config_errors")) {
     console->print_note("Some configuration options need to be fixed:");
@@ -1906,11 +1936,6 @@ void print_validation_results(const shcore::Value::Map_type_ref &result,
       auto opt_map = option.as_map();
       opt_map->erase("note");
     }
-  } else {
-    // BUG#26836230: CHECKINSTANCE AND CONFIGUREINSTANCE NOT SHOWING SERVER_ID
-    // RELATED ISSUES
-    if (errors->empty())
-      throw shcore::Exception::runtime_error("Unknown error found.");
   }
 }
 

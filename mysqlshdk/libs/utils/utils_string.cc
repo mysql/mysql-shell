@@ -259,4 +259,36 @@ std::vector<std::string> str_break_into_lines(const std::string &line,
   return result;
 }
 
+std::pair<std::string::size_type, std::string::size_type> get_quote_span(
+    const char quote_char, const std::string &str) {
+  bool escaped = false;
+
+  // if string has less than 2 chars  we assume matching quotes were not found.
+  if (str.size() < 2)
+    return std::make_pair(std::string::npos, std::string::npos);
+
+  std::string::size_type open_quote_pos = 0;
+
+  // find opening quote char
+  for (std::string::size_type i = 0, end = str.size();
+       (str[i] != quote_char || escaped) && i < end; ++i) {
+    open_quote_pos++;
+    escaped = (str[i]) == '\\' && !escaped;
+  }
+  // if no quotes were found
+  if (open_quote_pos == str.size())
+    return std::make_pair(std::string::npos, std::string::npos);
+
+  // find closing quote char
+  std::string::size_type close_quote_pos = open_quote_pos + 1;
+  for (std::string::size_type i = close_quote_pos, end = str.size();
+       (str[i] != quote_char || escaped) && i < end; ++i) {
+    close_quote_pos++;
+    escaped = (str[i]) == '\\' && !escaped;
+  }
+
+  // closing quote was not found
+  if (close_quote_pos == str.size()) close_quote_pos = std::string::npos;
+  return std::make_pair(open_quote_pos, close_quote_pos);
+}
 }  // namespace shcore

@@ -176,6 +176,9 @@ DESCRIPTION
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
 
+      If the outputMycnfPath option is used, only that file is updated and
+      mycnfPath is treated as read-only.
+
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.
 
@@ -253,6 +256,9 @@ DESCRIPTION
       - interactive: boolean value used to disable the wizards in the command
         execution, i.e. prompts are not provided to the user and confirmation
         prompts are not shown.
+
+      If the outputMycnfPath option is used, only that file is updated and
+      mycnfPath is treated as read-only.
 
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.

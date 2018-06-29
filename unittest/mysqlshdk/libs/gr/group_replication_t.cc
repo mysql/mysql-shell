@@ -21,18 +21,28 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <map>
+#include <string>
 #include <utility>
+#include <vector>
+
+#include "mysqlshdk/libs/config/config.h"
+#include "mysqlshdk/libs/config/config_file_handler.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/shell_base_test.h"
 
 namespace testing {
 
-class Group_replication_Test : public tests::Shell_base_test {
+class Group_replication_test : public tests::Shell_base_test {
  protected:
   void SetUp() {
     tests::Shell_base_test::SetUp();
@@ -41,6 +51,10 @@ class Group_replication_Test : public tests::Shell_base_test {
     _connection_options = shcore::get_connection_options(_mysql_uri);
     _session->connect(_connection_options);
     instance = new mysqlshdk::mysql::Instance(_session);
+
+    // Get temp dir path
+    m_tmpdir = getenv("TMPDIR");
+    m_cfg_path = shcore::path::join_path(m_tmpdir, "my_gr_test.cnf");
   }
 
   void TearDown() {
@@ -56,10 +70,10 @@ class Group_replication_Test : public tests::Shell_base_test {
   mysqlshdk::mysql::Instance *instance;
   mysqlshdk::db::Connection_options _connection_options;
 
-  bool _gr_req_not_meet = false;
+  std::string m_tmpdir, m_cfg_path;
 };
 
-TEST_F(Group_replication_Test, plugin_installation) {
+TEST_F(Group_replication_test, plugin_installation) {
   using mysqlshdk::utils::nullable;
 
   // Check if GR plugin is installed and uninstall it.
@@ -67,13 +81,13 @@ TEST_F(Group_replication_Test, plugin_installation) {
       instance->get_plugin_status(mysqlshdk::gr::kPluginName);
   if (!init_plugin_state.is_null()) {
     // Test uninstall the plugin when available.
-    bool res = mysqlshdk::gr::uninstall_plugin(*instance);
+    bool res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
     EXPECT_TRUE(res);
     nullable<std::string> plugin_state =
         instance->get_plugin_status(mysqlshdk::gr::kPluginName);
     ASSERT_TRUE(plugin_state.is_null());
     // Test trying to uninstall the plugin when not available.
-    res = mysqlshdk::gr::uninstall_plugin(*instance);
+    res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
     EXPECT_FALSE(res);
   }
 
@@ -81,7 +95,8 @@ TEST_F(Group_replication_Test, plugin_installation) {
   if (!init_plugin_state.is_null() &&
       (*init_plugin_state).compare(mysqlshdk::gr::kPluginDisabled) == 0) {
     // An exception is expected if the plugin was disabled.
-    EXPECT_THROW(mysqlshdk::gr::install_plugin(*instance), std::runtime_error);
+    EXPECT_THROW(mysqlshdk::gr::install_plugin(*instance, nullptr),
+                 std::runtime_error);
   } else {
     // Requirements to install the GR plugin:
     // - server_id != 0
@@ -108,7 +123,7 @@ TEST_F(Group_replication_Test, plugin_installation) {
     }
 
     // GR plugin is installed and activated (if not previously disabled).
-    bool res = mysqlshdk::gr::install_plugin(*instance);
+    bool res = mysqlshdk::gr::install_plugin(*instance, nullptr);
     ASSERT_TRUE(res)
         << "GR plugin was not installed (expected not to be available).";
     nullable<std::string> plugin_state =
@@ -116,7 +131,7 @@ TEST_F(Group_replication_Test, plugin_installation) {
     EXPECT_STREQ(mysqlshdk::gr::kPluginActive, (*plugin_state).c_str());
 
     // Test installing the plugin when already installed.
-    res = mysqlshdk::gr::install_plugin(*instance);
+    res = mysqlshdk::gr::install_plugin(*instance, nullptr);
     EXPECT_FALSE(res)
         << "GR plugin was installed (expected to be already available).";
     plugin_state = instance->get_plugin_status(mysqlshdk::gr::kPluginName);
@@ -126,26 +141,26 @@ TEST_F(Group_replication_Test, plugin_installation) {
   // Restore initial state (uninstall plugin if needed).
   if (init_plugin_state.is_null()) {
     // Test uninstall the plugin when available.
-    bool res = mysqlshdk::gr::uninstall_plugin(*instance);
+    bool res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
     EXPECT_TRUE(res);
     nullable<std::string> plugin_state =
         instance->get_plugin_status(mysqlshdk::gr::kPluginName);
     ASSERT_TRUE(plugin_state.is_null());
 
     // Test trying to uninstall the plugin when not available.
-    res = mysqlshdk::gr::uninstall_plugin(*instance);
+    res = mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
     EXPECT_FALSE(res);
   }
 }
 
-TEST_F(Group_replication_Test, generate_group_name) {
+TEST_F(Group_replication_test, generate_group_name) {
   std::string name1 = mysqlshdk::gr::generate_group_name();
   std::string name2 = mysqlshdk::gr::generate_group_name();
   // Generated group names must be different.
   EXPECT_STRNE(name1.c_str(), name2.c_str());
 }
 
-TEST_F(Group_replication_Test, replication_user) {
+TEST_F(Group_replication_test, replication_user) {
   // Confirm that there is no replication user.
   auto res =
       mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
@@ -171,7 +186,7 @@ TEST_F(Group_replication_Test, replication_user) {
   instance->drop_user("test_gr_user", "%");
 }
 
-TEST_F(Group_replication_Test, start_stop_gr) {
+TEST_F(Group_replication_test, start_stop_gr) {
   // Beside the start_group_replication() and stop_group_replication()
   // functions, the functions is_member() and get_member_state() are also
   // tested here since the test scenario is the same, in order to avoid
@@ -251,7 +266,7 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   nullable<std::string> init_plugin_state =
       instance->get_plugin_status(mysqlshdk::gr::kPluginName);
   if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::install_plugin(*instance);
+    mysqlshdk::gr::install_plugin(*instance, nullptr);
   }
 
   // Get initial value of GR variables (to restore at the end).
@@ -329,11 +344,11 @@ TEST_F(Group_replication_Test, start_stop_gr) {
   instance->set_sysvar("group_replication_local_address", *gr_local_address,
                        Var_qualifier::GLOBAL);
   if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::uninstall_plugin(*instance);
+    mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
   }
 }
 
-TEST_F(Group_replication_Test, members_state) {
+TEST_F(Group_replication_test, members_state) {
   using mysqlshdk::gr::Member_state;
 
   // Test to_string() function
@@ -370,7 +385,7 @@ TEST_F(Group_replication_Test, members_state) {
   EXPECT_THROW(mysqlshdk::gr::to_member_state("invalid"), std::runtime_error);
 }
 
-TEST_F(Group_replication_Test, get_replication_user) {
+TEST_F(Group_replication_test, get_replication_user) {
   using mysqlshdk::utils::nullable;
 
   // Check if used server meets the requirements.
@@ -434,7 +449,7 @@ TEST_F(Group_replication_Test, get_replication_user) {
   nullable<std::string> init_plugin_state =
       instance->get_plugin_status(mysqlshdk::gr::kPluginName);
   if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::install_plugin(*instance);
+    mysqlshdk::gr::install_plugin(*instance, nullptr);
   }
 
   // Test: empty string returned if no replication user was defined (or empty).
@@ -463,11 +478,11 @@ TEST_F(Group_replication_Test, get_replication_user) {
         "CHANGE MASTER TO MASTER_USER = '' "
         "FOR CHANNEL 'group_replication_recovery'");
   if (init_plugin_state.is_null()) {
-    mysqlshdk::gr::uninstall_plugin(*instance);
+    mysqlshdk::gr::uninstall_plugin(*instance, nullptr);
   }
 }
 
-TEST_F(Group_replication_Test, is_group_replication_delayed_starting) {
+TEST_F(Group_replication_test, is_group_replication_delayed_starting) {
   using mysqlshdk::db::Type;
 
   std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
@@ -486,6 +501,594 @@ TEST_F(Group_replication_Test, is_group_replication_delayed_starting) {
           "'thread/group_rpl/THD_delayed_initialization'")
       .then_return({{"", {"COUNT(*)"}, {Type::UInteger}, {{"0"}}}});
   EXPECT_FALSE(mysqlshdk::gr::is_group_replication_delayed_starting(instance));
+}
+
+TEST_F(Group_replication_test, get_all_configurations) {
+  std::map<std::string, mysqlshdk::utils::nullable<std::string>> res =
+      mysqlshdk::gr::get_all_configurations(*instance);
+
+  // NOTE: Only auto_increment variables are returned if GR is not configured.
+  //       Check only those values to avoid non-deterministic issues, depending
+  //       on the server version and/or configuration (e.g., new
+  //       group_replication_consistency variable added for 8.0.14 servers).
+  std::vector<std::string> vars;
+  std::vector<std::string> values;
+  for (const auto &element : res) {
+    vars.push_back(element.first);
+    values.push_back(*element.second);
+  }
+  EXPECT_THAT(vars, Contains("auto_increment_increment"));
+  EXPECT_THAT(vars, Contains("auto_increment_offset"));
+}
+
+TEST_F(Group_replication_test, check_log_bin_compatibility_disabled) {
+  using mysqlshdk::gr::Config_type;
+  using mysqlshdk::gr::Config_types;
+  using mysqlshdk::gr::Invalid_config;
+  using mysqlshdk::mysql::Var_qualifier;
+  using mysqlshdk::utils::nullable;
+
+  nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
+  if (*log_bin) {
+    SKIP_TEST(
+        "Test server does not meet GR requirements: binary_log is enabled and "
+        "should be disabled.")
+  }
+  // Create config object (only with a server handler).
+  mysqlshdk::config::Config cfg;
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_server_handler(
+                          instance, Var_qualifier::GLOBAL)));
+
+  // should have 1 issue, since binary log is disabled.
+  std::vector<Invalid_config> res;
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  ASSERT_EQ(1, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), "OFF");
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(0).restart, true);
+
+  // Create an empty test option file and add the option file config handler.
+  create_file(m_cfg_path, "");
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_file_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+
+  // Issues found on both server and option file (with no values set).
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  // if server version is >=8.0.3 then the log_bin is enabled by default so
+  // there is no need to be the log_bin option on the file
+  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3)) {
+    ASSERT_EQ(1, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+    EXPECT_STREQ(res.at(0).current_val.c_str(), "OFF");
+    EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+    EXPECT_EQ(res.at(0).restart, true);
+  } else {
+    ASSERT_EQ(2, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+    EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(0).restart, false);
+    EXPECT_STREQ(res.at(1).var_name.c_str(), "log_bin");
+    EXPECT_STREQ(res.at(1).current_val.c_str(), "OFF");
+    EXPECT_STREQ(res.at(1).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(1).types, Config_type::SERVER);
+    EXPECT_EQ(res.at(1).restart, true);
+  }
+
+  // Set incompatible values on file, issues found.
+  cfg.set("skip_log_bin", nullable<std::string>(),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("disable_log_bin", nullable<std::string>(),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.apply();
+
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3)) {
+    ASSERT_EQ(3, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "disable_log_bin");
+    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(0).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(0).restart, false);
+    EXPECT_STREQ(res.at(1).var_name.c_str(), "skip_log_bin");
+    EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(1).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(1).restart, false);
+  } else {
+    ASSERT_EQ(4, res.size());
+    EXPECT_STREQ(res.at(1).var_name.c_str(), "disable_log_bin");
+    EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(1).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(1).restart, false);
+    EXPECT_STREQ(res.at(2).var_name.c_str(), "skip_log_bin");
+    EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(2).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(2).restart, false);
+  }
+
+  // Delete the config file.
+  shcore::delete_file(m_cfg_path, true);
+}
+
+TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
+  using mysqlshdk::gr::Config_type;
+  using mysqlshdk::gr::Config_types;
+  using mysqlshdk::gr::Invalid_config;
+  using mysqlshdk::mysql::Var_qualifier;
+  using mysqlshdk::utils::nullable;
+  nullable<bool> log_bin = instance->get_sysvar_bool("log_bin");
+  if (!*log_bin) {
+    SKIP_TEST(
+        "Test server does not meet GR requirements: binary_log is disabled and "
+        "should be enabled.")
+  }
+  // Create config object (only with a server handler).
+  mysqlshdk::config::Config cfg;
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_server_handler(
+                          instance, Var_qualifier::GLOBAL)));
+
+  // should have no issues, since binary log is enabled.
+  std::vector<Invalid_config> res;
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  EXPECT_EQ(0, res.size());
+
+  // Create an empty test option file and add the option file config handler.
+  create_file(m_cfg_path, "");
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_file_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+
+  // Issues found on the option file (with no values set).
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  // if server version is >=8.0.3 then the log_bin is enabled by default so
+  // there is no need to be the log_bin option on the file
+  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3)) {
+    ASSERT_EQ(0, res.size());
+  } else {
+    ASSERT_EQ(1, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+    EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(0).restart, false);
+  }
+
+  // Set incompatible values on file, issues found.
+  cfg.set("skip_log_bin", nullable<std::string>(),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("disable_log_bin", nullable<std::string>(),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.apply();
+
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3)) {
+    ASSERT_EQ(2, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "disable_log_bin");
+    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(0).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(0).restart, false);
+    EXPECT_STREQ(res.at(1).var_name.c_str(), "skip_log_bin");
+    EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(1).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(1).restart, false);
+  } else {
+    ASSERT_EQ(3, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_bin");
+    EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+    EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(0).restart, false);
+    EXPECT_STREQ(res.at(1).var_name.c_str(), "disable_log_bin");
+    EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(1).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(1).restart, false);
+    EXPECT_STREQ(res.at(2).var_name.c_str(), "skip_log_bin");
+    EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::gr::k_no_value);
+    EXPECT_STREQ(res.at(2).required_val.c_str(),
+                 mysqlshdk::gr::k_value_not_set);
+    EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(2).restart, false);
+  }
+
+  // Set compatible values on file, no issues found.
+  // Get the config file handler reference (to remove option from config file).
+  mysqlshdk::config::Config_file_handler *file_cfg_handler =
+      static_cast<mysqlshdk::config::Config_file_handler *>(
+          cfg.get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
+  file_cfg_handler->remove("skip_log_bin");
+  file_cfg_handler->remove("disable_log_bin");
+  if (instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
+    file_cfg_handler->set("log_bin", nullable<std::string>());
+  }
+  cfg.apply();
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  EXPECT_EQ(0, res.size());
+
+  cfg.set("log_bin", nullable<std::string>("Some text"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.apply();
+  res.clear();
+  mysqlshdk::gr::check_log_bin_compatibility(*instance, cfg, &res);
+  EXPECT_EQ(0, res.size());
+
+  // Delete the config file.
+  shcore::delete_file(m_cfg_path, true);
+}
+
+TEST_F(Group_replication_test, check_server_id_compatibility) {
+  using mysqlshdk::gr::Config_type;
+  using mysqlshdk::gr::Config_types;
+  using mysqlshdk::gr::Invalid_config;
+  using mysqlshdk::mysql::Var_qualifier;
+  using mysqlshdk::utils::Version;
+  using mysqlshdk::utils::nullable;
+
+  // Get current server_id variable value to restore at the end.
+  nullable<int64_t> cur_server_id =
+      instance->get_sysvar_int("server_id", Var_qualifier::GLOBAL);
+
+  // Create config object (only with a server handler).
+  mysqlshdk::config::Config cfg;
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_server_handler(
+                          instance, Var_qualifier::GLOBAL)));
+  std::vector<Invalid_config> res;
+  // If server_version >= 8.0.3 and the server_id is the default compiled
+  // value, there should be an issue reported.
+  if (instance->get_version() >= mysqlshdk::utils::Version(8, 0, 3) &&
+      instance->has_variable_compiled_value("server_id")) {
+    mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
+    ASSERT_EQ(1, res.size());
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "server_id");
+    EXPECT_STREQ(res.at(0).required_val.c_str(), "<unique ID>");
+    EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+    EXPECT_EQ(res.at(0).restart, true);
+  }
+
+  // No issues reported if server_id != 0 and has been changed.
+  instance->set_sysvar("server_id", static_cast<int64_t>(1),
+                       Var_qualifier::GLOBAL);
+  res.clear();
+  mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
+  EXPECT_EQ(0, res.size());
+
+  // Set server_id=0, and issues will be found
+  instance->set_sysvar("server_id", static_cast<int64_t>(0),
+                       Var_qualifier::GLOBAL);
+  res.clear();
+  mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
+  ASSERT_EQ(1, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "server_id");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), "0");
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "<unique ID>");
+  EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(0).restart, true);
+
+  // Create an empty test option file and add the option file config handler.
+  create_file(m_cfg_path, "");
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_file_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+
+  // Issues found on the option file (with no values set).
+  // The current value should be the one from the server.
+  res.clear();
+  mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
+  ASSERT_EQ(1, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "server_id");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), "0");
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "<unique ID>");
+  EXPECT_TRUE(res.at(0).types.is_set(Config_type::CONFIG));
+  EXPECT_TRUE(res.at(0).types.is_set(Config_type::SERVER));
+  EXPECT_EQ(res.at(0).restart, true);
+
+  // Fixing the value on the server will still leave the warning for the empty
+  // config file
+  instance->set_sysvar("server_id", static_cast<int64_t>(1),
+                       Var_qualifier::GLOBAL);
+  res.clear();
+  mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
+  ASSERT_EQ(1, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "server_id");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "<unique ID>");
+  EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(0).restart, false);
+
+  // Fixing the value on the config will clear all warnings.
+  cfg.set("server_id", nullable<std::string>("1"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.apply();
+  res.clear();
+  mysqlshdk::gr::check_server_id_compatibility(*instance, cfg, &res);
+  EXPECT_EQ(0, res.size());
+
+  // Delete the config file.
+  shcore::delete_file(m_cfg_path, true);
+
+  // Restore initial values.
+  instance->set_sysvar("server_id", *cur_server_id, Var_qualifier::GLOBAL);
+}
+
+TEST_F(Group_replication_test, check_server_variables_compatibility) {
+  using mysqlshdk::gr::Config_type;
+  using mysqlshdk::gr::Config_types;
+  using mysqlshdk::gr::Invalid_config;
+  using mysqlshdk::mysql::Var_qualifier;
+  using mysqlshdk::utils::Version;
+  using mysqlshdk::utils::nullable;
+
+  std::string instance_port =
+      std::to_string(instance->get_connection_options().get_port());
+  // we will just modify and test the dynamic server variables as well as
+  // one of the non dynamic variables from the server. Testing all the non
+  // dynamic variables would be impossible as we do not control the state of
+  // the instance that is provided and we don't want to restart it.
+
+  // Get the values of the dynamic variables.
+  nullable<std::string> cur_binlog_format =
+      instance->get_sysvar_string("binlog_format", Var_qualifier::GLOBAL);
+  nullable<std::string> cur_binlog_checksum =
+      instance->get_sysvar_string("binlog_checksum", Var_qualifier::GLOBAL);
+  // now get the value of one of the other variables
+  // Note, picked this one because this is the first returned variable on the
+  // vector of invalid configs after the two dynamic variables, so if both
+  // have correct values, this will be the invalid config at index 0.
+  nullable<std::string> cur_log_slave_updates =
+      instance->get_sysvar_string("log_slave_updates", Var_qualifier::GLOBAL);
+  bool log_slave_updates_correct =
+      (*cur_log_slave_updates == "1") || (*cur_log_slave_updates == "ON");
+
+  // Create config object (only with a server handler).
+  mysqlshdk::config::Config cfg;
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_server_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_server_handler(
+                          instance, Var_qualifier::GLOBAL)));
+
+  // change the dynamic variables so there are no server issues
+  instance->set_sysvar("binlog_format", static_cast<std::string>("ROW"),
+                       Var_qualifier::GLOBAL);
+  instance->set_sysvar("binlog_checksum", static_cast<std::string>("NONE"),
+                       Var_qualifier::GLOBAL);
+  std::vector<Invalid_config> res;
+  mysqlshdk::gr::check_server_variables_compatibility(cfg, &res);
+  if (!log_slave_updates_correct) {
+    // if the log_slave_updates is not correct, the issues list must at least
+    // have the log_slave_updates invalid config  and it must be at the position
+    // 0, since the two variables that could appear before are the dynamic ones
+    // and those have been set to correct values.
+    ASSERT_GE(res.size(), 1);
+    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_slave_updates");
+    EXPECT_EQ(res.at(0).current_val, *cur_log_slave_updates);
+    EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+    EXPECT_EQ(res.at(0).restart, true);
+  }
+  // Create an empty test option file and add the option file config handler.
+  create_file(m_cfg_path, "");
+  mysqlshdk::config::Config cfg_file_only;
+  cfg_file_only.add_handler(
+      mysqlshdk::config::k_dft_cfg_file_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+
+  // Issues found on the option file only (with no values set).
+  res.clear();
+  mysqlshdk::gr::check_server_variables_compatibility(cfg_file_only, &res);
+  // if the config file is empty, there should be an issue for each of the
+  // tested variables
+  ASSERT_EQ(8, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "binlog_format");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "ROW");
+  EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "binlog_checksum");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(1).required_val.c_str(), "NONE");
+  EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(1).restart, false);
+  EXPECT_STREQ(res.at(2).var_name.c_str(), "log_slave_updates");
+  EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(2).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(2).restart, false);
+  EXPECT_STREQ(res.at(3).var_name.c_str(), "enforce_gtid_consistency");
+  EXPECT_STREQ(res.at(3).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(3).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(3).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(3).restart, false);
+  EXPECT_STREQ(res.at(4).var_name.c_str(), "gtid_mode");
+  EXPECT_STREQ(res.at(4).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(4).required_val.c_str(), "ON");
+  EXPECT_EQ(res.at(4).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(4).restart, false);
+  EXPECT_STREQ(res.at(5).var_name.c_str(), "master_info_repository");
+  EXPECT_STREQ(res.at(5).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(5).required_val.c_str(), "TABLE");
+  EXPECT_EQ(res.at(5).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(5).restart, false);
+  EXPECT_STREQ(res.at(6).var_name.c_str(), "relay_log_info_repository");
+  EXPECT_STREQ(res.at(6).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(6).required_val.c_str(), "TABLE");
+  EXPECT_EQ(res.at(6).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(6).restart, false);
+  EXPECT_STREQ(res.at(7).var_name.c_str(), "transaction_write_set_extraction");
+  EXPECT_STREQ(res.at(7).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_STREQ(res.at(7).required_val.c_str(), "XXHASH64");
+  EXPECT_EQ(res.at(7).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(7).restart, false);
+
+  // add the empty file as well to the cfg handler and check that incorrect
+  // server results override the incorrect file results for the current value
+  // field of the invalid config.
+  cfg.add_handler(
+      mysqlshdk::config::k_dft_cfg_file_handler,
+      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+
+  // change the dynamic variables so there are server issues
+  instance->set_sysvar("binlog_format", static_cast<std::string>("STATEMENT"),
+                       Var_qualifier::GLOBAL);
+  instance->set_sysvar("binlog_checksum", static_cast<std::string>("CRC32"),
+                       Var_qualifier::GLOBAL);
+  // Issues found on the option file only (with no values set).
+  res.clear();
+  mysqlshdk::gr::check_server_variables_compatibility(cfg, &res);
+  // since all the file configurations are wrong, we know that even if some
+  // variables have correct results on the server, they will still have a
+  // invalid config. Since the cfg has a server handler, then it should also
+  // have one more entry for the report_port option.
+  ASSERT_EQ(9, res.size());
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "binlog_format");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), "STATEMENT");
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "ROW");
+  EXPECT_TRUE(res.at(0).types.is_set(Config_type::CONFIG));
+  EXPECT_TRUE(res.at(0).types.is_set(Config_type::SERVER));
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "binlog_checksum");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), "CRC32");
+  EXPECT_STREQ(res.at(1).required_val.c_str(), "NONE");
+  EXPECT_TRUE(res.at(1).types.is_set(Config_type::CONFIG));
+  EXPECT_TRUE(res.at(1).types.is_set(Config_type::SERVER));
+  EXPECT_EQ(res.at(1).restart, false);
+  if (log_slave_updates_correct) {
+    EXPECT_STREQ(res.at(2).var_name.c_str(), "log_slave_updates");
+    EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+    EXPECT_STREQ(res.at(2).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(2).restart, false);
+  } else {
+    EXPECT_STREQ(res.at(2).var_name.c_str(), "log_slave_updates");
+    EXPECT_EQ(res.at(2).current_val, *cur_log_slave_updates);
+    EXPECT_STREQ(res.at(2).required_val.c_str(), "ON");
+    EXPECT_TRUE(res.at(2).types.is_set(Config_type::CONFIG));
+    EXPECT_TRUE(res.at(2).types.is_set(Config_type::SERVER));
+    EXPECT_EQ(res.at(2).restart, true);
+  }
+  EXPECT_STREQ(res.at(8).var_name.c_str(), "report_port");
+  EXPECT_STREQ(res.at(8).current_val.c_str(), mysqlshdk::gr::k_value_not_set);
+  EXPECT_EQ(res.at(8).required_val, instance_port);
+  EXPECT_EQ(res.at(8).types, Config_type::CONFIG);
+  EXPECT_EQ(res.at(8).restart, false);
+
+  // Fixing all the config file incorrect values on both config objects
+  cfg_file_only.set("binlog_format", nullable<std::string>("ROW"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("binlog_checksum", nullable<std::string>("NONE"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("log_slave_updates", nullable<std::string>("ON"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("enforce_gtid_consistency", nullable<std::string>("ON"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("gtid_mode", nullable<std::string>("ON"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("master_info_repository", nullable<std::string>("TABLE"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("relay_log_info_repository", nullable<std::string>("TABLE"),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("transaction_write_set_extraction",
+                    nullable<std::string>("MURMUR32"),  // different but valid
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.set("report_port", nullable<std::string>(instance_port),
+                    mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg_file_only.apply();
+
+  cfg.set("binlog_format", nullable<std::string>("ROW"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("binlog_checksum", nullable<std::string>("NONE"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("log_slave_updates", nullable<std::string>("ON"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("enforce_gtid_consistency", nullable<std::string>("ON"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("gtid_mode", nullable<std::string>("ON"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("master_info_repository", nullable<std::string>("TABLE"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("relay_log_info_repository", nullable<std::string>("TABLE"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("transaction_write_set_extraction",
+          nullable<std::string>("MURMUR32"),  // different but valid
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set("report_port", nullable<std::string>(instance_port),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.apply();
+
+  // Since all incorrect values have been fixed on the configuration file
+  // and the cfg_file_only config object only had a config_file handler then it
+  // should have no issues
+  res.clear();
+  mysqlshdk::gr::check_server_variables_compatibility(cfg_file_only, &res);
+  EXPECT_EQ(0, res.size());
+
+  // Since all incorrect values have been fixed on the configuration file
+  // but the cfg config object also had a server handler, then it should at
+  // least have the issues that are still present on the server.
+
+  res.clear();
+  mysqlshdk::gr::check_server_variables_compatibility(cfg, &res);
+  if (log_slave_updates_correct) {
+    ASSERT_GE(res.size(), 2);
+  } else {
+    ASSERT_GE(res.size(), 3);
+    EXPECT_STREQ(res.at(2).var_name.c_str(), "log_slave_updates");
+    EXPECT_EQ(res.at(2).current_val, *cur_log_slave_updates);
+    EXPECT_STREQ(res.at(2).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(2).types, Config_type::SERVER);
+    EXPECT_EQ(res.at(2).restart, true);
+  }
+  EXPECT_STREQ(res.at(0).var_name.c_str(), "binlog_format");
+  EXPECT_STREQ(res.at(0).current_val.c_str(), "STATEMENT");
+  EXPECT_STREQ(res.at(0).required_val.c_str(), "ROW");
+  EXPECT_EQ(res.at(0).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(0).restart, false);
+  EXPECT_STREQ(res.at(1).var_name.c_str(), "binlog_checksum");
+  EXPECT_STREQ(res.at(1).current_val.c_str(), "CRC32");
+  EXPECT_STREQ(res.at(1).required_val.c_str(), "NONE");
+  EXPECT_EQ(res.at(1).types, Config_type::SERVER);
+  EXPECT_EQ(res.at(1).restart, false);
+
+  // Delete the config file.
+  shcore::delete_file(m_cfg_path, true);
+
+  // Restore initial values.
+  instance->set_sysvar("binlog_format", *cur_binlog_format,
+                       Var_qualifier::GLOBAL);
+  instance->set_sysvar("binlog_checksum", *cur_binlog_checksum,
+                       Var_qualifier::GLOBAL);
 }
 
 }  // namespace testing

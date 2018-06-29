@@ -82,7 +82,35 @@ bool SHCORE_PUBLIC iterdir(const std::string &path,
                            const std::function<bool(const std::string &)> &fun);
 
 void SHCORE_PUBLIC check_file_writable_or_throw(const std::string &filename);
+int SHCORE_PUBLIC make_file_readonly(const std::string &path);
 
+std::string SHCORE_PUBLIC get_absolute_path(const std::string &base_dir,
+                                            const std::string &file_path);
+
+/**
+ * Calculate a temporary file path based on a given file_path.
+ *
+ * This function determines the path for a temporary file to use. The
+ * temporary cannot exist. First, a simple '.tmp' extension is appended to the
+ * provided file, if that file already  exists it tries to also appends a
+ * random generated integer to the extension (e.g., tmp123456). After 5
+ * attempts, using a random number in the file name, if they all exist an
+ * error is issued.
+ *
+ * This function is used by the write() function, since any new configuration
+ * file is first wrote to a temporary file and only at the end copied/renamed
+ * to the target location if no errors occurred. This avoids undesired
+ * changes to the target file in case it already exist and an error occured
+ * during the write operation.
+ *
+ * @param file_path string with the path to the target on which the temporary
+ * path will be based upon.
+ * @return string with the path of the temporary file to use.
+ * @throw std::runtime_error if the function fails to generate a non-existing
+ *        temporary file (after 5 attempts using random numbers in the file
+ *        name).
+ */
+std::string SHCORE_PUBLIC get_tempfile_path(const std::string &file_path);
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_FILE_H_

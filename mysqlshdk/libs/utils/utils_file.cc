@@ -23,10 +23,12 @@
 
 #include "mysqlshdk/libs/utils/utils_file.h"
 
+#include <climits>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <stdexcept>
 
 #include "mysqlshdk/include/mysh_config.h"
@@ -36,8 +38,11 @@
 
 #ifdef WIN32
 #include <ShlObj.h>
+#include <Shlwapi.h>
 #include <comdef.h>
 #include <direct.h>
+#include <windows.h>
+#pragma comment(lib, "Shlwapi.lib")
 #else
 #include <dirent.h>
 #include <errno.h>
@@ -845,6 +850,110 @@ void check_file_writable_or_throw(const std::string &filename) {
       throw std::runtime_error(error);
     }
   }
+}
+
+/**
+ * Changes access attributes to a file to be read only.
+ * @param path The path to the file to be made read only.
+ * @returns 0 on success, -1 on failure
+ */
+
+int SHCORE_PUBLIC make_file_readonly(const std::string &path) {
+#ifndef _WIN32
+  // Set permissions on configuration file to 444 (chmod only works on
+  // unix systems).
+  unsigned int ro = S_IRUSR | S_IRGRP | S_IROTH;
+  return chmod(path.c_str(), ro);
+#else
+  auto dwAttrs = GetFileAttributes(path.c_str());
+  // set permissions on configuration file to read only
+  if (SetFileAttributes(path.c_str(), dwAttrs | FILE_ATTRIBUTE_READONLY))
+    return 0;
+  return -1;
+#endif
+}
+
+std::string get_absolute_path(const std::string &base_dir,
+                              const std::string &file_path) {
+  bool is_absolute;
+  std::string abolute_path;
+#ifdef WIN32
+  is_absolute = !PathIsRelative(file_path.c_str());
+#else
+  std::string path_sep = "/";
+  is_absolute = str_beginswith(file_path, path_sep);
+#endif
+  if (is_absolute) {
+    abolute_path = file_path;
+  } else {
+    std::string path = shcore::path::join_path(base_dir, file_path);
+#ifdef WIN32
+    char out_path[MAX_PATH];
+    // NOTE: GetFullPathName does not verify if the path exists.
+    if (GetFullPathName(path.c_str(), MAX_PATH, out_path, NULL) == 0) {
+      throw std::runtime_error(
+          str_format("Unable to get absolute path for '%s': %s", path.c_str(),
+                     shcore::get_last_error().c_str()));
+    } else {
+      // Expand the resulting path (if needed) and validate access.
+      if (GetLongPathName(out_path, out_path, MAX_PATH) == 0) {
+        throw std::runtime_error(
+            str_format("Unable to get absolute path for '%s': %s", path.c_str(),
+                       shcore::get_last_error().c_str()));
+      } else {
+        abolute_path = std::string(out_path);
+      }
+    }
+#else
+    char *out_path = realpath(path.c_str(), nullptr);
+    if (out_path) {
+      abolute_path = std::string(out_path);
+      free(out_path);
+    } else {
+      throw std::runtime_error(
+          str_format("Unable to get absolute path for '%s': %s", path.c_str(),
+                     shcore::get_last_error().c_str()));
+    }
+#endif
+  }
+  return abolute_path;
+}
+
+std::string get_tempfile_path(const std::string &cnf_path) {
+  std::string tmp_file_path = cnf_path + ".tmp";
+  if (shcore::file_exists(tmp_file_path)) {
+    // Attempt use a temp file with a random component if it already exists.
+    int attempts = 0;
+    bool temp_file_not_exist = false;
+
+    // Setup uniform random generation of integers between [0, INT_MAX] using
+    // Mersenne Twister algorithm and a non-determinist seed.
+    std::random_device rd_seed;
+    std::mt19937 rnd_gen(rd_seed());
+    std::uniform_int_distribution<int> distribution(0, INT_MAX);
+
+    // Try at most 5 times to use a random file name that does not exist.
+    while (attempts < 5) {
+      int rand_num = distribution(rnd_gen);
+      tmp_file_path = cnf_path + ".tmp" + std::to_string(rand_num);
+      attempts++;
+
+      if (!shcore::file_exists(tmp_file_path)) {
+        temp_file_not_exist = true;
+        break;
+      }
+    }
+
+    if (!temp_file_not_exist) {
+      // This error is not expected to be thrown (only if all attempts failed).
+      throw std::runtime_error(
+          "Unable to generate a non existing temporary file to write the "
+          "configuration for the target option file: " +
+          cnf_path + ".");
+    }
+  }
+
+  return tmp_file_path;
 }
 
 }  // namespace shcore

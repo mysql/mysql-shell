@@ -58,8 +58,6 @@ class Global_dba : public Interactive_object_wrapper {
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
-  shcore::Value check_instance_configuration(const shcore::Argument_list &args);
-  shcore::Value configure_local_instance(const shcore::Argument_list &args);
 
  private:
   mysqlsh::dba::Cluster_check_info check_preconditions(
@@ -79,7 +77,6 @@ class Global_dba : public Interactive_object_wrapper {
                                            const std::string &fname,
                                            const std::string &progressive,
                                            const std::string &past);
-  void print_validation_results(const shcore::Value::Map_type_ref &result);
   bool resolve_cnf_path(
       const mysqlshdk::db::Connection_options &connection_args,
       const shcore::Value::Map_type_ref &extra_options);

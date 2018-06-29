@@ -379,6 +379,10 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
         &Shell_test_env::on_session_connect, this, std::placeholders::_1);
     mysqlshdk::db::replay::on_recorder_close_hook = std::bind(
         &Shell_test_env::on_session_close, this, std::placeholders::_1);
+
+    // Set up hook to replace (non-deterministic) queries.
+    mysqlshdk::db::replay::on_recorder_query_replace_hook = std::bind(
+        &Shell_test_env::query_replace_hook, this, std::placeholders::_1);
   }
 
   if (g_test_recording_mode == mysqlshdk::db::replay::Mode::Replay) {
@@ -599,6 +603,17 @@ void Shell_test_env::on_session_close(
     }
   }
   assert(0);
+}
+
+std::string Shell_test_env::query_replace_hook(const std::string &sql) {
+  // Replace query to set the server_id in order to ignore its (random) value.
+  // Otherwise, it will fail during replay because the random value will not
+  // match the one recorded.
+  if (shcore::str_beginswith(sql, "SET PERSIST_ONLY `server_id` = ")) {
+    return "SET PERSIST_ONLY `server_id` = /*(*/" + sql.substr(31) + "/*)*/";
+  } else {
+    return sql;
+  }
 }
 
 std::shared_ptr<mysqlshdk::db::mysql::Session>

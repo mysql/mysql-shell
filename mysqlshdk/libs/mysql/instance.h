@@ -88,9 +88,16 @@ class IInstance {
   virtual void set_sysvar_default(
       const std::string &name,
       const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
+  virtual bool has_variable_compiled_value(const std::string &name) const = 0;
+  virtual bool is_performance_schema_enabled() const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
+
+  virtual std::map<std::string, utils::nullable<std::string>>
+  get_system_variables_like(
+      const std::string &pattern,
+      const Var_qualifier scope = Var_qualifier::SESSION) const = 0;
 
   virtual std::shared_ptr<db::ISession> get_session() const = 0;
   virtual void close_session() const = 0;
@@ -112,6 +119,7 @@ class IInstance {
                            const std::string &hostname) const = 0;
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const = 0;
+  virtual utils::nullable<bool> is_set_persist_supported() const = 0;
 };
 
 /**
@@ -154,6 +162,8 @@ class Instance : public IInstance {
   void set_sysvar_default(
       const std::string &name,
       const Var_qualifier qualifier = Var_qualifier::SESSION) const override;
+  bool has_variable_compiled_value(const std::string &name) const override;
+  bool is_performance_schema_enabled() const override;
 
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;
@@ -163,6 +173,9 @@ class Instance : public IInstance {
   std::map<std::string, utils::nullable<std::string>> get_system_variables(
       const std::vector<std::string> &names,
       const Var_qualifier scope = Var_qualifier::SESSION) const;
+  std::map<std::string, utils::nullable<std::string>> get_system_variables_like(
+      const std::string &pattern,
+      const Var_qualifier scope = Var_qualifier::SESSION) const override;
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
   utils::nullable<std::string> get_plugin_status(
@@ -187,6 +200,17 @@ class Instance : public IInstance {
                         std::string *current_host) const override;
   bool user_exists(const std::string &username,
                    const std::string &hostname) const override;
+  /**
+   * Determine if SET PERSIST is supported by the instance.
+   *
+   * Supported for server versions >= 8.0.11 as long as 'persisted_globals_load'
+   * is enabled.
+   *
+   * @return mysqlshdk::utils::nullable<bool> object with the value true if SET
+   *         PERSIST is support, false if it is supported but
+   *         'persisted_globals_load' is disabled, and null if not supported.
+   */
+  utils::nullable<bool> is_set_persist_supported() const override;
 
  private:
   std::shared_ptr<db::ISession> _session;

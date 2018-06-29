@@ -27,9 +27,13 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/command_interface.h"
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "scripting/lang_base.h"
 
@@ -44,8 +48,7 @@ class Configure_instance : public Command_interface {
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
       mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-      mysqlshdk::utils::nullable<bool> restart,
-      std::shared_ptr<ProvisioningInterface> provisioning_interface);
+      mysqlshdk::utils::nullable<bool> restart);
   ~Configure_instance();
 
   void prepare() override;
@@ -56,15 +59,30 @@ class Configure_instance : public Command_interface {
  protected:
   void ensure_configuration_change_possible(bool needs_mycnf_change);
 
+  /**
+   * Prepare the internal mysqlshdk::config::Config object to use.
+   *
+   * Initialize the mysqlshdk::config::Config object adding the proper
+   * configuration handlers based on the target instance settings (e.g., server
+   * version) and operation input parameters.
+   */
+  void prepare_config_object();
+
+  /**
+   * This method validates the mycnfPath parameter.
+   * If the mycnfPath parameter is empty and the instance is a sandbox,
+   * it automatically fills it.
+   * It issues an error if the file provided for mycnfPath doesn't exist.
+   * @throws std::runtime_error if the file provided as mycnfPath doesn't exist.
+   */
+  void validate_config_path();
+
   void ensure_instance_address_usable();
   bool check_config_path_for_update();
-  bool check_persisted_globals_load();
   void check_create_admin_user();
   void create_admin_user();
   bool check_configuration_updates(bool *restart, bool *dynamic_sysvar_change,
                                    bool *config_file_change);
-  void perform_configuration_updates(bool use_set_persist);
-  void handle_mp_op_result(const shcore::Dictionary_t &result);
 
   bool clear_super_read_only();
   void restore_super_read_only();
@@ -86,18 +104,25 @@ class Configure_instance : public Command_interface {
   // it's not specified on the command options or it already exists
   bool m_create_cluster_admin = true;
 
-  bool m_can_set_persist = false;
+  mysqlshdk::utils::nullable<bool> m_can_set_persist;
   bool m_can_restart = false;
-  bool m_can_update_mycnf = false;
 
   bool m_needs_configuration_update = false;  //< config changes is general
   bool m_needs_update_mycnf = false;  //< changes that have to be done in my.cnf
   bool m_needs_restart = false;       //< server restart needed
+  bool m_is_sandbox = false;          // true if the instance is a sandbox
+  bool m_is_cnf_from_sandbox = false;  // true if mycnfpath was originally empty
+                                       // but was automatically filled because
+                                       // the instance is a sandbox.
 
-  // TODO(someone): as soon as MP is fully rewritten to C++,we won't need
-  // this private member since we'll rely on the provisioning library
+  // Configuration object (to read and set instance configurations).
+  std::unique_ptr<mysqlshdk::config::Config> m_cfg;
+
+  // List of invalid (incompatible) configurations to update.
+  std::vector<mysqlshdk::gr::Invalid_config> m_invalid_cfgs;
+
+  // Target instance to configure.
   mysqlshdk::mysql::IInstance *m_target_instance;
-  std::shared_ptr<ProvisioningInterface> m_provisioning_interface;
 };
 
 }  // namespace dba

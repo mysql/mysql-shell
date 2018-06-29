@@ -1,6 +1,7 @@
 
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
 // --- Create Cluster Tests ---
 var mysql = require('mysql');
@@ -29,10 +30,10 @@ EXPECT_EQ('ON', get_sysvar(session, "super_read_only"));
 dba.configureLocalInstance(__sandbox_uri1, {clearReadOnly:"NotABool"});
 
 //@ Dba_configure_local_instance.clear_read_only_unset
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: "/path/to/file.cnf", clusterAdmin: "root", clusterAdminPassword: "pwd"});
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "root", clusterAdminPassword: "pwd"});
 
 //@ Dba_configure_local_instance.clear_read_only_false
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: "/path/to/file.cnf", clusterAdmin: "root", clusterAdminPassword: "pwd", clearReadOnly: false});
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "root", clusterAdminPassword: "pwd", clearReadOnly: false});
 
 // --- Drop Metadata Schema Tests ---
 session.runSql("set global super_read_only=0");

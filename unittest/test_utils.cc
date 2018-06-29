@@ -494,6 +494,10 @@ void Shell_core_test_wrapper::reset_replayable_shell(
         return source;
 #endif
       });
+
+  // Set up hook to replace (non-deterministic) queries.
+  mysqlshdk::db::replay::set_replay_query_hook(std::bind(
+      &Shell_test_env::query_replace_hook, this, std::placeholders::_1));
 }
 
 void Shell_core_test_wrapper::execute(int location, const std::string &code) {

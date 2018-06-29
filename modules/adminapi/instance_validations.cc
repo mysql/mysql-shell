@@ -21,11 +21,17 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/instance_validations.h"
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <vector>
+
+#include "modules/adminapi/instance_validations.h"
+
+#include "modules/adminapi/dba/provision.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -240,45 +246,6 @@ bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
   return true;
 }
 
-// Internal function. To be rewritten together with mysqlprovision
-void check_required_actions(const shcore::Dictionary_t &result, bool *restart,
-                            bool *dynamic_sysvar_change,
-                            bool *config_file_change) {
-  // If there are only configuration errors, a simple restart may solve them
-  *restart = false;
-  *dynamic_sysvar_change = false;
-  *config_file_change = false;
-
-  if (result->has_key("config_errors")) {
-    auto config_errors = result->get_array("config_errors");
-
-    // We gotta review item by item to determine if a simple restart is
-    // enough
-    for (auto config_error : *config_errors) {
-      auto error_map = config_error.as_map();
-      ConfigureInstanceAction action =
-          get_configure_instance_action(*error_map);
-
-      if (action == ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_STATIC ||
-          action == ConfigureInstanceAction::UPDATE_SERVER_STATIC) {
-        *restart = true;
-      }
-
-      if (action == ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_DYNAMIC ||
-          action == ConfigureInstanceAction::UPDATE_SERVER_DYNAMIC ||
-          action == ConfigureInstanceAction::UPDATE_SERVER_STATIC) {
-        *dynamic_sysvar_change = true;
-      }
-
-      if (action == ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_DYNAMIC ||
-          action == ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_STATIC ||
-          action == ConfigureInstanceAction::UPDATE_CONFIG) {
-        *config_file_change = true;
-      }
-    }
-  }
-}
-
 /**
  * Validate configuration of the target MySQL server instance.
  *
@@ -289,75 +256,124 @@ void check_required_actions(const shcore::Dictionary_t &result, bool *restart,
  *
  * @param  instance             target instance
  * @param  mycnf_path           optional config file path, for local instances
- * @param  mp                   mp object reference
+ * @param  config               pointer to config handler
+ * @param  can_persist          true if instance has support to persist
+ *                              variables, false if has but it is disabled and
+ *                              null if it is not supported.
  * @param  restart_needed[out]  true if instance needs to be restarted
  * @param  mycnf_change_needed[out]  true if my.cnf has to be updated
  * @param  sysvar_change_needed[out] true if sysvars have to be updated
- * @param  fatal_errors[out]    true on errors
  * @param  ret_val[out]         assigned to check results
  * @return                      [description]
  */
-bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
-                            const std::string &mycnf_path,
-                            std::shared_ptr<ProvisioningInterface> mp,
-                            bool *restart_needed, bool *mycnf_change_needed,
-                            bool *sysvar_change_needed, bool *fatal_errors,
-                            shcore::Value *ret_val) {
+
+std::vector<mysqlshdk::gr::Invalid_config> validate_configuration(
+    mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
+    mysqlshdk::config::Config *const config,
+    const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
+    bool *mycnf_change_needed, bool *sysvar_change_needed,
+    shcore::Value *ret_val) {
   // Check supported innodb_page_size (must be > 4k). See: BUG#27329079
   validate_innodb_page_size(instance);
 
   log_info("Validating configuration of %s (mycnf = %s)",
            instance->descr().c_str(), mycnf_path.c_str());
   // Perform check with no update
-  shcore::Value check_result;
-  check_result = mp->exec_check_ret_handler(instance->get_connection_options(),
-                                            mycnf_path, "", false, false);
+  std::vector<mysqlshdk::gr::Invalid_config> invalid_cfs_vec =
+      check_instance_config(*instance, *config);
 
+  // Sort invalid cfs_vec by the name of the variable
+  std::sort(invalid_cfs_vec.begin(), invalid_cfs_vec.end());
+
+  // Build the map to be used by the print_validation results
+  shcore::Value::Map_type_ref map_val(new shcore::Value::Map_type());
+  shcore::Value check_result = shcore::Value(map_val);
+  *restart_needed = false;
+  *mycnf_change_needed = false;
+  *sysvar_change_needed = false;
+  bool log_bin_wrong = false;
+
+  if (invalid_cfs_vec.empty()) {
+    (*map_val)["status"] = shcore::Value("ok");
+  } else {
+    (*map_val)["status"] = shcore::Value("error");
+    shcore::Value::Array_type_ref config_errors(
+        new shcore::Value::Array_type());
+    for (mysqlshdk::gr::Invalid_config &cfg : invalid_cfs_vec) {
+      shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
+      std::string action;
+      if (!log_bin_wrong && cfg.var_name == "log_bin" &&
+          cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG)) {
+        log_bin_wrong = true;
+      }
+
+      if (cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG) &&
+          cfg.types.is_set(mysqlshdk::gr::Config_type::SERVER)) {
+        *mycnf_change_needed = true;
+        if (cfg.restart) {
+          *restart_needed = true;
+          action = "config_update+restart";
+        } else {
+          action = "server_update+config_update";
+          *sysvar_change_needed = true;
+        }
+      } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::CONFIG)) {
+        *mycnf_change_needed = true;
+        action = "config_update";
+      } else if (cfg.types.is_set(mysqlshdk::gr::Config_type::SERVER)) {
+        if (cfg.restart) {
+          *restart_needed = true;
+          action = "restart";
+        } else {
+          action = "server_update";
+          *sysvar_change_needed = true;
+        }
+      } else if (cfg.types.empty())
+        throw std::runtime_error("Unexpected change type");
+
+      (*error)["option"] = shcore::Value(cfg.var_name);
+      (*error)["current"] = shcore::Value(cfg.current_val);
+      (*error)["required"] = shcore::Value(cfg.required_val);
+      (*error)["action"] = shcore::Value(action);
+      config_errors->push_back(shcore::Value(error));
+    }
+    (*map_val)["config_errors"] = shcore::Value(config_errors);
+  }
   if (ret_val) *ret_val = check_result;
 
   log_debug("Check command returned: %s", check_result.descr().c_str());
 
-  *restart_needed = false;
-  *mycnf_change_needed = false;
-  *sysvar_change_needed = false;
-  *fatal_errors = false;
-
-  if (check_result.as_map()->get_string("status") != "ok") {
-    check_required_actions(check_result.as_map(), restart_needed,
-                           sysvar_change_needed, mycnf_change_needed);
-    auto config_errors = check_result.as_map()->get_array("config_errors");
-
+  if (!invalid_cfs_vec.empty()) {
     auto console = mysqlsh::current_console();
 
     console->println();
     print_validation_results(check_result.as_map(), true);
-
-    // If there are fatal errors, abort immediately
-    if (!check_result.as_map()->get_array("errors")->empty()) {
-      *fatal_errors = true;
-      return false;
-    }
-
-    if (config_errors && !config_errors->empty()) {
-      for (auto config_error : *config_errors) {
-        auto error_map = config_error.as_map();
-
-        std::string option = error_map->get_string("option");
-        // The my_cnf file path must be provided and the instance be local
-        if (option == "log_bin") {
-          console->print_note(
-              "The following variable needs to be changed, but cannot be "
-              "done dynamically: 'log_bin'");
-          *mycnf_change_needed = true;
-          break;
+    if (*restart_needed) {
+      // if we have to change some read only variables, print a message to the
+      // user.
+      std::string base_msg =
+          "Some variables need to be changed, but cannot be done dynamically "
+          "on the server";
+      if (log_bin_wrong && *mycnf_change_needed) {
+        base_msg += ": an option file is required";
+      } else {
+        if (*mycnf_change_needed) {
+          if (can_persist.is_null()) {
+            // 5.7 server, set persist is not supported
+            base_msg += ": an option file is required";
+          } else if (!*can_persist) {
+            // 8.0 server with set persist support disabled
+            base_msg +=
+                ": set persist support is disabled. Enable it or provide an "
+                "option file";
+          }
         }
       }
+      base_msg += ".";
+      console->print_note(base_msg);
     }
-
-    return false;
-  } else {
-    return true;
   }
+  return invalid_cfs_vec;
 }
 
 }  // namespace checks

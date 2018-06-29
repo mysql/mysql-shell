@@ -45,7 +45,6 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<real_hostname>>>
 Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
 Assuming full account name 'root'@'%' for root
-WARNING: MySQL configuration file /path/to/file.cnf does not exist. Skipping file verification.
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
 ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
@@ -61,7 +60,6 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<real_hostname>>>
 Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
 Assuming full account name 'root'@'%' for root
-WARNING: MySQL configuration file /path/to/file.cnf does not exist. Skipping file verification.
 
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' is valid for InnoDB cluster usage.
 ERROR: The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system variable set to protect it from inadvertent updates from applications. You must first unset it to be able to perform any changes to this instance. For more information see: https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.

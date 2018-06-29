@@ -107,7 +107,7 @@ testutil.expectPrompt("Please select an option [1]: ", "3");
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "y");
 dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbox_cnf1});
 // Verify that the instance was successfully configured
-dba.checkInstanceConfiguration(__sandbox_uri1);
+dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 
 //@ FR3.1_1 TEARDOWN {VER(<8.0.11)}
 testutil.destroySandbox(__mysql_sandbox_port1);

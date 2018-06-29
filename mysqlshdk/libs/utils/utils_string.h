@@ -315,6 +315,22 @@ std::string unquote_string(const std::string &s, char quote);
 std::vector<std::string> str_break_into_lines(const std::string &line,
                                               std::size_t line_width);
 
+/**
+ * Auxiliary function to get the quotes span (i.e., start and end positions)
+ * for the given string.
+ *
+ * If not quote is found then std::string::npos is returned for both elements
+ * in the pair. If only one quote is found (no ending quote) then
+ * std::string::npos is returned for the second position of the pair.
+ *
+ * @param quote_char character with the quote to look for.
+ * @param str target string to get the start and end quote position.
+ * @return return a pair with the position of the starting quote and ending
+ *         quote.
+ */
+std::pair<std::string::size_type, std::string::size_type> get_quote_span(
+    const char quote_char, const std::string &str);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

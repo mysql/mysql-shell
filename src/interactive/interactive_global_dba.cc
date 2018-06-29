@@ -953,62 +953,6 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 }
 
-void Global_dba::print_validation_results(
-    const shcore::Value::Map_type_ref &result) {
-  println();
-  println("The following issues were encountered:");
-  println();
-
-  auto errors = result->get_array("errors");
-  for (auto error : *errors) println(" - " + error.get_string());
-
-  bool restart_required = result->get_bool("restart_required");
-
-  if (result->has_key("config_errors")) {
-    println(" - Some configuration options need to be fixed.");
-    println();
-
-    auto config_errors = result->get_array("config_errors");
-
-    for (auto option : *config_errors) {
-      auto opt_map = option.as_map();
-      std::string action = opt_map->get_string("action");
-      std::string note;
-
-      if (action == "server_update+config_update") {
-        if (restart_required)
-          note =
-              "Update the config file and update or restart the server "
-              "variable";
-        else
-          note = "Update the server variable and the config file";
-      } else if (action == "config_update+restart") {
-        note = "Update the config file and restart the server";
-      } else if (action == "config_update") {
-        note = "Update the config file";
-      } else if (action == "server_update") {
-        if (restart_required)
-          note = "Update the server variable or restart the server";
-        else
-          note = "Update the server variable";
-      } else if (action == "restart") {
-        note = "Restart the server";
-      }
-
-      (*opt_map)["note"] = shcore::Value(note);
-    }
-
-    mysqlsh::dba::dump_table(
-        {"option", "current", "required", "note"},
-        {"Variable", "Current Value", "Required Value", "Note"}, config_errors);
-
-    for (auto option : *config_errors) {
-      auto opt_map = option.as_map();
-      opt_map->erase("note");
-    }
-  }
-}
-
 bool Global_dba::resolve_cnf_path(
     const mysqlshdk::db::Connection_options &connection_args,
     const shcore::Value::Map_type_ref &extra_options) {

@@ -101,7 +101,8 @@ Clients and other cluster members will communicate with it through this address 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
-<<<if(__version_num<80005){"Checking instance configuration...\nNote: verifyMyCnf option was not given so only dynamic configuration will be verified.\nInstance configuration is compatible with InnoDB cluster"} else {"Checking instance configuration...\nInstance configuration is compatible with InnoDB cluster"}>>>
+Checking instance configuration...
+Instance configuration is compatible with InnoDB cluster
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
@@ -116,12 +117,45 @@ Clients and other cluster members will communicate with it through this address 
 Checking whether existing tables comply with Group Replication requirements...
 No incompatible tables detected
 
-<<<if(__version_num<80005){"Checking instance configuration...\nNote: verifyMyCnf option was not given so only dynamic configuration will be verified.\nInstance configuration is compatible with InnoDB cluster"} else {"Checking instance configuration...\nInstance configuration is compatible with InnoDB cluster"}>>>
+Checking instance configuration...
+Instance configuration is compatible with InnoDB cluster
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster usage.
 
 
-//@<OUT> Dba: checkInstanceConfiguration report with errors
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Checking whether existing tables comply with Group Replication requirements...
+No incompatible tables detected
+
+Checking instance configuration...
+Configuration file mybad.cnf will also be checked.
+
+Some configuration options need to be fixed:
++----------------------------------+---------------+----------------+------------------------+
+| Variable                         | Current Value | Required Value | Note                   |
++----------------------------------+---------------+----------------+------------------------+
+| binlog_checksum                  | <not set>     | NONE           | Update the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file |
+| enforce_gtid_consistency         | <not set>     | ON             | Update the config file |
+| gtid_mode                        | OFF           | ON             | Update the config file |
+| log_slave_updates                | <not set>     | ON             | Update the config file |
+| master_info_repository           | <not set>     | TABLE          | Update the config file |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                        | <not set>     | <unique ID>    | Update the config file |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
++----------------------------------+---------------+----------------+------------------------+
+
+Please use the dba.configureInstance() command to repair these issues.
+
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(<8.0.3)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -148,16 +182,17 @@ Some configuration options need to be fixed:
 | master_info_repository           | <not set>     | TABLE          | Update the config file |
 | relay_log_info_repository        | <not set>     | TABLE          | Update the config file |
 | report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                        | <not set>     | <unique ID>    | Update the config file |
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance 'localhost:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Persisting the cluster settings...
+WARNING: The 'group_replication_group_seeds' is not defined on instance 'localhost:<<<__mysql_sandbox_port1>>>'. This option is mandatory to allow the server to automatically rejoin the cluster after reboot. Please manually update its value on the option file.
 The instance 'localhost:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
 
 The instance cluster settings were successfully persisted.
@@ -214,7 +249,35 @@ The instance cluster settings were successfully persisted.
 //@ Dba: Delete created user and reconnect to previous sandbox
 |Number of accounts: 0|
 
-//@<OUT> Dba: configureLocalInstance updating config file
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3)}
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<real_hostname>>>
+Clients and other cluster members will communicate with it through this address by default. If this is not correct, the report_host MySQL system variable should be changed.
+
+Some configuration options need to be fixed:
++----------------------------------+---------------+----------------+------------------------+
+| Variable                         | Current Value | Required Value | Note                   |
++----------------------------------+---------------+----------------+------------------------+
+| binlog_checksum                  | <not set>     | NONE           | Update the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file |
+| enforce_gtid_consistency         | <not set>     | ON             | Update the config file |
+| gtid_mode                        | OFF           | ON             | Update the config file |
+| log_slave_updates                | <not set>     | ON             | Update the config file |
+| master_info_repository           | <not set>     | TABLE          | Update the config file |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                        | <not set>     | <unique ID>    | Update the config file |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
++----------------------------------+---------------+----------------+------------------------+
+
+Do you want to perform the required configuration changes? [y/n]: Configuring instance...
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.
+
+
+//@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -235,12 +298,12 @@ Some configuration options need to be fixed:
 | master_info_repository           | <not set>     | TABLE          | Update the config file |
 | relay_log_info_repository        | <not set>     | TABLE          | Update the config file |
 | report_port                      | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                        | <not set>     | <unique ID>    | Update the config file |
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-The following variable needs to be changed, but cannot be done dynamically: 'log_bin'
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for use in an InnoDB cluster.
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for InnoDB cluster usage.
 
 
 //@ Dba: create an admin user with all needed privileges

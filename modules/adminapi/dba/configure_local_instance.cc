@@ -26,6 +26,8 @@
 #include <vector>
 
 #include "modules/adminapi/dba/configure_local_instance.h"
+
+#include "modules/adminapi/dba/provision.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -44,13 +46,10 @@ Configure_local_instance::Configure_local_instance(
     const std::string &output_mycnf_path, const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-    mysqlshdk::utils::nullable<bool> restart,
-    std::shared_ptr<ProvisioningInterface> provisioning_interface)
+    mysqlshdk::utils::nullable<bool> restart)
     : Configure_instance(target_instance, mycnf_path, output_mycnf_path,
                          cluster_admin, cluster_admin_password, clear_read_only,
-                         interactive, restart, provisioning_interface) {
-  assert(provisioning_interface);
-}
+                         interactive, restart) {}
 
 Configure_local_instance::~Configure_local_instance() {}
 
@@ -59,13 +58,14 @@ Configure_local_instance::~Configure_local_instance() {}
  * the command execution
  */
 void Configure_local_instance::prepare() {
-  // if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
-  // {
-  //   m_console->print_warning("Deprecated function for target server version."
-  //     "This function is meant for MySQL server versions 8.0.4 or older only.
-  //     " "Please use configureInstance() instead.");
-  //   m_console->println();
-  // }
+  // Check if we are dealing with a sandbox instance
+  std::string cnf_path;
+  m_is_sandbox = is_sandbox(*m_target_instance, &cnf_path);
+  // if instance is sandbox and the mycnf path is empty, fill it.
+  if (m_is_sandbox && m_mycnf_path.empty()) {
+    m_mycnf_path = std::move(cnf_path);
+    m_is_cnf_from_sandbox = true;
+  }
 
   m_instance_type = get_gr_instance_type(m_target_instance->get_session());
 
@@ -109,6 +109,10 @@ void Configure_local_instance::prepare() {
     if (!check_config_path_for_update()) {
       throw shcore::Exception::runtime_error(
           "Unable to update MySQL configuration file.");
+    } else {
+      // Set the internal configuration object properly according to the given
+      // command options (to write configuration to the option file.
+      prepare_config_object();
     }
   } else {
     // Do the rest of preparations same way as Configure_instance
@@ -117,31 +121,9 @@ void Configure_local_instance::prepare() {
 }
 
 /*
- * Updates the .cnf configuration file with the current in-memory InnoDD
- * Cluster settings.
- */
-void Configure_local_instance::update_mycnf() {
-  // Update the group_seeds if the instance already belongs to an InnoDB
-  // Cluster
-  auto seeds =
-      get_peer_seeds(m_target_instance->get_session(),
-                     m_target_instance->get_connection_options().as_uri(
-                         mysqlshdk::db::uri::formats::only_transport()));
-
-  auto peer_seeds = shcore::str_join(seeds, ",");
-  set_global_variable(m_target_instance->get_session(),
-                      "group_replication_group_seeds", peer_seeds);
-
-  perform_configuration_updates(false);
-}
-
-/*
  * Executes the API command.
  */
 shcore::Value Configure_local_instance::execute() {
-  // TODO(someone): as soon as MP is fully rewritten to C++,we must use pure
-  // C++ types instead of shcore types. The function return type should be
-  // changed to std::map<std::string, std::string>
   shcore::Value ret_val;
 
   // Execute the configure local instance operation
@@ -151,7 +133,26 @@ shcore::Value Configure_local_instance::execute() {
     auto console = mysqlsh::current_console();
     console->println("Persisting the cluster settings...");
 
-    update_mycnf();
+    // Print warning if no group_seed value is empty (not set).
+    if ((*m_cfg->get_string("group_replication_group_seeds")).empty()) {
+      std::string instance_address =
+          m_target_instance->get_connection_options().as_uri(
+              mysqlshdk::db::uri::formats::only_transport());
+
+      console->print_warning(
+          "The 'group_replication_group_seeds' is not defined on instance '" +
+          instance_address +
+          "'. This option is mandatory to allow the server to automatically "
+          "rejoin the cluster after reboot. Please manually update its value "
+          "on "
+          "the option file.");
+    }
+
+    mysqlsh::dba::persist_gr_configurations(*m_target_instance, m_cfg.get());
+
+    mysqlsh::current_console()->print_info(
+        "The instance '" + m_target_instance->descr() +
+        "' was configured for use in an InnoDB cluster.");
 
     console->println();
     console->println(

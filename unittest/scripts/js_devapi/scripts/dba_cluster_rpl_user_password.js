@@ -10,7 +10,7 @@ shell.connect(__sandbox_uri1);
 // Install validate_password plugin and configure it for the medium policy
 var installed = false;
 try {
-  session.runSql('INSTALL PLUGIN validate_password SONAME \'' + __plugin + '\'');
+  session.runSql('INSTALL PLUGIN validate_password SONAME /*(*/\'' + __plugin + '\'/*)*/');
   installed = true;
 } catch (err) {
   // This means the plugin is already installed

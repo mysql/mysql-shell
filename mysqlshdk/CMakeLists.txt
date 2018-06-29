@@ -40,6 +40,7 @@ ADD_SUBDIRECTORY(libs/db)
 ADD_SUBDIRECTORY(libs/mysql)
 ADD_SUBDIRECTORY(libs/textui)
 ADD_SUBDIRECTORY(libs/innodbcluster)
+ADD_SUBDIRECTORY(libs/config)
 ADD_SUBDIRECTORY(libs/secret-store-api)
 SET(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
 
@@ -57,6 +58,7 @@ merge_libraries(mysqlshdk-static STATIC
     utils
     db
     mysql
+    config
     innodbcluster
     mysql-secret-store-api
     textui

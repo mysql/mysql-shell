@@ -18,6 +18,15 @@
 function diff_text(expected, actual) {
   var exp = expected.split("\n").sort();
   var act = actual.split("\n").sort();
+
+  // Ignore empty lines (remove from the lists of strings to compare).
+  for(var i = exp.length-1; i--;){
+    if (exp[i] == '') exp.splice(i, 1);
+  }
+  for(var i = act.length-1; i--;){
+    if (act[i] == '') act.splice(i, 1);
+  }
+
   var diff = [];
   for (var i = 0; i < exp.length; i++) {
     var k = act.indexOf(exp[i]);
@@ -157,13 +166,6 @@ dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
 // Remove the read only
 testutil.chmod(mycnf_path, 0777);
 
-//@<> File does not exist, file is created
-setup_scenario(SCEN_FILE_MISSING);
-
-dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
-
-EXPECT_NE("", testutil.grepFile(mycnf_path, "binlog_format = ROW"));
-
 //@<> File exists, outputPath given, file is created
 setup_scenario(SCEN_FILE_EXISTS);
 
@@ -175,11 +177,20 @@ EXPECT_MYCNF_FIXED(alt_mycnf_path);
 // Errors during check
 //===========================================
 
-//@<> File does not exist, dont allow create, fail
+//@<> File does not exist, error
+// Regression for BUG#27702439- WRONG MESSAGES DISPLAYED WHEN USING 'MYCNFPATH' AND 'OUTPUTMYCNFPATH' PARAMETERS
 setup_scenario(SCEN_FILE_MISSING);
 
-testutil.expectPrompt("", "n");
-EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path, interactive:true})}, "");
+error_msg = "Dba.configureInstance: File '" + mycnf_path + "' does not exist.";
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path})}, error_msg);
+EXPECT_OUTPUT_CONTAINS("ERROR: The specified MySQL option file does not exist. A valid path is required for the mycnfPath option.\nPlease provide a valid path for the mycnfPath option or leave it empty if you which to skip the verification of the MySQL option file.");
+
+//@<> File does not exist, interactive: true, fail
+// Regression for BUG#27702439- WRONG MESSAGES DISPLAYED WHEN USING 'MYCNFPATH' AND 'OUTPUTMYCNFPATH' PARAMETERS
+setup_scenario(SCEN_FILE_MISSING);
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path, interactive:true})}, error_msg);
+EXPECT_OUTPUT_CONTAINS("ERROR: The specified MySQL option file does not exist. A valid path is required for the mycnfPath option.\nPlease provide a valid path for the mycnfPath option or leave it empty if you which to skip the verification of the MySQL option file.");
+
 
 //@<> File does not exist, no interactive, fail
 

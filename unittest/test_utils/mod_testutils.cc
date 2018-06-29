@@ -53,6 +53,7 @@
 #include <unistd.h>
 #endif
 
+#include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -1128,32 +1129,34 @@ None Testutils::remove_from_sandbox_conf(int port, str option, str section);
 void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
                                          const std::string &section) {
   std::string cfgfile_path = get_sandbox_conf_path(port);
-  std::string new_cfgfile_path = cfgfile_path + ".new";
-  std::ofstream new_cfgfile(new_cfgfile_path);
-  std::ifstream cfgfile(cfgfile_path);
-  std::string line;
 
-  if (!shcore::file_exists(cfgfile_path) && _dummy_sandboxes) return;
+  bool file_exists = shcore::file_exists(cfgfile_path);
+  if (!file_exists && _dummy_sandboxes) return;
 
-  bool in_section = false;
-  while (std::getline(cfgfile, line)) {
-    if (is_section_line(line, section))
-      in_section = true;
-    else if (is_section_line(line))
-      in_section = false;
-
-    // If we are in the right section and the option is found, the line is
-    // removed from the cfg file
-    if (in_section) {
-      if (is_configuration_option(option, line)) continue;
-    }
-
-    new_cfgfile << line << std::endl;
+  mysqlshdk::config::Config_file cfg;
+  if (file_exists) {
+    // Read the file, only if it exists.
+    cfg.read(cfgfile_path);
+  } else {
+    throw std::logic_error{
+        "Cannot remove an option from a file that does not"
+        "exist. File: " +
+        cfgfile_path};
   }
-  cfgfile.close();
-  new_cfgfile.close();
-  shcore::delete_file(cfgfile_path);
-  try_rename(new_cfgfile_path, cfgfile_path);
+
+  if (section.empty()) {
+    // Remove option from all groups (sections) if the section is not specified
+    // (empty).
+    std::vector<std::string> groups = cfg.groups();
+    for (auto const group : groups) {
+      cfg.remove_option(group, option);
+    }
+  } else {
+    cfg.remove_option(section, option);
+  }
+
+  // Apply changes (write) to option file.
+  cfg.write(cfgfile_path);
 }
 
 //!<  @name Sandbox Operations
@@ -1185,41 +1188,33 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
                                     const std::string &value,
                                     const std::string &section_) {
   std::string section = section_.empty() ? "mysqld" : section_;
-  if (section == "*") section = "";
 
   std::string cfgfile_path = get_sandbox_conf_path(port);
-  if (!shcore::file_exists(cfgfile_path) && _dummy_sandboxes) return;
+  bool file_exists = shcore::file_exists(cfgfile_path);
+  if (!file_exists && _dummy_sandboxes) return;
 
-  std::string new_cfgfile_path = cfgfile_path + ".new";
-  std::ofstream new_cfgfile(new_cfgfile_path);
-  std::ifstream cfgfile(cfgfile_path);
-  std::string line;
-
-  bool in_section = false;
-  while (std::getline(cfgfile, line)) {
-    if (is_section_line(line, section)) {
-      // As soon as the section is found adds the option with the new value
-      in_section = true;
-      new_cfgfile << line << std::endl;
-      new_cfgfile << option << " = " << value << std::endl;
-      continue;
-    } else if (is_section_line(line)) {
-      in_section = false;
-    }
-
-    // If we are in the right section and the option is found, it is
-    // removed since it will be the old value
-    if (in_section) {
-      if (is_configuration_option(option, line)) continue;
-    }
-
-    new_cfgfile << line << std::endl;
+  mysqlshdk::config::Config_file cfg;
+  if (file_exists) {
+    // Read the file, only if ti exists.
+    cfg.read(cfgfile_path);
   }
 
-  cfgfile.close();
-  new_cfgfile.close();
-  shcore::delete_file(cfgfile_path);
-  try_rename(new_cfgfile_path, cfgfile_path);
+  if (section == "*") {
+    // Change all groups (sections) if * is used for the group.
+    std::vector<std::string> groups = cfg.groups();
+    for (auto const group : groups) {
+      cfg.set(group, option, mysqlshdk::utils::nullable<std::string>(value));
+    }
+  } else {
+    if (!cfg.has_group(section)) {
+      // Create the group (section) if it does not exist.
+      cfg.add_group(section);
+    }
+    cfg.set(section, option, mysqlshdk::utils::nullable<std::string>(value));
+  }
+
+  // Apply change to option file.
+  cfg.write(cfgfile_path);
 }
 
 /**
@@ -1445,18 +1440,7 @@ int Testutils::make_file_readonly(str path);
 #endif
 ///@}
 int Testutils::make_file_readonly(const std::string &path) {
-#ifndef _WIN32
-  // Set permissions on configuration file to 444 (chmod only works on
-  // unix systems).
-  int ro = S_IRUSR | S_IRGRP | S_IROTH;
-  return chmod(path.c_str(), ro);
-#else
-  auto dwAttrs = GetFileAttributes(path.c_str());
-  // set permissions on configuration file to read only
-  if (SetFileAttributes(path.c_str(), dwAttrs | FILE_ATTRIBUTE_READONLY))
-    return 0;
-  return -1;
-#endif
+  return shcore::make_file_readonly(path);
 }
 
 //!< @name File Operations
