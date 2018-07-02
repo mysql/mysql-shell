@@ -1943,4 +1943,54 @@ TEST_F(Interactive_shell_test, bug_28240437) {
   wipe_all();
 }
 
+TEST_F(Interactive_shell_test, invalid_command) {
+  wipe_all();
+  execute("\\js");
+  wipe_all();
+  execute("\\invalid");
+  MY_EXPECT_STDERR_CONTAINS("Unknown command: '\\invalid'");
+
+  wipe_all();
+  execute("\\py");
+  wipe_all();
+  execute("\\invalid");
+  MY_EXPECT_STDERR_CONTAINS("Unknown command: '\\invalid'");
+
+  wipe_all();
+  execute("\\sql");
+  wipe_all();
+  execute("\\invalid");
+  MY_EXPECT_STDERR_CONTAINS("Unknown command: '\\invalid'");
+
+  wipe_all();
+}
+
+TEST_F(Interactive_shell_test, multi_line_command) {
+  wipe_all();
+  execute("\\js");
+  wipe_all();
+  execute("\\");
+  MY_EXPECT_STDERR_CONTAINS("SyntaxError: Unexpected token ILLEGAL");
+
+  wipe_all();
+  execute("\\py");
+  wipe_all();
+  execute("\\");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  execute("print(1 + 2)");
+  execute("");
+  MY_EXPECT_STDOUT_CONTAINS("3");
+
+  wipe_all();
+  execute("\\sql");
+  wipe_all();
+  execute("\\");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  execute("select 1;");
+  execute("");
+  MY_EXPECT_STDERR_CONTAINS("ERROR: Not connected.");
+
+  wipe_all();
+}
+
 }  // namespace mysqlsh

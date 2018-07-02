@@ -134,6 +134,40 @@ TEST_F(TestMySQLSplitter, ignore_empty_statements) {
   send_sql(";");
   EXPECT_EQ(0, ranges.size());
   EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql(";;");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql(";;;");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql("show databases;;");
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("show databases;;;");
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("show databases;\\G;");
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql(";#");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql("; #");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
 }
 
 TEST_F(TestMySQLSplitter, ignore_empty_statements_misc_delimiter) {
@@ -144,6 +178,40 @@ TEST_F(TestMySQLSplitter, ignore_empty_statements_misc_delimiter) {
             sql.substr(ranges[0].offset(), ranges[0].length()));
 
   send_sql("\\G");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql("\\G\\G");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql("\\G\\G\\G");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql("show databases\\G\\G");
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("show databases\\G\\G\\G");
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("show databases\\G;\\G");
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  send_sql("\\G#");
+  EXPECT_EQ(0, ranges.size());
+  EXPECT_TRUE(multiline_flags.empty());
+
+  send_sql("\\G #");
   EXPECT_EQ(0, ranges.size());
   EXPECT_TRUE(multiline_flags.empty());
 }
@@ -288,6 +356,26 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "and should be ignored\n"
       "and ends on next line\n"
       "*/\n"
+      "show databases;";
+  send_sql(sql);
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_FALSE(ranges[0].get_delimiter().empty());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  sql =
+      "/* comment */# comment\n"
+      "show databases;";
+  send_sql(sql);
+  EXPECT_EQ(1, ranges.size());
+  EXPECT_FALSE(ranges[0].get_delimiter().empty());
+  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ("show databases",
+            sql.substr(ranges[0].offset(), ranges[0].length()));
+
+  sql =
+      "/* comment */ # comment\n"
       "show databases;";
   send_sql(sql);
   EXPECT_EQ(1, ranges.size());

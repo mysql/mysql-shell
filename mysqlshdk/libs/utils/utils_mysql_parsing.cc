@@ -108,6 +108,7 @@ std::vector<Statement_range> determineStatementRanges(
 
   const unsigned char *head = (unsigned char *)sql;
   const unsigned char *tail = head;
+  const unsigned char *stored_tail = tail;
   const unsigned char *end = head + length;
   const unsigned char *new_line = (unsigned char *)line_break.c_str();
   bool have_content = false;  // Set when anything else but comments were found
@@ -116,6 +117,8 @@ std::vector<Statement_range> determineStatementRanges(
   std::vector<Statement_range> ranges;
 
   while (tail < end) {
+    stored_tail = tail;
+
     switch (*tail) {
       case '*':  // Comes from a multiline comment and comment is done
         if (*(tail + 1) == '/' && !input_context_stack.empty()) {
@@ -240,6 +243,9 @@ std::vector<Statement_range> determineStatementRanges(
             q.assign(&quote, 1);
             input_context_stack.push(
                 q);  // Sets multiline opening quote to continue processing
+          } else {
+            // move past closing quote
+            ++tail;
           }
         } else  // Closing quote, clears the multiline flag
           input_context_stack.pop();
@@ -339,11 +345,15 @@ std::vector<Statement_range> determineStatementRanges(
         }
       }
 
-    // Multiline comments are ignored, everything else is not
-    if (*tail > ' ' &&
-        (input_context_stack.empty() || input_context_stack.top() != "/*"))
-      have_content = true;
-    tail++;
+    // if tail didn't move it means that the current character was not handled,
+    // analyze it and advance one position
+    if (stored_tail == tail) {
+      // Multiline comments are ignored, everything else is not
+      if (*tail > ' ' &&
+          (input_context_stack.empty() || input_context_stack.top() != "/*"))
+        have_content = true;
+      tail++;
+    }
   }
 
   // Add remaining text to the range list if it is real content
