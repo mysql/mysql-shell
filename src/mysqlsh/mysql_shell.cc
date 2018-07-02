@@ -1260,6 +1260,11 @@ bool Mysql_shell::do_shell_command(const std::string &line) {
     handled = _shell_command_handler.process(line);
   }
 
+  if (line.length() > 1 && line[0] == '\\' && !handled) {
+    print_error("Unknown command: '" + line + "'");
+    handled = true;
+  }
+
   return handled;
 }
 
