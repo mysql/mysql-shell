@@ -1,3 +1,10 @@
+// Bug #26159339 SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
+
+// The AdminAPI doesn't take the group_replication_group_name value of nodes
+// into account when making modifications to the cluster.
+
+// This can lead to some wrong/incorrect results.
+
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
