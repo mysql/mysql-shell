@@ -32,6 +32,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 using mysql::secret_store::common::Helper_exception_code;
@@ -125,7 +126,8 @@ std::vector<common::Secret>::iterator find_secret(
 }  // namespace
 
 Plaintext_helper::Plaintext_helper()
-    : common::Helper("plaintext", "0.0.1", MYSH_HELPER_COPYRIGHT) {}
+    : common::Helper("plaintext", shcore::get_long_version(),
+                     MYSH_HELPER_COPYRIGHT) {}
 
 void Plaintext_helper::check_requirements() {}
 

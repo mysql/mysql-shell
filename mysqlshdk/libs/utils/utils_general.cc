@@ -39,12 +39,15 @@
 #include <ctime>
 #include <locale>
 
+#include "mysh_config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/utils_help.h"
+
+#include <mysql_version.h>
 
 namespace shcore {
 bool is_valid_identifier(const std::string &name) {
@@ -1011,6 +1014,11 @@ std::string fmttime(const char *fmt) {
 #endif
 
   return buf;
+}
+
+const char *get_long_version() {
+  return "Ver " MYSH_FULL_VERSION " for " SYSTEM_TYPE " on " MACHINE_TYPE
+         " - for MySQL " LIBMYSQL_VERSION " (" MYSQL_COMPILATION_COMMENT ")";
 }
 
 #ifdef _WIN32

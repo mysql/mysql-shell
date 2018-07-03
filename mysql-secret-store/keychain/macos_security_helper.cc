@@ -23,6 +23,7 @@
 
 #include "mysql-secret-store/keychain/macos_security_helper.h"
 
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysql::secret_store::common::Helper_exception;
@@ -47,7 +48,8 @@ void handle_find_exception(const Helper_exception &ex) {
 }  // namespace
 
 Macos_security_helper::Macos_security_helper()
-    : common::Helper("keychain", MYSH_VERSION, MYSH_HELPER_COPYRIGHT) {}
+    : common::Helper("keychain", shcore::get_long_version(),
+                     MYSH_HELPER_COPYRIGHT) {}
 
 void Macos_security_helper::check_requirements() { m_invoker.validate(); }
 

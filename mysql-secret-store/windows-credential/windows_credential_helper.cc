@@ -50,7 +50,8 @@ constexpr DWORD k_credential_type = CRED_TYPE_GENERIC;  // generic credential
 }  // namespace
 
 Windows_credential_helper::Windows_credential_helper()
-    : common::Helper("windows-credential", MYSH_VERSION, MYSH_HELPER_COPYRIGHT),
+    : common::Helper("windows-credential", shcore::get_long_version(),
+                     MYSH_HELPER_COPYRIGHT),
       m_persist_mode{CRED_PERSIST_LOCAL_MACHINE} {}
 
 void Windows_credential_helper::check_requirements() {

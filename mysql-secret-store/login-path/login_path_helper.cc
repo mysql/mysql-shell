@@ -117,7 +117,8 @@ std::string get_name(const Entry &entry) {
 }  // namespace
 
 Login_path_helper::Login_path_helper()
-    : common::Helper("login-path", MYSH_VERSION, MYSH_HELPER_COPYRIGHT) {}
+    : common::Helper("login-path", shcore::get_long_version(),
+                     MYSH_HELPER_COPYRIGHT) {}
 
 void Login_path_helper::check_requirements() { m_invoker.validate(); }
 
