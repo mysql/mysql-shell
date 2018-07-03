@@ -293,7 +293,7 @@ void Command_help::print_help_global() {
     std::sort(global_refs.begin(), global_refs.end(),
               shcore::Help_topic_compare());
 
-    sections.push_back(textui::bold("GLOBAL OBJEECTS"));
+    sections.push_back(textui::bold("GLOBAL OBJECTS"));
     _shell->get_helper()->add_childs_section(global_refs, &sections, 0, false,
                                              "GLOBALS", "GLOBALS");
     help->add_examples_section("GLOBALS_EXAMPLE_SCRIPTING", &sections, 0);

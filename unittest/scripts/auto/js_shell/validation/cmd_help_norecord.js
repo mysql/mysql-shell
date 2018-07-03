@@ -58,7 +58,7 @@ The following shell commands are available:
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
 
-GLOBAL OBJEECTS
+GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
