@@ -1521,6 +1521,14 @@ TEST_P(Helper_executable_test, invalid_json_input_wrong_type_secret) {
   output.clear();
 }
 
+TEST_P(Helper_executable_test, version_command) {
+  auto &invoker = tester.get_invoker();
+  std::string output;
+  EXPECT_TRUE(invoker.version(&output));
+  EXPECT_THAT(output, ::testing::HasSubstr(shcore::get_long_version()));
+  output.clear();
+}
+
 REGISTER_TESTS(Helper_executable_test);
 
 }  // namespace tests

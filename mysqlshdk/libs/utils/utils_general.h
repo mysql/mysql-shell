@@ -114,6 +114,14 @@ void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 
 OperatingSystem SHCORE_PUBLIC get_os_type();
 
+/**
+ * Provides long version of mysqlsh, including version number, OS type, MySQL
+ * version number and build type.
+ *
+ * @return version string
+ */
+const char *SHCORE_PUBLIC get_long_version();
+
 #ifdef _WIN32
 
 std::string SHCORE_PUBLIC last_error_to_string(DWORD code);

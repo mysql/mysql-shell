@@ -33,7 +33,6 @@
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_init.h"
 
-#include <mysql_version.h>
 #include <sys/stat.h>
 #include <cstdio>
 #include <iostream>
@@ -541,20 +540,16 @@ int main(int argc, char **argv) {
 
     if (shell_options->action_print_version()) {
       if (*MYSH_BUILD_ID && shell_options->action_print_version_extra()) {
-        snprintf(&version_msg[0], version_msg.size(),
-                 "%s   Ver %s for %s on %s - for MySQL %s (%s) - build %s",
-                 argv[0], MYSH_FULL_VERSION, SYSTEM_TYPE, MACHINE_TYPE,
-                 LIBMYSQL_VERSION, MYSQL_COMPILATION_COMMENT, MYSH_BUILD_ID);
+        snprintf(&version_msg[0], version_msg.size(), "%s   %s - build %s",
+                 argv[0], shcore::get_long_version(), MYSH_BUILD_ID);
         version_msg.resize(strlen(&version_msg[0]));
         if (*MYSH_COMMIT_ID) {
           version_msg.append(" - commit_id ");
           version_msg.append(MYSH_COMMIT_ID);
         }
       } else {
-        snprintf(&version_msg[0], version_msg.size(),
-                 "%s   Ver %s for %s on %s - for MySQL %s (%s)", argv[0],
-                 MYSH_FULL_VERSION, SYSTEM_TYPE, MACHINE_TYPE, LIBMYSQL_VERSION,
-                 MYSQL_COMPILATION_COMMENT);
+        snprintf(&version_msg[0], version_msg.size(), "%s   %s", argv[0],
+                 shcore::get_long_version());
         version_msg.resize(strlen(&version_msg[0]));
       }
 #ifdef ENABLE_SESSION_RECORDING

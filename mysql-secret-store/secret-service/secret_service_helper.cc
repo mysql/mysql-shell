@@ -25,6 +25,7 @@
 
 #include <utility>
 
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysql::secret_store::common::Helper_exception;
@@ -92,7 +93,8 @@ void parse_list(const std::string &list,
 }  // namespace
 
 Secret_service_helper::Secret_service_helper()
-    : common::Helper("secret-service", MYSH_VERSION, MYSH_HELPER_COPYRIGHT) {}
+    : common::Helper("secret-service", shcore::get_long_version(),
+                     MYSH_HELPER_COPYRIGHT) {}
 
 void Secret_service_helper::check_requirements() {
   // secret-tool does not work in a headless system (it might call dbus-launch

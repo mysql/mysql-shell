@@ -28,7 +28,11 @@
 #include <string>
 
 #include "gtest_clean.h"
+#include "mysh_config.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "utils/utils_general.h"
+
+#include <mysql_version.h>
 
 namespace shcore {
 TEST(utils_general, split_account) {
@@ -309,4 +313,31 @@ TEST(utils_general, match_glob) {
   EXPECT_TRUE(match_glob("a*a*a*a*a", std::string(100, 'a')));
   EXPECT_TRUE(match_glob("*x", "xxx"));
 }
+
+TEST(utils_general, get_long_version) {
+  if (*MYSH_BUILD_ID) {
+    std::cout << "Verifying values for the build server" << std::endl;
+
+    const std::string suffix = EXTRA_NAME_SUFFIX;
+    const std::string comment = MYSQL_COMPILATION_COMMENT;
+
+    if (suffix == "") {
+      ASSERT_EQ("MySQL Community Server (GPL)", comment);
+    } else if (suffix == "-commercial") {
+      ASSERT_EQ("MySQL Enterprise Server - Commercial", comment);
+    } else {
+      FAIL() << "EXTRA_NAME_SUFFIX should be either \"\" or \"-commercial\", "
+                " got: "
+             << suffix;
+    }
+  }
+
+  const auto version = get_long_version();
+  EXPECT_THAT(version, ::testing::HasSubstr(MYSH_FULL_VERSION));
+  EXPECT_THAT(version, ::testing::HasSubstr(SYSTEM_TYPE));
+  EXPECT_THAT(version, ::testing::HasSubstr(MACHINE_TYPE));
+  EXPECT_THAT(version, ::testing::HasSubstr(LIBMYSQL_VERSION));
+  EXPECT_THAT(version, ::testing::HasSubstr(MYSQL_COMPILATION_COMMENT));
+}
+
 }  // namespace shcore
