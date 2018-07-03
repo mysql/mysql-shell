@@ -36,7 +36,7 @@ TEST_F(Mysqlsh_misc, trace_proto) {
   execute({_mysqlsh, _uri.c_str(), "--trace-proto", "--sql", "-e", "select 1",
            nullptr});
   static const char *expected1 = R"*(>>>> SEND Mysqlx.Sql.StmtExecute {
-  stmt: "select 1\n"
+  stmt: "select 1"
 })*";
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected1);

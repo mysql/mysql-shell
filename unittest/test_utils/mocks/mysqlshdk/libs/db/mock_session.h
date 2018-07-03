@@ -60,9 +60,10 @@ class Mock_session : public mysqlshdk::db::ISession {
       void(const mysqlshdk::db::Connection_options &connection_options));
 
   // Execution
-  virtual std::shared_ptr<mysqlshdk::db::IResult> query(const std::string &sql,
-                                                        bool buffered);
-  MOCK_METHOD1(execute, void(const std::string &sql));
+  virtual std::shared_ptr<mysqlshdk::db::IResult> querys(const char *, size_t,
+                                                         bool buffered);
+  MOCK_METHOD2(executes, void(const char *, size_t));
+  MOCK_METHOD1(execute, void(const std::string &));
   MOCK_METHOD0(start_transaction, void());
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());

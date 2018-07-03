@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,10 +49,10 @@ class Recorder_mysql : public mysql::Session {
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string &sql,
-                                 bool buffered) override;
+  std::shared_ptr<IResult> querys(const char *sql, size_t length,
+                                  bool buffered) override;
 
-  void execute(const std::string &sql) override;
+  void executes(const char *sql, size_t length) override;
 
   void close() override;
 
@@ -71,10 +71,10 @@ class Recorder_mysqlx : public mysqlx::Session {
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string &sql,
-                                 bool buffered) override;
+  std::shared_ptr<IResult> querys(const char *sql, size_t length,
+                                  bool buffered) override;
 
-  void execute(const std::string &sql) override;
+  void executes(const char *sql, size_t length) override;
 
   void close() override;
 

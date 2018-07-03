@@ -165,8 +165,9 @@ void Replayer_mysql::connect(const mysqlshdk::db::Connection_options &data_) {
   _impl->connect(data);
 }
 
-std::shared_ptr<IResult> Replayer_mysql::query(const std::string &sql_, bool) {
-  std::string sql = _impl->do_query(sql_);
+std::shared_ptr<IResult> Replayer_mysql::querys(const char *sql_, size_t length,
+                                                bool) {
+  std::string sql = _impl->do_query(std::string(sql_, length));
   if (g_replay_row_hook)
     return _impl->trace().expected_result(
         std::bind(g_replay_row_hook, _impl->get_connection_options(), sql,
@@ -175,7 +176,9 @@ std::shared_ptr<IResult> Replayer_mysql::query(const std::string &sql_, bool) {
     return _impl->trace().expected_result({});
 }
 
-void Replayer_mysql::execute(const std::string &sql) { query(sql, true); }
+void Replayer_mysql::executes(const char *sql, size_t length) {
+  querys(sql, length, true);
+}
 
 void Replayer_mysql::close() { _impl->close(); }
 
@@ -241,8 +244,9 @@ void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options &data_) {
   _impl->connect(data);
 }
 
-std::shared_ptr<IResult> Replayer_mysqlx::query(const std::string &sql_, bool) {
-  std::string sql = _impl->do_query(sql_);
+std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
+                                                 size_t length, bool) {
+  std::string sql = _impl->do_query(std::string(sql_, length));
   if (g_replay_row_hook)
     return _impl->trace().expected_result_x(
         std::bind(g_replay_row_hook, _impl->get_connection_options(), sql,
@@ -255,10 +259,12 @@ std::shared_ptr<IResult> Replayer_mysqlx::execute_stmt(
     const std::string &ns, const std::string &stmt,
     const ::xcl::Arguments &args) {
   if (ns != "sql" || !args.empty()) throw std::logic_error("not implemented");
-  return query(stmt, true);
+  return querys(stmt.data(), stmt.length(), true);
 }
 
-void Replayer_mysqlx::execute(const std::string &sql) { query(sql, true); }
+void Replayer_mysqlx::executes(const char *sql, size_t length) {
+  querys(sql, length, true);
+}
 
 void Replayer_mysqlx::close() { _impl->close(); }
 

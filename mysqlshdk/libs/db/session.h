@@ -88,8 +88,18 @@ class SHCORE_PUBLIC ISession {
 
   // Execution
   virtual std::shared_ptr<IResult> query(const std::string &sql,
-                                         bool buffered = false) = 0;
-  virtual void execute(const std::string &sql) = 0;
+                                         bool buffered = false) {
+    return querys(sql.data(), sql.length(), buffered);
+  }
+
+  virtual void execute(const std::string &sql) {
+    executes(sql.data(), sql.length());
+  }
+
+  virtual std::shared_ptr<IResult> querys(const char *sql, size_t len,
+                                          bool buffered = false) = 0;
+
+  virtual void executes(const char *sql, size_t len) = 0;
 
   /**
    * Execute query and perform client-side placeholder substitution

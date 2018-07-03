@@ -401,19 +401,22 @@ void Shell_console::print_value(const shcore::Value &value,
     }
   } else {
     if (tag == "error" && value.type == shcore::Map) {
-      output = "ERROR: ";
+      output = "ERROR";
       shcore::Value::Map_type_ref error_map = value.as_map();
 
       if (error_map->has_key("code")) {
+        output.append(": ");
         // message.append(" ");
         output.append(((*error_map)["code"].repr()));
 
         if (error_map->has_key("state") && (*error_map)["state"])
           output.append(" (" + (*error_map)["state"].get_string() + ")");
-
-        output.append(": ");
       }
 
+      if (error_map->has_key("line")) {
+        output.append(" at line " + std::to_string(error_map->get_int("line")));
+      }
+      output.append(": ");
       if (error_map->has_key("message"))
         output.append((*error_map)["message"].get_string());
       else

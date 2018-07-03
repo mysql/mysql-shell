@@ -74,15 +74,16 @@ void Recorder_mysql::connect(const mysqlshdk::db::Connection_options &data) {
   }
 }
 
-std::shared_ptr<IResult> Recorder_mysql::query(const std::string &sql, bool) {
+std::shared_ptr<IResult> Recorder_mysql::querys(const char *sql, size_t length,
+                                                bool) {
   try {
     // todo - add synchronization points for error.log on every query
     // assuming that error log contents change when a query is executed
     // if (set_log_save_point) set_log_save_point(_port);
 
-    _trace->serialize_query(sql);
+    _trace->serialize_query(std::string(sql, length));
     // Always buffer to make row serialization easier
-    std::shared_ptr<IResult> result(super::query(sql, true));
+    std::shared_ptr<IResult> result(super::querys(sql, length, true));
     _trace->serialize_result(result);
     std::dynamic_pointer_cast<mysql::Result>(result)->rewind();
     return result;
@@ -92,7 +93,9 @@ std::shared_ptr<IResult> Recorder_mysql::query(const std::string &sql, bool) {
   }
 }
 
-void Recorder_mysql::execute(const std::string &sql) { query(sql, true); }
+void Recorder_mysql::executes(const char *sql, size_t length) {
+  querys(sql, length, true);
+}
 
 void Recorder_mysql::close() {
   try {
@@ -146,15 +149,16 @@ void Recorder_mysqlx::connect(const mysqlshdk::db::Connection_options &data) {
   }
 }
 
-std::shared_ptr<IResult> Recorder_mysqlx::query(const std::string &sql, bool) {
+std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
+                                                 bool) {
   try {
     // todo - add synchronization points for error.log on every query
     // assuming that error log contents change when a query is executed
     // if (set_log_save_point) set_log_save_point(_port);
 
-    _trace->serialize_query(sql);
+    _trace->serialize_query(std::string(sql, length));
     // Always buffer to make row serialization easier
-    std::shared_ptr<IResult> result(super::query(sql, true));
+    std::shared_ptr<IResult> result(super::querys(sql, length, true));
     _trace->serialize_result(result);
     std::dynamic_pointer_cast<mysqlx::Result>(result)->rewind();
     return result;
@@ -168,10 +172,12 @@ std::shared_ptr<IResult> Recorder_mysqlx::execute_stmt(
     const std::string &ns, const std::string &stmt,
     const ::xcl::Arguments &args) {
   if (ns != "sql" || !args.empty()) throw std::logic_error("not implemented");
-  return query(stmt, true);
+  return querys(stmt.data(), stmt.length(), true);
 }
 
-void Recorder_mysqlx::execute(const std::string &sql) { query(sql, true); }
+void Recorder_mysqlx::executes(const char *sql, size_t length) {
+  querys(sql, length, true);
+}
 
 void Recorder_mysqlx::close() {
   try {

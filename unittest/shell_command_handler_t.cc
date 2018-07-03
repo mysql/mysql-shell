@@ -67,6 +67,8 @@ class Command_handler_tests : public ::testing::Test {
   std::vector<std::string> _params;
   Environment env;
 
+  Shell_command_handler *command_handler() { return &_shell_command_handler; }
+
   bool cmd_one(const std::vector<std::string> &params) {
     _function = "cmd_one";
     _params.assign(params.begin(), params.end());

@@ -82,7 +82,9 @@ class Shell_sql_test : public Shell_core_test_wrapper {
   void handle_input(std::string &query, Input_state &state) {
     env.shell_sql->set_result_processor(
         std::bind(&Shell_sql_test::process_sql_result, this, _1, _2));
-    env.shell_sql->handle_input(query, state);
+    std::string q = query + "\n";
+    env.shell_sql->handle_input(q, state);
+    query = q;
   }
 
   void connect() {
@@ -302,7 +304,8 @@ TEST_F(Shell_sql_test, multiline_comment) {
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("", env.shell_sql->get_handled_input());
+  EXPECT_EQ("/*\nthis was a multiline comment\n*/",
+            env.shell_sql->get_handled_input());
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }
 
@@ -392,7 +395,7 @@ TEST_F(Shell_sql_test, multiple_single_double_quotes) {
 }
 
 TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
-  // ATM A multiline comment in the middle of a statement is
+  // A multiline comment in the middle of a statement is
   // not trimmed off
   Input_state state;
   std::string query = "SELECT 1 AS _one /*";
@@ -405,13 +408,24 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
 
   // Prompt for continued statement
+  EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
+
+  query = "comment text */";
+  handle_input(query, state);
+  EXPECT_EQ(Input_state::ContinuedSingle, state);
+  EXPECT_EQ("", query);
+
+  // SQL has not been handled yet
+  EXPECT_EQ("", env.shell_sql->get_handled_input());
+
+  // Prompt for continued statement
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = "comment text */;";
+  query = ";";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("SELECT 1 AS _one /*\ncomment text */;",
+  EXPECT_EQ("SELECT 1 AS _one /*\ncomment text */\n;",
             env.shell_sql->get_handled_input());
 
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
@@ -436,7 +450,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+  EXPECT_EQ("select 1 as one -- sample comment\n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
@@ -449,7 +463,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment_batch) {
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+  EXPECT_EQ("select 1 as one -- sample comment\n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
@@ -474,7 +488,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+  EXPECT_EQ("select 1 as one #sample comment\n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
@@ -487,7 +501,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment_batch) {
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("select 1 as one \n;select 2 as two;",
+  EXPECT_EQ("select 1 as one #sample comment\n;select 2 as two;",
             env.shell_sql->get_handled_input());
 
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());

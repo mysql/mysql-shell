@@ -136,7 +136,7 @@ TEST_F(Db_tests, query) {
     // Query success, using buffered result
     {
       auto result = std::shared_ptr<mysqlshdk::db::IResult>(
-          session->query("select @@server_id", true));
+          session->query(std::string("select @@server_id"), true));
     }
 
     // Required test database for the rest of this test

@@ -142,6 +142,14 @@ class ShellExeRunScript : public tests::Command_line_test {
                         "drop schema bogusdb;\n"
                         "select 'end';\n");
 
+    shcore::create_file("error_test.sql",
+                        R"*(/* 
+foo*/
+-- bla
+select 'hello
+world'; select 3;
+select error;)*");
+
     shcore::create_file("good_int.py",
                         "print 1\n"
                         "print 2\n"
@@ -216,6 +224,7 @@ class ShellExeRunScript : public tests::Command_line_test {
   static void TearDownTestCase() {
     shcore::delete_file("good.sql");
     shcore::delete_file("bad.sql");
+    shcore::delete_file("error_test.sql");
     shcore::delete_file("good.js");
     shcore::delete_file("bad.js");
     shcore::delete_file("badsyn.js");
@@ -341,7 +350,7 @@ end)";
   EXPECT_EQ(1, rc);
   static const char *result2 = R"(1
 1
-ERROR: 1008: Can't drop database 'bogusdb'; database doesn't exist)";
+ERROR: 1008 at line 2: Can't drop database 'bogusdb'; database doesn't exist)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
 }
 
@@ -859,6 +868,20 @@ TEST_F(ShellExeRunScript, table_output_noninteractive_mode) {
                     "SELECT 1", nullptr});
   // no error, exit code 0
   EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output);
+}
+
+TEST_F(ShellExeRunScript, script_error_line) {
+  static constexpr auto expected_output = R"*(hello
+world
+hello\nworld
+3
+3
+ERROR: 1054 at line 6: Unknown column 'error' in 'field list')*";
+
+  wipe_out();
+  execute({_mysqlsh, _uri.c_str(), "--sql", nullptr}, nullptr,
+          "error_test.sql");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output);
 }
 

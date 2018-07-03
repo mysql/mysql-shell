@@ -22,198 +22,227 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <sstream>
 #include <stack>
 #include <string>
+#include <vector>
 
-#include "gtest_clean.h"
+#include "unittest/gtest_clean.h"
+#include "unittest/test_utils/shell_test_env.h"
 #include "utils/utils_mysql_parsing.h"
 
-namespace shcore {
-namespace sql_shell_tests {
+namespace mysqlshdk {
+namespace utils {
+
+// Legacy tests with adaptations
 class TestMySQLSplitter : public ::testing::Test {
  protected:
-  std::stack<std::string> multiline_flags;
-  mysql::splitter::Delimiters delimiters;
-  std::vector<mysql::splitter::Statement_range> ranges;
+  bool debug = false;
+  std::vector<std::tuple<std::string, std::string, size_t>> results;
   std::string sql;
+  std::string delim = ";";
+  std::string context;
+  std::string buffer;
+  std::unique_ptr<Sql_splitter> splitter;
+  std::string multiline;
 
-  virtual void SetUp() {
-    delimiters = mysql::splitter::Delimiters({";", "\\G", "\\g"});
+  void SetUp() override {
+    splitter.reset(new Sql_splitter(
+        [this](const char *s, size_t len, bool bol,
+               size_t lnum) -> std::pair<size_t, bool> {
+          if (!bol) len = 2;
+          if (s[1] != 'g' && s[1] != 'G') {
+            results.emplace_back(std::string(len, 2), "", lnum);
+            return std::make_pair(len, false);
+          }
+          return std::make_pair(2U, true);
+        },
+        [this](const std::string &err) { results.emplace_back(err, "", 0); }));
   }
 
-  void send_sql(const std::string &data) {
-    // Sends the received sql and sets the list of command ranges denoted
+  void send_sql(const std::string &data, bool dont_flush = false) {
+    // Sends the received sql and sets the list of command results denoted
+    // by their position in the original query and a delimiter.
+    results.clear();
+    splitter->reset();
+    buffer.clear();
+    delim = ";";
+    sql = data;
+    std::stringstream str(data);
+    split_incremental(&str, data.size(), dont_flush);
+  }
+
+  void send_sql_incr(const std::string &data, bool dont_flush = true) {
+    // Sends the received sql and sets the list of command results denoted
     // by their position in the original query and a delimiter.
     sql = data;
+    std::stringstream str(data);
+    if (debug) std::cout << "\n" << data << "\n";
+    split_incremental(&str, data.size(), dont_flush);
+  }
 
-    ranges = shcore::mysql::splitter::determineStatementRanges(
-        sql.data(), sql.length(), delimiters, "\n", multiline_flags);
+  void split_incremental(std::iostream *stream, size_t chunk_size,
+                         bool dont_flush) {
+    assert(chunk_size > 0);
+
+    splitter->set_delimiter(delim);
+
+    size_t offset = buffer.size();
+
+    buffer.resize(offset + chunk_size);
+    stream->read(&buffer[offset], chunk_size);
+    buffer.resize(offset + stream->gcount());
+    splitter->feed_chunk(&buffer[0], buffer.size());
+
+    while (!splitter->eof()) {
+      Sql_splitter::Range range;
+      std::string delim;
+
+      if (splitter->next_range(&range, &delim)) {
+        if (debug)
+          std::cout << buffer.substr(range.offset, range.length) << delim
+                    << "\n";
+        results.emplace_back(buffer.substr(range.offset, range.length), delim,
+                             range.line_num);
+      } else {
+        splitter->pack_buffer(&buffer, range);
+
+        size_t osize = buffer.size();
+        buffer.resize(osize + chunk_size);
+        stream->read(&buffer[osize], chunk_size);
+        buffer.resize(osize + stream->gcount());
+
+        if (static_cast<size_t>(stream->gcount()) < chunk_size && !dont_flush) {
+          splitter->feed(&buffer[0], buffer.size());
+        } else {
+          if (stream->gcount() == 0) break;
+          splitter->feed_chunk(&buffer[0], buffer.size());
+        }
+      }
+    }
+
+    delim = splitter->delimiter();
+    context = to_string(splitter->context());
   }
 };
 
 TEST_F(TestMySQLSplitter, full_statement) {
   send_sql("show databases;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, full_statement_misc_delimiter) {
   send_sql("show databases\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, by_line_continued_statement) {
-  send_sql("show");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("-", multiline_flags.top());
-  EXPECT_EQ("show", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("show ");
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);
 
-  send_sql("databases");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("-", multiline_flags.top());
-  EXPECT_EQ("databases", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("databases");
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);
 
-  send_sql(";");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ(";", ranges[0].get_delimiter());
-  EXPECT_TRUE(multiline_flags.empty());
+  send_sql_incr(";");
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ(";", std::get<1>(results[0]));
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, by_line_continued_statement_misc_delimiter) {
-  send_sql("show");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("-", multiline_flags.top());
-  EXPECT_EQ("show", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("show ");
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);
 
-  send_sql("databases");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("-", multiline_flags.top());
-  EXPECT_EQ("databases", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("databases");
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);
 
-  send_sql("\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_TRUE(multiline_flags.empty());
+  send_sql_incr("\\G");
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, script_continued_statement) {
   send_sql("show\ndatabases\n;\n");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show\ndatabases\n",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show\ndatabases\n", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, script_continued_statement_misc_delimiter) {
   send_sql("show\ndatabases\n\\G\n");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_EQ("show\ndatabases\n",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ("show\ndatabases\n", std::get<0>(results[0]));
 }
 
-TEST_F(TestMySQLSplitter, ignore_empty_statements) {
+TEST_F(TestMySQLSplitter, no_ignore_empty_statements) {
   send_sql("show databases;\n;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("", std::get<0>(results[1]));
 
   send_sql(";");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql(";;");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql(";;;");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql("show databases;;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-
-  send_sql("show databases;;;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-
-  send_sql("show databases;\\G;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-
-  send_sql(";#");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql("; #");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-}
-
-TEST_F(TestMySQLSplitter, ignore_empty_statements_misc_delimiter) {
-  send_sql("show databases\\G\n\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-
-  send_sql("\\G");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql("\\G\\G");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql("\\G\\G\\G");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-
-  send_sql("show databases\\G\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-
-  send_sql("show databases\\G\\G\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(1, results.size());
+  EXPECT_EQ("", context);
 
   send_sql("show databases\\G;\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(3, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
 
   send_sql("\\G#");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
 
   send_sql("\\G #");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+
+  send_sql(";;");
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+
+  send_sql(";;;");
+  EXPECT_EQ(3, results.size());
+  EXPECT_EQ("", context);
+
+  send_sql("show databases;;");
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+
+  send_sql("show databases;;;");
+  EXPECT_EQ(3, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+
+  send_sql("show databases;\\G;");
+  EXPECT_EQ(3, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+
+  send_sql(";#");
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+
+  send_sql("; #");
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
 }
 
 TEST_F(TestMySQLSplitter, single_line_comments) {
@@ -221,92 +250,88 @@ TEST_F(TestMySQLSplitter, single_line_comments) {
       "/* shows the database list */\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(sql.substr(0, sql.length() - 1), std::get<0>(results[0]));
 
   sql =
       "-- shows the database list\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("-- shows the database list", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 
   sql =
       "--\tshows the database list\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("--\tshows the database list", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 
   sql =
       "--\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("--", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 
   sql = "--";
-  send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
+  send_sql(sql, true);
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);  // -- comments are terminated by a newline
 
   sql =
       "--this is an invalid comment, should be considered part of statement\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(sql.substr(0, sql.length() - 1),
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(sql.substr(0, sql.length() - 1), std::get<0>(results[0]));
 
   sql =
       "#this is an valid comment\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("#this is an valid comment", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 
   sql = "show databases; #this is an valid comment\n";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("#this is an valid comment", std::get<0>(results[1]));
 
   sql = "show databases\\G #this is an valid comment\n";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("#this is an valid comment", std::get<0>(results[1]));
 
   sql = "show databases\\G -- this is an valid comment\n";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("-- this is an valid comment", std::get<0>(results[1]));
 
   sql =
       "--this is an invalid comment, state should indicate a continued "
       "statement";
-  send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("-", multiline_flags.top());
-  EXPECT_EQ(sql, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql(sql, true);
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);
 }
 
 TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
@@ -317,11 +342,10 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "and ends here */\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(";", ranges[0].get_delimiter());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(";", std::get<1>(results[0]));
+  EXPECT_EQ(sql.substr(0, sql.length() - 1), std::get<0>(results[0]));
 
   sql =
       "/*\n"
@@ -331,11 +355,10 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "and ends here */\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(";", ranges[0].get_delimiter());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(";", std::get<1>(results[0]));
+  EXPECT_EQ(sql.substr(0, sql.length() - 1), std::get<0>(results[0]));
 
   sql =
       "/*\n"
@@ -344,11 +367,10 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "and ends here */\n"
       "show databases\\G";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ(sql.substr(0, sql.length() - 2), std::get<0>(results[0]));
 
   sql =
       "/*\n"
@@ -358,152 +380,132 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "*/\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("*/");
+  ASSERT_EQ(1, results.size());
+  // should continue until delimiter since we're not trimming comments
+  // EXPECT_EQ("", context);  // Multiline comment flag is cleared
+
+  send_sql_incr("show databases;");
+  ASSERT_EQ(2, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(
+      "/*\nthis is a comment\nand should be ignored\nand ends on next "
+      "line\n*/\nshow databases",
+      std::get<0>(results[0]));
 
   sql =
       "/* comment */# comment\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+
+  EXPECT_EQ("/* comment */# comment\nshow databases", std::get<0>(results[0]));
 
   sql =
       "/* comment */ # comment\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-}
+  EXPECT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
 
-TEST_F(TestMySQLSplitter, multi_line_comments_line_by_line) {
-  send_sql("/*");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ("/*", multiline_flags.top());  // Multiline comment flag is set
-
-  send_sql("This is a comment");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ("/*", multiline_flags.top());  // Multiline comment flag continues
-
-  send_sql("processed line by line");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ("/*", multiline_flags.top());  // Multiline comment flag continues
-
-  send_sql("and finishes next line");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ("/*", multiline_flags.top());  // Multiline comment flag continues
-
-  send_sql("*/");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_TRUE(multiline_flags.empty());  // Multiline comment flag is cleared
-
-  send_sql("show databases;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ("/* comment */ # comment\nshow databases", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, continued_backtick_string) {
-  send_sql("select * from `t1");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("`", multiline_flags.top());  // Multiline backtick flag is set
-  EXPECT_EQ(sql, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("select * from `t1");
+  ASSERT_EQ(0, results.size());
+  // EXPECT_TRUE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("`", context);  // Multiline backtick flag is set
+  // EXPECT_EQ(sql, std::get<0>(results[0]));
 
-  send_sql("`;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());  // Multiline backtick flag is cleared
-  EXPECT_EQ("`", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("`;");
+  ASSERT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("", context);  // Multiline backtick flag is cleared
+  EXPECT_EQ("select * from `t1`", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, continued_single_quote_string) {
-  send_sql("select * from t1 where name = 'this");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("'", multiline_flags.top());  // Multiline backtick flag is set
-  EXPECT_EQ(sql, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("select * from t1 where name = 'this");
+  ASSERT_EQ(0, results.size());
+  // EXPECT_TRUE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("'", context);  // Multiline backtick flag is set
+  // EXPECT_EQ(sql, std::get<0>(results[0]));
 
-  send_sql("thing';");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());  // Multiline backtick flag is cleared
-  EXPECT_EQ("thing'", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("thing';");
+  ASSERT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("", context);  // Multiline backtick flag is cleared
+  EXPECT_EQ("select * from t1 where name = 'thisthing'",
+            std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, continued_double_quote_string) {
-  send_sql("select * from t1 where name = 'this");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_TRUE(ranges[0].get_delimiter().empty());
-  EXPECT_EQ("'", multiline_flags.top());  // Multiline backtick flag is set
-  EXPECT_EQ(sql, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("select * from t1 where name = \"this");
+  ASSERT_EQ(0, results.size());
+  // EXPECT_TRUE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("\"", context);  // Multiline backtick flag is set
+  // EXPECT_EQ(sql, std::get<0>(results[0]));
 
-  send_sql("\";");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());  // Multiline backtick flag is cleared
-  EXPECT_EQ("\"", sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("\";");
+  ASSERT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("", context);  // Multiline backtick flag is cleared
+  EXPECT_EQ("select * from t1 where name = \"this\"", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, delimiter_ignored_contexts) {
   sql = "#this is an valid comment, delimiter ; inside\n";
   send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
+  ASSERT_EQ(1, results.size());
 
   sql = "-- this is an valid comment, delimiter ; inside\n";
   send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
+  ASSERT_EQ(1, results.size());
 
   sql = "/* this is an valid comment, delimiter ; inside */\n";
-  send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
+  send_sql(sql, true);
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("-", context);
+
+  sql = "/* this is an valid comment, delimiter ; inside */\n";
+  send_sql(sql, false);
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("-", context);
 
   sql = "select ';' as a;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("select ';' as a",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("select ';' as a", std::get<0>(results[0]));
 
   sql = "select `;` from x;";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("select `;` from x",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("select `;` from x", std::get<0>(results[0]));
 
   sql = "#this is an valid comment, delimiter \\G inside\n";
   send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
+  ASSERT_EQ(1, results.size());
 
   sql = "-- this is an valid comment, delimiter \\G inside\n";
   send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
+  ASSERT_EQ(1, results.size());
 
   sql = "/* this is an valid comment, delimiter \\G inside */\n";
-  send_sql(sql);
-  EXPECT_EQ(0, ranges.size());
+  send_sql(sql, true);
+  ASSERT_EQ(0, results.size());
 
   sql = "select '\\G' as a\\G";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("select '\\G' as a",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("select '\\G' as a", std::get<0>(results[0]));
 
   sql = "select `\\G` from x\\G";
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("select `\\G` from x",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("select `\\G` from x", std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, multiple_statements) {
@@ -512,15 +514,12 @@ TEST_F(TestMySQLSplitter, multiple_statements) {
       "select * from whatever;\n"
       "drop database whatever;\n";
   send_sql(sql);
-  EXPECT_EQ(3, ranges.size());
-  for (int i = 0; i < 3; i++) EXPECT_FALSE(ranges[i].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select * from whatever",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
-  EXPECT_EQ("drop database whatever",
-            sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(3, results.size());
+  for (int i = 0; i < 3; i++) EXPECT_FALSE(std::get<1>(results[i]).empty());
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("select * from whatever", std::get<0>(results[1]));
+  EXPECT_EQ("drop database whatever", std::get<0>(results[2]));
 }
 
 TEST_F(TestMySQLSplitter, multiple_statements_misc_delimiter) {
@@ -529,29 +528,23 @@ TEST_F(TestMySQLSplitter, multiple_statements_misc_delimiter) {
       "select * from whatever\\G\n"
       "drop database whatever\\G\n";
   send_sql(sql);
-  EXPECT_EQ(3, ranges.size());
-  for (int i = 0; i < 3; i++) EXPECT_EQ("\\G", ranges[i].get_delimiter());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select * from whatever",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
-  EXPECT_EQ("drop database whatever",
-            sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(3, results.size());
+  for (int i = 0; i < 3; i++) EXPECT_EQ("\\G", std::get<1>(results[i]));
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("select * from whatever", std::get<0>(results[1]));
+  EXPECT_EQ("drop database whatever", std::get<0>(results[2]));
 }
 
 TEST_F(TestMySQLSplitter, multiple_statements_one_line_misc_delimiter) {
   sql = "show databases\\Gselect * from whatever\\Gdrop database whatever\\G\n";
   send_sql(sql);
-  EXPECT_EQ(3, ranges.size());
-  for (int i = 0; i < 3; i++) EXPECT_EQ("\\G", ranges[i].get_delimiter());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select * from whatever",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
-  EXPECT_EQ("drop database whatever",
-            sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(3, results.size());
+  for (int i = 0; i < 3; i++) EXPECT_EQ("\\G", std::get<1>(results[i]));
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("select * from whatever", std::get<0>(results[1]));
+  EXPECT_EQ("drop database whatever", std::get<0>(results[2]));
 }
 
 TEST_F(TestMySQLSplitter, multiple_statements_mixed_delimiters) {
@@ -560,35 +553,34 @@ TEST_F(TestMySQLSplitter, multiple_statements_mixed_delimiters) {
       "select * from whatever\\G\n"
       "drop database whatever;\n";
   send_sql(sql);
-  EXPECT_EQ(3, ranges.size());
-  EXPECT_EQ(";", ranges[0].get_delimiter());
-  EXPECT_EQ("\\G", ranges[1].get_delimiter());
-  EXPECT_EQ(";", ranges[2].get_delimiter());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select * from whatever",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
-  EXPECT_EQ("drop database whatever",
-            sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(3, results.size());
+  EXPECT_EQ(";", std::get<1>(results[0]));
+  EXPECT_EQ("\\G", std::get<1>(results[1]));
+  EXPECT_EQ(";", std::get<1>(results[2]));
+  EXPECT_EQ("", context);
+  EXPECT_EQ("show databases", std::get<0>(results[0]));
+  EXPECT_EQ("select * from whatever", std::get<0>(results[1]));
+  EXPECT_EQ("drop database whatever", std::get<0>(results[2]));
 }
 
 TEST_F(TestMySQLSplitter, delimiter_change) {
-  send_sql("delimiter \\");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ("\\", delimiters.get_main_delimiter());
+  send_sql("delimiter \\\n");
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("DELIMITER cannot contain a backslash character",
+            std::get<0>(results[0]));
+  EXPECT_EQ(";", delim);
 
   send_sql("delimiter ;");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ(";", delimiters.get_main_delimiter());
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ(";", delim);
 
   sql =
-      "delimiter \\\n"
+      "delimiter $\n"
       "show databases;\n"
       "select * from whatever;\n"
       "drop database whatever;\n"
-      "\\\n"
-      "delimiter \\\n";
+      "$\n"
+      "delimiter $\n";
 
   std::string statement =
       "show databases;\n"
@@ -596,41 +588,41 @@ TEST_F(TestMySQLSplitter, delimiter_change) {
       "drop database whatever;\n";
 
   send_sql(sql);
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_FALSE(ranges[0].get_delimiter().empty());
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(statement, sql.substr(ranges[0].offset(), ranges[0].length()));
+  ASSERT_EQ(1, results.size());
+  EXPECT_FALSE(std::get<1>(results[0]).empty());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(statement, std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, delimiter_change_misc_delimiter) {
-  send_sql("show databases;");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ(";", ranges[0].get_delimiter());
-  EXPECT_EQ(";", delimiters.get_main_delimiter());
-  send_sql("show databases\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
-  EXPECT_EQ(";", delimiters.get_main_delimiter());
+  send_sql("show databases;", true);
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ(";", std::get<1>(results[0]));
+  EXPECT_EQ(";", delim);
+  send_sql("show databases\\G", true);
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
+  EXPECT_EQ(";", delim);
 
-  send_sql("delimiter //");
-  EXPECT_EQ(0, ranges.size());
-  EXPECT_EQ("//", delimiters.get_main_delimiter());
+  send_sql("delimiter //\n", true);
+  ASSERT_EQ(0, results.size());
+  EXPECT_EQ("//", delim);
 
-  send_sql("show databases//");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("//", ranges[0].get_delimiter());
-  EXPECT_EQ("//", delimiters.get_main_delimiter());
-  send_sql("show databases\\G");
-  EXPECT_EQ(1, ranges.size());
-  EXPECT_EQ("//", delimiters.get_main_delimiter());
-  EXPECT_EQ("\\G", ranges[0].get_delimiter());
+  send_sql_incr("show databases//");
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("//", std::get<1>(results[0]));
+  EXPECT_EQ("//", delim);
+  results.clear();
+  send_sql_incr("show databases\\G");
+  ASSERT_EQ(1, results.size());
+  EXPECT_EQ("//", delim);
+  EXPECT_EQ("\\G", std::get<1>(results[0]));
 
-  send_sql("show databases; select 11 as a\\G select 12 as b//");
-  EXPECT_EQ(2, ranges.size());
-  EXPECT_EQ("show databases; select 11 as a",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select 12 as b",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
+  results.clear();
+  send_sql_incr("show databases; select 11 as a\\G select 12 as b//");
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("show databases; select 11 as a", std::get<0>(results[0]));
+  EXPECT_EQ("select 12 as b", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, single_line_mysql_extension) {
@@ -638,12 +630,10 @@ TEST_F(TestMySQLSplitter, single_line_mysql_extension) {
       "/*! SET TIME_ZONE='+00:00' */;\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(2, ranges.size());
-  EXPECT_EQ("/*! SET TIME_ZONE='+00:00' */",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ("/*! SET TIME_ZONE='+00:00' */", std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, multi_line_mysql_extension_in_batch) {
@@ -656,37 +646,36 @@ TEST_F(TestMySQLSplitter, multi_line_mysql_extension_in_batch) {
   sql = view + ";\nshow databases;";
 
   send_sql(sql);
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(2, static_cast<int>(ranges.size()));
-  EXPECT_EQ(view, sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ(view, std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, multi_line_mysql_extension_line_by_line) {
-  send_sql("/*!50001 CREATE VIEW `ActorLimit10`");
-  EXPECT_EQ("/*!", multiline_flags.top());  // Multiline comment flag is set
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  send_sql_incr("/*!50001 CREATE VIEW `ActorLimit10`");
+  EXPECT_EQ("-", context);  // Multiline comment flag is set
+  EXPECT_EQ(0, static_cast<int>(results.size()));
   std::string expected = "/*!50001 CREATE VIEW `ActorLimit10`";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql("1 AS `actor_id`,");
-  EXPECT_EQ("/*!", multiline_flags.top());  // Multiline comment flag continues
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  expected = "1 AS `actor_id`,";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("1 AS `actor_id`,");
+  EXPECT_EQ("-", context);  // Multiline comment flag continues
+  EXPECT_EQ(0, static_cast<int>(results.size()));
+  expected += "1 AS `actor_id`,";
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql("1 AS `last_name`,");
-  EXPECT_EQ("/*!", multiline_flags.top());  // Multiline comment flag continues
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  expected = "1 AS `last_name`,";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("1 AS `last_name`,");
+  EXPECT_EQ("-", context);  // Multiline comment flag continues
+  EXPECT_EQ(0, static_cast<int>(results.size()));
+  expected += "1 AS `last_name`,";
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql("1 AS `last_update`*/;");
-  EXPECT_TRUE(multiline_flags.empty());  // Multiline comment flag is done
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  expected = "1 AS `last_update`*/";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("1 AS `last_update`*/;");
+  EXPECT_EQ("", context);  // Multiline comment flag is done
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  expected += "1 AS `last_update`*/";
+  EXPECT_EQ(expected, std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, single_line_optimizer_hint) {
@@ -694,12 +683,11 @@ TEST_F(TestMySQLSplitter, single_line_optimizer_hint) {
       "/*+ NO_RANGE_OPTIMIZATION(t3 PRIMARY, f2_idx) */;\n"
       "show databases;";
   send_sql(sql);
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(2, ranges.size());
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, results.size());
   EXPECT_EQ("/*+ NO_RANGE_OPTIMIZATION(t3 PRIMARY, f2_idx) */",
-            sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
+            std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, multi_line_optimizer_hint_in_batch) {
@@ -709,151 +697,516 @@ TEST_F(TestMySQLSplitter, multi_line_optimizer_hint_in_batch) {
   sql = optimizer + ";\nshow databases;";
 
   send_sql(sql);
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(2, static_cast<int>(ranges.size()));
-  EXPECT_EQ(optimizer, sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("show databases",
-            sql.substr(ranges[1].offset(), ranges[1].length()));
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ(optimizer, std::get<0>(results[0]));
+  EXPECT_EQ("show databases", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, multi_line_optimizer_hint_line_by_line) {
-  send_sql("/*+ BKA(t1) ");
-  EXPECT_EQ("/*+", multiline_flags.top());  // Multiline comment flag is set
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  send_sql_incr("/*+ BKA(t1) ");
+  EXPECT_EQ("-", context);  // Multiline comment flag is set
+  EXPECT_EQ(0, static_cast<int>(results.size()));
   std::string expected = "/*+ BKA(t1) ";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql("NO_BKA(t2)*/;");
-  EXPECT_TRUE(multiline_flags.empty());  // Multiline comment flag is done
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  expected = "NO_BKA(t2)*/";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  send_sql_incr("NO_BKA(t2)*/;");
+  EXPECT_EQ("", context);  // Multiline comment flag is done
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  expected += "NO_BKA(t2)*/";
+  EXPECT_EQ(expected, std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, continued_stmt_multiline_comment) {
-  send_sql("SELECT 1 AS _one /*");
-  EXPECT_EQ("-", multiline_flags.top());  // Continued statement flag
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  send_sql_incr("SELECT 1 AS _one /*");
+  EXPECT_EQ("-", context);  // Continued statement flag
+  EXPECT_EQ(0, static_cast<int>(results.size()));
 
   // The first range is the incomplete statement
   std::string expected = "SELECT 1 AS _one /*";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql("comment text */;");
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  send_sql_incr("comment text */;");
+  EXPECT_EQ("", context);
+  EXPECT_EQ(1, static_cast<int>(results.size()));
 
   // The first range is the incomplete statement
-  expected = "comment text */";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  expected += "comment text */";
+  EXPECT_EQ(expected, std::get<0>(results[0]));
 }
 
 TEST_F(TestMySQLSplitter, continued_stmt_dash_dash_comment) {
-  send_sql("select 1 as one -- sample text");
-  EXPECT_EQ("-", multiline_flags.top());  // Continued statement flag
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  send_sql_incr("select 1 as one -- sample text\n");
+  EXPECT_EQ("-", context);  // Continued statement flag
+  EXPECT_EQ(0, static_cast<int>(results.size()));
 
   // The first range is the incomplete statement
   std::string expected = "select 1 as one ";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql(";select 2 as two;");
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+  send_sql_incr(";select 2 as two;");
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, static_cast<int>(results.size()));
 
-  // The first range is an empty statement indicating the previous one is done
-  EXPECT_EQ("", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ("select 1 as one -- sample text\n", std::get<0>(results[0]));
 
   // The second range is the second statement
   expected = "select 2 as two";
-  EXPECT_EQ(expected, sql.substr(ranges[1].offset(), ranges[1].length()));
+  EXPECT_EQ(expected, std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, continued_stmt_dash_dash_comment_batch) {
-  send_sql("select 1 as one -- sample text\n;select 2 as two;");
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(3, static_cast<int>(ranges.size()));
+  send_sql_incr("select 1 as one -- sample text\n;select 2 as two;");
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, static_cast<int>(results.size()));
 
   // The first range is the incomplete statement
-  std::string expected = "select 1 as one ";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  std::string expected = "select 1 as one -- sample text\n";
+  EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  // The second range is the empty range for the delimiter on the second line
-  EXPECT_EQ("", sql.substr(ranges[1].offset(), ranges[1].length()));
-
-  // The third range is the second statement
+  // The 2nd range is the second statement
   expected = "select 2 as two";
-  EXPECT_EQ(expected, sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(expected, std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, continued_stmt_hash_comment) {
-  send_sql("select 1 as one #sample text");
-  EXPECT_EQ("-", multiline_flags.top());  // Continued statement flag
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
+  send_sql_incr("select 1 as one #sample text\n");
+  EXPECT_EQ("-", context);  // Continued statement flag
+  EXPECT_EQ(0, static_cast<int>(results.size()));
 
   // The first range is the incomplete statement
   std::string expected = "select 1 as one ";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  // EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  send_sql(";select 2 as two;");
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(2, static_cast<int>(ranges.size()));
+  send_sql_incr(";select 2 as two;");
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, static_cast<int>(results.size()));
 
-  // The first range is an empty statement indicating the previous one is done
-  EXPECT_EQ("", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ("select 1 as one #sample text\n", std::get<0>(results[0]));
 
   // The second range is the second statement
   expected = "select 2 as two";
-  EXPECT_EQ(expected, sql.substr(ranges[1].offset(), ranges[1].length()));
+  EXPECT_EQ(expected, std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, continued_stmt_hash_comment_batch) {
-  send_sql("select 1 as one #sample text\n;select 2 as two;");
-  EXPECT_TRUE(multiline_flags.empty());
-  EXPECT_EQ(3, static_cast<int>(ranges.size()));
+  send_sql_incr("select 1 as one #sample text\n;select 2 as two;");
+  EXPECT_EQ("", context);
+  EXPECT_EQ(2, static_cast<int>(results.size()));
 
   // The first range is the incomplete statement
-  std::string expected = "select 1 as one ";
-  EXPECT_EQ(expected, sql.substr(ranges[0].offset(), ranges[0].length()));
+  std::string expected = "select 1 as one #sample text\n";
+  EXPECT_EQ(expected, std::get<0>(results[0]));
 
-  // The second range is the empty range for the delimiter on the second line
-  EXPECT_EQ("", sql.substr(ranges[1].offset(), ranges[1].length()));
-
-  // The third range is the second statement
+  // The 2nd range is the second statement
   expected = "select 2 as two";
-  EXPECT_EQ(expected, sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(expected, std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, multiline_comment_bug) {
   send_sql("/* * */ select 1;");  // This loops forever before bugfix
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("/* * */ select 1", std::get<0>(results[0]));
 
   send_sql("select 0; /* / */ select 1;");
-  EXPECT_EQ(2, static_cast<int>(ranges.size()));
-  EXPECT_EQ("select 0", sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select 1", sql.substr(ranges[1].offset(), ranges[1].length()));
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ("select 0", std::get<0>(results[0]));
+  EXPECT_EQ("/* / */ select 1", std::get<0>(results[1]));
 
   send_sql("/*/ */ select 1;");
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("/*/ */ select 1", std::get<0>(results[0]));
 
   send_sql("/* /*/ select 1;");
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("/* /*/ select 1", std::get<0>(results[0]));
 
   send_sql("/**/ select 1;");
-  EXPECT_EQ(1, static_cast<int>(ranges.size()));
-  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("/**/ select 1", std::get<0>(results[0]));
 }
 
+#if 0
+// this is not a bug, old client will only accept delimiter if its at
+// the beginning of statement
 TEST_F(TestMySQLSplitter, multiline_comment_bug_delim) {
   send_sql("select 1; /* * */ delimiter //\nselect 2//\nfoo;bar//\n");
-  EXPECT_EQ(3, static_cast<int>(ranges.size()));
-  EXPECT_EQ("select 1", sql.substr(ranges[0].offset(), ranges[0].length()));
-  EXPECT_EQ("select 2", sql.substr(ranges[1].offset(), ranges[1].length()));
-  EXPECT_EQ("foo;bar", sql.substr(ranges[2].offset(), ranges[2].length()));
+  EXPECT_EQ(3, static_cast<int>(results.size()));
+  EXPECT_EQ("select 1", std::get<0>(results[0]));
+  EXPECT_EQ("select 2", std::get<0>(results[1]));
+  EXPECT_EQ("foo;bar", std::get<0>(results[2]));
+}
+#endif
+
+// New tests
+class Statement_splitter : public ::testing::TestWithParam<int> {
+ protected:
+  std::vector<std::string> split_batch(const std::string &sql,
+                                       bool ansi_quotes = false) {
+    std::stringstream ss(sql);
+    std::vector<std::tuple<std::string, std::string, size_t>> r;
+    if (GetParam() == 0)
+      r = split_sql_stream(
+          &ss, sql.empty() ? 1 : sql.length(),
+          [](const std::string &err) { throw std::runtime_error(err); },
+          ansi_quotes, &delimiter);
+    else
+      r = split_sql_stream(
+          &ss, GetParam(),
+          [](const std::string &err) { throw std::runtime_error(err); },
+          ansi_quotes, &delimiter);
+    std::vector<std::string> stmts;
+    for (const auto &i : r) {
+      stmts.push_back(std::get<0>(i) + std::get<1>(i));
+    }
+    return stmts;
+  }
+
+  void check_lnum(const std::vector<std::string> &stmts) {
+    std::string sql;
+    for (const auto &s : stmts) {
+      sql.append(s);
+    }
+
+    std::stringstream ss(sql);
+    std::vector<std::tuple<std::string, std::string, size_t>> r;
+    if (GetParam() == 0)
+      r = split_sql_stream(
+          &ss, sql.empty() ? 1 : sql.length(),
+          [](const std::string &err) { throw std::runtime_error(err); }, false,
+          &delimiter);
+    else
+      r = split_sql_stream(
+          &ss, GetParam(),
+          [](const std::string &err) { throw std::runtime_error(err); }, false,
+          &delimiter);
+
+    size_t lnum = 1;
+    auto s = stmts.begin();
+    for (const auto &i : r) {
+      ASSERT_TRUE(s != stmts.end());
+      if (s->compare(0, strlen("delimiter"), "delimiter") == 0) {
+        // delimiter lines are skipped
+        lnum += std::count(s->begin(), s->end(), '\n');
+        ++s;
+      }
+
+      SCOPED_TRACE(std::to_string(lnum) + ") " + *s);
+
+      EXPECT_EQ(lnum, std::get<2>(i));
+      EXPECT_EQ(shcore::str_rstrip(*s, "\n"), std::get<0>(i) + std::get<1>(i));
+
+      lnum += std::count(s->begin(), s->end(), '\n');
+      ++s;
+    }
+  }
+
+  std::string delimiter = ";";
+};
+
+using strv = std::vector<std::string>;
+
+TEST_P(Statement_splitter, basic) {
+  EXPECT_EQ(strv({}), split_batch(""));
+
+  EXPECT_EQ(strv({";"}), split_batch(";"));
+
+  EXPECT_EQ(strv({"'foo\\'b;a''r';"}), split_batch("'foo\\'b;a''r';"));
+
+  EXPECT_EQ(strv({"select 1;", "select 2;"}),
+            split_batch("select 1; select 2;"));
+
+  EXPECT_EQ(strv({"select 1;", "select 2"}), split_batch("select 1; select 2"));
+
+  EXPECT_EQ(strv({"select 1;", "select 2;", "select\n3;"}),
+            split_batch(R"*(select 1;
+select 2;select
+3;)*"));
 }
 
-}  // namespace sql_shell_tests
-}  // namespace shcore
+TEST_P(Statement_splitter, comments) {
+  EXPECT_EQ(strv({"/* one\n*/"}), split_batch(R"*(/* one
+*/)*"));
+
+  EXPECT_EQ(strv({"/* one **/"}), split_batch(R"*(/* one **/)*"));
+
+  EXPECT_EQ(strv({"/** one */"}), split_batch(R"*(/** one */)*"));
+
+  EXPECT_EQ(strv({"/*/ one */"}), split_batch(R"*(/*/ one */)*"));
+
+  EXPECT_EQ(strv({"/* one /*/"}), split_batch(R"*(/* one /*/)*"));
+
+  EXPECT_EQ(strv({"/* one *"}), split_batch(R"*(/* one *)*"));
+
+  EXPECT_EQ(strv({"/* one;\n--\ntwo */"}), split_batch(R"*(/* one;
+--
+two */)*"));
+
+  EXPECT_EQ(strv({"/* one\n--\ntwo */"}), split_batch(R"*(/* one
+--
+two */)*"));
+
+  EXPECT_EQ(strv({"/*! x */ select 1;", "select 2;", "select /* x */ 3;"}),
+            split_batch(R"*(/*! x */ select 1; select 2; 
+select /* x */ 3;)*"));
+
+  EXPECT_EQ(strv({R"*(/* x
+*/ select /* y 
+z */)*"}),
+            split_batch(R"*(/* x
+*/ select /* y 
+z */)*"));
+
+  EXPECT_EQ(strv({"select 1# bla;\n;", "-- ;;;#", "select 2;"}),
+            split_batch(R"*(select 1# bla;
+;
+-- ;;;#
+select 2;)*"));
+}
+
+TEST_P(Statement_splitter, strings) {
+  EXPECT_EQ(strv({"select ';';", "select 'delimiter ;';", "select 'foo\nbar';",
+                  "'foo\\'b;a''r';"}),
+            split_batch("select ';'; select 'delimiter ;'; select "
+                        "'foo\nbar';'foo\\'b;a''r';"));
+
+  EXPECT_EQ(
+      strv({"select `foo`;", "select `Foo\nBar`;", "select `FOO;\\`,\n`BAR`;"}),
+      split_batch(R"*(select `foo`;
+select `Foo
+Bar`;
+select `FOO;\`,
+`BAR`;)*"));
+
+  EXPECT_EQ(strv({"select 'foo';", "select 'Foo\nBar';",
+                  "select 'FOO\\';',\n'BAR';"}),
+            split_batch(R"*(select 'foo';
+select 'Foo
+Bar'; select 'FOO\';',
+'BAR';)*"));
+
+  EXPECT_EQ(strv({"/* foo; bar\nbla;\nble */\nselect 1;",
+                  "/* ; bla -- */ select 1, /* # */2, 3;"}),
+            split_batch(R"*(/* foo; bar
+bla;
+ble */
+select 1;
+/* ; bla -- */ select 1, /* # */2, 3;
+)*"));
+}
+
+TEST_P(Statement_splitter, ansi_quotes) {
+  // if ansi_quotes then "" is handled the same way as ``
+  EXPECT_EQ(strv({R"*("a"";b";)*", "'a'';b';", "`a``;b`;"}),
+            split_batch(
+                R"*("a"";b"; 'a'';b'; `a``;b`;)*", false));
+
+  const auto s1 = R"*("a\";b"; 'a\';b'; `a\`;b`;)*";
+  EXPECT_EQ(strv({R"*("a\";b";)*", R"*('a\';b';)*", R"*(`a\`;)*", R"*(b`;)*"}),
+            split_batch(s1, false));
+
+  EXPECT_EQ(strv({R"*("a"";b";)*", "'a'';b';", "`a``;b`;"}),
+            split_batch(
+                R"*("a"";b"; 'a'';b'; `a``;b`;)*", true));
+
+  const auto s2 = R"*("a\";b; 'a\';b'; `a\`;b;)*";
+  EXPECT_EQ(strv({R"*("a\";)*", R"*(b;)*", R"*('a\';b';)*", R"*(`a\`;)*",
+                  R"*(b;)*"}),
+            split_batch(s2, true));
+}
+
+TEST_P(Statement_splitter, commands) {
+  EXPECT_EQ(strv({"\\g", ";"}), split_batch(R"*(\g;)*"));
+
+  EXPECT_EQ(strv({"select 1\\g", "select 2;", "\\w", "select 3,4\\G"}),
+            split_batch(R"*(select 1\gselect 2;select 3\w,4\G)*"));
+
+  EXPECT_EQ(strv({"\\w", "/* comment */\n\nselect 1;"}),
+            split_batch(R"*(/* comment */
+\w
+select 1;)*"));
+
+  EXPECT_EQ(strv({"\\W", "\\w", "select 1\\g"}),
+            split_batch("select 1\\W\\w\\g"));
+}
+
+TEST_P(Statement_splitter, delimiter) {
+  delimiter = ";";
+  EXPECT_THROW(split_batch("delimiter;\n"), std::runtime_error);
+  EXPECT_EQ(";", delimiter);
+
+  EXPECT_THROW(split_batch("delimiter;"), std::runtime_error);
+  EXPECT_EQ(";", delimiter);
+
+  EXPECT_THROW(split_batch("  delimiter;"), std::runtime_error);
+  EXPECT_EQ(";", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({}), split_batch("delimiter ;;\n"));
+  EXPECT_EQ(";;", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({"x;"}), split_batch("x;delimiter ;;\n"));
+  EXPECT_EQ(";;", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({}), split_batch("  delimiter ;;\n"));
+  EXPECT_EQ(";;", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({"a;b$"}), split_batch("delimiter\t$\na;b$"));
+  EXPECT_EQ("$", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({"a;b$"}), split_batch("delimiter\t $ \t;\na;b$"));
+  EXPECT_EQ("$", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({"a;b$"}), split_batch("delimiter $ \t;\na;b$"));
+  EXPECT_EQ("$", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({}), split_batch("delimiter ;select 1;"));
+  EXPECT_EQ(";select", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({}), split_batch("delimiter ;select 1;\n"));
+  EXPECT_EQ(";select", delimiter);
+
+  delimiter = ";";
+  EXPECT_EQ(strv({"select 1;\nselect 2$", "select $;"}),
+            split_batch(R"*(delimiter $
+select 1;
+select 2$
+delimiter ;
+select $;)*"));
+  EXPECT_EQ(";", delimiter);
+
+  delimiter = "$";
+  EXPECT_EQ(strv({"select 1;2$", "select 3"}),
+            split_batch("select 1;2$select 3"));
+
+  delimiter = ";;";
+  EXPECT_EQ(strv({"select 1;2;;", "select 3"}),
+            split_batch("select 1;2;;select 3"));
+
+  delimiter = ";";
+  EXPECT_EQ(strv({"create table delimiter (a int);", "select delimiter;"}),
+            split_batch("create table delimiter (a int); select delimiter;"));
+  EXPECT_EQ(";", delimiter);
+
+  EXPECT_EQ(strv({"drop table\ndelimiter;"}),
+            split_batch("drop table\ndelimiter;"));
+  EXPECT_EQ(";", delimiter);
+
+  EXPECT_EQ(strv({"drop table\ndelimiter ,\nfoobar;"}),
+            split_batch("drop table\ndelimiter ,\nfoobar;"));
+  EXPECT_EQ(";", delimiter);
+
+  // TODO(alfredo): \d as delimiter change command
+  // select 1\d@ @
+  // select 1;\d@ select 2@
+  // select 1, \w\d @ 2, 3@
+}
+
+TEST_P(Statement_splitter, line_numbering) {
+  // clang-format off
+  {
+    SCOPED_TRACE("");
+    check_lnum({"1;\n",
+                "2;\n",
+                "3;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"-- ;\n",  // single-line comments are always a separate stmt
+                ";\n",
+                "2;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"# ;\n",  // single-line comments are always a separate stmt
+                ";\n",
+                "2;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"/* ; */\n"
+                ";\n",
+                "2;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"1;", "2;\n",
+                "3;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"'foo\n"
+                "bar';", "x;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"\"foo\n"
+                "bar\";", "x;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"`foo\n"
+                "bar`;", "x;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"/*foo\n"
+                "bar*/;", "x;"});
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"delimiter $$\n",
+                ";$$\n",
+                "y$$\n",
+                "x$$"});
+    delimiter = ";";
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"delimiter $$\n",
+                ";\n"
+                ";$$\n",
+                "y$$\n",
+                "x$$"});
+    delimiter = ";";
+  }
+  {
+    SCOPED_TRACE("");
+    check_lnum({"line 1;\n",
+                "line 2,\n"
+                "3\n"
+                "and 4;\n",
+                "-- line comment\n",
+                "/* another comment */ line 6;\n",
+                "/* line 7\n"
+                "   line 8 */;\n",
+                "# another comment\n",
+                "'10 long string\n"
+                "until line 11';",
+                "line 11.1;",
+                "line 11.2;"});
+  }
+  // clang-format on
+}
+
+// Runs tests processing script in 1 chunk
+INSTANTIATE_TEST_CASE_P(Statement_splitter_full, Statement_splitter,
+                        ::testing::Values(0));
+
+// Runs tests processing script in small chunks with size incrementing by 1
+INSTANTIATE_TEST_CASE_P(Statement_splitter_1, Statement_splitter,
+                        ::testing::Range(1, 16, 1));
+
+// Runs tests processing script in multiple chunks with various sizes
+INSTANTIATE_TEST_CASE_P(Statement_splitter_chunks, Statement_splitter,
+                        ::testing::Values(4, 8, 16, 32, 64));
+
+}  // namespace utils
+}  // namespace mysqlshdk

@@ -129,23 +129,8 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
   _input_source = source;
   _input_args = argv;
 
-  // In SQL Mode the stdin and file are processed line by line
   if (_mode == Shell_core::Mode::SQL) {
-    while (!stream.eof()) {
-      std::string line;
-
-      std::getline(stream, line);
-
-      handle_input(line, state);
-
-      if (_global_return_code && !mysqlsh::current_shell_options()->get().force)
-        break;
-    }
-
-    if (state != Input_state::Ok) {
-      std::string delimiter = ";";
-      handle_input(delimiter, state);
-    }
+    if (!_langs[_mode]->handle_input_stream(&stream)) _global_return_code = 1;
   } else {
     std::string data;
     if (&std::cin == &stream) {
@@ -271,7 +256,18 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
 void Shell_core::clear_input() { _langs[interactive_mode()]->clear_input(); }
 
 bool Shell_core::handle_shell_command(const std::string &line) {
-  return _langs[_mode]->handle_shell_command(line);
+  if (!_langs[_mode]->command_handler()->process(line)) {
+    return m_command_handler.process(line);
+  }
+  return false;
+}
+
+size_t Shell_core::handle_inline_shell_command(const std::string &line) {
+  size_t skip = _langs[_mode]->command_handler()->process_inline(line);
+  if (skip == 0) {
+    skip = m_command_handler.process_inline(line);
+  }
+  return skip;
 }
 
 /**
@@ -466,6 +462,23 @@ bool Shell_command_handler::process(const std::string &command_line) {
   }
 
   return ret_val;
+}
+
+size_t Shell_command_handler::process_inline(const std::string &command) {
+  auto cmd = _command_dict.find(command.substr(0, 2));
+  if (cmd != _command_dict.end()) {
+    // currently there are no inline \X commands that accept params, but when
+    // they get added, they should be normalized and still return the number
+    // of consumed chars from the original input
+    bool has_params = false;
+    if (!has_params) {
+      if (process(command.substr(0, 2))) return 2;
+    } else {
+      if (process(command.substr(0, 2) + " " + command.substr(3)))
+        return command.size();
+    }
+  }
+  return 0;
 }
 
 void Shell_command_handler::add_command(const std::string &triggers,

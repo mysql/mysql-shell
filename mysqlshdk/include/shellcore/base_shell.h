@@ -139,8 +139,6 @@ class SHCORE_PUBLIC Base_shell {
       Prompt_variables_update_type::UPDATE;
 
  protected:
-  shcore::Shell_command_handler _shell_command_handler;
-
 #ifdef FRIEND_TEST
   friend class Completion_cache_refresh;
   FRIEND_TEST(Interactive_shell_test, ssl_status);

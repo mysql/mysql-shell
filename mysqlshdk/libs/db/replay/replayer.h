@@ -50,10 +50,10 @@ class Replayer_mysql : public mysql::Session {
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string &sql,
-                                 bool buffered) override;
+  std::shared_ptr<IResult> querys(const char *sql, size_t length,
+                                  bool buffered) override;
 
-  void execute(const std::string &sql) override;
+  void executes(const char *sql, size_t length) override;
 
   void close() override;
 
@@ -115,10 +115,10 @@ class Replayer_mysqlx : public mysqlx::Session {
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
 
-  std::shared_ptr<IResult> query(const std::string &sql,
-                                 bool buffered) override;
+  std::shared_ptr<IResult> querys(const char *sql, size_t length,
+                                  bool buffered) override;
 
-  void execute(const std::string &sql) override;
+  void executes(const char *sql, size_t length) override;
 
   void close() override;
 

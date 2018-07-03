@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <stack>
+#include <utility>
 
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -57,29 +58,33 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
   virtual void handle_input(std::string &code, Input_state &state);
 
+  virtual bool handle_input_stream(std::istream *istream);
+
   virtual void clear_input();
   virtual std::string get_continued_input_context();
 
   void print_exception(const shcore::Exception &e);
 
   const std::string &get_main_delimiter() const {
-    return _delimiters.get_main_delimiter();
+    return m_splitter.delimiter();
   }
 
   void kill_query(uint64_t conn_id,
                   const mysqlshdk::db::Connection_options &conn_opts);
 
  private:
-  std::string _sql_cache;
-  mysql::splitter::Delimiters _delimiters;
-  std::stack<std::string> _parsing_context_stack;
+  std::string m_buffer;
+  mysqlshdk::utils::Sql_splitter m_splitter;
+
   std::function<void(std::shared_ptr<mysqlshdk::db::IResult>,
                      const Sql_result_info &)>
       _result_processor;
 
-  bool process_sql(const std::string &query_str,
-                   mysql::splitter::Delimiters::delim_type_t delimiter,
+  bool process_sql(const char *query_str, size_t query_len,
+                   const std::string &delimiter, size_t line_num,
                    std::shared_ptr<mysqlshdk::db::ISession> session);
+
+  std::pair<size_t, bool> handle_command(const char *p, size_t len, bool bol);
 
   void cmd_process_file(const std::vector<std::string> &params);
 };
