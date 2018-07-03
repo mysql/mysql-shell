@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,10 +55,11 @@ void Mock_session::then_throw() {
     throw std::logic_error("Attempted to set throw condition with no query.");
 }
 
-std::shared_ptr<mysqlshdk::db::IResult> Mock_session::query(
-    const std::string &sql, bool /*buffered*/) {
+std::shared_ptr<mysqlshdk::db::IResult> Mock_session::querys(
+    const char *sql, size_t length, bool /*buffered*/) {
+  std::string s(sql, length);
   // Ensures the expected query got received
-  EXPECT_EQ(sql, _queries[0]);
+  EXPECT_EQ(s, _queries[0]);
 
   // Removes the query
   _queries.erase(_queries.begin());
@@ -70,7 +71,7 @@ std::shared_ptr<mysqlshdk::db::IResult> Mock_session::query(
   }
 
   // Returns the assigned result if that's the plan
-  return _results[sql];
+  return _results[s];
 }
 
 }  // namespace testing

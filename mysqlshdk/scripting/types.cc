@@ -193,6 +193,11 @@ Exception Exception::parser_error(const std::string &message) {
   return e;
 }
 
+void Exception::set_file_context(const std::string &file, size_t line) {
+  if (!file.empty()) (*_error)["file"] = Value(file);
+  if (line > 0) (*_error)["line"] = Value(static_cast<uint64_t>(line));
+}
+
 const char *Exception::what() const noexcept {
   if ((*_error)["message"].type == String)
     return (*_error)["message"].value.s->c_str();

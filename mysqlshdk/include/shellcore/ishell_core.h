@@ -65,6 +65,7 @@ class SHCORE_PUBLIC IShell_core {
   virtual Object_registry *registry() = 0;
   virtual void handle_input(std::string &code, Input_state &state) = 0;
   virtual bool handle_shell_command(const std::string &code) = 0;
+  virtual size_t handle_inline_shell_command(const std::string &code) = 0;
   virtual std::string get_handled_input() = 0;
   virtual int process_stream(std::istream &stream, const std::string &source,
                              const std::vector<std::string> &argv) = 0;

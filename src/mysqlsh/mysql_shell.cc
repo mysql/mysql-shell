@@ -173,11 +173,14 @@ class Shell_command_provider : public shcore::completer::Provider {
         // on the \\ .. this requires that this provider be the 1st in the list
         *compl_offset -= 1;
       }
-      auto names = shell_->command_handler()->get_command_names_matching(
-          text.substr(*compl_offset));
+      auto names = shell_->shell_context()
+                       ->command_handler()
+                       ->get_command_names_matching(text.substr(*compl_offset));
       std::copy(names.begin(), names.end(), std::back_inserter(options));
     } else if (text == "\\") {
-      auto names = shell_->command_handler()->get_command_names_matching("");
+      auto names = shell_->shell_context()
+                       ->command_handler()
+                       ->get_command_names_matching("");
       if (*compl_offset > 0) {
         // extend the completed string beyond the default, which will break
         // on the \\ .. this requires that this provider be the 1st in the list
@@ -1279,18 +1282,11 @@ bool Mysql_shell::do_shell_command(const std::string &line) {
       _shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
     std::string tmp = shcore::str_rstrip(shcore::str_strip(line), ";");
     if (shcore::str_ibeginswith(tmp, "use ")) {
-      return _shell_command_handler.process("\\" + tmp);
+      return _shell->handle_shell_command("\\" + tmp);
     }
   }
 
-  // Verifies if the command can be handled by the active shell
   bool handled = _shell->handle_shell_command(line);
-
-  // Global Command Processing (xShell specific)
-  if (!handled) {
-    handled = _shell_command_handler.process(line);
-  }
-
   if (line.length() > 1 && line[0] == '\\' && !handled) {
     print_error("Unknown command: '" + line + "'");
     handled = true;

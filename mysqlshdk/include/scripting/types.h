@@ -383,6 +383,8 @@ class SHCORE_PUBLIC Exception : public std::exception {
   static Exception parser_error(const std::string &message);
   static Exception scripting_error(const std::string &message);
 
+  void set_file_context(const std::string &file, size_t line);
+
   bool is_argument() const;
   bool is_attribute() const;
   bool is_value() const;

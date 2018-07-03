@@ -208,16 +208,16 @@ void Session_impl::close() {
   _mysql = nullptr;
 }
 
-std::shared_ptr<IResult> Session_impl::query(const std::string &sql,
+std::shared_ptr<IResult> Session_impl::query(const char *sql, size_t len,
                                              bool buffered) {
-  return run_sql(sql, buffered);
+  return run_sql(sql, len, buffered);
 }
 
-void Session_impl::execute(const std::string &sql) {
-  auto result = run_sql(sql, true);
+void Session_impl::execute(const char *sql, size_t len) {
+  auto result = run_sql(sql, len, true);
 }
 
-std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
+std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
                                                bool buffered) {
   if (_mysql == nullptr) throw std::runtime_error("Not connected");
   mysqlshdk::utils::Profile_timer timer;
@@ -235,7 +235,7 @@ std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
     mysql_free_result(trailing_result);
   }
 
-  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0) {
+  if (mysql_real_query(_mysql, sql, len) != 0) {
     throw Error(mysql_error(_mysql), mysql_errno(_mysql),
                 mysql_sqlstate(_mysql));
   }

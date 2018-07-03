@@ -384,10 +384,11 @@ void XSession_impl::enable_trace(bool flag) {
 }
 
 void XSession_impl::load_session_info() {
-  std::shared_ptr<IResult> result(
-      query("select @@lower_case_table_names, @@version, connection_id(), "
-            "variable_value from performance_schema.session_status where "
-            "variable_name = 'mysqlx_ssl_cipher'"));
+  static constexpr char sql[] =
+      "select @@lower_case_table_names, @@version, connection_id(), "
+      "variable_value from performance_schema.session_status where "
+      "variable_name = 'mysqlx_ssl_cipher'";
+  std::shared_ptr<IResult> result(query(sql, sizeof(sql) - 1));
 
   const IRow *row = result->fetch_one();
   if (!row) throw std::logic_error("Unexpected empty result");
@@ -438,13 +439,19 @@ std::shared_ptr<IResult> XSession_impl::after_query(
   return std::static_pointer_cast<IResult>(res);
 }
 
-std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
+std::shared_ptr<IResult> XSession_impl::query(const char *sql, size_t len,
                                               bool buffered) {
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("query");
   before_query();
   xcl::XError error;
-  std::unique_ptr<xcl::XQuery_result> xresult(_mysql->execute_sql(sql, &error));
+  std::unique_ptr<xcl::XQuery_result> xresult;
+  {
+    ::Mysqlx::Sql::StmtExecute stmt;
+
+    stmt.set_stmt(sql, len);
+    xresult = _mysql->get_protocol().execute_stmt(stmt, &error);
+  }
   check_error_and_throw(error);
   auto result = after_query(std::move(xresult), buffered);
   timer.stage_end();
@@ -452,8 +459,8 @@ std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
   return result;
 }
 
-void XSession_impl::execute(const std::string &sql) {
-  std::shared_ptr<IResult> result = query(sql, false);
+void XSession_impl::execute(const char *sql, size_t len) {
+  std::shared_ptr<IResult> result = query(sql, len, false);
   while (result->next_resultset()) {
   }
 }

@@ -64,8 +64,9 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   void enable_trace(bool flag);
 
-  std::shared_ptr<IResult> query(const std::string &sql, bool buffered = false);
-  void execute(const std::string &sql);
+  std::shared_ptr<IResult> query(const char *sql, size_t len,
+                                 bool buffered = false);
+  void execute(const char *sql, size_t len);
 
   void close();
 
@@ -155,12 +156,14 @@ class SHCORE_PUBLIC Session : public ISession,
 
   void enable_protocol_trace(bool flag) { _impl->enable_trace(flag); }
 
-  std::shared_ptr<IResult> query(const std::string &sql,
-                                 bool buffered = false) override {
-    return _impl->query(sql, buffered);
+  std::shared_ptr<IResult> querys(const char *sql, size_t len,
+                                  bool buffered = false) override {
+    return _impl->query(sql, len, buffered);
   }
 
-  void execute(const std::string &sql) override { _impl->execute(sql); }
+  void executes(const char *sql, size_t len) override {
+    _impl->execute(sql, len);
+  }
 
   virtual std::shared_ptr<IResult> execute_stmt(const std::string &ns,
                                                 const std::string &stmt,

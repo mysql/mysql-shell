@@ -81,7 +81,7 @@ TEST_F(Command_line_test, bug23508428) {
            NULL});
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "ERROR: 1619 (HY000): Built-in plugins "
+        "ERROR: 1619 (HY000) at line 1: Built-in plugins "
         "cannot be deleted");
   }
 
@@ -90,7 +90,7 @@ TEST_F(Command_line_test, bug23508428) {
              "uninstall plugin mysqlx_cache_cleaner;", NULL});
     if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "ERROR: 1619 (HY000): Built-in plugins "
+          "ERROR: 1619 (HY000) at line 1: Built-in plugins "
           "cannot be deleted");
     }
   }
@@ -218,10 +218,10 @@ TEST_F(Command_line_test, Bug25974014) {
   // X session
   std::snprintf(cmd, MAX_PATH,
 #ifdef _WIN32
-                "echo kill CONNECTION_ID(); \\use mysql; | %s --uri=%s --sql "
+                "echo kill CONNECTION_ID(); use mysql; | %s --uri=%s --sql "
                 "--interactive 2> nul",
 #else
-                "echo \"kill CONNECTION_ID(); \\use mysql;\" | %s --uri=%s "
+                "echo \"kill CONNECTION_ID(); use mysql;\" | %s --uri=%s "
                 "--sql --interactive 2> /dev/null",
 #endif
                 _mysqlsh, _uri.c_str());
@@ -241,10 +241,10 @@ TEST_F(Command_line_test, Bug25974014) {
   out.clear();
   std::snprintf(cmd, MAX_PATH,
 #ifdef _WIN32
-                "echo kill CONNECTION_ID(); \\use mysql; | %s --uri=%s --sql "
+                "echo kill CONNECTION_ID(); use mysql; | %s --uri=%s --sql "
                 "--interactive 2> nul",
 #else
-                "echo \"kill CONNECTION_ID(); \\use mysql;\" | %s --uri=%s "
+                "echo \"kill CONNECTION_ID(); use mysql;\" | %s --uri=%s "
                 "--sql --interactive 2> /dev/null",
 #endif
                 _mysqlsh, _mysql_uri.c_str());
@@ -263,7 +263,7 @@ TEST_F(Command_line_test, Bug25974014) {
 
 TEST_F(Command_line_test, Bug25105307) {
   execute({_mysqlsh, _uri.c_str(), "--sql", "-e",
-           "kill CONNECTION_ID(); \\use mysql;", NULL});
+           "kill CONNECTION_ID(); use mysql;", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("interrupted");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Attempting to reconnect");
@@ -315,7 +315,8 @@ TEST_F(Command_line_test, bug25653170) {
       execute({_mysqlsh, _uri.c_str(), "--sql", "-e", "select 1 /*", NULL});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "ERROR: 1064: You have an error in your SQL syntax; check the manual "
+      "ERROR: 1064 at line 1: You have an error in your SQL syntax; check the "
+      "manual "
       "that corresponds to your MySQL server version for the right syntax to "
       "use near '/*' at line 1");
 }

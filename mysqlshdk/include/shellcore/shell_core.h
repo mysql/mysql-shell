@@ -46,7 +46,7 @@ using namespace std::placeholders;
 // std::vector<std::string>& params)
 // - Command methid is a method on the caller class
 #define SET_SHELL_COMMAND(name, help, function) \
-  _shell_command_handler.add_command(name, help, std::bind(&function, this, _1))
+  command_handler()->add_command(name, help, std::bind(&function, this, _1))
 
 // Helper to add commands in non standard format to the dispatcher.
 // Use it as:
@@ -55,7 +55,7 @@ using namespace std::placeholders;
 // - Caller class has a command handler defined as _shell_command_handler
 // - Bound function receives const std::vector<std::string>& params
 #define SET_CUSTOM_SHELL_COMMAND(name, help, function, case_sensitive, mode) \
-  _shell_command_handler.add_command(name, help, function, case_sensitive, mode)
+  command_handler()->add_command(name, help, function, case_sensitive, mode)
 
 namespace shcore {
 class Object_registry;
@@ -86,6 +86,7 @@ class SHCORE_PUBLIC Shell_command_handler {
  public:
   Shell_command_handler(bool use_help = true) : m_use_help(use_help){};
   bool process(const std::string &command_line);
+  size_t process_inline(const std::string &command);
   void add_command(const std::string &triggers, const std::string &help_tag,
                    Shell_command_function function,
                    bool case_sensitive_help = false,
@@ -102,11 +103,13 @@ class SHCORE_PUBLIC Shell_language {
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
+  virtual bool handle_input_stream(std::istream *istream) {
+    throw std::logic_error("not implemented");
+  }
+
   virtual std::string preprocess_input_line(const std::string &s) { return s; }
   virtual void handle_input(std::string &code, Input_state &state) = 0;
-  virtual bool handle_shell_command(const std::string &code) {
-    return _shell_command_handler.process(code);
-  }
+
   virtual std::string get_handled_input() { return _last_handled; }
 
   virtual void clear_input() {}
@@ -116,6 +119,8 @@ class SHCORE_PUBLIC Shell_language {
   virtual void execute_module(
       const std::string &UNUSED(file_name)) { /* Does Nothing by default */
   }
+
+  Shell_command_handler *command_handler() { return &_shell_command_handler; }
 
  protected:
   IShell_core *_owner;
@@ -167,6 +172,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   virtual std::string preprocess_input_line(const std::string &s);
   void handle_input(std::string &code, Input_state &state) override;
   bool handle_shell_command(const std::string &code) override;
+  size_t handle_inline_shell_command(const std::string &code) override;
   std::string get_handled_input() override;
   int process_stream(std::istream &stream, const std::string &source,
                      const std::vector<std::string> &argv) override;
@@ -182,6 +188,8 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   void set_error_processing() { _global_return_code = 1; }
 
   Help_manager *get_helper() override { return &m_help; }
+
+  Shell_command_handler *command_handler() { return &m_command_handler; }
 
  public:
   void cancel_input();
@@ -201,6 +209,8 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   Object_registry *_registry;
   std::map<std::string, std::pair<Mode_mask, Value>> _globals;
   std::map<Mode, Shell_language *> _langs;
+
+  Shell_command_handler m_command_handler;
 
   std::shared_ptr<mysqlsh::ShellBaseSession> _global_dev_session;
 

@@ -60,8 +60,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   Session_impl();
   void connect(const mysqlshdk::db::Connection_options &connection_info);
 
-  std::shared_ptr<IResult> query(const std::string &sql, bool buffered);
-  void execute(const std::string &sql);
+  std::shared_ptr<IResult> query(const char *sql, size_t len, bool buffered);
+  void execute(const char *sql, size_t len);
 
   void start_transaction();
   void commit();
@@ -148,7 +148,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return _connection_options;
   }
 
-  std::shared_ptr<IResult> run_sql(const std::string &sql,
+  std::shared_ptr<IResult> run_sql(const char *sql, size_t len,
                                    bool lazy_fetch = true);
   bool setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options) const;
   void throw_on_connection_fail();
@@ -178,12 +178,15 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_connection_options();
   }
 
-  std::shared_ptr<IResult> query(const std::string &sql,
-                                 bool buffered = false) override {
-    return _impl->query(sql, buffered);
+  std::shared_ptr<IResult> querys(const char *sql, size_t len,
+                                  bool buffered = false) override {
+    return _impl->query(sql, len, buffered);
   }
 
-  void execute(const std::string &sql) override { _impl->execute(sql); }
+  void executes(const char *sql, size_t len) override {
+    _impl->execute(sql, len);
+  }
+
   void close() override { _impl->close(); }
   const char *get_ssl_cipher() const override {
     return _impl->get_ssl_cipher();

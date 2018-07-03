@@ -33,10 +33,16 @@ namespace mysqlshdk {
 namespace utils {
 
 namespace internal {
+#ifdef _WIN32
+#define MSVC_WORKAROUND extern const __declspec(selectany)
+#else
+#define MSVC_WORKAROUND constexpr
+#endif
+
 // lookup table of number of bytes to skip when spanning a quoted string
 // (single quote and double quote versions)
 // skip 2 for escape, 0 for '\0', 0 for end quote and 1 for the rest
-constexpr char k_quoted_string_span_skips_sq[256] = {
+MSVC_WORKAROUND char k_quoted_string_span_skips_sq[256] = {
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -49,7 +55,7 @@ constexpr char k_quoted_string_span_skips_sq[256] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-constexpr char k_quoted_string_span_skips_dq[256] = {
+MSVC_WORKAROUND char k_quoted_string_span_skips_dq[256] = {
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -62,7 +68,7 @@ constexpr char k_quoted_string_span_skips_dq[256] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-constexpr char k_keyword_chars[] =
+MSVC_WORKAROUND char k_keyword_chars[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 }  // namespace internal
 
@@ -179,6 +185,30 @@ inline size_t span_spaces(const std::string &s, size_t offset) {
 inline size_t span_not_spaces(const std::string &s, size_t offset) {
   size_t p = s.find_first_of(" \t\r\n", offset);
   if (p == std::string::npos) return s.size();
+  return p;
+}
+
+inline size_t span_quoted_sql_identifier_dquote(const std::string &s,
+                                                size_t offset) {
+  assert(!s.empty());
+  assert(offset < s.length());
+  assert(s[offset] == '"');
+  assert(s[s.size()] == '\0');
+
+  // unlike strings, identifiers don't allow escaping with the \ char
+  size_t p = offset + 1;
+  for (;;) {
+    p = s.find('"', p);
+    if (p == std::string::npos) {
+      break;
+    }
+    if (s[p + 1] == '"') {
+      p += 2;
+    } else {
+      ++p;
+      break;
+    }
+  }
   return p;
 }
 

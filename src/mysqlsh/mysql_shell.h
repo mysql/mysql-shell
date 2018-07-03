@@ -72,11 +72,10 @@ class Mysql_shell : public mysqlsh::Base_shell {
   static bool sql_safe_for_logging(const std::string &sql);
 
   shcore::Shell_command_handler *command_handler() {
-    return &_shell_command_handler;
+    return shell_context()->command_handler();
   }
 
  protected:
-  shcore::Shell_command_handler _shell_command_handler;
   static void set_sql_safe_for_logging(const std::string &patterns);
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_active_session(

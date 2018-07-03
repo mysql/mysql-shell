@@ -146,7 +146,8 @@ std::unique_ptr<Warning> Result::fetch_one_warning() {
   if (_warning_count && !_fetched_warnings) {
     _fetched_warnings = true;
     if (auto s = _session.lock()) {
-      auto result = s->query("show warnings", true);
+      auto result =
+          s->query("show warnings", sizeof("show warnings") - 1, true);
       while (auto row = result->fetch_one()) {
         std::unique_ptr<Warning> w(new Warning());
         std::string level = row->get_string(0);

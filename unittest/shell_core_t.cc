@@ -107,7 +107,7 @@ TEST_F(Shell_core_test, test_process_stream) {
   // Failed without the force option
   _options->force = true;
   process("sql/sql_err.sql");
-  EXPECT_EQ(1, _ret_val);
+  EXPECT_EQ(0, _ret_val);  // if force is enabled, return code is 0 on error
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
   EXPECT_TRUE(std::string::npos != output_handler.std_err.find(err_table_57) ||
               std::string::npos != output_handler.std_err.find(err_table_80));

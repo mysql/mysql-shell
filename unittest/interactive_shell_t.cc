@@ -223,144 +223,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_x) {
   }
 }
 
-TEST_F(Interactive_shell_test, shell_command_connect_auto){
-    // Session type determined from connection success
-    {execute("\\connect " + _uri);
-MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _uri_nopasswd + "'");
-MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-MY_EXPECT_STDOUT_CONTAINS(
-    "No default schema selected; type \\use <schema> to set one.");
-output_handler.wipe_all();
-
-execute("session");
-MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-output_handler.wipe_all();
-
-execute("session.close()");
-}  // namespace mysqlsh
-
-// Session type determined from connection success
-{
-  execute("\\connect " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _mysql_uri_nopasswd +
-                            "'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "No default schema selected; type \\use <schema> to set one.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// Session type determined by the URI scheme
-{
-  execute("\\connect mysql://" + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
-                            _mysql_uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "No default schema selected; type \\use <schema> to set one.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// FR_EXTRA_SUCCEED_5 : \connect -ma mysql://user@host:3306/db
-{
-  execute("\\connect -ma mysql://" + _mysql_uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
-                            _mysql_uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// FR_EXTRA_SUCCEED_6 : "\c -ma mysql://user@host:3306/db
-{
-  execute("\\c -ma mysql://" + _mysql_uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
-                            _mysql_uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// FR_EXTRA_SUCCEED_9 : \connect -ma mysqlx://user@host:33060/db
-{
-  execute("\\connect -ma mysqlx://" + _uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
-                            _uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// FR_EXTRA_SUCCEED_10 : \c -ma mysqlx://user@host:33060/db
-{
-  execute("\\c -ma mysqlx://" + _uri + "/mysql");
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
-                            _uri_nopasswd + "/mysql'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// Session type determined by the URI scheme
-{
-  execute("\\connect mysqlx://" + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
-                            _uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "No default schema selected; type \\use <schema> to set one.");
-  output_handler.wipe_all();
-
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-  output_handler.wipe_all();
-
-  execute("session.close()");
-}
-
-// Using -ma for X protocol session(type determined from connection success)
-{
-  execute("\\connect -ma " + _uri);
+TEST_F(Interactive_shell_test, shell_command_connect_auto) {
+  // Session type determined from connection success
+  execute("\\connect " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
   MY_EXPECT_STDOUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
@@ -370,183 +237,318 @@ execute("session.close()");
   output_handler.wipe_all();
 
   execute("session.close()");
-}
 
-// Using -ma for Classic session(type determined from connection success)
-{
-  execute("\\connect -ma " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _mysql_uri_nopasswd +
-                            "'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "No default schema selected; type \\use <schema> to set one.");
-  output_handler.wipe_all();
+  // Session type determined from connection success
+  {
+    execute("\\connect " + _mysql_uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _mysql_uri_nopasswd +
+                              "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
 
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-  output_handler.wipe_all();
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
 
-  execute("session.close()");
-}
+    execute("session.close()");
+  }
 
-// Using -ma for session type determined by the URI scheme(Classic session)
-{
-  execute("\\connect -ma mysql://" + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
-                            _mysql_uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "No default schema selected; type \\use <schema> to set one.");
-  output_handler.wipe_all();
+  // Session type determined by the URI scheme
+  {
+    execute("\\connect mysql://" + _mysql_uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
+                              _mysql_uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
 
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-  output_handler.wipe_all();
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
 
-  execute("session.close()");
-}
+    execute("session.close()");
+  }
 
-// Using -ma for session type determined by the URI scheme(X protocol session)
-{
-  execute("\\connect -ma mysqlx://" + _uri);
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
-                            _uri_nopasswd + "'");
-  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-  MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
-  MY_EXPECT_STDOUT_CONTAINS(
-      "No default schema selected; type \\use <schema> to set one.");
-  output_handler.wipe_all();
+  // FR_EXTRA_SUCCEED_5 : \connect -ma mysql://user@host:3306/db
+  {
+    execute("\\connect -ma mysql://" + _mysql_uri + "/mysql");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
+                              _mysql_uri_nopasswd + "/mysql'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
+    output_handler.wipe_all();
 
-  execute("session");
-  MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-  output_handler.wipe_all();
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
 
-  execute("session.close()");
-}
+    execute("session.close()");
+  }
+
+  // FR_EXTRA_SUCCEED_6 : "\c -ma mysql://user@host:3306/db
+  {
+    execute("\\c -ma mysql://" + _mysql_uri + "/mysql");
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
+                              _mysql_uri_nopasswd + "/mysql'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // FR_EXTRA_SUCCEED_9 : \connect -ma mysqlx://user@host:33060/db
+  {
+    execute("\\connect -ma mysqlx://" + _uri + "/mysql");
+    MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
+                              _uri_nopasswd + "/mysql'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // FR_EXTRA_SUCCEED_10 : \c -ma mysqlx://user@host:33060/db
+  {
+    execute("\\c -ma mysqlx://" + _uri + "/mysql");
+    MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
+                              _uri_nopasswd + "/mysql'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // Session type determined by the URI scheme
+  {
+    execute("\\connect mysqlx://" + _uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
+                              _uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // Using -ma for X protocol session(type determined from connection success)
+  {
+    execute("\\connect -ma " + _uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // Using -ma for Classic session(type determined from connection success)
+  {
+    execute("\\connect -ma " + _mysql_uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _mysql_uri_nopasswd +
+                              "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // Using -ma for session type determined by the URI scheme(Classic session)
+  {
+    execute("\\connect -ma mysql://" + _mysql_uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
+                              _mysql_uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
+
+  // Using -ma for session type determined by the URI scheme(X protocol session)
+  {
+    execute("\\connect -ma mysqlx://" + _uri);
+    MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
+                              _uri_nopasswd + "'");
+    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+    MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
+    MY_EXPECT_STDOUT_CONTAINS(
+        "No default schema selected; type \\use <schema> to set one.");
+    output_handler.wipe_all();
+
+    execute("session");
+    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
+    output_handler.wipe_all();
+
+    execute("session.close()");
+  }
 
 #ifndef _WIN32
-{
-  auto data = shcore::get_connection_options(_uri);
-  std::string user = data.get_user();
-  data.clear_host();
-  data.clear_port();
+  {
+    auto data = shcore::get_connection_options(_uri);
+    std::string user = data.get_user();
+    data.clear_host();
+    data.clear_port();
 
-  // Check for URI syntax with socket path (classic)
-  if (!_mysql_socket.empty()) {
-    data.clear_socket();
-    data.set_socket(_mysql_socket);
-    // \connect --mc user@/path%2Fto%2Fsocket
-    {
-      execute("\\connect --mc " +
-              data.as_uri(mysqlshdk::db::uri::formats::full()));
-      MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to ");
-      MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "No default schema selected; type \\use <schema> to set one.");
-      output_handler.wipe_all();
+    // Check for URI syntax with socket path (classic)
+    if (!_mysql_socket.empty()) {
+      data.clear_socket();
+      data.set_socket(_mysql_socket);
+      // \connect --mc user@/path%2Fto%2Fsocket
+      {
+        execute("\\connect --mc " +
+                data.as_uri(mysqlshdk::db::uri::formats::full()));
+        MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to ");
+        MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "No default schema selected; type \\use <schema> to set one.");
+        output_handler.wipe_all();
 
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "<ClassicSession:" +
-          data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
-      output_handler.wipe_all();
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "<ClassicSession:" +
+            data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
+        output_handler.wipe_all();
 
-      execute("session.close()");
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
-      output_handler.wipe_all();
-    }
-    // \connect user@/path%2Fto%2Fsocket
-    {
-      execute("\\connect " + data.as_uri(mysqlshdk::db::uri::formats::full()));
-      MY_EXPECT_STDOUT_CONTAINS("Creating a session to ");
-      MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "No default schema selected; type \\use <schema> to set one.");
-      output_handler.wipe_all();
-
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "<ClassicSession:" +
-          data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
-      output_handler.wipe_all();
-
-      execute("session.close()");
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
-      output_handler.wipe_all();
-    }
-    // \connect user@/path%2Fto%2Fsocket
-    // using classic socket as X protocol connection must fail
-    {
-      execute("\\connect --mx " +
-              data.as_uri(mysqlshdk::db::uri::formats::full()));
-      MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
-      // wrong protocol can manifest as this error or a 2006 'gone away' error
-      if (output_handler.std_err.find("MySQL Error 2006") ==
-          std::string::npos) {
-        MY_EXPECT_STDERR_CONTAINS("MySQL Error 2027");
-        MY_EXPECT_STDERR_CONTAINS(
-            "Requested session assumes MySQL X Protocol but");
-        MY_EXPECT_STDERR_CONTAINS("seems to speak the classic MySQL protocol");
+        execute("session.close()");
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
         output_handler.wipe_all();
       }
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
-      output_handler.wipe_all();
+      // \connect user@/path%2Fto%2Fsocket
+      {
+        execute("\\connect " +
+                data.as_uri(mysqlshdk::db::uri::formats::full()));
+        MY_EXPECT_STDOUT_CONTAINS("Creating a session to ");
+        MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "No default schema selected; type \\use <schema> to set one.");
+        output_handler.wipe_all();
+
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "<ClassicSession:" +
+            data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
+        output_handler.wipe_all();
+
+        execute("session.close()");
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
+        output_handler.wipe_all();
+      }
+      // \connect user@/path%2Fto%2Fsocket
+      // using classic socket as X protocol connection must fail
+      {
+        execute("\\connect --mx " +
+                data.as_uri(mysqlshdk::db::uri::formats::full()));
+        MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
+        // wrong protocol can manifest as this error or a 2006 'gone away' error
+        if (output_handler.std_err.find("MySQL Error 2006") ==
+            std::string::npos) {
+          MY_EXPECT_STDERR_CONTAINS("MySQL Error 2027");
+          MY_EXPECT_STDERR_CONTAINS(
+              "Requested session assumes MySQL X Protocol but");
+          MY_EXPECT_STDERR_CONTAINS(
+              "seems to speak the classic MySQL protocol");
+          output_handler.wipe_all();
+        }
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:disconnected>");
+        output_handler.wipe_all();
+      }
+    }
+
+    // Check for URI syntax with xsocket path (x protocol)
+    if (!_socket.empty()) {
+      data.clear_socket();
+      data.set_socket(_socket);
+      // \connect --mx user@/path%2Fto%2Fx_socket
+      {
+        execute("\\connect --mx " +
+                data.as_uri(mysqlshdk::db::uri::formats::full()));
+        MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
+        MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "No default schema selected; type \\use <schema> to set one.");
+        output_handler.wipe_all();
+
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "<Session:" +
+            data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
+        output_handler.wipe_all();
+
+        execute("session.close()");
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS("<Session:disconnected>");
+        output_handler.wipe_all();
+      }
+      // \connect user@/path%2Fto%2Fx_socket
+      {
+        execute("\\connect " +
+                data.as_uri(mysqlshdk::db::uri::formats::full()));
+        MY_EXPECT_STDOUT_CONTAINS("Creating a session to ");
+        MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "No default schema selected; type \\use <schema> to set one.");
+        output_handler.wipe_all();
+
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS(
+            "<Session:" +
+            data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
+        output_handler.wipe_all();
+
+        execute("session.close()");
+        execute("session");
+        MY_EXPECT_STDOUT_CONTAINS("<Session:disconnected>");
+        output_handler.wipe_all();
+      }
+      // \connect --mc user@/path%2Fto%2Fx_socket
+      // using x socket as classic connection must fail
+      // Test omitted due to long time to discover wrong protocol
     }
   }
-
-  // Check for URI syntax with xsocket path (x protocol)
-  if (!_socket.empty()) {
-    data.clear_socket();
-    data.set_socket(_socket);
-    // \connect --mx user@/path%2Fto%2Fx_socket
-    {
-      execute("\\connect --mx " +
-              data.as_uri(mysqlshdk::db::uri::formats::full()));
-      MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
-      MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "No default schema selected; type \\use <schema> to set one.");
-      output_handler.wipe_all();
-
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "<Session:" +
-          data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
-      output_handler.wipe_all();
-
-      execute("session.close()");
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS("<Session:disconnected>");
-      output_handler.wipe_all();
-    }
-    // \connect user@/path%2Fto%2Fx_socket
-    {
-      execute("\\connect " + data.as_uri(mysqlshdk::db::uri::formats::full()));
-      MY_EXPECT_STDOUT_CONTAINS("Creating a session to ");
-      MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "No default schema selected; type \\use <schema> to set one.");
-      output_handler.wipe_all();
-
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS(
-          "<Session:" +
-          data.as_uri(mysqlshdk::db::uri::formats::full_no_password()) + ">");
-      output_handler.wipe_all();
-
-      execute("session.close()");
-      execute("session");
-      MY_EXPECT_STDOUT_CONTAINS("<Session:disconnected>");
-      output_handler.wipe_all();
-    }
-    // \connect --mc user@/path%2Fto%2Fx_socket
-    // using x socket as classic connection must fail
-    // Test omitted due to long time to discover wrong protocol
-  }
-}
 #endif  // !_WIN32
 }
 
@@ -2248,6 +2250,113 @@ SYNTAX
   wipe_all();
 
   reset_options();
+}
+
+TEST_F(Interactive_shell_test, inline_commands) {
+  execute("\\sql");
+  execute("\\connect " + _uri);
+  wipe_all();
+
+  // ensure behaviour of inline \commands match old cli
+  execute(";;");
+  EXPECT_EQ("", output_handler.std_out);
+  EXPECT_EQ("ERROR: 1065: Query was empty\nERROR: 1065: Query was empty\n",
+            output_handler.std_err);
+
+  wipe_all();
+  execute("select 1\\w");
+  EXPECT_NE("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+  execute("\\g");
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Show warnings disabled.\n"
+      "+---+\n"
+      "| 1 |\n"
+      "+---+\n"
+      "| 1 |\n"
+      "+---+\n");
+
+  wipe_all();
+  execute("select 1\\w\\G");
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Show warnings disabled.\n"
+      "*************************** 1. row ***************************\n"
+      "1: 1\n"
+      "1 row in set");
+
+  wipe_all();
+  execute("select 1\\W\\w\\W;");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Show warnings enabled.\n"
+      "Show warnings disabled.\n"
+      "Show warnings enabled.\n"
+      "+---+\n"
+      "| 1 |\n"
+      "+---+\n"
+      "| 1 |\n"
+      "+---+\n"
+      "1 row in set");
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+
+  wipe_all();
+  execute("\\W");
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+  MY_EXPECT_STDOUT_CONTAINS("Show warnings enabled.");
+
+  wipe_all();
+  // \ at the beginning of stmt means a full line command
+  execute("\\W\\w\\W");
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+  MY_EXPECT_STDERR_CONTAINS("Unknown command: '\\W\\w\\W'");
+
+  // \ after stmt means single letter escape commands
+  wipe_all();
+  execute(";\\W\\w\\W");
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Show warnings enabled.\n"
+      "Show warnings disabled.\n"
+      "Show warnings enabled.");
+
+  wipe_all();
+  execute("\\l");  // invalid cmd
+  EXPECT_EQ("",
+            _interactive_shell->shell_context()->get_continued_input_context());
+  EXPECT_EQ("", output_handler.std_out);
+  EXPECT_EQ("Unknown command: '\\l'", output_handler.std_err);
+
+  // invalid delimiters
+  wipe_all();
+  execute("delimiter");
+  EXPECT_EQ(
+      "ERROR: DELIMITER must be followed by a 'delimiter' character or "
+      "string\n",
+      output_handler.std_out);
+
+  wipe_all();
+  execute("delimiter$");
+  EXPECT_EQ(
+      "ERROR: DELIMITER must be followed by a 'delimiter' character or "
+      "string\n",
+      output_handler.std_out);
+
+  wipe_all();
+  execute("delimiter \\x");
+  EXPECT_EQ("ERROR: DELIMITER cannot contain a backslash character\n",
+            output_handler.std_out);
+
+  wipe_all();
+  execute("select 1;");
+  EXPECT_EQ("", output_handler.std_err);
 }
 
 }  // namespace mysqlsh

@@ -32,20 +32,20 @@
 namespace mysqlshdk {
 namespace mysql {
 
-size_t execute_sql_script(std::shared_ptr<mysqlshdk::db::ISession> session,
-                          const std::string &script) {
-  shcore::mysql::splitter::Delimiters delimiters({";"});
-  std::stack<std::string> parsing_context_stack;
-
-  auto ranges = shcore::mysql::splitter::determineStatementRanges(
-      script.data(), script.length(), delimiters, "\n", parsing_context_stack);
-  size_t range_index = 0;
-  for (; range_index < ranges.size(); range_index++) {
-    assert(!ranges[range_index].get_delimiter().empty());
-    session->query(script.substr(ranges[range_index].offset(),
-                                 ranges[range_index].length()));
-  }
-  return range_index;
+size_t execute_sql_script(
+    std::shared_ptr<mysqlshdk::db::ISession> session, const std::string &script,
+    const std::function<void(const std::string &)> &err_callback) {
+  std::stringstream stream(script);
+  size_t count = 0;
+  utils::iterate_sql_stream(&stream, 1024 * 64,
+                            [session, &count](const char *s, size_t len,
+                                              const std::string &, size_t) {
+                              session->query({s, len});
+                              ++count;
+                              return true;
+                            },
+                            err_callback);
+  return count;
 }
 
 }  // namespace mysql

@@ -31,8 +31,9 @@
 namespace mysqlshdk {
 namespace mysql {
 
-size_t execute_sql_script(std::shared_ptr<mysqlshdk::db::ISession> session,
-                          const std::string &script);
+size_t execute_sql_script(
+    std::shared_ptr<mysqlshdk::db::ISession> session, const std::string &script,
+    const std::function<void(const std::string &)> &err_callback);
 
 }  // namespace mysql
 }  // namespace mysqlshdk
