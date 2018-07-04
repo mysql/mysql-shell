@@ -46,8 +46,10 @@ The following shell commands are available:
  - \help       (\?,\h) Prints help information about a specific topic.
  - \history            View and edit command line history.
  - \js                 Switches to JavaScript processing mode.
+ - \nopager            Disables the current pager.
  - \nowarnings (\w)    Don't show warnings after every statement.
  - \option             Allows working with the available shell options.
+ - \pager      (\P)    Sets the current pager.
  - \py                 Switches to Python processing mode.
  - \quit       (\q)    Exits the MySQL Shell.
  - \reconnect          Reconnects the global session.
@@ -151,8 +153,10 @@ The following shell commands are available:
  - \help       (\?,\h) Prints help information about a specific topic.
  - \history            View and edit command line history.
  - \js                 Switches to JavaScript processing mode.
+ - \nopager            Disables the current pager.
  - \nowarnings (\w)    Don't show warnings after every statement.
  - \option             Allows working with the available shell options.
+ - \pager      (\P)    Sets the current pager.
  - \py                 Switches to Python processing mode.
  - \quit       (\q)    Exits the MySQL Shell.
  - \reconnect          Reconnects the global session.
@@ -224,8 +228,10 @@ The following shell commands are available:
  - \help       (\?,\h) Prints help information about a specific topic.
  - \history            View and edit command line history.
  - \js                 Switches to JavaScript processing mode.
+ - \nopager            Disables the current pager.
  - \nowarnings (\w)    Don't show warnings after every statement.
  - \option             Allows working with the available shell options.
+ - \pager      (\P)    Sets the current pager.
  - \py                 Switches to Python processing mode.
  - \quit       (\q)    Exits the MySQL Shell.
  - \reconnect          Reconnects the global session.
@@ -240,7 +246,7 @@ For help on a specific command use \? <command>
 
 EXAMPLE
 \? \connect
-      Displays information about the <>\connect</b> command.
+      Displays information about the \connect command.
 
 //@<OUT> Help on ShellAPI Category
 Contains information about the shell and util global objects as well as the

@@ -18,6 +18,13 @@ FUNCTIONS
       delete_credential(url)
             Deletes credential for the given URL using the configured helper.
 
+      disable_pager()
+            Disables pager for the current scripting mode.
+
+      enable_pager()
+            Enables pager specified in shell.options.pager for the current
+            scripting mode.
+
       get_session()
             Returns the global session.
 
@@ -179,6 +186,46 @@ EXCEPTIONS
       - if configured credential helper is invalid.
       - if deleting the credential fails.
 
+#@<OUT> shell.disable_pager
+NAME
+      disable_pager - Disables pager for the current scripting mode.
+
+SYNTAX
+      shell.disable_pager()
+
+DESCRIPTION
+      The current value of shell.options.pager option is not changed by calling
+      this method.
+
+      This method has no effect in non-interactive mode.
+
+#@<OUT> shell.enable_pager
+NAME
+      enable_pager - Enables pager specified in shell.options.pager for the
+                     current scripting mode.
+
+SYNTAX
+      shell.enable_pager()
+
+DESCRIPTION
+      All subsequent text output (except for prompts and user interaction) is
+      going to be forwarded to the pager.
+
+      This behavior is in effect until disable_pager() is called or current
+      scripting mode is changed.
+
+      Changing the scripting mode has the same effect as calling
+      disable_pager().
+
+      If the value of shell.options.pager option is changed after this method
+      has been called, the new pager will be automatically used.
+
+      If shell.options.pager option is set to an empty string when this method
+      is called, pager will not be active until shell.options.pager is set to a
+      non-empty string.
+
+      This method has no effect in non-interactive mode.
+
 #@<OUT> shell.get_session
 NAME
       get_session - Returns the global session.
@@ -287,6 +334,8 @@ DESCRIPTION
         running in interactive mode
       - logLevel: current log level
       - outputFormat: controls the type of output produced for SQL results.
+      - pager: string which specifies the external command which is going to be
+        used to display the paged output
       - passwordsFromStdin: boolean value that indicates if the shell should
         read passwords from stdin instead of the tty
       - sandboxDir: default path where the new sandbox instances for InnoDB

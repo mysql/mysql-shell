@@ -34,6 +34,24 @@ shell.help('delete_credential')
 #@ global help for delete_credential [USE:shell.delete_credential]
 \help Shell.delete_credential
 
+#@ shell.disable_pager
+shell.help('disable_pager')
+
+#@ global ? for disable_pager [USE:shell.disable_pager]
+\? Shell.disable_pager
+
+#@ global help for disable_pager [USE:shell.disable_pager]
+\help Shell.disable_pager
+
+#@ shell.enable_pager
+shell.help('enable_pager')
+
+#@ global ? for enable_pager [USE:shell.enable_pager]
+\? Shell.enable_pager
+
+#@ global help for enable_pager [USE:shell.enable_pager]
+\help Shell.enable_pager
+
 #@ shell.get_session
 shell.help('get_session')
 

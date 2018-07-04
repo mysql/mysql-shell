@@ -51,6 +51,7 @@ if(WITH_TESTS)
                 ${V8_INCLUDE_DIR})
 
     add_subdirectory(mysql-secret-store-plaintext)
+    add_subdirectory(sample-pager)
 
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/shellcore/*.cc"

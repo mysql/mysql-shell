@@ -56,12 +56,13 @@ namespace mysqlsh {
  * $(OPTIONS_DETAIL16)
  * $(OPTIONS_DETAIL17)
  * $(OPTIONS_DETAIL18)
- *
  * $(OPTIONS_DETAIL19)
+ *
  * $(OPTIONS_DETAIL20)
  * $(OPTIONS_DETAIL21)
  * $(OPTIONS_DETAIL22)
  * $(OPTIONS_DETAIL23)
+ * $(OPTIONS_DETAIL24)
  */
 class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
  public:

@@ -95,40 +95,40 @@ TEST_F(Command_handler_tests, processing_commands) {
 
   EXPECT_TRUE(_shell_command_handler.process("cmdone"));
   EXPECT_EQ("cmd_one", _function);
-  ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
+  ASSERT_EQ(1, static_cast<int>(_params.size()));
   EXPECT_EQ("cmdone", _params[0]);
 
   EXPECT_TRUE(_shell_command_handler.process(
       "  cmdone   \" sample param \"  with  \" more spaces\" "));
   EXPECT_EQ("cmd_one", _function);
-  ASSERT_EQ(4, static_cast<int>(static_cast<int>(_params.size())));
+  ASSERT_EQ(4, static_cast<int>(_params.size()));
   EXPECT_EQ("  cmdone   \" sample param \"  with  \" more spaces\" ",
             _params[0]);
-  EXPECT_EQ("\" sample param \"", _params[1]);
+  EXPECT_EQ(" sample param ", _params[1]);
   EXPECT_EQ("with", _params[2]);
-  EXPECT_EQ("\" more spaces\"", _params[3]);
+  EXPECT_EQ(" more spaces", _params[3]);
 
   EXPECT_TRUE(_shell_command_handler.process("cmdone parameter"));
   EXPECT_EQ("cmd_one", _function);
-  ASSERT_EQ(2, static_cast<int>(static_cast<int>(_params.size())));
+  ASSERT_EQ(2, static_cast<int>(_params.size()));
   EXPECT_EQ("cmdone parameter", _params[0]);
   EXPECT_EQ("parameter", _params[1]);
 
   EXPECT_TRUE(_shell_command_handler.process("cmd2"));
   EXPECT_EQ("cmd_two", _function);
-  ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
+  ASSERT_EQ(1, static_cast<int>(_params.size()));
   EXPECT_EQ("cmd2", _params[0]);
 
   EXPECT_TRUE(_shell_command_handler.process("\\2 two parameters"));
   EXPECT_EQ("cmd_two", _function);
-  ASSERT_EQ(3, static_cast<int>(static_cast<int>(_params.size())));
+  ASSERT_EQ(3, static_cast<int>(_params.size()));
   EXPECT_EQ("\\2 two parameters", _params[0]);
   EXPECT_EQ("two", _params[1]);
   EXPECT_EQ("parameters", _params[2]);
 
   EXPECT_TRUE(_shell_command_handler.process("three"));
   EXPECT_EQ("cmd_three", _function);
-  ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
+  ASSERT_EQ(1, static_cast<int>(_params.size()));
   EXPECT_EQ("three", _params[0]);
 
   EXPECT_TRUE(
@@ -154,6 +154,66 @@ TEST_F(Command_handler_tests, processing_commands) {
   EXPECT_EQ("four", _params[2]);
   EXPECT_EQ("different", _params[3]);
   EXPECT_EQ("parameters", _params[4]);
+
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"missing closing quote"),
+               shcore::Exception);
+  EXPECT_THROW(
+      _shell_command_handler.process("\\4 \"missing closing quote\\\""),
+      shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"\"missing space"),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 missing\"\"space"),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 missing space\"\""),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 missing\"space\""),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"too many quotes\"\""),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"too many\"\" quotes"),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"too many\"\"quotes"),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"too many \"\"quotes"),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"\"\" too many quotes\""),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 \"\"\"too many quotes\""),
+               shcore::Exception);
+  EXPECT_THROW(_shell_command_handler.process("\\4 unexpected\"quote"),
+               shcore::Exception);
+
+  EXPECT_TRUE(_shell_command_handler.process("\\4 escaped\\\"quote"));
+  ASSERT_EQ(2, static_cast<int>(_params.size()));
+  EXPECT_EQ("escaped\"quote", _params[1]);
+
+  EXPECT_TRUE(_shell_command_handler.process("\\4 escaped\\\"\\\"quotes"));
+  ASSERT_EQ(2, static_cast<int>(_params.size()));
+  EXPECT_EQ("escaped\"\"quotes", _params[1]);
+
+  EXPECT_TRUE(_shell_command_handler.process("\\4 \"\""));
+  ASSERT_EQ(2, static_cast<int>(_params.size()));
+  EXPECT_EQ("", _params[1]);
+
+  EXPECT_TRUE(_shell_command_handler.process("\\4 \"\" second"));
+  ASSERT_EQ(3, static_cast<int>(_params.size()));
+  EXPECT_EQ("", _params[1]);
+  EXPECT_EQ("second", _params[2]);
+
+  EXPECT_TRUE(_shell_command_handler.process("\\4 first \"\""));
+  ASSERT_EQ(3, static_cast<int>(_params.size()));
+  EXPECT_EQ("first", _params[1]);
+  EXPECT_EQ("", _params[2]);
+
+  EXPECT_TRUE(_shell_command_handler.process(
+      "\\4 \"some \\\"quoted\\\" string \\\\ \""));
+  ASSERT_EQ(2, static_cast<int>(_params.size()));
+  EXPECT_EQ("some \"quoted\" string \\ ", _params[1]);
+
+  EXPECT_TRUE(
+      _shell_command_handler.process("\\4 \"another \\\"quoted string\\\"\""));
+  ASSERT_EQ(2, static_cast<int>(_params.size()));
+  EXPECT_EQ("another \"quoted string\"", _params[1]);
 }
 
 }  // namespace command_handler_tests

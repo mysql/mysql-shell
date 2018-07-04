@@ -57,7 +57,7 @@ REGISTER_HELP(COMMANDS_CLOSING,
               "For help on a specific command use <b>\\?</b> <command>");
 REGISTER_HELP(COMMANDS_EXAMPLE, "<b>\\?</b> \\connect");
 REGISTER_HELP(COMMANDS_EXAMPLE_DESC,
-              "Displays information about the <\b>\\connect</b> command.");
+              "Displays information about the <b>\\connect</b> command.");
 namespace shcore {
 
 Shell_core::Shell_core(mysqlsh::IConsole *console)
@@ -313,11 +313,11 @@ std::vector<std::string> Shell_command_handler::split_command_line(
     const std::string &command_line) {
   shcore::BaseTokenizer _tokenizer;
 
-  std::vector<std::string> escaped_quotes = {"\\", "\""};
-  std::string quote("\"");
+  static constexpr auto k_quote = "\"";
 
-  _tokenizer.set_complex_token("escaped-quote", escaped_quotes);
-  _tokenizer.set_complex_token("quote", quote);
+  _tokenizer.set_complex_token("escaped-quote",
+                               std::vector<std::string>{"\\", k_quote});
+  _tokenizer.set_complex_token("quote", k_quote);
   _tokenizer.set_complex_token_callback(
       "space",
       [](const std::string &input, size_t &index, std::string &text) -> bool {
@@ -334,36 +334,100 @@ std::vector<std::string> Shell_command_handler::split_command_line(
   _tokenizer.process({0, command_line.length()});
 
   std::vector<std::string> ret_val;
-  bool quoted_param = false;
   std::string param;
 
-  while (_tokenizer.tokens_available()) {
-    if (_tokenizer.cur_token_type_is("quote")) quoted_param = !quoted_param;
+  const auto too_many_quotes = [](std::size_t length) {
+    return shcore::Exception::runtime_error(
+        "Too many consecutive quote characters: " + std::to_string(length));
+  };
 
-    // Quoted params will get accumulated into a single
-    // command argument
-    if (quoted_param) {
-      param += _tokenizer.consume_any_token().get_text();
-    } else {
-      auto token = _tokenizer.consume_any_token();
-      if (token.get_type() != "space") {
-        param += token.get_text();
+  const auto missing_space = []() {
+    return shcore::Exception::runtime_error(
+        "Expected space after closing quote character");
+  };
+
+  while (_tokenizer.tokens_available()) {
+    if (_tokenizer.cur_token_type_is("quote")) {
+      // quoted parameter
+
+      // eat quotes
+      auto quote = _tokenizer.consume_any_token().get_text();
+
+      if (quote.length() == 1) {
+        // only one quote character, beginning of a quoted parameter
+        param = quote;
+
+        // read till the end of string or till next token is a quote
+        while (_tokenizer.tokens_available() &&
+               !_tokenizer.cur_token_type_is("quote")) {
+          param += _tokenizer.consume_any_token().get_text();
+        }
+
+        if (!_tokenizer.tokens_available()) {
+          // no tokens left, quote was no closed
+          throw shcore::Exception::runtime_error(
+              "Missing closing quotes on command parameter");
+        } else {
+          // eat quotes
+          quote = _tokenizer.consume_any_token().get_text();
+
+          if (quote.length() == 1) {
+            // only one quote character
+            if (!_tokenizer.tokens_available() ||
+                _tokenizer.cur_token_type_is("space")) {
+              // string has finished or quoted parameter was followed by space
+              // -> end of quoted parameter
+              param += quote;
+              ret_val.emplace_back(unquote_string(param, k_quote[0]));
+            } else {
+              // quote was not followed by a space, two parameters were not
+              // properly separated
+              throw missing_space();
+            }
+          } else {
+            // two or more quote characters -> error
+            throw too_many_quotes(quote.length());
+          }
+        }
+      } else if (quote.length() == 2) {
+        // two quote characters, this has to be an empty parameter
+        if (!_tokenizer.tokens_available() ||
+            _tokenizer.cur_token_type_is("space")) {
+          // string has finished or empty parameter was followed by space
+          ret_val.emplace_back();
+        } else {
+          // no space after double quotes, two parameters were not properly
+          // separated
+          throw missing_space();
+        }
       } else {
-        if (!param.empty()) {
-          ret_val.push_back(param);
-          param.clear();
+        // multiple quote characters -> error
+        throw too_many_quotes(quote.length());
+      }
+    } else if (_tokenizer.cur_token_type_is("space")) {
+      // space(s) separating parameters
+      _tokenizer.consume_any_token();
+    } else {
+      // unquoted parameter
+      param.clear();
+
+      while (_tokenizer.tokens_available() &&
+             !_tokenizer.cur_token_type_is("space")) {
+        if (_tokenizer.cur_token_type_is("quote")) {
+          // quotes are not allowed in an unquoted string
+          throw shcore::Exception::runtime_error(
+              "Unexpected quote token in an unquoted sequence");
+        } else if (_tokenizer.cur_token_type_is("escaped-quote")) {
+          // escaped quotes need to have the '\' character removed
+          const auto quotes = _tokenizer.consume_any_token().get_text();
+          param += std::string(quotes.length() / 2, k_quote[0]);
+        } else {
+          param += _tokenizer.consume_any_token().get_text();
         }
       }
-    }
-  }
 
-  // Adds the last argument or raises an error if needed
-  if (!param.empty()) {
-    if (quoted_param)
-      throw shcore::Exception::runtime_error(
-          "Missing closing quotes on command parameter");
-    else
-      ret_val.push_back(param);
+      ret_val.emplace_back(param);
+    }
   }
 
   return ret_val;

@@ -495,7 +495,15 @@ std::vector<std::string> Options::get_options_description(
     ss << opt->get_name();
     for (std::size_t i = opt->get_name().length(); i < first_column_width; i++)
       ss.put(' ');
-    ss << opt->get_value_as_string();
+
+    const auto value = opt->get_value_as_string();
+
+    if (value.empty()) {
+      ss << "\"\"";
+    } else {
+      ss << value;
+    }
+
     if (show_origin) ss << " (" << to_string(opt->get_source()) << ")";
     res.emplace_back(ss.str());
   }

@@ -510,4 +510,35 @@ TEST(UtilsString, str_break_into_lines) {
   EXPECT_EQ("", res[2]);
 }
 
+TEST(UtilsString, quote_string) {
+  EXPECT_EQ("\"\"", quote_string("", '"'));
+  EXPECT_EQ("''", quote_string("", '\''));
+  EXPECT_EQ("\"\\\"\\\"\"", quote_string("\"\"", '"'));
+  EXPECT_EQ("'\"\"'", quote_string("\"\"", '\''));
+  EXPECT_EQ("\"\\\"string\\\"\"", quote_string("\"string\"", '"'));
+  EXPECT_EQ("'\"string\"'", quote_string("\"string\"", '\''));
+  EXPECT_EQ("\"some \\\\ string\"", quote_string("some \\ string", '"'));
+  EXPECT_EQ("'some \\\\ string'", quote_string("some \\ string", '\''));
+  EXPECT_EQ("\"\\\"some \\\\ string\\\"\"",
+            quote_string("\"some \\ string\"", '"'));
+  EXPECT_EQ("'\"some \\\\ string\"'", quote_string("\"some \\ string\"", '\''));
+  EXPECT_EQ("\"some \\\"\\\\ string\\\"\"",
+            quote_string("some \"\\ string\"", '"'));
+  EXPECT_EQ("'some \"\\\\ string\"'", quote_string("some \"\\ string\"", '\''));
+  EXPECT_EQ("\"some \\\\\\\" string\\\"\"",
+            quote_string("some \\\" string\"", '"'));
+  EXPECT_EQ("'some \\\\\" string\"'", quote_string("some \\\" string\"", '\''));
+}
+
+TEST(UtilsString, unquote_string) {
+  for (const auto quote : {'\'', '"'}) {
+    for (const auto s :
+         {"", "\"\"", "''", "\"string\"", "'string'", "some \\ string",
+          "\"some \\ string\"", "'some \\ string'", "some \"\\ string\"",
+          "some '\\ string'", "some \\\" string\"", "some \\' string'"}) {
+      EXPECT_EQ(s, unquote_string(quote_string(s, quote), quote));
+    }
+  }
+}
+
 }  // namespace shcore

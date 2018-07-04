@@ -32,6 +32,19 @@ namespace mysqlsh {
 
 enum class Prompt_answer { NONE = 0, YES = 1, NO = 2, ALT = 3 };
 enum class Output_stream { STDOUT = 0, STDERR = 1 };
+
+class IPager {
+ public:
+  IPager() = default;
+  virtual ~IPager() = default;
+
+  IPager(const IPager &) = delete;
+  IPager(IPager &&) = delete;
+
+  IPager &operator=(const IPager &) = delete;
+  IPager &operator=(IPager &&) = delete;
+};
+
 class IConsole {
  public:
   virtual ~IConsole() {}
@@ -73,6 +86,36 @@ class IConsole {
 
   virtual shcore::Prompt_result prompt_password(const std::string &prompt,
                                                 std::string *out_val) const = 0;
+
+  /**
+   * Enables the pager and returns its handle. As long IPager exists, all output
+   * is going to be handled by the pager. If this method is called while
+   * the previous handle still exists, it returns the same handle. Pager is
+   * automatically configured using the current shell options.
+   *
+   * @returns handle to the current pager.
+   */
+  virtual std::shared_ptr<IPager> enable_pager() = 0;
+
+  /**
+   * Enables the global pager, which exists till disable_global_pager(). This
+   * has the same effect as calling enable_pager() and storing the returned
+   * handle.
+   */
+  virtual void enable_global_pager() = 0;
+
+  /**
+   * Disables the global pager. This has the same effect as releasing the
+   * handle returned by the enable_pager().
+   */
+  virtual void disable_global_pager() = 0;
+
+  /**
+   * Checks if the global pager is enabled.
+   *
+   * @returns true if the global pager is enabled.
+   */
+  virtual bool is_global_pager_enabled() const = 0;
 };
 
 std::shared_ptr<IConsole> current_console();

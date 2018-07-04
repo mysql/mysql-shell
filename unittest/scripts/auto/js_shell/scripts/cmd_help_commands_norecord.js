@@ -22,6 +22,9 @@
 //@ JavaScript Command
 \? \js
 
+//@ nopager Command
+\? \nopager
+
 //@ Nowarnings Command
 \? \nowarnings
 
@@ -30,6 +33,12 @@
 
 //@ Option Command
 \? \option
+
+//@ pager Command
+\? \pager
+
+//@ pager Command, \P [USE:pager Command]
+\? \P
 
 //@ Python Command
 \? \py

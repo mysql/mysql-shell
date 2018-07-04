@@ -128,6 +128,13 @@ NAME
 SYNTAX
       \js
 
+//@<OUT> nopager Command
+NAME
+      \nopager - Disables the current pager.
+
+SYNTAX
+      \nopager
+
 //@<OUT> Nowarnings Command
 NAME
       \nowarnings - Don't show warnings after every statement.
@@ -155,6 +162,41 @@ DESCRIPTION
       - <shell_option> [=] <value> sets the value for the shell option.
       - --persist causes an option to be stored on the configuration file
       - --unset resets an option value to the default value.
+
+//@<OUT> pager Command
+NAME
+      \pager - Sets the current pager.
+
+SYNTAX
+      \pager [command]
+
+      \P [command]
+
+DESCRIPTION
+      The current pager will be automatically used to:
+
+      - display results of statements executed in SQL mode,
+      - display text output of \help command,
+      - display text output in scripting mode, after shell.enablePager() has
+        been called,
+
+      Pager is going to be used only if shell is running in interactive mode.
+
+EXAMPLES
+      \pager
+            With no parameters this command restores the initial pager.
+
+      \pager ""
+            Restores the initial pager.
+
+      \pager more
+            Sets pager to "more".
+
+      \pager "more -10"
+            Sets pager to "more -10".
+
+      \pager more -10
+            Sets pager to "more -10".
 
 //@<OUT> Python Command
 NAME

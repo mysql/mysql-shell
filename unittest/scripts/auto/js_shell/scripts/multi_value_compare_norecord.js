@@ -1,0 +1,21 @@
+//@ test wildcard
+println('1');
+println('22');
+println('333');
+println('4444');
+println('55555');
+println('666666');
+println('Zero character match');
+println('Whole line match');
+println('Beginning of the line match');
+println('Middle of the line match');
+println('End of the line match');
+println('Multiple values, whole line match');
+println('Multiple values, exact match, wildcard is first');
+println('Multiple values, exact match, wildcard is second');
+println('Multiple values (one with a wildcard), match non-wildcard');
+println('Multiple values (one with a wildcard), match wildcard');
+println('Multiple values (all with a wildcard), match first');
+println('Multiple values (all with a wildcard), match second');
+println('Multiple values, wildcard outside, match first');
+println('Multiple values, wildcard outside, match second');

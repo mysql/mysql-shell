@@ -28,6 +28,18 @@ shell.help("deleteCredential")
 //@ Help on deleteCredential, \? [USE:Help on deleteCredential]
 \? deleteCredential
 
+//@ Help on disablePager
+shell.help("disablePager")
+
+//@ Help on disablePager, \? [USE:Help on disablePager]
+\? disablePager
+
+//@ Help on enablePager
+shell.help("enablePager")
+
+//@ Help on enablePager, \? [USE:Help on enablePager]
+\? enablePager
+
 //@ Help on getSession
 shell.help("getSession")
 

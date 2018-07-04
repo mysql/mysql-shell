@@ -133,19 +133,50 @@ void Shell_base_test::check_string_list_expectation(
  * My text line is empty
  * My text line is full
  * \endcode
+ *
+ * Line can contain a wildcard token, which will match any sequence of
+ * characters:
+ *
+ * \code
+ * Line executed in [[*]] seconds.
+ * \endcode
+ *
+ * The wildcard token may be used only once per line. Multiple value match may
+ * also contain the wildcard token, however the resulting line must contain
+ * only one such token, i.e. following is not allowed:
+ *
+ * \code
+ * {{Line executed|Script [[*]]}} in [[*]] seconds.
+ * \endcode
  */
 bool Shell_base_test::multi_value_compare(const std::string &expected,
                                           const std::string &actual) {
   bool ret_val = false;
 
-  size_t start;
-  size_t end;
+  const auto value_compare = [](const std::string &expected,
+                                const std::string &actual) {
+    static constexpr auto k_wildcard = "[[*]]";
+
+    const auto pos = expected.find(k_wildcard);
+
+    if (pos == std::string::npos) {
+      // not found -> exact match
+      return expected == actual;
+    } else {
+      const auto right_match_position = pos + strlen(k_wildcard);
+      // match values to the left and to the right of wildcard
+      return (expected.substr(0, pos) == actual.substr(0, pos)) &&
+             (expected.substr(right_match_position) ==
+              actual.substr(actual.length() -
+                            (expected.length() - right_match_position)));
+    }
+  };
 
   // ignoring spaces
-  start = expected.find("{{");
+  const auto start = expected.find("{{");
 
   if (start != std::string::npos) {
-    end = expected.find("}}");
+    const auto end = expected.find("}}");
 
     std::string pre = expected.substr(0, start);
     std::string post = expected.substr(end + 2);
@@ -154,10 +185,10 @@ bool Shell_base_test::multi_value_compare(const std::string &expected,
 
     for (auto item : options) {
       std::string exp = pre + item + post;
-      if ((ret_val = (exp == actual))) break;
+      if ((ret_val = value_compare(exp, actual))) break;
     }
   } else {
-    ret_val = (expected == actual);
+    ret_val = value_compare(expected, actual);
   }
 
   return ret_val;

@@ -439,6 +439,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_CUSTOM_SHELL_COMMAND(
       "\\sql", "CMD_SQL",
       [this](const std::vector<std::string> &args) -> bool {
+        current_console()->disable_global_pager();
         if (switch_shell_mode(shcore::Shell_core::Mode::SQL, args))
           refresh_completion();
         return true;
@@ -448,6 +449,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_CUSTOM_SHELL_COMMAND(
       "\\js", "CMD_JS",
       [this](const std::vector<std::string> &args) -> bool {
+        current_console()->disable_global_pager();
         switch_shell_mode(shcore::Shell_core::Mode::JavaScript, args);
         return true;
       },
@@ -457,6 +459,7 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_CUSTOM_SHELL_COMMAND(
       "\\py", "CMD_PY",
       [this](const std::vector<std::string> &args) -> bool {
+        current_console()->disable_global_pager();
         switch_shell_mode(shcore::Shell_core::Mode::Python, args);
         return true;
       },
@@ -754,6 +757,7 @@ std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
+  const auto pager = current_console()->enable_pager();
   return Command_help(_shell)(args);
 }
 
@@ -1243,7 +1247,7 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
 }
 
 bool Mysql_shell::do_shell_command(const std::string &line) {
-  // Special handling for use <db>, which in the classic client was overriden
+  // Special handling for use <db>, which in the classic client was overridden
   // as a built-in command and thus didn't need ; at the end
   if (options().interactive &&
       _shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
@@ -1294,6 +1298,8 @@ void Mysql_shell::process_line(const std::string &line) {
 void Mysql_shell::process_sql_result(
     std::shared_ptr<mysqlshdk::db::IResult> result,
     const shcore::Sql_result_info &info) {
+  const auto pager = current_console()->enable_pager();
+
   Base_shell::process_sql_result(result, info);
   if (result) {
     // TODO(.): Shell_options dependency from dumper should be moved out:

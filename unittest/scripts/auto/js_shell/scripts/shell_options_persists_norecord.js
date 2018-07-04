@@ -226,11 +226,18 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option credentialStore.savePasswords
 
 //@ credentialStore.excludeFilters update and set back to default using \option
-\option --persist credentialStore.excludeFilters = ["user@*"]
+\option --persist credentialStore.excludeFilters = "[\"user@*\"]"
 \option credentialStore.excludeFilters
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option --unset --persist credentialStore.excludeFilters
 \option credentialStore.excludeFilters
+
+//@ pager update and set back to default using \option
+\option --persist pager = "more -10"
+\option pager
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist pager
+\option pager
 
 //@ List all the options using \option
 \option -l

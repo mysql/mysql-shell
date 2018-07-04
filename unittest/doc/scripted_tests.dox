@@ -415,4 +415,29 @@ on external factors, to define a validation that succeeds in both cases use
 \endcode
 \endif
 
+\subsubsection wildcard_token Wildcard token
+
+In some cases it is not possible to explicitly specify the validation, as the
+expected result contains text which varies between test runs, for instance
+execution time of an SQL statement.
+
+In order to write validations in such cases you may use the wildcard token
+<em>[[*]]</em>:
+
+\if DOXYGEN_JS
+\code
+//@ Result should contain a single row
+|1 row in set ([[*]] sec)|
+\endcode
+\elseif DOXYGEN_PY
+\code
+#@ Result should contain a single row
+|1 row in set ([[*]] sec)|
+\endcode
+\endif
+
+The wildcard token may be used only once per line. The \ref multi_value match
+can be combined with the wildcard token, however the resulting line must contain
+only one such token.
+
 */
