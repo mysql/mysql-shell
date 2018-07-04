@@ -82,6 +82,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined deleteCredential(String url);
   Undefined deleteAllCredentials();
   List listCredentials();
+  Undefined enablePager();
+  Undefined disablePager();
 #elif DOXYGEN_PY
   Options options;
   dict parse_uri(str uri);
@@ -98,6 +100,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None delete_credential(str url);
   None delete_all_credentials();
   list list_credentials();
+  None enable_pager();
+  None disable_pager();
 #endif
 
   shcore::Value list_credential_helpers(const shcore::Argument_list &args);
@@ -109,6 +113,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(
       const std::shared_ptr<mysqlsh::ShellBaseSession> &session);
   std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session();
+
+  void enable_pager();
+  void disable_pager();
 
  protected:
   void init();

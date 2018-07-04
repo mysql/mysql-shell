@@ -224,6 +224,12 @@
 ||
 |[]|
 
+//@ pager update and set back to default using \option
+||
+|more -10|
+|"pager": "more -10"|
+||
+||
 
 //@<OUT> List all the options using \option
  autocomplete.nameCache          true
@@ -240,6 +246,7 @@
  interactive                     true
  logLevel                        5
  outputFormat                    table
+ pager                           ""
  passwordsFromStdin              false
  sandboxDir                      <<<_defaultSandboxDir>>>
  showWarnings                    true
@@ -260,11 +267,11 @@
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
  outputFormat                    table (Compiled default)
+ pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)
-
 
 //@ List an option which origin is Compiled default
 |(Compiled default)|
@@ -312,6 +319,7 @@
  interactive                     true
  logLevel                        5
  outputFormat                    table
+ pager                           ""
  passwordsFromStdin              false
  sandboxDir                      <<<_defaultSandboxDir>>>
  showWarnings                    true
@@ -333,6 +341,7 @@
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
  outputFormat                    table (Compiled default)
+ pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
  showWarnings                    true (Compiled default)

@@ -361,6 +361,10 @@ static void catch_segv(int sig) {
 }
 #endif
 
+#ifdef _WIN32
+#define unsetenv(var) _putenv(var "=")
+#endif
+
 void setup_test_environment() {
   if (!getenv("MYSQL_PORT")) {
     if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
@@ -482,6 +486,9 @@ void setup_test_environment() {
   putenv(const_cast<char *>(
       "MYSQLSH_CREDENTIAL_STORE_KEYCHAIN=" MACOS_TEST_KEYCHAIN));
 #endif  // __APPLE__
+
+  // disable PAGER so it doesn't break the tests
+  unsetenv("PAGER");
 }
 
 int main(int argc, char **argv) {

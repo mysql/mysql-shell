@@ -116,8 +116,15 @@ class Shell_console : public IConsole {
   void print_value(const shcore::Value &value,
                    const std::string &tag) const override;
 
+  std::shared_ptr<IPager> enable_pager() override;
+  void enable_global_pager() override;
+  void disable_global_pager() override;
+  bool is_global_pager_enabled() const override;
+
  private:
   shcore::Interpreter_delegate *m_ideleg;
+  std::weak_ptr<IPager> m_current_pager;
+  std::shared_ptr<IPager> m_global_pager;
 };
 
 }  // namespace mysqlsh

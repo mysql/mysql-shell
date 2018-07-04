@@ -490,9 +490,9 @@ TEST_F(Completer_frontend, builtin_others) {
   EXPECT_AFTER_TAB("\\he", "\\help");
 
   auto expect = strv({"\\", "\\connect", "\\exit", "\\help", "\\history",
-                      "\\js", "\\nowarnings", "\\option", "\\py", "\\quit",
-                      "\\reconnect", "\\rehash", "\\source", "\\sql",
-                      "\\status", "\\use", "\\warnings"});
+                      "\\js", "\\nopager", "\\nowarnings", "\\option",
+                      "\\pager", "\\py", "\\quit", "\\reconnect", "\\rehash",
+                      "\\source", "\\sql", "\\status", "\\use", "\\warnings"});
 
 #ifndef HAVE_V8
   expect.erase(std::find(expect.begin(), expect.end(), "\\js"));
@@ -647,10 +647,10 @@ TEST_F(Completer_frontend, js_shell) {
   EXPECT_AFTER_TAB_TAB(
       "shell.",
       strv({"connect()", "deleteAllCredentials()", "deleteCredential()",
-            "getSession()", "help()", "listCredentialHelpers()",
-            "listCredentials()", "log()", "options", "parseUri()", "prompt()",
-            "reconnect()", "setCurrentSchema()", "setSession()", "status()",
-            "storeCredential()"}));
+            "disablePager()", "enablePager()", "getSession()", "help()",
+            "listCredentialHelpers()", "listCredentials()", "log()", "options",
+            "parseUri()", "prompt()", "reconnect()", "setCurrentSchema()",
+            "setSession()", "status()", "storeCredential()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -1122,9 +1122,10 @@ TEST_F(Completer_frontend, py_shell) {
   EXPECT_AFTER_TAB_TAB(
       "shell.",
       strv({"connect()", "delete_all_credentials()", "delete_credential()",
-            "get_session()", "help()", "list_credential_helpers()",
-            "list_credentials()", "log()", "options", "parse_uri()", "prompt()",
-            "reconnect()", "set_current_schema()", "set_session()", "status()",
+            "disable_pager()", "enable_pager()", "get_session()", "help()",
+            "list_credential_helpers()", "list_credentials()", "log()",
+            "options", "parse_uri()", "prompt()", "reconnect()",
+            "set_current_schema()", "set_session()", "status()",
             "store_credential()"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");

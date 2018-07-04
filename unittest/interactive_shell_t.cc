@@ -2034,4 +2034,220 @@ TEST_F(Interactive_shell_test, multi_line_command) {
   wipe_all();
 }
 
+TEST_F(Interactive_shell_test, pager_command) {
+  // get the initial pager
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  const auto default_pager = output_handler.std_out;
+  wipe_all();
+
+  // set pager to a command enclosed in quotes, they should be removed
+  execute("\\pager \"more\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more", output_handler.std_out);
+  wipe_all();
+
+  // reset pager to the initial value using command with no arguments
+  execute("\\pager");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ(default_pager, output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command
+  execute("\\pager more");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more", output_handler.std_out);
+  wipe_all();
+
+  // reset pager to the initial value using command with an empty argument
+  execute("\\pager \"\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ(default_pager, output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument, both enclosed in quotes
+  execute("\\pager \"more -10\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument, the first one enclosed in quotes
+  execute("\\pager \"more\" -10");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument, the second one enclosed in quotes
+  execute("\\pager more \"-10\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument without using quotes
+  execute("\\pager more -10");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument which is enclosed in quotes
+  execute("\\pager \"some_cmd print \\\"hello\\\"\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("some_cmd print \"hello\"", output_handler.std_out);
+  wipe_all();
+
+  reset_options();
+}
+
+TEST_F(Interactive_shell_test, pager_short_command) {
+  // get the initial pager
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  const auto default_pager = output_handler.std_out;
+  wipe_all();
+
+  // set pager to a command enclosed in quotes, they should be removed
+  execute("\\P \"more\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more", output_handler.std_out);
+  wipe_all();
+
+  // reset pager to the initial value using command with no arguments
+  execute("\\P");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ(default_pager, output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command
+  execute("\\P more");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more", output_handler.std_out);
+  wipe_all();
+
+  // reset pager to the initial value using command with an empty argument
+  execute("\\P \"\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ(default_pager, output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument, both enclosed in quotes
+  execute("\\P \"more -10\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument, the first one enclosed in quotes
+  execute("\\P \"more\" -10");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument, the second one enclosed in quotes
+  execute("\\P more \"-10\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument without using quotes
+  execute("\\pager more -10");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // set pager to a command with argument which is enclosed in quotes
+  execute("\\P \"some_cmd print \\\"hello\\\"\"");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("some_cmd print \"hello\"", output_handler.std_out);
+  wipe_all();
+
+  reset_options();
+}
+
+TEST_F(Interactive_shell_test, nopager_command) {
+  // set pager to sample command
+  execute("\\pager more -10");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("more -10", output_handler.std_out);
+  wipe_all();
+
+  // reset pager to an empty string
+  execute("\\nopager");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+  execute("print(shell.options.pager)");
+  EXPECT_EQ("", output_handler.std_err);
+  EXPECT_EQ("", output_handler.std_out);
+  wipe_all();
+
+  static constexpr auto expected_error = R"(NAME
+      \nopager - Disables the current pager.
+
+SYNTAX
+      \nopager)";
+
+  // nopager does not take any arguments, this should be an error
+  execute("\\nopager more");
+  EXPECT_EQ(expected_error, output_handler.std_err);
+  EXPECT_EQ("", output_handler.std_out);
+  wipe_all();
+
+  reset_options();
+}
+
 }  // namespace mysqlsh

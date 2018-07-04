@@ -373,4 +373,53 @@ INSTANTIATE_TEST_CASE_P(Credential_store_scripted, Credential_store_test,
                         testing::ValuesIn(find_js_tests("js_credential",
                                                         ".js")));
 
+class Pager_test : public Auto_script_js {
+ public:
+  static void SetUpTestCase() {
+    static const auto tmp_dir = getenv("TMPDIR");
+    static constexpr auto pager_file = "pager.txt";
+    s_output_file = shcore::str_replace(
+        shcore::path::join_path(tmp_dir, pager_file), "\\", "\\\\");
+
+    static const auto binary_folder = shcore::get_binary_folder();
+    static constexpr auto sample_pager = "sample_pager";
+    s_pager_binary = shcore::str_replace(
+        shcore::path::join_path(binary_folder, sample_pager), "\\", "\\\\");
+  }
+
+ protected:
+  void TearDown() override {
+    Auto_script_js::TearDown();
+
+    shcore::delete_file(s_output_file);
+  }
+
+  void set_defaults() override {
+    Auto_script_js::set_defaults();
+
+    std::string code = "var __pager = {};";
+    exec_and_out_equals(code);
+    code = "__pager.file = '" + s_output_file + "';";
+    exec_and_out_equals(code);
+    code =
+        "__pager.cmd = '" + s_pager_binary + " --file=" + s_output_file + "';";
+    exec_and_out_equals(code);
+  }
+
+ private:
+  static std::string s_output_file;
+  static std::string s_pager_binary;
+};
+
+std::string Pager_test::s_output_file;
+std::string Pager_test::s_pager_binary;
+
+TEST_P(Pager_test, run_and_check) {
+  SCOPED_TRACE("Pager_test::run_and_check()");
+  run_and_check();
+}
+
+INSTANTIATE_TEST_CASE_P(Pager_scripted, Pager_test,
+                        testing::ValuesIn(find_js_tests("js_pager", ".js")));
+
 }  // namespace tests

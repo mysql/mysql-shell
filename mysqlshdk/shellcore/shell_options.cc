@@ -344,7 +344,14 @@ Shell_options::Shell_options(int argc, char **argv,
         "- one of sql, js or py.", std::bind(&shcore::parse_mode, _1),
         [](shcore::IShell_core::Mode mode) {
           return shcore::to_string(mode);
-        });
+        })
+    (&storage.pager, "", SHCORE_PAGER, "PAGER", cmdline("--pager=value"),
+        "Pager used to display text output of statements executed in SQL mode "
+        "as well as some other selected commands. Pager can be manually "
+        "enabled in scripting modes. If you don't supply an "
+        "option, the default pager is taken from your ENV variable PAGER. "
+        "This option only works in interactive mode. This option is disabled "
+        "by default.");
 
   add_startup_options()
     (cmdline("--name-cache"),

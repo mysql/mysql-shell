@@ -35,6 +35,8 @@ DESCRIPTION
         running in interactive mode
       - logLevel: current log level
       - outputFormat: controls the type of output produced for SQL results.
+      - pager: string which specifies the external command which is going to be
+        used to display the paged output
       - passwordsFromStdin: boolean value that indicates if the shell should
         read passwords from stdin instead of the tty
       - sandboxDir: default path where the new sandbox instances for InnoDB

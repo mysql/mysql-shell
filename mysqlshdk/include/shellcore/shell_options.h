@@ -42,6 +42,8 @@
 #define SHCORE_DB_NAME_CACHE "autocomplete.nameCache"
 #define SHCORE_DEVAPI_DB_OBJECT_HANDLES "devapi.dbObjectHandles"
 
+#define SHCORE_PAGER "pager"
+
 #include <stdlib.h>
 #include <iostream>
 #include <memory>
@@ -111,6 +113,7 @@ class Shell_options : public shcore::Options {
     std::string server_public_key_path;
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
+    std::string pager;
 
     int exit_code = 0;
 

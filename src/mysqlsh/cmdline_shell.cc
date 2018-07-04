@@ -60,10 +60,12 @@ extern char *mysh_get_tty_password(const char *opt_message);
 
 namespace mysqlsh {
 
-static Command_line_shell *g_instance = nullptr;
+namespace {
 
-static void auto_complete(const char *text, int *start_index,
-                          linenoiseCompletions *completions) {
+Command_line_shell *g_instance = nullptr;
+
+void auto_complete(const char *text, int *start_index,
+                   linenoiseCompletions *completions) {
   size_t completion_offset = *start_index;
   std::vector<std::string> options(g_instance->completer()->complete(
       g_instance->shell_context()->interactive_mode(), text,
@@ -81,6 +83,16 @@ static void auto_complete(const char *text, int *start_index,
     linenoiseAddCompletion(completions, i.c_str());
   }
 }
+
+std::string get_pager_message(const std::string &pager) {
+  if (pager.empty()) {
+    return "Pager has been disabled.";
+  } else {
+    return "Pager has been set to '" + pager + "'.";
+  }
+}
+
+}  // namespace
 
 REGISTER_HELP(CMD_HISTORY_BRIEF, "View and edit command line history.");
 REGISTER_HELP(CMD_HISTORY_SYNTAX, "<b>\\history</b> [options].");
@@ -114,11 +126,41 @@ REGISTER_HELP(CMD_HISTORY_EXAMPLE3, "<b>\\history del</b> 10-");
 REGISTER_HELP(CMD_HISTORY_EXAMPLE3_DESC,
               "Deletes entries from number 10 and ahead from the history.");
 
+REGISTER_HELP(CMD_PAGER_BRIEF, "Sets the current pager.");
+REGISTER_HELP(CMD_PAGER_DETAIL,
+              "The current pager will be automatically used to:");
+REGISTER_HELP(CMD_PAGER_DETAIL1,
+              "@li display results of statements executed in SQL mode,");
+REGISTER_HELP(CMD_PAGER_DETAIL2, "@li display text output of \\help command,");
+REGISTER_HELP(CMD_PAGER_DETAIL3,
+              "@li display text output in scripting mode, after "
+              "<b>shell.<<<enablePager>>>()</b> has been called,");
+REGISTER_HELP(
+    CMD_PAGER_DETAIL4,
+    "Pager is going to be used only if shell is running in interactive mode.");
+REGISTER_HELP(CMD_PAGER_SYNTAX, "<b>\\pager</b> [command]");
+REGISTER_HELP(CMD_PAGER_SYNTAX1, "<b>\\P</b> [command]");
+REGISTER_HELP(CMD_PAGER_EXAMPLE, "<b>\\pager</b>");
+REGISTER_HELP(CMD_PAGER_EXAMPLE_DESC,
+              "With no parameters this command restores the initial pager.");
+REGISTER_HELP(CMD_PAGER_EXAMPLE1, "<b>\\pager</b> \"\"");
+REGISTER_HELP(CMD_PAGER_EXAMPLE1_DESC, "Restores the initial pager.");
+REGISTER_HELP(CMD_PAGER_EXAMPLE2, "<b>\\pager</b> more");
+REGISTER_HELP(CMD_PAGER_EXAMPLE2_DESC, "Sets pager to \"more\".");
+REGISTER_HELP(CMD_PAGER_EXAMPLE3, "<b>\\pager</b> \"more -10\"");
+REGISTER_HELP(CMD_PAGER_EXAMPLE3_DESC, "Sets pager to \"more -10\".");
+REGISTER_HELP(CMD_PAGER_EXAMPLE4, "<b>\\pager</b> more -10");
+REGISTER_HELP(CMD_PAGER_EXAMPLE4_DESC, "Sets pager to \"more -10\".");
+
+REGISTER_HELP(CMD_NOPAGER_BRIEF, "Disables the current pager.");
+REGISTER_HELP(CMD_NOPAGER_SYNTAX, "<b>\\nopager</b>");
+
 Command_line_shell::Command_line_shell(
     std::shared_ptr<Shell_options> cmdline_options,
     std::unique_ptr<shcore::Interpreter_delegate> delegate)
     : mysqlsh::Mysql_shell(cmdline_options, delegate.get()),
-      _delegate(std::move(delegate)) {
+      _delegate(std::move(delegate)),
+      m_default_pager(options().pager) {
   _output_printed = false;
 
   g_instance = this;
@@ -136,6 +178,13 @@ Command_line_shell::Command_line_shell(
 
   SET_SHELL_COMMAND("\\history", "CMD_HISTORY",
                     Command_line_shell::cmd_history);
+  SET_SHELL_COMMAND("\\pager|\\P", "CMD_PAGER", Command_line_shell::cmd_pager);
+  SET_SHELL_COMMAND("\\nopager", "CMD_NOPAGER",
+                    Command_line_shell::cmd_nopager);
+
+  if (!m_default_pager.empty()) {
+    log_info("%s", get_pager_message(m_default_pager).c_str());
+  }
 }
 
 Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
@@ -146,6 +195,11 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
                                  &Command_line_shell::deleg_prompt,
                                  &Command_line_shell::deleg_password,
                                  &Command_line_shell::deleg_print_error})) {}
+
+Command_line_shell::~Command_line_shell() {
+  // global pager needs to be destroyed as it uses the delegate
+  current_console()->disable_global_pager();
+}
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
   if (!path.empty()) {
@@ -251,6 +305,45 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
   return true;
 }
 
+bool Command_line_shell::cmd_pager(const std::vector<std::string> &args) {
+  std::string new_pager;
+
+  switch (args.size()) {
+    case 1:
+      // no arguments -> restore default pager
+      new_pager = m_default_pager;
+      break;
+
+    case 2:
+      if (args[1].empty()) {
+        // one empty argument -> restore default pager
+        new_pager = m_default_pager;
+      } else {
+        // one argument -> new pager
+        new_pager = args[1];
+      }
+      break;
+
+    default:
+      new_pager = shcore::str_join(std::next(args.begin()), args.end(), " ");
+      break;
+  }
+
+  get_options()->set_and_notify(SHCORE_PAGER, new_pager);
+
+  return true;
+}
+
+bool Command_line_shell::cmd_nopager(const std::vector<std::string> &args) {
+  if (args.size() > 1) {
+    print_error(_shell->get_helper()->get_help("Shell Commands \\nopager"));
+  } else {
+    get_options()->set_and_notify(SHCORE_PAGER, "");
+  }
+
+  return true;
+}
+
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
@@ -327,7 +420,21 @@ char *Command_line_shell::readline(const char *prompt) {
     if (!all_lines.empty()) std::cout << all_lines << std::flush;
   }
 
+  // linenoise doesn't play nice with pagers, pager needs to be disabled
+  // when prompt is displayed
+  const auto console = current_console();
+  const auto is_pager_enabled = console->is_global_pager_enabled();
+
+  if (is_pager_enabled) {
+    console->disable_global_pager();
+  }
+
   char *tmp = linenoise(prompt_line.c_str());
+
+  if (is_pager_enabled) {
+    console->enable_global_pager();
+  }
+
   if (!tmp) {
     switch (linenoiseKeyType()) {
       case 1:  // ^C
@@ -550,10 +657,22 @@ void Command_line_shell::handle_notification(
       _history.add(executed);
     }
   } else if (name == SN_SHELL_OPTION_CHANGED) {
-    if (data->get_string("option") == SHCORE_HISTORY_MAX_SIZE) {
+    const auto option = data->get_string("option");
+
+    if (SHCORE_HISTORY_MAX_SIZE == option) {
       _history.set_limit(data->get_int("value"));
-    } else if (data->get_string("option") == SHCORE_HISTIGNORE) {
+    } else if (SHCORE_HISTIGNORE == option) {
       set_sql_safe_for_logging(data->get_string("value"));
+    } else if (SHCORE_PAGER == option) {
+      const auto console = current_console();
+
+      console->print_info(get_pager_message(data->get_string("value")));
+
+      if (console->is_global_pager_enabled()) {
+        // if global pager is enabled, disable and re-enable it to use new pager
+        console->disable_global_pager();
+        console->enable_global_pager();
+      }
     }
   }
 }

@@ -48,6 +48,7 @@ class Command_line_shell : public Mysql_shell,
 
   Command_line_shell(std::shared_ptr<Shell_options> options,
                      std::unique_ptr<shcore::Interpreter_delegate> delegate);
+  ~Command_line_shell() override;
 
   void print_banner();
   void command_loop();
@@ -75,15 +76,15 @@ class Command_line_shell : public Mysql_shell,
 
   bool cmd_history(const std::vector<std::string> &args);
 
+  bool cmd_pager(const std::vector<std::string> &args);
+
+  bool cmd_nopager(const std::vector<std::string> &args);
+
   void handle_notification(const std::string &name,
                            const shcore::Object_bridge_ref &sender,
                            shcore::Value::Map_type_ref data) override;
 
  private:
-  std::unique_ptr<shcore::Interpreter_delegate> _delegate;
-  Prompt_manager _prompt;
-  bool _output_printed;
-
   static char *readline(const char *prompt);
 
   static void deleg_print(void *self, const char *text);
@@ -95,6 +96,11 @@ class Command_line_shell : public Mysql_shell,
   std::string query_variable(
       const std::string &var,
       mysqlsh::Prompt_manager::Dynamic_variable_type type);
+
+  std::unique_ptr<shcore::Interpreter_delegate> _delegate;
+  Prompt_manager _prompt;
+  bool _output_printed;
+  const std::string m_default_pager;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, query_variable_classic);

@@ -22,9 +22,14 @@
  */
 
 #include "mysqlshdk/shellcore/shell_console.h"
+
+#include <memory>
 #include <string>
+#include <utility>
+
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "scripting/shexcept.h"
@@ -59,6 +64,115 @@ bool use_json() {
   return format.find("json") != std::string::npos;
 }
 }  // namespace
+
+#ifdef _WIN32
+
+#define popen _popen
+#define pclose _pclose
+
+#endif  // _WIN32
+
+class Shell_pager : public IPager {
+ private:
+  using Delegate = shcore::Interpreter_delegate;
+
+ public:
+  explicit Shell_pager(Delegate *delegate)
+      : m_delegate{delegate}, m_original_delegate{*delegate} {
+    const auto &options = current_shell_options()->get();
+
+    if (options.interactive && !options.pager.empty()) {
+      m_pager = popen(options.pager.c_str(), "w");
+
+      if (!m_pager) {
+        current_console()->print_error(
+            "Failed to open pager \"" + options.pager +
+            "\", error: " + shcore::errno_to_string(errno) + ".");
+      }
+    }
+
+    if (m_pager) {
+      m_delegate->user_data = this;
+
+      if (m_delegate->print) {
+        m_delegate->print = print;
+      }
+
+      if (m_delegate->prompt) {
+        m_delegate->prompt = prompt;
+      }
+
+      if (m_delegate->password) {
+        m_delegate->password = password;
+      }
+
+      if (m_delegate->print_error) {
+        m_delegate->print_error = print_error;
+      }
+    }
+  }
+
+  ~Shell_pager() {
+    if (m_pager) {
+      // disable pager and restore original delegate before printing anything
+      const auto status = pclose(m_pager);
+      m_pager = nullptr;
+      *m_delegate = m_original_delegate;
+
+      // inform of any errors
+#ifdef _WIN32
+      const auto exit_code = status;
+      const bool error_occurred = 0 != exit_code;
+#else   // !_WIN32
+      const auto exit_code = WEXITSTATUS(status);
+      const bool error_occurred = WIFEXITED(status) && 0 != exit_code;
+#endif  // !_WIN32
+      if (error_occurred) {
+        current_console()->print_error(
+            "Pager \"" + current_shell_options()->get().pager +
+            "\" returned exit code: " + std::to_string(exit_code) + ".");
+      }
+    }
+  }
+
+ private:
+  static void print(void *user_data, const char *text) {
+    const auto self = static_cast<Shell_pager *>(user_data);
+    fprintf(self->m_pager, "%s", text);
+    fflush(self->m_pager);
+  }
+
+  static shcore::Prompt_result prompt(void *user_data, const char *prompt,
+                                      std::string *ret_input) {
+    const auto self = static_cast<Shell_pager *>(user_data);
+    return self->call_delegate(&Delegate::prompt, prompt, ret_input);
+  }
+
+  static shcore::Prompt_result password(void *user_data, const char *prompt,
+                                        std::string *ret_password) {
+    const auto self = static_cast<Shell_pager *>(user_data);
+    return self->call_delegate(&Delegate::password, prompt, ret_password);
+  }
+
+  static void print_error(void *user_data, const char *text) {
+    const auto self = static_cast<Shell_pager *>(user_data);
+    self->call_delegate(&Delegate::print_error, text);
+  }
+
+  template <typename F, typename... Args>
+  auto call_delegate(F func, Args &&... args)
+      -> decltype((std::declval<Delegate>().*
+                   func)(nullptr, std::forward<Args>(args)...)) {
+    return (m_original_delegate.*func)(m_original_delegate.user_data,
+                                       std::forward<Args>(args)...);
+  }
+
+  Delegate *m_delegate = nullptr;
+
+  Delegate m_original_delegate;
+
+  FILE *m_pager = nullptr;
+};
 
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {}
@@ -313,6 +427,25 @@ void Shell_console::print_value(const shcore::Value &value,
     m_ideleg->print_error(m_ideleg->user_data, output.c_str());
   else
     m_ideleg->print(m_ideleg->user_data, output.c_str());
+}
+
+std::shared_ptr<IPager> Shell_console::enable_pager() {
+  std::shared_ptr<IPager> pager = m_current_pager.lock();
+
+  if (!pager) {
+    pager = std::make_shared<Shell_pager>(m_ideleg);
+    m_current_pager = pager;
+  }
+
+  return pager;
+}
+
+void Shell_console::enable_global_pager() { m_global_pager = enable_pager(); }
+
+void Shell_console::disable_global_pager() { m_global_pager.reset(); }
+
+bool Shell_console::is_global_pager_enabled() const {
+  return nullptr != m_global_pager;
 }
 
 }  // namespace mysqlsh

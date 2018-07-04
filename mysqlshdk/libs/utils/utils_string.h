@@ -289,6 +289,19 @@ std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);
  */
 std::string quote_string(const std::string &s, char quote);
 
+/**
+ * Inverse of quote_string().
+ *
+ * If the first and the last characters in the given strings match `quote`
+ * they are removed as well.
+ *
+ * @param s String to be processed.
+ * @param quote The quote character (`'`, `"`)
+ *
+ * @return Unquoted string.
+ */
+std::string unquote_string(const std::string &s, char quote);
+
 // Macro to turn a symbol into a string
 #define STRINGIFY(s) STRINGIFY_(s)
 #define STRINGIFY_(s) #s

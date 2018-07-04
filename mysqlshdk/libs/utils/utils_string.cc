@@ -207,6 +207,21 @@ std::string quote_string(const std::string &s, char quote) {
   return std::string(q + esc + q);
 }
 
+std::string unquote_string(const std::string &s, char quote) {
+  const std::string q{quote};
+  auto result = s;
+
+  if (result.length() >= 2 && result[0] == quote &&
+      result[result.length() - 1] == quote) {
+    result = result.substr(1, result.length() - 2);
+  }
+
+  result = shcore::str_replace(result, "\\" + q, q);
+  result = shcore::str_replace(result, "\\\\", "\\");
+
+  return result;
+};
+
 std::vector<std::string> str_break_into_lines(const std::string &line,
                                               std::size_t line_width) {
   std::vector<std::string> result;

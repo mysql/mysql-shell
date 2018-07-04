@@ -78,6 +78,8 @@ void Shell::init() {
   add_method("deleteAllCredentials",
              std::bind(&Shell::delete_all_credentials, this, _1));
   add_method("listCredentials", std::bind(&Shell::list_credentials, this, _1));
+  expose("enablePager", &Shell::enable_pager);
+  expose("disablePager", &Shell::disable_pager);
 }
 
 Shell::~Shell() {}
@@ -1029,6 +1031,97 @@ shcore::Value Shell::list_credentials(const shcore::Argument_list &args) {
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("listCredentials"));
 
   return ret_val;
+}
+
+REGISTER_HELP_FUNCTION(enablePager, shell);
+REGISTER_HELP(SHELL_ENABLEPAGER_BRIEF,
+              "Enables pager specified in <b>shell.options.pager</b> for the "
+              "current scripting mode.");
+REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL,
+              "All subsequent text output (except for prompts and user "
+              "interaction) is going to be forwarded to the pager.");
+REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL1,
+              "This behavior is in effect until <<<disablePager>>>() is called "
+              "or current scripting mode is changed.");
+REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL2,
+              "Changing the scripting mode has the same effect as calling "
+              "<<<disablePager>>>().");
+REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL3,
+              "If the value of <b>shell.options.pager</b> option is changed "
+              "after this method has been called, the new pager will be "
+              "automatically used.");
+REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL4,
+              "If <b>shell.options.pager</b> option is set to an empty string "
+              "when this method is called, pager will not be active until "
+              "<b>shell.options.pager</b> is set to a non-empty string.");
+REGISTER_HELP(SHELL_ENABLEPAGER_DETAIL5,
+              "This method has no effect in non-interactive mode.");
+
+/**
+ * $(SHELL_ENABLEPAGER_BRIEF)
+ *
+ * $(SHELL_ENABLEPAGER_DETAIL)
+ */
+#if DOXYGEN_JS
+/**
+ *
+ * This behavior is in effect until disablePager() is called or current
+ * scripting mode is changed. Changing the scripting mode has the same effect as
+ * calling disablePager().
+ */
+#elif DOXYGEN_PY
+/**
+ *
+ * This behavior is in effect until disable_pager() is called or current
+ * scripting mode is changed. Changing the scripting mode has the same effect as
+ * calling disable_pager().
+ */
+#endif
+/**
+ *
+ * $(SHELL_ENABLEPAGER_DETAIL3)
+ * $(SHELL_ENABLEPAGER_DETAIL4)
+ *
+ * $(SHELL_ENABLEPAGER_DETAIL5)
+ */
+#if DOXYGEN_JS
+Undefined Shell::enablePager() {}
+#elif DOXYGEN_PY
+None Shell::enable_pager() {}
+#endif
+void Shell::enable_pager() {
+  try {
+    current_console()->enable_global_pager();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("enablePager"));
+}
+
+REGISTER_HELP_FUNCTION(disablePager, shell);
+REGISTER_HELP(SHELL_DISABLEPAGER_BRIEF,
+              "Disables pager for the current scripting mode.");
+REGISTER_HELP(SHELL_DISABLEPAGER_DETAIL,
+              "The current value of <b>shell.options.pager</b> option is not "
+              "changed by calling this method.");
+REGISTER_HELP(SHELL_DISABLEPAGER_DETAIL1,
+              "This method has no effect in non-interactive mode.");
+
+/**
+ * $(SHELL_DISABLEPAGER_BRIEF)
+ *
+ * $(SHELL_DISABLEPAGER_DETAIL)
+ *
+ * $(SHELL_DISABLEPAGER_DETAIL1)
+ */
+#if DOXYGEN_JS
+Undefined Shell::disablePager() {}
+#elif DOXYGEN_PY
+None Shell::disable_pager() {}
+#endif
+void Shell::disable_pager() {
+  try {
+    current_console()->disable_global_pager();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("disablePager"));
 }
 
 }  // namespace mysqlsh

@@ -89,31 +89,34 @@ REGISTER_HELP(OPTIONS_DETAIL14,
               "@li outputFormat: controls the type of "
               "output produced for SQL results.");
 REGISTER_HELP(OPTIONS_DETAIL15,
+              "@li pager: string which specifies the external command which is "
+              "going to be used to display the paged output");
+REGISTER_HELP(OPTIONS_DETAIL16,
               "@li passwordsFromStdin: boolean value that indicates if the "
               "shell should read passwords from stdin instead of the tty");
-REGISTER_HELP(OPTIONS_DETAIL16,
+REGISTER_HELP(OPTIONS_DETAIL17,
               "@li sandboxDir: default path where the "
               "new sandbox instances for InnoDB "
               "cluster will be deployed");
-REGISTER_HELP(OPTIONS_DETAIL17,
+REGISTER_HELP(OPTIONS_DETAIL18,
               "@li showWarnings: boolean value to "
               "indicate whether warnings shall be "
               "included when printing an SQL result");
-REGISTER_HELP(OPTIONS_DETAIL18,
+REGISTER_HELP(OPTIONS_DETAIL19,
               "@li useWizards: read-only, boolean value "
               "to indicate if the Shell is using the "
               "interactive wrappers (wizard mode)");
 
-REGISTER_HELP(OPTIONS_DETAIL19,
-              "The outputFormat option supports the following values:");
 REGISTER_HELP(OPTIONS_DETAIL20,
+              "The outputFormat option supports the following values:");
+REGISTER_HELP(OPTIONS_DETAIL21,
               "@li table: displays the output in table format (default)");
-REGISTER_HELP(OPTIONS_DETAIL21, "@li json: displays the output in JSON format");
-REGISTER_HELP(
-    OPTIONS_DETAIL22,
-    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(OPTIONS_DETAIL22, "@li json: displays the output in JSON format");
 REGISTER_HELP(
     OPTIONS_DETAIL23,
+    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(
+    OPTIONS_DETAIL24,
     "@li vertical: displays the outputs vertically, one line per column value");
 
 std::string &Options::append_descr(std::string &s_out, int indent,
