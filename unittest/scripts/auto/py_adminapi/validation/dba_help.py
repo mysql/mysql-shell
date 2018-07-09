@@ -490,7 +490,7 @@ EXCEPTIONS
 
       - If the options contain an invalid attribute.
       - If the root password is missing on the options.
-      - AIf the port value is < 1024 or > 65535.
+      - If the port value is < 1024 or > 65535.
 
       RuntimeError in the following scenarios:
 

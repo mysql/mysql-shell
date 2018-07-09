@@ -1622,7 +1622,7 @@ REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS1,
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS2,
               "@li If the root password is missing on the options.");
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS3,
-              "@li AIf the port value is < 1024 or > 65535.");
+              "@li If the port value is < 1024 or > 65535.");
 
 REGISTER_HELP(DBA_DEPLOYSANDBOXINSTANCE_THROWS4,
               "RuntimeError in the following scenarios:");
