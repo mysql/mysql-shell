@@ -45,13 +45,15 @@ endif()
 # default being a community build. This does not impact the feature
 # set that will be compiled in; it's merely provided as a hint to
 # custom packaging steps.
-option(COMMUNITY_BUILD "Set to true if this is a community build" ON) 
+option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
+  set(CONFLICTING_PRODUCT_SUFFIX "")
   set(VERSION "${MYSH_VERSION}+commercial-${DEBIAN_REVISION}")
 else()
   set(PRODUCT_SUFFIX "")
+  set(CONFLICTING_PRODUCT_SUFFIX "-commercial")
   set(VERSION "${MYSH_VERSION}-${DEBIAN_REVISION}")
 endif()
 
