@@ -1889,4 +1889,54 @@ TEST_F(Interactive_shell_test, option_command) {
   reset_shell();
 }
 
+TEST_F(Interactive_shell_test, bug_28240437) {
+  static constexpr auto select_output = R"(+---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+
+  wipe_all();
+  execute("\\sql");
+  MY_EXPECT_STDOUT_CONTAINS("Switching to SQL mode... Commands end with ;");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+
+  execute("select 1;");
+  EXPECT_EQ("", output_handler.std_out);
+  MY_EXPECT_STDERR_CONTAINS("Not connected.");
+  wipe_all();
+
+  execute("\\connect " + _mysql_uri);
+  MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+
+  execute("select 1;");
+  MY_EXPECT_STDOUT_CONTAINS(select_output);
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+
+  execute("\\js");
+  MY_EXPECT_STDOUT_CONTAINS("Switching to JavaScript mode...");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+
+  execute("session.close();");
+  EXPECT_EQ("", output_handler.std_out);
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+
+  execute("\\sql");
+  MY_EXPECT_STDOUT_CONTAINS("Switching to SQL mode... Commands end with ;");
+  EXPECT_EQ("", output_handler.std_err);
+  wipe_all();
+
+  execute("select 1;");
+  EXPECT_EQ("", output_handler.std_out);
+  MY_EXPECT_STDERR_CONTAINS("Not connected.");
+  wipe_all();
+}
+
 }  // namespace mysqlsh

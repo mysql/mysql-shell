@@ -133,11 +133,15 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
   bool got_error = false;
 
   {
-    auto s = _owner->get_dev_session();
-    if (!s)
-      print_exception(shcore::Exception::logic_error("Not connected."));
-    else
+    const auto s = _owner->get_dev_session();
+
+    if (s) {
       session = s->get_core_session();
+    }
+
+    if (!s || !session || !session->is_open()) {
+      print_exception(shcore::Exception::logic_error("Not connected."));
+    }
   }
 
   _last_handled.clear();
