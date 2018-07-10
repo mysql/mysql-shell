@@ -34,14 +34,19 @@ namespace tests {
 
 class Mysqlsh_credential_store : public tests::Command_line_test {
  public:
-  static void SetUpTestCase() {
+  void SetUp() override {
     unsetenv("MYSQLSH_CREDENTIAL_STORE_HELPER");
     unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
+
+    Command_line_test::SetUp();
   }
 
-  static void TearDownTestCase() {
+  void TearDown() override {
+    Command_line_test::TearDown();
+
     putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
     unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
+    unsetenv("MYSQLSH_TERM_COLOR_MODE");
   }
 };
 
@@ -192,6 +197,27 @@ TEST_F(Mysqlsh_credential_store, env_invalid_save_passwords) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "The option credentialStore.savePasswords must be one of: always, "
       "prompt, never.");
+  wipe_out();
+}
+
+TEST_F(Mysqlsh_credential_store, bug_28216485) {
+  putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=unknown"));
+  putenv(const_cast<char *>("MYSQLSH_TERM_COLOR_MODE=nocolor"));
+
+  // If shell is running in "nocolor" mode output should not contain VTERM
+  // escape characters.
+  // This test ensures that color capability is detected before any other
+  // output is printed.
+
+  execute({_mysqlsh, "--js", "-e",
+           "println(shell.options['credentialStore.helper'])", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "ERROR: Failed to initialize the user-specified helper \"unknown\": "
+      "Credential helper named \"unknown\" could not be found or is invalid. "
+      "See logs for more information.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "Credential store mechanism is going to be disabled.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("<invalid>");
   wipe_out();
 }
 
