@@ -808,7 +808,8 @@ void split_account(const std::string &account, std::string *out_user,
       if (out_user != nullptr) out_user->assign(account, 0, pos);
     }
   }
-  if (account[pos] == '@' && ++pos < account.length()) {
+  if (std::string::npos != pos && account[pos] == '@' &&
+      ++pos < account.length()) {
     if (account.compare(pos, std::string::npos, "skip-grants host") == 0) {
       pos = account.length();
       if (out_host != nullptr) *out_host = "skip-grants host";

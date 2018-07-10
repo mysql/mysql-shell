@@ -302,15 +302,19 @@ static bool detect_color_capability() {
     }
   } else {
 #ifdef _WIN32
-    // Try to enable VT100 escapes... if it doesn't work,
-    // then it disables the ansi escape sequences
-    // Supported in Windows 10 command window and some other terminals
-    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD mode;
-    GetConsoleMode(handle, &mode);
+    bool vterm_supported = false;
+#ifdef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    {
+      DWORD mode = 0;
+      GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &mode);
 
-    // ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(handle, mode | 0x004)) {
+      if (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING) {
+        vterm_supported = true;
+      }
+    }
+#endif  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+
+    if (!vterm_supported) {
       if (getenv("ANSICON")) {
         // ConEmu
         color_mode = mysqlshdk::textui::Color_rgb;
@@ -320,7 +324,7 @@ static bool detect_color_capability() {
     } else {
       color_mode = mysqlshdk::textui::Color_rgb;
     }
-#else
+#else   // !_WIN32
     const char *term = getenv("TERM");
     if (term) {
       if (shcore::str_endswith(term, "-256color") == 0) {
@@ -329,9 +333,9 @@ static bool detect_color_capability() {
     } else {
       color_mode = mysqlshdk::textui::Color_16;
     }
-#endif
+#endif  // !_WIN32
   }
-  log_debug("Using color mode %i", static_cast<int>(color_mode));
+
   mysqlshdk::textui::set_color_capability(color_mode);
 
   return true;
@@ -494,7 +498,7 @@ int main(int argc, char **argv) {
   std::string mysqlsh_path = shcore::get_binary_path();
   g_mysqlsh_path = mysqlsh_path.c_str();
 
-#ifdef WIN32
+#ifdef _WIN32
   UINT origcp = GetConsoleCP();
   UINT origocp = GetConsoleOutputCP();
 
@@ -507,7 +511,18 @@ int main(int argc, char **argv) {
     SetConsoleCP(origcp);
     SetConsoleOutputCP(origocp);
   });
-#endif
+
+#ifdef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+  {
+    // Try to enable VT100 escapes...
+    // Supported in Windows 10 command window and some other terminals.
+    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    GetConsoleMode(handle, &mode);
+    SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+  }
+#endif  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#endif  // _WIN32
   int ret_val = 0;
   Interrupt_helper sighelper;
   shcore::Interrupts::init(&sighelper);
@@ -528,13 +543,16 @@ int main(int argc, char **argv) {
       });
     }
 
-    shell.reset(new mysqlsh::Command_line_shell(shell_options));
-
     bool valid_color_capability = detect_color_capability();
 
-    init_shell(shell);
+    shell.reset(new mysqlsh::Command_line_shell(shell_options));
 
+    init_shell(shell);
     auto cleanup = shcore::on_leave_scope([shell]() { finalize_shell(shell); });
+
+    log_debug("Using color mode %i",
+              static_cast<int>(mysqlshdk::textui::get_color_capability()));
+
     std::string version_msg;
     version_msg.resize(1024);
 
