@@ -14,5 +14,7 @@ Section: database
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
+Replaces: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
 Description: MySQL Shell (part of MySQL Server) 8.0
  MySQL query and administration shell client and framework.
