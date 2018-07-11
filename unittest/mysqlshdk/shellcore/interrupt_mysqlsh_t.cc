@@ -415,14 +415,12 @@ TEST_F(Interrupt_mysqlsh, js_file_batch) {
   const char *expect = "Script execution interrupted by user";
   const int exitcode = 130;
 
-  // ^C on os.sleep() will not bubble up the termination somehow
-
   TEST_INTERRUPT_SCRIPT_B("--js", "--js", "test_while.js");
-  // TEST_INTERRUPT_SCRIPT_B("--js", "--js", "test_sleep.js");
+  TEST_INTERRUPT_SCRIPT_B("--js", "--js", "test_sleep.js");
   TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--js", "test_while.js");
-  // TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--js", "test_sleep.js");
+  TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--js", "test_sleep.js");
   TEST_INTERRUPT_SCRIPT_B(_uri.c_str(), "--js", "test_while.js");
-  // TEST_INTERRUPT_SCRIPT_B(_uri.c_str(), "--js", "test_sleep.js");
+  TEST_INTERRUPT_SCRIPT_B(_uri.c_str(), "--js", "test_sleep.js");
 
   expect = "Script execution interrupted by user";
   TEST_INTERRUPT_SCRIPT_B(_uri.c_str(), "--js", "test_queryx.js");

@@ -385,7 +385,7 @@ class Field_formatter {
   size_t get_max_buffer_length() const { return m_max_buffer_length; }
 
  private:
-  std::unique_ptr<char> m_buffer;
+  std::unique_ptr<char[]> m_buffer;
   size_t m_allocated;
   size_t m_zerofill;
   bool m_binary;

@@ -30,15 +30,23 @@
 
 namespace shcore {
 
+namespace details {
+
 template <typename T>
+struct Collectable_config;
+
+}  // namespace details
+
+template <typename T, typename Config = details::Collectable_config<T>>
 class Collectable {
  public:
   Collectable(const std::shared_ptr<T> &d, v8::Isolate *isolate,
               const v8::Local<v8::Object> &object)
       : m_data(d) {
     m_persistent.Reset(isolate, object);
-    m_persistent.SetWeak(this, destructor);
-    m_persistent.MarkIndependent();
+    m_persistent.SetWeak(this, destructor, v8::WeakCallbackType::kParameter);
+    isolate->AdjustAmountOfExternalAllocatedMemory(
+        static_cast<int64_t>(Config::get_allocated_size(*this)));
   }
 
   Collectable(const Collectable &) = delete;
@@ -55,14 +63,31 @@ class Collectable {
 
  private:
   static void destructor(
-      const v8::WeakCallbackData<v8::Object, Collectable<T>> &data) {
-    v8::HandleScope hscope(data.GetIsolate());
-    delete data.GetParameter();
+      const v8::WeakCallbackInfo<Collectable<T, Config>> &data) {
+    const auto self = data.GetParameter();
+    data.GetIsolate()->AdjustAmountOfExternalAllocatedMemory(
+        -static_cast<int64_t>(Config::get_allocated_size(*self)));
+    delete self;
   }
 
   std::shared_ptr<T> m_data;
   v8::Persistent<v8::Object> m_persistent;
 };
+
+namespace details {
+
+template <typename T>
+struct Collectable_config {
+ public:
+  static size_t get_allocated_size(const Collectable<T> &) {
+    // it's difficult to measure exact size of the native object (sizeof is not
+    // going to be reliable), this constant value should be a good enough
+    // approximation
+    return 1024;
+  }
+};
+
+}  // namespace details
 
 };  // namespace shcore
 

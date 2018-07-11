@@ -356,7 +356,7 @@ class SHCORE_PUBLIC Exception : public std::exception {
   std::shared_ptr<Value::Map_type> _error;
 
  public:
-  Exception(const std::shared_ptr<Value::Map_type> e);
+  explicit Exception(const std::shared_ptr<Value::Map_type> e);
 
   virtual ~Exception() noexcept {}
 

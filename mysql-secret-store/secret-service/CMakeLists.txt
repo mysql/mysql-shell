@@ -38,8 +38,5 @@ set(helper_includes
   "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
   "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
 )
-set(helper_libs
-  mysqlshdk-static
-)
 
 add_helper_executable()

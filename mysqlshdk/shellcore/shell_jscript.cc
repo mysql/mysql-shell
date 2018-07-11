@@ -50,7 +50,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
 
   bool got_error = true;
   if (mysqlsh::current_shell_options()->get().interactive)
-    std::tie(result, got_error) = _js->execute_interactive(code, state);
+    std::tie(result, got_error) = _js->execute_interactive(code, &state);
   else {
     try {
       std::tie(result, got_error) = _js->execute(

@@ -21,18 +21,17 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-#endif
-
 #include "scripting/jscript_context.h"
 
-#ifdef __clang__
-#pragma clang diagnostic pop
+#if V8_MAJOR_VERSION > 6 || (V8_MAJOR_VERSION == 6 && V8_MINOR_VERSION > 7)
+#error "v8::Platform uses deprecated code, remove these undefs when it's fixed"
+#else
+#undef V8_DEPRECATE_SOON
+#define V8_DEPRECATE_SOON(message, declarator) declarator
+#include <libplatform/libplatform.h>
 #endif
 
-#include "mysh_config.h"
+#include "mysqlshdk/include/mysh_config.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/module_registry.h"
 #include "scripting/object_factory.h"
@@ -59,7 +58,33 @@
 #endif
 #include "utils/utils_file.h"
 
-using namespace shcore;
+namespace shcore {
+
+namespace {
+
+std::unique_ptr<v8::Platform> g_platform;
+
+}  // namespace
+
+/** Initializer for JS stuff
+ *
+ * Must be called once when the program is started.
+ */
+void SHCORE_PUBLIC JScript_context_init() {
+  if (!g_platform) {
+    g_platform = v8::platform::NewDefaultPlatform();
+    v8::V8::InitializePlatform(g_platform.get());
+    v8::V8::Initialize();
+  }
+}
+
+void SHCORE_PUBLIC JScript_context_fini() {
+  if (g_platform) {
+    v8::V8::Dispose();
+    v8::V8::ShutdownPlatform();
+    g_platform.reset(nullptr);
+  }
+}
 
 struct JScript_context::JScript_context_impl {
   JScript_context *owner;
@@ -67,77 +92,83 @@ struct JScript_context::JScript_context_impl {
 
   v8::Isolate *isolate;
   v8::Persistent<v8::Context> context;
-  std::map<std::string, v8::Persistent<v8::Object> *> factory_packages;
+  std::map<std::string, v8::Global<v8::Object>> factory_packages;
   v8::Persistent<v8::ObjectTemplate> package_template;
 
+ private:
+  std::unique_ptr<v8::ArrayBuffer::Allocator> m_allocator;
+  bool m_terminating = false;
+
+ public:
   JScript_context_impl(JScript_context *owner_)
-      : owner(owner_), types(owner_), isolate(v8::Isolate::New()) {
+      : owner(owner_),
+        types(owner_),
+        isolate(nullptr),
+        m_allocator(v8::ArrayBuffer::Allocator::NewDefaultAllocator()) {
+    JScript_context_init();
+
+    v8::Isolate::CreateParams params;
+    params.array_buffer_allocator = m_allocator.get();
+
+    isolate = v8::Isolate::New(params);
+    isolate->SetData(0, this);
+
     v8::Isolate::Scope isolate_scope(isolate);
     v8::HandleScope handle_scope(isolate);
 
     v8::Local<v8::ObjectTemplate> globals = v8::ObjectTemplate::New(isolate);
-    v8::Local<v8::External> client_data(v8::External::New(isolate, this));
 
     // register symbols to be exported to JS in global namespace
 
     // repr(object) -> string
-    globals->Set(v8::String::NewFromUtf8(isolate, "repr"),
-                 v8::FunctionTemplate::New(
-                     isolate, &JScript_context_impl::f_repr, client_data));
+    globals->Set(v8_string("repr"),
+                 wrap_callback(&JScript_context_impl::f_repr));
 
     // unrepr(string) -> object
-    globals->Set(v8::String::NewFromUtf8(isolate, "unrepr"),
-                 v8::FunctionTemplate::New(
-                     isolate, &JScript_context_impl::f_unrepr, client_data));
+    globals->Set(v8_string("unrepr"),
+                 wrap_callback(&JScript_context_impl::f_unrepr));
 
     // type(object) -> string
-    globals->Set(v8::String::NewFromUtf8(isolate, "type"),
-                 v8::FunctionTemplate::New(
-                     isolate, &JScript_context_impl::f_type, client_data));
+    globals->Set(v8_string("type"),
+                 wrap_callback(&JScript_context_impl::f_type));
 
     // print('hello')
-    globals->Set(v8::String::NewFromUtf8(isolate, "print"),
-                 v8::FunctionTemplate::New(
-                     isolate,
-                     [](const v8::FunctionCallbackInfo<v8::Value> &args) {
-                       f_print(args, false);
-                     },
-                     client_data));
+    globals->Set(
+        v8_string("print"),
+        wrap_callback([](const v8::FunctionCallbackInfo<v8::Value> &args) {
+          f_print(args, false);
+        }));
 
-    globals->Set(v8::String::NewFromUtf8(isolate, "println"),
-                 v8::FunctionTemplate::New(
-                     isolate,
-                     [](const v8::FunctionCallbackInfo<v8::Value> &args) {
-                       f_print(args, true);
-                     },
-                     client_data));
+    globals->Set(
+        v8_string("println"),
+        wrap_callback([](const v8::FunctionCallbackInfo<v8::Value> &args) {
+          f_print(args, true);
+        }));
 
-    globals->Set(v8::String::NewFromUtf8(isolate, "os"), make_os_object());
+    globals->Set(v8_string("os"), make_os_object());
 
     // obj = _F.mysql.open('root@localhost')
-    globals->Set(v8::String::NewFromUtf8(isolate, "_F"), make_factory());
+    globals->Set(v8_string("_F"), make_factory());
 
     {
-      v8::Handle<v8::ObjectTemplate> templ(v8::ObjectTemplate::New(isolate));
+      v8::Local<v8::ObjectTemplate> templ(v8::ObjectTemplate::New(isolate));
       package_template.Reset(isolate, templ);
-      templ->SetNamedPropertyHandler(
-          &JScript_context_impl::factory_package_getter, 0, 0, 0, 0,
-          client_data);
+
+      v8::NamedPropertyHandlerConfiguration config;
+      config.getter = &JScript_context_impl::factory_package_getter;
+      config.flags = v8::PropertyHandlerFlags::kOnlyInterceptStrings;
+      templ->SetHandler(config);
     }
 
     // source('module')
-    globals->Set(v8::String::NewFromUtf8(isolate, "source"),
-                 v8::FunctionTemplate::New(
-                     isolate, &JScript_context_impl::f_source, client_data));
+    globals->Set(v8_string("source"),
+                 wrap_callback(&JScript_context_impl::f_source));
 
-    globals->Set(v8::String::NewFromUtf8(isolate, "__require"),
-                 v8::FunctionTemplate::New(
-                     isolate, &JScript_context_impl::f_require, client_data));
+    globals->Set(v8_string("__require"),
+                 wrap_callback(&JScript_context_impl::f_require));
 
-    globals->Set(
-        v8::String::NewFromUtf8(isolate, "__build_module"),
-        v8::FunctionTemplate::New(
-            isolate, &JScript_context_impl::f_build_module, client_data));
+    globals->Set(v8_string("__build_module"),
+                 wrap_callback(&JScript_context_impl::f_build_module));
 
     v8::Local<v8::Context> lcontext = v8::Context::New(isolate, NULL, globals);
     context.Reset(isolate, lcontext);
@@ -160,8 +191,7 @@ struct JScript_context::JScript_context_impl {
     std::string source = "(function (){" + shcore::js_core_module + "});";
 
     // Result must be valid or an exception is thrown.
-    result = _build_module(v8::String::NewFromUtf8(isolate, "core.js"),
-                           v8::String::NewFromUtf8(isolate, source.c_str()));
+    result = _build_module(v8_string("core.js"), v8_string(source));
 
     // It is expected to have a function on the core module.
     if (result->IsFunction()) {
@@ -169,7 +199,8 @@ struct JScript_context::JScript_context_impl {
       v8::Local<v8::Context> lcontext =
           v8::Local<v8::Context>::New(isolate, context);
 
-      f->Call(lcontext->Global(), 0, NULL);
+      // call ToLocalChecked() to ensure we have a valid result
+      f->Call(lcontext, lcontext->Global(), 0, nullptr).ToLocalChecked();
     } else
       // If this happens is because the core.js was messed up!
       throw shcore::Exception::runtime_error(
@@ -177,159 +208,132 @@ struct JScript_context::JScript_context_impl {
   }
 
   ~JScript_context_impl() {
-    // Explicitly delete all globals to force a cleanup
-    {
-      v8::Isolate::Scope isolate_scope(isolate);
-      v8::HandleScope handle_scope(isolate);
-      v8::Context::Scope context_scope(
-          v8::Local<v8::Context>::New(isolate, context));
-
-      v8::Local<v8::Context> lcontext =
-          v8::Local<v8::Context>::New(isolate, context);
-      v8::Local<v8::Object> globals =
-          v8::Local<v8::Object>::New(isolate, lcontext->Global());
-
-      v8::Local<v8::Array> names = globals->GetPropertyNames();
-      for (uint32_t i = 0; i < names->Length(); i++) {
-        globals->ForceDelete(names->Get(i));
-      }
-    }
-
-    // force GC
-    while (!isolate->IdleNotification(1000)) {
-    }
-
-    for (std::map<std::string, v8::Persistent<v8::Object> *>::iterator i =
-             factory_packages.begin();
-         i != factory_packages.end(); ++i)
-      delete i->second;
-
+    factory_packages.clear();
     types.dispose();
 
-    while (!isolate->IdleNotification(1000)) {
-    }
-
-    // Releases the context
+    // release the context
     context.Reset();
+    // notify the isolate
+    isolate->ContextDisposedNotification();
+    // force GC
+    isolate->LowMemoryNotification();
+    // dispose isolate
     isolate->Dispose();
   }
 
   // Factory interface implementation
 
-  static void factory_getter(v8::Local<v8::String> property,
+  static void factory_getter(v8::Local<v8::Name> property,
                              const v8::PropertyCallbackInfo<v8::Value> &info) {
-    v8::HandleScope outer_handle_scope(info.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*info.Data())->Value());
+    const auto isolate = info.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
 
-    std::string pkgname = *v8::String::Utf8Value(property->ToString());
+    v8::HandleScope outer_handle_scope(isolate);
+    const auto pkgname = to_string(isolate, property);
+    const auto iter = self->factory_packages.find(pkgname);
 
-    std::map<std::string, v8::Persistent<v8::Object> *>::iterator iter;
-    if ((iter = self->factory_packages.find(pkgname)) ==
-        self->factory_packages.end()) {
+    if (iter == self->factory_packages.end()) {
       // check if the package exists
       if (Object_factory::has_package(pkgname)) {
-        v8::Handle<v8::Object> package = self->make_factory_package(pkgname);
-        info.GetReturnValue().Set(package);
-        self->factory_packages[pkgname] =
-            new v8::Persistent<v8::Object>(self->isolate, package);
-      } else
-        info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-            info.GetIsolate(), ("Invalid package " + pkgname).c_str()));
+        auto package = self->make_factory_package(pkgname);
+        info.GetReturnValue().Set(
+            self->factory_packages
+                .emplace(std::piecewise_construct,
+                         std::forward_as_tuple(pkgname),
+                         std::forward_as_tuple(self->isolate, package))
+                .first->second);
+      } else {
+        isolate->ThrowException(
+            v8_string(isolate, "Invalid package " + pkgname));
+      }
     } else {
-      info.GetReturnValue().Set(*iter->second);
+      info.GetReturnValue().Set(iter->second);
     }
   }
 
-  v8::Handle<v8::ObjectTemplate> make_factory() {
-    v8::Handle<v8::ObjectTemplate> factory = v8::ObjectTemplate::New(isolate);
-    v8::Local<v8::External> client_data(v8::External::New(isolate, this));
+  v8::Local<v8::ObjectTemplate> make_factory() {
+    v8::Local<v8::ObjectTemplate> factory = v8::ObjectTemplate::New(isolate);
 
-    factory->SetNamedPropertyHandler(&JScript_context_impl::factory_getter, 0,
-                                     0, 0, 0, client_data);
+    v8::NamedPropertyHandlerConfiguration config;
+    config.getter = &JScript_context_impl::factory_getter;
+    config.flags = v8::PropertyHandlerFlags::kOnlyInterceptStrings;
+    factory->SetHandler(config);
 
     return factory;
   }
 
   // TODO: Creation of the OS module should be moved to a different place.
-  v8::Handle<v8::ObjectTemplate> make_os_object() {
-    v8::Handle<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
-    v8::Local<v8::External> client_data(v8::External::New(isolate, this));
+  v8::Local<v8::ObjectTemplate> make_os_object() {
+    v8::Local<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
 
-    // repr(object) -> string
-    object->Set(v8::String::NewFromUtf8(isolate, "getenv"),
-                v8::FunctionTemplate::New(
-                    isolate, &JScript_context_impl::os_getenv, client_data));
+    object->Set(v8_string("getenv"),
+                wrap_callback(&JScript_context_impl::os_getenv));
 
-    object->Set(v8::String::NewFromUtf8(isolate, "get_user_config_path"),
-                v8::FunctionTemplate::New(
-                    isolate, &JScript_context_impl::os_get_user_config_path,
-                    client_data));
+    object->Set(v8_string("get_user_config_path"),
+                wrap_callback(&JScript_context_impl::os_get_user_config_path));
 
-    object->Set(v8::String::NewFromUtf8(isolate, "get_mysqlx_home_path"),
-                v8::FunctionTemplate::New(
-                    isolate, &JScript_context_impl::os_get_mysqlx_home_path,
-                    client_data));
+    object->Set(v8_string("get_mysqlx_home_path"),
+                wrap_callback(&JScript_context_impl::os_get_mysqlx_home_path));
 
-    object->Set(
-        v8::String::NewFromUtf8(isolate, "get_binary_folder"),
-        v8::FunctionTemplate::New(
-            isolate, &JScript_context_impl::os_get_binary_folder, client_data));
+    object->Set(v8_string("get_binary_folder"),
+                wrap_callback(&JScript_context_impl::os_get_binary_folder));
 
-    object->Set(
-        v8::String::NewFromUtf8(isolate, "file_exists"),
-        v8::FunctionTemplate::New(
-            isolate, &JScript_context_impl::os_file_exists, client_data));
+    object->Set(v8_string("file_exists"),
+                wrap_callback(&JScript_context_impl::os_file_exists));
 
-    object->Set(
-        v8::String::NewFromUtf8(isolate, "load_text_file"),
-        v8::FunctionTemplate::New(
-            isolate, &JScript_context_impl::os_load_text_file, client_data));
+    object->Set(v8_string("load_text_file"),
+                wrap_callback(&JScript_context_impl::os_load_text_file));
 
-    object->Set(v8::String::NewFromUtf8(isolate, "sleep"),
-                v8::FunctionTemplate::New(
-                    isolate, &JScript_context_impl::os_sleep, client_data));
+    object->Set(v8_string("sleep"),
+                wrap_callback(&JScript_context_impl::os_sleep));
 
     return object;
   }
 
   static void factory_package_getter(
-      v8::Local<v8::String> property,
+      v8::Local<v8::Name> property,
       const v8::PropertyCallbackInfo<v8::Value> &info) {
-    v8::HandleScope outer_handle_scope(info.GetIsolate());
+    const auto isolate = info.GetIsolate();
+    v8::HandleScope outer_handle_scope(isolate);
 
-    v8::String::Utf8Value propname(property);
+    const auto propname = to_string(isolate, property);
 
-    if (strcmp(*propname, "__name__") != 0) {
-      JScript_context_impl *self = static_cast<JScript_context_impl *>(
-          v8::External::Cast(*info.Data())->Value());
-      v8::String::Utf8Value pkgname(
-          info.This()->Get(v8::String::NewFromUtf8(self->isolate, "__name__")));
-
-      info.GetReturnValue().Set(
-          self->wrap_factory_constructor(*pkgname, *propname));
+    if (strcmp(propname.c_str(), "__name__") != 0) {
+      const auto self =
+          static_cast<JScript_context_impl *>(isolate->GetData(0));
+      auto maybe_name = info.This()->Get(isolate->GetCurrentContext(),
+                                         v8_string(isolate, "__name__"));
+      if (!maybe_name.IsEmpty()) {
+        info.GetReturnValue().Set(self->wrap_factory_constructor(
+            to_string(isolate, maybe_name.ToLocalChecked()), propname));
+      }
     }
   }
 
-  v8::Handle<v8::Object> make_factory_package(const std::string &package) {
-    v8::Handle<v8::ObjectTemplate> templ(
-        v8::Local<v8::ObjectTemplate>::New(isolate, package_template));
-    v8::Handle<v8::Object> pkg = templ->NewInstance();
-    pkg->Set(v8::String::NewFromUtf8(isolate, "__name__"),
-             v8::String::NewFromUtf8(isolate, package.c_str()));
+  v8::Local<v8::Object> make_factory_package(const std::string &package) {
+    const auto templ =
+        v8::Local<v8::ObjectTemplate>::New(isolate, package_template);
+    const auto lcontext = v8::Local<v8::Context>::New(isolate, context);
+    const auto pkg = templ->NewInstance(lcontext).ToLocalChecked();
+    pkg->Set(lcontext, v8_string("__name__"), v8_string(package)).FromJust();
     return pkg;
   }
 
   static void call_factory(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::Handle<v8::Object> client_data(args.Data()->ToObject());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*client_data->Get(v8::String::NewFromUtf8(
-                               args.GetIsolate(), "object")))
-            ->Value());
-    std::string package = *(v8::String::Utf8Value)client_data->Get(
-        v8::String::NewFromUtf8(self->isolate, "package"));
-    std::string factory = *(v8::String::Utf8Value)client_data->Get(
-        v8::String::NewFromUtf8(self->isolate, "function"));
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
+
+    if (self->is_terminating()) return;
+
+    const auto lcontext = isolate->GetCurrentContext();
+    const auto client_data = args.Data()->ToObject(lcontext).ToLocalChecked();
+
+    const auto package =
+        self->to_string(client_data->Get(lcontext, self->v8_string("package"))
+                            .ToLocalChecked());
+    const auto factory =
+        self->to_string(client_data->Get(lcontext, self->v8_string("function"))
+                            .ToLocalChecked());
 
     try {
       Value result(Object_factory::call_constructor(
@@ -338,98 +342,93 @@ struct JScript_context::JScript_context_impl {
       if (result)
         args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(result));
     } catch (std::exception &e) {
-      args.GetIsolate()->ThrowException(
-          v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+      isolate->ThrowException(v8_string(isolate, e.what()));
     }
   }
 
-  v8::Handle<v8::Function> wrap_factory_constructor(
-      const std::string &package, const std::string &factory) {
+  v8::Local<v8::Function> wrap_factory_constructor(const std::string &package,
+                                                   const std::string &factory) {
     v8::Local<v8::Object> client_data(v8::Object::New(isolate));
+    const auto lcontext = v8::Local<v8::Context>::New(isolate, context);
 
-    client_data->Set(v8::String::NewFromUtf8(isolate, "package"),
-                     v8::String::NewFromUtf8(isolate, package.c_str()));
-    client_data->Set(v8::String::NewFromUtf8(isolate, "function"),
-                     v8::String::NewFromUtf8(isolate, factory.c_str()));
-    client_data->Set(v8::String::NewFromUtf8(isolate, "object"),
-                     v8::External::New(isolate, this));
+    client_data->Set(lcontext, v8_string("package"), v8_string(package))
+        .FromJust();
+    client_data->Set(lcontext, v8_string("function"), v8_string(factory))
+        .FromJust();
 
-    v8::Handle<v8::FunctionTemplate> ftempl = v8::FunctionTemplate::New(
+    v8::Local<v8::FunctionTemplate> ftempl = v8::FunctionTemplate::New(
         isolate, &JScript_context_impl::call_factory, client_data);
-    return ftempl->GetFunction();
+    return ftempl->GetFunction(lcontext).ToLocalChecked();
   }
 
   // Global functions exposed to JS
 
   static void f_repr(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "repr() takes 1 argument"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(v8_string(isolate, "repr() takes 1 argument"));
+    } else {
       try {
-        args.GetReturnValue().Set(v8::String::NewFromUtf8(
-            args.GetIsolate(),
-            self->types.v8_value_to_shcore_value(args[0]).repr().c_str()));
+        args.GetReturnValue().Set(v8_string(
+            isolate, self->types.v8_value_to_shcore_value(args[0]).repr()));
       } catch (std::exception &e) {
-        args.GetIsolate()->ThrowException(
-            v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
   }
 
   static void f_unrepr(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "unrepr() takes 1 argument"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(v8_string(isolate, "unrepr() takes 1 argument"));
+    } else {
       try {
-        v8::String::Utf8Value s(args[0]);
         args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(
-            Value::parse(std::string(*s))));
+            Value::parse(to_string(isolate, args[0]))));
       } catch (std::exception &e) {
-        args.GetIsolate()->ThrowException(
-            v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
   }
 
   static void f_type(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "type() takes 1 argument"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(v8_string(isolate, "type() takes 1 argument"));
+    } else {
       try {
         args.GetReturnValue().Set(self->types.type_info(args[0]));
       } catch (std::exception &e) {
-        args.GetIsolate()->ThrowException(
-            v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
   }
 
   static void f_print(const v8::FunctionCallbackInfo<v8::Value> &args,
                       bool new_line) {
-    v8::HandleScope outer_handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
+
+    v8::HandleScope outer_handle_scope(isolate);
+
     std::string text;
     // FIXME this doesn't belong here?
     std::string format = mysqlsh::current_shell_options()->get().output_format;
 
     for (int i = 0; i < args.Length(); i++) {
-      v8::HandleScope handle_scope(args.GetIsolate());
+      v8::HandleScope handle_scope(isolate);
       if (i > 0) text.push_back(' ');
 
       try {
@@ -439,8 +438,7 @@ struct JScript_context::JScript_context_impl {
         else
           text += self->types.v8_value_to_shcore_value(args[i]).descr(true);
       } catch (std::exception &e) {
-        args.GetIsolate()->ThrowException(
-            v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        isolate->ThrowException(v8_string(isolate, e.what()));
         break;
       }
     }
@@ -450,88 +448,88 @@ struct JScript_context::JScript_context_impl {
   }
 
   static void f_source(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope outer_handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
+
+    v8::HandleScope outer_handle_scope(isolate);
 
     if (args.Length() != 1) {
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "Invalid number of parameters"));
+      isolate->ThrowException(
+          v8_string(isolate, "Invalid number of parameters"));
       return;
     }
 
-    v8::HandleScope handle_scope(args.GetIsolate());
-    v8::String::Utf8Value str(args[0]);
+    v8::HandleScope handle_scope(isolate);
+    const auto str = to_string(isolate, args[0]);
 
     // Loads the source content
     std::string source;
-    if (load_text_file(*str, source)) {
-      self->owner->execute(source, *str, {});
+    if (load_text_file(str, source)) {
+      self->owner->execute(source, str, {});
     } else {
-      args.GetIsolate()->ThrowException(
-          v8::String::NewFromUtf8(args.GetIsolate(), "Error loading script"));
+      isolate->ThrowException(v8_string(isolate, "Error loading script"));
     }
   }
 
   static void f_require(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "Invalid number of parameters"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(
+          v8_string(isolate, "Invalid number of parameters"));
+    } else {
       try {
-        v8::String::Utf8Value s(args[0]);
+        const auto s = to_string(isolate, args[0]);
 
         auto core_modules = Object_factory::package_contents("__modules__");
-        if (std::find(core_modules.begin(), core_modules.end(), *s) !=
+        if (std::find(core_modules.begin(), core_modules.end(), s) !=
             core_modules.end()) {
           auto module = Object_factory::call_constructor(
-              "__modules__", *s, shcore::Argument_list(),
+              "__modules__", s, shcore::Argument_list(),
               NamingStyle::LowerCamelCase);
           args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(
               shcore::Value(std::dynamic_pointer_cast<Object_bridge>(module))));
         }
       } catch (std::exception &e) {
-        args.GetIsolate()->ThrowException(
-            v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        isolate->ThrowException(v8_string(isolate, e.what()));
       }
     }
   }
 
-  v8::Local<v8::Value> _build_module(v8::Handle<v8::String> origin,
-                                     v8::Handle<v8::String> source) {
-    v8::Local<v8::Value> result;
+  v8::Local<v8::Value> _build_module(v8::Local<v8::String> origin,
+                                     v8::Local<v8::String> source) {
+    v8::MaybeLocal<v8::Value> result;
     // makes _isolate the default isolate for this context
     v8::EscapableHandleScope handle_scope(isolate);
 
-    v8::TryCatch try_catch;
+    v8::TryCatch try_catch{isolate};
     // set _context to be the default context for everything in this scope
-    v8::Context::Scope context_scope(
-        v8::Local<v8::Context>::New(isolate, context));
+    v8::Local<v8::Context> lcontext =
+        v8::Local<v8::Context>::New(isolate, context);
+    v8::Context::Scope context_scope(lcontext);
 
-    v8::Local<v8::Script> script;
-    script = v8::Script::Compile(source, origin);
-    if (!script.IsEmpty()) result = script->Run();
+    v8::MaybeLocal<v8::Script> script;
+    v8::ScriptOrigin script_origin{origin};
+    script = v8::Script::Compile(lcontext, source, &script_origin);
+    if (!script.IsEmpty()) result = script.ToLocalChecked()->Run(lcontext);
 
     if (result.IsEmpty()) {
-      v8::String::Utf8Value exec_error(try_catch.Exception());
       std::string exception_text = "Error loading module at " +
-                                   std::string(*v8::String::Utf8Value(origin)) +
-                                   ". ";
-      exception_text.append(*exec_error);
+                                   to_string(origin) + ". " +
+                                   to_string(try_catch.Exception());
 
       throw shcore::Exception::scripting_error(exception_text);
     }
 
-    return handle_scope.Escape(result);
+    return handle_scope.Escape(result.ToLocalChecked());
   }
 
   static void f_build_module(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    JScript_context_impl *self = static_cast<JScript_context_impl *>(
-        v8::External::Cast(*args.Data())->Value());
+    const auto isolate = args.GetIsolate();
+    const auto self = static_cast<JScript_context_impl *>(isolate->GetData(0));
 
     v8::Local<v8::String> origin = v8::Local<v8::String>::Cast(args[0]);
     v8::Local<v8::String> source = v8::Local<v8::String>::Cast(args[1]);
@@ -558,172 +556,235 @@ struct JScript_context::JScript_context_impl {
 
   void set_global_item(const std::string &global_name,
                        const std::string &item_name,
-                       const v8::Handle<v8::Value> &value) {
+                       const v8::Local<v8::Value> &value) {
     v8::HandleScope handle_scope(isolate);
-    v8::Handle<v8::Value> global = get_global(global_name);
+    v8::Local<v8::Value> global = get_global(global_name);
+    v8::Local<v8::Object> object = v8::Local<v8::Object>::Cast(global);
+    const auto lcontext = v8::Local<v8::Context>::New(isolate, context);
 
-    v8::Handle<v8::Object> object = v8::Handle<v8::Object>::Cast(global);
-
-    object->Set(v8::String::NewFromUtf8(isolate, item_name.c_str()), value);
+    object->Set(lcontext, v8_string(item_name), value).FromJust();
   }
 
-  void set_global(const std::string &name, const v8::Handle<v8::Value> &value) {
+  void set_global(const std::string &name, const v8::Local<v8::Value> &value) {
     v8::HandleScope handle_scope(isolate);
-    v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
+    const auto ctx = v8::Local<v8::Context>::New(isolate, context);
     if (value.IsEmpty() || !*value)
-      ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()),
-                         v8::Null(isolate));
+      ctx->Global()->Set(ctx, v8_string(name), v8::Null(isolate)).FromJust();
     else
-      ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()), value);
+      ctx->Global()->Set(ctx, v8_string(name), value).FromJust();
   }
 
-  v8::Handle<v8::Value> get_global(const std::string &name) {
-    v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
-    return ctx->Global()->Get(v8::String::NewFromUtf8(isolate, name.c_str()));
+  v8::Local<v8::Value> get_global(const std::string &name) {
+    const auto ctx = v8::Local<v8::Context>::New(isolate, context);
+    return ctx->Global()->Get(ctx, v8_string(name)).ToLocalChecked();
   }
 
   static void os_sleep(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
+
+    v8::HandleScope handle_scope(isolate);
 
     if (args.Length() != 1 || !args[0]->IsNumber()) {
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "sleep(<number>) takes 1 numeric argument"));
+      isolate->ThrowException(
+          v8_string(isolate, "sleep(<number>) takes 1 numeric argument"));
     } else {
-      shcore::sleep_ms(args[0]->ToNumber()->Value() * 1000.0);
+      shcore::sleep_ms(args[0]
+                           ->ToNumber(isolate->GetCurrentContext())
+                           .ToLocalChecked()
+                           ->Value() *
+                       1000.0);
     }
   }
 
   static void os_getenv(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "getenv(<name>) takes 1 argument"));
-    else {
-      v8::String::Utf8Value variable_name(args[0]);
-      char *value = getenv(*variable_name);
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(
+          v8_string(isolate, "getenv(<name>) takes 1 argument"));
+    } else {
+      const auto variable_name = to_string(isolate, args[0]);
+      char *value = getenv(variable_name.c_str());
 
       if (value)
-        args.GetReturnValue().Set(
-            v8::String::NewFromUtf8(args.GetIsolate(), value));
+        args.GetReturnValue().Set(v8_string(isolate, value));
       else
-        args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+        args.GetReturnValue().Set(v8::Null(isolate));
     }
   }
 
   static void os_file_exists(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "file_exists(<path>) takes 1 argument"));
-    else {
-      v8::String::Utf8Value path(args[0]);
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(
+          v8_string(isolate, "file_exists(<path>) takes 1 argument"));
+    } else {
       args.GetReturnValue().Set(
-          v8::Boolean::New(args.GetIsolate(), file_exists(std::string(*path))));
+          v8::Boolean::New(isolate, file_exists(to_string(isolate, args[0]))));
     }
   }
 
   static void os_load_text_file(
       const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
 
-    if (args.Length() != 1)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "load_text_file(<path>) takes 1 argument"));
-    else {
-      v8::String::Utf8Value path(args[0]);
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 1) {
+      isolate->ThrowException(
+          v8_string(isolate, "load_text_file(<path>) takes 1 argument"));
+    } else {
+      const auto path = to_string(isolate, args[0]);
       std::string source;
 
-      if (load_text_file(*path, source)) {
-        args.GetReturnValue().Set(
-            v8::String::NewFromUtf8(args.GetIsolate(), source.c_str()));
+      if (load_text_file(path, source)) {
+        args.GetReturnValue().Set(v8_string(isolate, source));
       } else {
-        std::string error("load_text_file: unable to open file: ");
-        error.append(*path);
-        args.GetIsolate()->ThrowException(
-            v8::String::NewFromUtf8(args.GetIsolate(), error.c_str()));
+        isolate->ThrowException(
+            v8_string(isolate, "load_text_file: unable to open file: " + path));
       }
     }
   }
 
   static void os_get_user_config_path(
       const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
 
-    if (args.Length() != 0)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "get_user_config_path() takes 0 arguments"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 0) {
+      isolate->ThrowException(
+          v8_string(isolate, "get_user_config_path() takes 0 arguments"));
+    } else {
       try {
         std::string path = get_user_config_path();
-        args.GetReturnValue().Set(
-            v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
+        args.GetReturnValue().Set(v8_string(isolate, path));
       } catch (...) {
-        args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+        args.GetReturnValue().Set(v8::Null(isolate));
       }
     }
   }
 
   static void os_get_mysqlx_home_path(
       const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
 
-    if (args.Length() != 0)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "get_mysqlx_home_path() takes 0 arguments"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 0) {
+      isolate->ThrowException(
+          v8_string(isolate, "get_mysqlx_home_path() takes 0 arguments"));
+    } else {
       try {
         std::string path = get_mysqlx_home_path();
-        args.GetReturnValue().Set(
-            v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
+        args.GetReturnValue().Set(v8_string(isolate, path));
       } catch (...) {
-        args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+        args.GetReturnValue().Set(v8::Null(isolate));
       }
     }
   }
 
   static void os_get_binary_folder(
       const v8::FunctionCallbackInfo<v8::Value> &args) {
-    v8::HandleScope handle_scope(args.GetIsolate());
+    const auto isolate = args.GetIsolate();
 
-    if (args.Length() != 0)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          args.GetIsolate(), "get_binary_folder() takes 0 arguments"));
-    else {
+    v8::HandleScope handle_scope(isolate);
+
+    if (args.Length() != 0) {
+      isolate->ThrowException(
+          v8_string(isolate, "get_binary_folder() takes 0 arguments"));
+    } else {
       try {
         std::string path = get_binary_folder();
-        args.GetReturnValue().Set(
-            v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
+        args.GetReturnValue().Set(v8_string(isolate, path));
       } catch (...) {
-        args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+        args.GetReturnValue().Set(v8::Null(isolate));
       }
     }
   }
+
+  static v8::Local<v8::String> v8_string(v8::Isolate *isolate,
+                                         const char *data) {
+    return shcore::v8_string(isolate, data);
+  }
+
+  static v8::Local<v8::String> v8_string(v8::Isolate *isolate,
+                                         const std::string &data) {
+    return v8_string(isolate, data.c_str());
+  }
+
+  v8::Local<v8::String> v8_string(const char *data) {
+    return v8_string(isolate, data);
+  }
+
+  v8::Local<v8::String> v8_string(const std::string &data) {
+    return v8_string(data.c_str());
+  }
+
+  static std::string to_string(v8::Isolate *isolate, v8::Local<v8::Value> obj) {
+    return shcore::to_string(isolate, obj);
+  }
+
+  std::string to_string(v8::Local<v8::Value> obj) {
+    return to_string(isolate, obj);
+  }
+
+  void terminate() {
+    // TerminateExecution() generates an exception which cannot be caught in JS.
+    // It can be called from any thread, which means that it does not
+    // immediately raise an exception, instead it sets a flag which will be
+    // checked by V8 engine at some in the future by
+    // v8::internal::StackGuard::HandleInterrupts() and then generate an
+    // exception. For some reason (optimization?), if JS code has several
+    // consecutive native calls, the execution is not terminated until all of
+    // them are called, i.e.:
+    //   os.sleep(10); println('failed');
+    // pressing CTRL-C during sleep (which calls terminate()) will still print
+    // 'failed', while:
+    //   function fail() { println('failed'); } os.sleep(10); fail();
+    // in the same scenario will work fine. For this reason we need to manually
+    // check the `m_terminating` flag before executing native code.
+    m_terminating = true;
+    isolate->TerminateExecution();
+  }
+
+  bool is_terminating() const { return m_terminating; }
+
+  void clear_is_terminating() { m_terminating = false; }
+
+  v8::Local<v8::FunctionTemplate> wrap_callback(v8::FunctionCallback callback) {
+    const auto data =
+        v8::External::New(isolate, reinterpret_cast<void *>(callback));
+
+    return v8::FunctionTemplate::New(
+        isolate,
+        [](const v8::FunctionCallbackInfo<v8::Value> &args) {
+          const auto isolate = args.GetIsolate();
+          const auto self =
+              static_cast<JScript_context_impl *>(isolate->GetData(0));
+
+          if (self->is_terminating()) return;
+
+          const auto callback = reinterpret_cast<v8::FunctionCallback>(
+              v8::External::Cast(*args.Data())->Value());
+          callback(args);
+        },
+        data);
+  }
 };
 
-/** Initializer for JS stuff
-
- Must be called once when the program is started.
- */
-void SHCORE_PUBLIC JScript_context_init() {
-  static bool inited = false;
-  if (!inited) {
-    //    InitializeICU();
-    //    Platform* platform = platform::CreateDefaultPlatform();
-    //    InitializePlatform(platform);
-    v8::V8::Initialize();
-    inited = true;
-  }
-}
-
 JScript_context::JScript_context(Object_registry *registry)
-    : _impl(new JScript_context_impl(this)), _registry(registry) {
+    : _impl(new JScript_context_impl(this)) {
   // initialize type conversion class now that everything is ready
   {
     v8::Isolate::Scope isolate_scope(_impl->isolate);
     v8::HandleScope handle_scope(_impl->isolate);
-    v8::TryCatch try_catch;
+    v8::TryCatch try_catch{_impl->isolate};
     v8::Context::Scope context_scope(
         v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
     _impl->types.init();
@@ -741,7 +802,7 @@ void JScript_context::set_global_item(const std::string &global_name,
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
@@ -759,7 +820,7 @@ void JScript_context::set_global(const std::string &name, const Value &value) {
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
@@ -774,7 +835,7 @@ Value JScript_context::get_global(const std::string &name) {
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
@@ -790,18 +851,18 @@ std::tuple<JSObject, std::string> JScript_context::get_global_js(
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+  const auto lcontext = context();
+  v8::Context::Scope context_scope(lcontext);
 
   v8::Local<v8::Value> global(_impl->get_global(name));
   if (global->IsObject()) {
-    std::string obj_type =
-        *v8::String::Utf8Value(_impl->types.type_info(global));
+    auto obj_type = _impl->to_string(_impl->types.type_info(global));
     if (shcore::str_beginswith(obj_type, "m.")) obj_type = obj_type.substr(2);
     return std::tuple<JSObject, std::string>(
-        JSObject(_impl->isolate, global->ToObject()), obj_type);
+        JSObject(_impl->isolate, global->ToObject(lcontext).ToLocalChecked()),
+        obj_type);
   } else {
     return std::tuple<JSObject, std::string>(JSObject(), "");
   }
@@ -833,28 +894,32 @@ std::tuple<bool, JSObject, std::string> JScript_context::get_member_of(
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+  const auto lcontext = context();
+  v8::Context::Scope context_scope(lcontext);
 
   v8::Local<v8::Object> lobj(v8::Local<v8::Object>::New(_impl->isolate, *obj));
 
-  auto value = lobj->Get(v8::String::NewFromUtf8(_impl->isolate, name.c_str()));
-  if (!value.IsEmpty()) {
-    std::string obj_type;
+  auto maybe_value = lobj->Get(lcontext, v8_string(name));
+  if (!maybe_value.IsEmpty()) {
+    const auto value = maybe_value.ToLocalChecked();
+
+    auto type = _impl->to_string(_impl->types.type_info(value));
+    if (shcore::str_beginswith(type, "m.")) {
+      type = type.substr(2);
+    }
+
     if (value->IsFunction()) {
+      return std::make_tuple(true, JSObject(), type);
     } else if (value->IsObject()) {
-      if (!value->ToObject()->IsCallable()) {
-        obj_type = *v8::String::Utf8Value(_impl->types.type_info(value));
-        if (shcore::str_beginswith(obj_type, "m."))
-          obj_type = obj_type.substr(2);
-        return std::tuple<bool, JSObject, std::string>(
-            false, JSObject(_impl->isolate, value->ToObject()), obj_type);
-      }
+      const auto object = value->ToObject(lcontext).ToLocalChecked();
+      return std::make_tuple(object->IsCallable(),
+                             JSObject(_impl->isolate, object), type);
     }
   }
-  return std::tuple<bool, JSObject, std::string>(false, JSObject(), "");
+
+  return std::make_tuple(false, JSObject(), "");
 }
 
 std::vector<std::pair<bool, std::string>> JScript_context::get_members_of(
@@ -865,29 +930,34 @@ std::vector<std::pair<bool, std::string>> JScript_context::get_members_of(
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+  const auto lcontext = context();
+  v8::Context::Scope context_scope(lcontext);
 
   v8::Local<v8::Object> lobj(v8::Local<v8::Object>::New(_impl->isolate, *obj));
 
   std::vector<std::pair<bool, std::string>> keys;
   if (*lobj) {
-    v8::Local<v8::Array> props(lobj->GetPropertyNames());
+    v8::Local<v8::Array> props(
+        lobj->GetPropertyNames(lcontext).ToLocalChecked());
     for (size_t i = 0; i < props->Length(); i++) {
-      auto value = lobj->Get(props->Get(i));
+      auto maybe_value =
+          lobj->Get(lcontext, props->Get(lcontext, i).ToLocalChecked());
       bool is_func;
-      if (!value.IsEmpty()) {
+      if (!maybe_value.IsEmpty()) {
+        const auto value = maybe_value.ToLocalChecked();
         if (value->IsFunction()) {
           is_func = true;
-        } else if (value->IsObject() && value->ToObject()->IsCallable()) {
+        } else if (value->IsObject() &&
+                   value->ToObject(lcontext).ToLocalChecked()->IsCallable()) {
           is_func = true;
         } else {
           is_func = false;
         }
         keys.push_back(
-            {is_func, *v8::String::Utf8Value(props->Get(i)->ToString())});
+            {is_func,
+             _impl->to_string(props->Get(lcontext, i).ToLocalChecked())});
       }
     }
   }
@@ -896,16 +966,16 @@ std::vector<std::pair<bool, std::string>> JScript_context::get_members_of(
 
 v8::Isolate *JScript_context::isolate() const { return _impl->isolate; }
 
-v8::Handle<v8::Context> JScript_context::context() const {
+v8::Local<v8::Context> JScript_context::context() const {
   return v8::Local<v8::Context>::New(isolate(), _impl->context);
 }
 
 Value JScript_context::v8_value_to_shcore_value(
-    const v8::Handle<v8::Value> &value) {
+    const v8::Local<v8::Value> &value) {
   return _impl->types.v8_value_to_shcore_value(value);
 }
 
-v8::Handle<v8::Value> JScript_context::shcore_value_to_v8_value(
+v8::Local<v8::Value> JScript_context::shcore_value_to_v8_value(
     const Value &value) {
   return _impl->types.shcore_value_to_v8_value(value);
 }
@@ -924,15 +994,14 @@ std::pair<Value, bool> JScript_context::execute(
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
-  v8::ScriptOrigin origin(
-      v8::String::NewFromUtf8(_impl->isolate, source.c_str()));
-  v8::Handle<v8::String> code =
-      v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
-  v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
+  v8::Local<v8::Context> lcontext = context();
+  v8::Context::Scope context_scope(lcontext);
+  v8::ScriptOrigin origin(v8_string(source));
+  v8::Local<v8::String> code = v8_string(code_str);
+  v8::MaybeLocal<v8::Script> script =
+      v8::Script::Compile(lcontext, code, &origin);
 
   // Since ret_val can't be used to check whether all was ok or not
   // Will use a boolean flag
@@ -944,19 +1013,19 @@ std::pair<Value, bool> JScript_context::execute(
     args->push_back(Value(arg));
   }
 
-  _terminating = false;
+  _impl->clear_is_terminating();
 
   if (!script.IsEmpty()) {
-    v8::Handle<v8::Value> result = script->Run();
-    if (try_catch.HasTerminated()) {
-      v8::V8::CancelTerminateExecution(_impl->isolate);
+    v8::MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(lcontext);
+    if (is_terminating() || try_catch.HasTerminated()) {
+      _impl->isolate->CancelTerminateExecution();
       mysqlsh::current_console()->raw_print(
           "Script execution interrupted by user.\n",
           mysqlsh::Output_stream::STDERR);
 
       return {Value(), true};
     } else if (!try_catch.HasCaught()) {
-      return {v8_value_to_shcore_value(result), false};
+      return {v8_value_to_shcore_value(result.ToLocalChecked()), false};
     } else {
       Value e = get_v8_exception_data(&try_catch, false);
 
@@ -975,42 +1044,42 @@ std::pair<Value, bool> JScript_context::execute(
 }
 
 std::pair<Value, bool> JScript_context::execute_interactive(
-    const std::string &code_str, Input_state &r_state) noexcept {
+    const std::string &code_str, Input_state *r_state) noexcept {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
   // creates a pool for all the handles that are created in this scope
   // (except for persistent ones), which will be freed when the scope exits
   v8::HandleScope handle_scope(_impl->isolate);
   // catch everything that happens in this scope
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{_impl->isolate};
   // set _context to be the default context for everything in this scope
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
-  v8::ScriptOrigin origin(v8::String::NewFromUtf8(_impl->isolate, "(shell)"));
-  v8::Handle<v8::String> code =
-      v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
-  v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
+  v8::Local<v8::Context> lcontext = context();
+  v8::Context::Scope context_scope(lcontext);
+  v8::ScriptOrigin origin(v8_string("(shell)"));
+  v8::Local<v8::String> code = v8_string(code_str);
+  v8::MaybeLocal<v8::Script> script =
+      v8::Script::Compile(lcontext, code, &origin);
 
-  _terminating = false;
+  _impl->clear_is_terminating();
 
-  r_state = Input_state::Ok;
+  *r_state = Input_state::Ok;
 
   if (script.IsEmpty()) {
     // check if this was an error of type
     // SyntaxError: Unexpected end of input
     // which we treat as a multiline mode trigger
-    v8::String::Utf8Value message(try_catch.Exception());
-    if (*message &&
-        strcmp(*message, "SyntaxError: Unexpected end of input") == 0)
-      r_state = Input_state::ContinuedBlock;
+    const auto message = _impl->to_string(try_catch.Exception());
+    if (message == "SyntaxError: Unexpected end of input")
+      *r_state = Input_state::ContinuedBlock;
     else
       _impl->print_exception(
           format_exception(get_v8_exception_data(&try_catch, true)));
   } else {
     auto console = mysqlsh::current_console();
-    v8::Handle<v8::Value> result = script->Run();
-    if (try_catch.HasTerminated()) {
-      v8::V8::CancelTerminateExecution(_impl->isolate);
+
+    v8::MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(lcontext);
+    if (is_terminating() || try_catch.HasTerminated()) {
+      _impl->isolate->CancelTerminateExecution();
       console->raw_print("Script execution interrupted by user.\n",
                          mysqlsh::Output_stream::STDERR);
     } else if (try_catch.HasCaught()) {
@@ -1022,7 +1091,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
                            mysqlsh::Output_stream::STDERR);
     } else {
       try {
-        return {v8_value_to_shcore_value(result), false};
+        return {v8_value_to_shcore_value(result.ToLocalChecked()), false};
       } catch (std::exception &exc) {
         // we used to let the exception bubble up, but somehow, exceptions
         // thrown from v8_value_to_shcore_value() aren't being caught from
@@ -1073,53 +1142,123 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc,
     return Value();
 
   if (exc->Exception()->IsObject() &&
-      JScript_map_wrapper::is_map(exc->Exception()->ToObject())) {
+      JScript_map_wrapper::is_map(
+          exc->Exception()->ToObject(context()).ToLocalChecked())) {
     data = _impl->types.v8_value_to_shcore_value(exc->Exception()).as_map();
   } else {
-    v8::String::Utf8Value excstr(exc->Exception());
+    const auto excstr = _impl->to_string(exc->Exception());
     data.reset(new Value::Map_type());
-    if (*excstr) {
+    if (!excstr.empty()) {
       // JS errors produced by V8 most likely will fall on this branch
-      (*data)["message"] = Value(*excstr);
+      (*data)["message"] = Value(excstr);
     } else {
       (*data)["message"] = Value("Exception");
     }
   }
 
   bool include_location = !interactive;
-  v8::Handle<v8::Message> message = exc->Message();
+  v8::Local<v8::Message> message = exc->Message();
   if (!message.IsEmpty()) {
+    v8::Local<v8::Context> lcontext =
+        v8::Local<v8::Context>::New(_impl->isolate, _impl->context);
+    v8::Context::Scope context_scope(lcontext);
+
     // location
-    v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
-    std::string text =
-        shcore::str_format("%s:%i:%i\n", *filename, message->GetLineNumber(),
-                           message->GetStartColumn());
-    v8::String::Utf8Value code(message->GetSourceLine());
+    const auto filename =
+        _impl->to_string(message->GetScriptOrigin().ResourceName());
+    std::string text = filename + ":";
+
+    {
+      const auto line_number = message->GetLineNumber(lcontext);
+      text += (line_number.IsJust() ? std::to_string(line_number.FromJust())
+                                    : "?") +
+              std::string{":"};
+    }
+
+    {
+      const auto start_column = message->GetStartColumn(lcontext);
+      text += (start_column.IsJust() ? std::to_string(start_column.FromJust())
+                                     : "?") +
+              std::string{"\n"};
+    }
+
     text.append("in ");
-    text.append(*code ? *code : "").append("\n");
 
-    // underline
-    text.append(3 + message->GetStartColumn(), ' ');
-    text.append(message->GetEndColumn() - message->GetStartColumn(), '^');
-    text.append("\n");
+    {
+      auto source_line = message->GetSourceLine(lcontext);
 
-    v8::String::Utf8Value stack(exc->StackTrace());
-    if (*stack && **stack) {
-      std::string str_stack(*stack);
+      if (!source_line.IsEmpty()) {
+        text += _impl->to_string(source_line.ToLocalChecked());
+      }
 
-      auto new_lines = std::count(str_stack.begin(), str_stack.end(), '\n');
-      if (new_lines > 1) {
-        text.append(std::string(*stack).append("\n"));
-        include_location = true;
+      text += "\n";
+    }
+
+    {
+      const auto start_column = message->GetStartColumn(lcontext);
+      const auto end_column = message->GetEndColumn(lcontext);
+
+      if (start_column.IsJust() && end_column.IsJust()) {
+        const auto start = start_column.FromJust();
+        const auto end = end_column.FromJust();
+        // underline
+        text.append(3 + start, ' ');
+        text.append(end - start, '^');
+        text.append("\n");
       }
     }
+
+    {
+      auto stack_trace = exc->StackTrace(lcontext);
+
+      if (!stack_trace.IsEmpty()) {
+        const auto stack = _impl->to_string(stack_trace.ToLocalChecked());
+
+        if (!stack.empty()) {
+          auto new_lines = std::count(stack.begin(), stack.end(), '\n');
+          if (new_lines > 1) {
+            text.append(stack).append("\n");
+            include_location = true;
+          }
+        }
+      }
+    }
+
     if (include_location) (*data)["location"] = Value(text);
   }
 
   return Value(data);
 }
 
-void JScript_context::terminate() {
-  _terminating = true;
-  v8::V8::TerminateExecution(isolate());
+bool JScript_context::is_terminating() const { return _impl->is_terminating(); }
+
+void JScript_context::terminate() { _impl->terminate(); }
+
+v8::Local<v8::String> JScript_context::v8_string(const char *data) {
+  return _impl->v8_string(data);
 }
+
+v8::Local<v8::String> JScript_context::v8_string(const std::string &data) {
+  return v8_string(data.c_str());
+}
+
+std::string JScript_context::to_string(v8::Local<v8::Value> obj) {
+  return _impl->to_string(obj);
+}
+
+v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data) {
+  return v8::String::NewFromUtf8(isolate, data, v8::NewStringType::kNormal)
+      .ToLocalChecked();
+}
+
+v8::Local<v8::String> v8_string(v8::Isolate *isolate, const std::string &data) {
+  return v8_string(isolate, data.c_str());
+}
+
+std::string to_string(v8::Isolate *isolate, v8::Local<v8::Value> obj) {
+  const v8::String::Utf8Value utf8{isolate, obj};
+  const auto ptr = *utf8;
+  return nullptr == ptr ? "" : std::string(ptr, utf8.length());
+}
+
+}  // namespace shcore

@@ -42,8 +42,8 @@ class JScript_method_wrapper {
   explicit JScript_method_wrapper(JScript_context *context);
   ~JScript_method_wrapper();
 
-  v8::Handle<v8::Object> wrap(std::shared_ptr<Object_bridge> object,
-                              const std::string &method);
+  v8::Local<v8::Object> wrap(std::shared_ptr<Object_bridge> object,
+                             const std::string &method);
 
  private:
   static void call(const v8::FunctionCallbackInfo<v8::Value> &args);
@@ -58,23 +58,23 @@ class JScript_object_wrapper {
   JScript_object_wrapper(JScript_context *context, bool indexed = false);
   ~JScript_object_wrapper();
 
-  v8::Handle<v8::Object> wrap(std::shared_ptr<Object_bridge> object);
+  v8::Local<v8::Object> wrap(std::shared_ptr<Object_bridge> object);
 
-  static bool unwrap(v8::Handle<v8::Object> value,
-                     std::shared_ptr<Object_bridge> &ret_object);
+  static bool unwrap(v8::Local<v8::Object> value,
+                     std::shared_ptr<Object_bridge> *ret_object);
 
-  static bool is_object(v8::Handle<v8::Object> value);
-  static bool is_method(v8::Handle<v8::Object> value);
+  static bool is_object(v8::Local<v8::Object> value);
+  static bool is_method(v8::Local<v8::Object> value);
 
  private:
-  static void handler_getter(v8::Local<v8::String> property,
+  static void handler_getter(v8::Local<v8::Name> property,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
-  static void handler_setter(v8::Local<v8::String> property,
+  static void handler_setter(v8::Local<v8::Name> property,
                              v8::Local<v8::Value> value,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
   static void handler_enumerator(
       const v8::PropertyCallbackInfo<v8::Array> &info);
-  static void handler_query(v8::Local<v8::String> property,
+  static void handler_query(v8::Local<v8::Name> property,
                             const v8::PropertyCallbackInfo<v8::Integer> &info);
 
   static void handler_igetter(uint32_t i,

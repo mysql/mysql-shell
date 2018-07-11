@@ -34,8 +34,5 @@ set(helper_skip_install "1")
 set(helper_src
   plaintext_helper.cc
 )
-set(helper_libs
-  mysqlshdk-static
-)
 
 add_helper_executable()

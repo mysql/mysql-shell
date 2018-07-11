@@ -2010,7 +2010,7 @@ TEST_F(Interactive_shell_test, multi_line_command) {
   execute("\\js");
   wipe_all();
   execute("\\");
-  MY_EXPECT_STDERR_CONTAINS("SyntaxError: Unexpected token ILLEGAL");
+  MY_EXPECT_STDERR_CONTAINS("SyntaxError: Invalid or unexpected token");
 #endif
 
   wipe_all();

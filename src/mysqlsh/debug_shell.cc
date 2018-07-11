@@ -168,7 +168,7 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
   shell->set_global_object("testutil", testutil);
 }
 
-void finalize_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+void finalize_debug_shell(mysqlsh::Command_line_shell *shell) {
   // Automatically close recording sessions that may be still open
   mysqlshdk::db::replay::on_recorder_connect_hook = {};
   mysqlshdk::db::replay::on_recorder_close_hook = {};

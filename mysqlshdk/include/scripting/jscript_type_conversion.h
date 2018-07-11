@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,15 +37,15 @@ struct JScript_type_bridger {
   void init();
   void dispose();
 
-  Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
-  v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);
+  Value v8_value_to_shcore_value(const v8::Local<v8::Value> &value);
+  v8::Local<v8::Value> shcore_value_to_v8_value(const Value &value);
 
-  v8::Handle<v8::String> type_info(v8::Handle<v8::Value> value);
+  v8::Local<v8::String> type_info(v8::Local<v8::Value> value);
 
-  double call_num_method(v8::Handle<v8::Object> object, const char *method);
+  double call_num_method(v8::Local<v8::Object> object, const char *method);
 
-  v8::Handle<v8::Value> native_object_to_js(Object_bridge_ref object);
-  Object_bridge_ref js_object_to_native(v8::Handle<v8::Object> object);
+  v8::Local<v8::Value> native_object_to_js(Object_bridge_ref object);
+  Object_bridge_ref js_object_to_native(v8::Local<v8::Object> object);
 
   JScript_context *owner;
 
