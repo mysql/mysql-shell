@@ -34,30 +34,36 @@ namespace {
 
 static int magic_pointer = 0;
 
-using Array_collectable = Collectable<Value::Array_type>;
+struct Array_config;
+
+using Array_collectable = Collectable<Value::Array_type, Array_config>;
+
+struct Array_config {
+ public:
+  static size_t get_allocated_size(const Array_collectable &c) {
+    return 1024 * c.data()->size();
+  }
+};
 
 }  // namespace
 
 JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
     : _context(context) {
-  v8::Handle<v8::ObjectTemplate> templ =
+  v8::Local<v8::ObjectTemplate> templ =
       v8::ObjectTemplate::New(_context->isolate());
   _array_template.Reset(_context->isolate(), templ);
 
   {
-    // v8::IndexedPropertyHandlerConfiguration config;
-    // config.getter = &JScript_array_wrapper::handler_igetter;
-    // config.enumerator = &JScript_array_wrapper::handler_ienumerator;
-    // templ->SetHandler(config);
-    templ->SetIndexedPropertyHandler(
-        &JScript_array_wrapper::handler_igetter, 0, 0, 0,
-        &JScript_array_wrapper::handler_ienumerator);
+    v8::IndexedPropertyHandlerConfiguration config;
+    config.getter = &JScript_array_wrapper::handler_igetter;
+    config.enumerator = &JScript_array_wrapper::handler_ienumerator;
+    templ->SetHandler(config);
   }
   {
-    // v8::NamedPropertyHandlerConfiguration config;
-    // config.getter = &JScript_array_wrapper::handler_getter;
-    // templ->SetHandler(config);
-    templ->SetNamedPropertyHandler(&JScript_array_wrapper::handler_getter);
+    v8::NamedPropertyHandlerConfiguration config;
+    config.getter = &JScript_array_wrapper::handler_getter;
+    config.flags = v8::PropertyHandlerFlags::kOnlyInterceptStrings;
+    templ->SetHandler(config);
   }
 
   templ->SetInternalFieldCount(3);
@@ -65,12 +71,13 @@ JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
 
 JScript_array_wrapper::~JScript_array_wrapper() { _array_template.Reset(); }
 
-v8::Handle<v8::Object> JScript_array_wrapper::wrap(
+v8::Local<v8::Object> JScript_array_wrapper::wrap(
     std::shared_ptr<Value::Array_type> array) {
-  v8::Handle<v8::ObjectTemplate> templ =
+  v8::Local<v8::ObjectTemplate> templ =
       v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _array_template);
 
-  v8::Handle<v8::Object> obj(templ->NewInstance());
+  v8::Local<v8::Object> obj(
+      templ->NewInstance(_context->context()).ToLocalChecked());
 
   const auto holder = new Array_collectable(array, _context->isolate(), obj);
 
@@ -82,24 +89,22 @@ v8::Handle<v8::Object> JScript_array_wrapper::wrap(
 }
 
 void JScript_array_wrapper::handler_getter(
-    v8::Local<v8::String> property,
+    v8::Local<v8::Name> property,
     const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
-  v8::Handle<v8::Object> obj(info.Holder());
+  v8::Local<v8::Object> obj(info.Holder());
   const auto &array = static_cast<Array_collectable *>(
                           obj->GetAlignedPointerFromInternalField(1))
                           ->data();
-  //  JScript_array_wrapper *self =
-  //  static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   if (!array) throw std::logic_error("bug!");
 
-  std::string prop = *v8::String::Utf8Value(property);
+  const auto prop = to_string(info.GetIsolate(), property);
 
   /*if (prop == "__members__")
   {
-  v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
-  marray->Set(0, v8::String::NewFromUtf8(info.GetIsolate(), "length"));
+  v8::Local<v8::Array> marray = v8::Array::New(info.GetIsolate());
+  marray->Set(0, v8_string(info.GetIsolate(), "length"));
   info.GetReturnValue().Set(marray);
   }
   else*/ if (prop == "length") {
@@ -111,7 +116,7 @@ void JScript_array_wrapper::handler_getter(
 void JScript_array_wrapper::handler_igetter(
     uint32_t index, const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
-  v8::Handle<v8::Object> obj(info.Holder());
+  v8::Local<v8::Object> obj(info.Holder());
   const auto &array = static_cast<Array_collectable *>(
                           obj->GetAlignedPointerFromInternalField(1))
                           ->data();
@@ -129,26 +134,29 @@ void JScript_array_wrapper::handler_igetter(
 void JScript_array_wrapper::handler_ienumerator(
     const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
-  v8::Handle<v8::Object> obj(info.Holder());
+  v8::Local<v8::Object> obj(info.Holder());
   const auto &array = static_cast<Array_collectable *>(
                           obj->GetAlignedPointerFromInternalField(1))
                           ->data();
 
-  v8::Handle<v8::Array> r = v8::Array::New(info.GetIsolate(), array->size());
-  for (size_t i = 0, c = array->size(); i < c; i++)
-    r->Set(i, v8::Integer::New(info.GetIsolate(), i));
+  v8::Local<v8::Array> r = v8::Array::New(info.GetIsolate(), array->size());
+  for (size_t i = 0, c = array->size(); i < c; i++) {
+    r->Set(info.GetIsolate()->GetCurrentContext(), i,
+           v8::Integer::New(info.GetIsolate(), i))
+        .FromJust();
+  }
   info.GetReturnValue().Set(r);
 }
 
 bool JScript_array_wrapper::unwrap(
-    v8::Handle<v8::Object> value,
-    std::shared_ptr<Value::Array_type> &ret_object) {
+    v8::Local<v8::Object> value,
+    std::shared_ptr<Value::Array_type> *ret_object) {
   if (value->InternalFieldCount() == 3 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
     const auto &array = static_cast<Array_collectable *>(
                             value->GetAlignedPointerFromInternalField(1))
                             ->data();
-    ret_object = array;
+    *ret_object = array;
     return true;
   }
   return false;

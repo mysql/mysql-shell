@@ -739,7 +739,7 @@ Create Table: CREATE TABLE `my_coll` (
 ||Duplicate key name 'myIndex' (MySQL Error 1061)
 
 //@ Create an index with a not valid JSON document definition. (WL10858-FR5_3)
-||SyntaxError: Unexpected token =
+||SyntaxError: Invalid shorthand property initializer
 ||SyntaxError: Unexpected token ]
 ||SyntaxError: Unexpected token }
 

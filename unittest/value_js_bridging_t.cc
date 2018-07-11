@@ -40,7 +40,9 @@
 using namespace std::placeholders;
 using namespace shcore;
 
+namespace shcore {
 extern void JScript_context_init();
+}  // namespace shcore
 
 class Test_object : public shcore::Cpp_object_bridge {
  public:
@@ -162,7 +164,7 @@ class Environment {
       : m_options{std::make_shared<mysqlsh::Shell_options>(0, nullptr)},
         m_console{
             std::make_shared<mysqlsh::Shell_console>(&output_handler.deleg)} {
-    JScript_context_init();
+    shcore::JScript_context_init();
 
     js = new JScript_context(&reg);
 
@@ -206,7 +208,7 @@ TEST_F(JavaScript, globals) {
 TEST_F(JavaScript, simple_to_js_and_back) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
@@ -273,7 +275,7 @@ TEST_F(JavaScript, simple_to_js_and_back) {
 TEST_F(JavaScript, array_to_js) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
@@ -317,7 +319,7 @@ TEST_F(JavaScript, array_to_js) {
 TEST_F(JavaScript, map_to_js) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
@@ -368,7 +370,7 @@ TEST_F(JavaScript, map_to_js) {
 TEST_F(JavaScript, object_to_js) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
@@ -405,7 +407,7 @@ TEST_F(JavaScript, object_to_js) {
 TEST_F(JavaScript, maparray_to_js) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
@@ -438,7 +440,7 @@ shcore::Value do_test(const Argument_list &args) {
 TEST_F(JavaScript, function_to_js) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
   std::shared_ptr<Function_base> func(Cpp_function::create(
@@ -458,8 +460,7 @@ TEST_F(JavaScript, function_to_js) {
 
   env.js->set_global("test_func", v);
 
-  ASSERT_EQ(env.js->execute("type(test_func)").first.descr(false),
-            "m.Function");
+  ASSERT_EQ(env.js->execute("type(test_func)").first.descr(false), "Function");
 
   ASSERT_EQ(env.js->execute("test_func('hello')").first.descr(false), "HELLO");
 
@@ -469,7 +470,7 @@ TEST_F(JavaScript, function_to_js) {
 TEST_F(JavaScript, builtin_functions) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
@@ -481,7 +482,7 @@ TEST_F(JavaScript, builtin_functions) {
 TEST_F(JavaScript, js_date_object) {
   v8::Isolate::Scope isolate_scope(env.js->isolate());
   v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch;
+  v8::TryCatch try_catch{env.js->isolate()};
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
   shcore::Value object = env.js->execute("new Date(2014,0,1)").first;

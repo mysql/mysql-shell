@@ -47,9 +47,6 @@ function(add_helper_executable)
     mysql-secret-store-core
     ${helper_libs}
     ${GCOV_LDFLAGS}
-    ${MYSQLX_LIBRARIES}
-    ${PROTOBUF_LIBRARIES}
-    ${MYSQL_EXTRA_LIBRARIES}
   )
 
   if(NOT helper_skip_install)

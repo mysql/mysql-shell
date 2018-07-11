@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,18 +63,20 @@ class JScript_object : public Object_bridge {
                             Value UNUSED(value)) {}
 
   virtual Value call(const std::string &name, const Argument_list &args) {
-    v8::Handle<v8::Value> member(
-        _object->Get(v8::String::NewFromUtf8(_js->isolate(), name.c_str())));
-    if (member->IsFunction()) {
-      v8::Handle<v8::Function> f;
-      f.Cast(member);
-      std::vector<v8::Handle<v8::Value>> argv;
+    const auto lcontext = _js->context();
+    v8::Context::Scope context_scope(lcontext);
+    auto member = _object->Get(lcontext, _js->v8_string(name));
+    if (!member.IsEmpty() && member.ToLocalChecked()->IsFunction()) {
+      v8::Local<v8::Function> f;
+      f.Cast(member.ToLocalChecked());
+      std::vector<v8::Local<v8::Value>> argv;
 
       // XX convert the arg list
 
-      v8::Handle<v8::Value> result =
-          f->Call(_js->context()->Global(), (int)args.size(), &argv[0]);
-      return _js->v8_value_to_shcore_value(result);
+      v8::MaybeLocal<v8::Value> result =
+          f->Call(lcontext, _js->context()->Global(),
+                  static_cast<int>(args.size()), &argv[0]);
+      return _js->v8_value_to_shcore_value(result.ToLocalChecked());
     } else {
       throw Exception::attrib_error("Called member " + name +
                                     " of JS object is not a function");
@@ -83,7 +85,7 @@ class JScript_object : public Object_bridge {
 
  private:
   std::shared_ptr<JScript_context> _js;
-  v8::Handle<v8::Object> _object;
+  v8::Local<v8::Object> _object;
 };
 
 // -------------------------------------------------------------------------------------------------------
@@ -91,7 +93,7 @@ class JScript_object : public Object_bridge {
 class JScript_object_factory : public Object_factory {
  public:
   JScript_object_factory(std::shared_ptr<JScript_context> context,
-                         v8::Handle<v8::Object> constructor);
+                         v8::Local<v8::Object> constructor);
 
   virtual std::shared_ptr<Object_bridge> construct(
       const Argument_list &UNUSED(args)) {
@@ -110,7 +112,7 @@ class JScript_object_factory : public Object_factory {
 // -------------------------------------------------------------------------------------------------------
 
 JScript_function::JScript_function(JScript_context *context,
-                                   v8::Handle<v8::Function> function)
+                                   v8::Local<v8::Function> function)
     : _js(context) {
   _function.Reset(_js->isolate(), function);
 }
@@ -153,10 +155,13 @@ Value JScript_function::invoke(const Argument_list &args) {
   v8::Local<v8::Function> callback =
       v8::Local<v8::Function>::New(_js->isolate(), _function);
 
-  v8::Local<v8::Value> ret_val =
-      callback->Call(_js->isolate()->GetCurrentContext()->Global(), argc, argv);
+  v8::Local<v8::Context> lcontext = _js->context();
+  v8::Context::Scope context_scope(lcontext);
+
+  v8::MaybeLocal<v8::Value> ret_val = callback->Call(
+      lcontext, _js->isolate()->GetCurrentContext()->Global(), argc, argv);
 
   delete[] argv;
 
-  return _js->v8_value_to_shcore_value(ret_val);
+  return _js->v8_value_to_shcore_value(ret_val.ToLocalChecked());
 }

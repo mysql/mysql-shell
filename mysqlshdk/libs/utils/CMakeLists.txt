@@ -61,6 +61,8 @@ ENDIF()
 add_convenience_library(utils ${utils_SOURCE})
 ADD_STAN_TARGET(utils ${utils_SOURCE})
 
+target_link_libraries(utils db)
+
 if (WIN32)
   target_link_libraries(utils ws2_32)
 else ()

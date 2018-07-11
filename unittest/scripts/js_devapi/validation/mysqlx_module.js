@@ -1,9 +1,9 @@
 //@ mysqlx module: exports
 |Exported Items: 6|
-|getSession: object|
-|expr: object|
-|dateValue: object|
-|help: object|
+|getSession: function|
+|expr: function|
+|dateValue: function|
+|help: function|
 |Type: <mysqlx.Type>|
 |LockContention: <mysqlx.LockContention>|
 

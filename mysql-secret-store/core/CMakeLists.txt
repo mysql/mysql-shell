@@ -44,5 +44,5 @@ set(core_SRC
 add_convenience_library(mysql-secret-store-core ${core_SRC})
 
 target_link_libraries(mysql-secret-store-core
-  mysqlshdk-static
+  mysql-secret-store-api
 )

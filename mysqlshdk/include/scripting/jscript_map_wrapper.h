@@ -24,6 +24,8 @@
 #ifndef _JSCRIPT_MAP_WRAPPER_H_
 #define _JSCRIPT_MAP_WRAPPER_H_
 
+#include <memory>
+
 #include "scripting/include_v8.h"
 #include "scripting/types.h"
 
@@ -35,17 +37,17 @@ class JScript_map_wrapper {
   JScript_map_wrapper(JScript_context *context);
   ~JScript_map_wrapper();
 
-  v8::Handle<v8::Object> wrap(std::shared_ptr<Value::Map_type> map);
+  v8::Local<v8::Object> wrap(std::shared_ptr<Value::Map_type> map);
 
-  static bool unwrap(v8::Handle<v8::Object> value,
-                     std::shared_ptr<Value::Map_type> &ret_map);
+  static bool unwrap(v8::Local<v8::Object> value,
+                     std::shared_ptr<Value::Map_type> *ret_map);
 
-  static bool is_map(v8::Handle<v8::Object> value);
+  static bool is_map(v8::Local<v8::Object> value);
 
  private:
-  static void handler_getter(v8::Local<v8::String> property,
+  static void handler_getter(v8::Local<v8::Name> property,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
-  static void handler_setter(v8::Local<v8::String> property,
+  static void handler_setter(v8::Local<v8::Name> property,
                              v8::Local<v8::Value> value,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
   static void handler_enumerator(

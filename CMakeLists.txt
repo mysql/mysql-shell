@@ -185,6 +185,8 @@ ENDIF()
 IF(V8_INCLUDE_DIR AND V8_LIB_DIR)
   set(HAVE_V8 "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects
+  add_definitions(-DV8_DEPRECATION_WARNINGS)
+  add_definitions(-DV8_IMMINENT_DEPRECATION_WARNINGS)
 ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
 ENDIF()
@@ -317,34 +319,49 @@ INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include/
 ###
 
 if(HAVE_V8)
-  find_library(V8_LIB v8
+  find_library(V8_LIB v8_monolith
                PATHS ${V8_LIB_DIR}
                NO_DEFAULT_PATH
  )
   set(V8_LIBS)
   if(V8_LIB)
     set(V8_LIBS ${V8_LIB})      # Single lib, just use it
-    message(STATUS "v8 Library Found: \"${_libname}\" at ${V8_LIB}")
+    message(STATUS "v8 Library Found: \"v8_monolith\" at ${V8_LIB}")
   else()
-    # Could not find "libv8", in some distributions there are multiple "libv8_*"
-    foreach(_libname v8_libplatform v8_base v8_libbase v8_snapshot)
+    # Could not find monolith library, try separate libs
+    if(WIN32)
+      # on Windows libraries could have .dll.lib extensions
+      SET(ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+      SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".dll.lib")
+    endif()
+    foreach(_libname v8 v8_libbase v8_libplatform)
       find_library(_v8_lib ${_libname}
                    PATHS ${V8_LIB_DIR}
                    NO_DEFAULT_PATH
      )
       if(NOT _v8_lib)
-        message(FATAL_ERROR "Could not find the library \"v8\" or \"${_libname}\"")
+        message(FATAL_ERROR "Could not find the library \"v8_monolith\" or \"${_libname}\" in ${V8_LIB_DIR}")
       else()
         message(STATUS "v8 Library Found: \"${_libname}\" at ${_v8_lib}")
       endif()
       list(APPEND V8_LIBS ${_v8_lib})
-      SET(_v8_lib _v8_lib-NOTFOUND)
+      UNSET(_v8_lib CACHE)
     endforeach()
+    if(WIN32)
+      # restore original extensions
+      SET(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif()
+    if(NOT WIN32)
+      # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH entry instead of RPATH
+      # this results in loader being unable to find v8_libbase, as it's a transitive dependency of v8 and v8_libplatform
+      # disable new dtags on debug builds, so resultant executable is usable without LD_LIBRARY_PATH
+      set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -Wl,--disable-new-dtags")
+    endif()
   endif()
 
   if(WIN32)
-    set(V8_LINK_LIST ${V8_LIBS} winmm)
-  else()	# Linux
+    set(V8_LINK_LIST ${V8_LIBS} winmm dbghelp shlwapi)
+  else()  # Linux
     set(V8_LINK_LIST ${V8_LIBS})
   endif()
 endif()

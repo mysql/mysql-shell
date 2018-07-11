@@ -39,7 +39,8 @@ set(helper_includes
   "${CMAKE_SOURCE_DIR}/mysqlshdk/include"
 )
 set(helper_libs
-  mysqlshdk-static
+  ${MYSQL_CLIENT_LIB}
+  ${MYSQL_EXTRA_LIBRARIES}
 )
 
 add_helper_executable()

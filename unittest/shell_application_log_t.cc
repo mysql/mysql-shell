@@ -26,11 +26,12 @@
 #include <fstream>
 #include <string>
 
-#include "gtest_clean.h"
-#include "scripting/common.h"
-#include "shellcore/base_session.h"
-#include "test_utils.h"
-#include "utils/utils_file.h"
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "unittest/gtest_clean.h"
+#include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace shcore {
 class Shell_application_log_tests : public Shell_core_test_wrapper {
@@ -41,9 +42,7 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
   static std::string error;
 
   static void my_hook(const ngcommon::Logger::Log_entry &entry) {
-    std::string message_s(entry.message);
-    EXPECT_TRUE(message_s.find(error) != std::string::npos);
-    if (getenv("TEST_DEBUG")) std::cout << "LOG:" << entry.message << "\n";
+    EXPECT_THAT(entry.message, ::testing::HasSubstr(error));
     i++;
   }
 
@@ -74,7 +73,7 @@ std::string Shell_application_log_tests::error = "";
 #ifdef HAVE_V8
 TEST_F(Shell_application_log_tests, test) {
   // issue an stmt with syntax error, then check the log.
-  error = "SyntaxError: Unexpected token ; at :1:9\nin print('x';";
+  error = "SyntaxError: missing ) after argument list at :1:6\nin print('x';";
   execute("print('x';");
 
   error =

@@ -516,11 +516,11 @@ int Base_shell::process_file(const std::string &path,
   // Default return value will be 1 indicating there were errors
   int ret_val = 1;
 
-  if (path.empty())
+  if (path.empty()) {
     print_error("Invalid filename");
-  else if (_shell->is_module(path))
+  } else if (_shell->is_module(path)) {
     _shell->execute_module(path, argv);
-  else {
+  } else {
     std::string file = shcore::path::expand_user(path);
     if (shcore::is_folder(file)) {
       print_error(

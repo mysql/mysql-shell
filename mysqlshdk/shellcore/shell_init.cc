@@ -25,7 +25,10 @@
 #include <mysql.h>
 
 #ifdef HAVE_V8
+namespace shcore {
 extern void JScript_context_init();
+extern void JScript_context_fini();
+}  // namespace shcore
 #endif
 
 namespace mysqlsh {
@@ -36,7 +39,7 @@ void thread_end() { mysql_thread_end(); }
 
 void global_init() {
 #ifdef HAVE_V8
-  JScript_context_init();
+  shcore::JScript_context_init();
 #endif
 
   mysql_library_init(0, nullptr, nullptr);
@@ -47,6 +50,10 @@ void global_init() {
 void global_end() {
   thread_end();
   mysql_library_end();
+
+#ifdef HAVE_V8
+  shcore::JScript_context_fini();
+#endif
 }
 
 }  // namespace mysqlsh

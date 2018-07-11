@@ -47,7 +47,7 @@
 #ifdef ENABLE_SESSION_RECORDING
 void handle_debug_options(int *argc, char ***argv);
 void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell);
-void finalize_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell);
+void finalize_debug_shell(mysqlsh::Command_line_shell *shell);
 #endif
 
 const char *g_mysqlsh_path;
@@ -601,10 +601,15 @@ static void init_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
 #endif
 }
 
-static void finalize_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+static void finalize_shell(mysqlsh::Command_line_shell *shell) {
 #ifdef ENABLE_SESSION_RECORDING
   finalize_debug_shell(shell);
 #endif
+
+  // shell needs to be destroyed before global_end() is called, because it
+  // needs to call destructors of JS contexts before V8 is shut down
+  delete shell;
+
   mysqlsh::global_end();
 }
 
@@ -663,10 +668,9 @@ int main(int argc, char **argv) {
 
     bool valid_color_capability = detect_color_capability();
 
-    shell.reset(new mysqlsh::Command_line_shell(shell_options));
+    shell.reset(new mysqlsh::Command_line_shell(shell_options), finalize_shell);
 
     init_shell(shell);
-    auto cleanup = shcore::on_leave_scope([shell]() { finalize_shell(shell); });
 
     log_debug("Using color mode %i",
               static_cast<int>(mysqlshdk::textui::get_color_capability()));
@@ -822,7 +826,7 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     ret_val = 1;
   }
+
 end:
-  finalize_shell(shell);
   return ret_val;
 }

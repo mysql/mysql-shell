@@ -24,7 +24,9 @@
 #ifndef _JSCRIPT_ARRAY_WRAPPER_H_
 #define _JSCRIPT_ARRAY_WRAPPER_H_
 
-#include <scripting/include_v8.h>
+#include <memory>
+
+#include "scripting/include_v8.h"
 #include "scripting/types.h"
 
 namespace shcore {
@@ -35,17 +37,17 @@ class JScript_array_wrapper {
   JScript_array_wrapper(JScript_context *context);
   ~JScript_array_wrapper();
 
-  v8::Handle<v8::Object> wrap(std::shared_ptr<Value::Array_type> array);
+  v8::Local<v8::Object> wrap(std::shared_ptr<Value::Array_type> array);
 
-  static bool unwrap(v8::Handle<v8::Object> value,
-                     std::shared_ptr<Value::Array_type> &ret_array);
+  static bool unwrap(v8::Local<v8::Object> value,
+                     std::shared_ptr<Value::Array_type> *ret_array);
 
  private:
   static void handler_igetter(uint32_t index,
                               const v8::PropertyCallbackInfo<v8::Value> &info);
   static void handler_ienumerator(
       const v8::PropertyCallbackInfo<v8::Array> &info);
-  static void handler_getter(v8::Local<v8::String> prop,
+  static void handler_getter(v8::Local<v8::Name> prop,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
 
  private:
