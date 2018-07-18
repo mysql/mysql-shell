@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,90 @@ namespace mysql {
  */
 class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
  public:
+#if DOXYGEN_JS
+  Integer affectedItemsCount;  //!< Same as getAffectedItemsCount()
+  /**
+   * Same as getAffectedRowCount()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>affectedItemsCount</b> property instead.
+   */
+  Integer affectedRowCount;
+  Integer columnCount;         //!< Same as getColumnCount()
+  List columnNames;            //!< Same as getColumnNames()
+  List columns;                //!< Same as getColumns()
+  String executionTime;        //!< Same as getExecutionTime()
+  String info;                 //!< Same as getInfo()
+  Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
+  List warnings;               //!< Same as getWarnings()
+  /**
+   * Same as getWarningCount()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>warningsCount</b> property instead.
+   */
+  Integer warningCount;
+  Integer warningsCount;  //!< Same as getWarningsCount()
+
+  Row fetchOne();
+  List fetchAll();
+  Integer getAffectedItemsCount();
+  Integer getAffectedRowCount();
+  Integer getColumnCount();
+  List getColumnNames();
+  List getColumns();
+  String getExecutionTime();
+  Bool hasData();
+  String getInfo();
+  Integer getAutoIncrementValue();
+  Integer getWarningCount();
+  Integer getWarningsCount();
+  List getWarnings();
+  Bool nextDataSet();
+  Bool nextResult();
+#elif DOXYGEN_PY
+  int affected_items_count;  //!< Same as get_affected_items_count()
+  /**
+   * Same as get_affected_row_count()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>affected_items_count</b> property instead.
+   */
+  int affected_row_count;
+  int column_count;          //!< Same as get_column_count()
+  list column_names;         //!< Same as get_column_names()
+  list columns;              //!< Same as get_columns()
+  str execution_time;        //!< Same as get_execution_time()
+  str info;                  //!< Same as get_info()
+  int auto_increment_value;  //!< Same as get_auto_increment_value()
+  list warnings;             //!< Same as get_warnings()
+  /**
+   * Same as get_warning_count()
+   *
+   * @attention This property will be removed in a future release, use the
+   * <b>warnings_count</b> property instead.
+   */
+  int warning_count;
+  int warnings_count;  //!< Same as get_warnings_count()
+
+  Row fetch_one();
+  list fetch_all();
+  int get_affected_items_count();
+  int get_affected_row_count();
+  int get_column_count();
+  list get_column_names();
+  list get_columns();
+  str get_execution_time();
+  bool has_data();
+  str get_info();
+  int get_auto_increment_value();
+  int get_warning_count();
+  int get_warnings_count();
+  list get_warnings();
+  bool next_data_set();
+  bool next_result();
+#endif
+
   explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);
 
   // TODO(rennox): This function should be removed, the callers of this function
@@ -62,6 +146,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   virtual shcore::Value fetch_one(const shcore::Argument_list &args) const;
   virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
   virtual shcore::Value next_data_set(const shcore::Argument_list &args);
+  virtual shcore::Value next_result(const shcore::Argument_list &args);
 
   shcore::Value::Array_type_ref get_columns() const;
 
@@ -74,56 +159,6 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   double _execution_time;
   std::shared_ptr<std::vector<std::string>> _column_names;
   mutable shcore::Value::Array_type_ref _columns;
-
-#if DOXYGEN_JS
-  Integer affectedRowCount;    //!< Same as getAffectedItemCount()
-  Integer columnCount;         //!< Same as getColumnCount()
-  List columnNames;            //!< Same as getColumnNames()
-  List columns;                //!< Same as getColumns()
-  String executionTime;        //!< Same as getExecutionTime()
-  String info;                 //!< Same as getInfo()
-  Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
-  List warnings;               //!< Same as getWarnings()
-  Integer warningCount;        //!< Same as getWarningCount()
-
-  Row fetchOne();
-  List fetchAll();
-  Integer getAffectedRowCount();
-  Integer getColumnCount();
-  List getColumnNames();
-  List getColumns();
-  String getExecutionTime();
-  Bool hasData();
-  String getInfo();
-  Integer getAutoIncrementValue();
-  Integer getWarningCount();
-  List getWarnings();
-  Bool nextDataSet();
-#elif DOXYGEN_PY
-  int affected_row_count;    //!< Same as get_affected_item_count()
-  int column_count;          //!< Same as get_column_count()
-  list column_names;         //!< Same as get_column_names()
-  list columns;              //!< Same as get_columns()
-  str execution_time;        //!< Same as get_execution_time()
-  str info;                  //!< Same as get_info()
-  int auto_increment_value;  //!< Same as get_auto_increment_value()
-  list warnings;             //!< Same as get_warnings()
-  int warning_count;         //!< Same as get_warning_count()
-
-  Row fetch_one();
-  list fetch_all();
-  int get_affected_row_count();
-  int get_column_count();
-  list get_column_names();
-  list get_columns();
-  str get_execution_time();
-  bool has_data();
-  str get_info();
-  int get_auto_increment_value();
-  int get_warning_count();
-  list get_warnings();
-  bool next_data_set();
-#endif
 };
 }  // namespace mysql
 };  // namespace mysqlsh

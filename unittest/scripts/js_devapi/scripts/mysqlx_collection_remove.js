@@ -43,9 +43,9 @@ var result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
-print('Deleted donna:', result.affectedItemCount, '\n');
+print('Deleted donna:', result.affectedItemsCount, '\n');
 var result = crud.bind('data', 'alma').execute();
-print('Deleted alma:', result.affectedItemCount, '\n');
+print('Deleted alma:', result.affectedItemsCount, '\n');
 
 // ----------------------------------------------
 // collection.remove Unit Testing: Error Conditions
@@ -84,7 +84,7 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 //@ CollectionRemove: remove under condition
 //! [CollectionRemove: remove under condition]
 var result = collection.remove('age = 15').execute();
-print('Affected Rows:', result.affectedItemCount, '\n');
+print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
@@ -93,7 +93,7 @@ print('Records Left:', docs.length, '\n');
 //@ CollectionRemove: remove with binding
 //! [CollectionRemove: remove with binding]
 var result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();
-print('Affected Rows:', result.affectedItemCount, '\n');
+print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
@@ -102,7 +102,7 @@ print('Records Left:', docs.length, '\n');
 //@ CollectionRemove: full remove
 //! [CollectionRemove: full remove]
 var result = collection.remove('1').execute();
-print('Affected Rows:', result.affectedItemCount, '\n');
+print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');

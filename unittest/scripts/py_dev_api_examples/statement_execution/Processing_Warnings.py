@@ -22,7 +22,7 @@ try:
     reply = mySession.commit()
     
     # handle warnings
-    if reply.warning_count:
+    if reply.warnings_count:
       for warning in result.get_warnings():
         print 'Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message)
     
@@ -32,7 +32,7 @@ except Exception, err:
     reply = mySession.rollback()
     
     # handle warnings
-    if reply.warning_count:
+    if reply.warnings_count:
       for warning in result.get_warnings():
         print 'Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message)
     

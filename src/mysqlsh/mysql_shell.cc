@@ -1883,14 +1883,17 @@ void Mysql_shell::add_devapi_completions() {
   registry->add_completable_type("ClassicResult",
                                  {{"executionTime", "", true},
                                   {"warningCount", "", true},
+                                  {"warningsCount", "", true},
                                   {"warnings", "", true},
                                   {"columnCount", "", true},
                                   {"columns", "", true},
                                   {"columnNames", "", true},
                                   {"autoIncrementValue", "", false},
+                                  {"affectedItemsCount", "", true},
                                   {"affectedRowCount", "", true},
                                   {"fetchAll", "", true},
                                   {"fetchOne", "", true},
+                                  {"getAffectedItemsCount", "", true},
                                   {"getAffectedRowCount", "", true},
                                   {"getAutoIncrementValue", "", true},
                                   {"getColumnCount", "", true},
@@ -1898,11 +1901,13 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getColumns", "", true},
                                   {"getExecutionTime", "", true},
                                   {"getWarningCount", "", true},
+                                  {"getWarningsCount", "", true},
                                   {"getWarnings", "", true},
                                   {"getInfo", "", true},
                                   {"info", "", false},
                                   {"hasData", "", true},
                                   {"help", "", true},
-                                  {"nextDataSet", "", true}});
+                                  {"nextDataSet", "", true},
+                                  {"nextResult", "", true}});
 }
 }  // namespace mysqlsh

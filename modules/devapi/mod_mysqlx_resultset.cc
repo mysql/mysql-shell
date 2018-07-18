@@ -113,7 +113,7 @@ list BaseResult::get_warnings() {}
 shcore::Value BaseResult::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
-  if (prop == "affectedItemCount") {
+  if (prop == "affectedItemsCount") {
     ret_val = Value(get_affected_items_count());
   } else if (prop == "executionTime") {
     return shcore::Value(get_execution_time());
@@ -157,11 +157,12 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
 }
 
 // Documentation of getAffectedItemCount function
-REGISTER_HELP_FUNCTION(getAffectedItemsCount, BaseResult);
-REGISTER_HELP(BASERESULT_GETAFFECTEDITEMSCOUNT_BRIEF,
-              "The the number of affected items for the last operation.");
 REGISTER_HELP_PROPERTY(affectedItemsCount, BaseResult);
 REGISTER_HELP(BASERESULT_AFFECTEDITEMSCOUNT_BRIEF,
+              "Same as <<<getAffectedItemsCount>>>");
+
+REGISTER_HELP_FUNCTION(getAffectedItemsCount, BaseResult);
+REGISTER_HELP(BASERESULT_GETAFFECTEDITEMSCOUNT_BRIEF,
               "The the number of affected items for the last operation.");
 REGISTER_HELP(BASERESULT_GETAFFECTEDITEMSCOUNT_RETURNS,
               "@returns the number of affected items.");
@@ -220,7 +221,7 @@ REGISTER_HELP(BASERESULT_WARNINGCOUNT_DEPRECATED,
 REGISTER_HELP_FUNCTION(getWarningCount, BaseResult);
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_BRIEF,
               "The number of warnings produced by the last "
-              "statement execution. See getWarnings() for more details.");
+              "statement execution.");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_RETURNS,
               "@returns the number of warnings.");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL,
@@ -228,6 +229,8 @@ REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL,
               "https://dev.mysql.com/doc/refman/en/"
               "mysql-warning-count.html");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL1,
+              "See <<<getWarnings>>>() for more details.");
+REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DETAIL2,
               "${BASERESULT_GETWARNINGCOUNT_DEPRECATED}");
 REGISTER_HELP(BASERESULT_GETWARNINGCOUNT_DEPRECATED,
               "@attention This function will be removed in a future release, "
@@ -262,20 +265,21 @@ int BaseResult::get_warning_count() {}
 #endif
 
 // Documentation of getWarningCount function
+REGISTER_HELP_PROPERTY(warningsCount, BaseResult);
+REGISTER_HELP(BASERESULT_WARNINGSCOUNT_BRIEF, "Same as <<<getWarningsCount>>>");
+
 REGISTER_HELP_FUNCTION(getWarningsCount, BaseResult);
 REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_BRIEF,
               "The number of warnings produced by the last statement "
-              "execution. See getWarnings() for more details.");
-REGISTER_HELP_PROPERTY(warningsCount, BaseResult);
-REGISTER_HELP(BASERESULT_WARNINGSCOUNT_BRIEF,
-              "The number of warnings produced by the last statement "
-              "execution. See getWarnings() for more details.");
+              "execution.");
 REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_RETURNS,
               "@returns the number of warnings.");
 REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_DETAIL,
               "This is the same value than C API mysql_warning_count, see "
               "https://dev.mysql.com/doc/refman/en/"
               "mysql-warning-count.html");
+REGISTER_HELP(BASERESULT_GETWARNINGSCOUNT_DETAIL1,
+              "See <<<getWarnings>>>() for more details.");
 
 /**
  * $(BASERESULT_GETWARNINGSCOUNT_BRIEF)
@@ -303,9 +307,11 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
   if (create_object) dumper.start_object();
 
   dumper.append_value("executionTime", get_member("executionTime"));
+  dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
 
   if (mysqlsh::current_shell_options()->get().show_warnings) {
-    dumper.append_value("warningCount", get_member("warningCount"));
+    dumper.append_value("warningCount", get_member("warningsCount"));
+    dumper.append_value("warningsCount", get_member("warningsCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
 
@@ -345,8 +351,6 @@ shcore::Value Result::get_member(const std::string &prop) const {
     log_warning("'%s' is deprecated, use '%s' instead.",
                 get_function_name("affectedItemCount").c_str(),
                 get_function_name("affectedItemsCount").c_str());
-  } else if (prop == "affectedItemsCount") {
-    ret_val = Value(get_affected_items_count());
   } else if (prop == "autoIncrementValue") {
     ret_val = Value(get_auto_increment_value());
   } else if (prop == "generatedIds") {
@@ -413,11 +417,6 @@ Integer Result::getAffectedItemCount() {}
 #elif DOXYGEN_PY
 int Result::get_affected_item_count() {}
 #endif
-
-int64_t Result::get_affected_items_count() const {
-  if (!_result) return -1;
-  return _result->get_affected_row_count();
-}
 
 // Documentation of getAutoIncrementValue function
 REGISTER_HELP_PROPERTY(autoIncrementValue, Result);
@@ -506,9 +505,9 @@ void Result::append_json(shcore::JSON_dumper &dumper) const {
 
   BaseResult::append_json(dumper);
 
-  dumper.append_value("affectedItemCount", get_member("affectedItemCount"));
+  dumper.append_value("affectedItemCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
-  dumper.append_value("lastDocumentId", get_member("lastDocumentId"));
+  dumper.append_value("generatedIds", get_member("generatedIds"));
 
   dumper.end_object();
 }
@@ -956,11 +955,7 @@ REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_DEPRECATED,
 REGISTER_HELP_FUNCTION(getAffectedRowCount, SqlResult);
 REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF,
               "Returns the number of rows affected by the executed query.");
-REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF1,
-              "${SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL1}");
 REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL,
-              "Returns the number of rows affected by the executed query.");
-REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL1,
               "${SQLRESULT_GETAFFECTEDROWCOUNT_DEPRECATED}");
 REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DEPRECATED,
               "@attention This function will be removed in a future release, "
@@ -968,9 +963,6 @@ REGISTER_HELP(SQLRESULT_GETAFFECTEDROWCOUNT_DEPRECATED,
 
 /**
  * $(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF)
- *
- * $(SQLRESULT_GETAFFECTEDROWCOUNT_DETAIL)
- *
  */
 #if DOXYGEN_JS
 /**
@@ -1047,9 +1039,6 @@ REGISTER_HELP(SQLRESULT_NEXTDATASET_RETURNS,
  * $(SQLRESULT_NEXTDATASET_BRIEF)
  *
  * $(SQLRESULT_NEXTDATASET_RETURNS)
- *
- * $(SQLRESULT_NEXTDATASET_DETAIL)
- *
  */
 #if DOXYGEN_JS
 /**
@@ -1109,7 +1098,7 @@ void SqlResult::append_json(shcore::JSON_dumper &dumper) const {
   RowResult::append_json(dumper);
 
   dumper.append_value("hasData", has_data(shcore::Argument_list()));
-  dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
+  dumper.append_value("affectedRowCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
 
   dumper.end_object();

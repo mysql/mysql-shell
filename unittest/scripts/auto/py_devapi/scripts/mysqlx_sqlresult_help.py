@@ -11,6 +11,15 @@ sqlresult.help()
 #@ global help for SqlResult[USE:sqlresult]
 \help SqlResult
 
+#@ sqlresult.affected_items_count
+sqlresult.help('affected_items_count')
+
+#@ global ? for affected_items_count[USE:sqlresult.affected_items_count]
+\? SqlResult.affected_items_count
+
+#@ global help for affected_items_count[USE:sqlresult.affected_items_count]
+\help SqlResult.affected_items_count
+
 #@ sqlresult.affected_row_count
 sqlresult.help('affected_row_count')
 
@@ -82,6 +91,15 @@ sqlresult.help('fetch_one')
 
 #@ global help for fetch_one[USE:sqlresult.fetch_one]
 \help SqlResult.fetch_one
+
+#@ sqlresult.get_affected_items_count
+sqlresult.help('get_affected_items_count')
+
+#@ global ? for get_affected_items_count[USE:sqlresult.get_affected_items_count]
+\? SqlResult.get_affected_items_count
+
+#@ global help for get_affected_items_count[USE:sqlresult.get_affected_items_count]
+\help SqlResult.get_affected_items_count
 
 #@ sqlresult.get_affected_row_count
 sqlresult.help('get_affected_row_count')
@@ -155,6 +173,15 @@ sqlresult.help('get_warnings')
 #@ global help for get_warnings[USE:sqlresult.get_warnings]
 \help SqlResult.get_warnings
 
+#@ sqlresult.get_warnings_count
+sqlresult.help('get_warnings_count')
+
+#@ global ? for get_warnings_count[USE:sqlresult.get_warnings_count]
+\? SqlResult.get_warnings_count
+
+#@ global help for get_warnings_count[USE:sqlresult.get_warnings_count]
+\help SqlResult.get_warnings_count
+
 #@ sqlresult.has_data
 sqlresult.help('has_data')
 
@@ -182,6 +209,15 @@ sqlresult.help('next_data_set')
 #@ global help for next_data_set[USE:sqlresult.next_data_set]
 \help SqlResult.next_data_set
 
+#@ sqlresult.next_result
+sqlresult.help('next_result')
+
+#@ global ? for next_result[USE:sqlresult.next_result]
+\? SqlResult.next_result
+
+#@ global help for next_result[USE:sqlresult.next_result]
+\help SqlResult.next_result
+
 #@ sqlresult.warning_count
 sqlresult.help('warning_count')
 
@@ -199,3 +235,12 @@ sqlresult.help('warnings')
 
 #@ global help for warnings[USE:sqlresult.warnings]
 \help SqlResult.warnings
+
+#@ sqlresult.warnings_count
+sqlresult.help('warnings_count')
+
+#@ global ? for warnings_count[USE:sqlresult.warnings_count]
+\? SqlResult.warnings_count
+
+#@ global help for warnings_count[USE:sqlresult.warnings_count]
+\help SqlResult.warnings_count

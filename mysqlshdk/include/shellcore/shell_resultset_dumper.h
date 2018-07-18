@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,8 +68,7 @@ class ResultsetDumper {
   void dump_normal(std::shared_ptr<mysqlsh::mysqlx::DocResult> result);
   void dump_normal(std::shared_ptr<mysqlsh::mysqlx::Result> result);
 
-  std::string get_affected_stats(const std::string &member,
-                                 const std::string &legend);
+  std::string get_affected_stats(const std::string &legend);
   int get_warning_and_execution_time_stats(std::string &output_stats);
   void dump_records(std::string &output_stats);
   size_t dump_tabbed(shcore::Value::Array_type_ref records);

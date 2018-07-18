@@ -71,24 +71,24 @@ crud = table.insert(['name', 'id', 'gender']).values('carol', 20, 'female').exec
 
 #@ Table.insert execution
 result = table.insert().values('jack', 17, 'male').execute()
-print "Affected Rows No Columns:", result.affected_item_count, "\n"
+print "Affected Rows No Columns:", result.affected_items_count, "\n"
 
 result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute()
-print "Affected Rows Columns:", result.affected_item_count, "\n"
+print "Affected Rows Columns:", result.affected_items_count, "\n"
 
 insert = table.insert('name', 'age', 'gender')
 crud = insert.values('clark', 22,'male')
 crud = insert.values('mary', 13,'female')
 result = insert.execute()
-print "Affected Rows Multiple Values:", result.affected_item_count, "\n"
+print "Affected Rows Multiple Values:", result.affected_items_count, "\n"
 
 result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()
-print "Affected Rows Document:", result.affected_item_count, "\n"
+print "Affected Rows Document:", result.affected_items_count, "\n"
 
 #@ Table.insert execution on a View
 view = schema.get_table('view1')
 result = view.insert({ 'my_age': 15, 'my_name': 'jhonny', 'my_gender': 'male' }).execute()
-print "Affected Rows Through View:", result.affected_item_count, "\n"
+print "Affected Rows Through View:", result.affected_items_count, "\n"
 
 
 # Cleanup

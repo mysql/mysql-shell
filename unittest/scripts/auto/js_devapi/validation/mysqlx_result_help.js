@@ -27,7 +27,7 @@ PROPERTIES
                        the affectedItemsCount property instead.
 
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       autoIncrementValue
             Same as getAutoIncrementValue
@@ -48,8 +48,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       getAffectedItemCount()
@@ -73,7 +72,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -83,7 +81,6 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -98,6 +95,13 @@ SYNTAX
 DESCRIPTION
       ATTENTION: This property will be removed in a future release, use the
                  affectedItemsCount property instead.
+
+//@<OUT> Help on affectedItemsCount
+NAME
+      affectedItemsCount - Same as getAffectedItemsCount
+
+SYNTAX
+      <Result>.affectedItemsCount
 
 //@<OUT> Help on autoIncrementValue
 NAME
@@ -131,6 +135,13 @@ DESCRIPTION
       ATTENTION: This property will be removed in a future release, use the
                  warningsCount property instead.
 
+//@<OUT> Help on warningsCount
+NAME
+      warningsCount - Same as getWarningsCount
+
+SYNTAX
+      <Result>.warningsCount
+
 //@<OUT> Help on warnings
 NAME
       warnings - Same as getWarnings
@@ -155,6 +166,20 @@ DESCRIPTION
 
       ATTENTION: This function will be removed in a future release, use the
                  getAffectedItemsCount function instead.
+
+//@<OUT> Help on getAffectedItemsCount
+NAME
+      getAffectedItemsCount - The the number of affected items for the last
+                              operation.
+
+SYNTAX
+      <Result>.getAffectedItemsCount()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
 
 //@<OUT> Help on getAutoIncrementValue
 NAME
@@ -208,7 +233,7 @@ DESCRIPTION
 //@<OUT> Help on getWarningCount
 NAME
       getWarningCount - The number of warnings produced by the last statement
-                        execution. See getWarnings() for more details.
+                        execution.
 
 SYNTAX
       <Result>.getWarningCount()
@@ -220,8 +245,27 @@ DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
 
+      See getWarnings() for more details.
+
       ATTENTION: This function will be removed in a future release, use the
                  getWarningsCount function instead.
+
+//@<OUT> Help on getWarningsCount
+NAME
+      getWarningsCount - The number of warnings produced by the last statement
+                         execution.
+
+SYNTAX
+      <Result>.getWarningsCount()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See getWarnings() for more details.
 
 //@<OUT> Help on getWarnings
 NAME

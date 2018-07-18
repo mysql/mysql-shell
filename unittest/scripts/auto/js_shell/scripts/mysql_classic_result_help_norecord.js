@@ -8,6 +8,12 @@ result.help();
 //@ ClassicResult help, \? [USE:ClassicResult help]
 \? classicresult
 
+//@ Help on affectedItemsCount
+result.help('affectedItemsCount')
+
+//@ Help on affectedItemsCount, \? [USE:Help on affectedItemsCount]
+\? classicresult.affectedItemsCount
+
 //@ Help on affectedRowCount
 result.help('affectedRowCount')
 
@@ -56,6 +62,12 @@ result.help('warningCount')
 //@ Help on warningCount, \? [USE:Help on warningCount]
 \? classicresult.warningCount
 
+//@ Help on warningsCount
+result.help('warningsCount')
+
+//@ Help on warningsCount, \? [USE:Help on warningsCount]
+\? classicresult.warningsCount
+
 //@ Help on warnings
 result.help('warnings')
 
@@ -73,6 +85,12 @@ result.help('fetchOne')
 
 //@ Help on fetchOne, \? [USE:Help on fetchOne]
 \? classicresult.fetchOne
+
+//@ Help on getAffectedItemsCount
+result.help('getAffectedItemsCount')
+
+//@ Help on getAffectedItemsCount, \? [USE:Help on getAffectedItemsCount]
+\? classicresult.getAffectedItemsCount
 
 //@ Help on getAffectedRowCount
 result.help('getAffectedRowCount')
@@ -122,6 +140,12 @@ result.help('getWarningCount')
 //@ Help on getWarningCount, \? [USE:Help on getWarningCount]
 \? classicresult.getWarningCount
 
+//@ Help on getWarningsCount
+result.help('getWarningsCount')
+
+//@ Help on getWarningsCount, \? [USE:Help on getWarningsCount]
+\? classicresult.getWarningsCount
+
 //@ Help on getWarnings
 result.help('getWarnings')
 
@@ -145,3 +169,9 @@ result.help('nextDataSet')
 
 //@ Help on nextDataSet, \? [USE:Help on nextDataSet]
 \? classicresult.nextDataSet
+
+//@ Help on nextResult
+result.help('nextResult')
+
+//@ Help on nextResult, \? [USE:Help on nextResult]
+\? classicresult.nextResult

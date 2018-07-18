@@ -6652,11 +6652,11 @@ class XShell_TestCases(unittest.TestCase):
                   ("use world_x;\n",
                    "{\"info\":\"Default schema set to `world_x`.\"}"),
                   ("create table test_classic (variable varchar(10));\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
+                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
                   ("select * from test_classic;\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
+                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
                   ("drop table world_x.test_classic;\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}")]
+                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}")]
         xPrompts.add("{\"info\":\"mysql-py> \"}")
         xPrompts.add("{\"info\":\"mysql-sql> \"}")
         results = exec_xshell_commands(init_command, x_cmds)
@@ -7521,11 +7521,11 @@ class XShell_TestCases(unittest.TestCase):
                   ("use world_x;\n",
                    "Default schema "),
                   ("create table test_classic (variable varchar(10));\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
+                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
                   ("select * from test_classic;\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
+                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
                   ("drop table world_x.test_classic;\n",
-                   "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}")
+                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}")
                   ]
         # Take only first part of x_cmds which are the commands to generate a concatenated command to sent to p.stdin
         command_stdin = ""

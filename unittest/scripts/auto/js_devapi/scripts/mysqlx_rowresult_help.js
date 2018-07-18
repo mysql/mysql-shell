@@ -9,6 +9,12 @@ result.help();
 //@ RowResult help, \? [USE:RowResult help]
 \? RowResult
 
+//@ Help on affectedItemsCount
+result.help('affectedItemsCount');
+
+//@ Help on affectedItemsCount, \? [USE:Help on affectedItemsCount]
+\? RowResult.affectedItemsCount
+
 //@ Help on columnCount
 result.help('columnCount');
 
@@ -45,6 +51,12 @@ result.help('warnings');
 //@ Help on warnings, \? [USE:Help on warnings]
 \? RowResult.warnings
 
+//@ Help on warningsCount
+result.help('warningsCount');
+
+//@ Help on warningsCount, \? [USE:Help on warningsCount]
+\? RowResult.warningsCount
+
 //@ Help on fetchAll
 result.help('fetchAll');
 
@@ -56,6 +68,12 @@ result.help('fetchOne');
 
 //@ Help on fetchOne, \? [USE:Help on fetchOne]
 \? RowResult.fetchOne
+
+//@ Help on getAffectedItemsCount
+result.help('getAffectedItemsCount');
+
+//@ Help on getAffectedItemsCount, \? [USE:Help on getAffectedItemsCount]
+\? RowResult.getAffectedItemsCount
 
 //@ Help on getColumnCount
 result.help('getColumnCount');
@@ -92,6 +110,12 @@ result.help('getWarnings');
 
 //@ Help on getWarnings, \? [USE:Help on getWarnings]
 \? RowResult.getWarnings
+
+//@ Help on getWarningsCount
+result.help('getWarningsCount');
+
+//@ Help on getWarningsCount, \? [USE:Help on getWarningsCount]
+\? RowResult.getWarningsCount
 
 //@ Help on help
 result.help('help');

@@ -13,7 +13,7 @@ DESCRIPTION
 
 PROPERTIES
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       affectedRowCount
             Same as getAffectedRowCount
@@ -46,8 +46,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       fetchAll()
@@ -62,9 +61,6 @@ FUNCTIONS
 
       getAffectedRowCount()
             Returns the number of rows affected by the executed query.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the getAffectedItemsCount function instead.
 
             ATTENTION: This function will be removed in a future release, use
                        the getAffectedItemsCount function instead.
@@ -87,7 +83,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -97,7 +92,6 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       hasData()
             Returns true if the last statement execution has a result set.
@@ -115,6 +109,13 @@ FUNCTIONS
       nextResult()
             Prepares the SqlResult to start reading data from the next Result
             (if many results were returned).
+
+//@<OUT> Help on affectedItemsCount
+NAME
+      affectedItemsCount - Same as getAffectedItemsCount
+
+SYNTAX
+      <SqlResult>.affectedItemsCount
 
 //@<OUT> Help on affectedRowCount
 NAME
@@ -180,6 +181,13 @@ NAME
 SYNTAX
       <SqlResult>.warnings
 
+//@<OUT> Help on warningsCount
+NAME
+      warningsCount - Same as getWarningsCount
+
+SYNTAX
+      <SqlResult>.warningsCount
+
 //@<OUT> Help on fetchAll
 NAME
       fetchAll - Returns a list of DbDoc objects which contains an element for
@@ -201,21 +209,29 @@ SYNTAX
 RETURNS
        A Row object representing the next record on the result.
 
+//@<OUT> Help on getAffectedItemsCount
+NAME
+      getAffectedItemsCount - The the number of affected items for the last
+                              operation.
+
+SYNTAX
+      <SqlResult>.getAffectedItemsCount()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
+
 //@<OUT> Help on getAffectedRowCount
 NAME
       getAffectedRowCount - Returns the number of rows affected by the executed
                             query.
 
-                            ATTENTION: This function will be removed in a
-                                       future release, use the
-                                       getAffectedItemsCount function instead.
-
 SYNTAX
       <SqlResult>.getAffectedRowCount()
 
 DESCRIPTION
-      Returns the number of rows affected by the executed query.
-
       ATTENTION: This function will be removed in a future release, use the
                  getAffectedItemsCount function instead.
 
@@ -274,7 +290,7 @@ SYNTAX
 //@<OUT> Help on getWarningCount
 NAME
       getWarningCount - The number of warnings produced by the last statement
-                        execution. See getWarnings() for more details.
+                        execution.
 
 SYNTAX
       <SqlResult>.getWarningCount()
@@ -285,6 +301,8 @@ RETURNS
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See getWarnings() for more details.
 
       ATTENTION: This function will be removed in a future release, use the
                  getWarningsCount function instead.
@@ -307,6 +325,23 @@ DESCRIPTION
       related to a specific warning.
 
       This information includes: Level, Code and Message.
+
+//@<OUT> Help on getWarningsCount
+NAME
+      getWarningsCount - The number of warnings produced by the last statement
+                         execution.
+
+SYNTAX
+      <SqlResult>.getWarningsCount()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See getWarnings() for more details.
 
 //@<OUT> Help on hasData
 NAME

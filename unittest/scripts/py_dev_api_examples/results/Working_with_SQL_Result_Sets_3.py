@@ -15,7 +15,7 @@ def print_result(res):
       record = res.fetch_one()
   else:
     #INSERT, UPDATE, DELETE, ...
-    print 'Rows affected: %s' % res.get_affected_row_count()
+    print 'Rows affected: %s' % res.get_affected_items_count()
 
 res = mySession.sql('CALL my_proc()').execute()
 
@@ -24,4 +24,4 @@ more = True
 while more:
   print_result(res)
   
-  more = res.next_data_set()
+  more = res.next_result()

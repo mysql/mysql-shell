@@ -1,10 +1,14 @@
 //@ Result member validation
+|affectedItemsCount: OK|
 |executionTime: OK|
 |warningCount: OK|
 |warnings: OK|
+|warningsCount: OK|
+|getAffectedItemsCount: OK|
 |getExecutionTime: OK|
 |getWarningCount: OK|
 |getWarnings: OK|
+|getWarningsCount: OK|
 |columnCount: OK|
 |columnNames: OK|
 |columns: OK|
@@ -17,6 +21,7 @@
 |fetchAll: OK|
 |hasData: OK|
 |nextDataSet: OK|
+|nextResult: OK|
 |affectedRowCount: OK|
 |autoIncrementValue: OK|
 |getAffectedRowCount: OK|

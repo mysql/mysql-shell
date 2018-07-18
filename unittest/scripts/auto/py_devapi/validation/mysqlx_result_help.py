@@ -27,7 +27,7 @@ PROPERTIES
                        the affected_items_count property instead.
 
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       auto_increment_value
             Same as get_auto_increment_value
@@ -48,8 +48,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       get_affected_item_count()
@@ -73,7 +72,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -83,7 +81,6 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -98,6 +95,13 @@ SYNTAX
 DESCRIPTION
       ATTENTION: This property will be removed in a future release, use the
                  affected_items_count property instead.
+
+#@<OUT> result.affected_items_count
+NAME
+      affected_items_count - Same as get_affected_items_count
+
+SYNTAX
+      <Result>.affected_items_count
 
 #@<OUT> result.auto_increment_value
 NAME
@@ -137,6 +141,20 @@ DESCRIPTION
 
       ATTENTION: This function will be removed in a future release, use the
                  get_affected_items_count function instead.
+
+#@<OUT> result.get_affected_items_count
+NAME
+      get_affected_items_count - The the number of affected items for the last
+                                 operation.
+
+SYNTAX
+      <Result>.get_affected_items_count()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
 
 #@<OUT> result.get_auto_increment_value
 NAME
@@ -190,7 +208,7 @@ DESCRIPTION
 #@<OUT> result.get_warning_count
 NAME
       get_warning_count - The number of warnings produced by the last statement
-                          execution. See getWarnings() for more details.
+                          execution.
 
 SYNTAX
       <Result>.get_warning_count()
@@ -201,6 +219,8 @@ RETURNS
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
       ATTENTION: This function will be removed in a future release, use the
                  get_warnings_count function instead.
@@ -224,6 +244,23 @@ DESCRIPTION
       related to a specific warning.
 
       This information includes: Level, Code and Message.
+
+#@<OUT> result.get_warnings_count
+NAME
+      get_warnings_count - The number of warnings produced by the last
+                           statement execution.
+
+SYNTAX
+      <Result>.get_warnings_count()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
 #@<OUT> result.help
 NAME
@@ -252,3 +289,10 @@ NAME
 
 SYNTAX
       <Result>.warnings
+
+#@<OUT> result.warnings_count
+NAME
+      warnings_count - Same as get_warnings_count
+
+SYNTAX
+      <Result>.warnings_count

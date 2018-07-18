@@ -70,24 +70,24 @@ var records;
 
 //@ Table.insert execution
 result = table.insert().values('jack', 17, 'male').execute();
-print("Affected Rows No Columns:", result.affectedItemCount, "\n");
+print("Affected Rows No Columns:", result.affectedItemsCount, "\n");
 
 result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute();
-print("Affected Rows Columns:", result.affectedItemCount, "\n");
+print("Affected Rows Columns:", result.affectedItemsCount, "\n");
 
 var insert = table.insert('name', 'age', 'gender')
 var insert = insert.values('clark', 22, 'male')
 var insert = insert.values('mary', 13, 'female')
 result = insert.execute()
-print("Affected Rows Multiple Values:", result.affectedItemCount, "\n");
+print("Affected Rows Multiple Values:", result.affectedItemsCount, "\n");
 
 result = table.insert({ 'age': 14, 'name': 'jackie', 'gender': 'female' }).execute();
-print("Affected Rows Document:", result.affectedItemCount, "\n");
+print("Affected Rows Document:", result.affectedItemsCount, "\n");
 
 //@ Table.insert execution on a View
 var view = schema.getTable('view1');
 var result = view.insert({ 'my_age': 15, 'my_name': 'jhonny', 'my_gender': 'male' }).execute();
-print("Affected Rows Through View:", result.affectedItemCount, "\n");
+print("Affected Rows Through View:", result.affectedItemsCount, "\n");
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

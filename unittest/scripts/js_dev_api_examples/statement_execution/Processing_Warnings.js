@@ -24,7 +24,7 @@ try
     var reply = mySession.commit();
 
     // handle warnings
-    if (reply.warningCount){
+    if (reply.warningsCount){
       var warnings = reply.getWarnings();
       for (index in warnings){
         var warning = warnings[index];
@@ -40,7 +40,7 @@ catch(err)
     reply = mySession.rollback();
 
     // handle warnings
-    if (reply.warningCount){
+    if (reply.warningsCount){
       var warnings = reply.getWarnings();
       for (index in warnings){
         var warning = warnings[index];

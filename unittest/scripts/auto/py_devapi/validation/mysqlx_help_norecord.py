@@ -309,7 +309,7 @@ DESCRIPTION
 
 PROPERTIES
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       execution_time
             Same as get_execution_time
@@ -324,8 +324,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       get_affected_items_count()
@@ -337,7 +336,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -347,7 +345,6 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -640,7 +637,7 @@ DESCRIPTION
 
 PROPERTIES
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       execution_time
             Same as get_execution_time
@@ -655,8 +652,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       fetch_all()
@@ -675,7 +671,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -685,7 +680,6 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -716,7 +710,7 @@ PROPERTIES
                        the affected_items_count property instead.
 
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       auto_increment_value
             Same as get_auto_increment_value
@@ -737,8 +731,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       get_affected_item_count()
@@ -762,7 +755,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -772,7 +764,6 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -787,7 +778,7 @@ DESCRIPTION
 
 PROPERTIES
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       column_count
             Same as get_column_count
@@ -811,8 +802,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       fetch_all()
@@ -840,7 +830,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -850,7 +839,6 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members

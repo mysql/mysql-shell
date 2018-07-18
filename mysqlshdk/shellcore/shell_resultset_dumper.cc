@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -239,7 +239,7 @@ void ResultsetDumper::dump_normal(
     if (result->has_data(shcore::Argument_list()).as_bool())
       dump_records(output);
     else if (_interactive)
-      output = get_affected_stats("affectedRowCount", "row");
+      output = get_affected_stats("row");
 
     // This information output is only printed in interactive mode
     int warning_count = 0;
@@ -257,7 +257,7 @@ void ResultsetDumper::dump_normal(
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings) dump_warnings(true);
-  } while (result->next_data_set(shcore::Argument_list()).as_bool() &&
+  } while (result->next_result(shcore::Argument_list()).as_bool() &&
            !_cancelled);
 }
 
@@ -269,7 +269,7 @@ void ResultsetDumper::dump_normal(
     if (result->has_data(shcore::Argument_list()).as_bool())
       dump_records(output);
     else if (_interactive)
-      output = get_affected_stats("affectedRowCount", "row");
+      output = get_affected_stats("row");
 
     // This information output is only printed in interactive mode
     if (_interactive) {
@@ -280,7 +280,7 @@ void ResultsetDumper::dump_normal(
       // Prints the warnings if there were any
       if (warning_count && _show_warnings) dump_warnings();
     }
-  } while (result->next_data_set(shcore::Argument_list()).as_bool() &&
+  } while (result->next_result(shcore::Argument_list()).as_bool() &&
            !_cancelled);
 }
 
@@ -332,7 +332,7 @@ void ResultsetDumper::dump_normal(
     std::shared_ptr<mysqlsh::mysqlx::Result> result) {
   // This information output is only printed in interactive mode
   if (_interactive) {
-    std::string output = get_affected_stats("affectedItemCount", "item");
+    std::string output = get_affected_stats("item");
     int warning_count = get_warning_and_execution_time_stats(output);
 
     _output_handler->print(_output_handler->user_data, output.c_str());
@@ -540,12 +540,12 @@ size_t ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   return row_index;
 }
 
-std::string ResultsetDumper::get_affected_stats(const std::string &member,
-                                                const std::string &legend) {
+std::string ResultsetDumper::get_affected_stats(const std::string &legend) {
   std::string output;
 
   // Some queries return -1 since affected rows do not apply to them
-  int64_t affected_items = _resultset->get_member(member).as_int();
+  int64_t affected_items =
+      _resultset->get_member("affectedItemsCount").as_int();
   // if (affected_items == (uint64_t)-1)
   if (affected_items == -1)
     output = "Query OK";
@@ -563,7 +563,7 @@ int ResultsetDumper::get_warning_and_execution_time_stats(
   int warning_count = 0;
 
   if (_interactive) {
-    warning_count = _resultset->get_member("warningCount").as_uint();
+    warning_count = _resultset->get_member("warningsCount").as_uint();
 
     if (warning_count)
       output_stats.append(shcore::str_format(", %d warning%s", warning_count,
@@ -644,5 +644,5 @@ return result->next_result(shcore::Argument_list());
 }
 bool ResultsetDumper::move_next_data_set(mysqlsh::mysqlx::SqlResult* result)
 {
-return result->next_data_set(shcore::Argument_list());
+return result->next_result(shcore::Argument_list());
 }*/

@@ -2,7 +2,7 @@
 var mysqlx = require('mysqlx');
 
 function process_warnings(result){
-  if (result.getWarningCount()){
+  if (result.getWarningsCount()){
     var warnings = result.getWarnings();
     for (index in warnings){
       var warning = warnings[index];

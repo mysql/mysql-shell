@@ -15,7 +15,7 @@ def print_result(res):
       record = res.fetch_one()
   else:
     #INSERT, UPDATE, DELETE, ...
-    print 'Rows affected: %s' % res.get_affected_row_count()
+    print 'Rows affected: %s' % res.get_affected_items_count()
 
 print_result(mySession.sql('DELETE FROM users WHERE age > 40').execute())
 print_result(mySession.sql('SELECT * FROM users WHERE age = 40').execute())

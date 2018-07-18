@@ -54,9 +54,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ Reusing CRUD with binding
-print 'Updated Angel:', result.affected_item_count, '\n'
+print 'Updated Angel:', result.affected_items_count, '\n'
 result=crud.bind('data', 'carol').execute()
-print 'Updated Carol:', result.affected_item_count, '\n'
+print 'Updated Carol:', result.affected_items_count, '\n'
 
 
 # ----------------------------------------------
@@ -104,7 +104,7 @@ crud = table.update().set('age', 17).where('name = :data and age > :years').bind
 # ---------------------------------------
 #@# TableUpdate: simple test
 result = result = table.update().set('name', 'aline').where('age = 13').execute()
-print 'Affected Rows:', result.affected_item_count, '\n'
+print 'Affected Rows:', result.affected_items_count, '\n'
 
 result = table.select().where('name = "aline"').execute()
 record = result.fetch_one()
@@ -112,7 +112,7 @@ print "Updated Record:", record.name, record.age
 
 #@ TableUpdate: test using expression
 result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute()
-print 'Affected Rows:', result.affected_item_count, '\n'
+print 'Affected Rows:', result.affected_items_count, '\n'
 
 result = table.select().where('age = 23').execute()
 record = result.fetch_one()
@@ -120,7 +120,7 @@ print "Updated Record:", record.name, record.age
 
 #@ TableUpdate: test using limits
 result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute()
-print 'Affected Rows:', result.affected_item_count, '\n'
+print 'Affected Rows:', result.affected_items_count, '\n'
 
 records = table.select().where('age = 16').execute().fetch_all()
 print 'With 16 Years:', len(records), '\n'
@@ -131,7 +131,7 @@ print 'With 15 Years:', len(records), '\n'
 #@ TableUpdate: test full update with view object
 view = schema.get_table('view1')
 result = view.update().set('my_gender', 'female').execute()
-print 'Updated Females:', result.affected_item_count, '\n'
+print 'Updated Females:', result.affected_items_count, '\n'
 
 # Result gets reflected on the target table
 records = table.select().where('gender = \"female\"').execute().fetch_all()

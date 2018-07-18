@@ -1,7 +1,7 @@
 from mysqlsh import mysqlx
 
 def process_warnings(result):
-  if result.get_warning_count():
+  if result.get_warnings_count():
     for warning in result.get_warnings():
       print 'Type [%s] (Code %s): %s\n' % (warning.level, warning.code, warning.message)
   else:

@@ -11,7 +11,7 @@ DESCRIPTION
 
 PROPERTIES
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       column_count
             Same as get_column_count
@@ -35,8 +35,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       fetch_all()
@@ -64,7 +63,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -74,10 +72,16 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
+
+#@<OUT> rowresult.affected_items_count
+NAME
+      affected_items_count - Same as get_affected_items_count
+
+SYNTAX
+      <RowResult>.affected_items_count
 
 #@<OUT> rowresult.column_count
 NAME
@@ -128,6 +132,20 @@ SYNTAX
 RETURNS
        A Row object representing the next record on the result.
 
+#@<OUT> rowresult.get_affected_items_count
+NAME
+      get_affected_items_count - The the number of affected items for the last
+                                 operation.
+
+SYNTAX
+      <RowResult>.get_affected_items_count()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
+
 #@<OUT> rowresult.get_column_count
 NAME
       get_column_count - Retrieves the number of columns on the current result.
@@ -171,7 +189,7 @@ SYNTAX
 #@<OUT> rowresult.get_warning_count
 NAME
       get_warning_count - The number of warnings produced by the last statement
-                          execution. See getWarnings() for more details.
+                          execution.
 
 SYNTAX
       <RowResult>.get_warning_count()
@@ -182,6 +200,8 @@ RETURNS
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
       ATTENTION: This function will be removed in a future release, use the
                  get_warnings_count function instead.
@@ -205,6 +225,23 @@ DESCRIPTION
       related to a specific warning.
 
       This information includes: Level, Code and Message.
+
+#@<OUT> rowresult.get_warnings_count
+NAME
+      get_warnings_count - The number of warnings produced by the last
+                           statement execution.
+
+SYNTAX
+      <RowResult>.get_warnings_count()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
 #@<OUT> rowresult.help
 NAME
@@ -233,3 +270,10 @@ NAME
 
 SYNTAX
       <RowResult>.warnings
+
+#@<OUT> rowresult.warnings_count
+NAME
+      warnings_count - Same as get_warnings_count
+
+SYNTAX
+      <RowResult>.warnings_count
