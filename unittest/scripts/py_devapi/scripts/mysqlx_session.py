@@ -237,12 +237,12 @@ print cschema
 #@ Session: set_fetch_warnings(False)
 mySession.set_fetch_warnings(False)
 result = mySession.sql('drop database if exists unexisting').execute()
-print result.warning_count
+print result.warnings_count
 
 #@ Session: set_fetch_warnings(True)
 mySession.set_fetch_warnings(True)
 result = mySession.sql('drop database if exists unexisting').execute()
-print result.warning_count
+print result.warnings_count
 print result.warnings[0].message
 
 #@ Session: quote_name no parameters

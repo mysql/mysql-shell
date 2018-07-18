@@ -11,6 +11,15 @@ rowresult.help()
 #@ global help for RowResult[USE:rowresult]
 \help RowResult
 
+#@ rowresult.affected_items_count
+rowresult.help('affected_items_count')
+
+#@ global ? for affected_items_count[USE:rowresult.affected_items_count]
+\? RowResult.affected_items_count
+
+#@ global help for affected_items_count[USE:rowresult.affected_items_count]
+\help RowResult.affected_items_count
+
 #@ rowresult.column_count
 rowresult.help('column_count')
 
@@ -64,6 +73,15 @@ rowresult.help('fetch_one')
 
 #@ global help for fetch_one[USE:rowresult.fetch_one]
 \help RowResult.fetch_one
+
+#@ rowresult.get_affected_items_count
+rowresult.help('get_affected_items_count')
+
+#@ global ? for get_affected_items_count[USE:rowresult.get_affected_items_count]
+\? RowResult.get_affected_items_count
+
+#@ global help for get_affected_items_count[USE:rowresult.get_affected_items_count]
+\help RowResult.get_affected_items_count
 
 #@ rowresult.get_column_count
 rowresult.help('get_column_count')
@@ -119,6 +137,15 @@ rowresult.help('get_warnings')
 #@ global help for get_warnings[USE:rowresult.get_warnings]
 \help RowResult.get_warnings
 
+#@ rowresult.get_warnings_count
+rowresult.help('get_warnings_count')
+
+#@ global ? for get_warnings_count[USE:rowresult.get_warnings_count]
+\? RowResult.get_warnings_count
+
+#@ global help for get_warnings_count[USE:rowresult.get_warnings_count]
+\help RowResult.get_warnings_count
+
 #@ rowresult.help
 rowresult.help('help')
 
@@ -145,3 +172,12 @@ rowresult.help('warnings')
 
 #@ global help for warnings[USE:rowresult.warnings]
 \help RowResult.warnings
+
+#@ rowresult.warnings_count
+rowresult.help('warnings_count')
+
+#@ global ? for warnings_count[USE:rowresult.warnings_count]
+\? RowResult.warnings_count
+
+#@ global help for warnings_count[USE:rowresult.warnings_count]
+\help RowResult.warnings_count

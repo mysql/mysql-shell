@@ -1,10 +1,14 @@
 #@ Result member validation
+|affected_items_count: OK|
 |execution_time: OK|
 |warning_count: OK|
 |warnings: OK|
+|warnings_count: OK|
+|get_affected_items_count: OK|
 |get_execution_time: OK|
 |get_warning_count: OK|
 |get_warnings: OK|
+|get_warnings_count: OK|
 |column_count: OK|
 |column_names: OK|
 |columns: OK|
@@ -17,6 +21,7 @@
 |fetch_all: OK|
 |has_data: OK|
 |next_data_set: OK|
+|next_result: OK|
 |affected_row_count: OK|
 |auto_increment_value: OK|
 |get_affected_row_count: OK|

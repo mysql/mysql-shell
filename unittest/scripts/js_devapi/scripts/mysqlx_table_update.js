@@ -54,9 +54,9 @@ result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ Reusing CRUD with binding
-print('Updated Angel:', result.affectedItemCount, '\n');
+print('Updated Angel:', result.affectedItemsCount, '\n');
 result = crud.bind('data', 'carol').execute();
-print('Updated Carol:', result.affectedItemCount, '\n');
+print('Updated Carol:', result.affectedItemsCount, '\n');
 
 // ----------------------------------------------
 // Table.Modify Unit Testing: Error Conditions
@@ -102,7 +102,7 @@ var record;
 
 //@# TableUpdate: simple test
 var result = table.update().set('name', 'aline').where('age = 13').execute();
-print('Affected Rows:', result.affectedItemCount, '\n');
+print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var result = table.select().where('name = "aline"').execute();
 record = result.fetchOne();
@@ -110,7 +110,7 @@ print("Updated Record:", record.name, record.age);
 
 //@ TableUpdate: test using expression
 var result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute();
-print('Affected Rows:', result.affectedItemCount, '\n');
+print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var result = table.select().where('age = 23').execute();
 record = result.fetchOne();
@@ -118,7 +118,7 @@ print("Updated Record:", record.name, record.age);
 
 //@ TableUpdate: test using limits
 var result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute();
-print('Affected Rows:', result.affectedItemCount, '\n');
+print('Affected Rows:', result.affectedItemsCount, '\n');
 
 var records = table.select().where('age = 16').execute().fetchAll();
 print('With 16 Years:', records.length, '\n');
@@ -129,7 +129,7 @@ print('With 15 Years:', records.length, '\n');
 //@ TableUpdate: test full update with view object
 var view = schema.getTable('view1');
 var result = view.update().set('my_gender', 'female').execute();
-print('Updated Females:', result.affectedItemCount, '\n');
+print('Updated Females:', result.affectedItemsCount, '\n');
 
 // Result gets reflected on the target table
 var records = table.select().where('gender = \"female\"').execute().fetchAll();

@@ -12,7 +12,7 @@ DESCRIPTION
 
 PROPERTIES
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       execution_time
             Same as get_execution_time
@@ -27,8 +27,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       fetch_all()
@@ -47,7 +46,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -57,10 +55,16 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
+
+#@<OUT> docresult.affected_items_count
+NAME
+      affected_items_count - Same as get_affected_items_count
+
+SYNTAX
+      <DocResult>.affected_items_count
 
 #@<OUT> docresult.execution_time
 NAME
@@ -98,6 +102,20 @@ SYNTAX
 RETURNS
        A DbDoc object representing the next Document in the result.
 
+#@<OUT> docresult.get_affected_items_count
+NAME
+      get_affected_items_count - The the number of affected items for the last
+                                 operation.
+
+SYNTAX
+      <DocResult>.get_affected_items_count()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
+
 #@<OUT> docresult.get_execution_time
 NAME
       get_execution_time - Retrieves a string value indicating the execution
@@ -109,7 +127,7 @@ SYNTAX
 #@<OUT> docresult.get_warning_count
 NAME
       get_warning_count - The number of warnings produced by the last statement
-                          execution. See getWarnings() for more details.
+                          execution.
 
 SYNTAX
       <DocResult>.get_warning_count()
@@ -120,6 +138,8 @@ RETURNS
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
       ATTENTION: This function will be removed in a future release, use the
                  get_warnings_count function instead.
@@ -143,6 +163,23 @@ DESCRIPTION
       related to a specific warning.
 
       This information includes: Level, Code and Message.
+
+#@<OUT> docresult.get_warnings_count
+NAME
+      get_warnings_count - The number of warnings produced by the last
+                           statement execution.
+
+SYNTAX
+      <DocResult>.get_warnings_count()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
 #@<OUT> docresult.help
 NAME
@@ -171,3 +208,10 @@ NAME
 
 SYNTAX
       <DocResult>.warnings
+
+#@<OUT> docresult.warnings_count
+NAME
+      warnings_count - Same as get_warnings_count
+
+SYNTAX
+      <DocResult>.warnings_count

@@ -72,7 +72,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
    * <b>warningsCount</b> property instead.
    */
   Integer warningCount;
-  Integer warningsCount;  //!< Same as getwarningsCount()
+  Integer warningsCount;  //!< Same as getWarningsCount()
   List warnings;          //!< Same as getWarnings()
   String executionTime;   //!< Same as getExecutionTime()
 
@@ -82,7 +82,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   List getWarnings();
   String getExecutionTime();
 #elif DOXYGEN_PY
-  int affected_item_count;  //!< Same as get_affected_items_count()
+  int affected_items_count;  //!< Same as get_affected_items_count()
   /**
    * Same as get_warning_count()
    *
@@ -129,7 +129,6 @@ class SHCORE_PUBLIC Result : public BaseResult {
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   // C++ Interface
-  int64_t get_affected_items_count() const;
   int64_t get_auto_increment_value() const;
   const std::vector<std::string> get_generated_ids() const;
 

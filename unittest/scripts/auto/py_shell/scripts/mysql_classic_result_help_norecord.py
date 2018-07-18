@@ -11,6 +11,15 @@ classicresult.help()
 #@ global help for ClassicResult[USE:classicresult]
 \help ClassicResult
 
+#@ classicresult.affected_items_count
+classicresult.help('affected_items_count')
+
+#@ global ? for affected_items_count[USE:classicresult.affected_items_count]
+\? ClassicResult.affected_items_count
+
+#@ global help for affected_items_count[USE:classicresult.affected_items_count]
+\help ClassicResult.affected_items_count
+
 #@ classicresult.affected_row_count
 classicresult.help('affected_row_count')
 
@@ -82,6 +91,15 @@ classicresult.help('fetch_one')
 
 #@ global help for fetch_one[USE:classicresult.fetch_one]
 \help ClassicResult.fetch_one
+
+#@ classicresult.get_affected_items_count
+classicresult.help('get_affected_items_count')
+
+#@ global ? for get_affected_items_count[USE:classicresult.get_affected_items_count]
+\? ClassicResult.get_affected_items_count
+
+#@ global help for get_affected_items_count[USE:classicresult.get_affected_items_count]
+\help ClassicResult.get_affected_items_count
 
 #@ classicresult.get_affected_row_count
 classicresult.help('get_affected_row_count')
@@ -155,6 +173,15 @@ classicresult.help('get_warning_count')
 #@ global help for get_warning_count[USE:classicresult.get_warning_count]
 \help ClassicResult.get_warning_count
 
+#@ classicresult.get_warnings_count
+classicresult.help('get_warnings_count')
+
+#@ global ? for get_warnings_count[USE:classicresult.get_warnings_count]
+\? ClassicResult.get_warnings_count
+
+#@ global help for get_warnings_count[USE:classicresult.get_warnings_count]
+\help ClassicResult.get_warnings_count
+
 #@ classicresult.get_warnings
 classicresult.help('get_warnings')
 
@@ -200,6 +227,15 @@ classicresult.help('next_data_set')
 #@ global help for next_data_set[USE:classicresult.next_data_set]
 \help ClassicResult.next_data_set
 
+#@ classicresult.next_result
+classicresult.help('next_result')
+
+#@ global ? for next_result[USE:classicresult.next_result]
+\? ClassicResult.next_result
+
+#@ global help for next_result[USE:classicresult.next_result]
+\help ClassicResult.next_result
+
 #@ classicresult.warning_count
 classicresult.help('warning_count')
 
@@ -208,6 +244,15 @@ classicresult.help('warning_count')
 
 #@ global help for warning_count[USE:classicresult.warning_count]
 \help ClassicResult.warning_count
+
+#@ classicresult.warnings_count
+classicresult.help('warnings_count')
+
+#@ global ? for warnings_count[USE:classicresult.warnings_count]
+\? ClassicResult.warnings_count
+
+#@ global help for warnings_count[USE:classicresult.warnings_count]
+\help ClassicResult.warnings_count
 
 #@ classicresult.warnings
 classicresult.help('warnings')

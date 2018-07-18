@@ -13,6 +13,15 @@ docresult.help()
 #@ global help for DocResult[USE:docresult]
 \help DocResult
 
+#@ docresult.affected_items_count
+docresult.help('affected_items_count')
+
+#@ global ? for affected_items_count[USE:docresult.affected_items_count]
+\? DocResult.affected_items_count
+
+#@ global help for affected_items_count[USE:docresult.affected_items_count]
+\help DocResult.affected_items_count
+
 #@ docresult.execution_time
 docresult.help('execution_time')
 
@@ -39,6 +48,15 @@ docresult.help('fetch_one')
 
 #@ global help for fetch_one[USE:docresult.fetch_one]
 \help DocResult.fetch_one
+
+#@ docresult.get_affected_items_count
+docresult.help('get_affected_items_count')
+
+#@ global ? for get_affected_items_count[USE:docresult.get_affected_items_count]
+\? DocResult.get_affected_items_count
+
+#@ global help for get_affected_items_count[USE:docresult.get_affected_items_count]
+\help DocResult.get_affected_items_count
 
 #@ docresult.get_execution_time
 docresult.help('get_execution_time')
@@ -67,6 +85,15 @@ docresult.help('get_warnings')
 #@ global help for get_warnings[USE:docresult.get_warnings]
 \help DocResult.get_warnings
 
+#@ docresult.get_warnings_count
+docresult.help('get_warnings_count')
+
+#@ global ? for get_warnings_count[USE:docresult.get_warnings_count]
+\? DocResult.get_warnings_count
+
+#@ global help for get_warnings_count[USE:docresult.get_warnings_count]
+\help DocResult.get_warnings_count
+
 #@ docresult.help
 docresult.help('help')
 
@@ -93,6 +120,15 @@ docresult.help('warnings')
 
 #@ global help for warnings[USE:docresult.warnings]
 \help DocResult.warnings
+
+#@ docresult.warnings_count
+docresult.help('warnings_count')
+
+#@ global ? for warnings_count[USE:docresult.warnings_count]
+\? DocResult.warnings_count
+
+#@ global help for warnings_count[USE:docresult.warnings_count]
+\help DocResult.warnings_count
 
 shell.connect(__uripwd)
 session.drop_schema('docresult_help');

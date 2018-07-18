@@ -124,6 +124,7 @@ function EXPECT_STDERR_CONTAINS(text) {
     testutil.fail(context);
   }
 }
+
 function EXPECT_SHELL_LOG_CONTAINS(text) {
   var log_path = testutil.getShellLogPath();
   var match_list = testutil.grepFile(log_path, text);
@@ -133,6 +134,17 @@ function EXPECT_SHELL_LOG_CONTAINS(text) {
     testutil.fail(context);
   }
 }
+
+function EXPECT_SHELL_LOG_NOT_CONTAINS(text) {
+  var log_path = testutil.getShellLogPath();
+  var match_list = testutil.grepFile(log_path, text);
+  if (match_list.length !== 0){
+    var log_out = testutil.catFile(log_path);
+    var context = "<red>Unexpected log output:</red> " + text + "\n<yellow>Full log output:</yellow> " + log_out;
+    testutil.fail(context);
+  }
+}
+
 function WIPE_SHELL_LOG() {
   var log_path = testutil.getShellLogPath();
   testutil.wipeFileContents(log_path);

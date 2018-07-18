@@ -12,7 +12,7 @@ DESCRIPTION
 
 PROPERTIES
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       executionTime
             Same as getExecutionTime
@@ -27,8 +27,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       fetchAll()
@@ -47,7 +46,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -57,10 +55,16 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
+
+//@<OUT> Help on affectedItemsCount
+NAME
+      affectedItemsCount - Same as getAffectedItemsCount
+
+SYNTAX
+      <DocResult>.affectedItemsCount
 
 //@<OUT> Help on executionTime
 NAME
@@ -86,6 +90,13 @@ NAME
 
 SYNTAX
       <DocResult>.warnings
+
+//@<OUT> Help on warningsCount
+NAME
+      warningsCount - Same as getWarningsCount
+
+SYNTAX
+      <DocResult>.warningsCount
 
 //@<OUT> Help on fetchAll
 NAME
@@ -116,6 +127,20 @@ SYNTAX
 RETURNS
        A DbDoc object representing the next Document in the result.
 
+//@<OUT> Help on getAffectedItemsCount
+NAME
+      getAffectedItemsCount - The the number of affected items for the last
+                              operation.
+
+SYNTAX
+      <DocResult>.getAffectedItemsCount()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
+
 //@<OUT> Help on getExecutionTime
 NAME
       getExecutionTime - Retrieves a string value indicating the execution time
@@ -127,7 +152,7 @@ SYNTAX
 //@<OUT> Help on getWarningCount
 NAME
       getWarningCount - The number of warnings produced by the last statement
-                        execution. See getWarnings() for more details.
+                        execution.
 
 SYNTAX
       <DocResult>.getWarningCount()
@@ -138,6 +163,8 @@ RETURNS
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See getWarnings() for more details.
 
       ATTENTION: This function will be removed in a future release, use the
                  getWarningsCount function instead.
@@ -160,6 +187,23 @@ DESCRIPTION
       related to a specific warning.
 
       This information includes: Level, Code and Message.
+
+//@<OUT> Help on getWarningsCount
+NAME
+      getWarningsCount - The number of warnings produced by the last statement
+                         execution.
+
+SYNTAX
+      <DocResult>.getWarningsCount()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See getWarnings() for more details.
 
 //@<OUT> Help on help
 NAME

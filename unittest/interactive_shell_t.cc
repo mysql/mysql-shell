@@ -1324,9 +1324,11 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "        }\n"
       "    ],\n"
       "    \"warningCount\": 0,\n"
+      "    \"warningsCount\": 0,\n"
       "    \"warnings\": [],\n"
       "    \"hasData\": true,\n"
       "    \"affectedRowCount\": 0,\n"
+      "    \"affectedItemsCount\": 0,\n"
       "    \"autoIncrementValue\": 0\n"
       "}\n");
 
@@ -1431,7 +1433,9 @@ TEST_F(Interactive_shell_test, x_sql_result) {
 
   execute("select * from itst.tbl;");
   MY_EXPECT_STDOUT_CONTAINS(
+      "    \"affectedItemsCount\": 0,\n"
       "    \"warningCount\": 0,\n"
+      "    \"warningsCount\": 0,\n"
       "    \"warnings\": [],\n"
       "    \"rows\": [\n"
       "        {\n"

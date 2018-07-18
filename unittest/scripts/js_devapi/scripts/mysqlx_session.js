@@ -227,12 +227,12 @@ print(cschema);
 //@ Session: setFetchWarnings(false)
 mySession.setFetchWarnings(false);
 var result = mySession.sql('drop database if exists unexisting').execute();
-print(result.warningCount);
+print(result.warningsCount);
 
 //@ Session: setFetchWarnings(true)
 mySession.setFetchWarnings(true);
 var result = mySession.sql('drop database if exists unexisting').execute();
-print(result.warningCount);
+print(result.warningsCount);
 print(result.warnings[0].message);
 
 //@ Session: quoteName no parameters

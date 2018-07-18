@@ -17,6 +17,12 @@ result.help('affectedItemCount');
 //@ Help on affectedItemCount, \? [USE:Help on affectedItemCount]
 \? Result.affectedItemCount
 
+//@ Help on affectedItemsCount
+result.help('affectedItemsCount');
+
+//@ Help on affectedItemsCount, \? [USE:Help on affectedItemsCount]
+\? Result.affectedItemsCount
+
 //@ Help on autoIncrementValue
 result.help('autoIncrementValue');
 
@@ -41,6 +47,12 @@ result.help('warningCount');
 //@ Help on warningCount, \? [USE:Help on warningCount]
 \? Result.warningCount
 
+//@ Help on warningsCount
+result.help('warningsCount');
+
+//@ Help on warningsCount, \? [USE:Help on warningsCount]
+\? Result.warningsCount
+
 //@ Help on warnings
 result.help('warnings');
 
@@ -52,6 +64,12 @@ result.help('getAffectedItemCount');
 
 //@ Help on getAffectedItemCount, \? [USE:Help on getAffectedItemCount]
 \? Result.getAffectedItemCount
+
+//@ Help on getAffectedItemsCount
+result.help('getAffectedItemsCount');
+
+//@ Help on getAffectedItemsCount, \? [USE:Help on getAffectedItemsCount]
+\? Result.getAffectedItemsCount
 
 //@ Help on getAutoIncrementValue
 result.help('getAutoIncrementValue');
@@ -76,6 +94,12 @@ result.help('getWarningCount');
 
 //@ Help on getWarningCount, \? [USE:Help on getWarningCount]
 \? Result.getWarningCount
+
+//@ Help on getWarningsCount
+result.help('getWarningsCount');
+
+//@ Help on getWarningsCount, \? [USE:Help on getWarningsCount]
+\? Result.getWarningsCount
 
 //@ Help on getWarnings
 result.help('getWarnings');

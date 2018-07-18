@@ -15,7 +15,7 @@ function print_result(res) {
 
   } else {
     // INSERT, UPDATE, DELETE, ...
-    print('Rows affected: ' + res.getAffectedRowCount());
+    print('Rows affected: ' + res.getAffectedItemsCount());
   }
 }
 

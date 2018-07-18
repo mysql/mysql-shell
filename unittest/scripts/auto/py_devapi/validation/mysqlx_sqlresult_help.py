@@ -13,7 +13,7 @@ DESCRIPTION
 
 PROPERTIES
       affected_items_count
-            The the number of affected items for the last operation.
+            Same as get_affected_items_count
 
       affected_row_count
             Same as get_affected_row_count
@@ -46,8 +46,7 @@ PROPERTIES
             Same as get_warnings
 
       warnings_count
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as get_warnings_count
 
 FUNCTIONS
       fetch_all()
@@ -62,9 +61,6 @@ FUNCTIONS
 
       get_affected_row_count()
             Returns the number of rows affected by the executed query.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the get_affected_items_count function instead.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_affected_items_count function instead.
@@ -87,7 +83,6 @@ FUNCTIONS
 
       get_warning_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the get_warnings_count function instead.
@@ -97,7 +92,6 @@ FUNCTIONS
 
       get_warnings_count()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       has_data()
             Returns true if the last statement execution has a result set.
@@ -115,6 +109,13 @@ FUNCTIONS
       next_result()
             Prepares the SqlResult to start reading data from the next Result
             (if many results were returned).
+
+#@<OUT> sqlresult.affected_items_count
+NAME
+      affected_items_count - Same as get_affected_items_count
+
+SYNTAX
+      <SqlResult>.affected_items_count
 
 #@<OUT> sqlresult.affected_row_count
 NAME
@@ -183,22 +184,29 @@ SYNTAX
 RETURNS
        A Row object representing the next record on the result.
 
+#@<OUT> sqlresult.get_affected_items_count
+NAME
+      get_affected_items_count - The the number of affected items for the last
+                                 operation.
+
+SYNTAX
+      <SqlResult>.get_affected_items_count()
+
+RETURNS
+       the number of affected items.
+
+DESCRIPTION
+      Returns the number of records affected by the executed operation
+
 #@<OUT> sqlresult.get_affected_row_count
 NAME
       get_affected_row_count - Returns the number of rows affected by the
                                executed query.
 
-                               ATTENTION: This function will be removed in a
-                                          future release, use the
-                                          get_affected_items_count function
-                                          instead.
-
 SYNTAX
       <SqlResult>.get_affected_row_count()
 
 DESCRIPTION
-      Returns the number of rows affected by the executed query.
-
       ATTENTION: This function will be removed in a future release, use the
                  get_affected_items_count function instead.
 
@@ -257,7 +265,7 @@ SYNTAX
 #@<OUT> sqlresult.get_warning_count
 NAME
       get_warning_count - The number of warnings produced by the last statement
-                          execution. See getWarnings() for more details.
+                          execution.
 
 SYNTAX
       <SqlResult>.get_warning_count()
@@ -268,6 +276,8 @@ RETURNS
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
       ATTENTION: This function will be removed in a future release, use the
                  get_warnings_count function instead.
@@ -291,6 +301,23 @@ DESCRIPTION
       related to a specific warning.
 
       This information includes: Level, Code and Message.
+
+#@<OUT> sqlresult.get_warnings_count
+NAME
+      get_warnings_count - The number of warnings produced by the last
+                           statement execution.
+
+SYNTAX
+      <SqlResult>.get_warnings_count()
+
+RETURNS
+       the number of warnings.
+
+DESCRIPTION
+      This is the same value than C API mysql_warning_count, see
+      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+      See get_warnings() for more details.
 
 #@<OUT> sqlresult.has_data
 NAME
@@ -324,6 +351,17 @@ DESCRIPTION
       ATTENTION: This function will be removed in a future release, use the
                  next_result function instead.
 
+#@<OUT> sqlresult.next_result
+NAME
+      next_result - Prepares the SqlResult to start reading data from the next
+                    Result (if many results were returned).
+
+SYNTAX
+      <SqlResult>.next_result()
+
+RETURNS
+       A boolean value indicating whether there is another result or not.
+
 #@<OUT> sqlresult.warning_count
 NAME
       warning_count - Same as get_warning_count
@@ -341,3 +379,10 @@ NAME
 
 SYNTAX
       <SqlResult>.warnings
+
+#@<OUT> sqlresult.warnings_count
+NAME
+      warnings_count - Same as get_warnings_count
+
+SYNTAX
+      <SqlResult>.warnings_count

@@ -22,6 +22,15 @@ result.help('affected_item_count')
 #@ global help for affected_item_count[USE:result.affected_item_count]
 \help Result.affected_item_count
 
+#@ result.affected_items_count
+result.help('affected_items_count')
+
+#@ global ? for affected_items_count[USE:result.affected_items_count]
+\? Result.affected_items_count
+
+#@ global help for affected_items_count[USE:result.affected_items_count]
+\help Result.affected_items_count
+
 #@ result.auto_increment_value
 result.help('auto_increment_value')
 
@@ -57,6 +66,15 @@ result.help('get_affected_item_count')
 
 #@ global help for get_affected_item_count[USE:result.get_affected_item_count]
 \help Result.get_affected_item_count
+
+#@ result.get_affected_items_count
+result.help('get_affected_items_count')
+
+#@ global ? for get_affected_items_count[USE:result.get_affected_items_count]
+\? Result.get_affected_items_count
+
+#@ global help for get_affected_items_count[USE:result.get_affected_items_count]
+\help Result.get_affected_items_count
 
 #@ result.get_auto_increment_value
 result.help('get_auto_increment_value')
@@ -103,6 +121,15 @@ result.help('get_warnings')
 #@ global help for get_warnings[USE:result.get_warnings]
 \help Result.get_warnings
 
+#@ result.get_warnings_count
+result.help('get_warnings_count')
+
+#@ global ? for get_warnings_count[USE:result.get_warnings_count]
+\? Result.get_warnings_count
+
+#@ global help for get_warnings_count[USE:result.get_warnings_count]
+\help Result.get_warnings_count
+
 #@ result.help
 result.help('help')
 
@@ -129,6 +156,15 @@ result.help('warnings')
 
 #@ global help for warnings[USE:result.warnings]
 \help Result.warnings
+
+#@ result.warnings_count
+result.help('warnings_count')
+
+#@ global ? for warnings_count[USE:result.warnings_count]
+\? Result.warnings_count
+
+#@ global help for warnings_count[USE:result.warnings_count]
+\help Result.warnings_count
 
 shell.connect(__uripwd)
 session.drop_schema('result_help');

@@ -53,8 +53,10 @@ ClassicResult::ClassicResult(
   add_property("columns", "getColumns");
   add_property("columnCount", "getColumnCount");
   add_property("columnNames", "getColumnNames");
+  add_property("affectedItemsCount", "getAffectedItemsCount");
   add_property("affectedRowCount", "getAffectedRowCount");
   add_property("warningCount", "getWarningCount");
+  add_property("warningsCount", "getWarningsCount");
   add_property("warnings", "getWarnings");
   add_property("executionTime", "getExecutionTime");
   add_property("autoIncrementValue", "getAutoIncrementValue");
@@ -69,6 +71,7 @@ ClassicResult::ClassicResult(
                                        ClassicResult::fetch_all,
                                    this, _1));
   add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1));
+  add_method("nextResult", std::bind(&ClassicResult::next_result, this, _1));
   add_method("hasData", std::bind(&ClassicResult::has_data, this, _1));
 
   _column_names.reset(new std::vector<std::string>());
@@ -137,14 +140,19 @@ const mysqlshdk::db::IRow *ClassicResult::fetch_one() const {
   return _result->fetch_one();
 }
 
-// Documentation of the nextDataSet function
+// Documentation of nextDataSet function
 REGISTER_HELP_FUNCTION(nextDataSet, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_NEXTDATASET_BRIEF,
               "Prepares the SqlResult to start reading data from the next "
               "Result (if many results were returned).");
+REGISTER_HELP(CLASSICRESULT_NEXTDATASET_DETAIL,
+              "${CLASSICRESULT_NEXTDATASET_DEPRECATED}");
+REGISTER_HELP(CLASSICRESULT_NEXTDATASET_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<nextResult>>></b> function instead.");
 REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURNS,
-              "@returns A boolean value indicating whether "
-              "there is another result or not.");
+              "@returns A boolean value indicating whether there is another "
+              "result or not.");
 
 /**
  * $(CLASSICRESULT_NEXTDATASET_BRIEF)
@@ -152,12 +160,53 @@ REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURNS,
  * $(CLASSICRESULT_NEXTDATASET_RETURNS)
  */
 #if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>nextResult</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>next_result</b> function instead.
+ */
+#endif
+
+#if DOXYGEN_JS
 Bool ClassicResult::nextDataSet() {}
 #elif DOXYGEN_PY
 bool ClassicResult::next_data_set() {}
 #endif
 shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());
+
+  log_warning("'%s' is deprecated, use '%s' instead.",
+              get_function_name("nextDataSet").c_str(),
+              get_function_name("nextResult").c_str());
+
+  return shcore::Value(_result->next_resultset());
+}
+
+// Documentation of nextResult function
+REGISTER_HELP_FUNCTION(nextResult, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_NEXTRESULT_BRIEF,
+              "Prepares the SqlResult to start reading data from the next "
+              "Result (if many results were returned).");
+REGISTER_HELP(CLASSICRESULT_NEXTRESULT_RETURNS,
+              "@returns A boolean value indicating whether there is another "
+              "result or not.");
+
+/**
+ * $(CLASSICRESULT_NEXTRESULT_BRIEF)
+ *
+ * $(CLASSICRESULT_NEXTRESULT_RETURNS)
+ */
+#if DOXYGEN_JS
+Bool ClassicResult::nextResult() {}
+#elif DOXYGEN_PY
+bool ClassicResult::next_result() {}
+#endif
+shcore::Value ClassicResult::next_result(const shcore::Argument_list &args) {
+  args.ensure_count(0, get_function_name("nextResult").c_str());
 
   return shcore::Value(_result->next_resultset());
 }
@@ -208,19 +257,30 @@ shcore::Value ClassicResult::fetch_all(
   return shcore::Value(array);
 }
 
-// Documentation of the getAffectedRowCount function
-REGISTER_HELP_FUNCTION(getAffectedRowCount, ClassicResult);
+// Documentation of getAffectedRowCount function
 REGISTER_HELP_PROPERTY(affectedRowCount, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_BRIEF,
+              "Same as <<<getAffectedRowCount>>>");
+REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_DETAIL,
+              "${CLASSICRESULT_AFFECTEDROWCOUNT_DEPRECATED}");
+REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_DEPRECATED,
+              "@attention This property will be removed in a future release, "
+              "use the <b><<<affectedItemsCount>>></b> property instead.");
+
+REGISTER_HELP_FUNCTION(getAffectedRowCount, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF,
               "The number of affected rows for the last operation.");
-REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_BRIEF,
-              "${CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF}");
 REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS,
               "@returns the number of affected rows.");
-REGISTER_HELP(
-    CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL,
-    "This is the value of the C API mysql_affected_rows(), "
-    "see https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html");
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL,
+              "This is the value of the C API mysql_affected_rows(), see "
+              "https://dev.mysql.com/doc/refman/en/"
+              "mysql-affected-rows.html");
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL1,
+              "${CLASSICRESULT_GETAFFECTEDROWCOUNT_DEPRECATED}");
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<getAffectedItemsCount>>></b> function instead.");
 
 /**
  * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF)
@@ -228,11 +288,51 @@ REGISTER_HELP(
  * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS)
  *
  * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL)
+ *
  */
+#if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>getAffectedItemsCount</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the
+ * &nbsp;<b>get_affected_items_count</b> function instead.
+ */
+#endif
 #if DOXYGEN_JS
 Integer ClassicResult::getAffectedRowCount() {}
 #elif DOXYGEN_PY
 int ClassicResult::get_affected_row_count() {}
+#endif
+
+// Documentation of getAffectedItemsCount function
+REGISTER_HELP_PROPERTY(affectedItemsCount, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_AFFECTEDITEMSCOUNT_BRIEF,
+              "Same as <<<getAffectedItemsCount>>>");
+
+REGISTER_HELP_FUNCTION(getAffectedItemsCount, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_BRIEF,
+              "The the number of affected items for the last operation.");
+
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_RETURNS,
+              "@returns the number of affected items.");
+REGISTER_HELP(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_DETAIL,
+              "Returns the number of records affected by the executed "
+              "operation");
+
+/**
+ * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_BRIEF)
+ *
+ * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_RETURNS)
+ *
+ * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_DETAIL)
+ */
+#if DOXYGEN_JS
+Integer ClassicResult::getAffectedItemsCount() {}
+#elif DOXYGEN_PY
+int ClassicResult::get_affected_items_count() {}
 #endif
 
 // Documentation of the getColumnCount function
@@ -368,29 +468,93 @@ Integer ClassicResult::getAutoIncrementValue() {}
 int ClassicResult::get_auto_increment_value() {}
 #endif
 
-// Documentation of the getWarningCount function
-REGISTER_HELP_FUNCTION(getWarningCount, ClassicResult);
+// Documentation of getWarningCount function
 REGISTER_HELP_PROPERTY(warningCount, ClassicResult);
-REGISTER_HELP(
-    CLASSICRESULT_GETWARNINGCOUNT_BRIEF,
-    "The number of warnings produced by the last statement execution.");
 REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_BRIEF,
-              "${CLASSICRESULT_GETWARNINGCOUNT_BRIEF}");
+              "Same as <<<getWarningCount>>>");
+REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_DETAIL,
+              "${CLASSICRESULT_WARNINGCOUNT_DEPRECATED}");
+REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_DEPRECATED,
+              "@attention This property will be removed in a future release, "
+              "use the <b><<<warningsCount>>></b> property instead.");
+
+REGISTER_HELP_FUNCTION(getWarningCount, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_BRIEF,
+              "The number of warnings produced by the last "
+              "statement execution.");
 REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_RETURNS,
               "@returns the number of warnings.");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DETAIL,
+              "This is the same value than C API mysql_warning_count, see "
+              "https://dev.mysql.com/doc/refman/en/"
+              "mysql-warning-count.html");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DETAIL1,
+              "See <<<getWarnings>>>() for more details.");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DETAIL2,
+              "${CLASSICRESULT_GETWARNINGCOUNT_DEPRECATED}");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DEPRECATED,
+              "@attention This function will be removed in a future release, "
+              "use the <b><<<getWarningsCount>>></b> function instead.");
 
 /**
  * $(CLASSICRESULT_GETWARNINGCOUNT_BRIEF)
  *
  * $(CLASSICRESULT_GETWARNINGCOUNT_RETURNS)
  *
- * This is the same value than C API mysql_warning_count, see
- * https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+ * $(CLASSICRESULT_GETWARNINGCOUNT_DETAIL)
+ *
+ */
+#if DOXYGEN_JS
+/**
+ * @attention This function will be removed in a future release, use the&nbsp;
+ * <b>getWarningsCount</b> function instead.
+ */
+#elif DOXYGEN_PY
+/**
+ * @attention This function will be removed in a future release, use the&nbsp;
+ * <b>get_warnings_count</b> function instead.
+ */
+#endif
+/**
+ * \sa warnings
  */
 #if DOXYGEN_JS
 Integer ClassicResult::getWarningCount() {}
 #elif DOXYGEN_PY
 int ClassicResult::get_warning_count() {}
+#endif
+
+// Documentation of getWarningsCount function
+REGISTER_HELP_PROPERTY(warningsCount, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_WARNINGSCOUNT_BRIEF,
+              "Same as <<<getWarningsCount>>>");
+
+REGISTER_HELP_FUNCTION(getWarningsCount, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_BRIEF,
+              "The number of warnings produced by the last statement "
+              "execution.");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_RETURNS,
+              "@returns the number of warnings.");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_DETAIL,
+              "This is the same value than C API mysql_warning_count, see "
+              "https://dev.mysql.com/doc/refman/en/"
+              "mysql-warning-count.html");
+REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_DETAIL1,
+              "See <<<getWarnings>>>() for more details.");
+
+/**
+ * $(CLASSICRESULT_GETWARNINGSCOUNT_BRIEF)
+ *
+ * $(CLASSICRESULT_GETWARNINGSCOUNT_RETURNS)
+ *
+ * $(CLASSICRESULT_GETWARNINGSCOUNT_DETAIL)
+ *
+ * \sa warnings
+ */
+#if DOXYGEN_JS
+Integer ClassicResult::getWarningsCount() {}
+#elif DOXYGEN_PY
+int ClassicResult::get_warnings_count() {}
 #endif
 
 // Documentation of the getWarnings function
@@ -513,14 +677,28 @@ list ClassicResult::get_warnings() {}
 }*/
 
 shcore::Value ClassicResult::get_member(const std::string &prop) const {
-  if (prop == "affectedRowCount")
+  if (prop == "affectedRowCount" || prop == "affectedItemsCount") {
+    if (prop == "affectedRowCount") {
+      log_warning("'%s' is deprecated, use '%s' instead.",
+                  get_function_name("affectedRowCount").c_str(),
+                  get_function_name("affectedItemsCount").c_str());
+    }
+
     return shcore::Value(
         (int64_t)((_result->get_affected_row_count() == ~(my_ulonglong)0)
                       ? 0
                       : _result->get_affected_row_count()));
+  }
 
-  if (prop == "warningCount")
+  if (prop == "warningCount" || prop == "warningsCount") {
+    if (prop == "warningCount") {
+      log_warning("'%s' is deprecated, use '%s' instead.",
+                  get_function_name("warningCount").c_str(),
+                  get_function_name("warningsCount").c_str());
+    }
+
     return shcore::Value(_result->get_warning_count());
+  }
 
   if (prop == "warnings") {
     std::shared_ptr<shcore::Value::Array_type> array(
@@ -722,12 +900,14 @@ void ClassicResult::append_json(shcore::JSON_dumper &dumper) const {
   dumper.append_value("rows", fetch_all(shcore::Argument_list()));
 
   if (mysqlsh::current_shell_options()->get().show_warnings) {
-    dumper.append_value("warningCount", get_member("warningCount"));
+    dumper.append_value("warningCount", get_member("warningsCount"));
+    dumper.append_value("warningsCount", get_member("warningsCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
 
   dumper.append_value("hasData", has_data(shcore::Argument_list()));
-  dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
+  dumper.append_value("affectedRowCount", get_member("affectedItemsCount"));
+  dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
 
   dumper.end_object();

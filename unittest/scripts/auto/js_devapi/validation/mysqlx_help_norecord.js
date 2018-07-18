@@ -177,7 +177,7 @@ DESCRIPTION
 
 PROPERTIES
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       executionTime
             Same as getExecutionTime
@@ -192,8 +192,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       getAffectedItemsCount()
@@ -205,7 +204,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -215,7 +213,6 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -508,7 +505,7 @@ DESCRIPTION
 
 PROPERTIES
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       executionTime
             Same as getExecutionTime
@@ -523,8 +520,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       fetchAll()
@@ -543,7 +539,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -553,7 +548,6 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -584,7 +578,7 @@ PROPERTIES
                        the affectedItemsCount property instead.
 
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       autoIncrementValue
             Same as getAutoIncrementValue
@@ -605,8 +599,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       getAffectedItemCount()
@@ -630,7 +623,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -640,7 +632,6 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members
@@ -655,7 +646,7 @@ DESCRIPTION
 
 PROPERTIES
       affectedItemsCount
-            The the number of affected items for the last operation.
+            Same as getAffectedItemsCount
 
       columnCount
             Same as getColumnCount
@@ -679,8 +670,7 @@ PROPERTIES
             Same as getWarnings
 
       warningsCount
-            The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
+            Same as getWarningsCount
 
 FUNCTIONS
       fetchAll()
@@ -708,7 +698,6 @@ FUNCTIONS
 
       getWarningCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
             ATTENTION: This function will be removed in a future release, use
                        the getWarningsCount function instead.
@@ -718,7 +707,6 @@ FUNCTIONS
 
       getWarningsCount()
             The number of warnings produced by the last statement execution.
-            See getWarnings() for more details.
 
       help([member])
             Provides help about this class and it's members

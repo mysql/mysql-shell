@@ -34,6 +34,7 @@ namespace mysqlsh {
 
 /**
  * \ingroup ShellAPI
+ *
  * @brief $(OPTIONS_BRIEF)
  *
  * $(OPTIONS_DETAIL)
@@ -87,9 +88,9 @@ class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
 
 #if DOXYGEN_JS
   Undefined set(String optionName, Value value);
-  Undefined set_persist(String optionName, Value value);
+  Undefined setPersist(String optionName, Value value);
   Undefined unset(String optionName);
-  Undefined unset_persist(String optionName);
+  Undefined unsetPersist(String optionName);
 #elif DOXYGEN_PY
   None set(str optionName, value value);
   None set_persist(str optionName, value value);

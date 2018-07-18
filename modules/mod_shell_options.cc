@@ -160,7 +160,6 @@ REGISTER_HELP(OPTIONS_SET_PARAM,
               "@param optionName name of the option to set.");
 REGISTER_HELP(OPTIONS_SET_PARAM1, "@param value new value for the option.");
 /**
- * \ingroup ShellAPI
  * $(OPTIONS_SET_BRIEF)
  *
  * $(OPTIONS_SET_PARAM)
@@ -191,25 +190,24 @@ REGISTER_HELP(OPTIONS_SETPERSIST_PARAM,
 REGISTER_HELP(OPTIONS_SETPERSIST_PARAM1,
               "@param value new value for the option.");
 /**
- * \ingroup ShellAPI
  * $(OPTIONS_SETPERSIST_BRIEF)
  *
  * $(OPTIONS_SETPERSIST_PARAM)
  * $(OPTIONS_SETPERSIST_PARAM1)
  */
 #if DOXYGEN_JS
-Undefined Options::set_persist(String optionName, Value value);
+Undefined Options::setPersist(String optionName, Value value);
 #elif DOXYGEN_PY
 None Options::set_persist(str optionName, value value);
 #endif
 
 shcore::Value Options::set_persist(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("set_persist").c_str());
+  args.ensure_count(2, get_function_name("setPersist").c_str());
 
   try {
     shell_options->set_and_notify(args.string_at(0), args.at(1), true);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("set_persist"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setPersist"));
   return Value();
 }
 
@@ -219,7 +217,6 @@ REGISTER_HELP(OPTIONS_UNSET_PARAM,
               "@param optionName name of the option to reset.");
 
 /**
- * \ingroup ShellAPI
  * $(OPTIONS_UNSET_BRIEF)
  *
  * $(OPTIONS_UNSET_PARAM)
@@ -248,24 +245,23 @@ REGISTER_HELP(OPTIONS_UNSETPERSIST_PARAM,
               "@param optionName name of the option to reset.");
 
 /**
- * \ingroup ShellAPI
  * $(OPTIONS_UNSETPERSIST_BRIEF)
  *
  * $(OPTIONS_UNSETPERSIST_PARAM)
  */
 #if DOXYGEN_JS
-Undefined Options::unset_persist(String optionName);
+Undefined Options::unsetPersist(String optionName);
 #elif DOXYGEN_PY
 None Options::unset_persist(str optionName);
 #endif
 
 shcore::Value Options::unset_persist(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("unset_persist").c_str());
+  args.ensure_count(1, get_function_name("unsetPersist").c_str());
 
   try {
     shell_options->unset(args.string_at(0), true);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset_persist"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unsetPersist"));
   return Value();
 }
 
