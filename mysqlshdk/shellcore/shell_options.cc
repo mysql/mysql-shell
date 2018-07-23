@@ -821,13 +821,31 @@ void Shell_options::check_host_conflicts() {
   }
 }
 
+#ifdef _WIN32
+#define SOCKET_NAME "named pipe"
+#else  // !_WIN32
+#define SOCKET_NAME "socket"
+#endif  // !_WIN32
+
 void Shell_options::check_host_socket_conflicts() {
   if (!storage.sock.empty()) {
-    if ((!storage.host.empty() && storage.host != "localhost") ||
-        (uri_data.has_host() && uri_data.get_host() != "localhost")) {
-      auto error =
-          "Conflicting options: socket cannot be used if host is "
-          "not 'localhost'.";
+    if ((!storage.host.empty() && storage.host != "localhost"
+#ifdef _WIN32
+         && storage.host != "."
+#endif  // _WIN32
+         ) ||
+        (uri_data.has_host() && uri_data.get_host() != "localhost"
+#ifdef _WIN32
+         && uri_data.get_host() != "."
+#endif  // _WIN32
+         )) {
+      auto error = "Conflicting options: " SOCKET_NAME
+                   " cannot be used if host is "
+#ifdef _WIN32
+                   "neither '.' nor 'localhost'.";
+#else   // !_WIN32
+                   "not 'localhost'.";
+#endif  // !_WIN32
       throw std::runtime_error(error);
     }
   }
@@ -846,32 +864,39 @@ void Shell_options::check_port_conflicts() {
 
 void Shell_options::check_socket_conflicts() {
   if (!storage.sock.empty() && uri_data.has_transport_type() &&
-      uri_data.get_transport_type() == mysqlshdk::db::Transport_type::Socket &&
-      uri_data.get_socket() != storage.sock) {
-    auto error =
-        "Conflicting options: provided socket differs from the "
-        "socket in the URI.";
+      uri_data.get_transport_type() ==
+#ifdef _WIN32
+          mysqlshdk::db::Transport_type::Pipe
+#else   // !_WIN32
+          mysqlshdk::db::Transport_type::Socket
+#endif  // !_WIN32
+      && uri_data.get_socket() != storage.sock) {
+    auto error = "Conflicting options: provided " SOCKET_NAME
+                 " differs from the " SOCKET_NAME " in the URI.";
     throw std::runtime_error(error);
   }
 }
 
 void Shell_options::check_port_socket_conflicts() {
   if (storage.port != 0 && !storage.sock.empty()) {
-    auto error =
-        "Conflicting options: port and socket cannot be used "
-        "together.";
+    auto error = "Conflicting options: port and " SOCKET_NAME
+                 " cannot be used together.";
     throw std::runtime_error(error);
   } else if (storage.port != 0 && uri_data.has_transport_type() &&
              uri_data.get_transport_type() ==
-                 mysqlshdk::db::Transport_type::Socket) {
+#ifdef _WIN32
+                 mysqlshdk::db::Transport_type::Pipe
+#else   // !_WIN32
+                 mysqlshdk::db::Transport_type::Socket
+#endif  // !_WIN32
+  ) {
     auto error =
         "Conflicting options: port cannot be used if the URI "
-        "contains a socket.";
+        "contains a " SOCKET_NAME ".";
     throw std::runtime_error(error);
   } else if (!storage.sock.empty() && uri_data.has_port()) {
-    auto error =
-        "Conflicting options: socket cannot be used if the URI "
-        "contains a port.";
+    auto error = "Conflicting options: " SOCKET_NAME
+                 " cannot be used if the URI contains a port.";
     throw std::runtime_error(error);
   }
 }

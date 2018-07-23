@@ -216,7 +216,8 @@ class Shell_api_tester : public Helper_tester {
 
     m_wrapper.reset(new Shell_test_wrapper{false});
 
-    execute("shell.options[\"credentialStore.helper\"] = \"" + name + "\";");
+    execute("shell.options[\"credentialStore.helper\"] = " +
+            shcore::quote_string(name, '\"') + ";");
 
     ASSERT_EQ("", m_wrapper->get_output_handler().std_err);
   }
@@ -236,10 +237,10 @@ class Shell_api_tester : public Helper_tester {
     EXPECT_EQ(Secret_type::PASSWORD, type);
 
 #ifdef HAVE_V8
-    execute("shell.storeCredential(\"" + url + "\", " +
+    execute("shell.storeCredential(" + shcore::quote_string(url, '\"') + ", " +
             shcore::quote_string(secret, '\"') + ");");
 #else
-    execute("shell.store_credential(\"" + url + "\", " +
+    execute("shell.store_credential(" + shcore::quote_string(url, '\"') + ", " +
             shcore::quote_string(secret, '\"') + ");");
 #endif
     return m_wrapper->get_output_handler().std_err.empty();
@@ -256,9 +257,10 @@ class Shell_api_tester : public Helper_tester {
     EXPECT_EQ(Secret_type::PASSWORD, type);
 
 #ifdef HAVE_V8
-    execute("shell.deleteCredential(\"" + url + "\");");
+    execute("shell.deleteCredential(" + shcore::quote_string(url, '\"') + ");");
 #else
-    execute("shell.delete_credential(\"" + url + "\");");
+    execute("shell.delete_credential(" + shcore::quote_string(url, '\"') +
+            ");");
 #endif
 
     return m_wrapper->get_output_handler().std_err.empty();
@@ -604,8 +606,9 @@ class Helper_executable_tester : public Helper_tester {
   }
 
   static std::string to_json(const std::string &type, const std::string &url) {
-    return std::string{"{\""} + k_server_url + "\":\"" + url + "\",\"" +
-           k_secret_type + "\":\"" + type + "\"}";
+    return std::string{"{\""} + k_server_url +
+           "\":" + shcore::quote_string(url, '\"') + ",\"" + k_secret_type +
+           "\":" + shcore::quote_string(type, '\"') + "}";
   }
 
   bool validate_object(const rapidjson::Value &object,
@@ -971,12 +974,20 @@ void test_available_helpers() {
     expect_not_contain(url);                          \
   } while (false)
 
+#ifdef _WIN32
+#define URL_WITH_SOCKET "user@\\\\.\\named.pipe"
+#define URL_WITH_SOCKET_AND_PARENTHESES "user@\\\\.\\(named.pipe)"
+#else  // !_WIN32
+#define URL_WITH_SOCKET "user@/socket"
+#define URL_WITH_SOCKET_AND_PARENTHESES "user@(/socket)"
+#endif  // !_WIN32
+
 #define STORE_AND_OP_TESTS(op)                                              \
   do {                                                                      \
     op("empty@host", "");                                                   \
     op("user@host", "one");                                                 \
     op("user@host:3306", "two");                                            \
-    op("user@/socket", "three");                                            \
+    op(URL_WITH_SOCKET, "three");                                           \
     op("user@host:33060", "five");                                          \
     op("user@host:33060", "six");                                           \
     if (GetParam() == "login-path") {                                       \
@@ -1058,7 +1069,7 @@ void test_available_helpers() {
                                                                               \
   TEST_P(test_case_name, list) {                                              \
     std::set<std::string> urls{"user@host", "user@host:3306",                 \
-                               "user@host:33060", "user@/socket"};            \
+                               "user@host:33060", URL_WITH_SOCKET};           \
     for (const auto &url : urls) {                                            \
       STORE_AND_CHECK(url, url);                                              \
     }                                                                         \
@@ -1078,9 +1089,9 @@ void test_available_helpers() {
   }                                                                           \
                                                                               \
   NORMALIZATION_TEST(test_case_name, url_normalization) {                     \
-    STORE_AND_CHECK("user@/socket", "one");                                   \
-    STORE_AND_CHECK("user@(/socket)", "two");                                 \
-    expect_contains("user@/socket", "two");                                   \
+    STORE_AND_CHECK(URL_WITH_SOCKET, "one");                                  \
+    STORE_AND_CHECK(URL_WITH_SOCKET_AND_PARENTHESES, "two");                  \
+    expect_contains(URL_WITH_SOCKET, "two");                                  \
   }                                                                           \
                                                                               \
   TEST(Helpers, test_case_name##_list_helpers) {                              \
@@ -1094,7 +1105,7 @@ void test_available_helpers() {
     Config_editor_invoker invoker;                                            \
     invoker.clear();                                                          \
     std::set<std::string> urls{"user@host", "user@host:3306",                 \
-                               "user@host:33060", "user@/socket"};            \
+                               "user@host:33060", URL_WITH_SOCKET};           \
     for (const auto &url : urls) {                                            \
       invoker.store(url, url, url);                                           \
       expect_contains(url, url);                                              \
@@ -1135,19 +1146,19 @@ void test_available_helpers() {
       invoker.invoke(args, true, "one");                                      \
     };                                                                        \
     initialize();                                                             \
-    expect_list({"user@localhost:3306", "user@/socket"});                     \
+    expect_list({"user@localhost:3306", URL_WITH_SOCKET});                    \
     STORE_AND_CHECK("user@localhost:3306", "two");                            \
-    STORE_AND_CHECK("user@/socket", "three");                                 \
-    expect_list({"user@localhost:3306", "user@/socket"});                     \
-    erase("user@/socket");                                                    \
-    expect_contains("user@/socket", "one");                                   \
+    STORE_AND_CHECK(URL_WITH_SOCKET, "three");                                \
+    expect_list({"user@localhost:3306", URL_WITH_SOCKET});                    \
+    erase(URL_WITH_SOCKET);                                                   \
+    expect_contains(URL_WITH_SOCKET, "one");                                  \
     expect_contains("user@localhost:3306", "two");                            \
-    expect_list({"user@localhost:3306", "user@/socket"});                     \
+    expect_list({"user@localhost:3306", URL_WITH_SOCKET});                    \
     erase("user@localhost:3306");                                             \
-    expect_contains("user@/socket", "one");                                   \
+    expect_contains(URL_WITH_SOCKET, "one");                                  \
     expect_contains("user@localhost:3306", "one");                            \
-    expect_list({"user@localhost:3306", "user@/socket"});                     \
-    erase("user@/socket");                                                    \
+    expect_list({"user@localhost:3306", URL_WITH_SOCKET});                    \
+    erase(URL_WITH_SOCKET);                                                   \
     expect_contains("user@localhost:3306", "one");                            \
     expect_list({"user@localhost:3306"});                                     \
     erase("user@localhost:3306");                                             \
@@ -1277,7 +1288,7 @@ ADD_TESTS(Shell_api_test);
 
 TEST_P(Shell_api_test, delete_all_credentials) {
   std::set<std::string> urls{"user@host", "user@host:3306", "user@host:33060",
-                             "user@/socket"};
+                             URL_WITH_SOCKET};
   for (const auto &url : urls) {
     STORE_AND_CHECK(url, url);
   }

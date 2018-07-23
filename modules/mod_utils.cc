@@ -77,14 +77,26 @@ mysqlshdk::db::Connection_options get_connection_options(
             "no options provided.");
 
       shcore::Argument_map connection_map(*options);
+
+      std::set<std::string> mandatory;
+      if (!connection_map.has_key(mysqlshdk::db::kSocket)) {
+        mandatory.insert(mysqlshdk::db::kHost);
+      }
+
       connection_map.ensure_keys(
-          {mysqlshdk::db::kHost}, mysqlshdk::db::connection_attributes,
-          "connection options",
+          mandatory, mysqlshdk::db::connection_attributes, "connection options",
           ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
 
       for (auto &option : *options) {
         if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
           ret_val.set_port(connection_map.int_at(option.first));
+        } else if (ret_val.compare(option.first, mysqlshdk::db::kSocket) == 0) {
+          const auto &sock = connection_map.string_at(option.first);
+#ifdef _WIN32
+          ret_val.set_pipe(sock);
+#else   // !_WIN32
+          ret_val.set_socket(sock);
+#endif  // !_WIN32
         } else if (ret_val.compare(option.first,
                                    mysqlshdk::db::kConnectTimeout) == 0) {
           // Additional connection options are internally stored as strings.

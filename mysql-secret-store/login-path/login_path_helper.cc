@@ -32,7 +32,6 @@
 
 #include "mysql-secret-store/login-path/entry.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -92,18 +91,32 @@ void validate_secret_type(const common::Secret_id &id) {
 }
 
 std::string get_url(const Entry &entry, bool encode) {
-  mysqlshdk::db::uri::Uri_encoder encoder;
-  return (entry.user.empty()
-              ? ""
-              : (encode ? encoder.encode_userinfo(entry.user) : entry.user) +
-                    "@") +
-         (encode ? encoder.encode_host(entry.host) : entry.host) +
-         (entry.port.empty()
-              ? entry.socket.empty()
-                    ? ""
-                    : (encode ? encoder.encode_socket(entry.socket)
-                              : entry.socket)
-              : ":" + (encode ? encoder.encode_port(entry.port) : entry.port));
+  if (encode) {
+    mysqlshdk::db::Connection_options options;
+
+    if (!entry.user.empty()) {
+      options.set_user(entry.user);
+    }
+    if (!entry.host.empty()) {
+      options.set_host(entry.host);
+    }
+    if (!entry.port.empty()) {
+      options.set_port(std::stoi(entry.port));
+    }
+    if (!entry.socket.empty()) {
+      options.set_socket(entry.socket);
+    }
+
+    return options.as_uri(mysqlshdk::db::uri::formats::user_transport());
+  } else {
+    // URLs which are not encoded are used as an internal detail and help
+    // to identify entries which were not created by us. Such entries can have
+    // both socket and port set, which means Connection_options cannot be used.
+    return (entry.user.empty() ? "" : entry.user + "@") +
+           (entry.socket.empty()
+                ? entry.host + (entry.port.empty() ? "" : ":" + entry.port)
+                : entry.socket);
+  }
 }
 
 std::string get_encoded_url(const Entry &entry) { return get_url(entry, true); }

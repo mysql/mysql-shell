@@ -159,10 +159,11 @@ void Uri_parser::parse_userinfo() {
 void Uri_parser::parse_target() {
   if (_chunks.find(URI_TARGET) != _chunks.end()) {
     size_t start = _chunks[URI_TARGET].first;
-    size_t end = _chunks[URI_TARGET].second;
+    const size_t end = _chunks[URI_TARGET].second;
+#ifndef _WIN32
     if (input_contains(".", start) || input_contains("/", start) ||
         input_contains("(.", start) || input_contains("(/", start)) {
-      auto offset = _chunks[URI_TARGET].first;
+      auto offset = start;
       {
         // When it starts with / the symbol is skipped and rest is parsed
         // as unencoded value
@@ -178,23 +179,51 @@ void Uri_parser::parse_target() {
         _data->set_socket(socket);
       }
 
-      if (offset <= _chunks[URI_TARGET].second)
+      if (offset <= end)
         throw std::invalid_argument(
             "Unexpected data [" +
             get_input_chunk({offset, _chunks[URI_TARGET].second}) +
             "] at position " + std::to_string(offset));
+#else   // _WIN32
+    // Windows pipe
+    if (input_contains("\\\\.\\", start) || input_contains("(\\\\.\\", start)) {
+      bool unencoded_pipe = false;
 
-      // Windows pipe
-    } else if (input_contains("\\.", start)) {
-      start += 2;
-      size_t offset(start);
-      _data->set_pipe(parse_value({start, end}, &offset, ""));
+      if (_input[start] == '\\') {
+        // move past named pipe prefix
+        start += 4;
+      } else {
+        unencoded_pipe = true;
+      }
 
-      if (offset <= _chunks[URI_TARGET].second)
+      auto offset = start;
+      auto pipe = parse_value({start, end}, &offset, "");
+
+      if (unencoded_pipe) {
+        // unencoded pipe starts with pipe prefix, needs to be trimmed
+        pipe = pipe.substr(4);
+      }
+
+      if (pipe.empty()) {
+        throw std::invalid_argument("Named pipe cannot be empty.");
+      }
+
+      _data->set_pipe(pipe);
+
+      if (offset <= end)
         throw std::invalid_argument(
             "Unexpected data [" +
             get_input_chunk({offset, _chunks[URI_TARGET].second}) +
             "] at position " + std::to_string(offset));
+    } else if (input_contains(".", start)) {
+      if (start == end) {
+        _data->set_host(".");
+      } else {
+        throw std::invalid_argument(
+            "Unexpected character [.] found at position " +
+            std::to_string(start));
+      }
+#endif  // _WIN32
     } else {
       parse_host();
     }
@@ -770,8 +799,8 @@ Connection_options Uri_parser::parse(const std::string &input,
     // If the / is found at the second position, it could also be a socket
     // definintion in the form of: (/path/to/socket)
     // So we nede to ensure the found / is after the closing ) in this case
-    if (input_contains("(/", first_char) ||
-        input_contains("\\.(", first_char)) {
+    if (input_contains("(/", first_char) || input_contains("(.", first_char) ||
+        input_contains("(\\\\.\\", first_char)) {
       size_t closing = input.find(")", first_char);
       has_path = closing != std::string::npos && position > closing;
     } else {

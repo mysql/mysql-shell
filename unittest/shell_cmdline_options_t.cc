@@ -1096,10 +1096,20 @@ TEST_F(Shell_cmdline_options, conflicts_host) {
   test_conflicting_options("--host --uri", 3, argv0, error);
 }
 
+#ifdef _WIN32
+#define SOCKET_NAME "named pipe"
+#else  // !_WIN32
+#define SOCKET_NAME "socket"
+#endif  // !_WIN32
+
 TEST_F(Shell_cmdline_options, conflicts_host_socket) {
-  auto error =
-      "Conflicting options: socket cannot be used if host is "
-      "not 'localhost'.\n";
+  auto error = "Conflicting options: " SOCKET_NAME
+               " cannot be used if host is "
+#ifdef _WIN32
+               "neither '.' nor 'localhost'.\n";
+#else   // !_WIN32
+               "not 'localhost'.\n";
+#endif  // !_WIN32
 
   char *argv0[] = {const_cast<char *>("ut"),
                    const_cast<char *>("--uri=root@127.0.0.1"),
@@ -1124,21 +1134,24 @@ TEST_F(Shell_cmdline_options, conflicts_port) {
 }
 
 TEST_F(Shell_cmdline_options, conflicts_socket) {
-  auto error =
-      "Conflicting options: provided socket differs from the "
-      "socket in the URI.\n";
+  auto error = "Conflicting options: provided " SOCKET_NAME
+               " differs from the " SOCKET_NAME " in the URI.\n";
 
   char *argv0[] = {const_cast<char *>("ut"),
                    const_cast<char *>("--socket=/path/to/socket"),
-                   const_cast<char *>("--uri=mysqlx://root@/socket"), NULL};
+#ifdef _WIN32
+                   const_cast<char *>("--uri=mysql://root@\\\\.\\named.pipe"),
+#else   // !_WIN32
+                   const_cast<char *>("--uri=mysqlx://root@/socket"),
+#endif  // !_WIN32
+                   NULL};
 
   test_conflicting_options("--socket --uri", 3, argv0, error);
 }
 
 TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
-  std::string error0 =
-      "Conflicting options: port and socket cannot be used "
-      "together.\n";
+  std::string error0 = "Conflicting options: port and " SOCKET_NAME
+                       " cannot be used together.\n";
 
   char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--port=3307"),
                    const_cast<char *>("--socket=/some/weird/path"), NULL};
@@ -1147,17 +1160,20 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
 
   auto error1 =
       "Conflicting options: port cannot be used if the URI "
-      "contains a socket.\n";
+      "contains a " SOCKET_NAME ".\n";
 
   char *argv1[] = {const_cast<char *>("ut"),
+#ifdef _WIN32
+                   const_cast<char *>("--uri=root@\\\\.\\named.pipe"),
+#else   // !_WIN32
                    const_cast<char *>("--uri=root@/socket"),
+#endif  // !_WIN32
                    const_cast<char *>("--port=3306"), NULL};
 
   test_conflicting_options("--uri --port", 3, argv1, error1);
 
-  auto error2 =
-      "Conflicting options: socket cannot be used if the URI "
-      "contains a port.\n";
+  auto error2 = "Conflicting options: " SOCKET_NAME
+                " cannot be used if the URI contains a port.\n";
 
   char *argv2[] = {const_cast<char *>("ut"),
                    const_cast<char *>("--uri=root@localhost:3306"),
