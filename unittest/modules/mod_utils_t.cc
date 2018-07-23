@@ -366,6 +366,12 @@ TEST(modules_mod_utils, get_connection_data_connect_timeout) {
   }
 }
 
+#ifdef _WIN32
+#define SOCKET_NAME "pipe"
+#else  // !_WIN32
+#define SOCKET_NAME "socket"
+#endif  // !_WIN32
+
 TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
   shcore::Argument_list args;
   shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
@@ -380,12 +386,14 @@ TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE);
   } catch (const std::exception &e) {
     std::string error(e.what());
-    EXPECT_EQ(
-        "Conflicting connection options: port and socket defined"
-        ", use either one or the other.",
-        error);
+    EXPECT_EQ("Unable to set a " SOCKET_NAME
+              " connection to '/some/socket/path', a tcp connection to "
+              "'localhost:3310' is already defined.",
+              error);
   }
 }
+
+#undef SOCKET_NAME
 
 TEST(modules_mod_utils, unpack_options_validation) {
   shcore::Dictionary_t options = shcore::make_dict();

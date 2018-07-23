@@ -42,7 +42,7 @@ TEST_F(Command_line_test, bug24912358) {
     MY_EXPECT_MULTILINE_OUTPUT(
         "select -127 << 1.1",
         multiline({"-127 << 1.1", "18446744073709551362"}), _output);
-  }  // namespace tests
+  }
 
   {
     std::string uri = "--uri=" + _uri;
@@ -129,14 +129,24 @@ TEST_F(Command_line_test, bug23508428) {
 TEST_F(Command_line_test, bug24905066) {
   // Tests URI formatting using classic protocol
   {
+#ifdef _WIN32
+    execute({_mysqlsh, "--mysql", "-i", "--uri",
+             "root:@\\\\.\\(d:\\path\\to\\whatever\\socket.sock)", NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Creating a Classic session to "
+        "'root@\\\\.\\d%3A%5Cpath%5Cto%5Cwhatever%5Csocket.sock'");
+#else   // !_WIN32
     execute({_mysqlsh, "--mysql", "-i", "--uri",
              "root:@(/path/to/whatever/socket.sock)", NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Creating a Classic session to "
         "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
+#endif  // !_WIN32
   }
 
+#ifndef _WIN32
   // Tests URI formatting using X protocol
   {
     execute({_mysqlsh, "--mysqlx", "-i", "--uri",
@@ -146,6 +156,7 @@ TEST_F(Command_line_test, bug24905066) {
         "Creating an X protocol session to "
         "'root@/path%2Fto%2Fwhatever%2Fsocket.sock'");
   }
+#endif  // !_WIN32
 
   // Tests the connection fails if invalid schema is provided on classic session
   {
@@ -321,47 +332,64 @@ TEST_F(Command_line_test, bug25653170) {
       "use near '/*' at line 1");
 }
 
-// The following test is temporarily disabled in Windows.
-// There's a bug in the shell which is not recognizing (.) as 'localhost'
-// Resulting in the following failure in Windows:
-// Conflicting options: socket can not be used if host is not 'localhost'.
-#ifndef _WIN32
 TEST_F(Command_line_test, bug26970629) {
-  std::string variable;
-  std::string host;
-  std::string pwd = "--password=";
-
-  if (!_pwd.empty()) pwd += _pwd;
+  const std::string variable = "socket";
+  const std::string host =
+      "--host="
 #ifdef _WIN32
-  variable = "named_pipe";
-  host = "--host=.";
-#else
-  variable = "socket";
-  host = "--host=localhost";
-#endif
-  auto session = mysqlshdk::db::mysql::Session::create();
+      "."
+#else   // !_WIN32
+      "localhost"
+#endif  // !_WIN32
+      ;
+  const std::string pwd = "--password=" + _pwd;
+  std::string socket;
+
   mysqlshdk::db::Connection_options options;
   options.set_host(_host);
   options.set_port(_mysql_port_number);
   options.set_user(_user);
   options.set_password(_pwd);
 
+  auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(options);
 
   auto result = session->query("show variables like '" + variable + "'");
   auto row = result->fetch_one();
-  std::string socket_path = row->get_as_string(1);
-  if (!shcore::file_exists(socket_path)) {
-    result = session->query("show variables like 'datadir'");
-    row = result->fetch_one();
-    socket_path = shcore::path::normalize(
-        shcore::path::join_path(row->get_as_string(1), socket_path));
+
+  if (row) {
+    std::string socket_path = row->get_as_string(1);
+
+#ifdef _WIN32
+    socket = "--socket=" + socket_path;
+#else   // !_WIN32
+    if (shcore::file_exists(socket_path)) {
+      socket = "--socket=" + socket_path;
+    } else {
+      result = session->query("show variables like 'datadir'");
+      row = result->fetch_one();
+      socket_path = shcore::path::normalize(
+          shcore::path::join_path(row->get_as_string(1), socket_path));
+
+      if (shcore::file_exists(socket_path)) {
+        socket = "--socket=" + socket_path;
+      }
+    }
+#endif  // !_WIN32
   }
 
-  session->close();
-  socket_path = "--socket=" + socket_path;
+#ifdef _WIN32
+  result = session->query("show variables like 'named_pipe'");
+  row = result->fetch_one();
 
-  if (socket_path.empty()) {
+  if (!row || row->get_as_string(1) != "ON") {
+    socket.clear();
+  }
+#endif  // _WIN32
+
+  session->close();
+
+  if (socket.empty()) {
     SCOPED_TRACE("Socket/Pipe Connections are Disabled, they must be enabled.");
     FAIL();
   } else {
@@ -369,15 +397,15 @@ TEST_F(Command_line_test, bug26970629) {
 
 #ifdef HAVE_V8
     execute({_mysqlsh, "--js", usr.c_str(), pwd.c_str(), host.c_str(),
-             socket_path.c_str(), "-e", "dba.createCluster('sample')", NULL});
+             socket.c_str(), "-e", "dba.createCluster('sample')", NULL});
 #else
     execute({_mysqlsh, "--py", usr.c_str(), pwd.c_str(), host.c_str(),
-             socket_path.c_str(), "-e", "dba.create_cluster('sample')", NULL});
+             socket.c_str(), "-e", "dba.create_cluster('sample')", NULL});
 #endif
-    SCOPED_TRACE(socket_path.c_str());
+    SCOPED_TRACE(socket.c_str());
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "a MySQL session through TCP/IP is required to perform this operation");
   }
 }
-#endif
+
 }  // namespace tests

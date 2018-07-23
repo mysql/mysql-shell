@@ -64,7 +64,7 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
       } else if (type == Socket) {
         ret_val.append(encode_socket(info.get_socket()));
       } else {
-        ret_val.append("\\.").append(encode_value(info.get_pipe()));
+        ret_val.append("\\\\.\\").append(encode_value(info.get_pipe()));
       }
     } else {
       if (info.has_host())

@@ -142,6 +142,10 @@ void Connection_options::set_pipe(const std::string &pipe) {
         !(get_value(kHost) == "." && win32))))
     raise_connection_type_error("pipe connection to '" + pipe + "'");
 
+  if (Nullable_options::has_value(kScheme) && get_value(kScheme) != "mysql") {
+    throw std::invalid_argument{"Pipe can only be used with Classic session"};
+  }
+
   Nullable_options::set(kSocket, pipe, Set_mode::UPDATE_NULL);
   _transport_type = Pipe;
 }
@@ -198,7 +202,11 @@ void Connection_options::set_host(const std::string &host) {
   if (!_transport_type.is_null() && *_transport_type != Tcp)
     raise_connection_type_error("connection to '" + host + "'");
 
-  if (host != "localhost")
+  if (host != "localhost"
+#ifdef _WIN32
+      && host != "."
+#endif  // _WIN32
+  )
     _transport_type = Tcp;
   else if (_port.is_null())
     _transport_type.reset();
@@ -407,6 +415,16 @@ void Connection_options::set_default_connection_data() {
   if (!has_host() &&
       (!has_transport_type() || get_transport_type() == mysqlshdk::db::Tcp))
     set_host("localhost");
+
+#ifdef _WIN32
+  if (!has_pipe() && has_host() && get_host() == ".") {
+    set_pipe("MySQL");
+  }
+
+  if (has_pipe() && !has_scheme()) {
+    set_scheme("mysql");
+  }
+#endif  // _WIN32
 }
 
 void Connection_options::throw_invalid_connect_timeout(

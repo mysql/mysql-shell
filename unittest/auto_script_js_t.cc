@@ -357,8 +357,8 @@ class Credential_store_test : public Auto_script_js {
     if (connection_options.has_host()) m_host = connection_options.get_host();
     m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_first_user, m_host,
                         k_first_password);
-    m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_first_user,
-                        hostname(), k_first_password);
+    m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_first_user, "%",
+                        k_first_password);
     m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_second_user,
                         m_host, k_second_password);
     m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_third_user, m_host,
@@ -367,7 +367,7 @@ class Credential_store_test : public Auto_script_js {
 
   void terminate_session() {
     m_session->executef("DROP USER ?@?", k_first_user, m_host);
-    m_session->executef("DROP USER ?@?", k_first_user, hostname());
+    m_session->executef("DROP USER ?@?", k_first_user, "%");
     m_session->executef("DROP USER ?@?", k_second_user, m_host);
     m_session->executef("DROP USER ?@?", k_third_user, m_host);
     m_session->close();

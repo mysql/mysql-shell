@@ -24,111 +24,121 @@
 
 namespace tests {
 
-TEST_F(Command_line_test, bug24911173){
-    // Test all the --socket(-S)/--port(-P) posibilities
-    {std::string error(
-        "Conflicting options: port and socket cannot be used together.");
-execute({_mysqlsh, "--socket=/some/path", "--port=3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+#ifdef _WIN32
+#define URI "root@\\\\.\\named.pipe"
+#define SOCKET_NAME "named pipe"
+#else  // !_WIN32
+#define URI "root@/socket"
+#define SOCKET_NAME "socket"
+#endif  // !_WIN32
 
-execute({_mysqlsh, "--socket", "/some/path", "--port=3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+TEST_F(Command_line_test, bug24911173) {
+  // Test all the --socket(-S)/--port(-P) possibilities
+  {
+    std::string error("Conflicting options: port and " SOCKET_NAME
+                      " cannot be used together.");
+    execute({_mysqlsh, "--socket=/some/path", "--port=3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S/some/path", "--port=3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket", "/some/path", "--port=3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S", "/some/path", "--port=3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S/some/path", "--port=3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "--socket=/some/path", "--port", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S", "/some/path", "--port=3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "--socket", "/some/path", "--port", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket=/some/path", "--port", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S/some/path", "--port", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket", "/some/path", "--port", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S", "/some/path", "--port", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S/some/path", "--port", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "--socket=/some/path", "-P3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S", "/some/path", "--port", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "--socket", "/some/path", "-P3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket=/some/path", "-P3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S/some/path", "-P3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket", "/some/path", "-P3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S", "/some/path", "-P3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S/some/path", "-P3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "--socket=/some/path", "-P", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S", "/some/path", "-P3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "--socket", "/some/path", "-P", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket=/some/path", "-P", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S/some/path", "-P", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "--socket", "/some/path", "-P", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
 
-execute({_mysqlsh, "-S", "/some/path", "-P", "3306", NULL});
-MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+    execute({_mysqlsh, "-S/some/path", "-P", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "-S", "/some/path", "-P", "3306", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+  }
+
+  // Tests URI + socket
+  {
+    std::string error("Conflicting options: " SOCKET_NAME
+                      " cannot be used if the URI contains a port.");
+    execute(
+        {_mysqlsh, "--uri=root@localhost:3306", "--socket=/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=root@localhost:3306", "--socket", "/some/path",
+             NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=root@localhost:3306", "-S/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=root@localhost:3306", "-S", "/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+  }
+
+  // Tests two sockets
+  {
+    std::string error("Conflicting options: provided " SOCKET_NAME
+                      " differs from the " SOCKET_NAME " in the URI.");
+    execute({_mysqlsh, "--uri=" URI, "--socket=/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=" URI, "--socket", "/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=" URI, "-S/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=" URI, "-S", "/some/path", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+  }
+
+  // Tests URI + port
+  {
+    std::string error(
+        "Conflicting options: port cannot be used if the URI contains "
+        "a " SOCKET_NAME ".");
+    execute({_mysqlsh, "--uri=" URI, "--port=3310", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=" URI, "--port", "3310", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=" URI, "-P3310", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+
+    execute({_mysqlsh, "--uri=" URI, "-P", "3310", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
+  }
+}
+
 }  // namespace tests
-
-// Tests URI + socket
-{
-  std::string error(
-      "Conflicting options: socket cannot be used if the URI contains a port.");
-  execute({_mysqlsh, "--uri=root@localhost:3306", "--socket=/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute(
-      {_mysqlsh, "--uri=root@localhost:3306", "--socket", "/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@localhost:3306", "-S/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@localhost:3306", "-S", "/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-}
-
-// Tests two sockets
-{
-  std::string error(
-      "Conflicting options: provided socket differs from the socket in the "
-      "URI.");
-  execute({_mysqlsh, "--uri=root@/socket", "--socket=/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@/socket", "--socket", "/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@/socket", "-S/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@/socket", "-S", "/some/path", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-}
-
-// Tests URI + port
-{
-  std::string error(
-      "Conflicting options: port cannot be used if the URI contains a socket.");
-  execute({_mysqlsh, "--uri=root@/socket", "--port=3310", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@/socket", "--port", "3310", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@/socket", "-P3310", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-
-  execute({_mysqlsh, "--uri=root@/socket", "-P", "3310", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(error);
-}
-}
-;
-}

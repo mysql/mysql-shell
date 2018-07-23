@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,7 +88,11 @@ TEST_F(mod_shell_test, parse_uri) {
 
   {
     shcore::Argument_list args;
+#ifdef _WIN32
+    args.push_back(shcore::Value("user@(\\\\.\\named.pipe)/schema"));
+#else   // !_WIN32
     args.push_back(shcore::Value("user@(/path/to/socket.sock)/schema"));
+#endif  // !_WIN32
 
     auto value = _shell->parse_uri(args);
     auto dict = value.as_map();
@@ -100,8 +104,13 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kHost));
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSocket));
+#ifdef _WIN32
+    EXPECT_STREQ("named.pipe",
+                 dict->get_string(mysqlshdk::db::kSocket).c_str());
+#else   // !_WIN32
     EXPECT_STREQ("/path/to/socket.sock",
                  dict->get_string(mysqlshdk::db::kSocket).c_str());
+#endif  // !_WIN32
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSchema));
     EXPECT_STREQ("schema", dict->get_string(mysqlshdk::db::kSchema).c_str());
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kSslMode));
@@ -110,7 +119,11 @@ TEST_F(mod_shell_test, parse_uri) {
 
   {
     shcore::Argument_list args;
+#ifdef _WIN32
+    args.push_back(shcore::Value("user@\\\\.\\named.pipe/schema"));
+#else   // !_WIN32
     args.push_back(shcore::Value("user@/path%2fto%2fsocket.sock/schema"));
+#endif  // !_WIN32
 
     auto value = _shell->parse_uri(args);
     auto dict = value.as_map();
@@ -122,8 +135,13 @@ TEST_F(mod_shell_test, parse_uri) {
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kHost));
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kPort));
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSocket));
+#ifdef _WIN32
+    EXPECT_STREQ("named.pipe",
+                 dict->get_string(mysqlshdk::db::kSocket).c_str());
+#else   // !_WIN32
     EXPECT_STREQ("/path/to/socket.sock",
                  dict->get_string(mysqlshdk::db::kSocket).c_str());
+#endif  // !_WIN32
     EXPECT_TRUE(dict->has_key(mysqlshdk::db::kSchema));
     EXPECT_STREQ("schema", dict->get_string(mysqlshdk::db::kSchema).c_str());
     EXPECT_FALSE(dict->has_key(mysqlshdk::db::kSslMode));

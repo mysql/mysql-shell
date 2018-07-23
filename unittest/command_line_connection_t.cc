@@ -622,4 +622,28 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 }
 
+#ifndef _WIN32
+TEST_F(Command_line_connection_test, socket_connection) {
+  {
+    std::string cmd = "shell.connect(\"" + _user + ":" + _pwd + "@(" +
+                      _mysql_socket + ")\");shell.status()";
+    execute({_mysqlsh, "-e", cmd.c_str(), nullptr});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Connection:                   Localhost via UNIX socket");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
+  }
+
+  {
+    std::string cmd = "shell.connect(\"" + _user + ":" + _pwd + "@(" + _socket +
+                      ")\");shell.status()";
+    execute({_mysqlsh, "-e", cmd.c_str(), nullptr});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "Connection:                   localhost via Unix socket");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
+  }
+}
+#endif  // !_WIN32
+
 }  // namespace tests

@@ -198,7 +198,11 @@ void update_connection_data(
 
   if (!sock.empty()) {
     connection_options->clear_socket();
+#ifdef _WIN32
+    connection_options->set_pipe(sock);
+#else   // !_WIN32
     connection_options->set_socket(sock);
+#endif  // !_WIN32
   }
 
   if (ssl_options.has_ca()) {
