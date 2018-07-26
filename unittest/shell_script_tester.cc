@@ -1314,8 +1314,13 @@ void Shell_js_script_tester::set_defaults() {
 
   output_handler.wipe_all();
 
-  std::string code =
-      "var __version = '" + _target_server_version.get_base() + "'";
+  std::string code = "var __current_year = '" + shcore::fmttime("%Y") + "'";
+  exec_and_out_equals(code);
+
+  code = "var __mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
+  exec_and_out_equals(code);
+
+  code = "var __version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
   code = "var __version_num = " +
@@ -1333,7 +1338,13 @@ void Shell_py_script_tester::set_defaults() {
 
   output_handler.wipe_all();
 
-  std::string code = "__version = '" + _target_server_version.get_base() + "'";
+  std::string code = "__current_year = '" + shcore::fmttime("%Y") + "'";
+  exec_and_out_equals(code);
+
+  code = "__mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
+  exec_and_out_equals(code);
+
+  code = "__version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
   code = "__version_num = " +

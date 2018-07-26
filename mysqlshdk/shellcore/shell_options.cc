@@ -159,7 +159,7 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.schema, "", "schema",
         cmdline("-D", "--schema=name", "--database=name"), "Schema to use.")
     (&storage.recreate_database, false, "recreateDatabase",
-        cmdline("--recreate-schema"), "Drop and recreate the specified schema."
+        cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
         "Schema will be deleted if it exists!")
     (cmdline("-mx", "--mysqlx"),
         "Uses connection data to create Creating an X protocol session.",
@@ -169,15 +169,15 @@ Shell_options::Shell_options(int argc, char **argv,
         "Uses connection data to create a Classic Session.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
-    (cmdline("-ma"), "Uses the connection data to create the session with"
+    (cmdline("-ma"), "Uses the connection data to create the session with "
         "automatic protocol detection.",
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
-    (cmdline("--redirect-primary"), "Connect to the primary of the group."
+    (cmdline("--redirect-primary"), "Connect to the primary of the group. "
         "For use with InnoDB clusters.",
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Primary))
-    (cmdline("--redirect-secondary"), "Connect to a secondary of the group."
+    (cmdline("--redirect-secondary"), "Connect to a secondary of the group. "
         "For use with InnoDB clusters.",
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Secondary))
