@@ -56,13 +56,13 @@ REGISTER_HELP(DEVAPI_DETAIL6,
               "the shell starts.");
 REGISTER_HELP(DEVAPI_DETAIL7,
               "To work on a MySQL Server with the X DevAPI, start by creating "
-              "a session using: <b>mysqlx.<<<createSession>>>(...)</b>.");
+              "a session using: <b>mysqlx.<<<getSession>>>(...)</b>.");
 REGISTER_HELP(
     DEVAPI_DETAIL8,
     "For more details about the <b>mysqlx</b> module use: <b>\\? mysqlx</b>");
 REGISTER_HELP(DEVAPI_DETAIL9,
               "For more details about how to create a session with the X "
-              "DevAPI use: <b>\\? mysqlx</b><<<createSession>>>");
+              "DevAPI use: <b>\\? mysqlx.<<<getSession>>></b>");
 REGISTER_HELP(DEVAPI_MODULES_DESC, "IGNORE");
 
 REGISTER_HELP_MODULE(mysqlx, devapi);

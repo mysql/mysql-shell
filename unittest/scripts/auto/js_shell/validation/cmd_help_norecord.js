@@ -273,12 +273,12 @@ The X DevAPI is a collection of functions and classes contained on the mysqlx
 module which is automatically loaded when the shell starts.
 
 To work on a MySQL Server with the X DevAPI, start by creating a session using:
-mysqlx.createSession(...).
+mysqlx.getSession(...).
 
 For more details about the mysqlx module use: \? mysqlx
 
 For more details about how to create a session with the X DevAPI use: \?
-mysqlxcreateSession
+mysqlx.getSession
 
 //@<OUT> Help on unknown topic
 No help items found matching unknown
