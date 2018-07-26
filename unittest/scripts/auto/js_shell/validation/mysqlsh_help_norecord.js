@@ -80,7 +80,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 warning, info, debug, debug2, debug3]
                                 respectively.
   --passwords-from-stdin        Read passwords from stdin instead of the tty.
-  --show-warnings               Automatically display SQL warnings on SQL mode
+  --show-warnings=<true|false>  Automatically display SQL warnings on SQL mode
                                 if available.
   --histignore=filters          Shell's history ignore list.
   --name-cache                  Enable database name caching for autocompletion
@@ -107,13 +107,13 @@ Usage: mysqlsh [OPTIONS] [URI]
   --auth-method=method          Authentication method to use.
   --dba=enableXProtocol         Enable the X Protocol in the server connected
                                 to. Must be used with --mysql.
-  --credential-store-helper     Specifies the helper which is going to be used
+  --credential-store-helper=val Specifies the helper which is going to be used
                                 to store/retrieve the passwords.
-  --save-passwords              Controls automatic storage of passwords.
+  --save-passwords=value        Controls automatic storage of passwords.
+                                Allowed values are: always, prompt, never.
 
 Usage examples:
 $ mysqlsh root@localhost/schema
 $ mysqlsh mysqlx://root@some.server:3307/world_x
 $ mysqlsh --uri root@localhost --py -f sample.py sample param
 $ mysqlsh root@targethost:33070 -s world_x -f sample.js
-

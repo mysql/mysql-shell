@@ -316,7 +316,7 @@ Shell_options::Shell_options(int argc, char **argv,
         cmdline("--passwords-from-stdin"),
         "Read passwords from stdin instead of the tty.")
     (&storage.show_warnings, true, SHCORE_SHOW_WARNINGS,
-        cmdline("--show-warnings"),
+        cmdline("--show-warnings=<true|false>"),
         "Automatically display SQL warnings on SQL mode if available.")
     (&storage.history_max_size, 1000, SHCORE_HISTORY_MAX_SIZE,
         "Shell's history maximum size",
@@ -509,13 +509,26 @@ std::vector<std::string> Shell_options::get_named_options() {
 }
 
 bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
-  int arg_format = 0;
+  Format arg_format = Format::INVALID;
   char *value = nullptr;
+
+  const std::string full_opt{argv[*argi]};
+  const auto opt = full_opt.substr(0, full_opt.find("="));
+
+  const auto handle_missing_value = [&argv, &arg_format, &opt]() {
+    if (Format::MISSING_VALUE == arg_format) {
+      throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
+                                  " requires an argument");
+    }
+  };
 
   if (strcmp(argv[*argi], "-VV") == 0) {
     print_cmd_line_version = true;
     print_cmd_line_version_extra = true;
-  } else if (cmdline_arg_with_value(argv, argi, "--file", "-f", &value)) {
+  } else if (Format::INVALID != (arg_format = cmdline_arg_with_value(
+                                     argv, argi, "--file", "-f", &value))) {
+    handle_missing_value();
+
     storage.run_file = value;
     if (shcore::str_endswith(value, ".js")) {
       storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
@@ -530,9 +543,11 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
     for (++(*argi); argv[*argi]; (*argi)++) {
       storage.script_argv.push_back(argv[*argi]);
     }
-  } else if ((arg_format =
-                  cmdline_arg_with_value(argv, argi, "--uri", NULL, &value)) ||
+  } else if (Format::INVALID != (arg_format = cmdline_arg_with_value(
+                                     argv, argi, "--uri", NULL, &value)) ||
              (argv[*argi][0] != '-' && (value = argv[*argi]))) {
+    handle_missing_value();
+
     storage.uri = value;
 
     uri_data = shcore::get_connection_options(storage.uri, false);
@@ -541,11 +556,12 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
       std::string nopwd_uri = hide_password_in_uri(value, uri_data.get_user());
 
       // Required replacement when --uri=<value>
-      if (arg_format == 3) nopwd_uri = "--uri=" + nopwd_uri;
+      if (arg_format == Format::LONG) nopwd_uri = "--uri=" + nopwd_uri;
 
       strncpy(argv[*argi], nopwd_uri.c_str(), strlen(argv[*argi]) + 1);
     }
-  } else if ((arg_format = cmdline_arg_with_value(argv, argi, "--dbpassword",
+  } else if (Format::INVALID !=
+             (arg_format = cmdline_arg_with_value(argv, argi, "--dbpassword",
                                                   NULL, &value, true))) {
     // Note that in any connection attempt, password prompt will be done if the
     // password is missing.
@@ -563,16 +579,17 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
 
     if (!value) {
       // --password=
-      if (arg_format == 3) storage.password = storage.pwd.c_str();
+      if (arg_format == Format::LONG) storage.password = storage.pwd.c_str();
       // --password
       else
         storage.prompt_password = true;
-    } else if (arg_format != 1) {  // --password=value || --pvalue
+    } else if (arg_format !=
+               Format::SEPARATE_VALUE) {  // --password=value || --pvalue
       storage.pwd.assign(value);
       storage.password = storage.pwd.c_str();
 
       std::string stars(storage.pwd.length(), '*');
-      std::string pwd = arg_format == 2 ? "-p" : "--dbpassword=";
+      std::string pwd = arg_format == Format::SHORT ? "-p" : "--dbpassword=";
       pwd.append(stars);
 
       strncpy(argv[*argi], pwd.c_str(), strlen(argv[*argi]) + 1);
@@ -580,7 +597,8 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
       storage.prompt_password = true;
       (*argi)--;
     }
-  } else if ((arg_format = cmdline_arg_with_value(argv, argi, "--password",
+  } else if (Format::INVALID !=
+             (arg_format = cmdline_arg_with_value(argv, argi, "--password",
                                                   "-p", &value, true))) {
     // Note that in any connection attempt, password prompt will be done if
     // the password is missing.
@@ -598,16 +616,17 @@ bool Shell_options::custom_cmdline_handler(char **argv, int *argi) {
 
     if (!value) {
       // --password=
-      if (arg_format == 3) storage.password = storage.pwd.c_str();
+      if (arg_format == Format::LONG) storage.password = storage.pwd.c_str();
       // --password
       else
         storage.prompt_password = true;
-    } else if (arg_format != 1) {  // --password=value || -pvalue
+    } else if (arg_format !=
+               Format::SEPARATE_VALUE) {  // --password=value || -pvalue
       storage.pwd.assign(value);
       storage.password = storage.pwd.c_str();
 
       std::string stars(storage.pwd.length(), '*');
-      std::string pwd = arg_format == 2 ? "-p" : "--password=";
+      std::string pwd = arg_format == Format::SHORT ? "-p" : "--password=";
       pwd.append(stars);
 
       strncpy(argv[*argi], pwd.c_str(), strlen(argv[*argi]) + 1);
