@@ -27,6 +27,7 @@
 
 #include "gtest_clean.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_base_test.h"
 #include "utils/utils_general.h"
 
@@ -140,6 +141,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return AS__STRING(options->wizards);
     else if (option == "execute_statement")
       return options->execute_statement;
+    else if (option == "run_file")
+      return options->run_file;
 
     return "";
   }
@@ -332,6 +335,123 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     std::cerr.rdbuf(backup);
   }
 
+  void test_option_space_empty_value(const std::string &option, bool nullable) {
+    // Redirect cerr.
+    std::streambuf *backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    // Tests --option ""
+    std::string arg;
+    arg.append("--").append(option);
+    SCOPED_TRACE("TESTING: " + arg + " \"\"");
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()),
+                    const_cast<char *>(""), NULL};
+    Shell_options cmd_options(3, argv);
+    const Shell_options::Storage &options = cmd_options.get();
+
+    if (nullable) {
+      EXPECT_EQ(1, options.exit_code);
+      const std::string message = "Value for --" + option;
+      EXPECT_THAT(cerr.str(), ::testing::StartsWith(message));
+    } else {
+      EXPECT_EQ(1, options.exit_code);
+      std::string message = "ut: option ";
+      message.append("--").append(option).append(" requires an argument\n");
+      EXPECT_STREQ(message.c_str(), cerr.str().c_str());
+    }
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
+
+  void test_short_option_no_value(const std::string &option,
+                                  const std::string &soption, bool valid,
+                                  const std::string &defval,
+                                  const std::string target_option = "",
+                                  const char *target_value = NULL) {
+    // Redirect cerr.
+    std::streambuf *backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    // Tests -o
+    std::string arg;
+    arg.append("-").append(soption);
+    SCOPED_TRACE("TESTING: " + arg);
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()),
+                    NULL};
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage &options = cmd_options.get();
+
+    if (valid) {
+      EXPECT_EQ(0, options.exit_code);
+
+      std::string tgt_val;
+      if (target_value)
+        tgt_val.assign(target_value);
+      else
+        tgt_val = defval;
+
+      std::string tgt_option = target_option.empty() ? option : target_option;
+      EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
+
+      EXPECT_STREQ("", cerr.str().c_str());
+    } else {
+      EXPECT_EQ(1, options.exit_code);
+      std::string message = "ut: option ";
+      message.append("-").append(soption).append(" requires an argument\n");
+      EXPECT_STREQ(message.c_str(), cerr.str().c_str());
+    }
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
+
+  void test_short_option_space_empty_value(const std::string &option,
+                                           const std::string &soption,
+                                           bool valid,
+                                           const std::string &defval,
+                                           const std::string target_option = "",
+                                           const char *target_value = NULL) {
+    // Redirect cerr.
+    std::streambuf *backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    // Tests -o ""
+    std::string arg;
+    arg.append("-").append(soption);
+    SCOPED_TRACE("TESTING: " + arg + " \"\"");
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()),
+                    const_cast<char *>(""), NULL};
+    Shell_options cmd_options(3, argv);
+    const Shell_options::Storage &options = cmd_options.get();
+
+    if (valid) {
+      EXPECT_EQ(0, options.exit_code);
+
+      std::string tgt_val;
+      if (target_value)
+        tgt_val.assign(target_value);
+      else
+        tgt_val = defval;
+
+      std::string tgt_option = target_option.empty() ? option : target_option;
+      EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
+
+      EXPECT_STREQ("", cerr.str().c_str());
+    } else {
+      EXPECT_EQ(1, options.exit_code);
+      std::string message = "ut: option ";
+      message.append("-").append(soption).append(" requires an argument\n");
+      EXPECT_STREQ(message.c_str(), cerr.str().c_str());
+    }
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
+
   void test_option_equal_no_value(const std::string &option, bool valid) {
     // Redirect cerr.
     std::streambuf *backup = std::cerr.rdbuf();
@@ -352,7 +472,7 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     } else {
       EXPECT_EQ(1, options.get().exit_code);
       std::string message = "ut: option ";
-      message.append("--").append(option).append("= requires an argument\n");
+      message.append("--").append(option).append(" requires an argument\n");
       EXPECT_STREQ(message.c_str(), cerr.str().c_str());
     }
 
@@ -411,6 +531,9 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     test_option_space_no_value(option, !defval.empty() || nullable, defval,
                                target_option);
 
+    // --option ""
+    test_option_space_empty_value(option, nullable);
+
     if (!soption.empty()) {
       // -o<value>
       test_short_option_value(option, soption, value, is_connection_data,
@@ -419,6 +542,14 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       // -o <value>
       test_short_option_space_value(option, soption, value, is_connection_data,
                                     target_option, target_value);
+
+      // -o
+      test_short_option_no_value(option, soption, !defval.empty() || nullable,
+                                 defval, target_option);
+
+      // -o ""
+      test_short_option_space_empty_value(
+          option, soption, !defval.empty() || nullable, defval, target_option);
     }
 
     // --option=
@@ -651,6 +782,9 @@ TEST_F(Shell_cmdline_options, app) {
 
   test_option_with_no_value("--passwords-from-stdin", "passwords_from_stdin",
                             "1");
+
+  test_option_with_value("file", "f", "/some/file", "", !IS_CONNECTION_DATA,
+                         !IS_NULLABLE, "run_file");
 }
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {

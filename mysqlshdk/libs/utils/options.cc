@@ -261,24 +261,25 @@ std::string serialize(const std::string &val) {
 // 2) --option or -o
 // 3) --option=[value]
 //
-// They behavie differently:
-// --option <value> can take the default argumemt (def) if def has data and
+// They behave differently:
+// --option <value> can take the default argument (def) if def has data and
 // value is missing, error if missing and def is not defined
 // --option=[value] will get NULL value if value is missing and can
 // accept_null(i.e. --option=)
 //
 // ReturnValue: Returns the # of format found based on the list above, or 0 if
 // no valid value was found
-int Options::cmdline_arg_with_value(char **argv, int *argi, const char *arg,
-                                    const char *larg, char **value,
-                                    bool accept_null) noexcept {
-  int ret_val = 0;
+Options::Format Options::cmdline_arg_with_value(char **argv, int *argi,
+                                                const char *arg,
+                                                const char *larg, char **value,
+                                                bool accept_null) noexcept {
+  Format ret_val = Format::INVALID;
   *value = nullptr;
 
   if (strcmp(argv[*argi], arg) == 0 ||
       (larg && strcmp(argv[*argi], larg) == 0)) {
     // --option [value] or -o [value]
-    ret_val = 1;
+    ret_val = Format::SEPARATE_VALUE;
 
     // value can be in next arg and can't start with - which indicates next
     // option
@@ -289,12 +290,12 @@ int Options::cmdline_arg_with_value(char **argv, int *argi, const char *arg,
   } else if (larg && strncmp(argv[*argi], larg, strlen(larg)) == 0 &&
              strlen(argv[*argi]) > strlen(larg)) {
     // -o<value>
-    ret_val = 2;
+    ret_val = Format::SHORT;
     *value = argv[*argi] + strlen(larg);
   } else if (strncmp(argv[*argi], arg, strlen(arg)) == 0 &&
              argv[*argi][strlen(arg)] == '=') {
     // --option=[value]
-    ret_val = 3;
+    ret_val = Format::LONG;
 
     // Value was specified
     if (strlen(argv[*argi]) > (strlen(arg) + 1))
@@ -302,7 +303,9 @@ int Options::cmdline_arg_with_value(char **argv, int *argi, const char *arg,
   }
 
   // Option requires an argument
-  if (ret_val && !*value && !accept_null) ret_val = 0;
+  if (Format::INVALID != ret_val && (!*value || !**value) && !accept_null) {
+    ret_val = Format::MISSING_VALUE;
+  }
 
   return ret_val;
 }
@@ -430,25 +433,36 @@ void Options::handle_cmdline_options(
 
     std::string opt(argv[i]);
     std::size_t epos = opt.find('=');
-    auto it = cmdline_options.find(
-        epos == std::string::npos ? opt : opt.substr(0, epos));
+
+    if (epos != std::string::npos) {
+      opt = opt.substr(0, epos);
+    }
+
+    auto it = cmdline_options.find(opt);
+
     if (it != cmdline_options.end()) {
-      if (it->second->accepts_no_cmdline_value() && epos == std::string::npos) {
-        it->second->handle_command_line_input(opt, nullptr);
+      if (it->second->accepts_no_cmdline_value()) {
+        if (epos == std::string::npos) {
+          it->second->handle_command_line_input(opt, nullptr);
+        } else {
+          throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
+                                      " does not require an argument");
+        }
       } else {
         const std::string &cmd = it->first;
         char *value = nullptr;
-        if (cmdline_arg_with_value(argv, &i, cmd.c_str(),
+        if (Format::MISSING_VALUE !=
+            cmdline_arg_with_value(argv, &i, cmd.c_str(),
                                    cmd[1] == '-' ? nullptr : cmd.c_str(),
                                    &value, it->second->accepts_null_argument()))
           it->second->handle_command_line_input(cmd, value);
         else
-          throw std::invalid_argument(std::string(argv[0]) + ": option " +
-                                      argv[i] + " requires an argument");
+          throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
+                                      " requires an argument");
       }
     } else if (!allow_unregistered_options) {
       throw std::invalid_argument(argv[0] + std::string(": unknown option ") +
-                                  argv[i]);
+                                  opt);
     }
   }
 }
