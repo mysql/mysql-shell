@@ -83,10 +83,23 @@ mysqlshdk::db::Connection_options get_connection_options(
           ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
 
       for (auto &option : *options) {
-        if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0)
+        if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
           ret_val.set_port(connection_map.int_at(option.first));
-        else
+        } else if (ret_val.compare(option.first,
+                                   mysqlshdk::db::kConnectTimeout) == 0) {
+          // Additional connection options are internally stored as strings.
+          // Even so, when given in a dictionary, the connect-timeout option
+          // must be given as an integer value
+          if (connection_map.at(option.first).type != shcore::Integer) {
+            mysqlshdk::db::Connection_options::throw_invalid_connect_timeout(
+                connection_map.at(option.first).descr());
+          } else {
+            ret_val.set(option.first,
+                        {connection_map.at(option.first).descr()});
+          }
+        } else {
           ret_val.set(option.first, {connection_map.string_at(option.first)});
+        }
       }
     } else {
       throw std::invalid_argument(
@@ -225,65 +238,18 @@ shcore::Value::Map_type_ref get_connection_map(
   for (auto &option : connection_options.get_extra_options()) {
     if (option.second.is_null())
       (*map)[option.first] = shcore::Value();
-    else
-      (*map)[option.first] = shcore::Value(*option.second);
+    else {
+      if (shcore::str_caseeq(option.first, mysqlshdk::db::kConnectTimeout)) {
+        (*map)[option.first] =
+            shcore::Value(std::atoi((*option.second).c_str()));
+      } else {
+        (*map)[option.first] = shcore::Value(*option.second);
+      }
+    }
   }
 
   return map;
 }
-
-/*shcore::Value::Map_type_ref get_connection_map
-  (const std::string &uri) {
-    auto c_opts = shcore::get_connection_options(uri, false);
-
-    shcore::Value::Map_type_ref options(new shcore::Value::Map_type());
-
-    if (c_opts.has_scheme())
-      (*options)[mysqlshdk::db::kScheme] = shcore::Value(c_opts.get_scheme());
-    if (c_opts.has_user())
-      (*options)[mysqlshdk::db::kUser] = shcore::Value(c_opts.get_user());
-    if (c_opts.has_password())
-      (*options)[mysqlshdk::db::kPassword] =
-shcore::Value(c_opts.get_password()); if (c_opts.has_host())
-      (*options)[mysqlshdk::db::kHost] = shcore::Value(c_opts.get_host());
-    if (c_opts.has_port())
-      (*options)[mysqlshdk::db::kPort] = shcore::Value(c_opts.get_port());
-    if (c_opts.has_pipe())
-      (*options)[mysqlshdk::db::kSocket] = shcore::Value(c_opts.get_pipe());
-    if (c_opts.has_socket())
-      (*options)[mysqlshdk::db::kSocket] = shcore::Value(c_opts.get_socket());
-    if (c_opts.has_schema())
-      (*options)[mysqlshdk::db::kSchema] = shcore::Value(c_opts.get_schema());
-    if (c_opts.has(mysqlshdk::db::kAuthMethod))
-      (*options)[mysqlshdk::db::kAuthMethod] =
-shcore::Value(c_opts.get(mysqlshdk::db::kAuthMethod));
-
-
-    auto ssl = c_opts.get_ssl_options();
-    if (ssl.has_data()) {
-      if (ssl.has_mode())
-        (*options)[mysqlshdk::db::kSslMode] =
-shcore::Value(ssl.get_value(mysqlshdk::db::kSslMode)); if (ssl.has_ca())
-        (*options)[mysqlshdk::db::kSslCa] = shcore::Value(ssl.get_ca());
-      if (ssl.has_capath())
-        (*options)[mysqlshdk::db::kSslCaPath] = shcore::Value(ssl.get_capath());
-      if (ssl.has_cert())
-        (*options)[mysqlshdk::db::kSslCert] = shcore::Value(ssl.get_cert());
-      if (ssl.has_key())
-        (*options)[mysqlshdk::db::kSslKey] = shcore::Value(ssl.get_key());
-      if (ssl.has_cipher())
-        (*options)[mysqlshdk::db::kSslCipher] =
-shcore::Value(ssl.get_cipher()); if (ssl.has_crl())
-        (*options)[mysqlshdk::db::kSslCrl] = shcore::Value(ssl.get_crl());
-      if (ssl.has_crlpath())
-        (*options)[mysqlshdk::db::kSslCrlPath] =
-shcore::Value(ssl.get_crlpath()); if (ssl.has_tls_version())
-        (*options)[mysqlshdk::db::kSslTlsVersion] =
-shcore::Value(ssl.get_tls_version());
-    }
-
-    return options;
-}*/
 
 namespace {
 

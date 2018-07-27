@@ -351,7 +351,12 @@ REGISTER_HELP(
     "client-side copy of the public key required by the server for RSA key "
     "pair-based password exchange. Use when connecting to MySQL 8.0 servers "
     "with classic MySQL sessions with SSL mode DISABLED.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS12,
+REGISTER_HELP(
+    TOPIC_URI_CONNECTION_OPTIONS12,
+    "@li connect-timeout: The connection timeout in milliseconds. If not "
+    "provided a default timeout of 10 seconds will be used. Specifying a value "
+    "of 0 disables the connection timeout.");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS13,
               "When these options are defined in a URI, their values must be "
               "URL encoded.");
 

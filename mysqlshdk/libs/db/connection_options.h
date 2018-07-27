@@ -50,6 +50,7 @@ std::string to_string(Transport_type type);
 
 constexpr int k_default_mysql_port = 3306;
 constexpr int k_default_mysql_x_port = 33060;
+constexpr int k_default_connect_timeout = 10000;
 
 class SHCORE_PUBLIC Connection_options
     : public mysqlshdk::utils::Nullable_options {
@@ -132,6 +133,8 @@ class SHCORE_PUBLIC Connection_options
    *   specified or it's TCP.
    */
   void set_default_connection_data();
+
+  static void throw_invalid_connect_timeout(const std::string &value);
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);

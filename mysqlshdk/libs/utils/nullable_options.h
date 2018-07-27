@@ -67,6 +67,9 @@ class SHCORE_PUBLIC Nullable_options {
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
   void set(const std::string &name, const char *value = nullptr,
            Set_mode mode = Set_mode::CREATE_AND_UPDATE);
+  void set_default(const std::string &name, const char *value = nullptr);
+  bool has_default(const std::string &name) const;
+  std::string get_default(const std::string &name) const;
   void remove(const std::string &name);
   void clear_value(const std::string &name);
   const std::string &get_value(const std::string &name) const;
@@ -95,6 +98,7 @@ class SHCORE_PUBLIC Nullable_options {
   static bool icomp(const std::string &lhs, const std::string &rhs);
 
   container _options;
+  container _defaults;
 };
 
 }  // namespace utils

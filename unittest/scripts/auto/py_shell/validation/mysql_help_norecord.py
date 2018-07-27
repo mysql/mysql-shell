@@ -89,6 +89,9 @@ DESCRIPTION
         client-side copy of the public key required by the server for RSA key
         pair-based password exchange. Use when connecting to MySQL 8.0 servers
         with classic MySQL sessions with SSL mode DISABLED.
+      - connect-timeout: The connection timeout in milliseconds. If not
+        provided a default timeout of 10 seconds will be used. Specifying a
+        value of 0 disables the connection timeout.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -168,6 +171,9 @@ DESCRIPTION
         client-side copy of the public key required by the server for RSA key
         pair-based password exchange. Use when connecting to MySQL 8.0 servers
         with classic MySQL sessions with SSL mode DISABLED.
+      - connect-timeout: The connection timeout in milliseconds. If not
+        provided a default timeout of 10 seconds will be used. Specifying a
+        value of 0 disables the connection timeout.
 
       When these options are defined in a URI, their values must be URL
       encoded.

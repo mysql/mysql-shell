@@ -75,7 +75,8 @@ void SHCORE_PUBLIC update_connection_data(
     int port, const std::string &sock, const std::string &database,
     const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
-    const std::string &server_public_key_path);
+    const std::string &server_public_key_path,
+    const std::string &connect_timeout);
 
 std::string SHCORE_PUBLIC get_system_user();
 

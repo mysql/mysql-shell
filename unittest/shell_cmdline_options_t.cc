@@ -143,6 +143,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->execute_statement;
     else if (option == "run_file")
       return options->run_file;
+    else if (option == "connect-timeout")
+      return options->m_connect_timeout;
 
     return "";
   }
@@ -681,6 +683,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.execute_statement.empty());
   EXPECT_TRUE(options.wizards);
   EXPECT_TRUE(options.default_session_type);
+  EXPECT_TRUE(options.m_connect_timeout.empty());
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -698,6 +701,8 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_NULLABLE, "user");
   test_option_with_value("socket", "S", "/some/socket/path", "",
                          IS_CONNECTION_DATA, !IS_NULLABLE, "sock");
+  test_option_with_value("connect-timeout", "", "1000", "", IS_CONNECTION_DATA,
+                         !IS_NULLABLE);
 
   test_option_with_no_value("-p", "prompt_password", "1");
 
@@ -1245,4 +1250,35 @@ TEST_F(Shell_cmdline_options, dict_access_for_named_options) {
     EXPECT_NO_THROW(options.get(optname));
   }
 }
+
+TEST_F(Shell_cmdline_options, invalid_connect_timeout) {
+  auto invalid_values = {"-1", "10.0", "whatever"};
+
+  for (auto value : invalid_values) {
+    std::string option("--connect-timeout=");
+    option.append(value);
+    char *argv[]{const_cast<char *>("ut"), const_cast<char *>(option.c_str()),
+                 NULL};
+
+    std::string error("Invalid value '");
+    error.append(value);
+    error.append(
+        "' for 'connect-timeout'. The connection timeout value must "
+        "be a positive integer (including 0).\n");
+
+    std::streambuf *backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    Shell_options opts(3, argv);
+
+    EXPECT_EQ(1, opts.get().exit_code);
+
+    EXPECT_STREQ(error.c_str(), cerr.str().c_str());
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
+}
+
 }  // namespace shcore

@@ -169,7 +169,8 @@ void update_connection_data(
     int port, const std::string &sock, const std::string &database,
     const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
-    const std::string &server_public_key_path) {
+    const std::string &server_public_key_path,
+    const std::string &connect_timeout) {
   if (!user.empty()) {
     connection_options->clear_user();
     connection_options->set_user(user);
@@ -267,6 +268,13 @@ void update_connection_data(
     }
     connection_options->set(mysqlshdk::db::kServerPublicKeyPath,
                             {server_public_key_path});
+  }
+
+  if (!connect_timeout.empty()) {
+    if (connection_options->has(mysqlshdk::db::kConnectTimeout)) {
+      connection_options->remove(mysqlshdk::db::kConnectTimeout);
+    }
+    connection_options->set(mysqlshdk::db::kConnectTimeout, {connect_timeout});
   }
 }
 

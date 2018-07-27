@@ -68,6 +68,7 @@ class Shell_options : public shcore::Options {
     std::string schema;
     std::string sock;  //< Unix socket or Windows pipe name
     std::string auth_method;
+    std::string m_connect_timeout;
 
     std::string protocol;
 
@@ -163,6 +164,7 @@ class Shell_options : public shcore::Options {
 
   void override_session_type(const std::string &option, const char *value);
   void set_ssl_mode(const std::string &option, const char *value);
+  void set_connection_timeout(const std::string &option, const char *value);
 
   void check_session_type_conflicts();
   void check_user_conflicts();
