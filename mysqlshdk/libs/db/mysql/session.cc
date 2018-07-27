@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include <cmath>
 #include <sstream>
 #include <vector>
 
@@ -47,15 +48,6 @@ void Session_impl::connect(
   _mysql = mysql_init(NULL);
 
   _connection_options = connection_options;
-
-  // All connections should use mode = VERIFY_CA if no ssl mode is specified
-  // and either ssl-ca or ssl-capath are specified
-  if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
-      (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
-       _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
-    _connection_options.set(mysqlshdk::db::kSslMode,
-                            {mysqlshdk::db::kSslModeVerifyCA});
-  }
 
   setup_ssl(_connection_options.get_ssl_options());
   if (_connection_options.has_transport_type() &&
@@ -93,6 +85,14 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
   }
 #endif
+
+  // Sets the connection timeout
+  int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;
+  if (_connection_options.has(kConnectTimeout)) {
+    connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
+    connect_timeout = std::ceil(connect_timeout / 1000.0);
+  }
+  mysql_options(_mysql, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
 
   if (!mysql_real_connect(
           _mysql,
@@ -147,8 +147,20 @@ bool Session_impl::setup_ssl(
     const mysqlshdk::db::Ssl_options &ssl_options) const {
   int value;
 
+  mysqlshdk::db::Ssl_mode ssl_mode;
   if (ssl_options.has_data()) {
     ssl_options.validate();
+
+    if (!ssl_options.has_value(mysqlshdk::db::kSslMode)) {
+      if (ssl_options.has_value(mysqlshdk::db::kSslCa) ||
+          ssl_options.has_value(mysqlshdk::db::kSslCaPath)) {
+        ssl_mode = mysqlshdk::db::Ssl_mode::VerifyCa;
+      } else {
+        ssl_mode = mysqlshdk::db::Ssl_mode::Preferred;
+      }
+    } else {
+      ssl_mode = ssl_options.get_mode();
+    }
 
     if (ssl_options.has_ca())
       mysql_options(_mysql, MYSQL_OPT_SSL_CA, (ssl_options.get_ca().c_str()));
@@ -179,11 +191,7 @@ bool Session_impl::setup_ssl(
     if (ssl_options.has_key())
       mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (ssl_options.get_key().c_str()));
 
-    if (ssl_options.has_mode())
-      value = static_cast<int>(ssl_options.get_mode());
-    else
-      value = static_cast<int>(mysqlshdk::db::Ssl_mode::Preferred);
-
+    value = static_cast<int>(ssl_mode);
     mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
   }
 

@@ -270,7 +270,14 @@ void Connection_options::set(const std::string &name,
                                  "values: true, false, 1, 0.",
                                  values[0].c_str(), name.c_str()));
         }
+      } else if (name == kConnectTimeout) {
+        for (auto digit : values[0]) {
+          if (!std::isdigit(digit)) {
+            throw_invalid_connect_timeout(values[0]);
+          }
+        }
       }
+
       _extra_options.set(iname, values[0], Set_mode::CREATE);
     }
 
@@ -400,6 +407,15 @@ void Connection_options::set_default_connection_data() {
   if (!has_host() &&
       (!has_transport_type() || get_transport_type() == mysqlshdk::db::Tcp))
     set_host("localhost");
+}
+
+void Connection_options::throw_invalid_connect_timeout(
+    const std::string &value) {
+  throw std::invalid_argument(
+      shcore::str_format("Invalid value '%s' for '%s'. The "
+                         "connection timeout value must be a positive integer "
+                         "(including 0).",
+                         value.c_str(), kConnectTimeout));
 }
 
 }  // namespace db

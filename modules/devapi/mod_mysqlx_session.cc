@@ -1196,13 +1196,13 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
   auto connection_options =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
-  // DevAPI getClassicSession uses ssl-mode = REQUIRED by default if no
+  // DevAPI getSession uses ssl-mode = REQUIRED by default if no
   // ssl-ca or ssl-capath are specified
   if (!connection_options.get_ssl_options().has_mode() &&
       !connection_options.has_value(mysqlshdk::db::kSslCa) &&
       !connection_options.has_value(mysqlshdk::db::kSslCaPath)) {
-    connection_options.get_ssl_options().set_mode(
-        mysqlshdk::db::Ssl_mode::Required);
+    connection_options.get_ssl_options().set_default(
+        mysqlshdk::db::kSslMode, mysqlshdk::db::kSslModeRequired);
   }
 
   session->connect(connection_options);

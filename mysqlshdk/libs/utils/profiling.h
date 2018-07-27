@@ -62,6 +62,10 @@ class Profile_timer {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
   }
 
+  double total_milliseconds_ellapsed() const {
+    return total_nanoseconds_ellapsed() / 1000000.0;
+  }
+
   double total_seconds_ellapsed() const {
     return total_nanoseconds_ellapsed() / 1000000000.0;
   }

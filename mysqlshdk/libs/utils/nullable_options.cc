@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,10 @@ Nullable_options::Nullable_options(Comparison_mode mode,
       _mode(mode),
       _options(_mode == Comparison_mode::CASE_SENSITIVE
                    ? Nullable_options::comp
-                   : Nullable_options::icomp) {
+                   : Nullable_options::icomp),
+      _defaults(_mode == Comparison_mode::CASE_SENSITIVE
+                    ? Nullable_options::comp
+                    : Nullable_options::icomp) {
   if (!_ctx.empty() && _ctx[_ctx.size() - 1] != ' ') _ctx.append(" ");
 }
 
@@ -104,6 +107,27 @@ void Nullable_options::set(const std::string &name, const char *value,
     _options[name] = value;
   else
     _options[name] = nullable<std::string>();
+}
+
+void Nullable_options::set_default(const std::string &name, const char *value) {
+  if (value)
+    _defaults[name] = value;
+  else {
+    if (_defaults.find(name) != _defaults.end()) {
+      _defaults.erase(name);
+    }
+  }
+}
+
+bool Nullable_options::has_default(const std::string &name) const {
+  auto pos = _defaults.find(name);
+  return pos != _defaults.end();
+}
+
+std::string Nullable_options::get_default(const std::string &name) const {
+  if (has_default(name)) return *_defaults.at(name);
+
+  return "";
 }
 
 const std::string &Nullable_options::get_value(const std::string &name) const {

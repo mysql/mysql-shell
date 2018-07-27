@@ -41,7 +41,7 @@ using mysqlshdk::db::Transport_type;
 bool Shell_options::Storage::has_connection_data() const {
   return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
          !sock.empty() || port != 0 || password != NULL || prompt_password ||
-         ssl_options.has_data();
+         !m_connect_timeout.empty() || ssl_options.has_data();
 }
 
 /**
@@ -56,7 +56,8 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
 
   shcore::update_connection_data(&target_server, user, password, host, port,
                                  sock, schema, ssl_options, auth_method,
-                                 get_server_public_key, server_public_key_path);
+                                 get_server_public_key, server_public_key_path,
+                                 m_connect_timeout);
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
@@ -148,6 +149,8 @@ Shell_options::Shell_options(int argc, char **argv,
         "Connect to host.")
     (&storage.port, 0, cmdline("-P", "--port=#"),
         "Port number to use for connection.")
+    (cmdline("--connect-timeout=#"), "Connection timeout in milliseconds.",
+    std::bind(&Shell_options::set_connection_timeout, this, _1, _2))
     (&storage.sock, "", cmdline("-S", "--socket=sock"),
         "Socket name to use in UNIX, "
         "pipe name to use in Windows (only classic sessions).")
@@ -691,6 +694,15 @@ void Shell_options::set_ssl_mode(const std::string &option, const char *value) {
   }
 
   storage.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));
+}
+
+void Shell_options::set_connection_timeout(const std::string &option,
+                                           const char *value) {
+  // Creates a temporary connection options object so the established
+  // validations are performed on the data
+  mysqlshdk::db::Connection_options options;
+  options.set(mysqlshdk::db::kConnectTimeout, {value});
+  storage.m_connect_timeout.assign(value);
 }
 
 void Shell_options::check_session_type_conflicts() {

@@ -115,7 +115,7 @@ void ClassicSession::connect(
 }
 
 std::string ClassicSession::get_ssl_cipher() const {
-  const char *cipher = _session->get_ssl_cipher();
+  const char *cipher = _session ? _session->get_ssl_cipher() : nullptr;
   return cipher ? cipher : "";
 }
 
@@ -377,7 +377,7 @@ Value ClassicSession::get_member(const std::string &prop) const {
 
   if (prop == "__connection_info") {
     // FIXME: temporary code until ISession refactoring
-    const char *i = _session->get_connection_info();
+    const char *i = _session ? _session->get_connection_info() : nullptr;
     return Value(i ? i : "");
   }
 

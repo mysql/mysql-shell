@@ -327,6 +327,45 @@ TEST(modules_mod_utils, get_connection_data_conflicting_user_db_user) {
   }
 }
 
+TEST(modules_mod_utils, get_connection_data_connect_timeout) {
+  shcore::Argument_list args;
+  shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+  (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  args.push_back(shcore::Value(map));
+
+  auto invalid_values = {shcore::Value(-1), shcore::Value(-100),
+                         shcore::Value(-10.0), shcore::Value("-1"),
+                         shcore::Value("-100"), shcore::Value("10.0"),
+                         shcore::Value("whatever"),
+                         // When using a dictionary, connect_timeout must be
+                         // given as an integer value
+                         shcore::Value("1000")};
+
+  for (auto value : invalid_values) {
+    (*map)[mysqlshdk::db::kConnectTimeout] = value;
+
+    std::string msg("Invalid value '");
+    msg.append(value.descr());
+    msg.append(
+        "' for 'connect-timeout'. The connection timeout value must "
+        "be a positive integer (including 0).");
+
+    EXPECT_THROW_LIKE(
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE),
+        shcore::Exception, msg);
+  }
+
+  auto valid_values = {shcore::Value(0), shcore::Value(1000)};
+
+  for (auto value : valid_values) {
+    (*map)[mysqlshdk::db::kConnectTimeout] = value;
+
+    EXPECT_NO_THROW(
+        mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::NONE));
+  }
+}
+
 TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
   shcore::Argument_list args;
   shcore::Value::Map_type_ref map(new shcore::Value::Map_type());

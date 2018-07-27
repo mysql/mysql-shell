@@ -79,6 +79,7 @@ constexpr const char kSslMode[] = "ssl-mode";
 constexpr const char kAuthMethod[] = "auth-method";
 constexpr const char kGetServerPublicKey[] = "get-server-public-key";
 constexpr const char kServerPublicKeyPath[] = "server-public-key-path";
+constexpr const char kConnectTimeout[] = "connect-timeout";
 
 constexpr const char kSslModeDisabled[] = "disabled";
 constexpr const char kSslModePreferred[] = "preferred";
@@ -106,7 +107,8 @@ const std::set<std::string> connection_attributes = {kHost,
                                                      kSslMode,
                                                      kAuthMethod,
                                                      kGetServerPublicKey,
-                                                     kServerPublicKeyPath};
+                                                     kServerPublicKeyPath,
+                                                     kConnectTimeout};
 
 const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kSslCaPath,
@@ -119,10 +121,11 @@ const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kSslMode,
                                                          kAuthMethod,
                                                          kGetServerPublicKey,
-                                                         kServerPublicKeyPath};
+                                                         kServerPublicKeyPath,
+                                                         kConnectTimeout};
 
 const std::set<std::string> uri_extra_options = {
-    kAuthMethod, kGetServerPublicKey, kServerPublicKeyPath};
+    kAuthMethod, kGetServerPublicKey, kServerPublicKeyPath, kConnectTimeout};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

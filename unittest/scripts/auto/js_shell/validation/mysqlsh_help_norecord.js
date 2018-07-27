@@ -19,6 +19,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 [user[:pass]@]host[:port][/db]
   -h, --host=name               Connect to host.
   -P, --port=#                  Port number to use for connection.
+  --connect-timeout=#           Connection timeout in milliseconds.
   -S, --socket=sock             Socket name to use in UNIX, pipe name to use in
                                 Windows (only classic sessions).
   -u, --dbuser=name             User for the connection to the server.

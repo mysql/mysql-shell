@@ -134,6 +134,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (_enable_trace) _trace_handler = do_enable_trace(_mysql.get());
 
   _connection_options = data;
+
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysqlx");
 
@@ -149,16 +150,30 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
         "X Protocol: Option server-public-key-path is not supported.");
   }
 
-  // All connections should use mode = VERIFY_CA if no ssl mode is specified
-  // and either ssl-ca or ssl-capath are specified
-  if (!_connection_options.has_value(mysqlshdk::db::kSslMode) &&
-      (_connection_options.has_value(mysqlshdk::db::kSslCa) ||
-       _connection_options.has_value(mysqlshdk::db::kSslCaPath))) {
-    _connection_options.set(mysqlshdk::db::kSslMode,
-                            {mysqlshdk::db::kSslModeVerifyCA});
-  }
   auto &ssl_options(_connection_options.get_ssl_options());
+
+  std::string ssl_mode;
+
+  // In shell, the default ssl-mode is preferred, but in the case of DevAPI
+  // the default mode is required and it is set at mysqlx.getSession()
+  if (ssl_options.has_default(mysqlshdk::db::kSslMode))
+    ssl_mode = ssl_options.get_default(mysqlshdk::db::kSslMode);
+  else
+    ssl_mode = mysqlshdk::db::kSslModePreferred;
+
   if (ssl_options.has_data()) {
+    // If no mode is specified and either ssl-ca or ssl-capath are specified
+    // then it uses VERIFY_CA
+    if (!ssl_options.has_mode()) {
+      if (ssl_options.has_value(mysqlshdk::db::kSslCa) ||
+          ssl_options.has_value(mysqlshdk::db::kSslCaPath)) {
+        ssl_mode = mysqlshdk::db::kSslModeVerifyCA;
+      }
+      // If ssl-mode is specified, then it is used
+    } else {
+      ssl_mode = ssl_options.get_mode_name();
+    }
+
     ssl_options.validate();
 
     if (ssl_options.has_ca())
@@ -193,12 +208,9 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cipher,
                                ssl_options.get_cipher());
   }
-  if (ssl_options.has_mode())
-    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_mode,
-                             ssl_options.get_mode_name());
-  else
-    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_mode,
-                             "PREFERRED");
+
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_mode, ssl_mode);
+
   _mysql->set_capability(xcl::XSession::Capability_can_handle_expired_password,
                          true);
 
@@ -220,6 +232,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   // methods can be removed. If not, update the version check above to error out
   // again on 8.0.12
 #endif
+
+  // Sets the connection timeout
+  int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;
+  if (_connection_options.has(kConnectTimeout)) {
+    connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
+  }
+  xcl::XError error = _mysql->set_mysql_option(
+      xcl::XSession::Mysqlx_option::Connect_timeout, connect_timeout);
 
   auto handler_id = _mysql->get_protocol().add_notice_handler(
       [this](xcl::XProtocol *, const bool,

@@ -362,9 +362,56 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kSslMode);
   attributes.erase(mysqlshdk::db::kGetServerPublicKey);
   attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
+  attributes.erase(mysqlshdk::db::kConnectTimeout);
 
   for (auto property : attributes) {
     combine(property, "", 0, callback);
+  }
+}
+
+TEST(Connection_options, connect_timeout) {
+  // Tests case insensitiveness of the connect-timeout option
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters for connect-timeout
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "1000");
+
+  combine(mysqlshdk::db::kConnectTimeout, "", 0, callback);
+
+  // Test rejection of invalid values
+  auto invalid_values = {"-1", "-100", "10.0", "whatever"};
+
+  for (const auto &value : invalid_values) {
+    std::string uri("root@host?connect-timeout=");
+    uri.append(value);
+
+    std::string msg("Invalid value '");
+    msg.append(value);
+    msg.append(
+        "' for 'connect-timeout'. The connection timeout value must "
+        "be a positive integer (including 0).");
+
+    std::string uri_msg("Invalid URI: ");
+    uri_msg.append(msg);
+    MY_EXPECT_THROW(std::invalid_argument, uri_msg.c_str(),
+                    { mysqlshdk::db::Connection_options data(uri); });
+
+    mysqlshdk::db::Connection_options sample;
+    MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
+                    sample.set(mysqlshdk::db::kConnectTimeout, {value}));
+  }
+
+  // Tests acceptance of valid values
+  auto valid_values = {"0", "1000", "10000"};
+
+  for (const auto &value : valid_values) {
+    std::string uri("root@host?connect-timeout=");
+    uri.append(value);
+
+    EXPECT_NO_THROW({ mysqlshdk::db::Connection_options data(uri); });
+
+    mysqlshdk::db::Connection_options sample;
+    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kConnectTimeout, {value}));
   }
 }
 
