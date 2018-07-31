@@ -1,6 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@127.0.0.1:2189","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"42","connection_info":"127.0.0.1 via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
-{"type":"request","subtype":"QUERY","index":3,"sql":"select WAIT_FOR_EXECUTED_GTID_SET('7ed906ff-6f49-11e8-8671-0010e08a7b78:1-20,\\n88e96670-6f49-11e8-8671-0010e08a7b78:1-19,\\na4e54c65-6f49-11e8-8671-0010e08a7b78:1-18', 120)"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"WAIT_FOR_EXECUTED_GTID_SET('7ed906ff-6f49-11e8-8671-0010e08a7b78:1-20,\\n88e96670-6f49-11e8-8671-0010e08a7b78:1-19,\\na4e54c65-6f49-11e8-8671-0010e08a7b78:1-18', 120)","length":21,"fractional":0,"type":"Integer","collation":"binary","charset":"binary","collation_id":63,"unsigned":false,"zerofill":false,"binary":true}],"rows":[[0]]},
-null]
