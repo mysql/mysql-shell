@@ -149,11 +149,6 @@ class Net {
    */
   static void set(Net *implementation);
 
-  /**
-   * Implementation of resolve_hostname_ipv4() method.
-   */
-  virtual std::string resolve_hostname_ipv4_impl(const std::string &name) const;
-
   virtual std::vector<std::string> resolve_hostname_ipv4_all_impl(
       const std::string &name) const;
 
@@ -169,10 +164,13 @@ class Net {
  private:
   static Net *s_implementation;
 
-  static void get_local_addresses(std::vector<std::string> *out_addrs);
+  static std::vector<std::string> get_local_addresses();
+
+  static std::vector<std::string> get_loopback_addresses();
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(utils_net, get_local_addresses);
+  FRIEND_TEST(utils_net, get_loopback_addresses);
 #endif
 };
 

@@ -30,7 +30,7 @@
 #include <Iphlpapi.h>
 #include <windows.h>
 // clang-format on
-// for GetIpAddrTable()
+// for GetAdaptersAddresses()
 #pragma comment(lib, "IPHLPAPI.lib")
 #else
 #include <arpa/inet.h>
@@ -47,6 +47,8 @@
 #include <memory>
 #include <vector>
 #include <bitset>
+
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -61,8 +63,8 @@ namespace {
  *
  * @param address The address to be checked.
  *
- * @return AF_INET if address is an IPv4 address, AF_INET6 if it's IPv6, 0 in
- *         case of failure.
+ * @return AF_INET if address is an IPv4 address, AF_INET6 if it's IPv6,
+ *         AF_UNSPEC in case of failure.
  */
 int get_protocol_family(const std::string &address) {
   addrinfo hints;
@@ -72,7 +74,7 @@ int get_protocol_family(const std::string &address) {
 
   addrinfo *info = nullptr;
   int result = getaddrinfo(address.c_str(), nullptr, &hints, &info);
-  int family = 0;
+  int family = AF_UNSPEC;
 
   if (result == 0) {
     family = info->ai_family;
@@ -83,9 +85,21 @@ int get_protocol_family(const std::string &address) {
   return family;
 }
 
-void get_host_ip_addresses(const std::string &host,
-                           std::vector<std::string> *out_addrs) {
+void get_host_ipv4_addresses(const std::string &host,
+                             std::vector<std::string> *out_addrs) {
   assert(out_addrs);
+
+  if (AF_INET == get_protocol_family(host)) {
+    // getaddrinfo() on macOS does not work correctly in case of IPv4 addresses
+    // in octal format: it first assumes that address is in decimal format,
+    // only if parsing fails, it tries other formats. This causes i.e.
+    // address 010.010.010.010 to be resolved to 10.10.10.10 instead of 8.8.8.8.
+    // This is a workaround for all the platforms.
+    in_addr address;
+    address.s_addr = inet_addr(host.c_str());
+    out_addrs->emplace_back(inet_ntoa(address));
+    return;
+  }
 
   auto prepare_net_error = [&host](const char *error) -> net_error {
     return net_error{"Could not resolve " + host + ": " + error + "."};
@@ -104,7 +118,6 @@ void get_host_ip_addresses(const std::string &host,
   if (info != nullptr) {
     std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
     for (; info != nullptr; info = info->ai_next) {
-      // return first IP address
       char ip[NI_MAXHOST];
 
       result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
@@ -122,112 +135,142 @@ void get_host_ip_addresses(const std::string &host,
 }
 
 std::string get_this_hostname() {
-  char hostname[1024] = {'\0'};
+  char hostname[NI_MAXHOST] = {'\0'};
   if (gethostname(hostname, sizeof(hostname)) < 0)
     throw net_error("Could not get local host address: " +
                     shcore::errno_to_string(errno));
   return hostname;
 }
 
+namespace detail {
+
+enum class Address_type { LOOPBACK, LOCAL };
+
+using Address_types =
+    mysqlshdk::utils::Enum_set<Address_type, Address_type::LOCAL>;
+
 #ifdef _WIN32
-void get_this_host_addresses(bool prefer_name,
-                             std::vector<std::string> *out_addrs) {
-  assert(out_addrs);
 
-  MIB_IPADDRTABLE *addr_table;
-  DWORD size = 0;
-  DWORD ret = 0;
+void get_this_host_addresses_impl(const Address_types &types,
+                                  std::vector<std::string> *out_addrs) {
+  ULONG size = 15 * 1024;  // 15KB is the recommended buffer size
   std::vector<char> buffer;
+  DWORD ret = 0;
+  IP_ADAPTER_ADDRESSES *addresses = nullptr;
 
-  buffer.resize(sizeof(MIB_IPADDRTABLE));
-  addr_table = reinterpret_cast<MIB_IPADDRTABLE *>(&buffer[0]);
-  // Note: unlike getifaddrs() this will include loopback interfaces
-  if (GetIpAddrTable(addr_table, &size, 0) == ERROR_INSUFFICIENT_BUFFER) {
+  do {
     buffer.resize(size);
-    addr_table = reinterpret_cast<MIB_IPADDRTABLE *>(&buffer[0]);
-  }
+    addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES *>(&buffer[0]);
 
-  if ((ret = GetIpAddrTable(addr_table, &size, 0)) != NO_ERROR) {
-    throw std::runtime_error("Error on call to GetIpAddrTable(): " +
+    ret = GetAdaptersAddresses(AF_UNSPEC,  // return both IPv4 and IPv6
+                               GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+                                   GAA_FLAG_SKIP_DNS_SERVER |
+                                   GAA_FLAG_SKIP_FRIENDLY_NAME,
+                               nullptr, addresses, &size);
+  } while (ret == ERROR_BUFFER_OVERFLOW);
+
+  if (NO_ERROR == ret) {
+    for (auto iface = addresses; nullptr != iface; iface = iface->Next) {
+      // Skip interfaces that are not UP
+      if (IfOperStatusUp != iface->OperStatus) {
+        continue;
+      }
+
+      const bool is_loopback = IF_TYPE_SOFTWARE_LOOPBACK == iface->IfType;
+
+      if (!((types & Address_type::LOOPBACK) && is_loopback) &&
+          !((types & Address_type::LOCAL) && !is_loopback)) {
+        continue;
+      }
+
+      for (auto unicast = iface->FirstUnicastAddress; nullptr != unicast;
+           unicast = unicast->Next) {
+        DWORD length = 0;
+        // first call to get length of a string
+        WSAAddressToString(unicast->Address.lpSockaddr,
+                           unicast->Address.iSockaddrLength, nullptr, nullptr,
+                           &length);
+
+        std::string address;
+        // WSAAddressToString() will write address along with null terminator
+        address.resize(length);
+        // second call to perform conversion
+        WSAAddressToString(unicast->Address.lpSockaddr,
+                           unicast->Address.iSockaddrLength, nullptr,
+                           &address[0], &length);
+        // trim null terminator
+        address.resize(length - 1);
+
+        out_addrs->emplace_back(address);
+      }
+    }
+  } else {
+    throw std::runtime_error("Error on call to GetAdaptersAddresses(): " +
                              shcore::last_error_to_string(ret));
   }
-
-  for (DWORD i = 0; i < addr_table->dwNumEntries; i++) {
-    IN_ADDR addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.S_un.S_addr = (u_long)addr_table->table[i].dwAddr;
-    out_addrs->push_back(inet_ntoa(addr));
-  }
-  if (out_addrs->empty()) out_addrs->push_back(get_this_hostname());
 }
 
-#elif defined(__APPLE__) || defined(__linux__)
+#else  // ! _WIN32
 
-void get_this_host_addresses(bool prefer_name,
+void get_this_host_addresses_impl(const Address_types &types,
+                                  std::vector<std::string> *out_addrs) {
+  struct ifaddrs *ifa = nullptr;
+
+  if (getifaddrs(&ifa) != 0) {
+    throw net_error("Could not get local host address: " +
+                    shcore::errno_to_string(errno));
+  }
+
+  std::unique_ptr<ifaddrs, void (*)(ifaddrs *)> deleter{ifa, freeifaddrs};
+
+  for (auto ifap = ifa; ifap != nullptr; ifap = ifap->ifa_next) {
+    // Skip interfaces that are not UP, and do not have configured addresses
+    if ((ifap->ifa_addr == nullptr) || (!(ifap->ifa_flags & IFF_UP))) {
+      continue;
+    }
+
+    const bool is_loopback = (ifap->ifa_flags & IFF_LOOPBACK) != 0;
+
+    if (!((types & Address_type::LOOPBACK) && is_loopback) &&
+        !((types & Address_type::LOCAL) && !is_loopback)) {
+      continue;
+    }
+
+    // Only handle IPv4 and IPv6 addresses
+    const auto family = ifap->ifa_addr->sa_family;
+    if (family != AF_INET && family != AF_INET6) continue;
+
+    char hostname[NI_MAXHOST] = {'\0'};
+    if (getnameinfo(ifap->ifa_addr,
+                    (family == AF_INET) ? sizeof(struct sockaddr_in)
+                                        : sizeof(struct sockaddr_in6),
+                    hostname, sizeof(hostname), nullptr, 0,
+                    NI_NUMERICHOST) == 0) {
+      out_addrs->push_back(hostname);
+    }
+  }
+}
+
+#endif  // ! _WIN32
+
+void get_this_host_addresses(const Address_types &types,
                              std::vector<std::string> *out_addrs) {
   assert(out_addrs);
 
-  struct ifaddrs *ifa, *ifap;
-  int ret = EAI_NONAME, family, addrlen;
+  get_this_host_addresses_impl(types, out_addrs);
 
-  if (getifaddrs(&ifa) != 0)
-    throw net_error("Could not get local host address: " +
-                    shcore::errno_to_string(errno));
-
-  for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
-    /* Skip interfaces that are not UP, do not have configured addresses, and
-     * loopback interface */
-    if ((ifap->ifa_addr == NULL) || (ifap->ifa_flags & IFF_LOOPBACK) ||
-        (!(ifap->ifa_flags & IFF_UP)))
-      continue;
-
-    /* Only handle IPv4 and IPv6 addresses */
-    family = ifap->ifa_addr->sa_family;
-    if (family != AF_INET && family != AF_INET6) continue;
-
-    addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in)
-                                  : sizeof(struct sockaddr_in6);
-
-    /* Skip IPv6 link-local addresses */
-    if (family == AF_INET6) {
-      struct sockaddr_in6 *sin6;
-
-      sin6 = (struct sockaddr_in6 *)ifap->ifa_addr;
-      if (IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) ||
-          IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
-        continue;
-    }
-
-    char hostname[1024] = {'\0'};
-    ret = -1;
-    if (prefer_name)
-      ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname),
-                        NULL, 0, NI_NAMEREQD);
-    if (ret != 0)
-      ret = getnameinfo(ifap->ifa_addr, addrlen, hostname, sizeof(hostname),
-                        NULL, 0, NI_NUMERICHOST);
-    if (ret == 0) out_addrs->push_back(hostname);
-  }
-  if (out_addrs->empty()) {
+  if ((types & Address_type::LOCAL) && out_addrs->empty()) {
     out_addrs->push_back(get_this_hostname());
   }
 }
 
-#else
-
-void get_this_host_addresses(std::vector<std::string> *out_addrs,
-                             bool /*prefer_name*/) {
-  assert(out_addrs);
-  out_addrs->push_back(get_this_hostname());
-}
-#endif
-
+}  // namespace detail
 }  // namespace
 
 Net *Net::s_implementation = nullptr;
 
 std::string Net::resolve_hostname_ipv4(const std::string &name) {
-  return get()->resolve_hostname_ipv4_impl(name);
+  return resolve_hostname_ipv4_all(name)[0];
 }
 
 std::vector<std::string> Net::resolve_hostname_ipv4_all(
@@ -337,9 +380,18 @@ std::string Net::cidr_to_netmask(const std::string &address) {
   return ret;
 }
 
-void Net::get_local_addresses(std::vector<std::string> *out_addrs) {
-  assert(out_addrs);
-  get_this_host_addresses(false, out_addrs);
+std::vector<std::string> Net::get_local_addresses() {
+  using namespace detail;
+  std::vector<std::string> out_addrs;
+  get_this_host_addresses(Address_types{Address_type::LOCAL}, &out_addrs);
+  return out_addrs;
+}
+
+std::vector<std::string> Net::get_loopback_addresses() {
+  using namespace detail;
+  std::vector<std::string> out_addrs;
+  get_this_host_addresses(Address_types{Address_type::LOOPBACK}, &out_addrs);
+  return out_addrs;
 }
 
 Net *Net::get() {
@@ -353,92 +405,63 @@ Net *Net::get() {
 
 void Net::set(Net *implementation) { s_implementation = implementation; }
 
-std::string Net::resolve_hostname_ipv4_impl(const std::string &name) const {
-  auto prepare_net_error = [&name](const char *error) -> net_error {
-    return net_error{"Could not resolve " + name + ": " + error + "."};
-  };
-
-  if (is_ipv4(name)) return name;
-
-  addrinfo hints;
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;  // IPv4
-
-  addrinfo *info = nullptr;
-  int result = getaddrinfo(name.c_str(), nullptr, &hints, &info);
-
-  if (result != 0) throw prepare_net_error(gai_strerror(result));
-
-  if (info != nullptr) {
-    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
-
-    // return first IP address
-    char ip[NI_MAXHOST];
-
-    result = getnameinfo(info->ai_addr, info->ai_addrlen, ip, sizeof(ip),
-                         nullptr, 0, NI_NUMERICHOST);
-
-    if (result != 0) throw prepare_net_error(gai_strerror(result));
-
-    return ip;
-  } else {
-    throw prepare_net_error("Unable to resolve host");
-  }
-}
-
 std::vector<std::string> Net::resolve_hostname_ipv4_all_impl(
     const std::string &name) const {
   std::vector<std::string> addrs;
-  get_host_ip_addresses(name, &addrs);
+  get_host_ipv4_addresses(name, &addrs);
   return addrs;
 }
 
 bool Net::is_loopback_impl(const std::string &name) const {
-  if (name == "localhost" || name == "::1") return true;
+  if (name == "localhost" || name == "::1" || name.compare(0, 4, "127.") == 0) {
+    return true;
+  }
 
-  std::vector<std::string> addresses;
+  const auto loopback = get_loopback_addresses();
+
+  if (loopback.end() != std::find(loopback.begin(), loopback.end(), name)) {
+    return true;
+  }
+
   try {
-    get_host_ip_addresses(name, &addresses);
-  } catch (std::exception &e) {
-    log_info("%s", e.what());
-    return false;
-  }
-
-  // todo(kg): loopback interface isn't limited to 127.0.0.0/8. We should list
-  // IPs assigned to lo interface, iterate over them, and check if resolved name
-  // belong to lo interface.
-  for (const auto &a : addresses) {
-    if (a.compare(0, 4, "127.") == 0) {
-      return true;
+    for (const auto &ipv4 : resolve_hostname_ipv4_all(name)) {
+      if (ipv4.compare(0, 4, "127.") == 0 ||
+          loopback.end() != std::find(loopback.begin(), loopback.end(), ipv4)) {
+        return true;
+      }
     }
+  } catch (const std::exception &e) {
+    // Exception means that 'name' is an IPv6 address or a host which could not
+    // be resolved. In case of former, it means that address was not found
+    // in loopback addresses. In case of latter, we cannot obtain an address.
+    // In both cases it's not a loopback address.
+    log_info("%s", e.what());
   }
 
-  return (name.compare(0, 4, "127.") == 0);
+  return false;
 }
 
 bool Net::is_local_address_impl(const std::string &name) const {
-  if (is_loopback_impl(name)) return true;
+  if (is_loopback(name)) return true;
 
-  std::vector<std::string> addresses;
-  get_this_host_addresses(false, &addresses);
+  const auto local = get_local_addresses();
 
-  if (std::find(addresses.begin(), addresses.end(), name) != addresses.end())
+  if (local.end() != std::find(local.begin(), local.end(), name)) {
     return true;
+  }
 
-  if (!is_ipv4(name) && !is_ipv6(name)) {
-    try {
-      std::vector<std::string> name_addr;
-      get_host_ip_addresses(name, &name_addr);
-
-      for (const std::string &n : name_addr) {
-        if (n == name ||
-            std::find(addresses.begin(), addresses.end(), n) != addresses.end())
-          return true;
+  try {
+    for (const auto &ipv4 : resolve_hostname_ipv4_all(name)) {
+      if (local.end() != std::find(local.begin(), local.end(), ipv4)) {
+        return true;
       }
-    } catch (std::exception &e) {
-      log_info("%s", e.what());
     }
+  } catch (const std::exception &e) {
+    // Exception means that 'name' is an IPv6 address or a host which could not
+    // be resolved. In case of former, it means that address was not found
+    // in local addresses. In case of latter, we cannot obtain an address.
+    // In both cases it's not a local address.
+    log_info("%s", e.what());
   }
 
   return false;
