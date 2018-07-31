@@ -48,7 +48,7 @@ TEST_F(Interactive_shell_test, shell_get_session_BUG27809310) {
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_node) {
-  execute("\\connect -mx " + _uri);
+  execute("\\connect --mx " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                             _uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -67,7 +67,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 
   execute("session.close()");
 
-  execute("\\connect -mx " + _uri + "/mysql");
+  execute("\\connect --mx " + _uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                             _uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -85,12 +85,12 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 
   execute("session.close()");
 
-  execute("\\connect -mx mysql://" + _mysql_uri);
+  execute("\\connect --mx mysql://" + _mysql_uri);
   MY_EXPECT_STDERR_CONTAINS(
       "The given URI conflicts with the --mysqlx session type option.");
   output_handler.wipe_all();
 
-  execute("\\connect -mx " + _mysql_uri);
+  execute("\\connect --mx " + _mysql_uri);
   // wrong protocol can manifest as this error or a 2006 'gone away' error
   if (output_handler.std_err.find("MySQL Error 2006") == std::string::npos)
     MY_EXPECT_STDERR_CONTAINS(
@@ -100,7 +100,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 
   // Invalid user/password
   output_handler.passwords.push_back({"*", "whatever"});
-  execute("\\connect -mx " + _uri_nopasswd);
+  execute("\\connect --mx " + _uri_nopasswd);
   if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
     MY_EXPECT_STDERR_CONTAINS("Access denied for user 'root'@'localhost'");
   } else {
@@ -110,7 +110,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_classic) {
-  execute("\\connect -mc " + _mysql_uri);
+  execute("\\connect --mc " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
                             _mysql_uri_nopasswd + "'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -128,7 +128,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
 
   execute("session.close()");
 
-  execute("\\connect -mc " + _mysql_uri + "/mysql");
+  execute("\\connect --mc " + _mysql_uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
                             _mysql_uri_nopasswd + "/mysql'");
   MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -145,14 +145,14 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
 
   execute("session.close()");
 
-  execute("\\connect -mc mysqlx://" + _uri);
+  execute("\\connect --mc mysqlx://" + _uri);
   MY_EXPECT_STDERR_CONTAINS(
       "The given URI conflicts with the --mysql session type option.");
   output_handler.wipe_all();
 
-  // FR_EXTRA_SUCCEED_7 : \connect -mc mysql://user@host:3306/db
+  // FR_EXTRA_SUCCEED_7 : \connect --mc mysql://user@host:3306/db
   {
-    execute("\\connect -mc mysql://" + _mysql_uri + "/mysql");
+    execute("\\connect --mc mysql://" + _mysql_uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
                               _mysql_uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -166,9 +166,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
     execute("session.close()");
   }
 
-  // FR_EXTRA_SUCCEED_8 : \c -mc mysql://user@host:3306/db
+  // FR_EXTRA_SUCCEED_8 : \c --mc mysql://user@host:3306/db
   {
-    execute("\\c -mc mysql://" + _mysql_uri + "/mysql");
+    execute("\\c --mc mysql://" + _mysql_uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
                               _mysql_uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -184,9 +184,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_x) {
-  // FR_EXTRA_SUCCEED_11 : \connect -mx mysqlx://user@host:33060/db
+  // FR_EXTRA_SUCCEED_11 : \connect --mx mysqlx://user@host:33060/db
   {
-    execute("\\connect -mx mysqlx://" + _uri + "/mysql");
+    execute("\\connect --mx mysqlx://" + _uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                               _uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -200,9 +200,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_x) {
     execute("session.close()");
   }
 
-  // FR_EXTRA_SUCCEED_12 : \c -mx mysqlx://user@host:33060/db
+  // FR_EXTRA_SUCCEED_12 : \c --mx mysqlx://user@host:33060/db
   {
-    execute("\\c -mx mysqlx://" + _uri + "/mysql");
+    execute("\\c --mx mysqlx://" + _uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                               _uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -429,9 +429,9 @@ execute("session.close()");
   if (!_mysql_socket.empty()) {
     data.clear_socket();
     data.set_socket(_mysql_socket);
-    // \connect -mc user@/path%2Fto%2Fsocket
+    // \connect --mc user@/path%2Fto%2Fsocket
     {
-      execute("\\connect -mc " +
+      execute("\\connect --mc " +
               data.as_uri(mysqlshdk::db::uri::formats::full()));
       MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to ");
       MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -473,7 +473,7 @@ execute("session.close()");
     // \connect user@/path%2Fto%2Fsocket
     // using classic socket as X protocol connection must fail
     {
-      execute("\\connect -mx " +
+      execute("\\connect --mx " +
               data.as_uri(mysqlshdk::db::uri::formats::full()));
       MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
       // wrong protocol can manifest as this error or a 2006 'gone away' error
@@ -495,9 +495,9 @@ execute("session.close()");
   if (!_socket.empty()) {
     data.clear_socket();
     data.set_socket(_socket);
-    // \connect -mx user@/path%2Fto%2Fx_socket
+    // \connect --mx user@/path%2Fto%2Fx_socket
     {
-      execute("\\connect -mx " +
+      execute("\\connect --mx " +
               data.as_uri(mysqlshdk::db::uri::formats::full()));
       MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to ");
       MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -536,7 +536,7 @@ execute("session.close()");
       MY_EXPECT_STDOUT_CONTAINS("<Session:disconnected>");
       output_handler.wipe_all();
     }
-    // \connect -mc user@/path%2Fto%2Fx_socket
+    // \connect --mc user@/path%2Fto%2Fx_socket
     // using x socket as classic connection must fail
     // Test omitted due to long time to discover wrong protocol
   }
@@ -649,44 +649,44 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
-  execute("\\connect -mx -mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect --mx --mc " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
-  execute("\\connect --mysqlx -mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect --mysqlx --mc " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
-  execute("\\connect -mx --mysql " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect --mx --mysql " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mysql --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
-  execute("\\connect -mc -mx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect --mc --mx " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
-  execute("\\connect -mc --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect --mc --mysqlx " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect -ma --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
-  execute("\\connect -mx -ma " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect --mx -ma " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mysql -ma " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 
-  execute("\\connect -ma -mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  execute("\\connect -ma --mc " + _uri);
+  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
   output_handler.wipe_all();
 }
 
@@ -695,26 +695,42 @@ TEST_F(Interactive_shell_test, shell_command_connect_deprecated_options) {
   // work in 8.0
   execute("\\connect -n " + _uri);
   MY_EXPECT_STDERR_CONTAINS(
-      "The -n option is deprecated, please use --mysqlx or -mx instead\n");
+      "The -n option is deprecated, please use --mysqlx or --mx instead.");
+  MY_EXPECT_STDOUT_CONTAINS("Creating an X");
+  output_handler.wipe_all();
+
+  execute("\\connect -mx " + _uri);
+  MY_EXPECT_STDERR_CONTAINS(
+      "The -mx option is deprecated, please use --mysqlx or --mx instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X");
   output_handler.wipe_all();
 
   execute("\\connect -N " + _uri);
   MY_EXPECT_STDERR_CONTAINS(
-      "The -n option is deprecated, please use --mysqlx or -mx instead\n");
+      "The -N option is deprecated, please use --mysqlx or --mx instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X");
   output_handler.wipe_all();
 
   execute("\\connect -c " + _mysql_uri);
   MY_EXPECT_STDERR_CONTAINS(
-      "The -c option is deprecated, please use --mysql or -mc instead\n");
+      "The -c option is deprecated, please use --mysql or --mc instead.");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
+  output_handler.wipe_all();
+
+  execute("\\connect -mc " + _mysql_uri);
+  MY_EXPECT_STDERR_CONTAINS(
+      "The -mc option is deprecated, please use --mysql or --mc instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
   output_handler.wipe_all();
 
   execute("\\connect -C " + _mysql_uri);
   MY_EXPECT_STDERR_CONTAINS(
-      "The -c option is deprecated, please use --mysql or -mc instead\n");
+      "The -C option is deprecated, please use --mysql or --mc instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
+  output_handler.wipe_all();
+
+  execute("\\connect -ma " + _mysql_uri);
+  MY_EXPECT_STDERR_CONTAINS("The -ma option is deprecated.");
   output_handler.wipe_all();
 }
 
@@ -750,7 +766,7 @@ TEST_F(Interactive_shell_test, shell_command_use) {
 
   execute("session.close()");
 
-  execute("\\connect -mx " + _uri);
+  execute("\\connect --mx " + _uri);
   MY_EXPECT_STDOUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
@@ -769,7 +785,7 @@ TEST_F(Interactive_shell_test, shell_command_use) {
 
   execute("session.close()");
 
-  execute("\\connect -mc " + _mysql_uri);
+  execute("\\connect --mc " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
@@ -839,7 +855,7 @@ TEST_F(Interactive_shell_test, shell_command_sql_use) {
   MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
   output_handler.wipe_all();
 
-  execute("\\connect -mx " + _uri);
+  execute("\\connect --mx " + _uri);
   MY_EXPECT_STDOUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();
@@ -848,7 +864,7 @@ TEST_F(Interactive_shell_test, shell_command_sql_use) {
   MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`");
   output_handler.wipe_all();
 
-  execute("\\connect -mc " + _mysql_uri);
+  execute("\\connect --mc " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   output_handler.wipe_all();

@@ -215,22 +215,18 @@ REGISTER_HELP(CMD_CONNECT_DETAIL,
               "Accepts the following values:");
 REGISTER_HELP(
     CMD_CONNECT_DETAIL1,
-    "@li <b>-mc</b>, <b>--mysql</b>: create a classic MySQL protocol session "
+    "@li <b>--mc</b>, <b>--mysql</b>: create a classic MySQL protocol session "
     "(default port 3306)");
 REGISTER_HELP(CMD_CONNECT_DETAIL2,
-              "@li <b>-mx</b>, <b>--mysqlx</b>: create an X protocol session "
+              "@li <b>--mx</b>, <b>--mysqlx</b>: create an X protocol session "
               "(default port 33060)");
 REGISTER_HELP(
     CMD_CONNECT_DETAIL3,
-    "@li <b>-ma</b>: attempt to create a session using automatic detection "
-    "of the protocol type");
-REGISTER_HELP(
-    CMD_CONNECT_DETAIL4,
-    "If TYPE is omitted, <b>-ma</b> is assumed by default, unless the "
+    "If TYPE is omitted, automatic protocol detection is done, unless the "
     "protocol is given in the URI.");
-REGISTER_HELP(CMD_CONNECT_DETAIL5,
+REGISTER_HELP(CMD_CONNECT_DETAIL4,
               "URI format is: [user[:password]@]hostname[:port]");
-REGISTER_HELP(CMD_CONNECT_EXAMPLE, "<b>\\connect -mx</b> root@localhost");
+REGISTER_HELP(CMD_CONNECT_EXAMPLE, "<b>\\connect --mx</b> root@localhost");
 REGISTER_HELP(
     CMD_CONNECT_EXAMPLE_DESC,
     "Creates a global session using the X protocol to the indicated URI.");
@@ -259,7 +255,7 @@ REGISTER_HELP(CMD_OPTION_DETAIL5,
 REGISTER_HELP(
     CMD_OPTION_DETAIL6,
     "@li <b>--unset</b> resets an option value to the default value.");
-// REGISTER_HELP(CMD_OPTION_EXAMPLE, "\\option -mx root@localhost");
+// REGISTER_HELP(CMD_OPTION_EXAMPLE, "\\option --mx root@localhost");
 
 REGISTER_HELP(CMD_SOURCE_BRIEF, "Loads and executes a script from a file.");
 REGISTER_HELP(CMD_SOURCE_SYNTAX, "<b>\\source</b> <path>");
@@ -798,20 +794,26 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
 
     if (arg.empty()) {
       error = true;
-    } else if (!arg.compare("-n") || !arg.compare("-N")) {
+    } else if (shcore::str_caseeq("-n", arg) ||
+               shcore::str_caseeq("-mx", arg)) {
       options.session_type = mysqlsh::SessionType::X;
       print_error(
-          "The -n option is deprecated, please use --mysqlx or -mx instead\n");
-    } else if (!arg.compare("-c") || !arg.compare("-C")) {
+          "The " + arg +
+          " option is deprecated, please use --mysqlx or --mx instead.\n");
+    } else if (shcore::str_caseeq("-c", arg) ||
+               shcore::str_caseeq("-mc", arg)) {
       options.session_type = mysqlsh::SessionType::Classic;
       print_error(
-          "The -c option is deprecated, please use --mysql or -mc instead\n");
-    } else if (!arg.compare("-mx") || !arg.compare("--mysqlx")) {
+          "The " + arg +
+          " option is deprecated, please use --mysql or --mc instead.\n");
+    } else if (shcore::str_caseeq("-ma", arg)) {
+      print_error("The " + arg + " option is deprecated.\n");
+    } else if (!arg.compare("--mysqlx") || !arg.compare("--mx")) {
       options.session_type = mysqlsh::SessionType::X;
-    } else if (!arg.compare("-mc") || !arg.compare("--mysql")) {
+    } else if (!arg.compare("--mysql") || !arg.compare("--mc")) {
       options.session_type = mysqlsh::SessionType::Classic;
     } else {
-      if (args.size() == 3 && arg.compare("-ma")) {
+      if (args.size() == 3) {
         error = true;
       } else {
         options.uri = args[target_index];
@@ -838,7 +840,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   } else {
     error = true;
   }
-  if (error) print_error("\\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>\n");
+  if (error) print_error("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
 
   return true;
 }

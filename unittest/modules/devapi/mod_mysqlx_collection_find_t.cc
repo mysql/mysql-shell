@@ -46,7 +46,7 @@ class Collection_find : public Shell_core_test_wrapper {
     Shell_core_test_wrapper::SetUp();
 
     // Connects the two shell instances to be used on these tests
-    execute("\\connect -mx " + _uri);
+    execute("\\connect --mx " + _uri);
 
     execute("var schema = session.getSchema('test_locking');");
     execute("var col = schema.getCollection('test');");
@@ -66,7 +66,7 @@ class Collection_find : public Shell_core_test_wrapper {
 
   static void SetUpTestCase() {
     tests::Shell_test_wrapper global_shell;
-    global_shell.execute("\\connect -mx " + shell_test_server_uri('x'));
+    global_shell.execute("\\connect --mx " + shell_test_server_uri('x'));
 
     // preparation
     global_shell.execute(
@@ -85,7 +85,7 @@ class Collection_find : public Shell_core_test_wrapper {
 
   static void TearDownTestCase() {
     tests::Shell_test_wrapper global_shell;
-    global_shell.execute("\\connect -mx " + shell_test_server_uri('x'));
+    global_shell.execute("\\connect --mx " + shell_test_server_uri('x'));
 
     global_shell.execute("session.dropSchema('test_locking');");
     global_shell.execute("session.close();");

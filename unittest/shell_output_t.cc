@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ class Shell_output_test : public Shell_core_test_wrapper {
     Shell_core_test_wrapper::SetUp();
 
     _interactive_shell->process_line("\\sql");
-    _interactive_shell->process_line("\\connect -mc " + _mysql_uri);
+    _interactive_shell->process_line("\\connect --mc " + _mysql_uri);
     if (!output_handler.std_err.empty()) {
       std::cerr << "ERROR connecting to " << _mysql_uri << ":"
                 << output_handler.std_err << "\n";

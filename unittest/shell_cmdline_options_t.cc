@@ -805,17 +805,18 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
   test_session_type_conflicts("--sqlx", "--mysql", "X protocol", "Classic", 1);
   test_session_type_conflicts("--sqlx", "--sqlc", "X protocol", "Classic", 1);
 
-  test_session_type_conflicts("-mx", "--mysqlx", "X protocol", "X protocol", 0);
+  test_session_type_conflicts("--mx", "--mysqlx", "X protocol", "X protocol",
+                              0);
   test_session_type_conflicts("--mysqlx", "--sqlx", "X protocol", "X protocol",
                               0);
-  test_session_type_conflicts("-mx", "--mysql", "X protocol", "Classic", 1);
+  test_session_type_conflicts("--mx", "--mysql", "X protocol", "Classic", 1);
   test_session_type_conflicts("--mysqlx", "--sqlc", "X protocol", "Classic", 1);
   test_session_type_conflicts("--mysqlx", "--mysql", "X protocol", "Classic",
                               1);
 
-  test_session_type_conflicts("-mc", "--mysql", "Classic", "Classic", 0);
+  test_session_type_conflicts("--mc", "--mysql", "Classic", "Classic", 0);
   test_session_type_conflicts("--mysql", "--sqlc", "Classic", "Classic", 0);
-  test_session_type_conflicts("-mc", "--mysqlx", "Classic", "X protocol", 1);
+  test_session_type_conflicts("--mc", "--mysqlx", "Classic", "X protocol", 1);
   test_session_type_conflicts("--mysql", "--sqlx", "Classic", "X protocol", 1);
   test_session_type_conflicts("--mysql", "--mysqlx", "Classic", "X protocol",
                               1);
@@ -824,8 +825,8 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
   test_session_type_conflicts("--mysql", "-ma", "Classic", "", 1);
   test_session_type_conflicts("-ma", "--mysqlx", "", "X protocol", 1);
   test_session_type_conflicts("--mysqlx", "-ma", "X protocol", "", 1);
-  test_session_type_conflicts("-mc", "-ma", "Classic", "", 1);
-  test_session_type_conflicts("-mx", "-ma", "X protocol", "", 1);
+  test_session_type_conflicts("--mc", "-ma", "Classic", "", 1);
+  test_session_type_conflicts("--mx", "-ma", "X protocol", "", 1);
 }
 
 TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
