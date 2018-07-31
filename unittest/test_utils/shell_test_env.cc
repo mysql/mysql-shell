@@ -89,12 +89,12 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
   /**
    * Allows to resolve the hostname stored by the shell test environment.
    */
-  std::string resolve_hostname_ipv4_impl(
+  std::vector<std::string> resolve_hostname_ipv4_all_impl(
       const std::string &name) const override {
     if (name == m_hostname || name == m_real_hostname)
-      return m_hostname_ip;
+      return {m_hostname_ip};
     else
-      return Net::resolve_hostname_ipv4_impl(name);
+      return Net::resolve_hostname_ipv4_all_impl(name);
   }
 
   bool is_local_address_impl(const std::string &address) const override {

@@ -31,12 +31,12 @@ namespace utils {
 
 TEST(utils_net, resolve_hostname_ipv4) {
   EXPECT_EQ("0.0.0.0", Net::resolve_hostname_ipv4("0.0.0.0"));
-  EXPECT_EQ("000.000.000.000", Net::resolve_hostname_ipv4("000.000.000.000"));
+  EXPECT_EQ("0.0.0.0", Net::resolve_hostname_ipv4("000.000.000.000"));
   EXPECT_EQ("127.0.0.1", Net::resolve_hostname_ipv4("127.0.0.1"));
-  EXPECT_EQ("127.000.000.001", Net::resolve_hostname_ipv4("127.000.000.001"));
+  EXPECT_EQ("127.0.0.1", Net::resolve_hostname_ipv4("127.000.000.001"));
   EXPECT_EQ("8.8.8.8", Net::resolve_hostname_ipv4("8.8.8.8"));
-  EXPECT_EQ("010.010.010.010", Net::resolve_hostname_ipv4("010.010.010.010"));
-  EXPECT_EQ("0x7F.0.0.1", Net::resolve_hostname_ipv4("0x7F.0.0.1"));
+  EXPECT_EQ("8.8.8.8", Net::resolve_hostname_ipv4("010.010.010.010"));
+  EXPECT_EQ("127.0.0.1", Net::resolve_hostname_ipv4("0x7F.0.0.1"));
 
   EXPECT_NO_THROW(Net::resolve_hostname_ipv4("localhost"));
   EXPECT_NO_THROW(Net::resolve_hostname_ipv4("google.pl"));
@@ -137,6 +137,7 @@ TEST(utils_net, is_local_address) {
 
   EXPECT_FALSE(Net::is_local_address("oracle.com"));
   EXPECT_FALSE(Net::is_local_address("bogus-host"));
+  EXPECT_FALSE(Net::is_local_address("8.8.8.8"));
 }
 
 TEST(utils_net, is_port_listening) {
@@ -160,9 +161,15 @@ TEST(utils_net, is_port_listening) {
 TEST(utils_net, get_local_addresses) {
   // Not really a unit-test, just get whatever get_local_addresses() returns
   // and print out, so we can inspect visually...
-  std::vector<std::string> addrs;
-  Net::get_local_addresses(&addrs);
-  for (const auto &a : addrs) {
+  for (const auto &a : Net::get_local_addresses()) {
+    std::cout << a << "\n";
+  }
+}
+
+TEST(utils_net, get_loopback_addresses) {
+  // Not really a unit-test, just get whatever get_loopback_addresses() returns
+  // and print out, so we can inspect visually...
+  for (const auto &a : Net::get_loopback_addresses()) {
     std::cout << a << "\n";
   }
 }
