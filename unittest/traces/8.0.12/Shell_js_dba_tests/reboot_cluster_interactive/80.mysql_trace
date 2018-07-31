@@ -1,8 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2108","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"22","connection_info":"localhost via TCP/IP","server_info":"8.0.12-commercial","server_version":"8.0.12","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
-{"type":"request","subtype":"QUERY","index":3,"sql":"SELECT @@GLOBAL.GTID_EXECUTED"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"","table_label":"","column_name":"","column_label":"@@GLOBAL.GTID_EXECUTED","length":336,"fractional":31,"type":"String","collation":"utf8mb4_0900_ai_ci","charset":"utf8mb4","collation_id":255,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["d0543ef3-6f49-11e8-a0e0-0010e08a7b78:1-14,\nd62534e5-6f49-11e8-a0e0-0010e08a7b78:1-23"]]},
-{"type":"request","subtype":"CLOSE","index":5},
-{"type":"response","subtype":"OK","index":6},
-null]

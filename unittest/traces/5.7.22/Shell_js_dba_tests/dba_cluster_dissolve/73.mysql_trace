@@ -1,8 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2188","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"104","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
-{"type":"request","subtype":"QUERY","index":3,"sql":"SHOW STATUS LIKE 'group_replication_primary_member'"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":18446744073709551615,"warning_count":0,"info":"","columns":[{"schema":"","table_name":"session_status","table_label":"session_status","column_name":"Variable_name","column_label":"Variable_name","length":64,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false},{"schema":"","table_name":"session_status","table_label":"session_status","column_name":"Value","column_label":"Value","length":1024,"fractional":0,"type":"String","collation":"latin1_swedish_ci","charset":"latin1","collation_id":8,"unsigned":false,"zerofill":false,"binary":false}],"rows":[["group_replication_primary_member",""]]},
-{"type":"request","subtype":"CLOSE","index":5},
-{"type":"response","subtype":"OK","index":6},
-null]

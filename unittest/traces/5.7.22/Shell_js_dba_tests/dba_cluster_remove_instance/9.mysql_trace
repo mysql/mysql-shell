@@ -1,4 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"foo:bar@localhost:2078","protocol":"classic"},
-{"type":"response","subtype":"ERROR","index":2,"code":"1045","msg":"Access denied for user 'foo'@'localhost' (using password: YES)","sqlstate":"28000"},
-null]

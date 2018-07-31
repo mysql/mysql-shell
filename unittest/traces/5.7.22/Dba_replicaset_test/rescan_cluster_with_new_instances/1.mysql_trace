@@ -1,8 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"root:root@localhost:2067","protocol":"classic"},
-{"type":"response","subtype":"CONNECT_OK","index":2,"connection_id":"31","connection_info":"localhost via TCP/IP","server_info":"5.7.22-log","server_version":"5.7.22","ssl_cipher":"DHE-RSA-AES128-GCM-SHA256"},
-{"type":"request","subtype":"QUERY","index":3,"sql":"delete from mysql_innodb_cluster_metadata.instances  where mysql_server_uuid = '99f7a1ff-6f49-11e8-8e18-0010e08a7b78'"},
-{"type":"response","subtype":"RESULT","index":4,"auto_increment_value":0,"affected_rows":1,"warning_count":0,"info":""},
-{"type":"request","subtype":"CLOSE","index":5},
-{"type":"response","subtype":"OK","index":6},
-null]

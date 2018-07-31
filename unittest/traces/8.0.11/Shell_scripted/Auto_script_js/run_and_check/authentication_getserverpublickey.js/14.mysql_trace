@@ -1,4 +1,0 @@
-[
-{"type":"request","subtype":"CONNECT","index":1,"uri":"mysql://remo_pass:pass@localhost:2257?ssl-mode=DISABLED","protocol":"classic"},
-{"type":"response","subtype":"ERROR","index":2,"code":"2061","msg":"Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.","sqlstate":"HY000"},
-null]
