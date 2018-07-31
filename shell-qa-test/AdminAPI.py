@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -331,7 +331,7 @@ class XShell_TestCases(unittest.TestCase):
       stdin,stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect --mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n", "mysql-sql>"),
                 ("use world_x;\n", "mysql-sql>"),
                 ("show tables ;\n", "4 rows in set"),
@@ -353,7 +353,7 @@ class XShell_TestCases(unittest.TestCase):
       #  self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect --mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select count(*) from actor;\n","200"),
@@ -371,7 +371,7 @@ class XShell_TestCases(unittest.TestCase):
       stdin, stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect -mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect --mx {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila_x;\n","mysql-sql>"),
                 ("select count(*) from movies;\n","1 row in set"),

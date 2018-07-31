@@ -19,19 +19,17 @@ DESCRIPTION
       TYPE is an optional parameter to specify the session type. Accepts the
       following values:
 
-      - -mc, --mysql: create a classic MySQL protocol session (default port
+      - --mc, --mysql: create a classic MySQL protocol session (default port
         3306)
-      - -mx, --mysqlx: create an X protocol session (default port 33060)
-      - -ma: attempt to create a session using automatic detection of the
-        protocol type
+      - --mx, --mysqlx: create an X protocol session (default port 33060)
 
-      If TYPE is omitted, -ma is assumed by default, unless the protocol is
-      given in the URI.
+      If TYPE is omitted, automatic protocol detection is done, unless the
+      protocol is given in the URI.
 
       URI format is: [user[:password]@]hostname[:port]
 
 EXAMPLE
-      \connect -mx root@localhost
+      \connect --mx root@localhost
             Creates a global session using the X protocol to the indicated URI.
 
 //@<OUT> Exit Command

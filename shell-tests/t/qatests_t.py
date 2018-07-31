@@ -499,7 +499,7 @@ def tc_2_0_03_4(self, tc_name):
     self.__doc__ = tc_name
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
-    x_cmds = [("\\connect -mx {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
+    x_cmds = [("\\connect --mx {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
                "Creating Node Session"),
               ("print(session);\n", "Session:"),
               ]
@@ -510,7 +510,7 @@ def tc_2_0_03_5(self, tc_name):
     self.__doc__ = tc_name
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
-    x_cmds = [("\\connect -mx {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+    x_cmds = [("\\connect --mx {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                   LOCALHOST.xprotocol_port),"Creating Node Session"),
               ("print(session);\n", "Session:"),
               ]
@@ -522,7 +522,7 @@ def tc_2_0_03_6(self, tc_name):
     self.__doc__ = tc_name
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
-    x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+    x_cmds = [("\\connect --mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                             LOCALHOST.port),"Creating Classic Session"),
               ("print(session);\n", "ClassicSession:"),
               ]
@@ -557,7 +557,7 @@ def tc_2_0_04_4(self, tc_name):
     self.__doc__ = tc_name
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
-    x_cmds = [("\\connect -mx {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
+    x_cmds = [("\\connect --mx {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
                "Creating Node Session"),
               ("print(session);\n", "Session:"),
               ]
@@ -568,7 +568,7 @@ def tc_2_0_04_5(self, tc_name):
     self.__doc__ = tc_name
     results = ''
     init_command = [MYSQL_SHELL, '--interactive=full','--passwords-from-stdin']
-    x_cmds = [("\\connect -mx {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+    x_cmds = [("\\connect --mx {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                                   REMOTEHOST.xprotocol_port),"Creating Node Session"),
               ("print(session);\n", "Session:"),
               ]

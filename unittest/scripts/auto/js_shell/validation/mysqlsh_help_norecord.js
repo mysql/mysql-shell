@@ -31,12 +31,10 @@ Usage: mysqlsh [OPTIONS] [URI]
   --database=name               see above
   --recreate-schema             Drop and recreate the specified schema. Schema
                                 will be deleted if it exists!
-  -mx, --mysqlx                 Uses connection data to create Creating an X
+  --mx, --mysqlx                Uses connection data to create Creating an X
                                 protocol session.
-  -mc, --mysql                  Uses connection data to create a Classic
+  --mc, --mysql                 Uses connection data to create a Classic
                                 Session.
-  -ma                           Uses the connection data to create the session
-                                with automatic protocol detection.
   --redirect-primary            Connect to the primary of the group. For use
                                 with InnoDB clusters.
   --redirect-secondary          Connect to a secondary of the group. For use

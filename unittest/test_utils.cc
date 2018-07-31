@@ -349,10 +349,10 @@ void Shell_test_output_handler::flush_debug_log() {
 }
 
 void Shell_core_test_wrapper::connect_classic() {
-  execute("\\connect -mc " + _mysql_uri);
+  execute("\\connect --mc " + _mysql_uri);
 }
 
-void Shell_core_test_wrapper::connect_x() { execute("\\connect -mx " + _uri); }
+void Shell_core_test_wrapper::connect_x() { execute("\\connect --mx " + _uri); }
 
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;

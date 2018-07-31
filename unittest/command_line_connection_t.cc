@@ -54,8 +54,8 @@ class Command_line_connection_test : public Command_line_test {
                               const char *password = NULL) {
     std::string pwd_param = "--password=" + _pwd;
     std::vector<const char *> args = {
-        _mysqlsh,          "-mc", "--interactive=full",
-        pwd_param.c_str(), "-e",  "\\status",
+        _mysqlsh,          "--mc", "--interactive=full",
+        pwd_param.c_str(), "-e",   "\\status",
     };
 
     for (auto arg : additional_args) args.emplace_back(arg);
@@ -183,12 +183,29 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "The given URI conflicts with the --mysqlx session type option.");
 
-  // FR_EXTRA_4 : mysqlsh --uri mysql://user@host:33060/db -mx
+  // BUG27363459: Deprecation of -mx
   execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The given URI conflicts with the -mx session type option.");
+      "The -mx option has been deprecated, please use --mx instead. (Option "
+      "has been processed as --mx).");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mx session type option.");
+
+  // FR_EXTRA_4 : mysqlsh --uri mysql://user@host:33060/db --mx
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mx",
+           "--interactive=full", "-e", "\\status", NULL});
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mx session type option.");
+
+  // FR_EXTRA_4 : mysqlsh --uri mysql://user@host:33060/db -mx
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mx",
+           "--interactive=full", "-e", "\\status", NULL});
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The given URI conflicts with the --mx session type option.");
 
   // FR_EXTRA_5 : mysqlsh --uri mysql://user@host:3306/db --mysqlx
   execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mysqlx",
@@ -197,12 +214,12 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "The given URI conflicts with the --mysqlx session type option.");
 
-  // FR_EXTRA_6 : mysqlsh --uri mysql://user@host:3306/db -mx
-  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
+  // FR_EXTRA_6 : mysqlsh --uri mysql://user@host:3306/db --mx
+  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "--mx",
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The given URI conflicts with the -mx session type option.");
+      "The given URI conflicts with the --mx session type option.");
 
   // FR_EXTRA_11 : mysqlsh --uri mysqlx://user@host:3306/db --mysqlx
   execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mysqlx",
@@ -214,8 +231,8 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
        "Requested session assumes MySQL X Protocol but '" + _host + ":" +
            _mysql_port + "' seems to speak the classic MySQL protocol"}));
 
-  // FR_EXTRA_12 : mysqlsh --uri mysqlx://user@host:3306/db -mx
-  execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "-mx",
+  // FR_EXTRA_12 : mysqlsh --uri mysqlx://user@host:3306/db --mx
+  execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mx",
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
@@ -232,9 +249,11 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
       "Session type already configured to X protocol, automatic protocol "
       "detection (-ma) can't be enabled.");
 
-  // FR_EXTRA_16 : mysqlsh --uri mysqlx://user@host:33060/db -mx -ma
-  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "-mx", "-ma",
+  // FR_EXTRA_16 : mysqlsh --uri mysqlx://user@host:33060/db --mx -ma
+  // BUG27363459: Deprecation of -mc
+  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mx", "-ma",
            "--interactive=full", "-e", "\\status", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("The -ma option has been deprecated.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Session type already configured to X protocol, automatic protocol "
       "detection (-ma) can't be enabled.");
@@ -248,9 +267,9 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
        "Requested session assumes MySQL X Protocol but '" + _host + ":" +
            _mysql_port + "' seems to speak the classic MySQL protocol"}));
 
-  // FR_EXTRA_20 : mysqlsh --uri user@host:3306/db -mx
-  execute({_mysqlsh, "--uri", mysql_uri_db.c_str(), "-mx", "--interactive=full",
-           "-e", "\\status", NULL});
+  // FR_EXTRA_20 : mysqlsh --uri user@host:3306/db --mx
+  execute({_mysqlsh, "--uri", mysql_uri_db.c_str(), "--mx",
+           "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
       {"MySQL server has gone away",
@@ -264,8 +283,19 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
 
-  // FR_EXTRA_SUCCEED_2 : mysqlsh --uri mysql://user@host:3306/db -mc
+  // BUG27363459: Deprecation of -mc
   execute({_mysqlsh, mysql_uri_db.c_str(), "-mc", "--interactive=full", "-e",
+           "\\status", NULL});
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "The -mc option has been deprecated, please use --mc instead. (Option "
+      "has been processed as --mc).");
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 Classic");
+
+  // FR_EXTRA_SUCCEED_2 : mysqlsh --uri mysql://user@host:3306/db --mc
+  execute({_mysqlsh, mysql_uri_db.c_str(), "--mc", "--interactive=full", "-e",
            "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
@@ -278,8 +308,8 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Session type:                 X");
 
-  // FR_EXTRA_SUCCEED_4 : mysqlsh --uri mysqlx://user@host:33060/db -mx
-  execute({_mysqlsh, uri_xscheme_db.c_str(), "-mx", "--interactive=full", "-e",
+  // FR_EXTRA_SUCCEED_4 : mysqlsh --uri mysqlx://user@host:33060/db --mx
+  execute({_mysqlsh, uri_xscheme_db.c_str(), "--mx", "--interactive=full", "-e",
            "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");

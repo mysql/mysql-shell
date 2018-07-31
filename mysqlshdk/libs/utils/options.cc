@@ -194,49 +194,50 @@ Proxy_option::Handler deprecated(
                                          const char *value) {
     std::stringstream ss;
     ss << "The " << opt << " option has been deprecated";
-    if (replacement != nullptr) {
-      ss << ", please use " << replacement << " instead.";
+    if (replacement != nullptr)
+      ss << ", please use " << replacement << " instead";
 
-      if (target) {
-        std::string final_val;
+    ss << ".";
 
-        // A value is provided, let's see if a value mapping exists
-        if (value) {
-          if (!map.empty()) {
-            std::map<std::string, std::string,
-                     bool (*)(const std::string &, const std::string &)>
-                imap(icomp);
+    if (target) {
+      std::string final_val;
 
-            for (const auto &element : map) {
-              imap.emplace(element.first, element.second);
-            }
+      // A value is provided, let's see if a value mapping exists
+      if (value) {
+        if (!map.empty()) {
+          std::map<std::string, std::string,
+                   bool (*)(const std::string &, const std::string &)>
+              imap(icomp);
 
-            if (imap.find(value) != imap.end())
-              final_val = imap.at(value);
-            else
-              final_val.assign(value);
-          } else {
-            final_val.assign(value);
+          for (const auto &element : map) {
+            imap.emplace(element.first, element.second);
           }
-        } else {
-          // If no value is provided and a default value is, it gets used
-          if (def) final_val.assign(def);
-        }
 
+          if (imap.find(value) != imap.end())
+            final_val = imap.at(value);
+          else
+            final_val.assign(value);
+        } else {
+          final_val.assign(value);
+        }
+      } else {
+        // If no value is provided and a default value is, it gets used
+        if (def) final_val.assign(def);
+      }
+
+      if (replacement) {
         ss << " (Option has been processed as " << replacement;
         if (!final_val.empty()) ss << "=" << final_val;
         ss << ").";
-
-        target(replacement, (value || def) ? final_val.c_str() : value);
-      } else {
-        ss << " (Option has been ignored).";
       }
 
+      std::cout << "WARNING: " << ss.str() << std::endl;
+      target(replacement ? replacement : opt,
+             (value || def) ? final_val.c_str() : value);
     } else {
-      ss << ".";
+      ss << " (Option has been ignored).";
+      std::cout << "WARNING: " << ss.str() << std::endl;
     }
-
-    std::cout << "WARNING: " << ss.str() << std::endl;
   };
 }
 

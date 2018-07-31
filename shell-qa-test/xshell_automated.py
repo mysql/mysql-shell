@@ -293,7 +293,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use world_x;\n", "mysql-sql>"),
             ("show tables ;\n", "4 rows in set"),
@@ -319,7 +319,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select count(*) from actor;\n", "200"),
@@ -339,7 +339,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila_x;\n", "mysql-sql>"),
             ("select count(*) from movies;\n", "1 row in set"),
@@ -693,7 +693,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect -mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port),
+        x_cmds = [("\\connect --mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port),
                    "Creating an X protocol session"),
                   ("print(session);\n", "Session:"),
                   ]
@@ -705,7 +705,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.03]:5 Connect local Server on SQL mode: NODE SESSION WITH PORT'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect -mx {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+        x_cmds = [("\\connect --mx {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                             LOCALHOST.xprotocol_port), "Creating an X protocol session"),
                   ("print(session);\n", "Session:"),
                   ]
@@ -716,7 +716,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.03]:6 Connect local Server on SQL mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+        x_cmds = [("\\connect --mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                            LOCALHOST.port), "Creating a Classic session"),
                   ("print(session);\n", "ClassicSession:"),
                   ]
@@ -753,7 +753,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.04]:4 Connect remote Server on SQL mode: NODE SESSION W/O PORT'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect -mx {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host, REMOTEHOST.xprotocol_port),
+        x_cmds = [("\\connect --mx {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host, REMOTEHOST.xprotocol_port),
                    "Creating an X protocol session"),
                   ("print(session);\n", "Session:"),
                   ]
@@ -765,7 +765,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.04]:5 Connect remote Server on SQL mode: NODE SESSION WITH PORT'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect -mx {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+        x_cmds = [("\\connect --mx {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                             REMOTEHOST.xprotocol_port), "Creating an X protocol session"),
                   ("print(session);\n", "Session:"),
                   ]
@@ -776,7 +776,7 @@ class XShell_TestCases(unittest.TestCase):
         '''[2.0.04]:6 Connect remote Server on SQL mode: CLASSIC SESSION'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
-        x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+        x_cmds = [("\\connect --mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                            REMOTEHOST.port), "Creating a Classic session"),
                   ("print(session);\n", "ClassicSession:"),
                   ]
@@ -1441,22 +1441,22 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_2_0_13_03(self):
-        '''[2.0.13]:3 Connect local Server inside mysqlshell FAILOVER: \connect -mx  wrong password'''
+        '''[2.0.13]:3 Connect local Server inside mysqlshell FAILOVER: \connect --mx  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+                  ("\\connect --mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
                   ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
     def test_2_0_13_04(self):
-        '''[2.0.13]:4 Connect local Server inside mysqlshell FAILOVER: \connect -mc  wrong password'''
+        '''[2.0.13]:4 Connect local Server inside mysqlshell FAILOVER: \connect --mc  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port),
+                  ("\\connect --mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port),
                    "mysql-js>"),
                   ("print(session)\n", "null"),
                   ]
@@ -1475,22 +1475,22 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_2_0_14_03(self):
-        '''[2.0.14]:3 Connect remote Server inside mysqlshell FAILOVER: \connect -mx  wrong password'''
+        '''[2.0.14]:3 Connect remote Server inside mysqlshell FAILOVER: \connect --mx  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mx {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host, REMOTEHOST.xprotocol_port), "mysql-js>"),
+                  ("\\connect --mx {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host, REMOTEHOST.xprotocol_port), "mysql-js>"),
                   ("print(session)\n", "null"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
     def test_2_0_14_04(self):
-        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -mc  wrong password'''
+        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect --mc  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
+                  ("\\connect --mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
                   ("print(session)\n", "null"),
                   ]
@@ -1729,7 +1729,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ("\\connect -mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ("\\connect --mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("\\source {0}select_actor_10.sql\n".format(Exec_files_location), "rows in set"),
             ]
@@ -1741,7 +1741,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("\\. {0}select_actor_10.sql\n".format(Exec_files_location), "rows in set"),
             ]
@@ -1754,7 +1754,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("DROP PROCEDURE IF EXISTS get_actors;\n", "mysql-sql>"),
@@ -1848,7 +1848,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show tables like \'testdb\';\n", "1 row in set"),
@@ -1871,7 +1871,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show tables like 'testdb';\n", "1 row in set"),
@@ -1911,7 +1911,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show tables like \'example_SQLTABLE\';\n", "1 row in set"),
@@ -1983,7 +1983,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT first_name FROM actor WHERE first_name='Test';\n", "Test"),
@@ -2008,7 +2008,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT first_name FROM actor WHERE first_name='Test';\n", "Test"),
@@ -2051,7 +2051,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             (
             "SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n",
@@ -2073,7 +2073,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             (
             "SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n",
@@ -2114,7 +2114,7 @@ class XShell_TestCases(unittest.TestCase):
         # results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select * from sql_viewtest;\n", "row in set"),
@@ -2137,7 +2137,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select * from sql_viewtest;\n", "row in set"),
@@ -2183,7 +2183,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call  sql_sptest(@a);\n", "Query OK"),
@@ -2206,7 +2206,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call  sql_sptest(@a);\n", "Query OK"),
@@ -2335,7 +2335,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM sakila.actor where actor_id = 50;\n", "1 row in set"),
@@ -2358,7 +2358,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM sakila.actor where actor_id = 50;\n", "1 row in set"),
@@ -2461,7 +2461,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -2485,7 +2485,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -2595,7 +2595,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM js_view ;\n", "1 row in set"),
@@ -2617,7 +2617,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM js_viewnode ;\n", "1 row in set"),
@@ -2733,7 +2733,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call Test;\n", "1 row in set"),
@@ -2755,7 +2755,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call Test2;\n", "1 row in set"),
@@ -2881,7 +2881,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM sakila.actor where actor_id = 50;\n", "1 row in set"),
@@ -2903,7 +2903,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM sakila.friends;\n", "7 rows in set"),
@@ -3004,7 +3004,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -3028,7 +3028,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -3138,7 +3138,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM py_view ;\n", "1 row in set"),
@@ -3160,7 +3160,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * FROM py_view ;\n", "1 row in set"),
@@ -3264,7 +3264,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call Test;\n", "1 row in set"),
@@ -3286,7 +3286,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call Test;\n", "1 row in set"),
@@ -3346,7 +3346,7 @@ class XShell_TestCases(unittest.TestCase):
         # results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * from information_schema.tables WHERE table_schema ='example_SQLTABLE';\n", "Empty set"),
@@ -3368,7 +3368,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * from information_schema.tables WHERE table_schema ='example_SQLTABLE';\n", "Empty set"),
@@ -3424,7 +3424,7 @@ class XShell_TestCases(unittest.TestCase):
         # results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show databases like 'dbtest';\n", "Empty set")
@@ -3446,7 +3446,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show databases like 'dbtest';\n", "Empty set")
@@ -3503,7 +3503,7 @@ class XShell_TestCases(unittest.TestCase):
         # results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * from information_schema.views WHERE TABLE_NAME ='sql_viewtest';\n", "Empty set"),
@@ -3525,7 +3525,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("SELECT * from information_schema.views WHERE TABLE_NAME ='sql_viewtest';\n", "Empty set"),
@@ -3591,7 +3591,7 @@ class XShell_TestCases(unittest.TestCase):
         # results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call test_procedure;\n", "1 row in set"),
@@ -3613,7 +3613,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("call test_procedure;\n", "1 row in set"),
@@ -3748,7 +3748,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select * from sakila.friends where name = 'ruben';\n", "Empty set"),
@@ -3770,7 +3770,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select * from sakila.friends where name = 'ruben';\n", "Empty set"),
@@ -3869,7 +3869,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show schemas like 'schema_test';\n", "Empty set"),
@@ -3891,7 +3891,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show schemas like 'schema_test';\n", "Empty set"),
@@ -4014,7 +4014,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -4040,7 +4040,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -4163,7 +4163,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select name from mysql.proc where name like 'my_procedure';\n", "Empty set")
@@ -4187,7 +4187,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select name from mysql.proc where name like 'my_procedure';\n", "Empty set")
@@ -4328,7 +4328,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select * from sakila.friends where name = 'ruben';\n", "Empty set"),
@@ -4350,7 +4350,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("select * from sakila.friends where name = 'ruben';\n", "Empty set"),
@@ -4442,7 +4442,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show schemas like 'sakila';\n", "1 row"),
@@ -4466,7 +4466,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show schemas like 'schema_test';\n", "1 row"),
@@ -4589,7 +4589,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -4615,7 +4615,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -4640,7 +4640,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -4663,7 +4663,7 @@ class XShell_TestCases(unittest.TestCase):
     #       self.assertEqual(stdin, 'PASS')
     #     results = ''
     #     init_command = [MYSQL_SHELL, '--interactive=full']
-    #     x_cmds = [('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+    #     x_cmds = [('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
     #               ("\\sql\n","mysql-sql>"),
     #               ("use world_x;\n","mysql-sql>"),
     #               #("CREATE TABLE big_data_classic_py ( id INT NOT NULL AUTO_INCREMENT, stringCol VARCHAR(45) NOT NULL, datetimeCol DATETIME NOT NULL, blobCol BLOB NOT NULL, geometryCol GEOMETRY NOT NULL, PRIMARY KEY (id));"),
@@ -4782,7 +4782,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -4809,7 +4809,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             (
@@ -5344,7 +5344,7 @@ class XShell_TestCases(unittest.TestCase):
                    LOCALHOST.user + "\", " + os.linesep + "        \"host\": \"" + LOCALHOST.host + "\", " +
                    os.linesep + "        \"port\": " + LOCALHOST.port + ", " + os.linesep +
                    "        \"schema\": \"sakila\"" + os.linesep + "    }"),
-                  ("\\connect -mc $classic_session\n", "Creating a Classic session to '" + LOCALHOST.user + "@" +
+                  ("\\connect --mc $classic_session\n", "Creating a Classic session to '" + LOCALHOST.user + "@" +
                    LOCALHOST.host + ":" + LOCALHOST.port + "/sakila'"),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6527,16 +6527,16 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mc {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mc {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
             ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
-            ('\\connect -mc {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mc {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-js>"),
             ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
-            ('\\connect -mx {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mx {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-js>"),
             ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6547,16 +6547,16 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [
-            ('\\connect -mc {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mc {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
             ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
-            ('\\connect -mc {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mc {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-py>"),
             ("session\n", "<ClassicSession:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.port)),
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                      LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-py>"),
             ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port)),
-            ('\\connect -mx {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
+            ('\\connect --mx {0}:{1}@{2}:1\n'.format(LOCALHOST.user, LOCALHOST.password,
                                                    LOCALHOST.host), "mysql-py>"),
             ("session\n", "<Session:{0}@{1}:{2}>".format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port))]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -6841,7 +6841,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("show tables like \'example_SQLTABLE\';\n", "1 row in set"),
@@ -6950,7 +6950,7 @@ class XShell_TestCases(unittest.TestCase):
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [
-            ('\\connect -mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
+            ('\\connect --mx {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), "mysql-js>"),
             ("\\sql\n", "mysql-sql>"),
             ("use sakila;\n", "mysql-sql>"),
             ("DROP PROCEDURE IF EXISTS get_actors;\n", "mysql-sql>"),
@@ -6972,7 +6972,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
         x_cmds = [('\\saveconn  -f myNConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.xprotocol_port), "Successfully stored"),
-                  ('\\connect -mx $myNConn\n',
+                  ('\\connect --mx $myNConn\n',
                    'Using \'myNConn\' stored connection' + os.linesep + 'Creating an X protocol session'),
                   ('\\saveconn  -f myXConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.xprotocol_port), "Successfully stored"),
@@ -6980,7 +6980,7 @@ class XShell_TestCases(unittest.TestCase):
                    'Using \'myXConn\' stored connection' + os.linesep + 'Creating an X Session'),
                   ('\\saveconn  -f myCConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                      LOCALHOST.port), "Successfully stored"),
-                  ('\\connect -mc $myCConn\n',
+                  ('\\connect --mc $myCConn\n',
                    'Using \'myCConn\' stored connection' + os.linesep + 'Creating a Classic session'),
                   ]
         results = exec_xshell_commands(init_command, x_cmds)
@@ -7099,11 +7099,11 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_338_01(self):
-        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -mc  wrong password'''
+        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect --mc  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
+                  ("\\connect --mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
                   ("println(session)\n", "null")
                   ]
@@ -7111,11 +7111,11 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_338_02(self):
-        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -mc  wrong password'''
+        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect --mc  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
+                  ("\\connect --mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
                   ("println(db)\n", "null")
                   ]
@@ -7123,11 +7123,11 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
 
     def test_MYS_338_03(self):
-        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -mc  wrong password'''
+        '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect --mc  wrong password'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full']
         x_cmds = [(";\n", "mysql-js>"),
-                  ("\\connect -mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
+                  ("\\connect --mc {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
                                                            REMOTEHOST.port), "mysql-js>"),
                   ("db.name\n", "Cannot read property 'name' of null"),
                   ]
@@ -7728,13 +7728,13 @@ class XShell_TestCases(unittest.TestCase):
         '''[MYS-420]: Help in command prompt with space blank behaves different (add trim() function)'''
         results = 'PASS'
         init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-        x_cmds = [("\\connect\n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
-                  ("\\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
-                  ("       \\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
+        x_cmds = [("\\connect\n", "\connect [--mx|--mysqlx|--mc|--mysql] <URI>"),
+                  ("\\connect      \n", "\connect [--mx|--mysqlx|--mc|--mysql] <URI>"),
+                  ("       \\connect      \n", "\connect [--mx|--mysqlx|--mc|--mysql] <URI>"),
                   ("\\py\n", "mysql-py>"),
-                  ("\\connect\n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
-                  ("\\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>"),
-                  ("       \\connect      \n", "\connect [-mx|--mysqlx|-mc|--mysql|-ma] <URI>")
+                  ("\\connect\n", "\connect [--mx|--mysqlx|--mc|--mysql] <URI>"),
+                  ("\\connect      \n", "\connect [--mx|--mysqlx|--mc|--mysql] <URI>"),
+                  ("       \\connect      \n", "\connect [--mx|--mysqlx|--mc|--mysql] <URI>")
                   ]
         for command, expectedResult in x_cmds:
             p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -8314,7 +8314,7 @@ class XShell_TestCases(unittest.TestCase):
         '''Add println function for JavaScript'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
-        x_cmds = [("\\connect -mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port),
+        x_cmds = [("\\connect --mx {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port),
                    "Creating an X protocol session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
@@ -8330,7 +8330,7 @@ class XShell_TestCases(unittest.TestCase):
         '''Add println function for JavaScript'''
         results = ''
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql']
-        x_cmds = [("\\connect -mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+        x_cmds = [("\\connect --mc {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                            LOCALHOST.port), "Creating a Classic session"),
                   ("\\js\n", "mysql-js>"),
                   ("println(session);\n",
@@ -8699,9 +8699,9 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results, 'PASS')
         init_command = [MYSQL_SHELL, '--interactive=full', '--uri={0}:{1}@{2}:{3}'.
             format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port)]
-        x_cmds = [("\\c -mc omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
+        x_cmds = [("\\c --mc omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
                    .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.port) + "\n", "omar!#$&()*+,/:;=?@[]"),
-                  ("\\c -mx omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
+                  ("\\c --mx omar%21%23%24%26%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D:" + "{0}@{1}:{2}"
                    .format(LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port) + "\n",
                    "omar!%23$&()*+,%2F%3A;=%3F%40%5B%5D@localhost:" + LOCALHOST.xprotocol_port)]
         for command, expectedResult in x_cmds:
