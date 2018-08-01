@@ -52,7 +52,7 @@ _START_SERVER_CMD = u"{mysqld_path} --defaults-file={config_file}"
 _STOP_SERVER_CMD = (u"{mysqladmin_path} --defaults-file={config_file} "
                     u"shutdown -p")
 _CREATE_RSA_SSL_FILES_CMD = u"{mysql_ssl_rsa_setup_path} --datadir={datadir}"
-_WIN_SCRIPT = u"echo \"{message}\" & {content}\n"
+_WIN_SCRIPT = u"@echo off\necho {message} & {content}\n"
 _UNIX_SCRIPT = u"#!/bin/sh\n\necho '{message}'; {content}\n"
 
 # default value for auto_increment_increment
