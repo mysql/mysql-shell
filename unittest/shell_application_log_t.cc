@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,11 +40,10 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
 
   static std::string error;
 
-  static void my_hook(const char *message, ngcommon::Logger::LOG_LEVEL level,
-                      const char *domain) {
-    std::string message_s(message);
+  static void my_hook(const ngcommon::Logger::Log_entry &entry) {
+    std::string message_s(entry.message);
     EXPECT_TRUE(message_s.find(error) != std::string::npos);
-    if (getenv("TEST_DEBUG")) std::cout << "LOG:" << message << "\n";
+    if (getenv("TEST_DEBUG")) std::cout << "LOG:" << entry.message << "\n";
     i++;
   }
 

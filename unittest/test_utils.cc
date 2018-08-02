@@ -107,15 +107,14 @@ Shell_test_output_handler::~Shell_test_output_handler() {
   _logger->detach_log_hook(log_hook);
 }
 
-void Shell_test_output_handler::log_hook(const char *message,
-                                         ngcommon::Logger::LOG_LEVEL level,
-                                         const char *domain) {
+void Shell_test_output_handler::log_hook(
+    const ngcommon::Logger::Log_entry &entry) {
   ngcommon::Logger::LOG_LEVEL current_level = _logger->get_log_level();
 
   // If the level of the log is different than
   // the one set, we don't want to store the message
-  if (current_level == level) {
-    std::string message_s(message);
+  if (current_level == entry.level) {
+    std::string message_s(entry.message);
     log.push_back(message_s);
   }
 }

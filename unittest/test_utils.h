@@ -160,8 +160,7 @@ class Shell_test_output_handler {
  protected:
   static ngcommon::Logger *_logger;
 
-  static void log_hook(const char *message, ngcommon::Logger::LOG_LEVEL level,
-                       const char *domain);
+  static void log_hook(const ngcommon::Logger::Log_entry &entry);
   bool m_internal;
 };
 

@@ -185,6 +185,7 @@ class Shell_options : public shcore::Options {
 
  private:
   void notify(const std::string &option);
+  void set_output_format(const std::string &format);
 };
 
 std::shared_ptr<Shell_options> current_shell_options();

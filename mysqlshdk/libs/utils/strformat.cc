@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/utils/strformat.h"
 #include <cstdio>
+#include <tuple>
 #include <utility>
 #include "mysqlshdk/libs/utils/utils_string.h"
 

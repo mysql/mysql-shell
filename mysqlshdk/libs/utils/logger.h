@@ -21,42 +21,29 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _LOGGER_H_
-#define _LOGGER_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_LOGGER_H_
+#define MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 
 #include <fstream>
 #include <list>
-#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
 
 #ifdef _MSC_VER
 #include <sal.h>
-#endif
+#endif  // _MSC_VER
 
-#if defined(WIN32) && defined(_WINDLL)
-#ifdef NGCOMMON_EXPORTS
-#define NGCOMMON_API __declspec(dllexport)
-#else
-#define NGCOMMON_API __declspec(dllimport)
-#endif
-#else
-#define NGCOMMON_API
-#endif
+#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace ngcommon {
 
-#define DOMAIN_DEFAULT NULL
+#define DOMAIN_DEFAULT nullptr
 #ifndef LOG_DOMAIN
 #define LOG_DOMAIN DOMAIN_DEFAULT
 #endif
 
-namespace tests {
-class NGCOMMON_API LoggerTestProxy;
-}
-
-class NGCOMMON_API Logger {
+class SHCORE_PUBLIC Logger final {
  public:
   enum LOG_LEVEL {
     LOG_NONE = 1,
@@ -70,11 +57,26 @@ class NGCOMMON_API Logger {
     LOG_MAX_LEVEL = 8
   };
 
-  // receives a message formatted by the log infrastructure
-  typedef void (*Log_hook)(const char *message, LOG_LEVEL level,
-                           const char *domain);
+  struct Log_entry {
+    Log_entry();
+    Log_entry(const char *domain, const char *message, LOG_LEVEL level);
 
-  // can be multicast, set as a linked list
+    time_t timestamp;
+    const char *domain;
+    const char *message;
+    LOG_LEVEL level;
+  };
+
+  using Log_hook = void (*)(const Log_entry &entry);
+
+  Logger(const Logger &) = delete;
+  Logger(Logger &&) = delete;
+
+  ~Logger();
+
+  Logger &operator=(const Logger &) = delete;
+  Logger &operator=(Logger &&) = delete;
+
   void attach_log_hook(Log_hook hook);
   void detach_log_hook(Log_hook hook);
 
@@ -84,25 +86,19 @@ class NGCOMMON_API Logger {
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
   static void log(LOG_LEVEL level, const char *domain, const char *format, ...)
       __attribute__((__format__(__printf__, 3, 4)));
-  static std::string format(const char *formats, ...)
-      __attribute__((__format__(__printf__, 1, 2)));
+  static void log(const std::exception &exc, const char *domain,
+                  const char *format, ...)
+      __attribute__((__format__(__printf__, 3, 4)));
 #elif _MSC_VER
   static void log(LOG_LEVEL level, const char *domain,
                   _In_z_ _Printf_format_string_ const char *format, ...);
-  static std::string format(_In_z_ _Printf_format_string_ const char *format,
-                            ...);
+  static void log(const std::exception &exc, const char *domain,
+                  _In_z_ _Printf_format_string_ const char *format, ...);
 #else
   static void log(LOG_LEVEL level, const char *domain, const char *format, ...);
-  static std::string format(const char *formats, ...);
+  static void log(const std::exception &exc, const char *domain,
+                  const char *format, ...);
 #endif
-  static void log_text(LOG_LEVEL level, const char *domain, const char *text);
-  static void log_text(LOG_LEVEL level, const char *domain,
-                       const std::string &text) {
-    log_text(level, domain, text.c_str());
-  }
-
-  static void log_exc(const char *domain, const char *message,
-                      const std::exception &exc);
 
   static Logger *singleton();
 
@@ -118,70 +114,45 @@ class NGCOMMON_API Logger {
 
   static const char *get_level_range_info();
 
-  ~Logger();
+  static void set_stderr_output_format(const std::string &format);
 
-  const std::string &logfile_name() const { return out_name; }
+  static std::string stderr_output_format();
+
+  const std::string &logfile_name() const { return m_log_file_name; }
+
+  bool use_stderr() const;
 
  private:
-  struct Case_insensitive_comp {
-    bool operator()(const std::string &lhs, const std::string &rhs) const;
-  };
-
-  struct Logger_levels_table {
-   private:
-    std::string descrs[LOG_MAX_LEVEL + 1];
-    std::map<std::string, LOG_LEVEL, Case_insensitive_comp> descr_to_level;
-
-   public:
-    Logger_levels_table() {
-      descrs[0] = "";
-      descrs[1] = "None";
-      descrs[2] = "INTERNAL";
-      descrs[3] = "Error";
-      descrs[4] = "Warning";
-      descrs[5] = "Info";
-      descrs[6] = "Debug";
-      descrs[7] = "Debug2";
-      descrs[8] = "Debug3";
-
-      for (int i = 1; i <= LOG_MAX_LEVEL; i++) {
-        descr_to_level.insert(std::map<std::string, LOG_LEVEL>::value_type(
-            descrs[i], static_cast<LOG_LEVEL>(i)));
-      }
-    }
-
-    LOG_LEVEL get_level_by_name(const std::string &level_name);
-
-    std::string &get_level_name_by_enum(LOG_LEVEL level) {
-      return descrs[level];
-    }
-  };
-
-  // Outputs to stderr or OutputDebugStringA in Windows
   Logger(const char *filename, bool use_stderr = false,
          LOG_LEVEL log_level = LOG_INFO);
 
-  void out_to_stderr(const char *msg);
-  static std::string format_message(const char *domain, const char *message,
-                                    LOG_LEVEL log_level);
-  static std::string format_message(const char *domain, const char *,
-                                    const std::exception &exc);
-  static std::string format_message_common(const char *domain,
-                                           const char *message,
-                                           Logger::LOG_LEVEL log_level);
-  static const char *get_log_level_desc(LOG_LEVEL log_level);
+  static void out_to_stderr(const Log_entry &entry);
+
+  static std::string format_message(const Log_entry &entry);
+
   static void assert_logger_initialized();
 
-  static std::unique_ptr<Logger> instance;
-  static struct Logger_levels_table log_levels_table;
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
+  static std::string format(const char *formats, ...)
+      __attribute__((__format__(__printf__, 1, 2)));
+#elif _MSC_VER
+  static std::string format(_In_z_ _Printf_format_string_ const char *format,
+                            ...);
+#else
+  static std::string format(const char *formats, ...);
+#endif
 
-  LOG_LEVEL log_level;
-  bool use_stderr;
-  std::ofstream out;
-  std::string out_name;
-  std::list<Log_hook> hook_list;
+  static std::string format(const char *formats, va_list args);
 
-  friend class tests::LoggerTestProxy;
+  static void do_log(const Log_entry &entry);
+
+  static std::unique_ptr<Logger> s_instance;
+  static std::string s_output_format;
+
+  LOG_LEVEL m_log_level;
+  std::ofstream m_log_file;
+  std::string m_log_file_name;
+  std::list<Log_hook> m_hook_list;
 };
 
 #define log_internal_error(...)                                           \
@@ -191,7 +162,8 @@ class NGCOMMON_API Logger {
   ngcommon::Logger::log(ngcommon::Logger::LOG_INTERNAL_ERROR, LOG_DOMAIN, \
                         __VA_ARGS__)
 
-#define log_exception(msg, exc) ngcommon::Logger::log_exc(LOG_DOMAIN, msg, exc)
+#define log_exception(exc, ...) \
+  ngcommon::Logger::log(exc, LOG_DOMAIN, __VA_ARGS__)
 #define log_error(...) \
   ngcommon::Logger::log(ngcommon::Logger::LOG_ERROR, LOG_DOMAIN, __VA_ARGS__)
 #define log_warning(...) \
@@ -202,21 +174,19 @@ class NGCOMMON_API Logger {
   ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG, LOG_DOMAIN, __VA_ARGS__)
 
 #ifndef NDEBUG
-#define log_debug2(args)                                               \
-  ngcommon::Logger::log_text(ngcommon::Logger::LOG_DEBUG2, LOG_DOMAIN, \
-                             ngcommon::Logger::format args)
-#define log_debug3(args)                                               \
-  ngcommon::Logger::log_text(ngcommon::Logger::LOG_DEBUG3, LOG_DOMAIN, \
-                             ngcommon::Logger::format args)
+#define log_debug2(...) \
+  ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG2, LOG_DOMAIN, __VA_ARGS__)
+#define log_debug3(...) \
+  ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG3, LOG_DOMAIN, __VA_ARGS__)
 
 #define log_secret(...) \
   ngcommon::Logger::log(ngcommon::Logger::LOG_DEBUG, LOG_DOMAIN, __VA_ARGS__)
 #else
-#define log_debug2(args) \
-  do {                   \
+#define log_debug2(...) \
+  do {                  \
   } while (0)
-#define log_debug3(args) \
-  do {                   \
+#define log_debug3(...) \
+  do {                  \
   } while (0)
 
 #define log_secret(...) \
@@ -225,4 +195,4 @@ class NGCOMMON_API Logger {
 #endif
 }  // namespace ngcommon
 
-#endif
+#endif  // MYSQLSHDK_LIBS_UTILS_LOGGER_H_

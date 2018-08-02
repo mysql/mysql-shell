@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,63 +22,88 @@
  */
 
 #include "mysqlshdk/libs/utils/logger.h"
-#include <utils/utils_general.h>
 
+#include <rapidjson/document.h>
 #include <stdarg.h>
 #include <time.h>
-#include <utility>
-#include <vector>
 
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wshadow"
-#ifndef __has_warning
-#define __has_warning(x) 0
-#endif
-#if __has_warning("-Wshorten-64-to-32")
-#pragma GCC diagnostic ignored "-Wshorten-64-to-32"
-#endif
-#if __has_warning("-Wunused-local-typedef")
-#pragma GCC diagnostic ignored "-Wunused-local-typedef"
-#endif
-#elif defined _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:)  // TODO(?): add MSVC code for pedantic and shadow
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#elif defined _MSC_VER
-#pragma warning(pop)
-#endif
-
-#ifdef WIN32
+#ifdef _WIN32
 #include <io.h>
 #include <windows.h>
-#define strcasecmp _stricmp
-#pragma warning(disable : 4996)  // disable warnings stating that write() and
-                                 // fileno() (POSIX) should be replaced by
-                                 // _write() and _fileno() (allegedly ISO C++)
-#else
-#include <strings.h>
+#else  // !_WIN32
 #include <unistd.h>
-#endif
+#endif  // !_WIN32
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <algorithm>
+#include <map>
+#include <utility>
+
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace ngcommon {
 
-std::unique_ptr<Logger> Logger::instance(nullptr);
+namespace {
 
-Logger::Logger_levels_table Logger::log_levels_table;
+struct Logger_levels_table {
+ public:
+  Logger_levels_table() {
+    m_names[0] = "";
+    m_names[1] = "None";
+    m_names[2] = "INTERNAL";
+    m_names[3] = "Error";
+    m_names[4] = "Warning";
+    m_names[5] = "Info";
+    m_names[6] = "Debug";
+    m_names[7] = "Debug2";
+    m_names[8] = "Debug3";
+
+    for (int i = Logger::LOG_NONE; i <= Logger::LOG_MAX_LEVEL; ++i) {
+      m_levels.insert(
+          std::make_pair(m_names[i], static_cast<Logger::LOG_LEVEL>(i)));
+    }
+  }
+
+  Logger::LOG_LEVEL to_log_level(const std::string &level_name) {
+    const auto it = m_levels.find(level_name);
+    if (m_levels.end() != it)
+      return it->second;
+    else
+      return Logger::LOG_NONE;
+  }
+
+  std::string &to_string(Logger::LOG_LEVEL level) { return m_names[level]; }
+
+ private:
+  struct Case_insensitive_comp {
+    bool operator()(const std::string &lhs, const std::string &rhs) const {
+      return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+    }
+  };
+
+  std::string m_names[Logger::LOG_MAX_LEVEL + 1];
+  std::map<std::string, Logger::LOG_LEVEL, Case_insensitive_comp> m_levels;
+};
+
+Logger_levels_table g_level_converter;
+
+}  // namespace
+
+std::unique_ptr<Logger> Logger::s_instance;
+std::string Logger::s_output_format;
+
+Logger::Log_entry::Log_entry()
+    : Log_entry(nullptr, nullptr, LOG_LEVEL::LOG_NONE) {}
+
+Logger::Log_entry::Log_entry(const char *domain, const char *message,
+                             LOG_LEVEL level)
+    : timestamp{time(nullptr)},
+      domain{domain},
+      message{message},
+      level{level} {}
 
 void Logger::attach_log_hook(Log_hook hook) {
   if (hook) {
-    hook_list.push_back(hook);
+    m_hook_list.push_back(hook);
   } else {
     throw std::logic_error("Logger::attach_log_hook: Null hook pointer");
   }
@@ -86,180 +111,169 @@ void Logger::attach_log_hook(Log_hook hook) {
 
 void Logger::detach_log_hook(Log_hook hook) {
   if (hook) {
-    hook_list.remove(hook);
+    m_hook_list.remove(hook);
   } else {
     throw std::logic_error("Logger::detach_log_hook: Null hook pointer");
   }
 }
 
-void Logger::set_log_level(LOG_LEVEL log_level_) {
-  this->log_level = log_level_;
+void Logger::set_log_level(LOG_LEVEL log_level) {
+  this->m_log_level = log_level;
 }
 
-Logger::LOG_LEVEL Logger::get_log_level() { return log_level; }
+Logger::LOG_LEVEL Logger::get_log_level() { return m_log_level; }
 
 void Logger::assert_logger_initialized() {
-  if (instance.get() == nullptr) {
-    const char *msg_noinit =
+  if (s_instance.get() == nullptr) {
+    static constexpr auto msg_noinit =
         "Logger: Tried to log to an uninitialized logger.\n";
 
-#ifdef WIN32
-    ::write(fileno(stderr), msg_noinit, strlen(msg_noinit));
-#else
-    ssize_t n = ::write(STDERR_FILENO, msg_noinit, strlen(msg_noinit));
-    (void)n;  // silent unused variable warning
-#endif
+#ifdef _WIN32
+    ::_write(fileno(stderr), msg_noinit, strlen(msg_noinit));
+#else   // !_WIN32
+    ::write(STDERR_FILENO, msg_noinit, strlen(msg_noinit));
+#endif  // !_WIN32
   }
 }
 
 std::string Logger::format(const char *formats, ...) {
   va_list args;
   va_start(args, formats);
-#ifdef WIN32
-  int n = _vscprintf(formats, args);
-#else
-  size_t n = (size_t)vsnprintf(NULL, 0, formats, args);
-#endif
+  const auto msg = format(formats, args);
   va_end(args);
+
+  return msg;
+}
+
+std::string Logger::format(const char *formats, va_list args) {
+  va_list args_copy;
+  va_copy(args_copy, args);
+#ifdef _WIN32
+  int n = _vscprintf(formats, args_copy);
+#else   // !_WIN32
+  size_t n = (size_t)vsnprintf(nullptr, 0, formats, args_copy);
+#endif  // !_WIN32
+  va_end(args_copy);
 
   std::string mybuf;
   mybuf.resize(n + 1);
 
-  va_start(args, formats);
-  vsnprintf(&mybuf[0], n + 1, formats, args);
-  va_end(args);
+  va_copy(args_copy, args);
+  vsnprintf(&mybuf[0], n + 1, formats, args_copy);
+  va_end(args_copy);
 
   return mybuf;
-}
-
-void Logger::log_text(LOG_LEVEL level, const char *domain, const char *text) {
-  assert_logger_initialized();
-
-  if (instance.get() != nullptr && level <= instance->log_level) {
-    std::string s = instance->format_message(domain, text, level);
-    s += "\n";
-    const char *buf = s.c_str();
-
-    instance->out.write(buf, (std::streamsize)strlen(buf));
-    instance->out.flush();
-
-    if (instance->use_stderr) {
-      instance->out_to_stderr(buf);
-    }
-
-    std::list<Log_hook>::const_iterator myend = instance->hook_list.end();
-    for (std::list<Log_hook>::const_iterator it = instance->hook_list.begin();
-         it != myend; it++)
-      (*it)(buf, level, domain);
-  }
 }
 
 void Logger::log(LOG_LEVEL level, const char *domain, const char *formats,
                  ...) {
   assert_logger_initialized();
 
-  if (instance.get() != nullptr && level <= instance->log_level) {
-    char *mybuf;
+  if (s_instance.get() != nullptr && level <= s_instance->m_log_level) {
     va_list args;
     va_start(args, formats);
-#ifdef WIN32
-    int n = _vscprintf(formats, args);
-#else
-    size_t n = (size_t)vsnprintf(NULL, 0, formats, args);
-#endif
+    const auto msg = format(formats, args);
     va_end(args);
 
-    mybuf = static_cast<char *>(malloc(n + 1));
-    va_start(args, formats);
-    vsnprintf(mybuf, n + 1, formats, args);
-    va_end(args);
-    std::string s = instance->format_message(domain, mybuf, level);
-    s += "\n";
-    const char *buf = s.c_str();
-
-    instance->out.write(buf, (std::streamsize)strlen(buf));
-    instance->out.flush();
-
-    if (instance->use_stderr) {
-      instance->out_to_stderr(buf);
-    }
-
-    std::list<Log_hook>::const_iterator myend = instance->hook_list.end();
-    for (std::list<Log_hook>::const_iterator it = instance->hook_list.begin();
-         it != myend; it++)
-      (*it)(buf, level, domain);
-
-    free(mybuf);
+    do_log({domain, msg.c_str(), level});
   }
 }
 
-void Logger::log_exc(const char *domain, const char *message,
-                     const std::exception &exc) {
+void Logger::log(const std::exception &exc, const char *domain,
+                 const char *formats, ...) {
   assert_logger_initialized();
-  if (instance.get() != nullptr) {
-    Logger::LOG_LEVEL level = Logger::LOG_ERROR;
-    std::string s = instance->format_message(domain, message, exc);
-    const char *buf = s.c_str();
 
-    if (!instance->out.is_open()) {
-      instance->out.write(buf, (std::streamsize)strlen(buf));
-      instance->out.flush();
-    }
+  if (s_instance.get() != nullptr) {
+    va_list args;
+    va_start(args, formats);
+    const auto msg =
+        format("%s: %s", format(formats, args).c_str(), exc.what());
+    va_end(args);
 
-    if (instance->use_stderr) {
-      instance->out_to_stderr(buf);
-    }
+    do_log({domain, msg.c_str(), Logger::LOG_ERROR});
+  }
+}
 
-    std::list<Log_hook>::const_iterator myend = instance->hook_list.end();
-    for (std::list<Log_hook>::const_iterator it = instance->hook_list.begin();
-         it != myend; it++)
-      (*it)(buf, level, domain);
+void Logger::do_log(const Log_entry &entry) {
+  const auto s = format_message(entry);
+
+  if (s_instance->m_log_file.is_open()) {
+    s_instance->m_log_file.write(s.c_str(), s.length());
+    s_instance->m_log_file.flush();
+  }
+
+  for (const auto &f : s_instance->m_hook_list) {
+    f(entry);
   }
 }
 
 Logger *Logger::singleton() {
-  if (instance.get() != nullptr) {
-    return instance.get();
+  if (s_instance.get() != nullptr) {
+    return s_instance.get();
   } else {
     throw std::logic_error("ngcommon::Logger not initialized");
   }
 }
 
-void Logger::out_to_stderr(const char *msg) {
-#ifdef WIN32
-  OutputDebugString(msg);
-#else
-  ssize_t n = ::write(STDERR_FILENO, msg, strlen(msg));
-  (void)n;  // silent unused variable warning
-#endif
+void Logger::out_to_stderr(const Log_entry &entry) {
+  std::string msg;
+
+  if (std::string::npos != s_output_format.find("json")) {
+    rapidjson::Document doc{rapidjson::Type::kObjectType};
+    auto &allocator = doc.GetAllocator();
+
+    const auto timestamp = std::to_string(entry.timestamp);
+    doc.AddMember(rapidjson::StringRef("timestamp"),
+                  rapidjson::StringRef(timestamp.c_str(), timestamp.length()),
+                  allocator);
+
+    const auto level = g_level_converter.to_string(entry.level);
+    doc.AddMember(rapidjson::StringRef("level"),
+                  rapidjson::StringRef(level.c_str(), level.length()),
+                  allocator);
+
+    if (entry.domain) {
+      doc.AddMember(rapidjson::StringRef("domain"),
+                    rapidjson::StringRef(entry.domain), allocator);
+    }
+
+    doc.AddMember(rapidjson::StringRef("message"),
+                  rapidjson::StringRef(entry.message), allocator);
+
+    rapidjson::StringBuffer buffer;
+
+    if ("json" == s_output_format) {
+      rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+      doc.Accept(writer);
+    } else {
+      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+      doc.Accept(writer);
+    }
+
+    msg = std::string{buffer.GetString(), buffer.GetSize()} + "\n";
+  } else {
+    msg = format_message(entry);
+  }
+
+#ifdef _WIN32
+  OutputDebugString(msg.c_str());
+#else   // !_WIN32
+  ::write(STDERR_FILENO, msg.c_str(), msg.length());
+#endif  // !_WIN32
 }
 
-/*static*/ std::string Logger::format_message(const char *domain,
-                                              const char *message,
-                                              Logger::LOG_LEVEL log_level_) {
-  return format_message_common(domain, message, log_level_);
-}
-
-/*static*/ std::string Logger::format_message(const char *domain, const char *,
-                                              const std::exception &exc) {
-  return format_message_common(domain, exc.what(), Logger::LOG_ERROR);
-}
-
-/*static*/ std::string Logger::format_message_common(
-    const char *domain, const char *message, Logger::LOG_LEVEL log_level_) {
+std::string Logger::format_message(const Log_entry &entry) {
   // get GMT time as string
   char timestamp[32];
   {
-    time_t t = time(NULL);
+    struct tm tm;
 #ifdef _WIN32
-    struct tm tm;
-    gmtime_s(&tm, &t);
-#else
-    struct tm tm;
-    gmtime_r(&t, &tm);
-#endif
+    gmtime_s(&tm, &entry.timestamp);
+#else   // !_WIN32
+    gmtime_r(&entry.timestamp, &tm);
+#endif  // !_WIN32
 
-    char date_format[] = "%Y-%m-%d %H:%M:%S: ";
+    static constexpr auto date_format = "%Y-%m-%d %H:%M:%S: ";
     strftime(timestamp, sizeof(timestamp), date_format, &tm);
   }
 
@@ -268,15 +282,16 @@ void Logger::out_to_stderr(const char *msg) {
   {
     result.reserve(512);
     result += timestamp;
-    result += get_log_level_desc(log_level_);
+    result += g_level_converter.to_string(entry.level);
     result += ':';
     result += ' ';
-    if (domain) {
-      result += domain;
+    if (entry.domain) {
+      result += entry.domain;
       result += ':';
       result += ' ';
     }
-    result += message;
+    result += entry.message;
+    result += "\n";
   }
 
   return result;
@@ -284,52 +299,61 @@ void Logger::out_to_stderr(const char *msg) {
 
 void Logger::setup_instance(const char *filename, bool use_stderr,
                             Logger::LOG_LEVEL log_level) {
-  if (instance.get() != nullptr) {
-    if (filename && instance->out_name.compare(filename) != 0) {
-      instance->out.close();
-      instance->out.open(filename, std::ios_base::app);
-      if (instance->out.fail())
-        throw std::logic_error(
-            std::string("Error in Logger::Logger when opening file '") +
-            filename + "' for writing");
-      instance->out_name = filename;
+  if (s_instance) {
+    if (filename) {
+      if (filename != s_instance->m_log_file_name) {
+        if (s_instance->m_log_file.is_open()) s_instance->m_log_file.close();
+        s_instance->m_log_file_name = filename;
+
+        s_instance->m_log_file.open(filename, std::ios_base::app);
+        if (s_instance->m_log_file.fail())
+          throw std::logic_error(
+              std::string("Error in Logger::Logger when opening file '") +
+              filename + "' for writing");
+      }
+    } else {
+      if (s_instance->m_log_file.is_open()) s_instance->m_log_file.close();
+      s_instance->m_log_file_name.clear();
     }
-    instance->set_log_level(log_level);
-    instance->use_stderr = use_stderr;
+
+    s_instance->set_log_level(log_level);
+    s_instance->detach_log_hook(&Logger::out_to_stderr);
+
+    if (use_stderr) {
+      s_instance->attach_log_hook(&Logger::out_to_stderr);
+    }
   } else {
-    instance.reset(new Logger(filename, use_stderr, log_level));
+    s_instance.reset(new Logger(filename, use_stderr, log_level));
   }
 }
 
-/*static*/ const char *Logger::get_log_level_desc(
-    Logger::LOG_LEVEL log_level_) {
-  return Logger::log_levels_table.get_level_name_by_enum(log_level_).c_str();
-}
-
-Logger::Logger(const char *filename, bool use_stderr_,
-               Logger::LOG_LEVEL log_level_) {
-  this->use_stderr = use_stderr_;
-  this->log_level = log_level_;
-  if (filename != NULL) {
-    out_name = filename;
-    out.open(filename, std::ios_base::app);
-    if (out.fail())
+Logger::Logger(const char *filename, bool use_stderr,
+               Logger::LOG_LEVEL log_level)
+    : m_log_level{log_level} {
+  if (filename != nullptr) {
+    m_log_file_name = filename;
+    m_log_file.open(filename, std::ios_base::app);
+    if (m_log_file.fail())
       throw std::logic_error(
           std::string("Error in Logger::Logger when opening file '") +
           filename + "' for writing");
   }
+
+  if (use_stderr) {
+    attach_log_hook(&Logger::out_to_stderr);
+  }
 }
 
 Logger::~Logger() {
-  if (out.is_open()) out.close();
+  if (m_log_file.is_open()) m_log_file.close();
 }
 
 Logger::LOG_LEVEL Logger::get_level_by_name(const std::string &level_name) {
-  return log_levels_table.get_level_by_name(level_name);
+  return g_level_converter.to_log_level(level_name);
 }
 
 Logger::LOG_LEVEL Logger::get_log_level(const std::string &tag) {
-  LOG_LEVEL level = log_levels_table.get_level_by_name(tag);
+  LOG_LEVEL level = get_level_by_name(tag);
 
   if (level != LOG_NONE || is_level_none(tag)) return level;
 
@@ -354,19 +378,15 @@ const char *Logger::get_level_range_info() {
          "respectively.";
 }
 
-Logger::LOG_LEVEL Logger::Logger_levels_table::get_level_by_name(
-    const std::string &level_name) {
-  std::map<std::string, LOG_LEVEL, Case_insensitive_comp>::const_iterator it =
-      descr_to_level.find(level_name);
-  if (it != descr_to_level.end())
-    return (*it).second;
-  else
-    return LOG_NONE;
+void Logger::set_stderr_output_format(const std::string &format) {
+  s_output_format = format;
 }
 
-bool Logger::Case_insensitive_comp::operator()(const std::string &lhs,
-                                               const std::string &rhs) const {
-  return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+std::string Logger::stderr_output_format() { return s_output_format; }
+
+bool Logger::use_stderr() const {
+  return m_hook_list.end() != std::find(m_hook_list.begin(), m_hook_list.end(),
+                                        &Logger::out_to_stderr);
 }
 
 }  // namespace ngcommon
