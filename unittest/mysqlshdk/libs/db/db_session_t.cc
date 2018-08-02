@@ -22,7 +22,6 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/mysqlshdk/libs/db/db_common.h"
 
 namespace mysqlshdk {
@@ -35,9 +34,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Db_tests::make_session() {
     return mysqlshdk::db::mysqlx::Session::create();
 }
 
-void Db_tests::TearDownTestCase() {
-  run_script_classic({"drop schema if exists xtest"});
-}
+void Db_tests::TearDownTestCase() { run_script_classic({"drop schema xtest"}); }
 
 void Db_tests::SetUp() {
   is_classic = true;
@@ -225,51 +222,6 @@ TEST_F(Db_tests, auto_close) {
       EXPECT_EQ(ocount, count);
     }
   } while (switch_proto());
-}
-
-TEST_F(Db_tests, gtid) {
-  is_classic = true;
-  session->connect(Connection_options(uri()));
-
-  session->execute("drop schema if exists mytest");
-  session->execute("create schema mytest");
-  session->execute("use mytest");
-  session->execute("create table a (k int primary key)");
-  auto result = session->query("start transaction");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-  result = session->query("insert into a values (1)");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-  result = session->query("commit");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-
-  std::string gtid_mode =
-      session->query("select @@gtid_mode")->fetch_one()->get_string(0);
-  if (gtid_mode != "ON") {
-    // js_shell/shell_gtid.js covers this functionality, so this test isn't
-    // mandatory
-    SKIP_TEST("gtid tracking test requires server with gtid enabled");
-  }
-  session->execute("set session session_track_gtids=1");
-
-  EXPECT_EQ("ON",
-            session->query("select @@gtid_mode")->fetch_one()->get_string(0));
-
-  result = session->query("start transaction");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-  result = session->query("insert into a values (2)");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-  result = session->query("commit");
-  EXPECT_NE("", shcore::str_join(result->get_gtids(), ","));
-
-  result = session->query("start transaction");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-  result = session->query("insert into a values (3)");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-  result = session->query("rollback");
-  EXPECT_EQ("", shcore::str_join(result->get_gtids(), ","));
-
-  session->execute("drop schema if exists mytest");
-  session->close();
 }
 
 }  // namespace db

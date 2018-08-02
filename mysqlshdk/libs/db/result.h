@@ -32,6 +32,7 @@
 #include <vector>
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
+#include "mysqlshdk/libs/db/row_map.h"
 #include "mysqlshdk_export.h"
 
 namespace mysqlshdk {
@@ -59,6 +60,11 @@ class SHCORE_PUBLIC IResult {
    * Row_copy object.
    */
   virtual const IRow *fetch_one() = 0;
+
+  Row_ref_map fetch_one_map() {
+    return Row_ref_map(field_names(), fetch_one());
+  }
+
   virtual bool next_resultset() = 0;
 
   /**
@@ -81,9 +87,11 @@ class SHCORE_PUBLIC IResult {
   virtual const std::vector<std::string> &get_gtids() const = 0;
 
   virtual const std::vector<Column> &get_metadata() const = 0;
+  virtual std::shared_ptr<Field_names> field_names() const = 0;
 
   virtual ~IResult() {}
 };
+
 }  // namespace db
 }  // namespace mysqlshdk
 #endif  // MYSQLSHDK_LIBS_DB_RESULT_H_

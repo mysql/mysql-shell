@@ -32,6 +32,9 @@ set(db_SOURCE
     utils_connection.cc
     utils_error.cc
     row_copy.cc
+    mutable_result.cc
+    utils/diff.cc
+    utils/utils.cc
     mysql/session.cc
     mysql/result.cc
     mysql/row.cc

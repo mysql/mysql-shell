@@ -76,6 +76,7 @@ Type Row::get_type(uint32_t index) const {
 std::string Row::get_as_string(uint32_t index) const {
   assert(_row);
   VALIDATE_INDEX(index);
+  if (_row->is_null(index)) return "NULL";
   std::string data;
   const Column &column = _owner->get_metadata().at(index);
   if (column.get_type() == Type::Date || column.get_type() == Type::DateTime) {

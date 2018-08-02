@@ -63,6 +63,8 @@ class Trace_writer {
   int trace_index() const { return _idx; }
 
  private:
+  std::string _log_label;
+
   Trace_writer(const std::string &path, int print_traces);
   std::string _path;
   std::ofstream _stream;
@@ -149,7 +151,7 @@ class Trace {
 
   mysqlshdk::db::Connection_options expected_connect();
   void expected_close();
-  std::string expected_query(const std::string &query);
+  std::string expected_query(const std::string &expected);
 
   void expected_connect_status(std::map<std::string, std::string> *out_info);
   void expected_status();
