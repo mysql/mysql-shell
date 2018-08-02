@@ -14,6 +14,7 @@
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index on a single field. 2 (WL10858-FR1_1)
 *************************** 1. row ***************************
@@ -42,6 +43,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index on a single field with all the possibles options. 2 (WL10858-FR1_2)
 *************************** 1. row ***************************
@@ -70,6 +72,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 *************************** 2. row ***************************
         Table: my_coll
    Non_unique: 1
@@ -85,6 +88,7 @@ Index_comment:
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 *************************** 3. row ***************************
         Table: my_coll
    Non_unique: 1
@@ -100,6 +104,7 @@ Index_comment:
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index on multiple fields 2 (WL10858-FR1_3)
 *************************** 1. row ***************************
@@ -130,6 +135,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 *************************** 2. row ***************************
         Table: my_coll
    Non_unique: 1
@@ -145,6 +151,7 @@ Index_comment:
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 *************************** 3. row ***************************
         Table: my_coll
    Non_unique: 1
@@ -160,6 +167,7 @@ Index_comment:
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index on multiple fields with all the possibles options. 2 (WL10858-FR1_4)
 *************************** 1. row ***************************
@@ -191,6 +199,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a geojson datatype field. 2 (WL10858-FR1_5)
 *************************** 1. row ***************************
@@ -219,6 +228,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a geojson datatype field without specifying the required flag it should be set to true by default. 2 (WL10858-FR1_6)
 *************************** 1. row ***************************
@@ -248,6 +258,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a geojson datatype field with all the possibles options. 2 (WL10858-FR1_7)
 *************************** 1. row ***************************
@@ -276,6 +287,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a datetime field. 2 (WL10858-FR1_8)
 *************************** 1. row ***************************
@@ -305,6 +317,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a timestamp field. 2 (WL10858-FR1_9)
 *************************** 1. row ***************************
@@ -333,6 +346,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a time field. 2 (WL10858-FR1_10)
 *************************** 1. row ***************************
@@ -362,6 +376,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a date field. 2 (WL10858-FR1_11)
 *************************** 1. row ***************************
@@ -391,6 +406,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a numeric field. 2 (WL10858-FR1_12)
 *************************** 1. row ***************************
@@ -420,6 +436,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> FR1_13	Create an index using a decimal field. 2 (WL10858-FR1_13)
 *************************** 1. row ***************************
@@ -449,6 +466,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a double field. 2 (WL10858-FR1_14)
 *************************** 1. row ***************************
@@ -478,6 +496,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a float field. 2 (WL10858-FR1_15)
 *************************** 1. row ***************************
@@ -507,6 +526,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a real field. 2 (WL10858-FR1_16)
 *************************** 1. row ***************************
@@ -536,6 +556,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a bigint field. 2 (WL10858-FR1_17)
 *************************** 1. row ***************************
@@ -565,6 +586,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a integer field. 2 (WL10858-FR1_18)
 *************************** 1. row ***************************
@@ -594,6 +616,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a mediumint field. 2 (WL10858-FR1_19)
 *************************** 1. row ***************************
@@ -623,6 +646,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a smallint field. 2 (WL10858-FR1_20)
 *************************** 1. row ***************************
@@ -652,6 +676,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Create an index using a tinyint field. 2 (WL10858-FR1_21)
 *************************** 1. row ***************************
@@ -681,6 +706,7 @@ Create Table: CREATE TABLE `my_coll` (
       Comment: 
 Index_comment: 
       Visible: YES
+   Expression: NULL
 
 //@<OUT> Verify that the dropIndex function removes the index entry from the table schema of a collection. 2 (WL10858-FR4_1)
 *************************** 1. row ***************************

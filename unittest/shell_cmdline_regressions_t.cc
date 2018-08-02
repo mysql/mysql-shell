@@ -161,15 +161,7 @@ TEST_F(Command_line_test, bug24905066) {
     execute(
         {_mysqlsh, "--mysqlx", "-i", "--uri", uri.c_str(), "-e", "1", NULL});
 
-    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "Access denied for user "
-          "'root'@'localhost'");
-    } else {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "MySQL Error 1045: Unknown database "
-          "'some_unexisting_schema'");
-    }
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Unknown database 'some_unexisting_schema'");
   }
 }
 
