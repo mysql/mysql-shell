@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,8 +110,8 @@ std::shared_ptr<Object> Object_registry::lookup(
   if (iter != placeholders_.end()) {
     return iter->second;
   }
-  log_debug2(("Object type '%s' has no known completion rules registered\n",
-              class_name.c_str()));
+  log_debug2("Object type '%s' has no known completion rules registered\n",
+             class_name.c_str());
   return std::shared_ptr<Object>(nullptr);
 }
 
@@ -158,8 +158,8 @@ Completion_list Provider_script::complete_chain(const Chain &chain_a) {
         std::tie(type, member) = chain.next();
         std::shared_ptr<Object> object = root->get_member(member);
         if (!object) {
-          log_debug2(("No completable object known for member '%s' of '%s'",
-                      member.c_str(), root->get_type().c_str()));
+          log_debug2("No completable object known for member '%s' of '%s'",
+                     member.c_str(), root->get_type().c_str());
           break;
         }
         // obj.method.bla or obj.not_method().bla

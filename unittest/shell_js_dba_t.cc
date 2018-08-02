@@ -302,7 +302,7 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   shcore::remove_directory(dir_non_ascii);
   // BUG#26393614
   std::vector<std::string> log{
-      "Warning: Sandbox instances are only suitable for deploying and "
+      "Sandbox instances are only suitable for deploying and "
       "running on your local machine for testing purposes and are not "
       "accessible from external networks."};
   MY_EXPECT_LOG_CONTAINS(log);
@@ -326,7 +326,7 @@ TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   validate_interactive("dba_deploy_sandbox.js");
   // BUG#26393614
   std::vector<std::string> log{
-      "Warning: Sandbox instances are only suitable for deploying and "
+      "Sandbox instances are only suitable for deploying and "
       "running on your local machine for testing purposes and are not "
       "accessible from external networks."};
   MY_EXPECT_LOG_CONTAINS(log);

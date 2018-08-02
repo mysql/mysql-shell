@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
+#include <tuple>
 
 #include <ShlObj.h>
 

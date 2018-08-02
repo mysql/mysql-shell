@@ -136,6 +136,13 @@ Shell_options::Shell_options(int argc, char **argv,
 #else
   home += ("mysql-sandboxes");
 #endif
+
+  const auto create_output_format_handler = [this](const char *value) {
+    return [this, value](const std::string &, const char *) {
+      set_output_format(value);
+    };
+  };
+
   // clang-format off
   add_startup_options()
     (&print_cmd_line_helper, false,
@@ -222,9 +229,9 @@ Shell_options::Shell_options(int argc, char **argv,
         "raw, pretty. If no format is specified pretty format is produced.",
         [this](const std::string&, const char* value) {
           if (!value || strcmp(value, "pretty") == 0) {
-            storage.output_format = "json";
+            set_output_format("json");
           } else if (strcmp(value, "raw") == 0) {
-            storage.output_format = "json/raw";
+            set_output_format("json/raw");
           } else {
             throw std::invalid_argument(
                 "Value for --json must be either pretty or raw.");
@@ -233,15 +240,15 @@ Shell_options::Shell_options(int argc, char **argv,
     (cmdline("--table"),
         "Produce output in table format (default for interactive mode). This "
         "option can be used to force that format when running in batch mode.",
-        assign_value(&storage.output_format, "table"))
+        create_output_format_handler("table"))
     (cmdline("--tabbed"),
         "Produce output in tab separated format (default for batch mode). This "
         "option can be used to force that format when running in interactive "
         "mode.",
-        assign_value(&storage.output_format, "tabbed"))
+        create_output_format_handler("tabbed"))
     (cmdline("-E", "--vertical"),
         "Print the output of a query (rows) vertically.",
-        assign_value(&storage.output_format, "vertical"))
+        create_output_format_handler("vertical"))
     (cmdline("--get-server-public-key"), "Request public key from the server "
         "required for RSA key pair-based password exchange. Use when "
         "connecting to MySQL 8.0 servers with classic MySQL sessions with SSL "
@@ -257,12 +264,8 @@ Shell_options::Shell_options(int argc, char **argv,
   add_named_options()
     (&storage.output_format, "table", SHCORE_OUTPUT_FORMAT,
         "Determines output format",
-        [](const std::string &val, shcore::opts::Source) {
-          if (val != "table" && val != "json" && val != "json/raw" &&
-              val != "vertical" && val != "tabbed")
-            throw shcore::Exception::value_error(
-                "The option " SHCORE_OUTPUT_FORMAT
-                " must be one of: tabbed, table, vertical, json or json/raw.");
+        [this](const std::string &val, shcore::opts::Source) {
+          set_output_format(val);
           return val;
         })
     (&storage.interactive, false, SHCORE_INTERACTIVE,
@@ -831,6 +834,18 @@ void Shell_options::check_port_socket_conflicts() {
         "contains a port.";
     throw std::runtime_error(error);
   }
+}
+
+void Shell_options::set_output_format(const std::string &format) {
+  if (format != "table" && format != "json" && format != "json/raw" &&
+      format != "vertical" && format != "tabbed") {
+    throw shcore::Exception::value_error(
+        "The option " SHCORE_OUTPUT_FORMAT
+        " must be one of: tabbed, table, vertical, json or json/raw.");
+  }
+
+  storage.output_format = format;
+  ngcommon::Logger::set_stderr_output_format(format);
 }
 
 }  // namespace mysqlsh
