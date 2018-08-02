@@ -9,7 +9,7 @@ function print_persisted_variables(session) {
 // Connect to sandbox1
 //FR1 - On a successful dba.createCluster() call, the group replication sysvars must be updated and persisted at the seed instance.
 //@ FR1-TS-01 SETUP {VER(>=8.0.11)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
@@ -97,7 +97,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 
 //@ FR1-TS-7 SETUP {VER(>=8.0.11)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName",  {multiPrimary: true, force: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 

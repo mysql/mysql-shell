@@ -535,7 +535,7 @@ def create_sandbox(**kwargs):
         "loose_mysqlx_socket": "mysqlx.sock",
         "basedir": basedir.replace("\\", "/"),
         "datadir": datadir.replace("\\", "/"),
-        "log_syslog": "OFF",  # Disable syslog to avoid issue on Windows.
+        "loose_log_syslog": "OFF",  # Disable syslog to avoid issue on Windows.
         "report_port": port,
         "log_error": os.path.join(datadir, "error.log").replace("\\", "/"),
         "relay_log_info_repository": "TABLE",

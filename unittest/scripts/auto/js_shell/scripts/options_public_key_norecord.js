@@ -1,5 +1,5 @@
 //@ GlobalSetUp {VER(>=8.0.4)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
 var rootsess = mysql.getClassicSession(__sandbox_uri1);
 
 rootsess.runSql("CREATE USER local_blank@localhost IDENTIFIED WITH caching_sha2_password BY ''");
@@ -144,26 +144,39 @@ EXPECT_STDOUT_CONTAINS("X Protocol: Option server-public-key-path is not support
 rootsess.runSql('flush privileges');
 var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_existing_path, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("[Warning] Can't locate server public key '" + public_key_non_existing_path + "'");
+if (testutil.versionCheck(__version, ">=", "8.0.13"))
+  EXPECT_STDOUT_CONTAINS("[Warning] Failed to locate server public key '" + public_key_non_existing_path + "'");
+else
+  EXPECT_STDOUT_CONTAINS("[Warning] Can't locate server public key '" + public_key_non_existing_path + "'");
 
 // fallback to --get-server-public-key
 rootsess.runSql('flush privileges');
 var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_existing_path, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
-EXPECT_STDOUT_CONTAINS("[Warning] Can't locate server public key '" + public_key_non_existing_path + "'");
+if (testutil.versionCheck(__version, ">=", "8.0.13"))
+  EXPECT_STDOUT_CONTAINS("[Warning] Failed to locate server public key '" + public_key_non_existing_path + "'");
+else
+  EXPECT_STDOUT_CONTAINS("[Warning] Can't locate server public key '" + public_key_non_existing_path + "'");
+
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 //@ classic, invalid pem file in public key path (F11) {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_pem, '--password=pass', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in PEM format: '" + public_key_non_pem + "'");
+if (testutil.versionCheck(__version, ">=", "8.0.13"))
+  EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in Privacy Enhanced Mail format: '" + public_key_non_pem + "'");
+else
+  EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in PEM format: '" + public_key_non_pem + "'");
 
 // fallback to --get-server-public-key
 rootsess.runSql('flush privileges');
 var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_pem, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
-EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in PEM format: '" + public_key_non_pem + "'");
+if (testutil.versionCheck(__version, ">=", "8.0.13"))
+  EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in Privacy Enhanced Mail format: '" + public_key_non_pem + "'");
+else
+  EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in PEM format: '" + public_key_non_pem + "'");
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 //@ GlobalTearDown {VER(>=8.0.4)}
