@@ -77,11 +77,14 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
  protected:
   explicit Result(std::unique_ptr<xcl::XQuery_result> result);
   void fetch_metadata();
+  std::shared_ptr<Field_names> field_names() const override;
 
   std::vector<Column> _metadata;
 
   std::deque<mysqlshdk::db::Row_copy> _pre_fetched_rows;
   std::unique_ptr<xcl::XQuery_result> _result;
+  mutable std::shared_ptr<Field_names> _field_names;
+
   Row _row;
   size_t _fetched_row_count = 0;
   size_t _fetched_warning_count = 0;

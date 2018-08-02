@@ -103,6 +103,8 @@ class Mock_result : public mysqlshdk::db::IResult {
   MOCK_CONST_METHOD0(get_execution_time, unsigned long());
   MOCK_CONST_METHOD0(get_info, std::string());
   MOCK_CONST_METHOD0(get_gtids, const std::vector<std::string> &());
+  MOCK_CONST_METHOD0(field_names,
+                     std::shared_ptr<mysqlshdk::db::Field_names>());
 
   MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column> &());
 

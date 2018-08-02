@@ -35,8 +35,6 @@
 #include <vector>
 
 #include <mysql.h>
-#include <fstream>
-#include <iostream>
 
 namespace mysqlshdk {
 namespace db {
@@ -73,11 +71,14 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   void fetch_metadata();
   Type map_data_type(int raw_type, int flags);
 
+  virtual std::shared_ptr<Field_names> field_names() const;
+
   std::weak_ptr<mysqlshdk::db::mysql::Session_impl> _session;
   std::vector<Column> _metadata;
   std::unique_ptr<IRow> _row;
   std::weak_ptr<MYSQL_RES> _result;
   std::vector<std::string> _gtids;
+  mutable std::shared_ptr<Field_names> _field_names;
   uint64_t _affected_rows = 0;
   uint64_t _last_insert_id = 0;
   unsigned int _warning_count = 0;

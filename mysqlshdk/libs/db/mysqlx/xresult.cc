@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -286,6 +286,15 @@ std::unique_ptr<Warning> Result::fetch_one_warning() {
     return w;
   }
   return {};
+}
+
+std::shared_ptr<Field_names> Result::field_names() const {
+  if (!_field_names) {
+    _field_names = std::make_shared<Field_names>();
+    for (const auto &column : _metadata)
+      _field_names->add(column.get_column_label());
+  }
+  return _field_names;
 }
 
 }  // namespace mysqlx

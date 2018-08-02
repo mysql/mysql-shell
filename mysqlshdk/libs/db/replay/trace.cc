@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/db/replay/trace.h"
+#include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
@@ -146,19 +147,26 @@ void Trace_writer::serialize_connect(
                        ++_idx)
           << ",\n";
 
+  _log_label = shcore::path::basename(_path);
+  auto ext = _log_label.rfind('.');
+  if (ext != std::string::npos) _log_label = _log_label.substr(0, ext);
+  _log_label.append("/")
+      .append(data.get_host())
+      .append(":")
+      .append(std::to_string(data.get_port()));
+
   if (_print_traces)
-    std::cerr << shcore::path::basename(_path) << ": connect "
-              << data.as_uri(uri::formats::full()) << "\n";
+    std::cerr << _log_label << ": connect " << data.as_uri(uri::formats::full())
+              << "\n";
 }
 
 void Trace_writer::serialize_close() {
-  if (_print_traces) std::cerr << shcore::path::basename(_path) << ": close\n";
+  if (_print_traces) std::cerr << _log_label << ": close\n";
   _stream << make_json("request", "CLOSE", {}, ++_idx) << ",\n";
 }
 
 void Trace_writer::serialize_query(const std::string &sql) {
-  if (_print_traces > 1)
-    std::cerr << shcore::path::basename(_path) << ": " << sql << "\n";
+  if (_print_traces > 1) std::cerr << _log_label << ": " << sql << "\n";
   _stream << make_json("request", "QUERY", {{"sql", sql}}, ++_idx) << ",\n";
 }
 
@@ -312,8 +320,8 @@ void Trace_writer::serialize_result(std::shared_ptr<db::IResult> result) {
 
 void Trace_writer::serialize_error(const db::Error &e) {
   if (_print_traces)
-    std::cerr << "MySQL error in " << _path << ": " << e.what() << " ("
-              << e.code() << ")\n";
+    std::cerr << _log_label << ": MySQL error: " << e.what() << " (" << e.code()
+              << ")\n";
   _stream << make_json("response", "ERROR",
                        {{"code", std::to_string(e.code())},
                         {"msg", e.what()},
@@ -357,6 +365,7 @@ void Trace_writer::set_metadata(
 
 Trace_writer::Trace_writer(const std::string &path, int print_traces)
     : _path(path), _print_traces(print_traces) {
+  _log_label = shcore::path::basename(path);
   if (_print_traces) std::cerr << "Creating trace file " << path << "\n";
   _stream.open(path);
   if (_stream.bad()) throw std::logic_error(path + ": " + strerror(errno));
