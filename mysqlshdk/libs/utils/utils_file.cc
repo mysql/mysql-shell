@@ -368,11 +368,25 @@ bool is_fifo(const char *path) {
 bool is_fifo(const std::string &path) { return is_fifo(path.c_str()); }
 
 size_t file_size(const char *path) {
-  struct stat fstat;
-  if (::stat(path, &fstat) != 0) {
+#if defined(_WIN32)
+  struct _stat64 file_stat = {};
+  if (_stat64(path, &file_stat) != 0) {
     return 0;
   }
-  const off_t filesize = fstat.st_size;
+  const __int64 filesize = file_stat.st_size;
+#elif defined(__APPLE__) || defined(__SUNPRO_CC)
+  struct stat file_stat = {};
+  if (::stat(path, &file_stat) != 0) {
+    return 0;
+  }
+  const off_t filesize = file_stat.st_size;
+#else
+  struct stat64 file_stat = {};
+  if (stat64(path, &file_stat) != 0) {
+    return 0;
+  }
+  const off64_t filesize = file_stat.st_size;
+#endif
   return filesize;
 }
 
@@ -748,17 +762,21 @@ std::string get_home_dir() {
   return path;
 }
 
-bool create_file(const std::string &name, const std::string &content) {
-  bool ret_val = false;
-  std::ofstream file(name, std::ofstream::out | std::ofstream::trunc);
+bool create_file(const std::string &name, const std::string &content,
+                 bool binary_mode) {
+  auto open_mode_flags = std::ofstream::out | std::ofstream::trunc;
+  if (binary_mode) {
+    open_mode_flags |= std::ofstream::binary;
+  }
+  std::ofstream file(name, open_mode_flags);
 
   if (file.is_open()) {
     file << content;
     file.close();
-    ret_val = true;
+    return true;
   }
 
-  return ret_val;
+  return false;
 }
 
 void copy_file(const std::string &from, const std::string &to,

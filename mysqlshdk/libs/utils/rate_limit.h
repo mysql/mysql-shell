@@ -21,39 +21,45 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
-#define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_RATE_LIMIT_H_
+#define MYSQLSHDK_LIBS_UTILS_RATE_LIMIT_H_
 
-namespace mysqlsh {
+#include <sys/types.h>
+#include <chrono>
+#include <cstdint>
 
-/*
- * Call once before using shell library to initialize global state, including
- * libmysqlclient.
- */
-void global_init();
+namespace mysqlshdk {
+namespace utils {
 
-/*
- * Call once when done using shell library, from the same thread that was used
- * to call global_init().
- */
-void global_end();
-
-/**
- * This class is used for proper libmysqlclient data structures initialization
- * and deinitialization (using RAII) when connecting to MySQL Server from
- * threads.
- */
-class Mysql_thread final {
+class Rate_limit final {
  public:
-  Mysql_thread();
-  Mysql_thread(const Mysql_thread &other) = delete;
-  Mysql_thread(Mysql_thread &&other) = delete;
+  Rate_limit() = default;
 
-  Mysql_thread &operator=(const Mysql_thread &other) = delete;
-  Mysql_thread &operator=(Mysql_thread &&other) = delete;
+  explicit Rate_limit(int64_t limit)
+      : m_bytes_limit(limit), m_unused_bytes(0), m_now() {
+    m_last = std::chrono::high_resolution_clock::now();
+  }
 
-  ~Mysql_thread();
+  Rate_limit(const Rate_limit &other) = default;
+  Rate_limit(Rate_limit &&other) = default;
+
+  Rate_limit &operator=(const Rate_limit &other) = default;
+  Rate_limit &operator=(Rate_limit &&other) = default;
+
+  ~Rate_limit() = default;
+
+  bool enabled() { return m_bytes_limit > 0; }
+
+  void throttle(int64_t bytes);
+
+ private:
+  int64_t m_bytes_limit = 0;
+  int64_t m_unused_bytes = 0;
+  std::chrono::high_resolution_clock::time_point m_now{};
+  std::chrono::high_resolution_clock::time_point m_last{};
 };
-}  // namespace mysqlsh
 
-#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+} /* namespace utils */
+} /* namespace mysqlshdk */
+
+#endif /* MYSQLSHDK_LIBS_UTILS_RATE_LIMIT_H_ */

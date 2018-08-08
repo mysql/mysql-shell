@@ -71,6 +71,14 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   void configure_oci(const std::string &profile = "");
 #endif
 
+#if DOXYGEN_JS
+  Undefined importTable(String filename, Dictionary options);
+#elif DOXYGEN_PY
+  None import_table(str filename, dict options);
+#endif
+  void import_table(const std::string &filename,
+                    const shcore::Dictionary_t &options);
+
  private:
   shcore::IShell_core &_shell_core;
 };

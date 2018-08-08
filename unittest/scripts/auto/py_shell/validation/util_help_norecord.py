@@ -24,6 +24,10 @@ FUNCTIONS
             Import JSON documents from file to collection or table in MySQL
             Server using X Protocol session.
 
+      import_table(filename[, options])
+            Import table dump stored in filename to target table using LOAD
+            DATA LOCAL INFILE calls in parallel connections.
+
 
 #@<OUT> util check_for_server_upgrade help
 NAME
@@ -283,3 +287,120 @@ for image in images:
       variable, featches the available OS images for the compartment and prints
       a list of their names.
 
+#@<OUT> util import_table help
+NAME
+      import_table - Import table dump stored in filename to target table using
+                     LOAD DATA LOCAL INFILE calls in parallel connections.
+
+SYNTAX
+      util.import_table(filename[, options])
+
+WHERE
+      filename: Path to file with user data
+      options: Dictionary with import options
+
+DESCRIPTION
+      Options dictionary:
+
+      - schema: string (default: current shell active schema) - Name of target
+        schema
+      - table: string (default: filename without extension) - Name of target
+        table
+      - columns: string array (default: empty array) - This option takes a
+        array of column names as its value. The order of the column names
+        indicates how to match data file columns with table columns.
+      - fieldsTerminatedBy: string (default: "\t"), fieldsEnclosedBy: char
+        (default: ''), fieldsEscapedBy: char (default: '\') - These options
+        have the same meaning as the corresponding clauses for LOAD DATA
+        INFILE. For more information use \? LOAD DATA, (a session is required).
+      - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
+        input values are not necessarily enclosed within quotation marks
+        specified by fieldsEnclosedBy option. Set to false if all fields are
+        quoted by character specified by fieldsEnclosedBy option.
+      - linesTerminatedBy: string (default: "\n") - This option has the same
+        meaning as the corresponding clause for LOAD DATA INFILE. For example,
+        to import Windows files that have lines terminated with carriage
+        return/linefeed pairs, use --lines-terminated-by="\r\n". (You might
+        have to double the backslashes, depending on the escaping conventions
+        of your command interpreter.) See Section 13.2.7, "LOAD DATA INFILE
+        Syntax".
+      - replaceDuplicates: bool (default: false) - If true, input rows that
+        have the same value for a primary key or unique index as an existing
+        row will be replaced, otherwise input rows will be skipped.
+      - threads: int (default: 8) - Use N threads to sent file chunks to the
+        server.
+      - bytesPerChunk: string (minimum: "131072", default: "50M") - Send
+        bytesPerChunk (+ bytes to end of the row) in single LOAD DATA call.
+        Unit suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes
+        (n * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000 bytes),
+        bytesPerChunk="2k" - ~2 kilobyte data chunk will send to the MySQL
+        Server.
+      - maxRate: string (default: "0") - Limit data send throughput to maxRate
+        in bytes per second per thread. maxRate="0" - no limit. Unit suffixes,
+        k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
+        bytes), G - for Gigabytes (n * 1'000'000'000 bytes), maxRate="2k" -
+        limit to 2 kilobytes per second.
+      - showProgress: bool (default: true if stdout is a tty, false otherwise)
+        - Enable or disable import progress information.
+      - skipRows: int (default: 0) - Skip first n rows of the data in the file.
+        You can use this option to skip an initial header line containing
+        column names.
+      - dialect: enum (default: "default") - Setup fields and lines options
+        that matches specific data file format. Can be used as base dialect and
+        customized with fieldsTerminatedBy, fieldsEnclosedBy,
+        fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
+        options. Must be one of the following values: csv, tsv, json or
+        csv-unix.
+
+      dialect predefines following set of options fieldsTerminatedBy (FT),
+      fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
+      (FESC) and linesTerminatedBy (LT) in following manner:
+
+      - default: no quoting, tab-separated, lf line endings. (LT=<LF>,
+        FESC='\', FT=<TAB>, FE=<empty>, FOE=false)
+      - csv: optionally quoted, comma-separated, crlf line endings.
+        (LT=<CR><LF>, FESC='\', FT=",", FE='"', FOE=true)
+      - tsv: optionally quoted, tab-separated, crlf line endings. (LT=<CR><LF>,
+        FESC='\', FT=<TAB>, FE='"', FOE=true)
+      - json: one JSON document per line. (LT=<LF>, FESC=<empty>, FT=<LF>,
+        FE=<empty>, FOE=false)
+      - csv-unix: fully quoted, comma-separated, lf line endings. (LT=<LF>,
+        FESC='\', FT=",", FE='"', FOE=false)
+
+      Example input data for dialects:
+
+      - default:
+      1<TAB>20.1000<TAB>foo said: "Where is my bar?"<LF>
+      2<TAB>-12.5000<TAB>baz said: "Where is my \<TAB> char?"<LF>
+      - csv:
+      1,20.1000,"foo said: \"Where is my bar?\""<CR><LF>
+      2,-12.5000,"baz said: \"Where is my <TAB> char?\""<CR><LF>
+      - tsv:
+      1<TAB>20.1000<TAB>"foo said: \"Where is my bar?\""<CR><LF>
+      2<TAB>-12.5000<TAB>"baz said: \"Where is my <TAB> char?\""<CR><LF>
+      - json:
+      {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is
+      my bar?\""}<LF>
+      {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is
+      my \u000b char?\""}<LF>
+      - csv-unix:
+      "1","20.1000","foo said: \"Where is my bar?\""<LF>
+      "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
+
+      If the schema is not provided, an active schema on the global session, if
+      set, will be used.
+
+      If the input values are not necessarily enclosed within fieldsEnclosedBy,
+      set fieldsOptionallyEnclosed to true.
+
+      If you specify one separator that is the same as or a prefix of another,
+      LOAD DATA INFILE cannot interpret the input properly.
+
+      Connection options set in the global session, such as compression,
+      ssl-mode, etc. are used in parallel connections.
+
+      Each parallel connection sets the following session variables:
+
+      - SET unique_checks = 0
+      - SET foreign_key_checks = 0
+      - SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

@@ -59,6 +59,8 @@ enum class Time_type { LOCAL, GMT };
 std::string fmttime(const char *fmt, Time_type type = Time_type::LOCAL,
                     time_t *time_ptr = nullptr);
 
+size_t expand_to_bytes(const std::string &number);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 

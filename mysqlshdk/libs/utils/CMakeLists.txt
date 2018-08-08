@@ -55,6 +55,7 @@ set(utils_SOURCE
     uuid_gen.cc
     version.cc
     profiling.cc
+    rate_limit.cc
 )
 
 IF(WITH_OCI)

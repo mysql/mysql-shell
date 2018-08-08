@@ -74,7 +74,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::string uri() { return _uri; }
 
-  // Utility functions to retriev session status
+  // Utility functions to retrieve session status
   uint64_t get_thread_id() {
     if (_mysql) return mysql_thread_id(_mysql);
     return 0;
@@ -103,6 +103,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     if (_mysql) return mysql_get_ssl_cipher(_mysql);
     return nullptr;
   }
+
+  const char *get_mysql_info() const { return mysql_info(_mysql); }
 
   virtual mysqlshdk::utils::Version get_server_version() const {
     if (_mysql) {
@@ -152,7 +154,6 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   void throw_on_connection_fail();
   std::string _uri;
   MYSQL *_mysql;
-
   std::shared_ptr<MYSQL_RES> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
   std::unique_ptr<Error> m_last_error;
@@ -212,6 +213,42 @@ class SHCORE_PUBLIC Session : public ISession,
 
   const Error *get_last_error() const override {
     return _impl->get_last_error();
+  }
+
+  const char *get_mysql_info() const { return _impl->get_mysql_info(); }
+
+  // function callback registration for local infile support
+  void set_local_infile_init(int (*local_infile_init)(void **, const char *,
+                                                      void *)) {
+    if (_impl && _impl->_mysql) {
+      _impl->_mysql->options.local_infile_init = local_infile_init;
+    }
+  }
+
+  void set_local_infile_read(int (*local_infile_read)(void *, char *,
+                                                      unsigned int)) {
+    if (_impl && _impl->_mysql) {
+      _impl->_mysql->options.local_infile_read = local_infile_read;
+    }
+  }
+
+  void set_local_infile_end(void (*local_infile_end)(void *)) {
+    if (_impl && _impl->_mysql) {
+      _impl->_mysql->options.local_infile_end = local_infile_end;
+    }
+  }
+
+  void set_local_infile_error(int (*local_infile_error)(void *, char *,
+                                                        unsigned int)) {
+    if (_impl && _impl->_mysql) {
+      _impl->_mysql->options.local_infile_error = local_infile_error;
+    }
+  }
+
+  void set_local_infile_userdata(void *local_infile_userdata) {
+    if (_impl && _impl->_mysql) {
+      _impl->_mysql->options.local_infile_userdata = local_infile_userdata;
+    }
   }
 
   ~Session() override {

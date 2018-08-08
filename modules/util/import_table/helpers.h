@@ -21,39 +21,24 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
-#define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+#ifndef MODULES_UTIL_IMPORT_TABLE_HELPERS_H_
+#define MODULES_UTIL_IMPORT_TABLE_HELPERS_H_
+
+#include <string>
 
 namespace mysqlsh {
+namespace import_table {
 
-/*
- * Call once before using shell library to initialize global state, including
- * libmysqlclient.
- */
-void global_init();
+constexpr const size_t BUFFER_SIZE = 1 << 16;
 
-/*
- * Call once when done using shell library, from the same thread that was used
- * to call global_init().
- */
-void global_end();
+namespace detail {
+/** Open file in read-only mode */
+int file_open(const std::string &pathname);
 
-/**
- * This class is used for proper libmysqlclient data structures initialization
- * and deinitialization (using RAII) when connecting to MySQL Server from
- * threads.
- */
-class Mysql_thread final {
- public:
-  Mysql_thread();
-  Mysql_thread(const Mysql_thread &other) = delete;
-  Mysql_thread(Mysql_thread &&other) = delete;
-
-  Mysql_thread &operator=(const Mysql_thread &other) = delete;
-  Mysql_thread &operator=(Mysql_thread &&other) = delete;
-
-  ~Mysql_thread();
-};
+/** Close file descriptor */
+void file_close(int fd);
+}  // namespace detail
+}  // namespace import_table
 }  // namespace mysqlsh
 
-#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+#endif  // MODULES_UTIL_IMPORT_TABLE_HELPERS_H_

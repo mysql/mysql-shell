@@ -32,6 +32,22 @@ def EXPECT_FALSE(value):
     context = "Tested value expected to be false but is true"
     testutil.fail(context)
 
+def EXPECT_THROWS(func, etext):
+  try:
+    func()
+    testutil.fail("<red>Missing expected exception throw like " + etext + "</red>")
+  except Exception as e:
+    exception_message = str(e)
+    if exception_message.find(etext) == -1:
+      testutil.fail("<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + exception_message)
+
+def EXPECT_STDOUT_CONTAINS(text):
+  out = testutil.fetch_captured_stdout(False)
+  err = testutil.fetch_captured_stderr(False)
+  if out.find(text) == -1:
+    context = "<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
+    testutil.fail(context)
+
 def validate_crud_functions(crud, expected):
 	actual = crud.__members__
 

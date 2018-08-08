@@ -88,7 +88,7 @@ bool read_escape(const char *terminator, char *buffer, size_t buflen) {
   // read the prefix esc[
   if (read(fd, buffer, 2) < 2)
     return false;
-  if (strncmp(buffer, "\e[", 2) != 0)
+  if (strncmp(buffer, "\x1b" "[", 2) != 0)
     return false;
   while (i < buflen) {
     if (read(fd, buffer + i, 1) < 1)
@@ -144,7 +144,7 @@ bool read_escape(const char *terminator, char *buffer, size_t buflen) {
   // // read the prefix esc[
   // if (read(fd, buffer, 2) < 2)
   //   return false;
-  // if (strncmp(buffer, "\e[", 2) != 0)
+  // if (strncmp(buffer, "\x1b" "[", 2) != 0)
   //   return false;
   // while (i < buflen) {
   //   if (read(fd, buffer + i, 1) < 1)

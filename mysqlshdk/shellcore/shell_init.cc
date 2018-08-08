@@ -23,6 +23,7 @@
 
 #include "shellcore/shell_init.h"
 #include <mysql.h>
+#include <stdexcept>
 
 #ifdef HAVE_V8
 namespace shcore {
@@ -55,5 +56,14 @@ void global_end() {
   shcore::JScript_context_fini();
 #endif
 }
+
+Mysql_thread::Mysql_thread() {
+  if (mysql_thread_init()) {
+    throw std::runtime_error(
+        "Cannot allocate specific memory for the MySQL thread.");
+  }
+}
+
+Mysql_thread::~Mysql_thread() { mysql_thread_end(); }
 
 }  // namespace mysqlsh

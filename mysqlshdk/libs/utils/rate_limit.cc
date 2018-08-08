@@ -21,39 +21,39 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
-#define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+#include "mysqlshdk/libs/utils/rate_limit.h"
 
-namespace mysqlsh {
+#include <ratio>
+#include <thread>
 
-/*
- * Call once before using shell library to initialize global state, including
- * libmysqlclient.
- */
-void global_init();
+namespace mysqlshdk {
+namespace utils {
 
-/*
- * Call once when done using shell library, from the same thread that was used
- * to call global_init().
- */
-void global_end();
+constexpr int k_micro = 1000000;
 
-/**
- * This class is used for proper libmysqlclient data structures initialization
- * and deinitialization (using RAII) when connecting to MySQL Server from
- * threads.
- */
-class Mysql_thread final {
- public:
-  Mysql_thread();
-  Mysql_thread(const Mysql_thread &other) = delete;
-  Mysql_thread(Mysql_thread &&other) = delete;
+void Rate_limit::throttle(int64_t bytes) {
+  m_now = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::micro> diff = m_now - m_last;
+  if (diff.count() < 0) {
+    return;
+  }
 
-  Mysql_thread &operator=(const Mysql_thread &other) = delete;
-  Mysql_thread &operator=(Mysql_thread &&other) = delete;
+  int64_t allowed_bytes =
+      m_unused_bytes + (diff.count() * m_bytes_limit / k_micro);
+  m_last = m_now;
 
-  ~Mysql_thread();
-};
-}  // namespace mysqlsh
+  if (bytes <= allowed_bytes) {
+    m_unused_bytes = allowed_bytes - bytes;
+    return;
+  }
 
-#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+  auto over_sent = bytes - allowed_bytes;
+  auto sleep_ms = k_micro * over_sent / m_bytes_limit;
+
+  m_last += std::chrono::duration<long, std::micro>(sleep_ms);
+
+  std::this_thread::sleep_for(
+      std::chrono::duration<double, std::micro>(sleep_ms));
+}
+} /* namespace utils */
+} /* namespace mysqlshdk */

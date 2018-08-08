@@ -97,7 +97,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   mutable std::shared_ptr<Field_names> _field_names;
   uint64_t _affected_rows = 0;
   uint64_t _last_insert_id = 0;
-  unsigned int _warning_count = 0;
+  uint64_t _warning_count = 0;
   uint64_t _fetched_row_count = 0;
   std::string _info;
   std::list<std::unique_ptr<Warning>> _warnings;

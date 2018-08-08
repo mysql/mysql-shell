@@ -155,6 +155,11 @@ class Auto_script_py : public Shell_py_script_tester,
     code = shcore::str_replace(code, "\\", "\\\\");
 #endif
     exec_and_out_equals(code);
+
+    code = "__import_data_path = " +
+           shcore::quote_string(
+               shcore::path::join_path(g_test_home, "data", "import"), '\'');
+    exec_and_out_equals(code);
   }
 };
 

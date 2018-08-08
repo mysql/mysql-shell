@@ -165,5 +165,27 @@ std::string fmttime(const char *fmt, Time_type type, time_t *time_ptr) {
   return buf;
 }
 
+size_t expand_to_bytes(const std::string &number) {
+  std::string x{number};
+  size_t bytes = stoull(x);
+  constexpr size_t kilobyte = 1000;
+
+  while (const auto &last = x.back()) {
+    if (last == 'k') {
+      bytes *= kilobyte;
+    } else if (last == 'M') {
+      bytes *= kilobyte * kilobyte;
+    } else if (last == 'G') {
+      bytes *= kilobyte * kilobyte * kilobyte;
+    } else if (::isdigit(last)) {
+      break;
+    } else {
+      throw std::invalid_argument("Wrong input number \"" + number + "\"");
+    }
+    x.pop_back();
+  }
+  return bytes;
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

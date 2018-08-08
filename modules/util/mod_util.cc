@@ -22,11 +22,14 @@
  */
 
 #include "modules/util/mod_util.h"
+
 #include <memory>
 #include <set>
 #include <vector>
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "modules/util/import_table/import_table.h"
+#include "modules/util/import_table/import_table_options.h"
 #include "modules/util/json_importer.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
@@ -42,6 +45,7 @@
 #include "rapidjson/error/en.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
+#include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
 
 #ifdef WITH_OCI
@@ -70,6 +74,7 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   shcore::ssl::init();
   expose("configureOci", &Util::configure_oci, "?profile");
 #endif
+  expose("importTable", &Util::import_table, "path", "?options");
 }
 
 static std::string format_upgrade_issue(const Upgrade_issue &problem) {
@@ -931,4 +936,279 @@ void Util::configure_oci(const std::string &profile) {
   helper.create_profile(profile);
 }
 #endif
+
+REGISTER_HELP_FUNCTION(importTable, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTTABLE, R"*(
+Import table dump stored in filename to target table using LOAD DATA LOCAL
+INFILE calls in parallel connections.
+
+@param filename Path to file with user data
+@param options Optional dictionary with import options
+
+Options dictionary:
+@li <b>schema</b>: string (default: current shell active schema) - Name of
+target schema
+@li <b>table</b>: string (default: filename without extension) - Name of target
+table
+@li <b>columns</b>: string array (default: empty array) - This option takes a
+array of column names as its value. The order of the column names indicates how
+to match data file columns with table columns.
+@li <b>fieldsTerminatedBy</b>: string (default: "\t"), <b>fieldsEnclosedBy</b>:
+char (default: ''), <b>fieldsEscapedBy</b>: char (default: '\\') - These options
+have the same meaning as the corresponding clauses for LOAD DATA INFILE. For
+more information use <b>\\? LOAD DATA</b>, (a session is required).
+@li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if the
+input values are not necessarily enclosed within quotation marks specified by
+<b>fieldsEnclosedBy</b> option. Set to false if all fields are quoted by
+character specified by <b>fieldsEnclosedBy</b> option.
+@li <b>linesTerminatedBy</b>: string (default: "\n") - This option has the same
+meaning as the corresponding clause for LOAD DATA INFILE. For example, to import
+Windows files that have lines terminated with carriage return/linefeed pairs,
+use --lines-terminated-by="\r\n". (You might have to double the backslashes,
+depending on the escaping conventions of your command interpreter.)
+See Section 13.2.7, "LOAD DATA INFILE Syntax".
+@li <b>replaceDuplicates</b>: bool (default: false) - If true, input rows that
+have the same value for a primary key or unique index as an existing row will be
+replaced, otherwise input rows will be skipped.
+@li <b>threads</b>: int (default: 8) - Use N threads to sent file chunks to the
+server.
+@li <b>bytesPerChunk</b>: string (minimum: "131072", default: "50M") - Send
+bytesPerChunk (+ bytes to end of the row) in single LOAD DATA call. Unit
+suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
+bytes), G - for Gigabytes (n * 1'000'000'000 bytes), bytesPerChunk="2k" - ~2
+kilobyte data chunk will send to the MySQL Server.
+@li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
+maxRate in bytes per second per thread.
+maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
+M - for Megabytes (n * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000
+bytes), maxRate="2k" - limit to 2 kilobytes per second.
+@li <b>showProgress</b>: bool (default: true if stdout is a tty, false
+otherwise) - Enable or disable import progress information.
+@li <b>skipRows</b>: int (default: 0) - Skip first n rows of the data in the
+file. You can use this option to skip an initial header line containing column
+names.
+@li <b>dialect</b>: enum (default: "default") - Setup fields and lines options
+that matches specific data file format. Can be used as base dialect and
+customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
+fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
+values: csv, tsv, json or csv-unix.
+
+<b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
+fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
+and linesTerminatedBy (LT) in following manner:
+@li default: no quoting, tab-separated, lf line endings.
+(LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
+@li csv: optionally quoted, comma-separated, crlf line endings.
+(LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='"', FOE=true)
+@li tsv: optionally quoted, tab-separated, crlf line endings.
+(LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='"', FOE=true)
+@li json: one JSON document per line.
+(LT=@<LF@>, FESC=@<empty@>, FT=@<LF@>, FE=@<empty@>, FOE=false)
+@li csv-unix: fully quoted, comma-separated, lf line endings.
+(LT=@<LF@>, FESC='\', FT=",", FE='"', FOE=false)
+
+Example input data for dialects:
+@li default:
+@code
+1<TAB>20.1000<TAB>foo said: "Where is my bar?"<LF>
+2<TAB>-12.5000<TAB>baz said: "Where is my \<TAB> char?"<LF>
+@endcode
+@li csv:
+@code
+1,20.1000,"foo said: \"Where is my bar?\""<CR><LF>
+2,-12.5000,"baz said: \"Where is my <TAB> char?\""<CR><LF>
+@endcode
+@li tsv:
+@code
+1<TAB>20.1000<TAB>"foo said: \"Where is my bar?\""<CR><LF>
+2<TAB>-12.5000<TAB>"baz said: \"Where is my <TAB> char?\""<CR><LF>
+@endcode
+@li json:
+@code
+{"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
+{"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
+@endcode
+@li csv-unix:
+@code
+"1","20.1000","foo said: \"Where is my bar?\""<LF>
+"2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
+@endcode
+
+If the <b>schema</b> is not provided, an active schema on the global session, if
+set, will be used.
+
+If the input values are not necessarily enclosed within <b>fieldsEnclosedBy</b>,
+set <b>fieldsOptionallyEnclosed</b> to true.
+
+If you specify one separator that is the same as or a prefix of another, LOAD
+DATA INFILE cannot interpret the input properly.
+
+Connection options set in the global session, such as compression, ssl-mode, etc.
+are used in parallel connections.
+
+Each parallel connection sets the following session variables:
+@li SET unique_checks = 0
+@li SET foreign_key_checks = 0
+@li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+)*");
+// clang-format off
+/**
+ * \ingroup util
+ *
+ * Import table dump stored in filename to target table using LOAD DATA LOCAL
+ * INFILE calls in parallel connections.
+ *
+ * @param filename Path to file with user data
+ * @param options Optional dictionary with import options
+ *
+ * Options dictionary:
+ * @li <b>schema</b>: string (default: current shell active schema) - Name of
+ * target schema
+ * @li <b>table</b>: string (default: filename without extension) - Name of target
+ * table
+ * @li <b>columns</b>: string array (default: empty array) - This option takes a
+ * array of column names as its value. The order of the column names indicates how
+ * to match data file columns with table columns.
+ * @li <b>fieldsTerminatedBy</b>: string (default: "\t"), <b>fieldsEnclosedBy</b>:
+ * char (default: ''), <b>fieldsEscapedBy</b>: char (default: '\\') - These options
+ * have the same meaning as the corresponding clauses for LOAD DATA INFILE. For
+ * more information use <b>\\? LOAD DATA</b>, (a session is required).
+ * @li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if the
+ * input values are not necessarily enclosed within quotation marks specified by
+ * <b>fieldsEnclosedBy</b> option. Set to false if all fields are quoted by
+ * character specified by <b>fieldsEnclosedBy</b> option.
+ * @li <b>linesTerminatedBy</b>: string (default: "\n") - This option has the same
+ * meaning as the corresponding clause for LOAD DATA INFILE. For example, to import
+ * Windows files that have lines terminated with carriage return/linefeed pairs,
+ * use --lines-terminated-by="\r\n". (You might have to double the backslashes,
+ * depending on the escaping conventions of your command interpreter.)
+ * See Section 13.2.7, "LOAD DATA INFILE Syntax".
+ * @li <b>replaceDuplicates</b>: bool (default: false) - If true, input rows that
+ * have the same value for a primary key or unique index as an existing row will be
+ * replaced, otherwise input rows will be skipped.
+ * @li <b>threads</b>: int (default: 8) - Use N threads to sent file chunks to the
+ * server.
+ * @li <b>bytesPerChunk</b>: string (minimum: "131072", default: "50M") - Send
+ * bytesPerChunk (+ bytes to end of the row) in single LOAD DATA call. Unit
+ * suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
+ * bytes), G - for Gigabytes (n * 1'000'000'000 bytes), bytesPerChunk="2k" - ~2
+ * kilobyte data chunk will send to the MySQL Server.
+ * @li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
+ * maxRate in bytes per second per thread.
+ * maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
+ * M - for Megabytes (n * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000
+ * bytes), maxRate="2k" - limit to 2 kilobytes per second.
+ * @li <b>showProgress</b>: bool (default: true if stdout is a tty, false
+ * otherwise) - Enable or disable import progress information.
+ * @li <b>skipRows</b>: int (default: 0) - Skip first n rows of the data in the
+ * file. You can use this option to skip an initial header line containing column
+ * names.
+ * @li <b>dialect</b>: enum (default: "default") - Setup fields and lines options
+ * that matches specific data file format. Can be used as base dialect and
+ * customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
+ * fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
+ * values: csv, tsv, json or csv-unix.
+ *
+ * <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
+ * fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
+ * and linesTerminatedBy (LT) in following manner:
+ * @li default: no quoting, tab-separated, lf line endings.
+ * (LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
+ * @li csv: optionally quoted, comma-separated, crlf line endings.
+ * (LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='"', FOE=true)
+ * @li tsv: optionally quoted, tab-separated, crlf line endings.
+ * (LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='"', FOE=true)
+ * @li json: one JSON document per line.
+ * (LT=@<LF@>, FESC=@<empty@>, FT=@<LF@>, FE=@<empty@>, FOE=false)
+ * @li csv-unix: fully quoted, comma-separated, lf line endings.
+ * (LT=@<LF@>, FESC='\', FT=",", FE='"', FOE=false)
+ *
+ * Example input data for dialects:
+ * @li default:
+ * @code{.unparsed}
+ * 1<TAB>20.1000<TAB>foo said: "Where is my bar?"<LF>
+ * 2<TAB>-12.5000<TAB>baz said: "Where is my \<TAB> char?"<LF>
+ * @endcode
+ * @li csv:
+ * @code{.unparsed}
+ * 1,20.1000,"foo said: \"Where is my bar?\""<CR><LF>
+ * 2,-12.5000,"baz said: \"Where is my <TAB> char?\""<CR><LF>
+ * @endcode
+ * @li tsv:
+ * @code{.unparsed}
+ * 1<TAB>20.1000<TAB>"foo said: \"Where is my bar?\""<CR><LF>
+ * 2<TAB>-12.5000<TAB>"baz said: \"Where is my <TAB> char?\""<CR><LF>
+ * @endcode
+ * @li json:
+ * @code{.unparsed}
+ * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
+ * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
+ * @endcode
+ * @li csv-unix:
+ * @code{.unparsed}
+ * "1","20.1000","foo said: \"Where is my bar?\""<LF>
+ * "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
+ * @endcode
+ *
+ * If the <b>schema</b> is not provided, an active schema on the global session, if
+ * set, will be used.
+ *
+ * If the input values are not necessarily enclosed within <b>fieldsEnclosedBy</b>,
+ * set <b>fieldsOptionallyEnclosed</b> to true.
+ *
+ * If you specify one separator that is the same as or a prefix of another, LOAD
+ * DATA INFILE cannot interpret the input properly.
+ *
+ * Connection options set in the global session, such as compression, ssl-mode, etc.
+ * are used in parallel connections.
+ *
+ * Each parallel connection sets the following session variables:
+ * @li SET unique_checks = 0
+ * @li SET foreign_key_checks = 0
+ * @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+ */
+// clang-format on
+#if DOXYGEN_JS
+Undefined Util::importTable(String filename, Dictionary options);
+#elif DOXYGEN_PY
+None Util::import_table(str filename, dict options);
+#endif
+void Util::import_table(const std::string &filename,
+                        const shcore::Dictionary_t &options) {
+  using import_table::Import_table;
+  using import_table::Import_table_options;
+  using mysqlshdk::utils::format_bytes;
+
+  Import_table_options opt(filename, options);
+  opt.base_session(_shell_core.get_dev_session());
+  opt.validate();
+
+  volatile bool interrupt = false;
+  shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
+    mysqlsh::current_console()->print_warning(
+        "Interrupted by user. Cancelling...");
+    interrupt = true;
+    return false;
+  });
+
+  Import_table importer(opt);
+  importer.interrupt(&interrupt);
+
+  auto console = mysqlsh::current_console();
+  console->print_info(opt.target_import_info());
+
+  importer.import();
+
+  const auto filesize = opt.file_size();
+  const bool thread_thrown_exception = importer.any_exception();
+  if (thread_thrown_exception) {
+    console->print_error("Error occur while importing file '" +
+                         opt.full_path() + "' (" + format_bytes(filesize) +
+                         ")");
+  } else {
+    console->print_info(importer.import_summary());
+  }
+  console->print_info(importer.rows_affected_info());
+  importer.rethrow_exceptions();
+}
 }  // namespace mysqlsh

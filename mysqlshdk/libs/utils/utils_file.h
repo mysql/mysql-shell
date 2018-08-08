@@ -80,7 +80,8 @@ bool SHCORE_PUBLIC load_text_file(const std::string &path, std::string &data);
 std::string SHCORE_PUBLIC get_text_file(const std::string &path);
 void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet = true);
 bool SHCORE_PUBLIC create_file(const std::string &name,
-                               const std::string &content);
+                               const std::string &content,
+                               bool binary_mode = false);
 void SHCORE_PUBLIC copy_file(const std::string &from, const std::string &to,
                              bool copy_attributes = false);
 void SHCORE_PUBLIC copy_dir(const std::string &from, const std::string &to);

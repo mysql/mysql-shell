@@ -24,3 +24,9 @@ util.help('configureOci');
 
 //@ oci help {__with_oci == 1}
 \? oci
+
+//@ util importTable help
+util.help('importTable');
+
+//@ util importTable help, \? [USE:util importTable help]
+\? importTable

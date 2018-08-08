@@ -123,7 +123,13 @@ void Session_impl::connect(
       _connection_options.get_compression())
     mysql_options(_mysql, MYSQL_OPT_COMPRESS, nullptr);
 
+  if (connection_options.has(mysqlshdk::db::kLocalInfile)) {
+    const int local_infile = 1;
+    mysql_options(_mysql, MYSQL_OPT_LOCAL_INFILE, &local_infile);
+  }
+
   DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());
+
   if (!mysql_real_connect(
           _mysql,
           _connection_options.has_host()

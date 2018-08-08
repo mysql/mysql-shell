@@ -240,13 +240,15 @@ Shell_options::Shell_options(int argc, char **argv,
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
     (cmdline("--js", "--javascript"), "Start in JavaScript mode.",
-        [this](const std::string&, const char*) {
 #ifdef HAVE_V8
+        [this](const std::string&, const char*) {
           storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
-#else
-          throw std::invalid_argument("JavaScript is not supported.");
-#endif
         })
+#else
+        [](const std::string&, const char*) {
+          throw std::invalid_argument("JavaScript is not supported.");
+        })
+#endif
     (cmdline("--py", "--python"), "Start in Python mode.",
         [this](const std::string&, const char*) {
 #ifdef HAVE_PYTHON

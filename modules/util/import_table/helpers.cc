@@ -21,39 +21,43 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
-#define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
+#include "modules/util/import_table/helpers.h"
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
+#include <string>
 
 namespace mysqlsh {
+namespace import_table {
+namespace detail {
 
-/*
- * Call once before using shell library to initialize global state, including
- * libmysqlclient.
- */
-void global_init();
+int file_open(const std::string &pathname) {
+  int fd = -1;
+#ifdef _WIN32
+  _sopen_s(&fd, pathname.c_str(), _O_BINARY | _O_RDONLY, _SH_DENYWR, _S_IREAD);
+#else
+  fd = ::open(pathname.c_str(), O_RDONLY);
+#endif
+  return fd;
+}
 
-/*
- * Call once when done using shell library, from the same thread that was used
- * to call global_init().
- */
-void global_end();
-
-/**
- * This class is used for proper libmysqlclient data structures initialization
- * and deinitialization (using RAII) when connecting to MySQL Server from
- * threads.
- */
-class Mysql_thread final {
- public:
-  Mysql_thread();
-  Mysql_thread(const Mysql_thread &other) = delete;
-  Mysql_thread(Mysql_thread &&other) = delete;
-
-  Mysql_thread &operator=(const Mysql_thread &other) = delete;
-  Mysql_thread &operator=(Mysql_thread &&other) = delete;
-
-  ~Mysql_thread();
-};
+void file_close(int fd) {
+  if (fd >= 0) {
+#ifdef _WIN32
+    _close(fd);
+#else
+    close(fd);
+#endif
+  }
+}
+}  // namespace detail
+}  // namespace import_table
 }  // namespace mysqlsh
-
-#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_INIT_H_
