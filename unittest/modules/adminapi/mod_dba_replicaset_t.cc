@@ -248,6 +248,13 @@ TEST_F(Dba_replicaset_test, bug28219398) {
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'localhost' /*)*/");
 
+  md_session->query("CREATE USER IF NOT EXISTS '" + replication_user +
+                    "'@'%' IDENTIFIED BY /*(*/ '" + replication_pwd +
+                    "' /*)*/ ");
+
+  md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
+                    replication_user + "'@'%' /*)*/");
+
   // Set the connection options for _mysql_sandbox_port3
   connection_options.set_host("localhost");
   connection_options.set_port(_mysql_sandbox_port3);
