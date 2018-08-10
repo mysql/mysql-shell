@@ -25,6 +25,7 @@
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils.h"
 
 using Version = mysqlshdk::utils::Version;
@@ -72,16 +73,27 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 };
 
 TEST_F(MySQL_upgrade_check_test, checklist_generation) {
-  EXPECT_THROW(Upgrade_check::create_checklist("5.7", "5.7"),
-               std::invalid_argument);
-  EXPECT_THROW(Upgrade_check::create_checklist("5.6.11", "8.0"),
-               std::invalid_argument);
-  EXPECT_THROW(Upgrade_check::create_checklist("5.7.19", "8.1.0"),
-               std::invalid_argument);
+  Version current(MYSH_VERSION);
+  Version prev(current.get_major(), current.get_minor(),
+               current.get_patch() - 1);
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("5.7", "5.7"),
+                    std::invalid_argument, "This tool supports checking");
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("5.6.11", "8.0"),
+                    std::invalid_argument, "This tool supports MySQL");
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("5.7.19", "8.1.0"),
+                    std::invalid_argument, "This tool supports checking");
+  EXPECT_THROW_LIKE(
+      Upgrade_check::create_checklist(current.get_base(), "8.1.0"),
+      std::invalid_argument, "This tool supports MySQL");
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist("8.0.12", "8.0.12"),
+                    std::invalid_argument, "Target version must be greater");
   std::vector<std::unique_ptr<Upgrade_check>> checks;
-  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7.19", "8.0.3"));
+  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist(
+                      "5.7.19", current.get_base().c_str()));
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7.17", "8.0"));
-  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7", "8.0.4"));
+  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7", "8.0.12"));
+  EXPECT_NO_THROW(
+      checks = Upgrade_check::create_checklist(prev.get_base(), MYSH_VERSION));
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
@@ -352,6 +364,52 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
   }
 }
 
+TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  PrepareTestDatabase("aaa_test_enum_set_element_length");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_enum_set_element_length_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session));
+  std::size_t original = issues.size();
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE large_enum (e enum('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "eeeeee'));"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE not_large_enum (e enum('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "ccccccccccccccccccccccccccccccccc','cccccccccccccccccccccccccccccccccccc"
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "eeeeee', \"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\"));"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE large_set (s set('a', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+      "vvvvvvvvvv', 'b', 'c'));"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE not_so_large (s set('a', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      "vvvvvvvvvv', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'b', 'c'));"));
+
+  EXPECT_NO_THROW(issues = check->run(session));
+  EXPECT_EQ(original + 2, issues.size());
+  EXPECT_EQ(issues[0].table, "large_enum");
+  EXPECT_EQ(issues[1].table, "large_set");
+}
+
 TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
@@ -385,7 +443,6 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   EXPECT_NE(nullptr, check->get_doc_link());
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
-  for (const auto &issue : issues) puts(to_string(issue).c_str());
   ASSERT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(session->execute(
@@ -425,6 +482,79 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   EXPECT_NE(std::string::npos, issues[2].description.find("SHA2"));
   EXPECT_NE(std::string::npos, issues[3].description.find("TOUCHES"));
   EXPECT_NE(std::string::npos, issues[3].description.find("ST_TOUCHES"));
+}
+
+TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 13))
+    SKIP_TEST(
+        "This test requires running against MySQL server version 5.7-8.0.12");
+  PrepareTestDatabase("aaa_test_group_by_asc");
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_groupby_asc_syntax_check();
+  std::vector<Upgrade_issue> issues;
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_TRUE(issues.empty());
+
+  ASSERT_NO_THROW(
+      session->execute("create table movies (title varchar(100), genre "
+                       "varchar(100), year_produced Year);"));
+  ASSERT_NO_THROW(
+      session->execute("create table genre_summary (genre varchar(100), count "
+                       "int, time timestamp);"));
+  ASSERT_NO_THROW(session->execute(
+      "create view genre_ob as select genre, count(*), year_produced from "
+      "movies group by genre, year_produced order by year_produced desc;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "create view genre_desc as select genre, count(*), year_produced from "
+      "movies group\n/*comment*/by genre\ndesc;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "create trigger genre_summary_asc AFTER INSERT on movies for each row "
+      "INSERT INTO genre_summary (genre, count, time) select genre, count(*), "
+      "now() from movies group/* psikus */by genre\nasc;"));
+  ASSERT_NO_THROW(session->execute(
+      "create trigger genre_summary_desc AFTER INSERT on movies for each row "
+      "INSERT INTO genre_summary (genre, count, time) select genre, count(*), "
+      "now() from movies group\nby genre# tralala\ndesc;"));
+  ASSERT_NO_THROW(session->execute(
+      "create trigger genre_summary_ob AFTER INSERT on movies for each row "
+      "INSERT INTO genre_summary (genre, count, time) select genre, count(*), "
+      "now() from movies group by genre order by genre asc;"));
+
+  ASSERT_NO_THROW(
+      session->execute("create procedure list_genres_asc() select genre, "
+                       "count(*), 'group by desc' from movies group by genre\n"
+                       "-- This is a test order ()\n"
+                       "# This is a test order\n"
+                       "/* just a comment order */asc;"));
+  ASSERT_NO_THROW(
+      session->execute("create procedure list_genres_desc() select genre, "
+                       "\"group by asc\", "
+                       "count(*) from movies group# psikus\nby genre\tdesc;"));
+  ASSERT_NO_THROW(session->execute(
+      "create procedure list_genres_ob() select genre, count(*) from movies "
+      "group by genre order/* group */by genre desc;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "create event mov_sec ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
+      "DO select * from movies group by genre desc;"));
+
+  ASSERT_NO_THROW(issues = check->run(session));
+  ASSERT_EQ(6, issues.size());
+  EXPECT_EQ("genre_desc", issues[0].table);
+  EXPECT_TRUE(shcore::str_beginswith(issues[0].description, "VIEW"));
+  EXPECT_EQ("list_genres_asc", issues[1].table);
+  EXPECT_TRUE(shcore::str_beginswith(issues[1].description, "PROCEDURE"));
+  EXPECT_EQ("list_genres_desc", issues[2].table);
+  EXPECT_TRUE(shcore::str_beginswith(issues[2].description, "PROCEDURE"));
+  EXPECT_EQ("genre_summary_asc", issues[3].table);
+  EXPECT_TRUE(shcore::str_beginswith(issues[3].description, "TRIGGER"));
+  EXPECT_EQ("genre_summary_desc", issues[4].table);
+  EXPECT_TRUE(shcore::str_beginswith(issues[4].description, "TRIGGER"));
+  EXPECT_EQ("mov_sec", issues[5].table);
+  EXPECT_TRUE(shcore::str_beginswith(issues[5].description, "EVENT"));
 }
 
 TEST_F(MySQL_upgrade_check_test, check_table_command) {

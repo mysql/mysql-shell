@@ -80,61 +80,6 @@ static std::string format_upgrade_issue(const Upgrade_issue &problem) {
                             ss.str().c_str(), problem.description.c_str());
 }
 
-REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_BRIEF,
-              "Performs series of tests on specified MySQL server to check if "
-              "the upgrade process will succeed.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_PARAM,
-              "@param connectionData Optional the connection data to server to "
-              "be checked");
-REGISTER_HELP(
-    UTIL_CHECKFORSERVERUPGRADE_PARAM1,
-    "@param options Optional dictionary of options to modify tool behaviour.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_RETURNS,
-              "@returns 0 when no problems were found, 1 when no fatal errors "
-              "were found and 2 when errors blocking upgrade process were "
-              "discovered.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL,
-              "If no connectionData is specified tool will try to establish "
-              "connection using data from current session.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL1,
-              "Tool behaviour can be modified with following options:");
-
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL2,
-              "@li outputFormat - value can be either TEXT (default) or JSON.");
-
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL3,
-              "@li password - password for connection.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4, "${TOPIC_CONNECTION_DATA}");
-
-/**
- * \ingroup util
- * $(UTIL_CHECKFORSERVERUPGRADE_BRIEF)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_PARAM)
- * $(UTIL_CHECKFORSERVERUPGRADE_PARAM1)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_RETURNS)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL1)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL2)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL3)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
- *
- */
-#if DOXYGEN_JS
-Integer Util::checkForServerUpgrade(ConnectionData connectionData,
-                                    Dictionary options);
-#elif DOXYGEN_PY
-int Util::check_for_server_upgrade(ConnectionData connectionData, dict options);
-#endif
-
 class Upgrade_check_output_formatter {
  public:
   static std::unique_ptr<Upgrade_check_output_formatter> get_formatter(
@@ -151,15 +96,10 @@ class Upgrade_check_output_formatter {
                            const char *description) = 0;
   virtual void summarize(int error, int warning, int notice,
                          const std::string &text) = 0;
-
- protected:
-  explicit Upgrade_check_output_formatter() {}
 };
 
 class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
  public:
-  explicit Text_upgrade_checker_output() {}
-
   void check_info(const std::string &server_addres,
                   const std::string &server_version,
                   const std::string &target_version) override {
@@ -227,7 +167,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
 class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
  public:
-  explicit JSON_upgrade_checker_output()
+  JSON_upgrade_checker_output()
       : m_json_document(),
         m_allocator(m_json_document.GetAllocator()),
         m_checks(rapidjson::kArrayType) {
@@ -348,11 +288,67 @@ Upgrade_check_output_formatter::get_formatter(const std::string &format) {
       new Text_upgrade_checker_output());
 }
 
+REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_BRIEF,
+              "Performs series of tests on specified MySQL server to check if "
+              "the upgrade process will succeed.");
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_PARAM,
+              "@param connectionData Optional the connection data to server to "
+              "be checked");
+REGISTER_HELP(
+    UTIL_CHECKFORSERVERUPGRADE_PARAM1,
+    "@param options Optional dictionary of options to modify tool behaviour.");
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL,
+              "If no connectionData is specified tool will try to establish "
+              "connection using data from current session.");
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL1,
+              "Tool behaviour can be modified with following options:");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL2,
+              "@li outputFormat - value can be either TEXT (default) or JSON.");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL3,
+              "@li targetVersion - version to which upgrade will be checked "
+              "(default=" MYSH_VERSION ")");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4,
+              "@li password - password for connection.");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL5, "${TOPIC_CONNECTION_DATA}");
+
+/**
+ * \ingroup util
+ * $(UTIL_CHECKFORSERVERUPGRADE_BRIEF)
+ *
+ * $(UTIL_CHECKFORSERVERUPGRADE_PARAM)
+ * $(UTIL_CHECKFORSERVERUPGRADE_PARAM1)
+ *
+ * $(UTIL_CHECKFORSERVERUPGRADE_RETURNS)
+ *
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL)
+ *
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL1)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL2)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL3)
+ *
+ * \copydoc connection_options
+ *
+ * Detailed description of the connection data format is available at \ref
+ * connection_data
+ *
+ */
+#if DOXYGEN_JS
+Undefined Util::checkForServerUpgrade(ConnectionData connectionData,
+                                      Dictionary options);
+#elif DOXYGEN_PY
+None Util::check_for_server_upgrade(ConnectionData connectionData,
+                                    dict options);
+#endif
+
 shcore::Value Util::check_for_server_upgrade(
     const shcore::Argument_list &args) {
   args.ensure_count(0, 2, get_function_name("checkForServerUpgrade").c_str());
   int errors = 0, warnings = 0, notices = 0;
-  shcore::Value ret(0);
 
   try {
     Connection_options connection_options;
@@ -377,10 +373,13 @@ shcore::Value Util::check_for_server_upgrade(
     }
 
     std::string output_format("TEXT");
+    std::string target_version(MYSH_VERSION);
     if (args.size() > 0 &&
         args[args.size() - 1].type == shcore::Value_type::Map) {
       auto dict = args.map_at(args.size() - 1);
-      output_format = dict->get_string("outputFormat", "TEXT");
+      output_format = dict->get_string("outputFormat", output_format);
+      target_version = dict->get_string("targetVersion", target_version);
+      if (target_version == "8.0") target_version.assign(MYSH_VERSION);
     }
 
     auto print = Upgrade_check_output_formatter::get_formatter(output_format);
@@ -414,9 +413,11 @@ shcore::Value Util::check_for_server_upgrade(
 
     print->check_info(connection_options.as_uri(
                           mysqlshdk::db::uri::formats::only_transport()),
-                      current_version + " - " + row->get_string(1), "8.0");
+                      current_version + " - " + row->get_string(1),
+                      target_version);
 
-    auto checklist = Upgrade_check::create_checklist(current_version, "8.0.11");
+    auto checklist =
+        Upgrade_check::create_checklist(current_version, target_version);
 
     for (size_t i = 0; i < checklist.size(); i++) try {
         std::vector<Upgrade_issue> issues = checklist[i]->run(session);
@@ -444,13 +445,11 @@ shcore::Value Util::check_for_server_upgrade(
           "%i errors were found. Please correct these issues before upgrading "
           "to MySQL 8 to avoid compatibility issues.\n",
           errors);
-      ret = shcore::Value(2);
     } else if (warnings > 0) {
       summary =
           "No fatal errors were found that would prevent a MySQL 8 upgrade, "
           "but some potential issues were detected. Please ensure that the "
           "reported issues are not significant before upgrading.\n";
-      ret = shcore::Value(1);
     } else if (notices > 0) {
       summary =
           "No fatal errors were found that would prevent a MySQL 8 upgrade, "
@@ -466,7 +465,7 @@ shcore::Value Util::check_for_server_upgrade(
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
       get_function_name("checkForServerUpgrade"));
 
-  return ret;
+  return shcore::Value();
 }
 
 REGISTER_HELP_FUNCTION(importJson, util);

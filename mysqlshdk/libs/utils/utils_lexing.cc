@@ -75,6 +75,22 @@ SQL_string_iterator &SQL_string_iterator::operator++() {
   return *this;
 }
 
+std::string SQL_string_iterator::get_next_sql_token() {
+  while (valid() && std::isspace(get_char())) ++(*this);
+  if (!valid()) return std::string();
+
+  auto previous = m_offset;
+  const auto start = previous;
+
+  while ((++(*this)).valid()) {
+    if (std::isspace(get_char()) || get_char() == ';' ||
+        m_offset - previous > 1)
+      break;
+    previous = m_offset;
+  }
+  return m_s.substr(start, previous + 1 - start);
+}
+
 using byte = unsigned char;
 enum class BsonObjectIdStripState : byte {
   START = 0,

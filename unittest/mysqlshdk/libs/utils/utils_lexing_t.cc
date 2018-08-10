@@ -159,5 +159,41 @@ TEST(Utils_lexing, SQL_string_iterator) {
   EXPECT_THROW(++it3, std::out_of_range);
 }
 
+TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
+  std::string sql{
+      "create trigger# psikus\ngenre_summary_asc AFTER\tINSERT on movies for "
+      "each\nrow INSERT INTO genre_summary (genre, count, time) select genre, "
+      "\"qoted\", now() from movies group/* psikus */by genre\nasc;"};
+  SQL_string_iterator it(sql);
+
+  EXPECT_EQ("create", it.get_next_sql_token());
+  EXPECT_EQ("trigger", it.get_next_sql_token());
+  EXPECT_EQ("genre_summary_asc", it.get_next_sql_token());
+  EXPECT_EQ("AFTER", it.get_next_sql_token());
+  EXPECT_EQ("INSERT", it.get_next_sql_token());
+  EXPECT_EQ("on", it.get_next_sql_token());
+  EXPECT_EQ("movies", it.get_next_sql_token());
+  EXPECT_EQ("for", it.get_next_sql_token());
+  EXPECT_EQ("each", it.get_next_sql_token());
+  EXPECT_EQ("row", it.get_next_sql_token());
+  EXPECT_EQ("INSERT", it.get_next_sql_token());
+  EXPECT_EQ("INTO", it.get_next_sql_token());
+  EXPECT_EQ("genre_summary", it.get_next_sql_token());
+  EXPECT_EQ("(genre,", it.get_next_sql_token());
+  EXPECT_EQ("count,", it.get_next_sql_token());
+  EXPECT_EQ("time)", it.get_next_sql_token());
+  EXPECT_EQ("select", it.get_next_sql_token());
+  EXPECT_EQ("genre,", it.get_next_sql_token());
+  EXPECT_EQ(",", it.get_next_sql_token());
+  EXPECT_EQ("now()", it.get_next_sql_token());
+  EXPECT_EQ("from", it.get_next_sql_token());
+  EXPECT_EQ("movies", it.get_next_sql_token());
+  EXPECT_EQ("group", it.get_next_sql_token());
+  EXPECT_EQ("by", it.get_next_sql_token());
+  EXPECT_EQ("genre", it.get_next_sql_token());
+  EXPECT_EQ("asc", it.get_next_sql_token());
+  EXPECT_EQ(";", it.get_next_sql_token());
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

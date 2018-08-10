@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -115,9 +115,11 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check();
   static std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check();
   static std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check();
+  static std::unique_ptr<Sql_upgrade_check> get_enum_set_element_length_check();
   static std::unique_ptr<Sql_upgrade_check>
   get_partitioned_tables_in_shared_tablespaces_check();
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
+  static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
