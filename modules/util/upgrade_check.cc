@@ -74,18 +74,32 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
     const std::string &src_ver, const std::string &dst_ver) {
   Version src_version(src_ver);
   Version dst_version(dst_ver);
-  if (src_version < Version("5.7.0") || src_version >= Version("8.0"))
+
+  if (src_version < Version("5.7.0") || src_version >= Version(MYSH_VERSION)) {
+    Version current(MYSH_VERSION);
+    Version prev(current.get_major(), current.get_minor(),
+                 current.get_patch() - 1);
     throw std::invalid_argument(
-        "Upgrades to MySQL 8.0 requires the target server to be on version "
-        "5.7");
-  if (dst_version < Version("8.0") || dst_version >= Version("8.1"))
+        "This tool supports MySQL server versions 5.7 to " + prev.get_base());
+  }
+
+  if (dst_version < Version("8.0") || dst_version > Version(MYSH_VERSION))
     throw std::invalid_argument(
-        "Only Upgrade to MySQL 8.0 from 5.7 is currently supported");
+        "This tool supports checking upgrade to MySQL server versions 8.0.11 "
+        "to " MYSH_VERSION);
+
+  if (src_version >= dst_version)
+    throw std::invalid_argument(
+        "Target version must be greater than current version of the server");
 
   std::vector<std::unique_ptr<Upgrade_check>> result;
   for (const auto &c : s_available_checks)
-    if (std::find(c.first.begin(), c.first.end(), dst_version) != c.first.end())
-      result.emplace_back(c.second(src_version, dst_version));
+    for (const auto &ver : c.first)
+      if (ver > src_version && ver <= dst_version) {
+        result.emplace_back(c.second(src_version, dst_version));
+        break;
+      }
+
   return result;
 }
 
@@ -481,6 +495,65 @@ bool UNUSED_VARIABLE(register_sqlmode) = Upgrade_check::register_check(
     std::bind(&Sql_upgrade_check::get_obsolete_sql_mode_flags_check), "8.0.11");
 }
 
+class Enum_set_element_length_check : public Sql_upgrade_check {
+ public:
+  Enum_set_element_length_check()
+      : Sql_upgrade_check(
+            "enumSetElementLenghtCheck",
+            "ENUM/SET column definitions containing elements longer than 255 "
+            "characters",
+            {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, UPPER(DATA_TYPE), "
+             "COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH from "
+             "information_schema.columns where data_type in ('enum','set') and "
+             "CHARACTER_MAXIMUM_LENGTH > 255 and table_schema not in "
+             "('information_schema');"},
+            Upgrade_issue::ERROR,
+            "The following columns are defined as either ENUM or SET and "
+            "contain at least one element longer that 255 characters. They "
+            "need to be altered so that all elements fit into the 255 "
+            "characters limit.") {}
+
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+    Upgrade_issue res;
+    std::string type = row->get_as_string(3);
+    if (type == "SET") {
+      std::string definition{row->get_as_string(4)};
+      std::size_t i = 0;
+      for (i = 0; i < definition.length(); i++) {
+        std::size_t prev = i + 1;
+        if (definition[i] == '"')
+          i = mysqlshdk::utils::span_quoted_string_dq(definition, i) - 1;
+        else if (definition[i] == '\'')
+          i = mysqlshdk::utils::span_quoted_string_sq(definition, i) - 1;
+        else
+          continue;
+        if (i - prev > 255) break;
+      }
+      if (i == definition.length()) return res;
+    }
+
+    res.schema = row->get_as_string(0);
+    res.table = row->get_as_string(1);
+    res.column = row->get_as_string(2);
+    res.description = type + " contains element longer than 255 characters";
+    res.level = m_level;
+    return res;
+  }
+};
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_enum_set_element_length_check() {
+  return std::unique_ptr<Sql_upgrade_check>(
+      new Enum_set_element_length_check());
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_enum_set_element_length_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_enum_set_element_length_check),
+        "8.0.11");
+}
+
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
@@ -504,7 +577,7 @@ bool UNUSED_VARIABLE(register_sharded_tablespaces) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::
                       get_partitioned_tables_in_shared_tablespaces_check),
-        "8.0.11");
+        "8.0.11", "8.0.13");
 }
 
 class Removed_functions_check : public Sql_upgrade_check {
@@ -662,6 +735,85 @@ namespace {
 bool UNUSED_VARIABLE(register_removed_functions) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::get_removed_functions_check), "8.0.11");
+}
+
+class Groupby_asc_syntax_check : public Sql_upgrade_check {
+ public:
+  Groupby_asc_syntax_check()
+      : Sql_upgrade_check(
+            "groupByAscCheck", "Usage of removed GROUP BY ASC/DESC syntax",
+            {"select table_schema, table_name, 'VIEW', "
+             "UPPER(view_definition) from information_schema.views where "
+             "UPPER(view_definition) like '%ASC%' or UPPER(view_definition) "
+             "like '%DESC%';",
+             "select routine_schema, routine_name, routine_type, "
+             "UPPER(routine_definition) from information_schema.routines where "
+             "UPPER(routine_definition) like '%ASC%' or "
+             "UPPER(routine_definition) like '%DESC%';",
+             "select TRIGGER_SCHEMA, TRIGGER_NAME, 'TRIGGER', "
+             "UPPER(ACTION_STATEMENT) from information_schema.triggers  where "
+             "UPPER(ACTION_STATEMENT) like '%ASC%' or UPPER(ACTION_STATEMENT) "
+             "like '%DESC%';",
+             "select event_schema, event_name, 'EVENT', "
+             "UPPER(EVENT_DEFINITION) from information_schema.events where "
+             "UPPER(event_definition) like '%ASC%' or UPPER(event_definition) "
+             "like '%DESC%';"},
+            Upgrade_issue::ERROR,
+            "The following DB objects use removed GROUP BY ASC/DESC syntax. "
+            "They need to be altered so that ASC/DESC keyword is removed "
+            "from GROUP BY clause and placed in appropriate ORDER BY clause.") {
+  }
+
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+    Upgrade_issue res;
+    std::string definition = row->get_as_string(3);
+    mysqlshdk::utils::SQL_string_iterator it(definition);
+    bool gb_found = false;
+    std::string token;
+
+    while (!(token = it.get_next_sql_token()).empty()) {
+      if (token == "GROUP") {
+        auto pos = it.position();
+        if (it.get_next_sql_token() == "BY")
+          gb_found = true;
+        else
+          it.set_position(pos);
+      } else if (token == "ORDER") {
+        auto pos = it.position();
+        if (it.get_next_sql_token() == "BY")
+          gb_found = false;
+        else
+          it.set_position(pos);
+      } else if (gb_found && token == "ASC") {
+        res.description =
+            row->get_as_string(2) + " uses removed GROUP BY ASC syntax";
+        break;
+      } else if (gb_found && token == "DESC") {
+        res.description =
+            row->get_as_string(2) + " uses removed GROUP BY DESC syntax";
+        break;
+      }
+    }
+
+    if (!res.description.empty()) {
+      res.schema = row->get_as_string(0);
+      res.table = row->get_as_string(1);
+      res.level = m_level;
+    }
+
+    return res;
+  }
+};
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_groupby_asc_syntax_check() {
+  return std::unique_ptr<Sql_upgrade_check>(new Groupby_asc_syntax_check());
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_groupby_syntax_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_groupby_asc_syntax_check), "8.0.13");
 }
 
 Check_table_command::Check_table_command()

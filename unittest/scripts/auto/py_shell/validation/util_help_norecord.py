@@ -33,10 +33,6 @@ WHERE
       connectionData: The connection data to server to be checked
       options: Dictionary of options to modify tool behaviour.
 
-RETURNS
-       0 when no problems were found, 1 when no fatal errors were found and 2
-      when errors blocking upgrade process were discovered.
-
 DESCRIPTION
       If no connectionData is specified tool will try to establish connection
       using data from current session.
@@ -44,6 +40,8 @@ DESCRIPTION
       Tool behaviour can be modified with following options:
 
       - outputFormat - value can be either TEXT (default) or JSON.
+      - targetVersion - version to which upgrade will be checked
+        (default=8.0.13)
       - password - password for connection.
 
       The connection data may be specified in the following formats:

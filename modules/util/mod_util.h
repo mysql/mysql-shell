@@ -47,10 +47,10 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   std::string class_name() const override { return "Util"; };
 
 #if DOXYGEN_JS
-  Integer checkForServerUpgrade(ConnectionData connectionData,
-                                Dictionary options);
+  Undefined checkForServerUpgrade(ConnectionData connectionData,
+                                  Dictionary options);
 #elif DOXYGEN_PY
-  int check_for_server_upgrade(ConnectionData connectionData, dict options);
+  None check_for_server_upgrade(ConnectionData connectionData, dict options);
 #endif
   shcore::Value check_for_server_upgrade(const shcore::Argument_list &args);
 

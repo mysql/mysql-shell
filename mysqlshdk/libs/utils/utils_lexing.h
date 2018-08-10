@@ -272,8 +272,12 @@ class SQL_string_iterator {
 
   std::string::size_type position() const { return m_offset; }
 
+  void set_position(std::string::size_type position) { m_offset = position; }
+
   /** Is iterator pointing to valid character inside SQL string */
   bool valid() const { return m_offset < m_s.length(); }
+
+  std::string get_next_sql_token();
 
  private:
   const std::string &m_s;

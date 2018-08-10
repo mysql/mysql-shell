@@ -109,6 +109,16 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 * sqlModeFlagCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
+* enumSetElementLenghtCheck.title
+# ENUM/SET column definitions containing elements longer than 255 characters
+
+* enumSetElementLenghtCheck.description
+# Error: The following columns are defined as either ENUM or SET and contain at least one element
+# longer that 255 characters. They need to be altered so that all elements fit into the 255
+# characters limit.
+
+* enumSetElementLenghtCheck.docLink
+
 * partitionedTablesInSharedTablespaceCheck.title
 # Usage of partitioned tables in shared tablespaces
 
@@ -129,6 +139,15 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * removedFunctionsCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
+
+* groupByAscCheck.title
+# Usage of removed GROUP BY ASC/DESC syntax
+
+* groupByAscCheck.description
+# Error: The following DB objects use removed GROUP BY ASC/DESC syntax. They need to be altered so
+# that ASC/DESC keyword is removed from GROUP BY clause and placed in appropriate ORDER BY clause.
+
+* groupByAscCheck.docLink
 
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command
