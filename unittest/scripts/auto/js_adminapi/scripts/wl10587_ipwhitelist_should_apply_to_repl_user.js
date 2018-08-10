@@ -23,7 +23,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.deploySandbox(__mysql_sandbox_port3, "root");
 shell.connect(__sandbox_uri1);
 
-var cluster = dba.createCluster("testCluster", {ipWhitelist:"192.168.1.1/8,127.0.0.1," + hostname_ip});
+var cluster = dba.createCluster("testCluster", {ipWhitelist:"192.168.1.1/8,127.0.0.1," + hostname_ip + "," + hostname});
 
 // Store the internally generated replication user
 var result = session.runSql("SELECT User FROM mysql.user WHERE User LIKE 'mysql_innodb_cluster_r%'");
@@ -46,7 +46,7 @@ EXPECT_OUTPUT_CONTAINS("192.168.1.1/255.0.0.0");
 EXPECT_OUTPUT_CONTAINS(hostname_ip);
 
 //@<> F3 The replication-user matches the ipWhitelist filters: addInstance()
-cluster.addInstance(__sandbox_uri2, {ipWhitelist:"192.168.2.1/15,127.0.0.1," + hostname_ip});
+cluster.addInstance(__sandbox_uri2, {ipWhitelist:"192.168.2.1/15,127.0.0.1," + hostname_ip + "," + hostname});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 var result = session.runSql("SELECT Host FROM mysql.user WHERE User LIKE 'mysql_innodb_cluster_r%' AND User != '" + __repl_user + "'");
 var rows = result.fetchAll();
@@ -78,7 +78,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 var cluster = dba.getCluster("testCluster");
 
 // Rejoin the seed instance back again using an ipWhitelist
-cluster.rejoinInstance(__sandbox_uri1, {ipWhitelist:"254.168.3.1/11,127.0.0.1," + hostname_ip});
+cluster.rejoinInstance(__sandbox_uri1, {ipWhitelist:"254.168.3.1/11,127.0.0.1," + hostname_ip + "," + hostname});
 
 //@<> F4 The previous replication-user must be removed
 var result = session.runSql("SELECT Host FROM mysql.user WHERE User = '" + __repl_user + "'");
