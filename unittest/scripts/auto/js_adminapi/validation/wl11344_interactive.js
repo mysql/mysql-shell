@@ -68,7 +68,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname_ip>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'C' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
@@ -93,7 +93,7 @@ true
 group_replication_bootstrap_group = OFF
 group_replication_group_name = 62d73bbd-b830-11e7-a7b7-34e6d72fbd80
 group_replication_group_seeds =
-group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
+group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_port2>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -117,7 +117,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname_ip>>>
 
 Instance configuration is suitable.
 Creating InnoDB cluster 'ClusterName' on 'root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>'...
@@ -287,7 +287,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname_ip>>>
 
 Instance configuration is suitable.
 WARNING: On instance 'localhost:<<<__mysql_sandbox_port2>>>' the persisted cluster configuration will not be loaded upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the <Dba>.configureLocalInstance command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
@@ -333,7 +333,7 @@ true
 group_replication_bootstrap_group = OFF
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_port3>>>
-group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
+group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -342,7 +342,7 @@ group_replication_start_on_boot = ON
 
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
+group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_port3>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -369,7 +369,7 @@ group_replication_start_on_boot = ON
 
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
+group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_port3>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -380,7 +380,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluste
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
+group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_port3>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -403,7 +403,7 @@ Validating instance at localhost:<<<__mysql_sandbox_port2>>>...
 Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
-This instance reports its own address as <<<real_hostname>>>
+This instance reports its own address as <<<hostname_ip>>>
 
 Instance configuration is suitable.
 WARNING: On instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' membership change cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the <Dba>.configureLocalInstance command locally to persist the changes.
