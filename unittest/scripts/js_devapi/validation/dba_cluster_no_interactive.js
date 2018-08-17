@@ -15,8 +15,8 @@
 |forceQuorumUsingPartitionOf: OK|
 
 //@# Cluster: addInstance errors
-||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
+||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
 ||Cluster.addInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.addInstance: Invalid URI: empty.
 ||Cluster.addInstance: Invalid and missing values in connection options (invalid: weird), (missing: host)
@@ -101,8 +101,8 @@
 }
 
 //@ Cluster: removeInstance errors
-||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 3
+||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.removeInstance: Invalid values in connection options: fakeOption
 ||Cluster.removeInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
@@ -363,8 +363,8 @@
 ||
 
 //@ Cluster: rejoinInstance errors
-||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
+||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.rejoinInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoinInstance: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'
@@ -417,7 +417,7 @@
 }
 
 //@ Cluster: dissolve errors
-||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
+||Cluster.dissolve: Invalid number of arguments, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Cluster.dissolve: Invalid options: foobar
 ||Cluster.dissolve: Option 'force' is expected to be of type Bool, but is String

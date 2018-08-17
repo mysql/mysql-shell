@@ -20,10 +20,10 @@
 }
 
 //@ Failure: no arguments
-||Invalid number of arguments in Cluster.checkInstanceState, expected 1 to 2 but got 0 (ArgumentError)
+||Cluster.checkInstanceState: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
 
 //@ Failure: more than two arguments
-||Invalid number of arguments in Cluster.checkInstanceState, expected 1 to 2 but got 3 (ArgumentError)
+||Cluster.checkInstanceState: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 
 //@ Adding instance
 ||
@@ -41,10 +41,10 @@
 }
 
 //@ Failure: no arguments - added instance
-||Invalid number of arguments in Cluster.checkInstanceState, expected 1 to 2 but got 0 (ArgumentError)
+||Cluster.checkInstanceState: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
 
 //@ Failure: more than two arguments - added instance
-||Invalid number of arguments in Cluster.checkInstanceState, expected 1 to 2 but got 3 (ArgumentError)
+||Cluster.checkInstanceState: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 
 //@ Finalization
 ||

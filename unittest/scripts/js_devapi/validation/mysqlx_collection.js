@@ -44,7 +44,7 @@
 
 //================= addOrReplaceOne ======================
 //@ addOrReplaceOne parameter error conditions
-||Invalid number of arguments in Collection.addOrReplaceOne, expected 2 but got 0
+||Collection.addOrReplaceOne: Invalid number of arguments, expected 2 but got 0
 ||Collection.addOrReplaceOne: Argument #1 is expected to be a string
 ||Collection.addOrReplaceOne: Argument #2 is expected to be a map
 
@@ -115,7 +115,7 @@
 
 //================= getOne ======================
 //@ getOne: parameter error conditions
-||Invalid number of arguments in Collection.getOne, expected 1 but got 0
+||Collection.getOne: Invalid number of arguments, expected 1 but got 0
 ||Collection.getOne: Argument #1 is expected to be a string
 
 //@<OUT> getOne: returns expected document
@@ -145,7 +145,7 @@
 
 
 //@ removeOne: parameter error conditions
-||Invalid number of arguments in Collection.removeOne, expected 1 but got 0
+||Collection.removeOne: Invalid number of arguments, expected 1 but got 0
 ||Collection.removeOne: Argument #1 is expected to be a string
 
 //@ removeOne: removes the expected document
@@ -180,7 +180,7 @@
 ]
 
 //@ replaceOne parameter error conditions
-||Invalid number of arguments in Collection.replaceOne, expected 2 but got 0
+||Collection.replaceOne: Invalid number of arguments, expected 2 but got 0
 ||Collection.replaceOne: Argument #1 is expected to be a string
 ||Collection.replaceOne: Argument #2 is expected to be a map
 

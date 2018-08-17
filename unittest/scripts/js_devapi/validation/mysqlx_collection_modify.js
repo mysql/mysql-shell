@@ -55,61 +55,61 @@
 |Updated Carol: 1|
 
 //@# CollectionModify: Error conditions on modify
-||Invalid number of arguments in CollectionModify.modify, expected 1 but got 0
+||CollectionModify.modify: Invalid number of arguments, expected 1 but got 0
 ||CollectionModify.modify: Requires a search condition.
 ||CollectionModify.modify: Argument #1 is expected to be a string
 ||CollectionModify.modify: Unterminated quoted string starting at position 8
 
 //@# CollectionModify: Error conditions on set
-||Invalid number of arguments in CollectionModify.set, expected 2 but got 0
+||CollectionModify.set: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.set: Argument #1 is expected to be a string
 
 //@# CollectionModify: Error conditions on unset
-||Invalid number of arguments in CollectionModify.unset, expected at least 1 but got 0
+||CollectionModify.unset: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionModify.unset: Argument #1 is expected to be either string or list of strings
 ||CollectionModify.unset: Argument #1 is expected to be a string
 ||CollectionModify.unset: Element #2 is expected to be a string
 ||CollectionModify.unset: Invalid document path
 
 //@# CollectionModify: Error conditions on merge
-||Invalid number of arguments in CollectionModify.merge, expected 1 but got 0
+||CollectionModify.merge: Invalid number of arguments, expected 1 but got 0
 ||CollectionModify.merge: Argument expected to be a JSON object
 
 //@# CollectionModify: Error conditions on patch
-||Invalid number of arguments in CollectionModify.patch, expected 1 but got 0
+||CollectionModify.patch: Invalid number of arguments, expected 1 but got 0
 ||CollectionModify.patch: Argument expected to be a JSON object
 
 //@# CollectionModify: Error conditions on arrayInsert
-||Invalid number of arguments in CollectionModify.arrayInsert, expected 2 but got 0
+||CollectionModify.arrayInsert: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.arrayInsert: Argument #1 is expected to be a string
 ||CollectionModify.arrayInsert: Invalid document path
 ||CollectionModify.arrayInsert: An array document path must be specified
 
 //@# CollectionModify: Error conditions on arrayAppend
-||Invalid number of arguments in CollectionModify.arrayAppend, expected 2 but got 0
+||CollectionModify.arrayAppend: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.arrayAppend: Argument #1 is expected to be a string
 ||CollectionModify.arrayAppend: Invalid document path
 ||CollectionModify.arrayAppend: Unsupported value received: <Session:
 
 //@# CollectionModify: Error conditions on arrayDelete
-||Invalid number of arguments in CollectionModify.arrayDelete, expected 1 but got
+||CollectionModify.arrayDelete: Invalid number of arguments, expected 1 but got
 ||CollectionModify.arrayDelete: Argument #1 is expected to be a string
 ||CollectionModify.arrayDelete: Invalid document path
 ||CollectionModify.arrayDelete: An array document path must be specified
 
 //@# CollectionModify: Error conditions on sort
-||Invalid number of arguments in CollectionModify.sort, expected at least 1 but got 0
+||CollectionModify.sort: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionModify.sort: Argument #1 is expected to be a string or an array of strings
 ||CollectionModify.sort: Sort criteria can not be empty
 ||CollectionModify.sort: Element #2 is expected to be a string
 ||CollectionModify.sort: Argument #2 is expected to be a string
 
 //@# CollectionModify: Error conditions on limit
-||Invalid number of arguments in CollectionModify.limit, expected 1 but got 0
+||CollectionModify.limit: Invalid number of arguments, expected 1 but got 0
 ||CollectionModify.limit: Argument #1 is expected to be an unsigned int
 
 //@# CollectionModify: Error conditions on bind
-||Invalid number of arguments in CollectionModify.bind, expected 2 but got 0
+||CollectionModify.bind: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.bind: Argument #1 is expected to be a string
 ||CollectionModify.bind: Unable to bind value for unexisting placeholder: another
 

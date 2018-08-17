@@ -47,7 +47,7 @@
 
 #================= add_or_replace_one ======================
 #@ add_or_replace_one parameter error conditions
-||Invalid number of arguments in Collection.add_or_replace_one, expected 2 but got 0
+||Collection.add_or_replace_one: Invalid number of arguments, expected 2 but got 0
 ||Collection.add_or_replace_one: Argument #1 is expected to be a string
 ||Collection.add_or_replace_one: Argument #2 is expected to be a map
 
@@ -118,7 +118,7 @@
 
 #================= get_one ======================
 #@ get_one: parameter error conditions
-||Invalid number of arguments in Collection.get_one, expected 1 but got 0
+||Collection.get_one: Invalid number of arguments, expected 1 but got 0
 ||Collection.get_one: Argument #1 is expected to be a string
 
 #@<OUT> get_one: returns expected document
@@ -148,7 +148,7 @@
 
 
 #@ remove_one: parameter error conditions
-||Invalid number of arguments in Collection.remove_one, expected 1 but got 0
+||Collection.remove_one: Invalid number of arguments, expected 1 but got 0
 ||Collection.remove_one: Argument #1 is expected to be a string
 
 #@ remove_one: removes the expected document
@@ -183,7 +183,7 @@
 ]
 
 #@ replace_one parameter error conditions
-||Invalid number of arguments in Collection.replace_one, expected 2 but got 0
+||Collection.replace_one: Invalid number of arguments, expected 2 but got 0
 ||Collection.replace_one: Argument #1 is expected to be a string
 ||Collection.replace_one: Argument #2 is expected to be a map
 
