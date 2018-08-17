@@ -56,7 +56,7 @@
 ||CollectionFind.find: Unterminated quoted string starting at position 8
 
 //@# CollectionFind: Error conditions on fields
-||Invalid number of arguments in CollectionFind.fields, expected at least 1 but got 0
+||CollectionFind.fields: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionFind.fields: Argument #1 is expected to be a string, array of strings or a JSON expression
 ||CollectionFind.fields: Field selection criteria can not be empty
 ||CollectionFind.fields: Element #2 is expected to be a string
@@ -64,45 +64,45 @@
 ||CollectionFind.fields: Argument #2 is expected to be a string
 
 //@# CollectionFind: Error conditions on groupBy
-||Invalid number of arguments in CollectionFind.groupBy, expected at least 1 but got 0
+||CollectionFind.groupBy: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionFind.groupBy: Argument #1 is expected to be a string or an array of strings
 ||CollectionFind.groupBy: Grouping criteria can not be empty
 ||CollectionFind.groupBy: Element #2 is expected to be a string
 ||CollectionFind.groupBy: Argument #2 is expected to be a string
 
 //@# CollectionFind: Error conditions on having
-||Invalid number of arguments in CollectionFind.having, expected 1 but got 0
+||CollectionFind.having: Invalid number of arguments, expected 1 but got 0
 ||CollectionFind.having: Argument #1 is expected to be a string
 
 //@# CollectionFind: Error conditions on sort
-||Invalid number of arguments in CollectionFind.sort, expected at least 1 but got 0
+||CollectionFind.sort: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionFind.sort: Argument #1 is expected to be a string or an array of strings
 ||CollectionFind.sort: Sort criteria can not be empty
 ||CollectionFind.sort: Element #2 is expected to be a string
 ||CollectionFind.sort: Argument #2 is expected to be a string
 
 //@# CollectionFind: Error conditions on limit
-||Invalid number of arguments in CollectionFind.limit, expected 1 but got 0
+||CollectionFind.limit: Invalid number of arguments, expected 1 but got 0
 ||CollectionFind.limit: Argument #1 is expected to be an unsigned int
 
 //@# CollectionFind: Error conditions on offset
-||Invalid number of arguments in CollectionFind.offset, expected 1 but got 0
+||CollectionFind.offset: Invalid number of arguments, expected 1 but got 0
 ||CollectionFind.offset: Argument #1 is expected to be an unsigned int
 
 //@# CollectionFind: Error conditions on skip
-||Invalid number of arguments in CollectionFind.skip, expected 1 but got 0
+||CollectionFind.skip: Invalid number of arguments, expected 1 but got 0
 ||CollectionFind.skip: Argument #1 is expected to be an unsigned int
 
 //@# CollectionFind: Error conditions on lockShared
-||Invalid number of arguments in CollectionFind.lockShared, expected 0 to 1 but got 2
+||CollectionFind.lockShared: Invalid number of arguments, expected 0 to 1 but got 2
 ||CollectionFind.lockShared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 //@# CollectionFind: Error conditions on lockExclusive
-||Invalid number of arguments in CollectionFind.lockExclusive, expected 0 to 1 but got 2
+||CollectionFind.lockExclusive: Invalid number of arguments, expected 0 to 1 but got 2
 ||CollectionFind.lockExclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 //@# CollectionFind: Error conditions on bind
-||Invalid number of arguments in CollectionFind.bind, expected 2 but got 0
+||CollectionFind.bind: Invalid number of arguments, expected 2 but got 0
 ||CollectionFind.bind: Argument #1 is expected to be a string
 ||CollectionFind.bind: Unable to bind value for unexisting placeholder: another
 

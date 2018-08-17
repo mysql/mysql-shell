@@ -45,8 +45,8 @@
 |9999-12-31 23:59:59.999999|
 
 #@# ClassicSession: run_sql errors
-||Invalid number of arguments in ClassicSession.run_sql, expected 1 to 2 but got 0
-||Invalid number of arguments in ClassicSession.run_sql, expected 1 to 2 but got 3
+||ClassicSession.run_sql: Invalid number of arguments, expected 1 to 2 but got 0
+||ClassicSession.run_sql: Invalid number of arguments, expected 1 to 2 but got 3
 ||ClassicSession.run_sql: Argument #1 is expected to be a string
 ||ClassicSession.run_sql: Argument #2 is expected to be an array
 ||ClassicSession.run_sql: Error formatting SQL query: more arguments than escapes while substituting placeholder value at index #2
@@ -57,8 +57,8 @@
 | hello | 1234 |
 
 #@# ClassicSession: query errors
-||Invalid number of arguments in ClassicSession.query, expected 1 to 2 but got 0
-||Invalid number of arguments in ClassicSession.query, expected 1 to 2 but got 3
+||ClassicSession.query: Invalid number of arguments, expected 1 to 2 but got 0
+||ClassicSession.query: Invalid number of arguments, expected 1 to 2 but got 3
 ||ClassicSession.query: Argument #1 is expected to be a string
 ||ClassicSession.query: Argument #2 is expected to be an array
 ||ClassicSession.query: Error formatting SQL query: more arguments than escapes while substituting placeholder value at index #2

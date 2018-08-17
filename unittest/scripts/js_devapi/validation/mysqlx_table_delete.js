@@ -28,26 +28,26 @@
 
 
 //@# TableDelete: Error conditions on delete
-||Invalid number of arguments in TableDelete.delete, expected 0 but got 1
+||TableDelete.delete: Invalid number of arguments, expected 0 but got 1
 
 //@# TableDelete: Error conditions on where
-||Invalid number of arguments in TableDelete.where, expected 1 but got 0
+||TableDelete.where: Invalid number of arguments, expected 1 but got 0
 ||TableDelete.where: Argument #1 is expected to be a string
 ||TableDelete.where: Unterminated quoted string starting at position 8
 
 //@# TableDelete: Error conditions on orderBy
-||Invalid number of arguments in TableDelete.orderBy, expected at least 1 but got 0
+||TableDelete.orderBy: Invalid number of arguments, expected at least 1 but got 0
 ||TableDelete.orderBy: Argument #1 is expected to be a string or an array of strings
 ||TableDelete.orderBy: Order criteria can not be empty
 ||TableDelete.orderBy: Element #2 is expected to be a string
 ||TableDelete.orderBy: Argument #2 is expected to be a string
 
 //@# TableDelete: Error conditions on limit
-||Invalid number of arguments in TableDelete.limit, expected 1 but got 0
+||TableDelete.limit: Invalid number of arguments, expected 1 but got 0
 ||TableDelete.limit: Argument #1 is expected to be an unsigned int
 
 //@# TableDelete: Error conditions on bind
-||Invalid number of arguments in TableDelete.bind, expected 2 but got 0
+||TableDelete.bind: Invalid number of arguments, expected 2 but got 0
 ||TableDelete.bind: Argument #1 is expected to be a string
 ||TableDelete.bind: Unable to bind value for unexisting placeholder: another
 

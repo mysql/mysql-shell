@@ -11,7 +11,7 @@
 |No additional functions are available|
 
 //@# CollectionAdd: Error conditions on add
-||Invalid number of arguments in CollectionAdd.add, expected at least 1 but got 0
+||CollectionAdd.add: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents
 ||CollectionAdd.add: Element #1 expected to be a document, JSON expression or a list of documents
 ||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents (ArgumentError)

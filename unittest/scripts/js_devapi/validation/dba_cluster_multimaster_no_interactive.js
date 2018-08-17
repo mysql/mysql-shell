@@ -182,8 +182,8 @@
 ||
 
 //@ Cluster: rejoinInstance errors
-||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
+||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.rejoinInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoinInstance: Invalid values in connection options: authMethod
 ||Cluster.rejoinInstance: The instance 'localhost:3306' does not belong to the ReplicaSet: 'default'

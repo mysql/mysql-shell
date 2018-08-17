@@ -54,46 +54,46 @@
 ||TableSelect.select: Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on where
-||Invalid number of arguments in TableSelect.where, expected 1 but got 0
+||TableSelect.where: Invalid number of arguments, expected 1 but got 0
 ||TableSelect.where: Argument #1 is expected to be a string
 ||TableSelect.where: Unterminated quoted string starting at position 8
 
 #@# TableSelect: Error conditions on group_by
-||Invalid number of arguments in TableSelect.group_by, expected at least 1 but got 0
+||TableSelect.group_by: Invalid number of arguments, expected at least 1 but got 0
 ||TableSelect.group_by: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.group_by: Grouping criteria can not be empty
 ||TableSelect.group_by: Element #2 is expected to be a string
 ||TableSelect.group_by: Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on having
-||Invalid number of arguments in TableSelect.having, expected 1 but got 0
+||TableSelect.having: Invalid number of arguments, expected 1 but got 0
 ||TableSelect.having: Argument #1 is expected to be a string
 
 #@# TableSelect: Error conditions on order_by
-||Invalid number of arguments in TableSelect.order_by, expected at least 1 but got 0
+||TableSelect.order_by: Invalid number of arguments, expected at least 1 but got 0
 ||TableSelect.order_by: Argument #1 is expected to be a string or an array of strings
 ||TableSelect.order_by: Order criteria can not be empty
 ||TableSelect.order_by: Element #2 is expected to be a string
 ||TableSelect.order_by: Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on limit
-||Invalid number of arguments in TableSelect.limit, expected 1 but got 0
+||TableSelect.limit: Invalid number of arguments, expected 1 but got 0
 ||TableSelect.limit: Argument #1 is expected to be an unsigned int
 
 #@# TableSelect: Error conditions on offset
-||Invalid number of arguments in TableSelect.offset, expected 1 but got 0
+||TableSelect.offset: Invalid number of arguments, expected 1 but got 0
 ||TableSelect.offset: Argument #1 is expected to be an unsigned int
 
 #@# TableSelect: Error conditions on lock_shared
-||Invalid number of arguments in TableSelect.lock_shared, expected 0 to 1 but got 2
+||TableSelect.lock_shared: Invalid number of arguments, expected 0 to 1 but got 2
 ||TableSelect.lock_shared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# TableSelect: Error conditions on lock_exclusive
-||Invalid number of arguments in TableSelect.lock_exclusive, expected 0 to 1 but got 2
+||TableSelect.lock_exclusive: Invalid number of arguments, expected 0 to 1 but got 2
 ||TableSelect.lock_exclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# TableSelect: Error conditions on bind
-||Invalid number of arguments in TableSelect.bind, expected 2 but got 0
+||TableSelect.bind: Invalid number of arguments, expected 2 but got 0
 ||TableSelect.bind: Argument #1 is expected to be a string
 ||TableSelect.bind: Unable to bind value for unexisting placeholder: another
 

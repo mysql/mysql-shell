@@ -18,8 +18,8 @@
 |forceQuorumUsingPartitionOf: OK|
 
 //@ Cluster: addInstance errors
-||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.addInstance, expected 1 to 2 but got 4
+||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
 ||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.addInstance: Invalid URI: empty.
 ||Cluster.addInstance: Invalid values in connection options: ipWhitelist, memberSslMode
@@ -159,8 +159,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 }
 
 //@ Cluster: removeInstance errors
-||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.removeInstance, expected 1 to 2 but got 3
+||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.removeInstance: Argument auth-method is expected to be a string
 ||Cluster.removeInstance: The instance 'localhost:33060' does not belong to the ReplicaSet: 'default'
@@ -247,7 +247,7 @@ Cluster.dissolve: Operation canceled by user. (RuntimeError)
 
 //@ Cluster: dissolve errors
 ||Cluster.dissolve: Argument #1 is expected to be a map
-||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
+||Cluster.dissolve: Invalid number of arguments, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Cluster.dissolve: Invalid options: enforce
 ||Cluster.dissolve: Option 'force' is expected to be of type Bool, but is String
@@ -363,8 +363,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
 ||
 
 //@: Cluster: rejoinInstance errors
-||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 0
-||Invalid number of arguments in Cluster.rejoinInstance, expected 1 to 2 but got 3
+||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
+||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
 ||Invalid connection options, expected either a URI or a Dictionary
 ||Cluster.rejoinInstance: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map

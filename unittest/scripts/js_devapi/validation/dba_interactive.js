@@ -19,8 +19,8 @@
 |rebootClusterFromCompleteOutage: OK|
 
 //@# Dba: createCluster errors
-||Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 0
-||Invalid number of arguments in Dba.createCluster, expected 1 to 2 but got 4
+||Dba.createCluster: Invalid number of arguments, expected 1 to 2 but got 0
+||Dba.createCluster: Invalid number of arguments, expected 1 to 2 but got 4
 ||Dba.createCluster: Argument #1 is expected to be a string
 ||Dba.createCluster: The Cluster name cannot be empty
 ||Dba.createCluster: Invalid options: another, invalid
@@ -325,7 +325,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 
 //@# Dba: getCluster errors
 ||Dba.getCluster: Invalid cluster name: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.getCluster, expected 0 to 2 but got 3
+||Dba.getCluster: Invalid number of arguments, expected 0 to 2 but got 3
 ||Invalid typecast: Map expected, but value is Integer
 ||Dba.getCluster: The cluster with the name '' does not exist.
 ||Dba.getCluster: The cluster with the name '#' does not exist.

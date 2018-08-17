@@ -8,7 +8,7 @@
 |LockContention: <mysqlx.LockContention>|
 
 //@# mysqlx module: expression errors
-||Invalid number of arguments in mysqlx.expr, expected 1 but got 0
+||mysqlx.expr: Invalid number of arguments, expected 1 but got 0
 ||mysqlx.expr: Argument #1 is expected to be a string
 
 //@ mysqlx module: expression
@@ -21,7 +21,7 @@
 |2017-12-10 10:10:10.599000|
 
 //@ mysqlx module: Bug #26429377
-||Invalid number of arguments in mysqlx.dateValue, expected 3 to 7 but got 0 (ArgumentError)
+||mysqlx.dateValue: Invalid number of arguments, expected 3 to 7 but got 0 (ArgumentError)
 
 //@ mysqlx module: Bug #26429377 - 4/5 arguments
 ||mysqlx.dateValue: 3,6 or 7 arguments expected (ArgumentError)

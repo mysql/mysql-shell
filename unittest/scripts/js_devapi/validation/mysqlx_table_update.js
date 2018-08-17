@@ -31,33 +31,33 @@
 |Updated Carol: 1|
 
 //@# TableUpdate: Error conditions on update
-||Invalid number of arguments in TableUpdate.update, expected 0 but got 1
+||TableUpdate.update: Invalid number of arguments, expected 0 but got 1
 
 //@# TableUpdate: Error conditions on set
-||Invalid number of arguments in TableUpdate.set, expected 2 but got 0
+||TableUpdate.set: Invalid number of arguments, expected 2 but got 0
 ||TableUpdate.set: Argument #1 is expected to be a string
 ||TableUpdate.set: Unsupported value received for table update operation on field "name", received: <Session:
 
 
 //@# TableUpdate: Error conditions on where
-||Invalid number of arguments in TableUpdate.where, expected 1 but got 0
+||TableUpdate.where: Invalid number of arguments, expected 1 but got 0
 ||TableUpdate.where: Argument #1 is expected to be a string
 ||TableUpdate.where: Unterminated quoted string starting at position 8
 
 
 //@# TableUpdate: Error conditions on orderBy
-||Invalid number of arguments in TableUpdate.orderBy, expected at least 1 but got 0
+||TableUpdate.orderBy: Invalid number of arguments, expected at least 1 but got 0
 ||TableUpdate.orderBy: Argument #1 is expected to be a string or an array of strings
 ||TableUpdate.orderBy: Order criteria can not be empty
 ||TableUpdate.orderBy: Element #2 is expected to be a string
 ||TableUpdate.orderBy: Argument #2 is expected to be a string
 
 //@# TableUpdate: Error conditions on limit
-||Invalid number of arguments in TableUpdate.limit, expected 1 but got 0
+||TableUpdate.limit: Invalid number of arguments, expected 1 but got 0
 ||TableUpdate.limit: Argument #1 is expected to be an unsigned int
 
 //@# TableUpdate: Error conditions on bind
-||Invalid number of arguments in TableUpdate.bind, expected 2 but got 0
+||TableUpdate.bind: Invalid number of arguments, expected 2 but got 0
 ||TableUpdate.bind: Argument #1 is expected to be a string
 ||TableUpdate.bind: Unable to bind value for unexisting placeholder: another
 

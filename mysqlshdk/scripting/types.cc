@@ -1470,7 +1470,7 @@ std::shared_ptr<Value::Array_type> Argument_list::array_at(
 void Argument_list::ensure_count(unsigned int c, const char *context) const {
   if (c != size())
     throw Exception::argument_error(
-        str_format("Invalid number of arguments in %s, expected %u but got %u",
+        str_format("%s: Invalid number of arguments, expected %u but got %u",
                    context, c, static_cast<uint32_t>(size())));
 }
 
@@ -1478,7 +1478,7 @@ void Argument_list::ensure_count(unsigned int minc, unsigned int maxc,
                                  const char *context) const {
   if (size() < minc || size() > maxc)
     throw Exception::argument_error(str_format(
-        "Invalid number of arguments in %s, expected %u to %u but got %u",
+        "%s: Invalid number of arguments, expected %u to %u but got %u",
         context, minc, maxc, static_cast<uint32_t>(size())));
 }
 
@@ -1486,7 +1486,7 @@ void Argument_list::ensure_at_least(unsigned int minc,
                                     const char *context) const {
   if (size() < minc)
     throw Exception::argument_error(str_format(
-        "Invalid number of arguments in %s, expected at least %u but got %u",
+        "%s: Invalid number of arguments, expected at least %u but got %u",
         context, minc, static_cast<uint32_t>(size())));
 }
 
