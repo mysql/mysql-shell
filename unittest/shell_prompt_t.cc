@@ -222,7 +222,7 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     prompt.set_width(18);
     EXPECT_EQ("my.host.com> ", prompt.render());
     prompt.set_width(17);
-    EXPECT_EQ("my.host.com> ", prompt.render());
+    EXPECT_EQ("my.host> ", prompt.render());
     prompt.set_width(16);
     EXPECT_EQ("my.host> ", prompt.render());
     prompt.set_width(15);
@@ -230,7 +230,7 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     prompt.set_width(14);
     EXPECT_EQ("my.host> ", prompt.render());
     prompt.set_width(13);
-    EXPECT_EQ("my.host> ", prompt.render());
+    EXPECT_EQ("my> ", prompt.render());
     prompt.set_width(12);
     EXPECT_EQ("my> ", prompt.render());
     prompt.set_width(11);
@@ -240,7 +240,7 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     prompt.set_width(9);
     EXPECT_EQ("my> ", prompt.render());
     prompt.set_width(8);
-    EXPECT_EQ("my> ", prompt.render());
+    EXPECT_EQ("> ", prompt.render());
     prompt.set_width(7);
     EXPECT_EQ("> ", prompt.render());
     prompt.set_width(6);
@@ -262,27 +262,27 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     prompt.set_width(18);
     EXPECT_EQ("my.host.com> ", prompt.render());
     prompt.set_width(17);
-    EXPECT_EQ("my.host.com> ", prompt.render());
-    prompt.set_width(16);
     EXPECT_EQ("my.host.c-> ", prompt.render());
-    prompt.set_width(15);
+    prompt.set_width(16);
     EXPECT_EQ("my.host.-> ", prompt.render());
-    prompt.set_width(14);
+    prompt.set_width(15);
     EXPECT_EQ("my.host-> ", prompt.render());
-    prompt.set_width(13);
+    prompt.set_width(14);
     EXPECT_EQ("my.hos-> ", prompt.render());
-    prompt.set_width(12);
+    prompt.set_width(13);
     EXPECT_EQ("my.ho-> ", prompt.render());
-    prompt.set_width(11);
+    prompt.set_width(12);
     EXPECT_EQ("my.h-> ", prompt.render());
-    prompt.set_width(10);
+    prompt.set_width(11);
     EXPECT_EQ("my.-> ", prompt.render());
-    prompt.set_width(9);
+    prompt.set_width(10);
     EXPECT_EQ("my-> ", prompt.render());
-    prompt.set_width(8);
+    prompt.set_width(9);
     EXPECT_EQ("m-> ", prompt.render());
-    prompt.set_width(7);
+    prompt.set_width(8);
     EXPECT_EQ("-> ", prompt.render());
+    prompt.set_width(7);
+    EXPECT_EQ("> ", prompt.render());
   }
 
   // Combined with priority/weight
@@ -304,6 +304,31 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
 
     prompt.set_width(40);
     EXPECT_EQ("mysql-js my sakila> ", prompt.render());
+  }
+
+  // Double line
+  {
+    Prompt_renderer prompt(20);
+    prompt.set_prompt("> ", "-> ", mysqlshdk::textui::Style());
+    prompt.set_width(100);
+
+    prompt.add_segment("mysql-js", mysqlshdk::textui::Style(), 100, 7);
+    prompt.add_segment(
+        "my.host.com", mysqlshdk::textui::Style(), 70, 2, 0,
+        Prompt_renderer::Shrinker_type::Truncate_on_dot_from_right);
+    prompt.add_segment("sakila", mysqlshdk::textui::Style(), 50, 4);
+    prompt.add_break();
+
+    EXPECT_EQ("mysql-js my.host.com sakila\n> ", prompt.render());
+
+    prompt.set_width(45);
+    EXPECT_EQ("mysql-js my.host.com sakila\n> ", prompt.render());
+
+    prompt.set_width(40);
+    EXPECT_EQ("mysql-js my.host.com sakila\n> ", prompt.render());
+
+    prompt.set_width(20);
+    EXPECT_EQ("mysql-js my sakila\n> ", prompt.render());
   }
 
   {
@@ -336,9 +361,9 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     EXPECT_EQ("a.a.a.a b.b.b.b c.c.c.c> ", prompt2.render());
 
     prompt1.set_width(44);
-    EXPECT_EQ("a.a.a.a b.b.b.b c.c.c.c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a b.b.b c.c.c.c> ", prompt1.render());
     prompt2.set_width(44);
-    EXPECT_EQ("a.a.a.a b.b.b.b c.c.c.c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b.b.b.b c.c.c> ", prompt2.render());
 
     prompt1.set_width(43);
     EXPECT_EQ("a.a.a.a b.b.b c.c.c.c> ", prompt1.render());
@@ -346,19 +371,19 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     EXPECT_EQ("a.a.a.a b.b.b.b c.c.c> ", prompt2.render());
 
     prompt1.set_width(42);
-    EXPECT_EQ("a.a.a.a b.b.b c.c.c.c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a b.b c.c.c.c> ", prompt1.render());
     prompt2.set_width(42);
-    EXPECT_EQ("a.a.a.a b.b.b.b c.c.c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b.b.b.b c.c> ", prompt2.render());
 
     prompt1.set_width(41);
     EXPECT_EQ("a.a.a.a b.b c.c.c.c> ", prompt1.render());
-    prompt2.set_width(42);
-    EXPECT_EQ("a.a.a.a b.b.b.b c.c.c> ", prompt2.render());
+    prompt2.set_width(41);
+    EXPECT_EQ("a.a.a.a b.b.b.b c.c> ", prompt2.render());
 
     prompt1.set_width(40);
-    EXPECT_EQ("a.a.a.a b.b c.c.c.c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a b c.c.c.c> ", prompt1.render());
     prompt2.set_width(40);
-    EXPECT_EQ("a.a.a.a b.b.b.b c.c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b.b.b.b c> ", prompt2.render());
 
     prompt1.set_width(39);
     EXPECT_EQ("a.a.a.a b c.c.c.c> ", prompt1.render());
@@ -366,9 +391,9 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     EXPECT_EQ("a.a.a.a b.b.b.b c> ", prompt2.render());
 
     prompt1.set_width(38);
-    EXPECT_EQ("a.a.a.a b c.c.c.c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a b c.c.c> ", prompt1.render());
     prompt2.set_width(38);
-    EXPECT_EQ("a.a.a.a b.b.b.b c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b.b.b c> ", prompt2.render());
 
     prompt1.set_width(37);
     EXPECT_EQ("a.a.a.a b c.c.c> ", prompt1.render());
@@ -376,9 +401,9 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     EXPECT_EQ("a.a.a.a b.b.b c> ", prompt2.render());
 
     prompt1.set_width(36);
-    EXPECT_EQ("a.a.a.a b c.c.c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a b c.c> ", prompt1.render());
     prompt2.set_width(36);
-    EXPECT_EQ("a.a.a.a b.b.b c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b.b c> ", prompt2.render());
 
     prompt1.set_width(35);
     EXPECT_EQ("a.a.a.a b c.c> ", prompt1.render());
@@ -386,9 +411,9 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     EXPECT_EQ("a.a.a.a b.b c> ", prompt2.render());
 
     prompt1.set_width(34);
-    EXPECT_EQ("a.a.a.a b c.c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a b c> ", prompt1.render());
     prompt2.set_width(34);
-    EXPECT_EQ("a.a.a.a b.b c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b c> ", prompt2.render());
 
     prompt1.set_width(33);
     EXPECT_EQ("a.a.a.a b c> ", prompt1.render());
@@ -396,9 +421,9 @@ TEST_F(Shell_prompt, prompt_line_shrink) {
     EXPECT_EQ("a.a.a.a b c> ", prompt2.render());
 
     prompt1.set_width(32);
-    EXPECT_EQ("a.a.a.a b c> ", prompt1.render());
+    EXPECT_EQ("a.a.a.a c> ", prompt1.render());
     prompt2.set_width(32);
-    EXPECT_EQ("a.a.a.a b c> ", prompt2.render());
+    EXPECT_EQ("a.a.a.a b> ", prompt2.render());
 
     prompt1.set_width(31);
     EXPECT_EQ("a.a.a.a c> ", prompt1.render());
@@ -988,6 +1013,20 @@ TEST_F(Shell_prompt_exe, histignore) {
   ASSERT_TRUE(_output.rfind('\n') != std::string::npos); \
   EXPECT_EQ(prompt, _output.substr(_output.rfind('\n') + 1));
 
+namespace {
+size_t second_to_last_line(const std::string &s) {
+  auto p = s.rfind('\n');
+  if (p != std::string::npos) {
+    p = s.substr(0, p).rfind('\n');
+  }
+  return p;
+}
+}  // namespace
+
+#define EXPECT_DBL_PROMPT(prompt)                                 \
+  ASSERT_TRUE(second_to_last_line(_output) != std::string::npos); \
+  EXPECT_EQ(prompt, _output.substr(second_to_last_line(_output) + 1));
+
 TEST_F(Shell_prompt_exe, prompt_variables) {
   std::string segs;
   for (const char *s :
@@ -1162,6 +1201,35 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
       "+ ssl "
       "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
       "\x1B[0m\x1B[48;5;221m\x1B[38;5;0m JS \x1B[0m\x1B[48;5;0m> \x1B[0m");
+#endif
+  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+}
+
+TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
+  std::string v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+                  "/prompt_dbl_256.json";
+  putenv(const_cast<char *>(v.c_str()));
+  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=256"));
+
+  int rc =
+      execute({_mysqlsh, "--interactive=full", _uri.c_str(), "--schema=mysql",
+               "--ssl-mode=REQUIRED", "-e", "1", nullptr});
+  EXPECT_EQ(0, rc);
+  std::cout << _output << "\n";
+
+#ifdef _WIN32
+  // TODO(alfredo)  Escape chars getting stripped in windows
+  EXPECT_DBL_PROMPT(" MySQL  " + _host + ":" + _port +
+                    "+ ssl  mysql  JS \n  > ");
+#else
+  EXPECT_DBL_PROMPT(
+      "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
+      "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " +
+      _host + ":" + _port +
+      "+ ssl "
+      "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
+      "\x1B[0m\x1B[48;5;221m\x1B[38;5;0m JS \x1B[0m\n\x1B[48;5;0m  > \x1B[0m");
 #endif
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));

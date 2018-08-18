@@ -129,20 +129,8 @@ if(WITH_TESTS)
 
     # Copy sample prompt files to the test folder
     add_custom_command(TARGET run_unit_tests PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_nocolor.json
-                        $<TARGET_FILE_DIR:run_unit_tests>/)
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_16.json
-                        $<TARGET_FILE_DIR:run_unit_tests>/)
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_256.json
-                        $<TARGET_FILE_DIR:run_unit_tests>/)
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        ${CMAKE_SOURCE_DIR}/samples/prompt/prompt_256pl.json
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        ${CMAKE_SOURCE_DIR}/samples/prompt/
                         $<TARGET_FILE_DIR:run_unit_tests>/)
 
     # Fix lookup path for OpenSSL dylibs

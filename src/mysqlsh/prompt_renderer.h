@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,6 +66,7 @@ class Prompt_renderer {
       int priority = 10, int min_width = -1, int padding = 0,
       Shrinker_type type = Shrinker_type::No_shrink,
       const std::string *separator = nullptr);
+  void add_break();
 
   std::string render();
 
@@ -79,6 +80,9 @@ class Prompt_renderer {
  private:
   std::string render_prompt_line();
   void shrink_to_fit();
+  void shrink_to_fit(std::list<Prompt_segment *>::const_iterator biter,
+                     std::list<Prompt_segment *>::const_iterator eiter,
+                     bool info_only);
 
   std::list<Prompt_segment *> segments_;
 
@@ -86,7 +90,6 @@ class Prompt_renderer {
   std::string sep_alt_;
   std::vector<std::string> symbols_;
 
-  Prompt_segment *last_segment_ = nullptr;
   std::unique_ptr<Prompt_segment> prompt_;
   std::string cont_text_;
   mysqlshdk::textui::Style cont_style_;

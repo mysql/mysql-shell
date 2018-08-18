@@ -48,10 +48,14 @@ class Shell_python : public Shell_language {
 
   std::shared_ptr<Python_context> python_context() { return _py; }
 
+  virtual void clear_input();
+  virtual std::string get_continued_input_context();
+
  private:
   static int check_signals(void *);
   std::shared_ptr<Python_context> _py;
   std::function<void(shcore::Value)> _result_processor;
+  Input_state m_last_input_state;
   long _pending_interrupt_thread;
   bool _aborted = false;
 

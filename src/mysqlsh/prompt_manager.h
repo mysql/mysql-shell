@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,8 @@ class Prompt_manager {
     Mysql_system_variable,
     Mysql_session_variable,
     Mysql_status,
-    Mysql_session_status
+    Mysql_session_status,
+    Shell_status
   };
 
   typedef std::function<std::string(const std::string &, Dynamic_variable_type)>
@@ -87,6 +88,9 @@ class Prompt_manager {
   };
 
   shcore::Value::Map_type_ref theme_;
+  std::string prompt_;
+  std::string cont_prompt_;
+  mysqlshdk::textui::Style prompt_style_;
   Prompt_renderer renderer_;
   std::map<std::string, std::unique_ptr<Custom_variable>> custom_variables_;
 

@@ -53,7 +53,7 @@
   },
   "prompt" : {
     "text" : "> ",
-    "cont_text" : "... "
+    "cont_text" : "%linectx%> "
   },
   "segments": [
 	{

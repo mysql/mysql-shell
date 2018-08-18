@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,7 +113,10 @@ void Prompt_manager::Attributes::load(const shcore::Value::Map_type_ref &opts) {
   }
 }
 
-Prompt_manager::Prompt_manager() : renderer_(k_min_prompt_space) {}
+Prompt_manager::Prompt_manager() : renderer_(k_min_prompt_space) {
+  prompt_ = "> ";
+  cont_prompt_ = "%linectx%> ";
+}
 
 void Prompt_manager::set_theme(const shcore::Value &theme) {
   // set defaults
@@ -142,9 +145,13 @@ void Prompt_manager::set_theme(const shcore::Value &theme) {
       std::string cont_text = prompt->get_string("cont_text");
       Attributes attr;
       attr.load(prompt);
-      renderer_.set_prompt(attr.text, cont_text, attr.style);
+      prompt_ = attr.text;
+      cont_prompt_ = cont_text;
+      prompt_style_ = attr.style;
     } else {
-      renderer_.set_prompt("> ", "-> ", mysqlshdk::textui::Style());
+      prompt_ = "> ";
+      cont_prompt_ = "%linectx%> ";
+      prompt_style_ = mysqlshdk::textui::Style();
     }
     shcore::Value::Map_type_ref variables(theme_->get_map("variables"));
     if (variables) {
@@ -241,6 +248,8 @@ std::string Prompt_manager::do_apply_vars(
         if (var[0] != 'S')  // uppercase means no caching
           (*vars)[var.substr(11)] = v;
         ret.append(v);
+      } else if (lvar == "linectx" && query_var) {
+        ret.append(query_var(lvar, Prompt_manager::Shell_status));
       } else if (custom_variables_.find(var) != custom_variables_.end()) {
         if (recursion_depth >= k_max_variable_recursion_depth) {
           return "<<Recursion detected during variable evaluation>>";
@@ -296,21 +305,25 @@ void Prompt_manager::update(
         shcore::Value::Map_type_ref segment(seg->as_map());
         Attributes attribs;
 
-        // load default attributes specified in the class
-        int weight = segment->get_int("weight", 0);
-        shcore::Value::Array_type_ref class_array(
-            segment->get_array("classes"));
-        if (class_array && !class_array->empty()) {
-          apply_classes(class_array, &attribs, apply_vars);
+        if (segment->has_key("break")) {
+          renderer_.add_break();
+        } else {
+          // load default attributes specified in the class
+          int weight = segment->get_int("weight", 0);
+          shcore::Value::Array_type_ref class_array(
+              segment->get_array("classes"));
+          if (class_array && !class_array->empty()) {
+            apply_classes(class_array, &attribs, apply_vars);
+          }
+
+          // load attributes specified in the segment itself
+          attribs.load(segment);
+
+          // add the segment
+          renderer_.add_segment(apply_vars(attribs.text), attribs.style, weight,
+                                attribs.min_width, attribs.padding,
+                                attribs.shrink, attribs.sep.get());
         }
-
-        // load attributes specified in the segment itself
-        attribs.load(segment);
-
-        // add the segment
-        renderer_.add_segment(apply_vars(attribs.text), attribs.style, weight,
-                              attribs.min_width, attribs.padding,
-                              attribs.shrink, attribs.sep.get());
       }
     }
   } else {
@@ -321,8 +334,9 @@ void Prompt_manager::update(
     if (!apply_vars("%host%").empty()) {
       renderer_.add_segment(apply_vars(" [%schema%]"));
     }
-    renderer_.set_prompt("> ", "-> ", mysqlshdk::textui::Style());
   }
+  renderer_.set_prompt(apply_vars(prompt_), apply_vars(cont_prompt_),
+                       prompt_style_);
 }
 
 std::string Prompt_manager::get_prompt(Variables_map *vars,

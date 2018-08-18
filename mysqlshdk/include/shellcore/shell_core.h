@@ -109,7 +109,7 @@ class SHCORE_PUBLIC Shell_language {
   virtual std::string get_handled_input() { return _last_handled; }
 
   virtual void clear_input() {}
-  virtual std::string get_continued_input_context() { return ""; }
+  virtual std::string get_continued_input_context() = 0;
 
   virtual bool is_module(const std::string &UNUSED(file_name)) { return false; }
   virtual void execute_module(
@@ -153,12 +153,16 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
   Object_registry *registry() override { return _registry; }
 
-  Shell_language *language_object(Mode mode) {
-    if (_langs.find(mode) != _langs.end()) return _langs[mode];
+  Shell_language *language_object(Mode mode) const {
+    if (_langs.find(mode) != _langs.end()) return _langs.at(mode);
     return nullptr;
   }
 
  public:
+  std::string get_continued_input_context() const {
+    return language_object(_mode)->get_continued_input_context();
+  }
+
   virtual std::string preprocess_input_line(const std::string &s);
   void handle_input(std::string &code, Input_state &state) override;
   bool handle_shell_command(const std::string &code) override;

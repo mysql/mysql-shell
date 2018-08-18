@@ -37,7 +37,8 @@ Shell_python::Shell_python(Shell_core *shcore)
     : Shell_language(shcore),
       _py(new Python_context(
           shcore->get_delegate(),
-          mysqlsh::current_shell_options()->get().interactive)) {}
+          mysqlsh::current_shell_options()->get().interactive)),
+      m_last_input_state(Input_state::Ok) {}
 
 std::string Shell_python::preprocess_input_line(const std::string &s) {
   const char *p = s.c_str();
@@ -86,6 +87,8 @@ void Shell_python::handle_input(std::string &code, Input_state &state) {
 
   // Only processes the result when full statements are executed
   if (state == Input_state::Ok) _result_processor(result);
+
+  m_last_input_state = state;
 }
 
 /*
@@ -169,4 +172,13 @@ void Shell_python::execute_module(const std::string &file_name) {
                             .append(exc.what()));
     // Should shcore::Exceptions bubble up??
   }
+}
+
+void Shell_python::clear_input() {
+  Shell_language::clear_input();
+  m_last_input_state = Input_state::Ok;
+}
+
+std::string Shell_python::get_continued_input_context() {
+  return m_last_input_state == Input_state::Ok ? "" : "-";
 }

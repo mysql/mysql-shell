@@ -65,7 +65,7 @@
   },
   "prompt" : {
     "text" : "\ue0b0 ",
-    "cont_text" : "\ue0b0 ",
+    "cont_text" : "%linectx%\ue0b0 ",
     "bg": "0"
   },
   "segments": [

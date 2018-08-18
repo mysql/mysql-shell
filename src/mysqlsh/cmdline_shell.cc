@@ -272,6 +272,10 @@ void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
 std::string Command_line_shell::query_variable(
     const std::string &var,
     mysqlsh::Prompt_manager::Dynamic_variable_type type) {
+  if (type == mysqlsh::Prompt_manager::Shell_status) {
+    if (var == "linectx") return _shell->get_continued_input_context();
+    return "";
+  }
   auto session = _shell->get_dev_session();
 
   if (session) {
@@ -288,6 +292,9 @@ std::string Command_line_shell::query_variable(
         break;
       case mysqlsh::Prompt_manager::Mysql_session_status:
         q = "show session status like ?";
+        break;
+      case mysqlsh::Prompt_manager::Shell_status:
+        assert(0);
         break;
     }
     return session->query_one_string((shcore::sqlstring(q, 0) << var), 1);
