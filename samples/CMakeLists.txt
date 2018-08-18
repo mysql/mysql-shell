@@ -23,8 +23,11 @@ SET(PROMPT_SAMPLES
     prompt/README.prompt
     prompt/prompt_16.json
     prompt/prompt_256.json
+    prompt/prompt_dbl_256.json
     prompt/prompt_256inv.json
+    prompt/prompt_dbl_256pl.json
     prompt/prompt_256pl.json
+    prompt/prompt_dbl_256pl+aw.json
     prompt/prompt_256pl+aw.json
     prompt/prompt_classic.json
     prompt/prompt_nocolor.json

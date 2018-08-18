@@ -70,7 +70,7 @@
     "ellipsis" : "..."
   },
   "prompt" : {
-    "text" : "> ",
+    "text" : "  > ",
     "cont_text" : "%linectx%> ",
     "bg": "0"
   },
@@ -109,6 +109,9 @@
       "classes": ["%Mode%"],
       "text": "%Mode%",
       "padding" : 1
+    },
+    {
+      "break": true
     }
   ]
 }

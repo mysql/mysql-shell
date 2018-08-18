@@ -21,6 +21,9 @@ _256pl+aw uses some special icon characters from fonts patched with
 "powerline" and "awesome symbol" characters, for example:
 SourceCodePro+Powerline+Awesome+Regular.ttf
 
+_dbl themes use one line for information display and a separate line for
+the input prompt itself, allowing more information and typed text to fit
+at the same time.
 
 File Format
 ===========
@@ -82,6 +85,12 @@ A segment looks like:
       "weight": 12
     }
 
+Or for a linebreak:
+
+    {
+        "break": true
+    }
+
 - the class list can be used for dynamically selecting
 the content of a segment. The first class in the list that
 exists will be applied. Variable substitution applies.
@@ -127,6 +136,7 @@ Supported variables are:
     %status:varname% - status variable queried from MySQL
     %sessstatus:varname% - session status variable queried from MySQL
         Variables queried from MySQL are cached when the shell is connected.
+    %linectx% - context for continued multi-line statements
 
 prompt
 ------

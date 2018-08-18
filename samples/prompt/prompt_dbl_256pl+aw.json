@@ -1,5 +1,5 @@
 {
-  "desc" : "256/24bit color terminal theme with MySQL prefix, default schema, host:port, ssl, + indicator for X protocol, active mode.",
+  "desc" : "256/24bit color terminal theme with MySQL prefix, default schema, host:port, ssl, + indicator for X protocol, active mode. Requires Powerline patched font with awesome symbols (e.g. awesome-terminal-fonts)",
   "classes" : {
     "SQL" : {
       "fg" : "15",
@@ -14,30 +14,24 @@
       "bg" : "25"
     },
     "schema" : {
-      "text": "%schema%"
+      "text": "\ue894 %schema%"
     },
     "noschema" : {
       "text": ""
     },
     "disconnected": {
     },
-    "host" : {
-      "text": "%transport%"
-    },
     "hostx" : {
-      "text": "%transport%+"
+      "text": "\ue895 %transport%+"
     },
     "hostc" : {
-      "text": "%transport%"
-    },
-    "SSLhost" : {
-      "text": "%transport% ssl"
+      "text": "\ue895 %transport%"
     },
     "SSLhostx" : {
-      "text": "%transport%+ ssl"
+      "text": "\ue895 %transport%+ \ue0a2"
     },
     "SSLhostc" : {
-      "text": "%transport% ssl"
+      "text": "\ue895 %transport% \ue0a2"
     },
 
     "production" : {
@@ -65,12 +59,12 @@
     }
   },
   "symbols" : {
-    "separator" : "",
-    "separator2" : "",
-    "ellipsis" : "..."
+    "separator" : "\ue0b0",
+    "separator2" : "\ue0b1",
+    "ellipsis" : "\u2026"
   },
   "prompt" : {
-    "text" : "> ",
+    "text" : "  > ",
     "cont_text" : "%linectx%> ",
     "bg": "0"
   },
@@ -109,6 +103,13 @@
       "classes": ["%Mode%"],
       "text": "%Mode%",
       "padding" : 1
+    },
+    {
+      "text": " ",
+      "bg": 0
+    },
+    {
+      "break": true
     }
   ]
 }

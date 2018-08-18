@@ -63,6 +63,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
   _last_handled = code;
 
   _result_processor(result);
+  m_last_input_state = state;
 }
 
 void Shell_javascript::set_global(const std::string &name, const Value &value) {
@@ -75,4 +76,13 @@ void Shell_javascript::abort() noexcept {
   // handler should be pushed into the stack in the code that performs the query
   log_info("User aborted JavaScript execution (^C)");
   _js->terminate();
+}
+
+void Shell_javascript::clear_input() {
+  Shell_language::clear_input();
+  m_last_input_state = Input_state::Ok;
+}
+
+std::string Shell_javascript::get_continued_input_context() {
+  return m_last_input_state == Input_state::Ok ? "" : "-";
 }

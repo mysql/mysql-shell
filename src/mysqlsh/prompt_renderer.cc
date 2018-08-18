@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 #endif
 
 #include "mysqlshdk/libs/textui/term_vt100.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "ext/linenoise-ng/src/ConvertUTF.h"
 
@@ -132,12 +133,17 @@ const char *Prompt_renderer::k_symbol_ellipsis_pl = u8"\u2026";
 
 class Prompt_segment {
  public:
+  enum Type { Break, Text };
+
   typedef Prompt_renderer::Shrinker_type Shrinker_type;
+
+  Prompt_segment() : type_(Break) { hidden_ = true; }
 
   Prompt_segment(const std::string &text, const mysqlshdk::textui::Style &style,
                  int prio, int min_width, int padding, Shrinker_type stype,
                  const std::string *separator, const std::string &ellipsis)
-      : full_text_(text),
+      : type_(Text),
+        full_text_(text),
         style_(style),
         priority_(prio),
         min_width_(min_width),
@@ -149,6 +155,8 @@ class Prompt_segment {
     if (separator) separator_.reset(new std::string(*separator));
   }
 
+  Type type() const { return type_; }
+
   int effective_width() const { return hidden_ ? 0 : shrunk_width_; }
 
   int padding() const { return padding_; }
@@ -157,22 +165,28 @@ class Prompt_segment {
 
   /** Try to shrink contents by the given amount. Returns how much got shrunk */
   int shrink_by(int length) {
+    assert(length >= 0);
+
     int old_width = shrunk_width_;
 
     switch (shrinker_type_) {
       case Shrinker_type::No_shrink:
         return 0;
 
-      case Shrinker_type::Ellipsize_on_char:
+      case Shrinker_type::Ellipsize_on_char: {
+        const int ellipsis_len = utf8_length(ellipsis_);
         // blablabla -> blabl...
-        shrunk_width_ = std::max(shrunk_width_ - length, min_width_);
-        if (shrunk_width_ < old_width) {
+        if (shrunk_width_ >= length && shrunk_width_ > ellipsis_len) {
+          shrunk_width_ = std::max(shrunk_width_ - length,
+                                   std::max(min_width_, ellipsis_len));
           std::wstring a(from_utf8(text_));
-          a = a.substr(0, shrunk_width_ - 1).append(from_utf8(ellipsis_));
+          a = a.substr(0, shrunk_width_ - ellipsis_len)
+                  .append(from_utf8(ellipsis_));
           text_ = to_utf8(a);
           return old_width - shrunk_width_;
         }
         return 0;
+      }
 
       case Shrinker_type::Truncate_on_dot_from_right: {
         // foo.bar.com -> foo
@@ -180,14 +194,14 @@ class Prompt_segment {
         size_t until = a.length();
         size_t pos = a.find_last_of('.', until);
         size_t prev = pos;
-        size_t non_negative_length = ((length < 0) ? 0 : length);
         while (pos != std::string::npos &&
-               (a.length() - pos) < non_negative_length) {
+               static_cast<int>(a.length() - pos) < length) {
           until = pos - 1;
           prev = pos;
           pos = a.find_last_of('.', until);
         }
         a = a.substr(0, pos == std::string::npos ? prev : pos);
+        if (a.empty()) return 0;
         text_ = to_utf8(a);
         shrunk_width_ = a.length();
         return old_width - shrunk_width_;
@@ -219,11 +233,12 @@ class Prompt_segment {
   const std::string &get_text() const { return text_; }
 
  protected:
+  Type type_;
   std::string full_text_;
   mysqlshdk::textui::Style style_;
-  int priority_;
-  int min_width_;
-  int padding_;
+  int priority_ = 100;
+  int min_width_ = 0;
+  int padding_ = 0;
   Shrinker_type shrinker_type_;
   std::string ellipsis_;
   std::unique_ptr<std::string> separator_;
@@ -278,31 +293,65 @@ void Prompt_renderer::add_segment(const std::string &text,
                                          symbols_[Symbol::Ellipsis]));
 }
 
+void Prompt_renderer::add_break() { segments_.push_back(new Prompt_segment()); }
+
 void Prompt_renderer::shrink_to_fit() {
+  std::list<Prompt_segment *>::const_iterator biter;
+  std::list<Prompt_segment *>::const_iterator iter;
+
+  for (iter = biter = segments_.begin(); iter != segments_.end(); ++iter) {
+    if ((*iter)->type() == Prompt_segment::Break) {
+      shrink_to_fit(biter, iter, true);
+      biter = iter;
+      ++biter;
+    }
+  }
+  shrink_to_fit(biter, segments_.end(), false);
+}
+
+void Prompt_renderer::shrink_to_fit(
+    std::list<Prompt_segment *>::const_iterator biter,
+    std::list<Prompt_segment *>::const_iterator eiter, bool info_only) {
   std::set<Prompt_segment *> hidden_segments;
-  int usable_space = width_ - min_empty_space_;
+  int usable_space = width_;
+  if (!info_only) {
+    usable_space -= min_empty_space_;
+    if (prompt_) usable_space -= utf8_length(prompt_->get_text());
+    if (usable_space < 0) usable_space = 0;
+  }
+
+  // shrink the segments from the prompt if necessary to fit available space
+  // if there are breaks in the prompt, lines are handled one by one
 
   for (;;) {
     int total_width = 0;
     std::vector<Prompt_segment *> ordered_segments;
 
-    for (auto seg : segments_) {
+    int last_separator_len = 0;
+    for (auto iter = biter; iter != eiter; ++iter) {
+      Prompt_segment *seg = *iter;
+
       if (hidden_segments.find(seg) == hidden_segments.end()) {
         int min_seg_width = 0;
         int seg_width = 0;
         seg->update(&min_seg_width, &seg_width);
-        total_width += seg_width + 1;
+        total_width += seg_width;
+        last_separator_len = seg->separator() ? utf8_length(*seg->separator())
+                                              : utf8_length(sep_);
+        total_width += last_separator_len;
         ordered_segments.push_back(seg);
       } else {
         seg->hide();
       }
     }
+    total_width -= last_separator_len;
+
     if (total_width > usable_space) {
       std::sort(ordered_segments.begin(), ordered_segments.end(),
                 [](const Prompt_segment *a, const Prompt_segment *b) -> bool {
                   return a->priority() < b->priority();
                 });
-      for (auto seg : ordered_segments) {
+      for (auto &seg : ordered_segments) {
         if (!seg->hidden()) {
           int shrinked = seg->shrink_by(total_width - usable_space);
           if (shrinked > 0) {
@@ -314,9 +363,10 @@ void Prompt_renderer::shrink_to_fit() {
       if (total_width > usable_space) {
         bool ok = false;
         // still not enough space. hide the lowest weight segment and retry
-        for (auto seg : ordered_segments) {
+        for (auto &seg : ordered_segments) {
           if (!seg->hidden()) {
             hidden_segments.insert(seg);
+            seg->hide();
             ok = true;
             break;
           }
@@ -349,58 +399,67 @@ std::string Prompt_renderer::render_prompt_line() {
   } else {
     shrink_to_fit();
 
-    last_segment_ = nullptr;
     last_prompt_width_ = 0;
-    for (auto seg : segments_) {
-      if (!seg->hidden()) {
-        std::string seg_text = seg->get_text();
-        if (prev != nullptr && !prev->get_text().empty()) {
-          std::string sep;
-          mysqlshdk::textui::Style style = seg->style();
-
-          // if we're using the triangle separator, do the special handling
-          // where the foreground of the separator is the background of the
-          // previous segment
-
-          if (seg->separator()) {
-            sep = *seg->separator();
-          } else {
-            // if the bg color is the same, use the alt version
-            if (prev->style().compare(
-                    style, mysqlshdk::textui::Style::Color_bg_mask)) {
-              sep = sep_alt_;
-              if (sep == k_symbol_sep_right_hollow_pl) {
-                style.field_mask |= (prev->style().field_mask &
-                                     mysqlshdk::textui::Style::Color_fg_mask);
-                style.fg = prev->style().fg;
-              }
-            } else {
-              sep = sep_;
-              if (sep == k_symbol_sep_right_pl) {
-                style.field_mask |= (prev->style().field_mask &
-                                     mysqlshdk::textui::Style::Color_bg_mask) >>
-                                    3;
-                style.fg = prev->style().bg;
-              }
-            }
-          }
-          if (!sep.empty() && sep[0] != ' ' && style) {
-            line.append(style);
-          }
-          line.append(sep);
-
-          last_prompt_width_ += utf8_length(sep);
-        }
-        // reset attributes after each segment
+    for (auto &seg : segments_) {
+      if (seg->type() == Prompt_segment::Break) {
+        last_prompt_width_ = 0;
         if (needs_reset) {
           line.append(mysqlshdk::textui::Style::clear());
           needs_reset = false;
         }
-        if (seg->style()) needs_reset = true;
-        line.append(seg->style()).append(seg_text);
-        last_segment_ = seg;
-        last_prompt_width_ += utf8_length(seg_text);
+        line.append("\n");
         prev = seg;
+      } else {
+        if (!seg->hidden()) {
+          std::string seg_text = seg->get_text();
+          if (prev != nullptr && !prev->get_text().empty()) {
+            std::string sep;
+            mysqlshdk::textui::Style style = seg->style();
+
+            // if we're using the triangle separator, do the special handling
+            // where the foreground of the separator is the background of the
+            // previous segment
+
+            if (seg->separator()) {
+              sep = *seg->separator();
+            } else {
+              // if the bg color is the same, use the alt version
+              if (prev->style().compare(
+                      style, mysqlshdk::textui::Style::Color_bg_mask)) {
+                sep = sep_alt_;
+                if (sep == k_symbol_sep_right_hollow_pl) {
+                  style.field_mask |= (prev->style().field_mask &
+                                       mysqlshdk::textui::Style::Color_fg_mask);
+                  style.fg = prev->style().fg;
+                }
+              } else {
+                sep = sep_;
+                if (sep == k_symbol_sep_right_pl) {
+                  style.field_mask |=
+                      (prev->style().field_mask &
+                       mysqlshdk::textui::Style::Color_bg_mask) >>
+                      3;
+                  style.fg = prev->style().bg;
+                }
+              }
+            }
+            if (!sep.empty() && sep[0] != ' ' && style) {
+              line.append(style);
+            }
+            line.append(sep);
+
+            last_prompt_width_ += utf8_length(sep);
+          }
+          // reset attributes after each segment
+          if (needs_reset) {
+            line.append(mysqlshdk::textui::Style::clear());
+            needs_reset = false;
+          }
+          if (seg->style()) needs_reset = true;
+          line.append(seg->style()).append(seg_text);
+          last_prompt_width_ += utf8_length(seg_text);
+          prev = seg;
+        }
       }
     }
     if (needs_reset) {

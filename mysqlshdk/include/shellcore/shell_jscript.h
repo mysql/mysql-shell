@@ -44,10 +44,14 @@ class Shell_javascript : public Shell_language {
 
   std::shared_ptr<JScript_context> javascript_context() { return _js; }
 
+  virtual void clear_input();
+  virtual std::string get_continued_input_context();
+
  private:
   void abort() noexcept;
   std::shared_ptr<JScript_context> _js;
   std::function<void(shcore::Value)> _result_processor;
+  Input_state m_last_input_state;
 };
 };  // namespace shcore
 
