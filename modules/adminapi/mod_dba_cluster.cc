@@ -153,6 +153,11 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> Cluster::metadata()
+    const {
+  return _metadata_storage->get_new_metadata();
+}
+
 void Cluster::assert_valid(const std::string &option_name) const {
   std::string name;
 
@@ -230,26 +235,17 @@ shcore::Value Cluster::add_seed_instance(
           "Default ReplicaSet already initialized. Please use: addInstance() "
           "to add more Instances to the ReplicaSet.");
   } else {
-    std::string topology_type = ReplicaSet::kTopologySinglePrimary;
-    if (multi_primary) {
-      topology_type = ReplicaSet::kTopologyMultiPrimary;
-    }
     // Create the Default ReplicaSet and assign it to the Cluster's
     // default_replica_set var
-    set_default_replicaset("default", topology_type, "");
-
-    // If we reached here without errors we can update the Metadata
-
-    // Update the Cluster table with the Default ReplicaSet on the Metadata
-    _metadata_storage->insert_replica_set(_default_replica_set, true,
-                                          is_adopted);
+    create_default_replicaset("default", multi_primary, "", is_adopted);
   }
-  // Add the Instance to the Default ReplicaSet passing already created
-  // replication user and the group_name (if provided)
-  ret_val = _default_replica_set->add_instance(
-      connection_options, args, replication_user, replication_pwd, true,
-      group_name, true);
-
+  if (!is_adopted) {
+    // Add the Instance to the Default ReplicaSet passing already created
+    // replication user and the group_name (if provided)
+    ret_val = _default_replica_set->add_instance(
+        connection_options, args, replication_user, replication_pwd, true,
+        group_name, true);
+  }
   std::string group_replication_group_name =
       get_gr_replicaset_group_name(_group_session);
   _default_replica_set->set_group_name(group_replication_group_name);
@@ -933,8 +929,25 @@ void Cluster::set_default_replicaset(const std::string &name,
   _default_replica_set = std::make_shared<ReplicaSet>(
       name, topology_type, group_name, _metadata_storage);
 
-  if (_default_replica_set)
-    _default_replica_set->set_cluster(shared_from_this());
+  _default_replica_set->set_cluster(shared_from_this());
+}
+
+std::shared_ptr<ReplicaSet> Cluster::create_default_replicaset(
+    const std::string &name, bool multi_primary, const std::string &group_name,
+    bool is_adopted) {
+  std::string topology_type = ReplicaSet::kTopologySinglePrimary;
+  if (multi_primary) {
+    topology_type = ReplicaSet::kTopologyMultiPrimary;
+  }
+  _default_replica_set = std::make_shared<ReplicaSet>(
+      name, topology_type, group_name, _metadata_storage);
+
+  _default_replica_set->set_cluster(shared_from_this());
+
+  // Update the Cluster table with the Default ReplicaSet on the Metadata
+  _metadata_storage->insert_replica_set(_default_replica_set, true, is_adopted);
+
+  return _default_replica_set;
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);

@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_GR_GROUP_REPLICATION_H_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -97,6 +98,9 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            std::string *out_group_name,
                            bool *out_single_primary_mode);
 
+std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
+                                   bool *out_single_primary_mode);
+
 // GR setup specific code should be moved to a separated file
 
 // Functions to manage the configuration of a GR instance.
@@ -125,9 +129,15 @@ std::string generate_group_name();
 mysql::User_privileges_result check_replication_user(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host);
-void create_replication_user(const mysqlshdk::mysql::IInstance &instance,
-                             const std::string &user, const std::string &host,
-                             const std::string &pwd);
+
+void create_replication_random_user_pass(
+    const mysqlshdk::mysql::IInstance &instance, std::string *out_user,
+    const std::vector<std::string> &hosts, std::string *out_pwd);
+
+void create_replication_user_random_pass(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
+    const std::vector<std::string> &hosts, std::string *out_pwd);
+
 std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
 
 // Function to check compliance to use GR.

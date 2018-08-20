@@ -403,11 +403,14 @@ shcore::Value ReplicaSet::add_instance(
     const std::string &group_name, bool skip_instance_check,
     bool skip_rpl_user) {
   shcore::Value ret_val;
-  bool success = false;
 
   bool seed_instance = false;
   std::string ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
   std::string ip_whitelist, instance_label, local_address, group_seeds;
+
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Cluster class, hence this just throws
@@ -472,24 +475,15 @@ shcore::Value ReplicaSet::add_instance(
   target_instance.cache_global_sysvars();
 
   // Retrieves the instance definition
-  auto instance_cnx_opt = session->get_connection_options();
-
-  std::string user = instance_cnx_opt.get_user();
-  std::string super_user_password = instance_cnx_opt.get_password();
-  std::string joiner_host = instance_cnx_opt.get_host();
-
-  std::string instance_address = instance_cnx_opt.as_uri(only_transport());
+  auto target_coptions = session->get_connection_options();
 
   // Check whether the address being used is not in a known not-good case
-  validate_instance_address(session, joiner_host, instance_cnx_opt.get_port());
+  validate_instance_address(session, target_coptions.get_host(),
+                            target_coptions.get_port());
 
   // Check instance configuration and state, like dba.checkInstance
   // But don't do it if it was already done by the caller
   if (!skip_instance_check) {
-    std::shared_ptr<Cluster> cluster(_cluster.lock());
-    if (!cluster)
-      throw shcore::Exception::runtime_error(
-          "Cluster object is no longer valid");
     ensure_instance_configuration_valid(&target_instance,
                                         cluster->get_provisioning_interface());
   }
@@ -525,6 +519,7 @@ shcore::Value ReplicaSet::add_instance(
                 ssl_mode.c_str());
   }
 
+  // TODO(alfredo) move these checks to a target instance preconditions check
   GRInstanceType type = get_gr_instance_type(session);
 
   if (type != GRInstanceType::Standalone &&
@@ -534,30 +529,31 @@ shcore::Value ReplicaSet::add_instance(
     get_server_variable(session, "server_uuid", uuid);
 
     // Verifies if the instance is part of the cluster replication group
-    auto cluster_session = _metadata_storage->get_session();
+    auto cluster_session = cluster->get_group_session();
 
     // Verifies if this UUID is part of the current replication group
     if (is_server_on_replication_group(cluster_session, uuid)) {
       if (type == GRInstanceType::InnoDBCluster) {
         log_debug("Instance '%s' already managed by InnoDB cluster",
-                  instance_address.c_str());
+                  target_coptions.uri_endpoint().c_str());
         throw shcore::Exception::runtime_error(
-            "The instance '" + instance_address +
+            "The instance '" + target_coptions.uri_endpoint() +
             "' is already part of this InnoDB cluster");
       } else {
-        log_debug(
-            "Instance '%s' is already part of a Replication Group, but not "
-            "managed",
-            instance_address.c_str());
+        current_console()->print_error(
+            "Instance " + target_coptions.uri_endpoint() +
+            " is part of the GR group but is not in the metadata. Please use "
+            "<Cluster>.rescan() to update the metadata.");
+        throw shcore::Exception::runtime_error("Metadata inconsistent");
       }
     } else {
       if (type == GRInstanceType::InnoDBCluster)
         throw shcore::Exception::runtime_error(
-            "The instance '" + instance_address +
+            "The instance '" + target_coptions.uri_endpoint() +
             "' is already part of another InnoDB cluster");
       else
         throw shcore::Exception::runtime_error(
-            "The instance '" + instance_address +
+            "The instance '" + target_coptions.uri_endpoint() +
             "' is already part of another Replication Group");
     }
   }
@@ -565,111 +561,90 @@ shcore::Value ReplicaSet::add_instance(
   // Check instance server UUID (must be unique among the cluster members).
   validate_server_uuid(session);
 
-  bool is_instance_on_md =
-      _metadata_storage->is_instance_on_replicaset(get_id(), instance_address);
+  bool is_instance_on_md = _metadata_storage->is_instance_on_replicaset(
+      get_id(), target_coptions.uri_endpoint());
 
-  log_debug("RS %lu: Adding instance '%s' to replicaset%s",
-            static_cast<unsigned long>(_id), instance_address.c_str(),
+  log_debug("RS %s: Adding instance '%s' to replicaset%s",
+            std::to_string(_id).c_str(), target_coptions.uri_endpoint().c_str(),
             is_instance_on_md ? " (already in MD)" : "");
 
-  if (type == GRInstanceType::Standalone ||
-      type == GRInstanceType::StandaloneWithMetadata) {
-    log_debug("Instance '%s' is not yet in the cluster",
-              instance_address.c_str());
+  bool success = false;
 
-    std::string replication_user(existing_replication_user);
-    std::string replication_user_password(existing_replication_password);
+  std::string replication_user(existing_replication_user);
+  std::string replication_user_password(existing_replication_password);
 
+  // Call the gadget to bootstrap the group with this instance
+  if (seed_instance) {
     // Creates the replication user ONLY if not already given and if
     // skip_rpl_user was not set to true.
+    // directly at the instance
     if (!skip_rpl_user && replication_user.empty()) {
-      // TODO(.) Replication user is not a metadata thing... all the GR
-      // things should be moved out of metadata class
+      mysqlshdk::gr::create_replication_random_user_pass(
+          target_instance, &replication_user,
+          convert_ipwhitelist_to_netmask(ip_whitelist),
+          &replication_user_password);
 
-      std::vector<std::string> subnets;
-      if (!ip_whitelist.empty()) {
-        std::vector<std::string> subnets_tmp =
-            shcore::str_split(ip_whitelist, ",", -1);
-
-        // Iterate over the ipWhitelist values to strip blank chars
-        for (std::string value : subnets_tmp) {
-          // Strip any blank chars from the ip_whitelist value
-          value = shcore::str_strip(value);
-
-          // Translate CIDR to netmask notation
-          value = mysqlshdk::utils::Net::cidr_to_netmask(value);
-
-          subnets.push_back(value);
-        }
-      }
-
-      _metadata_storage->create_repl_account(
-          replication_user, replication_user_password, subnets);
       log_debug("Created replication user '%s'", replication_user.c_str());
     }
 
-    // Call the gadget to bootstrap the group with this instance
-    if (seed_instance) {
-      log_info("Joining '%s' to group using account %s@%s",
-               instance_address.c_str(), user.c_str(),
-               instance_address.c_str());
-      log_info("Using Group Replication group name: %s", group_name.c_str());
-      log_info("Using Group Replication local address: %s",
-               local_address.c_str());
-      log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
+    log_info("Joining '%s' to group with user %s",
+             target_coptions.uri_endpoint().c_str(),
+             target_coptions.get_user().c_str());
+    log_info("Using Group Replication group name: %s", group_name.c_str());
+    log_info("Using Group Replication local address: %s",
+             local_address.c_str());
+    log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
 
-      set_group_replication_member_options(session, ssl_mode);
+    set_group_replication_member_options(session, ssl_mode);
 
-      // Call mysqlprovision to bootstrap the group using "start"
-      success = do_join_replicaset(
-          instance_cnx_opt, nullptr, super_user_password, replication_user,
-          replication_user_password, ssl_mode, ip_whitelist, group_name,
-          local_address, group_seeds, skip_rpl_user);
+    // Call mysqlprovision to bootstrap the group using "start"
+    success = do_join_replicaset(target_coptions, nullptr, replication_user,
+                                 replication_user_password, ssl_mode,
+                                 ip_whitelist, group_name, local_address,
+                                 group_seeds, skip_rpl_user);
+  } else {
+    mysqlshdk::db::Connection_options peer(pick_seed_instance());
+    std::shared_ptr<mysqlshdk::db::ISession> peer_session;
+    if (peer.uri_endpoint() !=
+        cluster->get_group_session()->get_connection_options().uri_endpoint()) {
+      peer_session =
+          establish_mysql_session(peer, current_shell_options()->get().wizards);
     } else {
-      // We need to retrieve a peer instance, so let's use the Seed one
-      // NOTE(rennox): In add instance this function is not used, the peer
-      // instance is the session from the _metadata_storage: why the difference?
-      std::string peer_instance = get_primary_instance();
-
-      mysqlshdk::db::Connection_options peer =
-          shcore::get_connection_options(peer_instance, false);
-
-      // Sets the same user as the added instance
-      peer.set_user(user);
-
-      // Get SSL values to connect to peer instance
-      auto md_ssl = _metadata_storage->get_session()
-                        ->get_connection_options()
-                        .get_ssl_options();
-      if (md_ssl.has_data()) {
-        auto peer_ssl = peer.get_ssl_options();
-        if (md_ssl.has_ca()) peer_ssl.set_ca(md_ssl.get_ca());
-
-        if (md_ssl.has_cert()) peer_ssl.set_cert(md_ssl.get_cert());
-
-        if (md_ssl.has_key()) peer_ssl.set_key(md_ssl.get_key());
-      }
-
-      set_group_replication_member_options(session, ssl_mode);
-
-      // if no group_seeds value was provided by the user, then,
-      // before joining instance to cluster, get the values of the
-      // gr_local_address from all the active members of the cluster
-      if (group_seeds.empty()) group_seeds = get_cluster_group_seeds();
-      log_info("Joining '%s' to group using account %s@%s to peer '%s'",
-               instance_address.c_str(), user.c_str(), instance_address.c_str(),
-               peer_instance.c_str());
-      // Call mysqlprovision to do the work
-      success = do_join_replicaset(instance_cnx_opt, &peer, super_user_password,
-                                   replication_user, replication_user_password,
-                                   ssl_mode, ip_whitelist, group_name,
-                                   local_address, group_seeds, skip_rpl_user);
+      peer_session = cluster->get_group_session();
     }
+
+    // Creates the replication user ONLY if not already given and if
+    // skip_rpl_user was not set to true.
+    // at the instance that will serve as the seed for this one
+    if (!skip_rpl_user && replication_user.empty()) {
+      mysqlshdk::gr::create_replication_random_user_pass(
+          mysqlshdk::mysql::Instance(peer_session), &replication_user,
+          convert_ipwhitelist_to_netmask(ip_whitelist),
+          &replication_user_password);
+
+      log_debug("Created replication user '%s'", replication_user.c_str());
+    }
+
+    set_group_replication_member_options(session, ssl_mode);
+
+    // if no group_seeds value was provided by the user, then,
+    // before joining instance to cluster, get the values of the
+    // gr_local_address from all the active members of the cluster
+    if (group_seeds.empty()) group_seeds = get_cluster_group_seeds();
+    log_info("Joining '%s' to group using account %s to peer '%s'",
+             target_coptions.uri_endpoint().c_str(), peer.get_user().c_str(),
+             peer.uri_endpoint().c_str());
+    // Call mysqlprovision to do the work
+    success = do_join_replicaset(target_coptions, &peer, replication_user,
+                                 replication_user_password, ssl_mode,
+                                 ip_whitelist, group_name, local_address,
+                                 group_seeds, skip_rpl_user);
   }
+
   if (success) {
     // If the instance is not on the Metadata, we must add it
     if (!is_instance_on_md)
-      add_instance_metadata(instance_cnx_opt, instance_label);
+      add_instance_metadata(target_coptions, instance_label);
 
     // Get the gr_address of the instance being added
     auto added_instance = mysqlshdk::mysql::Instance(session);
@@ -688,11 +663,12 @@ shcore::Value ReplicaSet::add_instance(
     // Update the group_replication_group_seeds of the members that
     // already belonged to the cluster and are either ONLINE or recovering
     // by adding the gr_local_address of the instance that was just added.
-    std::vector<std::string> ignore_instances_vec = {instance_address};
+    std::vector<std::string> ignore_instances_vec = {
+        target_coptions.uri_endpoint()};
     Gr_seeds_change_type change_type = Gr_seeds_change_type::ADD;
 
     execute_in_members(
-        {"'ONLINE'", "'RECOVERING'"}, instance_cnx_opt, ignore_instances_vec,
+        {"'ONLINE'", "'RECOVERING'"}, target_coptions, ignore_instances_vec,
         [added_instance_gr_address, change_type,
          this](std::shared_ptr<mysqlshdk::db::ISession> session) {
           update_group_replication_group_seeds(added_instance_gr_address,
@@ -707,8 +683,7 @@ shcore::Value ReplicaSet::add_instance(
 
 bool ReplicaSet::do_join_replicaset(
     const mysqlshdk::db::Connection_options &instance,
-    mysqlshdk::db::Connection_options *peer,
-    const std::string &super_user_password, const std::string &repl_user,
+    mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &group_name,
     const std::string &local_address, const std::string &group_seeds,
@@ -726,14 +701,13 @@ bool ReplicaSet::do_join_replicaset(
 
   if (is_seed_instance) {
     exit_code = cluster->get_provisioning_interface()->start_replicaset(
-        instance, repl_user, super_user_password, repl_user_password,
+        instance, repl_user, repl_user_password,
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, skip_rpl_user, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
-        instance, *peer, repl_user, super_user_password, repl_user_password,
-        ssl_mode, ip_whitelist, local_address, group_seeds, skip_rpl_user,
-        &errors);
+        instance, *peer, repl_user, repl_user_password, ssl_mode, ip_whitelist,
+        local_address, group_seeds, skip_rpl_user, &errors);
   }
 
   if (exit_code == 0) {
@@ -858,13 +832,13 @@ std::string ReplicaSet::get_cluster_group_seeds(
   // Get the update GR group seed from local address of all active instances.
   for (Instance_definition &instance_def : active_instances) {
     std::string instance_address = instance_def.endpoint;
-    Connection_options instance_cnx_opt =
+    Connection_options target_coptions =
         shcore::get_connection_options(instance_address, false);
     // It is assumed that the same user and password is used by all members.
     if (cluster_cnx_opt.has_user())
-      instance_cnx_opt.set_user(cluster_cnx_opt.get_user());
+      target_coptions.set_user(cluster_cnx_opt.get_user());
     if (cluster_cnx_opt.has_password())
-      instance_cnx_opt.set_password(cluster_cnx_opt.get_password());
+      target_coptions.set_password(cluster_cnx_opt.get_password());
     // Connect to the instance.
     std::shared_ptr<mysqlshdk::db::ISession> session;
     try {
@@ -872,7 +846,8 @@ std::string ReplicaSet::get_cluster_group_seeds(
           "Connecting to instance '%s' to get its value for the "
           "group_replication_local_address variable.",
           instance_address.c_str());
-      session = get_session(instance_cnx_opt);
+      session = establish_mysql_session(target_coptions,
+                                        current_shell_options()->get().wizards);
     } catch (std::exception &e) {
       // Do not issue an error if we are unable to connect to the instance,
       // it might have failed in the meantime, just skip the use of its GR
@@ -938,13 +913,11 @@ shcore::Value ReplicaSet::rejoin_instance(
 
   instance_def->set_default_connection_data();
 
-  std::string instance_address = instance_def->as_uri(only_transport());
-
   // Check if the instance is part of the Metadata
-  if (!_metadata_storage->is_instance_on_replicaset(get_id(),
-                                                    instance_address)) {
-    std::string message = "The instance '" + instance_address + "' " +
-                          "does not belong to the ReplicaSet: '" +
+  if (!_metadata_storage->is_instance_on_replicaset(
+          get_id(), instance_def->uri_endpoint())) {
+    std::string message = "The instance '" + instance_def->uri_endpoint() +
+                          "' " + "does not belong to the ReplicaSet: '" +
                           get_member("name").as_string() + "'.";
 
     throw shcore::Exception::runtime_error(message);
@@ -961,12 +934,12 @@ shcore::Value ReplicaSet::rejoin_instance(
   {
     try {
       log_info("Opening a new session to the rejoining instance %s",
-               instance_address.c_str());
+               instance_def->uri_endpoint().c_str());
       session = establish_mysql_session(*instance_def,
                                         current_shell_options()->get().wizards);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
-                instance_address.c_str(), e.what());
+                instance_def->uri_endpoint().c_str(), e.what());
       throw;
     }
 
@@ -982,7 +955,7 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     if (!validate_replicaset_group_name(session, get_group_name())) {
       std::string nice_error =
-          "The instance '" + instance_address +
+          "The instance '" + instance_def->uri_endpoint() +
           "' "
           "may belong to a different ReplicaSet as the one registered "
           "in the Metadata since the value of "
@@ -1000,36 +973,26 @@ shcore::Value ReplicaSet::rejoin_instance(
   // instance.
 
   // Get the seed instance
-  std::string seed_instance = get_primary_instance();
-
-  auto connection_options =
-      shcore::get_connection_options(seed_instance, false);
+  mysqlshdk::db::Connection_options seed_instance(pick_seed_instance());
 
   // To be able to establish a session to the seed instance we need a username
   // and password. Taking into consideration the assumption that all instances
   // of the cluster use the same credentials we can obtain the ones of the
-  // current metadata session
+  // current target group session
 
-  // Get the current cluster session from the metadata
-  auto md_session = _metadata_storage->get_session();
-  auto md_connection_options = md_session->get_connection_options();
-
-  if (md_connection_options.has_user()) user = md_connection_options.get_user();
-
-  if (md_connection_options.has_password())
-    password = md_connection_options.get_password();
-
-  connection_options.set_user(user);
-  connection_options.set_password(password);
+  seed_instance.set_login_options_from(
+      cluster->get_group_session()->get_connection_options());
 
   // Establish a session to the seed instance
   try {
     log_info("Opening a new session to seed instance: %s",
-             seed_instance.c_str());
-    seed_session = get_session(connection_options);
+             seed_instance.uri_endpoint().c_str());
+    seed_session = establish_mysql_session(
+        seed_instance, current_shell_options()->get().wizards);
   } catch (std::exception &e) {
     throw Exception::runtime_error("Could not open a connection to " +
-                                   seed_instance + ": " + e.what() + ".");
+                                   seed_instance.uri_endpoint() + ": " +
+                                   e.what() + ".");
   }
 
   // Verify if the group_replication plugin is active on the seed instance
@@ -1037,7 +1000,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     log_info(
         "Verifying if the group_replication plugin is active on the seed "
         "instance %s",
-        seed_instance.c_str());
+        seed_instance.uri_endpoint().c_str());
 
     std::string plugin_status =
         get_plugin_status(seed_session, "group_replication");
@@ -1059,7 +1022,7 @@ shcore::Value ReplicaSet::rejoin_instance(
       auto member_state =
           mysqlshdk::gr::to_string(mysqlshdk::gr::get_member_state(instance));
       std::string nice_error_msg = "Cannot rejoin instance '" +
-                                   instance_address + "' to the ReplicaSet '" +
+                                   instance.descr() + "' to the ReplicaSet '" +
                                    get_member("name").as_string() +
                                    "' since it is an active (" + member_state +
                                    ") member of the ReplicaSet.";
@@ -1094,7 +1057,7 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     // Stop group-replication
     log_info("Stopping group-replication at instance %s",
-             instance_address.c_str());
+             seed_instance.uri_endpoint().c_str());
     session->execute("STOP GROUP_REPLICATION");
 
     // F4. When a valid 'ipWhitelist' is used on the .rejoinInstance() command,
@@ -1104,27 +1067,19 @@ shcore::Value ReplicaSet::rejoin_instance(
     bool keep_repl_user = ip_whitelist.empty();
 
     if (!keep_repl_user) {
-      mysqlshdk::mysql::Instance instance(session);
+      mysqlshdk::mysql::Instance instance(seed_session);
 
       log_info("Recreating replication accounts due to 'ipWhitelist' change.");
 
       // Remove all the replication users of the instance and the
       // replication-user of the rejoining instance on all the members of the
       // replicaSet
-      remove_replication_users(instance, true);
+      remove_replication_users(mysqlshdk::mysql::Instance(session), true);
 
       // Create a new replication user to match the ipWhitelist filter
-
-      // Strip any blank chars from the ip_whitelist value
-      std::vector<std::string> ip_whitelist_list =
-          shcore::str_split(ip_whitelist, ",", -1);
-
-      // Translate CIDR to netmask notation
-      std::vector<std::string> netmask_list =
-          convert_ipwhitelist_to_netmask(ip_whitelist_list);
-
-      _metadata_storage->create_repl_account(
-          replication_user, replication_user_pwd, netmask_list);
+      mysqlshdk::gr::create_replication_random_user_pass(
+          instance, &replication_user,
+          convert_ipwhitelist_to_netmask(ip_whitelist), &replication_user_pwd);
 
       log_debug("Created replication user '%s'", replication_user.c_str());
     }
@@ -1133,11 +1088,11 @@ shcore::Value ReplicaSet::rejoin_instance(
     // use mysqlprovision to rejoin the cluster.
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         session->get_connection_options(), seed_instance_def, replication_user,
-        session->get_connection_options().get_password(), replication_user_pwd,
-        ssl_mode, ip_whitelist, "", gr_group_seeds, keep_repl_user, &errors);
+        replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds,
+        keep_repl_user, &errors);
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",
-               instance_address.c_str());
+               seed_instance.uri_endpoint().c_str());
     } else {
       throw shcore::Exception::runtime_error(
           get_mysqlprovision_error_string(errors));
@@ -1180,10 +1135,10 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   mysqlshdk::utils::nullable<bool> force;
   bool interactive;
   std::string password;
-  mysqlshdk::db::Connection_options instance_cnx_opts;
+  mysqlshdk::db::Connection_options target_coptions;
 
   // Get target instance connection options.
-  instance_cnx_opts =
+  target_coptions =
       mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
   std::shared_ptr<Cluster> cluster(_cluster.lock());
@@ -1202,13 +1157,13 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   // Overide password if provided in options dictionary.
   if (!password.empty()) {
-    instance_cnx_opts.set_password(password);
+    target_coptions.set_password(password);
   }
 
   // Remove the Instance from the ReplicaSet
   try {
     // Create the remove_instance command and execute it.
-    Remove_instance op_remove_instance(instance_cnx_opts, interactive, force,
+    Remove_instance op_remove_instance(target_coptions, interactive, force,
                                        cluster, shared_from_this(),
                                        this->naming_style);
     // Always execute finish when leaving "try catch".
@@ -1319,32 +1274,16 @@ void ReplicaSet::remove_replication_users(
     // Get replication user (recovery) used by the instance to remove
     // on remaining members.
     std::string rpl_user = mysqlshdk::gr::get_recovery_user(instance);
+    std::shared_ptr<Cluster> cluster(_cluster.lock());
+    if (!cluster)
+      throw shcore::Exception::runtime_error(
+          "Cluster object is no longer valid");
 
-    Connection_options instance_cnx_opts = instance.get_connection_options();
-    // Get a primary (master) instance.
-    std::string primary_instance_address = get_primary_instance();
-    mysqlshdk::db::Connection_options primary_cnx_opts =
-        shcore::get_connection_options(primary_instance_address, false);
-    // If user credentials are missing get them from the removed instance.
-    // It is assumed that the same user and password is used by all members.
-    if (!primary_cnx_opts.has_user() || !primary_cnx_opts.has_password()) {
-      primary_cnx_opts.set_user(instance_cnx_opts.get_user());
-      primary_cnx_opts.set_password(instance_cnx_opts.get_password());
-    }
-    log_debug(
-        "Opening a new session to instance '%s' to remove the "
-        "replication user for instance '%s'.",
-        primary_instance_address.c_str(), instance_address.c_str());
-    std::shared_ptr<mysqlshdk::db::ISession> _peer_session =
-        mysqlshdk::db::mysql::Session::create();
-    _peer_session->connect(primary_cnx_opts);
-    mysqlshdk::mysql::Instance primary_instance(_peer_session);
+    mysqlshdk::mysql::Instance primary_instance(cluster->get_group_session());
 
     // Remove the replication user used by the removed instance on all
     // cluster members through the primary (using replication).
     primary_instance.drop_users_with_regexp(rpl_user + ".*");
-
-    primary_instance.close_session();
   }
 }
 
@@ -1450,88 +1389,37 @@ shcore::Value::Map_type_ref ReplicaSet::_rescan(
   return ret_val;
 }
 
-std::string ReplicaSet::get_primary_instance(bool only_single_primary) {
-  std::string master_uuid, master_instance;
-  std::vector<Instance_definition> instances;
-
-  // We need to retrieve a peer instance, so let's use the Seed one
-  // If using single-primary mode the Seed instance is the primary
+mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() {
   std::shared_ptr<Cluster> cluster(_cluster.lock());
   if (!cluster)
     throw shcore::Exception::runtime_error("Cluster object is no longer valid");
-  std::shared_ptr<mysqlshdk::db::ISession> cluster_session =
-      cluster->get_group_session();
-  Connection_options cluster_cnx_opt =
-      cluster_session->get_connection_options();
 
-  get_status_variable(cluster_session, "group_replication_primary_member",
-                      master_uuid, false);
+  bool single_primary;
+  std::string primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
+      cluster->get_group_session(), &single_primary);
+  if (single_primary) {
+    if (!primary_uuid.empty()) {
+      mysqlshdk::utils::nullable<mysqlshdk::innodbcluster::Instance_info> info(
+          _metadata_storage->get_new_metadata()->get_instance_info_by_uuid(
+              primary_uuid));
+      if (info) {
+        mysqlshdk::db::Connection_options coptions(info->classic_endpoint);
+        mysqlshdk::db::Connection_options group_session_target(
+            cluster->get_group_session()->get_connection_options());
 
-  // If the primary UUID is empty, instance might have left the cluster and
-  // the primary UUID needs to be obtained from another "online" instance.
-  if (master_uuid.empty()) {
-    // Get all known instances from metadata.
-    instances =
-        _metadata_storage->get_replicaset_instances(get_id(), false, {});
-    for (auto &instance : instances) {
-      // Connect to instance.
-      mysqlshdk::db::Connection_options instance_cnx_opts =
-          shcore::get_connection_options(instance.endpoint, false);
-      // If user credentials are missing get them from the cluster instance.
-      // It is assumed that the same user and password is used by all members.
-      if (!instance_cnx_opts.has_user() || !instance_cnx_opts.has_password()) {
-        instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
-        instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
-      }
-      try {
-        log_debug(
-            "Opening a new session to instance '%s' to find the primary "
-            "member.",
-            instance_cnx_opts.as_uri(only_transport()).c_str());
-        std::shared_ptr<mysqlshdk::db::ISession> _instance_session =
-            mysqlshdk::db::mysql::Session::create();
-        _instance_session->connect(instance_cnx_opts);
-        // Get GR primary member UUID.
-        get_status_variable(_instance_session,
-                            "group_replication_primary_member", master_uuid,
-                            false);
-        if (!master_uuid.empty()) {
-          // Primary UUID found. Update list of online members using this
-          // alternative instance.
-          instances = _metadata_storage->get_replicaset_online_instances(
-              get_id(), _instance_session);
-          break;  // Primary UUID found (no need to look on other instances).
-        }
-        _instance_session->close();
-      } catch (const std::exception &) {
-        // Ignore error connecting to instance, since it might not be available.
-        continue;
+        coptions.set_login_options_from(group_session_target);
+        coptions.set_ssl_connection_options_from(
+            group_session_target.get_ssl_options());
+
+        return coptions;
       }
     }
+    throw shcore::Exception::runtime_error(
+        "Unable to determine a suitable peer instance to join the group");
   } else {
-    // Get ther list of online members.
-    instances = _metadata_storage->get_replicaset_online_instances(get_id());
+    // instance we're connected to should be OK if we're multi-master
+    return cluster->get_group_session()->get_connection_options();
   }
-
-  if (!master_uuid.empty()) {
-    // Single-primary mode, primary UUID found.
-    for (auto &instance : instances) {
-      if (instance.uuid == master_uuid) {
-        master_instance = instance.endpoint;
-        break;  // Found matching "online" instance.
-      }
-    }
-  } else if (!instances.empty()) {
-    // If in multi-primary mode, any instance works so we can get the first one
-    // that is online, but only if only_single_primary = false otherwise we
-    // leave the master_instance empty.
-    if (!only_single_primary) {
-      auto instance = instances[0];
-      master_instance = instance.endpoint;
-    }
-  }
-
-  return master_instance;
 }
 
 shcore::Value ReplicaSet::check_instance_state(
@@ -1929,10 +1817,9 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
 
   for (auto &instance : online_instances) {
     std::string instance_host = instance.endpoint;
-    auto instance_cnx_opts =
-        shcore::get_connection_options(instance_host, false);
+    auto target_coptions = shcore::get_connection_options(instance_host, false);
     // We assume the login credentials are the same on all instances
-    instance_cnx_opts.set_login_options_from(instance_def);
+    target_coptions.set_login_options_from(instance_def);
 
     std::shared_ptr<mysqlshdk::db::ISession> instance_session;
     try {
@@ -1940,7 +1827,8 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
           "Opening a new session to a group_peer instance to obtain the XCOM "
           "address %s",
           instance_host.c_str());
-      instance_session = get_session(instance_cnx_opts);
+      instance_session = establish_mysql_session(
+          target_coptions, current_shell_options()->get().wizards);
     } catch (std::exception &e) {
       log_error("Could not open connection to %s: %s", instance_address.c_str(),
                 e.what());
@@ -2272,17 +2160,6 @@ void ReplicaSet::validate_server_uuid(
   }
 }
 
-std::shared_ptr<mysqlshdk::db::ISession> ReplicaSet::get_session(
-    const mysqlshdk::db::Connection_options &args) {
-  std::shared_ptr<mysqlshdk::db::ISession> ret_val;
-
-  ret_val = mysqlshdk::db::mysql::Session::create();
-
-  ret_val->connect(args);
-
-  return ret_val;
-}
-
 std::vector<Instance_definition> ReplicaSet::get_instances_from_metadata() {
   return _metadata_storage->get_replicaset_instances(get_id());
 }
@@ -2318,16 +2195,17 @@ void ReplicaSet::execute_in_members(
                   ignore_instances_vector.end(),
                   instance_address) != ignore_instances_vector.end())
       continue;
-    auto instance_cnx_opt =
+    auto target_coptions =
         shcore::get_connection_options(instance_address, false);
 
-    instance_cnx_opt.set_login_options_from(cnx_opt);
+    target_coptions.set_login_options_from(cnx_opt);
     try {
       log_debug(
           "Opening a new session to instance '%s' while iterating "
           "cluster members",
           instance_address.c_str());
-      instance_session = get_session(instance_cnx_opt);
+      instance_session = establish_mysql_session(
+          target_coptions, current_shell_options()->get().wizards);
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());

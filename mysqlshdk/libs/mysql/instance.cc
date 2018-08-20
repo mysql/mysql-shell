@@ -390,36 +390,27 @@ void Instance::create_user(
     const std::string &user, const std::string &host, const std::string &pwd,
     const std::vector<std::tuple<std::string, std::string, bool>> &grants)
     const {
-  // NOTE: An implicit COMMIT is executed by CREATE USER and GRANT before
-  // executing: https://dev.mysql.com/doc/en/implicit-commit.html
-  try {
-    // Create the user
-    std::string create_stmt_fmt = "CREATE USER ?@? IDENTIFIED BY ?";
-    shcore::sqlstring create_stmt =
-        shcore::sqlstring(create_stmt_fmt.c_str(), 0);
-    create_stmt << user;
-    create_stmt << host;
-    create_stmt << pwd;
-    create_stmt.done();
-    _session->execute(create_stmt);
+  // Create the user
+  static const std::string create_stmt_fmt =
+      "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*(*/ ? /*)*/";
+  shcore::sqlstring create_stmt = shcore::sqlstring(create_stmt_fmt.c_str(), 0);
+  create_stmt << user;
+  create_stmt << host;
+  create_stmt << pwd;
+  create_stmt.done();
+  _session->execute(create_stmt);
 
-    // Grant privileges
-    for (size_t i = 0; i < grants.size(); i++) {
-      std::string grant_stmt_fmt = "GRANT " + std::get<0>(grants[i]) + " ON " +
-                                   std::get<1>(grants[i]) + " TO ?@?";
-      if (std::get<2>(grants[i]))
-        grant_stmt_fmt = grant_stmt_fmt + " WITH GRANT OPTION";
-      shcore::sqlstring grant_stmt =
-          shcore::sqlstring(grant_stmt_fmt.c_str(), 0);
-      grant_stmt << user;
-      grant_stmt << host;
-      grant_stmt.done();
-      _session->execute(grant_stmt);
-    }
-    _session->execute("COMMIT");
-  } catch (std::exception &err) {
-    _session->execute("ROLLBACK");
-    throw;
+  // Grant privileges
+  for (size_t i = 0; i < grants.size(); i++) {
+    std::string grant_stmt_fmt = "GRANT " + std::get<0>(grants[i]) + " ON " +
+                                 std::get<1>(grants[i]) + " TO ?@?";
+    if (std::get<2>(grants[i]))
+      grant_stmt_fmt = grant_stmt_fmt + " WITH GRANT OPTION";
+    shcore::sqlstring grant_stmt = shcore::sqlstring(grant_stmt_fmt.c_str(), 0);
+    grant_stmt << user;
+    grant_stmt << host;
+    grant_stmt.done();
+    _session->execute(grant_stmt);
   }
 }
 

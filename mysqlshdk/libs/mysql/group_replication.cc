@@ -37,7 +37,9 @@
 
 #include "mysql/group_replication.h"
 
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -405,6 +407,22 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
   }
 }
 
+std::string get_group_primary_uuid(const std::shared_ptr<db::ISession> &session,
+                                   bool *out_single_primary_mode) {
+  auto res = session->query(
+      "SELECT @@group_replication_single_primary_mode, "
+      "       variable_value AS primary_uuid"
+      "   FROM performance_schema.global_status"
+      "   WHERE variable_name = 'group_replication_primary_member'");
+  const db::IRow *row = res->fetch_one();
+  if (row) {
+    if (out_single_primary_mode) *out_single_primary_mode = row->get_int(0);
+    if (row->is_null(1)) return "";
+    return row->get_string(1);
+  }
+  throw std::logic_error("GR status query returned no rows");
+}
+
 /**
  * Check if the Group Replication plugin is installed, and if not try to
  * install it. The option file with the instance configuration is updated
@@ -619,7 +637,7 @@ std::string generate_group_name() {
  * @param instance session object to connect to the target instance.
  * @param user string with the username that will be used.
  * @param host string with the host part for the user account. If none is
- *             provide (empty) then use '%'.
+ *             provide (empty) then use '%' and localhost.
  *
  * @return A User_privileges_result instance containing the result of the check
  *         operation including the details about the requisites that were not
@@ -629,27 +647,68 @@ mysql::User_privileges_result check_replication_user(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host) {
   // Check if user has REPLICATION SLAVE on *.*
-  const std::set<std::string> gr_grants{"REPLICATION SLAVE"};
+  static const std::set<std::string> gr_grants{"REPLICATION SLAVE"};
   return instance.get_user_privileges(user, host)->validate(gr_grants);
 }
 
 /**
  * Create a replication (recovery) user with the required privileges for
- * Group Replication.
+ * Group Replication, with a random username and password.
+ *
+ * @param instance session object to connect to the target instance.
+ * @param out_user assigned to the generated username.
+ * @param hosts list of strings with the host part for the user account. If none
+ * is provide (empty) then use '%' and localhost
+ * @param out_pwd assigned to the generated password
+ */
+void create_replication_random_user_pass(
+    const mysqlshdk::mysql::IInstance &instance, std::string *out_user,
+    const std::vector<std::string> &hosts, std::string *out_pwd) {
+  std::string tstamp = mysqlshdk::utils::Random::get()->get_time_string();
+  // make sure the tstamp size is always 10 digits
+  if (tstamp.size() <= 10) {
+    tstamp = shcore::str_rjust(tstamp, 10, '0');
+  } else {
+    tstamp = tstamp.substr(tstamp.size() - 10);
+  }
+
+  // Generate the username string
+  std::string base_user = "mysql_innodb_cluster_rplusr";
+  *out_user = base_user.substr(0, 32 - tstamp.size()) + tstamp;
+
+  // If the hostname is '%', we must create the user in 'localhost' too
+  // otherwise the user may be treated as an anonymous user:
+  // https://dev.mysql.com/doc/refman/en/adding-users.html
+  static const std::vector<std::string> default_hosts{"%", "localhost"};
+  create_replication_user_random_pass(
+      instance, *out_user, hosts.empty() ? default_hosts : hosts, out_pwd);
+}
+
+/**
+ * Create a replication (recovery) user with the required privileges for
+ * Group Replication and a randomly generated password.
  *
  * @param instance session object to connect to the target instance.
  * @param user string with the username that will be used.
- * @param host string with the host part for the user account. If none is
- *             provide (empty) then use '%'.
- * @param pwd string with the password for the user.
+ * @param hosts list of strings with the host part for the user account. If none
+ * is provide (empty) then use '%'.
+ * @param out_pwd generated password is assigned
  */
-void create_replication_user(const mysqlshdk::mysql::IInstance &instance,
-                             const std::string &user, const std::string &host,
-                             const std::string &pwd) {
+void create_replication_user_random_pass(
+    const mysqlshdk::mysql::IInstance &instance, const std::string &user,
+    const std::vector<std::string> &hosts, std::string *out_pwd) {
   // Create the user with the required privileges: REPLICATION SLAVE on *.*.
-  std::vector<std::tuple<std::string, std::string, bool>> gr_grants = {
+  static std::vector<std::tuple<std::string, std::string, bool>> gr_grants = {
       std::make_tuple("REPLICATION SLAVE", "*.*", false)};
-  instance.create_user(user, host, pwd, gr_grants);
+
+  // F5. If 'ipWhitelist' is not used on the "ipWhitelist commands", thus
+  // getting the default value of 'AUTOMATIC', then the replication-user is
+  // created using the wildcard '%' for the host name value.
+
+  mysql::create_user_with_random_password(
+      instance.get_session(), user,
+      hosts.empty() ? std::vector<std::string>({"%"}) : hosts, gr_grants,
+      out_pwd);
 }
 
 /**

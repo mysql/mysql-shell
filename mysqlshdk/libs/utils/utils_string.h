@@ -198,8 +198,9 @@ inline std::vector<std::string> str_split(
     int maxsplit = -1, bool compress = false) {
   std::vector<std::string> ret_val;
   size_t index = 0, new_find = 0;
+  const size_t end = input.size();
 
-  while (new_find != std::string::npos) {
+  while (new_find < end) {
     if (maxsplit--)
       new_find = input.find_first_of(separator_chars, index);
     else

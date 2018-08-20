@@ -122,6 +122,10 @@ class SHCORE_PUBLIC Connection_options
   std::string as_uri(
       uri::Tokens_mask format = uri::formats::full_no_password()) const;
 
+  std::string uri_endpoint() const {
+    return as_uri(uri::formats::only_transport());
+  }
+
   const Nullable_options &get_extra_options() const { return _extra_options; }
 
   mysqlsh::SessionType get_session_type() const;

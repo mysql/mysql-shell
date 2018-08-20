@@ -928,7 +928,8 @@ TEST_F(Instance_test, create_user) {
   // test_db.t1.
   EXPECT_CALL(
       session,
-      execute("CREATE USER 'test_user'@'test_host' IDENTIFIED BY 'test_pwd'"));
+      execute("CREATE USER IF NOT EXISTS 'test_user'@'test_host' IDENTIFIED "
+              "BY /*(*/ 'test_pwd' /*)*/"));
   EXPECT_CALL(session, execute("GRANT SELECT, INSERT, UPDATE ON test_db.* "
                                "TO 'test_user'@'test_host'"));
   EXPECT_CALL(session,
@@ -937,7 +938,6 @@ TEST_F(Instance_test, create_user) {
                                "TO 'test_user'@'test_host' WITH GRANT OPTION"));
   EXPECT_CALL(session, execute("GRANT SELECT ON test_db2.* "
                                "TO 'test_user'@'test_host' WITH GRANT OPTION"));
-  EXPECT_CALL(session, execute("COMMIT"));
   std::vector<std::tuple<std::string, std::string, bool>> test_priv = {
       std::make_tuple("SELECT, INSERT, UPDATE", "test_db.*", false),
       std::make_tuple("DELETE", "test_db.t1", false),
@@ -947,11 +947,11 @@ TEST_F(Instance_test, create_user) {
   // Create user with ALL on *.* WITH GRANT OPTION.
   EXPECT_CALL(
       session,
-      execute("CREATE USER 'dba_user'@'dba_host' IDENTIFIED BY 'dba_pwd'"));
+      execute("CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' IDENTIFIED "
+              "BY /*(*/ 'dba_pwd' /*)*/"));
   EXPECT_CALL(
       session,
       execute("GRANT ALL ON *.* TO 'dba_user'@'dba_host' WITH GRANT OPTION"));
-  EXPECT_CALL(session, execute("COMMIT"));
   std::vector<std::tuple<std::string, std::string, bool>> dba_priv = {
       std::make_tuple("ALL", "*.*", true)};
   instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv);
@@ -959,19 +959,19 @@ TEST_F(Instance_test, create_user) {
   // Second create users fail because they already exist.
   EXPECT_CALL(
       session,
-      execute("CREATE USER 'test_user'@'test_host' IDENTIFIED BY 'test_pwd'"))
+      execute("CREATE USER IF NOT EXISTS 'test_user'@'test_host' IDENTIFIED "
+              "BY /*(*/ 'test_pwd' /*)*/"))
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
-  EXPECT_CALL(session, execute("ROLLBACK"));
   EXPECT_THROW(
       instance.create_user("test_user", "test_host", "test_pwd", test_priv),
       std::exception);
   EXPECT_CALL(
       session,
-      execute("CREATE USER 'dba_user'@'dba_host' IDENTIFIED BY 'dba_pwd'"))
+      execute("CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' IDENTIFIED "
+              "BY /*(*/ 'dba_pwd' /*)*/"))
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
-  EXPECT_CALL(session, execute("ROLLBACK"));
   EXPECT_THROW(
       instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv),
       std::exception);

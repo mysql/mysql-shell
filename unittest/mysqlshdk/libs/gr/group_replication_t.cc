@@ -156,8 +156,9 @@ TEST_F(Group_replication_Test, replication_user) {
   EXPECT_FALSE(res.has_grant_option());
 
   // Create a replication user.
-  mysqlshdk::gr::create_replication_user(*instance, "test_gr_user", "%",
-                                         "mypwd");
+  std::string passwd;
+  mysqlshdk::gr::create_replication_user_random_pass(*instance, "test_gr_user",
+                                                     {"%"}, &passwd);
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*instance, "test_gr_user", "%");
 

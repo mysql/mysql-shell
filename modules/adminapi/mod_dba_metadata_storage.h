@@ -117,19 +117,17 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   Instance_definition get_instance(const std::string &instance_address);
 
-  virtual void create_repl_account(std::string &username, std::string &password,
-                                   const std::vector<std::string> &subnets);
-
   std::shared_ptr<mysqlshdk::db::ISession> get_session() const {
     return _session;
+  }
+
+  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> get_new_metadata() {
+    return _metadata_mysql;
   }
 
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &sql, bool retry = false,
       const std::string &log_sql = "") const;
-
-  void create_account(const std::string &username, const std::string &password,
-                      const std::string &hostname);
 
   class Transaction {
    public:
@@ -158,6 +156,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
  private:
   std::shared_ptr<mysqlshdk::db::ISession> _session;
+  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> _metadata_mysql;
   int _tx_deep;
 
   virtual void start_transaction();

@@ -203,18 +203,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
    * replicaset. In single primary mode, only one instance is the primary and
    * its address is returned, otherwise it is assumed that multi primary mode
    * is used. In multi primary mode, the address of any available instance
-   * or an empty string is returned, depending on the value set for the
-   * only_single_primary parameter: if false (default) the address of any
-   * available instance is returned; if true an empty string is returned (the
-   * primary address is only returned in single primary mode).
-   *
-   * @param only_single_primary optional boolean value indicating if the address
-   *        of a primary should only be returned for single primary mode
-   *        (true) or also for multi primary mode (false). Default value: false.
-   * @return string with the address '<host>:<port>' of a primary instance, or
-   *         empty string if multi-primary mode and only_single_primary = true.
+   * is returned.
    */
-  std::string get_primary_instance(bool only_single_primary = false);
+  mysqlshdk::db::Connection_options pick_seed_instance();
 
  private:
   // TODO(miguel) these should go to a GroupReplication file
@@ -235,8 +226,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   bool do_join_replicaset(
       const mysqlshdk::db::Connection_options &instance,
-      mysqlshdk::db::Connection_options *peer,
-      const std::string &super_user_password, const std::string &repl_user,
+      mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
       const std::string &repl_user_password, const std::string &ssl_mode,
       const std::string &ip_whitelist, const std::string &group_name = "",
       const std::string &local_address = "",
@@ -253,11 +243,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);
 
   std::weak_ptr<Cluster> _cluster;
+
   std::shared_ptr<MetadataStorage> _metadata_storage;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
-
-  std::shared_ptr<mysqlshdk::db::ISession> get_session(
-      const mysqlshdk::db::Connection_options &args);
 };
 }  // namespace dba
 }  // namespace mysqlsh

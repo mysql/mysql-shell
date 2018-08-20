@@ -128,17 +128,20 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
     const std::vector<std::string> &ip_whitelist) {
   std::vector<std::string> ret;
 
-  for (std::string value : ip_whitelist) {
-    // Strip any blank chars from the ip_whitelist value
-    value = shcore::str_strip(value);
-
+  for (const std::string &value : ip_whitelist) {
+    // Strip any blank chars from the ip_whitelist value and
     // Translate CIDR to netmask notation
-    value = mysqlshdk::utils::Net::cidr_to_netmask(value);
-
-    ret.push_back(value);
+    ret.push_back(
+        mysqlshdk::utils::Net::cidr_to_netmask(shcore::str_strip(value)));
   }
 
   return ret;
+}
+
+std::vector<std::string> convert_ipwhitelist_to_netmask(
+    const std::string &ip_whitelist) {
+  return convert_ipwhitelist_to_netmask(
+      shcore::str_split(shcore::str_strip(ip_whitelist), ",", -1));
 }
 
 void validate_ip_whitelist_option(const std::string &ip_whitelist,

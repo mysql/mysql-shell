@@ -159,5 +159,29 @@ std::vector<Instance_info> Metadata_mysql::get_group_instances(
   return instances;
 }
 
+utils::nullable<Instance_info> Metadata_mysql::get_instance_info_by_uuid(
+    const std::string &uuid) const {
+  auto res = _session->queryf(
+      "SELECT "
+      "     instance_name, "
+      "     addresses->>'$.mysqlX' as x_address, "
+      "     addresses->>'$.mysqlClassic' as classic_address"
+      "   FROM mysql_innodb_cluster_metadata.instances"
+      "   WHERE mysql_server_uuid = ?",
+      uuid);
+  const db::IRow *row = res->fetch_one();
+  if (!row) {
+    return {};
+  }
+  Instance_info info;
+
+  info.uuid = uuid;
+  info.name = row->get_string(0);
+  info.x_endpoint = row->is_null(1) ? "" : row->get_string(1);
+  info.classic_endpoint = row->is_null(2) ? "" : row->get_string(2);
+
+  return info;
+}
+
 }  // namespace innodbcluster
 }  // namespace mysqlshdk

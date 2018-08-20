@@ -1072,20 +1072,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     metadata->create_metadata_schema();
 
     // Creates the replication account to for the primary instance
-
-    std::vector<std::string> netmask_list;
-
-    if (!ip_whitelist.empty()) {
-      // Strip any blank chars from the ip_whitelist value
-      std::vector<std::string> ip_whitelist_list =
-          shcore::str_split(ip_whitelist, ",", -1);
-
-      // Translate CIDR to netmask notation
-      netmask_list = convert_ipwhitelist_to_netmask(ip_whitelist_list);
-    }
-
-    metadata->create_repl_account(replication_user, replication_pwd,
-                                  netmask_list);
+    mysqlshdk::gr::create_replication_random_user_pass(
+        target_instance, &replication_user,
+        convert_ipwhitelist_to_netmask(ip_whitelist), &replication_pwd);
 
     log_debug("Created replication user '%s'", replication_user.c_str());
 

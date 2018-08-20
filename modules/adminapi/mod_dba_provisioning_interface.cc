@@ -680,18 +680,17 @@ int ProvisioningInterface::start_sandbox(
 
 int ProvisioningInterface::start_replicaset(
     const mysqlshdk::db::Connection_options &instance,
-    const std::string &repl_user, const std::string &super_user_password,
-    const std::string &repl_user_password, bool multi_primary,
-    const std::string &ssl_mode, const std::string &ip_whitelist,
-    const std::string &group_name, const std::string &gr_local_address,
-    const std::string &gr_group_seeds, bool skip_rpl_user,
-    shcore::Value::Array_type_ref *errors) {
+    const std::string &repl_user, const std::string &repl_user_password,
+    bool multi_primary, const std::string &ssl_mode,
+    const std::string &ip_whitelist, const std::string &group_name,
+    const std::string &gr_local_address, const std::string &gr_group_seeds,
+    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
 
   {
     auto map = get_connection_map(instance);
-    (*map)["passwd"] = shcore::Value(super_user_password);
+    if (map->has_key("password")) (*map)["passwd"] = (*map)["password"];
     args.push_back(shcore::Value(map));
   }
 
@@ -729,7 +728,6 @@ int ProvisioningInterface::start_replicaset(
 int ProvisioningInterface::join_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
-    const std::string &super_user_password,
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &gr_local_address,
     const std::string &gr_group_seeds, bool skip_rpl_user,
@@ -739,12 +737,12 @@ int ProvisioningInterface::join_replicaset(
 
   {
     auto map = get_connection_map(instance);
-    (*map)["passwd"] = shcore::Value(super_user_password);
+    if (map->has_key("password")) (*map)["passwd"] = (*map)["password"];
     args.push_back(shcore::Value(map));
   }
   {
     auto map = get_connection_map(peer);
-    (*map)["passwd"] = shcore::Value(super_user_password);
+    if (map->has_key("password")) (*map)["passwd"] = (*map)["password"];
     args.push_back(shcore::Value(map));
   }
 
