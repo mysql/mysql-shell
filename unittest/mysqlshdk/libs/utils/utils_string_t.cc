@@ -416,7 +416,12 @@ TEST(UtilsString, split) {
   }
   {
     const auto s = str_split("", "/");
-    const std::vector<std::string> expect = {""};
+    const std::vector<std::string> expect = {};
+    EXPECT_EQ(expect, s);
+  }
+  {
+    const auto s = str_split(" ", "/");
+    const std::vector<std::string> expect = {" "};
     EXPECT_EQ(expect, s);
   }
   {

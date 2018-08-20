@@ -33,6 +33,7 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 
 #define ACC_USER "username"
 #define ACC_PASSWORD "password"
@@ -98,9 +99,15 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   std::shared_ptr<ReplicaSet> get_default_replicaset() {
     return _default_replica_set;
   }
+
   void set_default_replicaset(const std::string &name,
                               const std::string &topology_type,
                               const std::string &group_name);
+
+  std::shared_ptr<ReplicaSet> create_default_replicaset(
+      const std::string &name, bool multi_primary,
+      const std::string &group_name, bool is_adopted);
+
   std::string get_name() { return _name; }
   std::string get_description() { return _description; }
   void assert_valid(const std::string &option_name) const;
@@ -161,6 +168,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   std::shared_ptr<MetadataStorage> get_metadata_storage() const {
     return _metadata_storage;
   }
+
+  // new metadata object
+  std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> metadata() const;
 
   /**
    * Synchronize transactions on target instance.

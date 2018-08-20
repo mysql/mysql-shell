@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace innodbcluster {
@@ -68,7 +69,10 @@ class Metadata : public std::enable_shared_from_this<Metadata> {
  public:
   virtual bool get_cluster_named(const std::string &name,
                                  Cluster_info *out_info) = 0;
-  //
+
+  virtual utils::nullable<Instance_info> get_instance_info_by_uuid(
+      const std::string &uuid) const = 0;
+
   // virtual bool get_cluster_for_group_name(const std::string &group_name,
   //                                         Cluster_info *out_info) = 0;
 
@@ -94,6 +98,9 @@ class Metadata_mysql : public Metadata_mutable {
  public:
   bool get_cluster_named(const std::string &name,
                          Cluster_info *out_info) override;
+
+  utils::nullable<Instance_info> get_instance_info_by_uuid(
+      const std::string &uuid) const override;
 
   // bool get_cluster_for_group_name(const std::string &group_name,
   //                                 Cluster_info *out_info) override;

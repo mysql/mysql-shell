@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
@@ -352,10 +353,7 @@ TEST_F(Shell_js_dba_tests, cluster_no_interactive) {
   validate_interactive("dba_cluster_no_interactive.js");
 
   std::vector<std::string> log{
-      R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
-      R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
-      R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
-  };
+      R"(Created replication user 'mysql_innodb_cluster_)"};
   MY_EXPECT_LOG_CONTAINS(log);
 }
 
@@ -410,10 +408,7 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   validate_interactive("dba_cluster_interactive.js");
 
   std::vector<std::string> log{
-      R"('CREATE USER IF NOT EXISTS 'mysql_innodb_cluster)",
-      R"('@'%' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
-      R"('@'localhost' IDENTIFIED BY /*(*/ '<secret>' /*)*/ '))",
-  };
+      R"(Created replication user 'mysql_innodb_cluster_)"};
   MY_EXPECT_LOG_CONTAINS(log);
 }
 

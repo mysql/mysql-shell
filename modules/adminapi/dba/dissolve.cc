@@ -272,7 +272,17 @@ void Dissolve::prepare() {
   // removed from the cluster. Only for single primary mode.
   // NOTE: This is need to avoid a new primary election in the group and GR
   //       BUG#24818604.
-  m_primary_address = m_replicaset->get_primary_instance(true);
+
+  std::string primary =
+      mysqlshdk::gr::get_group_primary_uuid(cluster_session, nullptr);
+
+  if (!primary.empty()) {
+    mysqlshdk::utils::nullable<mysqlshdk::innodbcluster::Instance_info> info =
+        m_cluster->get_metadata_storage()
+            ->get_new_metadata()
+            ->get_instance_info_by_uuid(primary);
+    if (info) m_primary_address = info->classic_endpoint;
+  }
 
   // Get all cluster instances, including state information.
   std::vector<Instance_definition> instance_defs =

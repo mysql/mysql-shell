@@ -26,6 +26,8 @@
 
 #include <memory>
 #include <string>
+#include <tuple>
+#include <vector>
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 
@@ -34,15 +36,29 @@ namespace mysql {
 
 enum class Account_attribute { Grants };
 
+static constexpr size_t kPASSWORD_LENGTH = 32;
+
 using Account_attribute_set =
     utils::Enum_set<Account_attribute, Account_attribute::Grants>;
 
-void clone_user(std::shared_ptr<db::ISession> session,
+void clone_user(const std::shared_ptr<db::ISession> &session,
                 const std::string &orig_user, const std::string &orig_host,
                 const std::string &new_user, const std::string &new_host,
                 const std::string &password,
                 Account_attribute_set flags =
                     Account_attribute_set(Account_attribute::Grants));
+
+/** Drops all accounts for a given username */
+void drop_all_accounts_for_user(const std::shared_ptr<db::ISession> &session,
+                                const std::string &user);
+
+void create_user_with_random_password(
+    const std::shared_ptr<db::ISession> &session, const std::string &user,
+    const std::vector<std::string> &hosts,
+    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
+    std::string *out_password);
+
+std::string generate_password(size_t password_length = kPASSWORD_LENGTH);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

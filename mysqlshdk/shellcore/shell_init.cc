@@ -30,18 +30,23 @@ extern void JScript_context_init();
 
 namespace mysqlsh {
 
-void thread_init() { mysql_library_init(0, nullptr, nullptr); }
+void thread_init() { mysql_thread_init(); }
 
-void thread_end() { mysql_library_end(); }
+void thread_end() { mysql_thread_end(); }
 
 void global_init() {
 #ifdef HAVE_V8
   JScript_context_init();
 #endif
 
+  mysql_library_init(0, nullptr, nullptr);
+
   thread_init();
 }
 
-void global_end() { thread_end(); }
+void global_end() {
+  thread_end();
+  mysql_library_end();
+}
 
 }  // namespace mysqlsh

@@ -102,6 +102,9 @@ void validate_ssl_instance_options(const shcore::Value::Map_type_ref &options);
 std::vector<std::string> convert_ipwhitelist_to_netmask(
     const std::vector<std::string> &ip_whitelist);
 
+std::vector<std::string> convert_ipwhitelist_to_netmask(
+    const std::string &ip_whitelist);
+
 /**
  * Validates the ipWhitelist option
  *
