@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -157,8 +157,12 @@ PyObject *list_inplace_concat(PyShListObject *self, PyObject *other) {
   return (PyObject *)self;
 }
 
-PyObject *list_printable(PyShListObject *self) {
+PyObject *list_repr(PyShListObject *self) {
   return PyString_FromString(Value(*self->array).repr().c_str());
+}
+
+PyObject *list_str(PyShListObject *self) {
+  return PyString_FromString(Value(*self->array).descr().c_str());
 }
 
 PyObject *list_append(PyShListObject *self, PyObject *v) {
@@ -285,7 +289,7 @@ static PyTypeObject PyShListObjectType = {
     0,                         // getattrfunc tp_getattr;
     0,                         // setattrfunc tp_setattr;
     0,                         // (cmpfunc)list_compare, //  cmpfunc tp_compare;
-    0,                         // (reprfunc)list_repr,//  reprfunc tp_repr;
+    (reprfunc)list_repr,       // reprfunc tp_repr;
 
     /* Method suites for standard classes */
 
@@ -295,11 +299,11 @@ static PyTypeObject PyShListObjectType = {
 
     /* More standard operations (here for binary compatibility) */
 
-    0,                         // hashfunc tp_hash;
-    0,                         // ternaryfunc tp_call;
-    (reprfunc)list_printable,  // reprfunc tp_str;
-    PyObject_GenericGetAttr,   // getattrofunc tp_getattro;
-    0,                         // setattrofunc tp_setattro;
+    0,                        // hashfunc tp_hash;
+    0,                        // ternaryfunc tp_call;
+    (reprfunc)list_str,       // reprfunc tp_str;
+    PyObject_GenericGetAttr,  // getattrofunc tp_getattro;
+    0,                        // setattrofunc tp_setattro;
 
     /* Functions to access object as input/output buffer */
     0,  // PyBufferProcs *tp_as_buffer;
