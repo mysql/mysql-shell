@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -206,8 +206,12 @@ static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg) {
   Py_RETURN_NONE;
 }
 
-static PyObject *dict_printable(PyShDictObject *self) {
+static PyObject *dict_repr(PyShDictObject *self) {
   return PyString_FromString(Value(*self->map).repr().c_str());
+}
+
+static PyObject *dict_str(PyShDictObject *self) {
+  return PyString_FromString(Value(*self->map).descr().c_str());
 }
 
 static int dict_init(PyShDictObject *self, PyObject *args,
@@ -386,7 +390,7 @@ static PyTypeObject PyShDictObjectType = {
     0,                         // getattrfunc tp_getattr;
     0,                         // setattrfunc tp_setattr;
     0,                         // (cmpfunc)dict_compare, // cmpfunc tp_compare;
-    0,                         // (reprfunc)dict_repr, // reprfunc tp_repr;
+    (reprfunc)dict_repr,       // reprfunc tp_repr;
 
     /* Method suites for standard classes */
 
@@ -398,7 +402,7 @@ static PyTypeObject PyShDictObjectType = {
 
     0,                            // hashfunc tp_hash;
     0,                            // ternaryfunc tp_call;
-    (reprfunc)dict_printable,     // reprfunc tp_str;
+    (reprfunc)dict_str,           // reprfunc tp_str;
     (getattrofunc)dict_getattro,  // getattrofunc tp_getattro;
     0,                            // setattrofunc tp_setattro;
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -334,7 +334,7 @@ TEST_F(JavaScript, map_to_js) {
   env.js->set_global("mapval", v);
 
   // test enumerator
-  ASSERT_EQ("[\"k1\",\"k2\",\"k3\"]",
+  ASSERT_EQ("[\"k1\", \"k2\", \"k3\"]",
             env.js->execute("Object.keys(mapval)").descr(false));
 
   // test setter

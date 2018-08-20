@@ -1072,7 +1072,7 @@ std::string &Value::append_descr(std::string &s_out, int indent,
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
       s_out += "[";
       for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin) s_out += ",";
+        if (iter != mybegin) s_out += ", ";
         s_out += nl;
         if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
         iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
