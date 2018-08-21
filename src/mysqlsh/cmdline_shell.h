@@ -97,10 +97,14 @@ class Command_line_shell : public Mysql_shell,
       const std::string &var,
       mysqlsh::Prompt_manager::Dynamic_variable_type type);
 
+  std::string get_current_session_uri() const;
+  void detect_session_change();
+
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
   Prompt_manager _prompt;
   bool _output_printed;
   const std::string m_default_pager;
+  std::string m_current_session_uri;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, query_variable_classic);

@@ -1333,6 +1333,74 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
 }
 
+#ifdef HAVE_V8
+TEST_F(Shell_prompt_exe, bug28314383_js) {
+  static constexpr auto k_file = "close.js";
+  const auto v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+                 "/prompt_nocolor.json";
+  putenv(const_cast<char *>(v.c_str()));
+  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=nocolor"));
+  shcore::create_file(k_file,
+                      "session.close();\n"
+                      "\\connect " +
+                          _uri +
+                          "?ssl-mode=REQUIRED\n"
+                          "session.close();\n");
+
+  int rc = execute({_mysqlsh, "--interactive=full", _uri.c_str(),
+                    "--schema=mysql", "--ssl-mode=REQUIRED", "--js", nullptr},
+                   nullptr, k_file);
+  EXPECT_EQ(0, rc);
+  std::cout << _output << "\n";
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+                                "+ ssl/mysql] JS> session.close();\n"
+                                "MySQL JS> \\connect " +
+                                _uri + "?ssl-mode=REQUIRED\n");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+                                "+ ssl] JS> session.close();\n"
+                                "MySQL JS> Bye!");
+
+  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+  shcore::delete_file(k_file);
+}
+#endif  // HAVE_V8
+
+#ifdef HAVE_PYTHON
+TEST_F(Shell_prompt_exe, bug28314383_py) {
+  static constexpr auto k_file = "close.py";
+  const auto v = "MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
+                 "/prompt_nocolor.json";
+  putenv(const_cast<char *>(v.c_str()));
+  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE=nocolor"));
+  shcore::create_file(k_file,
+                      "session.close();\n"
+                      "\\connect " +
+                          _uri +
+                          "?ssl-mode=REQUIRED\n"
+                          "session.close();\n");
+
+  int rc = execute({_mysqlsh, "--interactive=full", _uri.c_str(),
+                    "--schema=mysql", "--ssl-mode=REQUIRED", "--py", nullptr},
+                   nullptr, k_file);
+  EXPECT_EQ(0, rc);
+  std::cout << _output << "\n";
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+                                "+ ssl/mysql] Py> session.close();\n"
+                                "MySQL Py> \\connect " +
+                                _uri + "?ssl-mode=REQUIRED\n");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+                                "+ ssl] Py> session.close();\n"
+                                "MySQL Py> Bye!");
+
+  putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
+  putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
+  shcore::delete_file(k_file);
+}
+#endif  // HAVE_PYTHON
+
 #undef EXPECT_PROMPT
 
 }  // namespace mysqlsh

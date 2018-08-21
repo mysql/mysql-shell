@@ -636,7 +636,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::set_active_session(
   _shell->set_dev_session(new_session);
   _global_shell->set_session_global(new_session);
 
-  _update_variables_pending = 2;
+  request_prompt_variables_update(true);
 
   // Always refresh schema name completion cache because it can be used in \use
   // in any mode
@@ -1058,7 +1058,7 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
             println("Default schema `" + real_param +
                     "` accessible through db.");
 
-          _update_variables_pending = 1;
+          request_prompt_variables_update();
           refresh_completion();
         }
       } catch (shcore::Exception &e) {

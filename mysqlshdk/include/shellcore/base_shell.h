@@ -101,6 +101,8 @@ class SHCORE_PUBLIC Base_shell {
   const Shell_options::Storage &options() const { return get_options()->get(); }
 
  protected:
+  void request_prompt_variables_update(bool clear_cache = false);
+
   Scoped_shell_options m_shell_options;
   std::unique_ptr<std::string> _deferred_output;
   Scoped_console m_console_handler;
@@ -112,9 +114,6 @@ class SHCORE_PUBLIC Base_shell {
   std::shared_ptr<shcore::completer::Object_registry>
       _completer_object_registry;
   std::shared_ptr<shcore::completer::Provider_sql> _provider_sql;
-  int _update_variables_pending = 0;
-
-  void update_prompt_variables(bool reconnected);
 
   virtual void process_result(shcore::Value result);
   virtual void process_sql_result(
@@ -128,7 +127,13 @@ class SHCORE_PUBLIC Base_shell {
   void println_deferred(const std::string &str);
 
  private:
+  enum class Prompt_variables_update_type { NO_UPDATE, UPDATE, CLEAR_CACHE };
+
+  void update_prompt_variables();
+
   shcore::Interpreter_delegate _delegate;
+  Prompt_variables_update_type m_pending_update =
+      Prompt_variables_update_type::UPDATE;
 
  protected:
   shcore::Shell_command_handler _shell_command_handler;
