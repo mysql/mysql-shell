@@ -64,8 +64,6 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 
   _shell.reset(new shcore::Shell_core(m_console_handler.get().get()));
   _completer_object_registry.reset(new shcore::completer::Object_registry());
-
-  _update_variables_pending = 1;
 }
 
 void Base_shell::finish_init() {
@@ -197,19 +195,26 @@ std::string Base_shell::prompt() {
 }
 
 std::map<std::string, std::string> *Base_shell::prompt_variables() {
-  if (_update_variables_pending > 0)
-    update_prompt_variables(_update_variables_pending > 1);
+  if (m_pending_update != Prompt_variables_update_type::NO_UPDATE) {
+    update_prompt_variables();
+  }
+
   return &_prompt_variables;
 }
 
-void Base_shell::update_prompt_variables(bool reconnected) {
-  _update_variables_pending = 0;
+void Base_shell::request_prompt_variables_update(bool clear_cache) {
+  m_pending_update = clear_cache ? Prompt_variables_update_type::CLEAR_CACHE
+                                 : Prompt_variables_update_type::UPDATE;
+}
 
-  if (reconnected) _prompt_variables.clear();
+void Base_shell::update_prompt_variables() {
+  if (Prompt_variables_update_type::CLEAR_CACHE == m_pending_update) {
+    _prompt_variables.clear();
+  }
 
-  auto session = _shell->get_dev_session();
-  if (reconnected || _prompt_variables.empty()) {
-    if (session) {
+  const auto session = _shell->get_dev_session();
+  if (_prompt_variables.empty()) {
+    if (session && session->is_open()) {
       mysqlshdk::db::Connection_options options(session->uri());
       std::string socket;
       std::string port;
@@ -276,6 +281,8 @@ void Base_shell::update_prompt_variables(bool reconnected) {
       _prompt_variables["Mode"] = "Py";
       break;
   }
+
+  m_pending_update = Prompt_variables_update_type::NO_UPDATE;
 }
 
 bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
@@ -349,7 +356,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
     }
   }
 
-  _update_variables_pending = 1;
+  request_prompt_variables_update();
 
   return lang_initialized;
 }

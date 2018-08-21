@@ -400,9 +400,7 @@ std::string Command_line_shell::prompt() {
   } else {
     _prompt.set_is_continuing(false);
   }
-  if (_update_variables_pending > 0) {
-    update_prompt_variables(_update_variables_pending > 1);
-  }
+
   return _prompt.get_prompt(
       prompt_variables(),
       std::bind(&Command_line_shell::query_variable, this,
@@ -537,6 +535,8 @@ void Command_line_shell::command_loop() {
     println(message);
   }
 
+  m_current_session_uri = get_current_session_uri();
+
   while (options().interactive) {
     std::string cmd;
     {
@@ -581,6 +581,7 @@ void Command_line_shell::command_loop() {
     }
     process_line(cmd);
     reconnect_if_needed();
+    detect_session_change();
   }
 
   std::cout << "Bye!\n";
@@ -676,4 +677,29 @@ void Command_line_shell::handle_notification(
     }
   }
 }
+
+std::string Command_line_shell::get_current_session_uri() const {
+  std::string session_uri;
+
+  const auto session = _shell->get_dev_session();
+
+  if (session) {
+    const auto core_session = session->get_core_session();
+    if (core_session && core_session->is_open()) {
+      session_uri = core_session->uri();
+    }
+  }
+
+  return session_uri;
+}
+
+void Command_line_shell::detect_session_change() {
+  const auto session_uri = get_current_session_uri();
+
+  if (session_uri != m_current_session_uri) {
+    m_current_session_uri = session_uri;
+    request_prompt_variables_update(true);
+  }
+}
+
 }  // namespace mysqlsh
