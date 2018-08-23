@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,16 +41,12 @@ class JScript_array_wrapper {
                      std::shared_ptr<Value::Array_type> &ret_array);
 
  private:
-  struct Collectable;
   static void handler_igetter(uint32_t index,
                               const v8::PropertyCallbackInfo<v8::Value> &info);
   static void handler_ienumerator(
       const v8::PropertyCallbackInfo<v8::Array> &info);
   static void handler_getter(v8::Local<v8::String> prop,
                              const v8::PropertyCallbackInfo<v8::Value> &info);
-
-  static void wrapper_deleted(
-      const v8::WeakCallbackData<v8::Object, Collectable> &data);
 
  private:
   JScript_context *_context;

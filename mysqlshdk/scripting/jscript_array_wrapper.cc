@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,13 +22,21 @@
  */
 
 #include "scripting/jscript_array_wrapper.h"
+
+#include "mysqlshdk/include/scripting/jscript_collectable.h"
 #include "scripting/jscript_context.h"
 
 #include <iostream>
 
-using namespace shcore;
+namespace shcore {
+
+namespace {
 
 static int magic_pointer = 0;
+
+using Array_collectable = Collectable<Value::Array_type>;
+
+}  // namespace
 
 JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
     : _context(context) {
@@ -57,11 +65,6 @@ JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
 
 JScript_array_wrapper::~JScript_array_wrapper() { _array_template.Reset(); }
 
-struct shcore::JScript_array_wrapper::Collectable {
-  std::shared_ptr<Value::Array_type> data;
-  v8::Persistent<v8::Object> handle;
-};
-
 v8::Handle<v8::Object> JScript_array_wrapper::wrap(
     std::shared_ptr<Value::Array_type> array) {
   v8::Handle<v8::ObjectTemplate> templ =
@@ -69,31 +72,13 @@ v8::Handle<v8::Object> JScript_array_wrapper::wrap(
 
   v8::Handle<v8::Object> obj(templ->NewInstance());
 
-  obj->SetAlignedPointerInInternalField(0, &magic_pointer);
+  const auto holder = new Array_collectable(array, _context->isolate(), obj);
 
-  Collectable *tmp = new Collectable();
-  tmp->data = array;
-  obj->SetAlignedPointerInInternalField(1, tmp);
+  obj->SetAlignedPointerInInternalField(0, &magic_pointer);
+  obj->SetAlignedPointerInInternalField(1, holder);
   obj->SetAlignedPointerInInternalField(2, this);
 
-  // marks the persistent instance to be garbage collectable, with a callback
-  // called on deletion
-  tmp->handle.Reset(_context->isolate(),
-                    v8::Persistent<v8::Object>(_context->isolate(), obj));
-  tmp->handle.SetWeak(tmp, wrapper_deleted);
-  tmp->handle.MarkIndependent();
-
   return obj;
-}
-
-void JScript_array_wrapper::wrapper_deleted(
-    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the
-  // object
-  v8::HandleScope hscope(data.GetIsolate());
-  data.GetParameter()->data.reset();
-  data.GetParameter()->handle.Reset();
-  delete data.GetParameter();
 }
 
 void JScript_array_wrapper::handler_getter(
@@ -101,9 +86,9 @@ void JScript_array_wrapper::handler_getter(
     const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Value::Array_type> *array =
-      static_cast<std::shared_ptr<Value::Array_type> *>(
-          obj->GetAlignedPointerFromInternalField(1));
+  const auto &array = static_cast<Array_collectable *>(
+                          obj->GetAlignedPointerFromInternalField(1))
+                          ->data();
   //  JScript_array_wrapper *self =
   //  static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
@@ -119,7 +104,7 @@ void JScript_array_wrapper::handler_getter(
   }
   else*/ if (prop == "length") {
     info.GetReturnValue().Set(
-        v8::Integer::New(info.GetIsolate(), (*array)->size()));
+        v8::Integer::New(info.GetIsolate(), array->size()));
   }
 }
 
@@ -127,17 +112,17 @@ void JScript_array_wrapper::handler_igetter(
     uint32_t index, const v8::PropertyCallbackInfo<v8::Value> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Value::Array_type> *array =
-      static_cast<std::shared_ptr<Value::Array_type> *>(
-          obj->GetAlignedPointerFromInternalField(1));
+  const auto &array = static_cast<Array_collectable *>(
+                          obj->GetAlignedPointerFromInternalField(1))
+                          ->data();
   JScript_array_wrapper *self = static_cast<JScript_array_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
 
   if (!array) throw std::logic_error("bug!");
 
-  if (index < (*array)->size()) {
+  if (index < array->size()) {
     info.GetReturnValue().Set(
-        self->_context->shcore_value_to_v8_value((*array)->at(index)));
+        self->_context->shcore_value_to_v8_value(array->at(index)));
   }
 }
 
@@ -145,12 +130,12 @@ void JScript_array_wrapper::handler_ienumerator(
     const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Value::Array_type> *array =
-      static_cast<std::shared_ptr<Value::Array_type> *>(
-          obj->GetAlignedPointerFromInternalField(1));
+  const auto &array = static_cast<Array_collectable *>(
+                          obj->GetAlignedPointerFromInternalField(1))
+                          ->data();
 
-  v8::Handle<v8::Array> r = v8::Array::New(info.GetIsolate(), (*array)->size());
-  for (size_t i = 0, c = (*array)->size(); i < c; i++)
+  v8::Handle<v8::Array> r = v8::Array::New(info.GetIsolate(), array->size());
+  for (size_t i = 0, c = array->size(); i < c; i++)
     r->Set(i, v8::Integer::New(info.GetIsolate(), i));
   info.GetReturnValue().Set(r);
 }
@@ -160,11 +145,13 @@ bool JScript_array_wrapper::unwrap(
     std::shared_ptr<Value::Array_type> &ret_object) {
   if (value->InternalFieldCount() == 3 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
-    std::shared_ptr<Value::Array_type> *object =
-        static_cast<std::shared_ptr<Value::Array_type> *>(
-            value->GetAlignedPointerFromInternalField(1));
-    ret_object = *object;
+    const auto &array = static_cast<Array_collectable *>(
+                            value->GetAlignedPointerFromInternalField(1))
+                            ->data();
+    ret_object = array;
     return true;
   }
   return false;
 }
+
+}  // namespace shcore

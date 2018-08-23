@@ -558,7 +558,7 @@ void Process::close() {
   is_alive = false;
   ::close(fd_out[0]);
   if (fd_in[1] >= 0) ::close(fd_in[1]);
-  ::close(m_master_device);
+  if (m_master_device >= 0) ::close(m_master_device);
 
   if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH) report_error(NULL);
   if (errno != ESRCH) {

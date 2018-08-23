@@ -214,15 +214,13 @@ TEST_F(Options_test, read_environment) {
   EXPECT_TRUE(this->interactive);
 
   // Env variable with incorrect value
-  std::string val_decl = "DUMMY_SHELL_INTERACTIVE=DUMMY";
-  ASSERT_EQ(putenv(const_cast<char *>(val_decl.c_str())), 0);
+  ASSERT_EQ(putenv(const_cast<char *>("DUMMY_SHELL_INTERACTIVE=DUMMY")), 0);
   EXPECT_THROW(it->second->handle_environment_variable(),
                std::invalid_argument);
   EXPECT_TRUE(this->interactive);
 
   // Correctly defined env variable
-  val_decl = "DUMMY_SHELL_INTERACTIVE=0";
-  ASSERT_EQ(putenv(const_cast<char *>(val_decl.c_str())), 0);
+  ASSERT_EQ(putenv(const_cast<char *>("DUMMY_SHELL_INTERACTIVE=0")), 0);
   EXPECT_NO_THROW(it->second->handle_environment_variable());
   EXPECT_FALSE(this->interactive);
 

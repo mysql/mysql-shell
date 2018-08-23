@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,13 +22,21 @@
  */
 
 #include "scripting/jscript_function_wrapper.h"
+
+#include "mysqlshdk/include/scripting/jscript_collectable.h"
 #include "scripting/jscript_context.h"
 
 #include <iostream>
 
-using namespace shcore;
+namespace shcore {
+
+namespace {
 
 static int magic_pointer = 0;
+
+using Function_collectable = Collectable<Function_base>;
+
+}  // namespace
 
 JScript_function_wrapper::JScript_function_wrapper(JScript_context *context)
     : _context(context) {
@@ -43,41 +51,20 @@ JScript_function_wrapper::~JScript_function_wrapper() {
   _object_template.Reset();
 }
 
-struct shcore::JScript_function_wrapper::Collectable {
-  std::shared_ptr<Function_base> data;
-  v8::Persistent<v8::Object> handle;
-};
-
 v8::Handle<v8::Object> JScript_function_wrapper::wrap(
     std::shared_ptr<Function_base> function) {
   v8::Handle<v8::Object> obj(
       v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)
           ->NewInstance());
   if (!obj.IsEmpty()) {
-    obj->SetAlignedPointerInInternalField(0, &magic_pointer);
-    Collectable *tmp = new Collectable();
-    tmp->data = function;
-    obj->SetAlignedPointerInInternalField(1, tmp);
-    obj->SetAlignedPointerInInternalField(2, this);
+    const auto holder =
+        new Function_collectable(function, _context->isolate(), obj);
 
-    // marks the persistent instance to be garbage collectable, with a callback
-    // called on deletion
-    tmp->handle.Reset(_context->isolate(),
-                      v8::Persistent<v8::Object>(_context->isolate(), obj));
-    tmp->handle.SetWeak(tmp, wrapper_deleted);
-    tmp->handle.MarkIndependent();
+    obj->SetAlignedPointerInInternalField(0, &magic_pointer);
+    obj->SetAlignedPointerInInternalField(1, holder);
+    obj->SetAlignedPointerInInternalField(2, this);
   }
   return obj;
-}
-
-void JScript_function_wrapper::wrapper_deleted(
-    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the
-  // object
-  v8::HandleScope hscope(data.GetIsolate());
-  data.GetParameter()->data.reset();
-  data.GetParameter()->handle.Reset();
-  delete data.GetParameter();
 }
 
 void JScript_function_wrapper::call(
@@ -85,9 +72,9 @@ void JScript_function_wrapper::call(
   v8::Handle<v8::Object> obj(args.Holder());
   JScript_function_wrapper *self = static_cast<JScript_function_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Function_base> shared_ptr_data =
-      *static_cast<std::shared_ptr<Function_base> *>(
-          obj->GetAlignedPointerFromInternalField(1));
+  const auto &shared_ptr_data = static_cast<Function_collectable *>(
+                                    obj->GetAlignedPointerFromInternalField(1))
+                                    ->data();
   std::string name = shared_ptr_data->name();
   try {
     Value r = shared_ptr_data->invoke(self->_context->convert_args(args));
@@ -107,11 +94,13 @@ bool JScript_function_wrapper::unwrap(
     v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_object) {
   if (value->InternalFieldCount() == 3 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
-    std::shared_ptr<Function_base> *object =
-        static_cast<std::shared_ptr<Function_base> *>(
-            value->GetAlignedPointerFromInternalField(1));
-    ret_object = *object;
+    const auto &object = static_cast<Function_collectable *>(
+                             value->GetAlignedPointerFromInternalField(1))
+                             ->data();
+    ret_object = object;
     return true;
   }
   return false;
 }
+
+}  // namespace shcore
