@@ -24,15 +24,47 @@
 #include "scripting/jscript_object_wrapper.h"
 #include <iostream>
 
+#include "mysqlshdk/include/scripting/jscript_collectable.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "scripting/jscript_context.h"
 
-using namespace shcore;
+namespace shcore {
+
+namespace {
 
 static int magic_pointer = 0;
+static int magic_method_pointer = 0;
 
 DEBUG_OBJ_ENABLE(JSObjectWrapper);
+
+class Object_collectable : public Collectable<Object_bridge> {
+ public:
+  Object_collectable(const std::shared_ptr<Object_bridge> &d,
+                     v8::Isolate *isolate, const v8::Local<v8::Object> &object)
+      : Collectable<Object_bridge>(d, isolate, object) {
+    DEBUG_OBJ_ALLOC_N(JSObjectWrapper, data()->class_name());
+  }
+
+  ~Object_collectable() override { DEBUG_OBJ_DEALLOC(JSObjectWrapper); }
+};
+
+class Method_collectable : public Collectable<Object_bridge> {
+ public:
+  Method_collectable(const std::shared_ptr<Object_bridge> &d,
+                     const std::string &method, v8::Isolate *isolate,
+                     const v8::Local<v8::Object> &object)
+      : Collectable<Object_bridge>(d, isolate, object), m_method{method} {
+    DEBUG_OBJ_ALLOC_N(JSObjectWrapper, data()->class_name() + "." + method);
+  }
+
+  ~Method_collectable() override { DEBUG_OBJ_DEALLOC(JSObjectWrapper); }
+
+  const std::string &method() const { return m_method; }
+
+ private:
+  std::string m_method;
+};
 
 v8::Handle<v8::Value> translate_exception(JScript_context *context) {
   try {
@@ -44,6 +76,8 @@ v8::Handle<v8::Value> translate_exception(JScript_context *context) {
     return context->shcore_value_to_v8_value(shcore::Value(e.error()));
   }
 }
+
+}  // namespace
 
 JScript_object_wrapper::JScript_object_wrapper(JScript_context *context,
                                                bool indexed)
@@ -68,33 +102,6 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context,
 
 JScript_object_wrapper::~JScript_object_wrapper() { _object_template.Reset(); }
 
-struct shcore::JScript_object_wrapper::Collectable {
- private:
-  std::shared_ptr<Object_bridge> m_data;
-
- public:
-  v8::Persistent<v8::Object> *persistent;
-
-  Collectable(std::shared_ptr<Object_bridge> d, v8::Persistent<v8::Object> *p)
-      : m_data(std::move(d)), persistent(p) {
-    DEBUG_OBJ_ALLOC_N(JSObjectWrapper, m_data->class_name());
-  }
-
-  Collectable(const Collectable &) = delete;
-  Collectable &operator=(const Collectable &) = delete;
-  Collectable(Collectable &&) = delete;
-  Collectable &operator=(Collectable &&) = delete;
-
-  std::shared_ptr<Object_bridge> get() { return m_data; }
-
-  ~Collectable() {
-    DEBUG_OBJ_DEALLOC(JSObjectWrapper);
-    m_data.reset();
-    persistent->Reset();
-    delete persistent;
-  }
-};
-
 v8::Handle<v8::Object> JScript_object_wrapper::wrap(
     std::shared_ptr<Object_bridge> object) {
   v8::Local<v8::ObjectTemplate> templ =
@@ -102,26 +109,16 @@ v8::Handle<v8::Object> JScript_object_wrapper::wrap(
   if (!templ.IsEmpty()) {
     v8::Local<v8::Object> self(templ->NewInstance());
     if (!self.IsEmpty()) {
-      auto holder = new Collectable(
-          object, new v8::Persistent<v8::Object>(_context->isolate(), self));
+      const auto holder =
+          new Object_collectable(object, _context->isolate(), self);
 
       self->SetAlignedPointerInInternalField(0, &magic_pointer);
       self->SetAlignedPointerInInternalField(1, holder);
       self->SetAlignedPointerInInternalField(2, this);
-      holder->persistent->SetWeak(holder, wrapper_deleted);
-      holder->persistent->MarkIndependent();
     }
     return self;
   }
   return {};
-}
-
-void JScript_object_wrapper::wrapper_deleted(
-    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the
-  // object
-  v8::HandleScope hscope(data.GetIsolate());
-  delete data.GetParameter();
 }
 
 void JScript_object_wrapper::handler_getter(
@@ -131,9 +128,9 @@ void JScript_object_wrapper::handler_getter(
   v8::Handle<v8::Object> obj(info.Holder());
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -191,9 +188,9 @@ void JScript_object_wrapper::handler_setter(
   v8::Handle<v8::Object> obj(info.Holder());
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -218,9 +215,9 @@ void JScript_object_wrapper::handler_query(
     const v8::PropertyCallbackInfo<v8::Integer> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -239,9 +236,9 @@ void JScript_object_wrapper::handler_enumerator(
     const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -263,9 +260,9 @@ void JScript_object_wrapper::handler_igetter(
   v8::Handle<v8::Object> obj(info.Holder());
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -294,9 +291,9 @@ void JScript_object_wrapper::handler_isetter(
   v8::Handle<v8::Object> obj(info.Holder());
   JScript_object_wrapper *self = static_cast<JScript_object_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -319,9 +316,9 @@ void JScript_object_wrapper::handler_ienumerator(
     const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Object_bridge> object =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &object = static_cast<Object_collectable *>(
+                           obj->GetAlignedPointerFromInternalField(1))
+                           ->data();
   if (!object) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -343,9 +340,9 @@ bool JScript_object_wrapper::unwrap(
     v8::Handle<v8::Object> value, std::shared_ptr<Object_bridge> &ret_object) {
   if (value->InternalFieldCount() == 3 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
-    std::shared_ptr<Object_bridge> object =
-        static_cast<Collectable *>(value->GetAlignedPointerFromInternalField(1))
-            ->get();
+    const auto &object = static_cast<Object_collectable *>(
+                             value->GetAlignedPointerFromInternalField(1))
+                             ->data();
     if (!object) {
       return false;
     }
@@ -360,8 +357,6 @@ bool JScript_object_wrapper::is_object(v8::Handle<v8::Object> value) {
           value->GetAlignedPointerFromInternalField(0) ==
               static_cast<void *>(&magic_pointer));
 }
-
-static int magic_method_pointer = 0;
 
 bool JScript_object_wrapper::is_method(v8::Handle<v8::Object> value) {
   return (value->InternalFieldCount() == 3 &&
@@ -380,43 +375,27 @@ JScript_method_wrapper::JScript_method_wrapper(JScript_context *context)
 
 JScript_method_wrapper::~JScript_method_wrapper() { _object_template.Reset(); }
 
-struct shcore::JScript_method_wrapper::Collectable {
-  std::shared_ptr<Object_bridge> object;
-  std::string method;
-  v8::Persistent<v8::Object> handle;
-};
-
 v8::Handle<v8::Object> JScript_method_wrapper::wrap(
     std::shared_ptr<Object_bridge> object, const std::string &method) {
-  v8::Handle<v8::Object> obj(
-      v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)
-          ->NewInstance());
-  if (!obj.IsEmpty()) {
-    obj->SetAlignedPointerInInternalField(0, &magic_method_pointer);
-    Collectable *tmp = new Collectable();
-    tmp->object = object;
-    tmp->method = method;
-    obj->SetAlignedPointerInInternalField(1, tmp);
-    obj->SetAlignedPointerInInternalField(2, this);
+  v8::Local<v8::ObjectTemplate> templ =
+      v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template);
 
-    // marks the persistent instance to be garbage collectable, with a callback
-    // called on deletion
-    tmp->handle.Reset(_context->isolate(),
-                      v8::Persistent<v8::Object>(_context->isolate(), obj));
-    tmp->handle.SetWeak(tmp, wrapper_deleted);
-    tmp->handle.MarkIndependent();
+  if (!templ.IsEmpty()) {
+    v8::Local<v8::Object> self(templ->NewInstance());
+
+    if (!self.IsEmpty()) {
+      const auto holder =
+          new Method_collectable(object, method, _context->isolate(), self);
+
+      self->SetAlignedPointerInInternalField(0, &magic_method_pointer);
+      self->SetAlignedPointerInInternalField(1, holder);
+      self->SetAlignedPointerInInternalField(2, this);
+    }
+
+    return self;
   }
-  return obj;
-}
 
-void JScript_method_wrapper::wrapper_deleted(
-    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
-  // the JS wrapper object was deleted, so we also free the shared-ref to the
-  // object
-  v8::HandleScope hscope(data.GetIsolate());
-  data.GetParameter()->object.reset();
-  data.GetParameter()->handle.Reset();
-  delete data.GetParameter();
+  return {};
 }
 
 void JScript_method_wrapper::call(
@@ -424,12 +403,12 @@ void JScript_method_wrapper::call(
   v8::Handle<v8::Object> obj(args.Holder());
   JScript_method_wrapper *self = static_cast<JScript_method_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  auto mdata =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1));
-  std::shared_ptr<Object_bridge> hold_object(mdata->object);
+  auto mdata = static_cast<Method_collectable *>(
+      obj->GetAlignedPointerFromInternalField(1));
+  const auto &hold_object = mdata->data();
   try {
     Value r =
-        hold_object->call(mdata->method, self->_context->convert_args(args));
+        hold_object->call(mdata->method(), self->_context->convert_args(args));
     args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
   } catch (Exception &exc) {
     auto jsexc = self->_context->shcore_value_to_v8_value(Value(exc.error()));
@@ -441,3 +420,5 @@ void JScript_method_wrapper::call(
         v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
   }
 }
+
+}  // namespace shcore

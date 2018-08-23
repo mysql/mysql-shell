@@ -22,14 +22,22 @@
  */
 
 #include "scripting/jscript_map_wrapper.h"
+
+#include "mysqlshdk/include/scripting/jscript_collectable.h"
 #include "scripting/jscript_context.h"
 
 #include <cstring>
 #include <iostream>
 
-using namespace shcore;
+namespace shcore {
+
+namespace {
 
 static int magic_pointer = 0;
+
+using Map_collectable = Collectable<Value::Map_type>;
+
+}  // namespace
 
 JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
     : _context(context) {
@@ -51,30 +59,6 @@ JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
 
 JScript_map_wrapper::~JScript_map_wrapper() { _map_template.Reset(); }
 
-struct shcore::JScript_map_wrapper::Collectable {
- private:
-  std::shared_ptr<Value::Map_type> m_data;
-
- public:
-  v8::Persistent<v8::Object> *persistent;
-
-  Collectable(std::shared_ptr<Value::Map_type> d, v8::Persistent<v8::Object> *p)
-      : m_data(std::move(d)), persistent(p) {}
-
-  Collectable(const Collectable &) = delete;
-  Collectable &operator=(const Collectable &) = delete;
-  Collectable(Collectable &&) = delete;
-  Collectable &operator=(Collectable &&) = delete;
-
-  std::shared_ptr<Value::Map_type> get() { return m_data; }
-
-  ~Collectable() {
-    m_data.reset();
-    persistent->Reset();
-    delete persistent;
-  }
-};
-
 v8::Handle<v8::Object> JScript_map_wrapper::wrap(
     std::shared_ptr<Value::Map_type> map) {
   v8::Local<v8::ObjectTemplate> templ =
@@ -82,24 +66,15 @@ v8::Handle<v8::Object> JScript_map_wrapper::wrap(
   if (!templ.IsEmpty()) {
     v8::Local<v8::Object> self(templ->NewInstance());
     if (!self.IsEmpty()) {
-      auto holder = new Collectable(
-          map, new v8::Persistent<v8::Object>(_context->isolate(), self));
+      const auto holder = new Map_collectable(map, _context->isolate(), self);
 
       self->SetAlignedPointerInInternalField(0, &magic_pointer);
       self->SetAlignedPointerInInternalField(1, holder);
       self->SetAlignedPointerInInternalField(2, this);
-      holder->persistent->SetWeak(holder, wrapper_deleted);
-      holder->persistent->MarkIndependent();
     }
     return self;
   }
   return {};
-}
-
-void JScript_map_wrapper::wrapper_deleted(
-    const v8::WeakCallbackData<v8::Object, Collectable> &data) {
-  v8::HandleScope hscope(data.GetIsolate());
-  delete data.GetParameter();
 }
 
 void JScript_map_wrapper::handler_getter(
@@ -109,9 +84,9 @@ void JScript_map_wrapper::handler_getter(
   v8::Handle<v8::Object> obj(info.Holder());
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Value::Map_type> map =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &map =
+      static_cast<Map_collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->data();
   if (!map) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -153,9 +128,9 @@ void JScript_map_wrapper::handler_setter(
   v8::Handle<v8::Object> obj(info.Holder());
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper *>(
       obj->GetAlignedPointerFromInternalField(2));
-  std::shared_ptr<Value::Map_type> map =
-      static_cast<Collectable *>(obj->GetAlignedPointerFromInternalField(1))
-          ->get();
+  const auto &map =
+      static_cast<Map_collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->data();
   if (!map) {
     info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
         info.GetIsolate(), "Reference to invalid object"));
@@ -172,18 +147,17 @@ void JScript_map_wrapper::handler_enumerator(
     const v8::PropertyCallbackInfo<v8::Array> &info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  std::shared_ptr<Value::Map_type> *map =
-      static_cast<std::shared_ptr<Value::Map_type> *>(
-          obj->GetAlignedPointerFromInternalField(1));
+  const auto &map =
+      static_cast<Map_collectable *>(obj->GetAlignedPointerFromInternalField(1))
+          ->data();
 
   if (!map) throw std::logic_error("bug!");
 
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
-  for (Value::Map_type::const_iterator iter = (*map)->begin();
-       iter != (*map)->end(); ++iter) {
-    marray->Set(
-        i++, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
+  for (const auto &iter : *map) {
+    marray->Set(i++,
+                v8::String::NewFromUtf8(info.GetIsolate(), iter.first.c_str()));
   }
   info.GetReturnValue().Set(marray);
 }
@@ -192,11 +166,13 @@ bool JScript_map_wrapper::unwrap(v8::Handle<v8::Object> value,
                                  std::shared_ptr<Value::Map_type> &ret_object) {
   if (value->InternalFieldCount() == 3 &&
       value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
-    std::shared_ptr<Value::Map_type> *object =
-        static_cast<std::shared_ptr<Value::Map_type> *>(
-            value->GetAlignedPointerFromInternalField(1));
-    ret_object = *object;
+    const auto &object = static_cast<Map_collectable *>(
+                             value->GetAlignedPointerFromInternalField(1))
+                             ->data();
+    ret_object = object;
     return true;
   }
   return false;
 }
+
+}  // namespace shcore
