@@ -26,6 +26,8 @@
 
 #include "gtest_clean.h"
 #include "modules/mod_sys.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/common.h"
 #include "scripting/jscript_context.h"
 #include "scripting/lang_base.h"
@@ -156,10 +158,13 @@ namespace shcore {
 namespace tests {
 class Environment {
  public:
-  Environment() {
+  Environment()
+      : m_options{std::make_shared<mysqlsh::Shell_options>(0, nullptr)},
+        m_console{
+            std::make_shared<mysqlsh::Shell_console>(&output_handler.deleg)} {
     JScript_context_init();
 
-    js = new JScript_context(&reg, &output_handler.deleg);
+    js = new JScript_context(&reg);
 
     js->set_global(
         "sys", shcore::Value::wrap<mysqlsh::Sys>(new mysqlsh::Sys(nullptr)));
@@ -170,6 +175,10 @@ class Environment {
   Shell_test_output_handler output_handler;
   Object_registry reg;
   JScript_context *js;
+
+ private:
+  mysqlsh::Scoped_shell_options m_options;
+  mysqlsh::Scoped_console m_console;
 };
 
 class JavaScript : public ::testing::Test {

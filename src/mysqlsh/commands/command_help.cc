@@ -26,8 +26,8 @@
 #include <algorithm>
 #include <map>
 #include <set>
-
 #include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/textui/textui.h"
 
 namespace textui = mysqlshdk::textui;
@@ -54,8 +54,10 @@ bool Command_help::execute(const std::vector<std::string> &args) {
     is_sql_search = shcore::str_ibeginswith(pattern.c_str(),
                                             shcore::Help_registry::HELP_SQL);
 
+    auto console = mysqlsh::current_console();
+
     if (!_shell->get_dev_session() && is_sql_search) {
-      _console->println(
+      console->println(
           "SQL help requires the Shell to be connected to a "
           "MySQL server.\n");
     } else {
@@ -73,17 +75,17 @@ bool Command_help::execute(const std::vector<std::string> &args) {
         }
       }
       if (topics.empty()) {
-        _console->println("No help items found matching " +
-                          textui::bold(pattern));
+        console->println("No help items found matching " +
+                         textui::bold(pattern));
       } else if (topics.size() == 1) {
         auto topic = *topics.begin();
         if (is_sql_search || topic->is_sql()) {
-          _shell->print((*topics.begin())->m_help_tag);
+          console->print((*topics.begin())->m_help_tag);
         } else {
           auto data = _shell->get_helper()->get_help(**topics.begin());
 
           if (!data.empty()) {
-            _console->println(data);
+            console->println(data);
           }
         }
       } else {
@@ -228,7 +230,8 @@ void Command_help::print_help_multiple_topics(
       "e.g.: <b>\\?</b> " +
       topic->get_id(groups.size() > 1, _shell->interactive_mode()));
 
-  _console->println(textui::format_markup_text(output, 80, 0));
+  mysqlsh::current_console()->println(
+      textui::format_markup_text(output, 80, 0));
 }
 
 void Command_help::print_help_global() {
@@ -301,7 +304,7 @@ void Command_help::print_help_global() {
     help->add_examples_section("GLOBALS_EXAMPLE_SQL", &sections, 0);
   }
 
-  _console->println(shcore::str_join(sections, "\n\n"));
+  mysqlsh::current_console()->println(shcore::str_join(sections, "\n\n"));
 }
 
 std::string Command_help::glob_to_sql(const std::string &pattern,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,8 +51,6 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
     print = nullptr;
     prompt = nullptr;
     password = nullptr;
-    source = nullptr;
-    print_value = nullptr;
     print_error = nullptr;
   }
 
@@ -62,16 +60,11 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
                               std::string *ret_input),
       Prompt_result (*password)(void *user_data, const char *prompt,
                                 std::string *ret_password),
-      void (*source)(void *user_data, const char *module),
-      void (*print_value)(void *user_data, const shcore::Value &value,
-                          const char *tag),
       void (*print_error)(void *user_data, const char *text)) {
     this->user_data = user_data;
     this->print = print;
     this->prompt = prompt;
     this->password = password;
-    this->source = source;
-    this->print_value = print_value;
     this->print_error = print_error;
   }
 
@@ -81,13 +74,7 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
                           std::string *ret_input);
   Prompt_result (*password)(void *user_data, const char *prompt,
                             std::string *ret_password);
-  void (*source)(void *user_data, const char *module);
-  void (*print_value)(void *user_data, const shcore::Value &value,
-                      const char *tag);
-
   void (*print_error)(void *user_data, const char *text);
-  void (*print_error_code)(void *user_data, const char *message,
-                           const std::error_code &error);
 };
 };  // namespace shcore
 

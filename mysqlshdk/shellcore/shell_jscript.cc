@@ -32,8 +32,7 @@
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
-    : Shell_language(shcore),
-      _js(new JScript_context(shcore->registry(), shcore->get_delegate())) {}
+    : Shell_language(shcore), _js(new JScript_context(shcore->registry())) {}
 
 void Shell_javascript::set_result_processor(
     std::function<void(shcore::Value)> result_processor) {
@@ -56,7 +55,8 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
       result = _js->execute(code, _owner->get_input_source(),
                             _owner->get_input_args());
     } catch (std::exception &exc) {
-      _owner->print_error(exc.what());
+      mysqlsh::current_console()->raw_print(exc.what(),
+                                            mysqlsh::Output_stream::STDERR);
     }
   }
 

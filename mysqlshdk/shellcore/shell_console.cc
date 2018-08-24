@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "src/mysqlsh/shell_console.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include <string>
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -44,6 +44,16 @@ std::string json_obj(const char *key, const std::string &value) {
   return dumper.str() + "\n";
 }
 
+std::string json_obj(const char *key, const shcore::Value &info) {
+  shcore::JSON_dumper dumper(
+      mysqlsh::current_shell_options()->get().output_format == "json");
+  dumper.start_object();
+  dumper.append_value(key, info);
+  dumper.end_object();
+
+  return dumper.str() + "\n";
+}
+
 bool use_json() {
   std::string format = mysqlsh::current_shell_options()->get().output_format;
   return format.find("json") != std::string::npos;
@@ -53,16 +63,25 @@ bool use_json() {
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {}
 
-void Shell_console::print(const std::string &text) {
-  if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
-  } else {
-    m_ideleg->print(m_ideleg->user_data, text.c_str());
-  }
+void Shell_console::raw_print(const std::string &text,
+                              Output_stream stream) const {
+  std::string tag = stream == Output_stream::STDOUT ? "info" : "error";
+  std::string output = use_json() ? json_obj(tag.c_str(), text) : text;
+
+  using Print_func = void (*)(void *, const char *);
+  Print_func print =
+      stream == Output_stream::STDOUT ? m_ideleg->print : m_ideleg->print_error;
+
+  print(m_ideleg->user_data, output.c_str());
+
   log_debug("%s", text.c_str());
 }
 
-void Shell_console::println(const std::string &text) {
+void Shell_console::print(const std::string &text) const {
+  raw_print(text, Output_stream::STDOUT);
+}
+
+void Shell_console::println(const std::string &text) const {
   if (use_json() && !text.empty()) {
     m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
   } else {
@@ -71,7 +90,7 @@ void Shell_console::println(const std::string &text) {
   if (!text.empty()) log_debug("%s", text.c_str());
 }
 
-void Shell_console::print_error(const std::string &text) {
+void Shell_console::print_error(const std::string &text) const {
   if (use_json()) {
     m_ideleg->print(m_ideleg->user_data, json_obj("error", text).c_str());
   } else {
@@ -82,7 +101,7 @@ void Shell_console::print_error(const std::string &text) {
   log_error("%s", text.c_str());
 }
 
-void Shell_console::print_warning(const std::string &text) {
+void Shell_console::print_warning(const std::string &text) const {
   if (use_json()) {
     m_ideleg->print(m_ideleg->user_data, json_obj("warning", text).c_str());
   } else {
@@ -93,7 +112,7 @@ void Shell_console::print_warning(const std::string &text) {
   log_warning("%s", text.c_str());
 }
 
-void Shell_console::print_note(const std::string &text) {
+void Shell_console::print_note(const std::string &text) const {
   if (use_json()) {
     m_ideleg->print(m_ideleg->user_data, json_obj("note", text).c_str());
   } else {
@@ -103,7 +122,7 @@ void Shell_console::print_note(const std::string &text) {
   log_info("%s", text.c_str());
 }
 
-void Shell_console::print_info(const std::string &text) {
+void Shell_console::print_info(const std::string &text) const {
   if (use_json()) {
     m_ideleg->print(m_ideleg->user_data, json_obj("info", text).c_str());
   } else {
@@ -112,7 +131,8 @@ void Shell_console::print_info(const std::string &text) {
   log_info("%s", text.c_str());
 }
 
-bool Shell_console::prompt(const std::string &prompt, std::string *ret_val) {
+bool Shell_console::prompt(const std::string &prompt,
+                           std::string *ret_val) const {
   std::string text;
   if (use_json()) {
     text = json_obj("prompt", prompt);
@@ -155,7 +175,7 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
                                      Prompt_answer def,
                                      const std::string &yes_label,
                                      const std::string &no_label,
-                                     const std::string &alt_label) {
+                                     const std::string &alt_label) const {
   assert(def != Prompt_answer::ALT || !alt_label.empty());
 
   Prompt_answer final_ans = Prompt_answer::NONE;
@@ -234,8 +254,8 @@ Prompt_answer Shell_console::confirm(const std::string &prompt,
   return final_ans;
 }  // namespace mysqlsh
 
-shcore::Prompt_result Shell_console::prompt_password(const std::string &prompt,
-                                                     std::string *out_val) {
+shcore::Prompt_result Shell_console::prompt_password(
+    const std::string &prompt, std::string *out_val) const {
   std::string text;
   if (use_json()) {
     text = json_obj("password", prompt);
@@ -243,6 +263,56 @@ shcore::Prompt_result Shell_console::prompt_password(const std::string &prompt,
     text = mysqlshdk::textui::bold(prompt);
   }
   return m_ideleg->password(m_ideleg->user_data, text.c_str(), out_val);
+}
+
+void Shell_console::print_value(const shcore::Value &value,
+                                const std::string &tag) const {
+  std::string output;
+  bool add_new_line = true;
+  // When using JSON output ALL must be JSON
+  std::string format = mysqlsh::current_shell_options()->get().output_format;
+  if (use_json()) {
+    // If no tag is provided, prints the JSON representation of the Value
+    if (tag.empty()) {
+      output = value.json(format == "json");
+    } else {
+      if (value.type == shcore::String)
+        output = json_obj(tag.c_str(), value.as_string());
+      else
+        output = json_obj(tag.c_str(), value);
+
+      add_new_line = false;
+    }
+  } else {
+    if (tag == "error" && value.type == shcore::Map) {
+      output = "ERROR: ";
+      shcore::Value::Map_type_ref error_map = value.as_map();
+
+      if (error_map->has_key("code")) {
+        // message.append(" ");
+        output.append(((*error_map)["code"].repr()));
+
+        if (error_map->has_key("state") && (*error_map)["state"])
+          output.append(" (" + (*error_map)["state"].as_string() + ")");
+
+        output.append(": ");
+      }
+
+      if (error_map->has_key("message"))
+        output.append((*error_map)["message"].as_string());
+      else
+        output.append("?");
+    } else {
+      output = value.descr(true);
+    }
+  }
+
+  if (add_new_line) output += "\n";
+
+  if (tag == "error")
+    m_ideleg->print_error(m_ideleg->user_data, output.c_str());
+  else
+    m_ideleg->print(m_ideleg->user_data, output.c_str());
 }
 
 }  // namespace mysqlsh

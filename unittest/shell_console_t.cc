@@ -27,7 +27,7 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
-#include "src/mysqlsh/shell_console.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
 
@@ -77,7 +77,7 @@ class Shell_console_test : public Shell_core_test_wrapper {};
 TEST_F(Shell_console_test, prompt) {
   std::unique_ptr<Test_data> data(new Test_data());
   shcore::Interpreter_delegate deleg(data.get(), print, prompt, password,
-                                     nullptr, nullptr, nullptr);
+                                     nullptr);
 
   Shell_console console(&deleg);
   Prompt_answer answer;

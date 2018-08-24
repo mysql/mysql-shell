@@ -24,6 +24,7 @@
 #include "shellcore/base_shell.h"
 #include "modules/devapi/base_resultset.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
@@ -47,7 +48,10 @@ namespace mysqlsh {
 
 Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
                        shcore::Interpreter_delegate *custom_delegate)
-    : m_shell_options{cmdline_options}, _deferred_output(new std::string()) {
+    : m_shell_options{cmdline_options},
+      _deferred_output(new std::string()),
+      m_console_handler{
+          std::make_shared<mysqlsh::Shell_console>(custom_delegate)} {
   shcore::Interrupts::setup();
 
   std::string log_path =
@@ -58,7 +62,7 @@ Base_shell::Base_shell(std::shared_ptr<Shell_options> cmdline_options,
 
   _input_mode = shcore::Input_state::Ok;
 
-  _shell.reset(new shcore::Shell_core(custom_delegate));
+  _shell.reset(new shcore::Shell_core(m_console_handler.get().get()));
   _completer_object_registry.reset(new shcore::completer::Object_registry());
 
   _update_variables_pending = 1;
@@ -350,7 +354,9 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
   return lang_initialized;
 }
 
-void Base_shell::println(const std::string &str) { _shell->println(str); }
+void Base_shell::println(const std::string &str) {
+  m_console_handler.get()->println(str);
+}
 
 /**
  * Print output after the shell initialization is done (after Copyright info)
@@ -363,7 +369,10 @@ void Base_shell::println_deferred(const std::string &str) {
 }
 
 void Base_shell::print_error(const std::string &error) {
-  _shell->print_error(error);
+  m_console_handler.get()->raw_print(error, mysqlsh::Output_stream::STDERR);
+}
+void Base_shell::print_warning(const std::string &message) {
+  m_console_handler.get()->print_warning(message);
 }
 
 void Base_shell::clear_input() {
@@ -394,7 +403,7 @@ void Base_shell::process_line(const std::string &line) {
         to_history = _shell->get_handled_input();
       }
     } catch (shcore::Exception &exc) {
-      _shell->print_value(shcore::Value(exc.error()), "error");
+      m_console_handler.get()->print_value(shcore::Value(exc.error()), "error");
       to_history = _input_buffer;
     } catch (std::exception &exc) {
       std::string error(exc.what());
@@ -463,9 +472,8 @@ void Base_shell::process_result(shcore::Value result) {
 
           // Result buffering will be done ONLY if on any of the scripting
           // interfaces
-          ResultsetDumper dumper(
-              resultset, _shell->get_delegate(),
-              _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);
+          ResultsetDumper dumper(resultset, _shell->interactive_mode() !=
+                                                shcore::IShell_core::Mode::SQL);
           dumper.dump();
         } else {
           // In JSON mode: the json representation is used for Object, Array and
@@ -475,7 +483,7 @@ void Base_shell::process_result(shcore::Value result) {
               result.type != shcore::Map)
             tag = "value";
 
-          _shell->print_value(result, tag);
+          m_console_handler.get()->print_value(result, tag);
         }
       }
     }
@@ -530,7 +538,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
   // If interactive is set, it means that the shell was started with the option
   // to Emulate interactive mode while processing the stream
   if (!force_batch && options().interactive) {
-    if (options().full_interactive) _shell->print(prompt());
+    if (options().full_interactive) m_console_handler.get()->print(prompt());
 
     bool comment_first_js_line =
         _shell->interactive_mode() == shcore::IShell_core::Mode::JavaScript;
@@ -552,7 +560,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
 
       process_line(line);
 
-      if (options().full_interactive) _shell->print(prompt());
+      if (options().full_interactive) m_console_handler.get()->print(prompt());
     }
 
     // Being interactive, we do not care about the return value

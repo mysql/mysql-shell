@@ -46,13 +46,11 @@ class ClassicResult;
 class ResultsetDumper {
  public:
   ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target,
-                  shcore::Interpreter_delegate *output_handler,
                   bool buffer_data);
   virtual ~ResultsetDumper() = default;
   virtual void dump();
 
  protected:
-  shcore::Interpreter_delegate *_output_handler;
   std::shared_ptr<mysqlsh::ShellBaseResult> _resultset;
   std::string _format;
   bool _show_warnings;

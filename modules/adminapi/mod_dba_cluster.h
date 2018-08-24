@@ -80,8 +80,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   Cluster(const std::string &name,
           std::shared_ptr<mysqlshdk::db::ISession> group_session,
-          std::shared_ptr<MetadataStorage> metadata_storage,
-          std::shared_ptr<IConsole> console_handler);
+          std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~Cluster();
 
   virtual std::string class_name() const { return "Cluster"; }
@@ -142,10 +141,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
     return _group_session;
   }
 
-  std::shared_ptr<mysqlsh::IConsole> get_console_handler() const {
-    return m_console;
-  }
-
  public:
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
@@ -199,7 +194,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   // stuff from pfs
   std::shared_ptr<mysqlshdk::db::ISession> _group_session;
   std::shared_ptr<MetadataStorage> _metadata_storage;
-  std::shared_ptr<IConsole> m_console;
   // Used shell options
   void init();
 

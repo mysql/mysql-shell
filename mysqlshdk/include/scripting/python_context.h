@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,7 +96,7 @@ struct Interpreter_delegate;
 
 class TYPES_COMMON_PUBLIC Python_context {
  public:
-  Python_context(Interpreter_delegate *deleg, bool redirect_stdio);
+  Python_context(bool redirect_stdio);
   ~Python_context();
 
   static Python_context *get();
@@ -142,8 +142,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   AutoPyObject get_shell_object_class();
   AutoPyObject get_shell_indexed_object_class();
   AutoPyObject get_shell_function_class();
-
-  Interpreter_delegate *_delegate;
 
   PyObject *db_error() { return _db_error; }
 

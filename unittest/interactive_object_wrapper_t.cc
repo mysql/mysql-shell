@@ -29,10 +29,8 @@
 namespace shcore {
 class Interactive_object_wrapper_modified : public Interactive_object_wrapper {
  public:
-  Interactive_object_wrapper_modified(
-      Shell_core &shell_core,
-      std::shared_ptr<mysqlsh::IConsole> console_handler)
-      : Interactive_object_wrapper("test", shell_core, console_handler) {}
+  Interactive_object_wrapper_modified(Shell_core &shell_core)
+      : Interactive_object_wrapper("test", shell_core) {}
 
  private:
   FRIEND_TEST(Interactive_object_wrapper_test, prompt_answer);
@@ -44,88 +42,104 @@ class Interactive_object_wrapper_test : public Shell_core_test_wrapper {
 };
 
 TEST_F(Interactive_object_wrapper_test, prompt_answer) {
-  Interactive_object_wrapper_modified wrap(*_interactive_shell->shell_context(),
-                                           _interactive_shell->console());
+  Interactive_object_wrapper_modified wrap(
+      *_interactive_shell->shell_context());
 
   output_handler.prompts.push_back({"*", ""});
-  Prompt_answer ans = wrap.prompt("ques?");
+  mysqlsh::Prompt_answer ans = wrap.confirm("ques?");
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "y"});
-  ans = wrap.prompt("ques?");
+  ans = wrap.confirm("ques?");
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "Y"});
-  ans = wrap.prompt("ques?", Prompt_answer::YES);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::YES);
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "yes"});
-  ans = wrap.prompt("ques?");
+  ans = wrap.confirm("ques?");
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "YES"});
-  ans = wrap.prompt("ques?");
+  ans = wrap.confirm("ques?");
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "Yes"});
-  ans = wrap.prompt("ques?");
+  ans = wrap.confirm("ques?");
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "yEs"});
-  ans = wrap.prompt("ques?");
+  ans = wrap.confirm("ques?");
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  EXPECT_EQ(ans, Prompt_answer::YES);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::YES);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", ""});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "n"});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "N"});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "NO"});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "No"});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "nO"});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "sfd"});
   output_handler.prompts.push_back({"*", ""});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
   MY_EXPECT_STDOUT_CONTAINS("ques? [y/N]");
-  MY_EXPECT_STDOUT_CONTAINS("Invalid answer!");
+  MY_EXPECT_STDOUT_CONTAINS("Please pick an option out of");
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", "      "});
   output_handler.prompts.push_back({"*", ""});
-  ans = wrap.prompt("ques?", Prompt_answer::YES);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::YES);
   MY_EXPECT_STDOUT_CONTAINS("ques? [Y/n]");
-  MY_EXPECT_STDOUT_CONTAINS("Invalid answer!");
+  MY_EXPECT_STDOUT_CONTAINS("Please pick an option out of");
+  output_handler.wipe_all();
 
   output_handler.prompts.push_back({"*", ""});
-  ans = wrap.prompt("ques?", Prompt_answer::NO);
-  EXPECT_EQ(ans, Prompt_answer::NO);
+  ans = wrap.confirm("ques?", mysqlsh::Prompt_answer::NO);
+  EXPECT_EQ(ans, mysqlsh::Prompt_answer::NO);
+  output_handler.wipe_all();
 }
 }  // namespace shcore

@@ -61,11 +61,6 @@ class SHCORE_PUBLIC Base_shell {
   void init_scripts(shcore::Shell_core::Mode mode);
   void load_default_modules(shcore::Shell_core::Mode mode);
 
-  void println(const std::string &str = "");
-  void println_deferred(const std::string &str);
-
-  void print_error(const std::string &error);
-
   shcore::IShell_core::Mode interactive_mode() const {
     return _shell->interactive_mode();
   }
@@ -107,9 +102,10 @@ class SHCORE_PUBLIC Base_shell {
 
  protected:
   Scoped_shell_options m_shell_options;
+  std::unique_ptr<std::string> _deferred_output;
+  Scoped_console m_console_handler;
   std::shared_ptr<shcore::Shell_core> _shell;
   std::map<std::string, std::string> _prompt_variables;
-  std::unique_ptr<std::string> _deferred_output;
   shcore::Input_state _input_mode;
   std::string _input_buffer;
   shcore::completer::Completer _completer;
@@ -124,6 +120,12 @@ class SHCORE_PUBLIC Base_shell {
   virtual void process_sql_result(
       std::shared_ptr<mysqlshdk::db::IResult> result,
       const shcore::Sql_result_info &info);
+
+  // Helper functions to print data through the console handler
+  void println(const std::string &str = "");
+  void print_error(const std::string &error);
+  void print_warning(const std::string &message);
+  void println_deferred(const std::string &str);
 
  private:
   shcore::Interpreter_delegate _delegate;

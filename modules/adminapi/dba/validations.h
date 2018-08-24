@@ -27,7 +27,6 @@
 #include <memory>
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "shellcore/console.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -42,14 +41,12 @@ class ProvisioningInterface;
  *
  * @param target_instance the target to check (sysvars must be cached)
  * @param mp mp object instance
- * @param console console to send output to
  *
  * Throws an exception if checks fail.
  */
 void ensure_instance_configuration_valid(
     mysqlshdk::mysql::IInstance *target_instance,
-    std::shared_ptr<ProvisioningInterface> mp,
-    std::shared_ptr<mysqlsh::IConsole> console);
+    std::shared_ptr<ProvisioningInterface> mp);
 
 /**
  * Validates the permissions of the user running the operation.
@@ -58,10 +55,8 @@ void ensure_instance_configuration_valid(
  * the current user is missing privileges, so the check must always be done.
  *
  * @param instance the target instance to verify used user privileges.
- * @param console console object to send output to.
  */
-void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance,
-                            std::shared_ptr<mysqlsh::IConsole> console);
+void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance);
 
 }  // namespace dba
 }  // namespace mysqlsh

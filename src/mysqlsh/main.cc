@@ -221,7 +221,9 @@ println();
 int execute_dba_command(std::shared_ptr<mysqlsh::Command_line_shell> shell,
                         const std::string &command) {
   if (command != "enableXProtocol") {
-    shell->print_error("Unsupported dba command " + command + "\n");
+    mysqlsh::current_console()->raw_print(
+        "Unsupported dba command " + command + "\n",
+        mysqlsh::Output_stream::STDERR);
     return 1;
   }
 
@@ -444,9 +446,10 @@ static void show_cluster_info(
     std::shared_ptr<mysqlsh::Command_line_shell> shell,
     std::shared_ptr<mysqlsh::dba::Cluster> cluster) {
   // cluster->diagnose();
-  shell->println("You are connected to a member of cluster '" +
-                 cluster->get_name() + "'.");
-  shell->println(
+  auto console = mysqlsh::current_console();
+  console->println("You are connected to a member of cluster '" +
+                   cluster->get_name() + "'.");
+  console->println(
       "Variable 'cluster' is set.\nUse cluster.status() in scripting mode to "
       "get status of this cluster or cluster.help() for more commands.");
 }
@@ -573,7 +576,7 @@ int main(int argc, char **argv) {
 #ifdef ENABLE_SESSION_RECORDING
       version_msg.append(" + session_recorder");
 #endif
-      shell->println(version_msg);
+      mysqlsh::current_console()->println(version_msg);
       ret_val = options.exit_code;
     } else if (shell_options->action_print_help()) {
       shell->print_cmd_line_helper();
@@ -649,8 +652,9 @@ int main(int argc, char **argv) {
       } else if (!options.execute_dba_statement.empty()) {
         if (options.initial_mode != shcore::IShell_core::Mode::JavaScript &&
             options.initial_mode != shcore::IShell_core::Mode::None) {
-          shell->print_error(
-              "The --dba option can only be used in JavaScript mode\n");
+          mysqlsh::current_console()->raw_print(
+              "The --dba option can only be used in JavaScript mode\n",
+              mysqlsh::Output_stream::STDERR);
           ret_val = 1;
         } else {
           ret_val = execute_dba_command(shell, options.execute_dba_statement);

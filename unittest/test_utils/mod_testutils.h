@@ -232,7 +232,6 @@ class Testutils : public shcore::Cpp_object_bridge {
  private:
   std::weak_ptr<mysqlsh::Command_line_shell> _shell;
   std::string _mysqlsh_path;
-  shcore::Interpreter_delegate _delegate;
   std::unique_ptr<mysqlsh::dba::ProvisioningInterface> _mp;
   std::map<int, std::string> _passwords;
   std::string _sandbox_dir;

@@ -48,7 +48,6 @@ Remove_instance::Remove_instance(
   assert(&instance_cnx_opts);
   assert(cluster);
   assert(replicaset);
-  m_console = current_console();
   m_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
 }
@@ -63,12 +62,13 @@ void Remove_instance::ensure_instance_belong_to_replicaset() {
           m_replicaset->get_id(), m_instance_address);
 
   if (!is_instance_on_md) {
-    m_console->print_error("The instance '" + m_instance_address +
-                           "' cannot be removed because it does not belong "
-                           "to the cluster (not found in the metadata). "
-                           "If you really want to remove this instance because "
-                           "it is still using Group Replication then it must "
-                           "be stopped manually.");
+    mysqlsh::current_console()->print_error(
+        "The instance '" + m_instance_address +
+        "' cannot be removed because it does not belong "
+        "to the cluster (not found in the metadata). "
+        "If you really want to remove this instance because "
+        "it is still using Group Replication then it must "
+        "be stopped manually.");
 
     std::string err_msg = "The instance '" + m_instance_address +
                           "' does not belong to the ReplicaSet: '" +
@@ -85,7 +85,7 @@ void Remove_instance::ensure_not_last_instance_in_replicaset() {
   log_debug("Checking if the instance is the last in the replicaset");
   if (m_cluster->get_metadata_storage()->get_replicaset_count(
           m_replicaset->get_id()) == 1) {
-    m_console->print_error(
+    mysqlsh::current_console()->print_error(
         "The instance '" + m_instance_address +
         "' cannot be removed because it is the only member of the Cluster. "
         "Please use <Cluster>." +
@@ -125,6 +125,8 @@ void Remove_instance::find_failure_cause(const std::exception &err) {
   ManagedInstance::State state = get_instance_state(
       m_cluster->get_metadata_storage()->get_session(), m_instance_address);
 
+  auto console = mysqlsh::current_console();
+
   // Print and throw a different error depending if the instance state is known
   // and expected to be unreachable.
   if (state == ManagedInstance::Unreachable ||
@@ -149,13 +151,13 @@ void Remove_instance::find_failure_cause(const std::exception &err) {
             "operation and only remove the instance from the Cluster Metadata.";
       }
 
-      m_console->print_error(message);
+      console->print_error(message);
     }
     std::string err_msg = "The instance '" + m_instance_address + "' is '" +
                           ManagedInstance::describe(state) + "'";
     throw shcore::Exception::runtime_error(err_msg);
   } else {
-    m_console->print_error(
+    console->print_error(
         "Unable to connect to instance '" + m_instance_address +
         "'. Please, verify connection credentials and make sure the "
         "instance is available.");
@@ -164,12 +166,14 @@ void Remove_instance::find_failure_cause(const std::exception &err) {
 }
 
 void Remove_instance::prompt_to_force_remove() {
-  m_console->println();
-  if (m_console->confirm("Do you want to continue anyway (only the instance "
-                         "metadata will be removed)?",
-                         Prompt_answer::NO) == Prompt_answer::YES) {
+  auto console = mysqlsh::current_console();
+
+  console->println();
+  if (console->confirm("Do you want to continue anyway (only the instance "
+                       "metadata will be removed)?",
+                       Prompt_answer::NO) == Prompt_answer::YES) {
     m_force = true;
-    m_console->println();
+    console->println();
   }
 }
 
@@ -233,12 +237,13 @@ void Remove_instance::prepare() {
         // If force was not used throw the exception from find_failure_cause().
         throw;
       } else {
-        m_console->print_note(
+        auto console = mysqlsh::current_console();
+        console->print_note(
             "The instance '" + m_instance_address +
             "' is not reachable and it will only be removed from the metadata. "
             "Please take any necessary actions to make sure that the instance "
             "will not rejoin the cluster if brought back online.");
-        m_console->println();
+        console->println();
       }
     }
   }
@@ -246,7 +251,7 @@ void Remove_instance::prepare() {
   // Validate user privileges to use the command (only if the instance is
   // available).
   if (m_target_instance) {
-    ensure_user_privileges(*m_target_instance, m_console);
+    ensure_user_privileges(*m_target_instance);
   }
 }
 
@@ -257,8 +262,9 @@ shcore::Value Remove_instance::execute() {
       "invalid. If so, please start a new session to the Metadata Storage R/W "
       "instance.";
   message = mysqlshdk::textui::format_markup_text({message}, 80, 0, false);
-  m_console->print_info(message);
-  m_console->println();
+  auto console = mysqlsh::current_console();
+  console->print_info(message);
+  console->println();
 
   // JOB: Remove instance from the MD (metadata).
   // NOTE: This operation MUST be performed before leave-replicaset to ensure
@@ -280,7 +286,7 @@ shcore::Value Remove_instance::execute() {
       if (m_force.is_null() || *m_force == false) {
         // REVERT JOB: Remove instance from the MD (metadata).
         undo_remove_instance_metadata(instance_def);
-        m_console->print_error(
+        console->print_error(
             "The instance '" + m_instance_address +
             "' was unable to catch up with cluster transactions. There might "
             "be too many transactions to apply or some replication error. In "
@@ -296,11 +302,11 @@ shcore::Value Remove_instance::execute() {
             "Instance '%s' was unable to catch up with cluster transactions: "
             "%s",
             m_instance_address.c_str(), err.what());
-        m_console->print_warning(
+        console->print_warning(
             "An error occured when trying to catch up with cluster "
             "transactions and the instance might have been left in an "
             "inconsistent state that will lead to errors if it is reused.");
-        m_console->println();
+        console->println();
       }
     }
 
@@ -316,7 +322,7 @@ shcore::Value Remove_instance::execute() {
           mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
       // Stop Group Replication and reset (persist) GR variables.
-      mysqlsh::dba::leave_replicaset(*m_target_instance, m_console);
+      mysqlsh::dba::leave_replicaset(*m_target_instance);
 
       // Update the replicaset members (group_seed variable) and remove the
       // replication users on the instance and other members.
@@ -343,10 +349,10 @@ shcore::Value Remove_instance::execute() {
     }
   }
 
-  m_console->println();
-  m_console->print_info("The instance '" + m_instance_address +
-                        "' was successfully removed from the cluster.");
-  m_console->println();
+  console->println();
+  console->print_info("The instance '" + m_instance_address +
+                      "' was successfully removed from the cluster.");
+  console->println();
 
   return shcore::Value();
 }

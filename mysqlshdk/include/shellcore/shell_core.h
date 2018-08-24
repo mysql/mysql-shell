@@ -29,6 +29,7 @@
 #include <list>
 #include <utility>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "shellcore/ishell_core.h"
@@ -132,7 +133,7 @@ struct Interpreter_delegate;
 
 class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
  public:
-  Shell_core(Interpreter_delegate *shdelegate);
+  Shell_core(mysqlsh::IConsole *console);
   virtual ~Shell_core();
 
   Mode interactive_mode() const override { return _mode; }
@@ -177,20 +178,12 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
   virtual void clear_input();
 
-  Interpreter_delegate *get_delegate() override { return &_delegate; }
-
   // To be used to stop processing from caller
   void set_error_processing() { _global_return_code = 1; }
 
   Help_manager *get_helper() override { return &m_help; }
 
  public:
-  void print(const std::string &s) override;
-  void println(const std::string &s = "", const std::string &tag = "");
-  void print_value(const shcore::Value &value, const std::string &tag);
-  void print_error(const std::string &s) override;
-  bool password(const std::string &s, std::string &ret_pass) override;
-  bool prompt(const std::string &s, std::string &ret_val);
   void cancel_input();
   const std::string &get_input_source() override { return _input_source; }
   const std::vector<std::string> &get_input_args() override {
@@ -199,21 +192,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   std::string get_main_delimiter() const;
 
  private:
-  static void deleg_print(void *self, const char *text);
-  static void deleg_print_error(void *self, const char *text);
-  static void deleg_print_value(void *self, const shcore::Value &value,
-                                const char *tag);
-  static shcore::Prompt_result deleg_prompt(void *self, const char *text,
-                                            std::string *ret);
-  static shcore::Prompt_result deleg_password(void *self, const char *text,
-                                              std::string *ret);
-  static void deleg_source(void *self, const char *module);
-
-  std::string format_json_output(const std::string &info,
-                                 const std::string &tag);
-  std::string format_json_output(const shcore::Value &info,
-                                 const std::string &tag);
-
+  mysqlsh::IConsole *m_console;
   void init_sql();
   void init_js();
   void init_py();
@@ -225,8 +204,6 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
   std::shared_ptr<mysqlsh::ShellBaseSession> _global_dev_session;
 
-  Interpreter_delegate *_client_delegate;
-  Interpreter_delegate _delegate;
   std::string _input_source;
   std::vector<std::string> _input_args;
   Mode _mode;

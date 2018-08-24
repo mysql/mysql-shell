@@ -249,17 +249,17 @@ shcore::Value Shell::prompt(const shcore::Argument_list &args) {
     }
 
     // Performs the actual prompt
-    auto delegate = _shell_core->get_delegate();
+    auto console = mysqlsh::current_console();
 
-    shcore::Prompt_result r;
+    bool r;
     if (password)
-      r = delegate->password(delegate->user_data, prompt.c_str(), &ret_val);
+      r = console->prompt_password(prompt, &ret_val) ==
+          shcore::Prompt_result::Ok;
     else
-      r = delegate->prompt(delegate->user_data, prompt.c_str(), &ret_val);
+      r = console->prompt(prompt, &ret_val);
 
     // Uses the default value if needed (but not if cancelled)
-    if (!default_value.empty() &&
-        (r == shcore::Prompt_result::Ok && ret_val.empty()))
+    if (!default_value.empty() && (r && ret_val.empty()))
       ret_val = default_value;
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("prompt"));

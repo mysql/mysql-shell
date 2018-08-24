@@ -29,6 +29,7 @@
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -81,11 +82,8 @@ shcore::Value value_from_argmap(const shcore::Argument_map &argmap) {
 
 }  // namespace
 
-ProvisioningInterface::ProvisioningInterface(
-    shcore::Interpreter_delegate *deleg, const std::string &provision_path)
-    : _verbose(0),
-      _delegate(deleg),
-      _local_mysqlprovision_path(provision_path) {}
+ProvisioningInterface::ProvisioningInterface(const std::string &provision_path)
+    : _verbose(0), _local_mysqlprovision_path(provision_path) {}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
@@ -184,19 +182,19 @@ int ProvisioningInterface::execute_mysqlprovision(
     for (const auto &arg : args) std::cerr << arg.repr() << "\n";
   }
 #endif
+  auto console = mysqlsh::current_console();
+
   if (verbose > 1) {
-    message += "\n";
-    _delegate->print(_delegate->user_data, message.c_str());
+    console->println(message);
   }
 
   if (verbose) {
     std::string title = " MySQL Provision Output ";
     std::string half_header((78 - title.size()) / 2, '=');
-    std::string header = half_header + title + half_header + "\n";
-    _delegate->print(_delegate->user_data, header.c_str());
+    std::string header = half_header + title + half_header;
+    console->println(header);
   }
 
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
   std::string stage_action;
 
   shcore::Process_launcher p(&args_script[0]);
@@ -221,8 +219,7 @@ int ProvisioningInterface::execute_mysqlprovision(
           json_started = true;
 
           // Prints any initial data
-          if (!buf.empty() && verbose)
-            _delegate->print(_delegate->user_data, buf.c_str());
+          if (!buf.empty() && verbose) console->print(buf);
 
           buf.clear();
         } else {
@@ -247,7 +244,7 @@ int ProvisioningInterface::execute_mysqlprovision(
             // Prints the bad formatted buffer, instead of trowing an exception
             // and aborting This is because despite the problam parsing the MP
             // output The work may have been completed there.
-            _delegate->print(_delegate->user_data, buf.c_str());
+            console->print(buf);
             // throw shcore::Exception::parser_error(error);
 
             log_error("DBA: mysqlprovision: %s", error.c_str());
@@ -270,13 +267,10 @@ int ProvisioningInterface::execute_mysqlprovision(
 
             info += data->get_string("msg") + "\n";
 
+            // Password prompts are ignored
             if (verbose &&
                 info.find("Enter the password for") == std::string::npos) {
-              if (format.find("json") == std::string::npos)
-                _delegate->print(_delegate->user_data, info.c_str());
-              else
-                _delegate->print_value(_delegate->user_data, raw_data,
-                                       "mysqlprovision");
+              console->print(info);
             }
           }
 
@@ -297,7 +291,7 @@ int ProvisioningInterface::execute_mysqlprovision(
     }
 
     if (!buf.empty()) {
-      if (verbose) _delegate->print(_delegate->user_data, buf.c_str());
+      if (verbose) console->print(buf);
 
       log_debug("DBA: mysqlprovision: %s", buf.c_str());
 
@@ -313,8 +307,7 @@ int ProvisioningInterface::execute_mysqlprovision(
 
   if (verbose) {
     std::string footer(78, '=');
-    footer.append("\n");
-    _delegate->print(_delegate->user_data, footer.c_str());
+    console->println(footer);
   }
 
 #ifndef NDEBUG

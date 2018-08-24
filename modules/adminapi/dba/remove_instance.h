@@ -31,7 +31,6 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
@@ -95,7 +94,6 @@ class Remove_instance : public Command_interface {
   std::shared_ptr<Cluster> m_cluster;
   std::shared_ptr<ReplicaSet> m_replicaset;
   const shcore::NamingStyle m_naming_style;
-  std::shared_ptr<mysqlsh::IConsole> m_console;
 
   std::string m_instance_address;
   mysqlshdk::mysql::Instance *m_target_instance = nullptr;

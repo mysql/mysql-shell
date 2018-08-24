@@ -42,10 +42,8 @@ namespace dba {
  *       variables on the instance itself.
  *
  * @param instance target Instance object to remove from the replicaset.
- * @param console console object to send output to.
  */
-void leave_replicaset(const mysqlshdk::mysql::Instance &instance,
-                      std::shared_ptr<mysqlsh::IConsole> console);
+void leave_replicaset(const mysqlshdk::mysql::Instance &instance);
 
 }  // namespace dba
 }  // namespace mysqlsh

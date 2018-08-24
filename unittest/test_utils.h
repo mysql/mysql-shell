@@ -94,7 +94,6 @@ class Shell_test_output_handler {
 
   static void deleg_print(void *user_data, const char *text);
   static void deleg_print_error(void *user_data, const char *text);
-  static void deleg_print_value(void *user_data, const char *text);
   static shcore::Prompt_result deleg_prompt(void *user_data,
                                             const char *UNUSED(prompt),
                                             std::string *ret);

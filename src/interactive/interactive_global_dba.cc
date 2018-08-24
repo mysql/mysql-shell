@@ -35,6 +35,7 @@
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -416,10 +417,11 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
     if (state.source_type == mysqlsh::dba::GRInstanceType::GroupReplication &&
         !adopt_from_gr) {
-      if (prompt(
+      if (confirm(
               "You are connected to an instance that belongs to an unmanaged "
               "replication group.\nDo you want to setup an InnoDB cluster "
-              "based on this replication group?") == Prompt_answer::YES) {
+              "based on this replication group?") ==
+          mysqlsh::Prompt_answer::YES) {
         (*options)["adoptFromGR"] = shcore::Value(true);
         adopt_from_gr = true;
       } else {
@@ -459,7 +461,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
           "I have read the MySQL InnoDB cluster manual and I understand the "
           "requirements\n"
           "and limitations of advanced Multi-Primary Mode.");
-      if (prompt("Confirm", Prompt_answer::NO) == Prompt_answer::NO) {
+      if (confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
+          mysqlsh::Prompt_answer::NO) {
         println();
         println("Cancelled");
         return shcore::Value();
@@ -536,7 +539,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
   // Returns an interactive wrapper of this instance
   Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core, _delegate);
+      new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(dba_cluster);
   ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 
@@ -583,8 +586,8 @@ shcore::Value Global_dba::drop_metadata_schema(
   }
 
   if (prompt_drop_confirmation &&
-      prompt("Are you sure you want to remove the Metadata?",
-             Prompt_answer::NO) == Prompt_answer::YES) {
+      confirm("Are you sure you want to remove the Metadata?",
+              mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::YES) {
     (*options)["force"] = shcore::Value(true);
     force = true;
   }
@@ -640,7 +643,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   }
 
   Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core, _delegate);
+      new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(
       std::dynamic_pointer_cast<Cpp_object_bridge>(cluster_obj));
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
@@ -836,8 +839,9 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
         println("The instance '" + instance_address +
                 "' was part of the cluster configuration.");
 
-        if (prompt("Would you like to rejoin it to the cluster?",
-                   Prompt_answer::NO) == Prompt_answer::YES) {
+        if (confirm("Would you like to rejoin it to the cluster?",
+                    mysqlsh::Prompt_answer::NO) ==
+            mysqlsh::Prompt_answer::YES) {
           confirmed_rescan_rejoins->push_back(shcore::Value(instance_address));
         }
       }
@@ -866,8 +870,8 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
         println("Could not open a connection to '" + instance_address + "': '" +
                 instance_status + "'");
 
-        if (prompt("Would you like to remove it from the cluster's metadata?",
-                   Prompt_answer::NO) == Prompt_answer::YES)
+        if (confirm("Would you like to remove it from the cluster's metadata?",
+                    mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::YES)
           confirmed_rescan_removes->push_back(shcore::Value(instance_address));
       }
     }
@@ -923,7 +927,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
   println();
 
   Interactive_dba_cluster *cluster =
-      new Interactive_dba_cluster(this->_shell_core, _delegate);
+      new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(
       std::dynamic_pointer_cast<Cpp_object_bridge>(ret_val.as_object()));
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
@@ -976,8 +980,7 @@ void Global_dba::print_validation_results(
 
     mysqlsh::dba::dump_table(
         {"option", "current", "required", "note"},
-        {"Variable", "Current Value", "Required Value", "Note"}, config_errors,
-        _delegate);
+        {"Variable", "Current Value", "Required Value", "Note"}, config_errors);
 
     for (auto option : *config_errors) {
       auto opt_map = option.as_map();
@@ -1121,7 +1124,8 @@ bool Global_dba::resolve_cnf_path(
         // Prompt the user to validate if shall use it or not
         println("Found configuration file at standard location: " + value);
 
-        if (prompt("Do you want to modify this file?") == Prompt_answer::YES) {
+        if (confirm("Do you want to modify this file?") ==
+            mysqlsh::Prompt_answer::YES) {
           cnfPath = value;
           break;
         }
@@ -1134,8 +1138,8 @@ bool Global_dba::resolve_cnf_path(
       println("Default file not found at the standard locations.");
 
       for (const auto &value : default_paths) {
-        if (prompt("Do you want to create a file at: '" + value + "'?") ==
-            Prompt_answer::YES) {
+        if (confirm("Do you want to create a file at: '" + value + "'?") ==
+            mysqlsh::Prompt_answer::YES) {
           std::ofstream cnf(value.c_str());
 
           if (!cnf.fail()) {
@@ -1181,11 +1185,13 @@ bool Global_dba::resolve_cnf_path(
 std::string Global_dba::prompt_confirmed_password() {
   std::string password1;
   std::string password2;
+  auto console = mysqlsh::current_console();
+
   for (;;) {
     if (shcore::Prompt_result::Ok ==
-        _delegate->prompt_password("Password for new account: ", &password1)) {
+        console->prompt_password("Password for new account: ", &password1)) {
       if (shcore::Prompt_result::Ok ==
-          _delegate->prompt_password("Confirm password: ", &password2)) {
+          console->prompt_password("Confirm password: ", &password2)) {
         if (password1 != password2) {
           println("Passwords don't match, please try again.");
           continue;
@@ -1383,8 +1389,8 @@ bool Global_dba::prompt_super_read_only(
       }
     }
 
-    if (prompt("Do you want to disable super_read_only and continue?",
-               Prompt_answer::NO) == Prompt_answer::NO) {
+    if (confirm("Do you want to disable super_read_only and continue?",
+                mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::NO) {
       println();
       println("Cancelled");
       return false;

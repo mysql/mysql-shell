@@ -32,10 +32,9 @@ namespace shcore {
 // TODO(alfredo) this should become standalone interactive objects instead
 // of wrappers
 
-Interactive_object_wrapper::Interactive_object_wrapper(
-    const std::string &alias, shcore::Shell_core &core,
-    std::shared_ptr<mysqlsh::IConsole> console_handler)
-    : _alias(alias), _shell_core(core), _delegate(console_handler) {}
+Interactive_object_wrapper::Interactive_object_wrapper(const std::string &alias,
+                                                       shcore::Shell_core &core)
+    : _alias(alias), _shell_core(core) {}
 
 Value Interactive_object_wrapper::get_member_advanced(
     const std::string &prop, const NamingStyle &style) const {
@@ -177,64 +176,38 @@ bool Interactive_object_wrapper::has_member_advanced(
 /* Helper functions to ease adding interaction on derived classes */
 /*-----------------------------------------------------------------*/
 void Interactive_object_wrapper::print(const std::string &text) const {
-  _shell_core.print(text);
+  mysqlsh::current_console()->print(text);
 }
 
 void Interactive_object_wrapper::println(const std::string &text,
                                          const std::string &tag) const {
-  _shell_core.println(text, tag);
+  mysqlsh::current_console()->println(text);
 }
 
 void Interactive_object_wrapper::print_value(const shcore::Value &value,
                                              const std::string &tag) const {
-  _shell_core.print_value(value, tag);
+  mysqlsh::current_console()->print_value(value, tag);
 }
 
 bool Interactive_object_wrapper::prompt(const std::string &prompt,
                                         std::string &ret_val,
                                         bool trim_answer) const {
-  bool ret = _shell_core.prompt(prompt, ret_val);
+  bool ret = mysqlsh::current_console()->prompt(prompt, &ret_val);
   if (trim_answer) ret_val = shcore::str_strip(ret_val, " ");
   return ret;
 }
 
-shcore::Prompt_answer Interactive_object_wrapper::prompt(
-    const std::string &prompt_str, Prompt_answer def) const {
-  assert(def != Prompt_answer::NONE);
-  Prompt_answer final_ans = Prompt_answer::NONE;
-  std::string ans;
-  while (final_ans == Prompt_answer::NONE) {
-    std::string def_str = "";
-    switch (def) {
-      case Prompt_answer::YES:
-        def_str = " [Y/n]: ";
-        break;
-      case Prompt_answer::NO:
-        def_str = " [y/N]: ";
-        break;
-      default:
-        break;
-    }
-    if (_shell_core.prompt(prompt_str + def_str, ans)) {
-      if (ans.empty())
-        final_ans = def;
-      else {
-        if (str_caseeq(ans.c_str(), "y") || str_caseeq(ans.c_str(), "yes"))
-          final_ans = Prompt_answer::YES;
-        else if (str_caseeq(ans.c_str(), "n") || str_caseeq(ans.c_str(), "no"))
-          final_ans = Prompt_answer::NO;
-        else
-          println("\nInvalid answer!");
-      }
-    } else
-      break;
-  }
-  return final_ans;
+mysqlsh::Prompt_answer Interactive_object_wrapper::confirm(
+    const std::string &prompt_str, mysqlsh::Prompt_answer def) const {
+  assert(def != mysqlsh::Prompt_answer::NONE);
+
+  return mysqlsh::current_console()->confirm(prompt_str, def);
 }
 
 bool Interactive_object_wrapper::password(const std::string &prompt,
                                           std::string &ret_val) const {
-  return _shell_core.password(prompt, ret_val);
+  return mysqlsh::current_console()->prompt_password(prompt, &ret_val) ==
+         shcore::Prompt_result::Ok;
 }
 
 shcore::Value Interactive_object_wrapper::help(

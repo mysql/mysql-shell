@@ -25,6 +25,7 @@
 #include <memory>
 #include <string>
 #include "modules/adminapi/mod_dba.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -59,15 +60,15 @@ namespace checks {
  *
  * @param  session session for the schema. Must be authenticated with an account
  *          with SELECT access to all schemas.
- * @param  console console object to send output to
  * @return         true if no issues found.
  */
-bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session,
-                      std::shared_ptr<IConsole> console) {
+bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session) {
   bool ok = true;
   std::string k_gr_compliance_skip_schemas =
       "('mysql', 'sys', 'performance_schema', 'information_schema')";
   std::string k_gr_compliance_skip_engines = "('InnoDB', 'MEMORY')";
+
+  auto console = mysqlsh::current_console();
 
   {
     std::shared_ptr<mysqlshdk::db::IResult> result = session->query(
@@ -153,14 +154,14 @@ bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session,
  * required information in the Metadata.
  *
  * @param instance target instance to check.
- * @param console console to send output to.
  */
-void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
-                               std::shared_ptr<IConsole> console) {
+void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
   log_info("Validating InnoDB page size of instance '%s'.",
            instance->descr().c_str());
   std::string page_size = instance->get_sysvar_string(
       "innodb_page_size", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  auto console = mysqlsh::current_console();
 
   int page_size_value = std::stoul(page_size);
   if (page_size_value <= 4096) {
@@ -191,11 +192,10 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
  *
  * @param  instance target instance with cached global sysvars
  * @param  verbose  if true, additional informational messages are shown
- * @param  console  console to send output to
  * @return          true if the host name configuration is suitable
  */
-bool validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose,
-                           std::shared_ptr<IConsole> console) {
+bool validate_host_address(mysqlshdk::mysql::IInstance *instance,
+                           bool verbose) {
   // Sanity check for the instance address
   bool report_host_set = false;
   std::string address = instance->get_cached_global_sysvar("report_host");
@@ -210,6 +210,8 @@ bool validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose,
   }
   log_debug("Target has hostname=%s",
             instance->get_cached_global_sysvar("hostname")->c_str());
+
+  auto console = mysqlsh::current_console();
 
   console->println();
   console->print_info("This instance reports its own address as " +
@@ -287,7 +289,6 @@ void check_required_actions(const shcore::Dictionary_t &result, bool *restart,
  *
  * @param  instance             target instance
  * @param  mycnf_path           optional config file path, for local instances
- * @param  console              output for users sent here
  * @param  mp                   mp object reference
  * @param  restart_needed[out]  true if instance needs to be restarted
  * @param  mycnf_change_needed[out]  true if my.cnf has to be updated
@@ -298,13 +299,12 @@ void check_required_actions(const shcore::Dictionary_t &result, bool *restart,
  */
 bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
                             const std::string &mycnf_path,
-                            std::shared_ptr<IConsole> console,
                             std::shared_ptr<ProvisioningInterface> mp,
                             bool *restart_needed, bool *mycnf_change_needed,
                             bool *sysvar_change_needed, bool *fatal_errors,
                             shcore::Value *ret_val) {
   // Check supported innodb_page_size (must be > 4k). See: BUG#27329079
-  validate_innodb_page_size(instance, console);
+  validate_innodb_page_size(instance);
 
   log_info("Validating configuration of %s (mycnf = %s)",
            instance->descr().c_str(), mycnf_path.c_str());
@@ -327,8 +327,10 @@ bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
                            sysvar_change_needed, mycnf_change_needed);
     auto config_errors = check_result.as_map()->get_array("config_errors");
 
+    auto console = mysqlsh::current_console();
+
     console->println();
-    print_validation_results(check_result.as_map(), console, true);
+    print_validation_results(check_result.as_map(), true);
 
     // If there are fatal errors, abort immediately
     if (!check_result.as_map()->get_array("errors")->empty()) {

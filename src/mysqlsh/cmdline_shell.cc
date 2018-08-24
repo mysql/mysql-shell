@@ -145,8 +145,6 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
                                  this, &Command_line_shell::deleg_print,
                                  &Command_line_shell::deleg_prompt,
                                  &Command_line_shell::deleg_password,
-                                 &Command_line_shell::deleg_source,
-                                 nullptr,  // print_value
                                  &Command_line_shell::deleg_print_error})) {}
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
@@ -387,11 +385,6 @@ shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
   *ret = tmp;
   free(tmp);
   return shcore::Prompt_result::Ok;
-}
-
-void Command_line_shell::deleg_source(void *cdata, const char *module) {
-  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-  self->process_file(module, {});
 }
 
 void Command_line_shell::command_loop() {

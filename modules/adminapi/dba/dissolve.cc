@@ -46,7 +46,6 @@ Dissolve::Dissolve(const bool interactive,
   assert(cluster);
   assert(replicaset);
   m_primary_index = SIZE_MAX;
-  m_console = current_console();
 }
 
 Dissolve::~Dissolve() {}
@@ -54,41 +53,44 @@ Dissolve::~Dissolve() {}
 void Dissolve::prompt_to_confirm_dissolve() const {
   // Show cluster description if not empty, to help user verify if he is
   // dissolving the right cluster.
+  auto console = mysqlsh::current_console();
+
   if (!m_cluster->get_metadata_storage()->is_cluster_empty(
           m_replicaset->get_id())) {
     // Show cluster description.
-    m_console->println(
+    console->println(
         "The cluster still has the following registered ReplicaSets:");
     shcore::Value res = m_cluster->describe(shcore::Argument_list());
 
     // Pretty print description only if output_format is not json/raw.
     bool use_pretty_print =
         (current_shell_options()->get().output_format.compare("json/raw") != 0);
-    m_console->println(res.descr(use_pretty_print));
+    console->println(res.descr(use_pretty_print));
   }
 
-  m_console->print_warning(
+  console->print_warning(
       "You are about to dissolve the whole cluster and lose the high "
       "availability features provided by it. This operation cannot be "
       "reverted. All members will be removed from their ReplicaSet and "
       "replication will be stopped, internal recovery user accounts and "
       "the cluster metadata will be dropped. User data will be maintained "
       "intact in all instances.");
-  m_console->println();
+  console->println();
 
-  if (m_console->confirm("Are you sure you want to dissolve the cluster?",
-                         Prompt_answer::NO) == Prompt_answer::NO) {
+  if (console->confirm("Are you sure you want to dissolve the cluster?",
+                       Prompt_answer::NO) == Prompt_answer::NO) {
     throw shcore::Exception::runtime_error("Operation canceled by user.");
   }
 }
 
 bool Dissolve::prompt_to_force_dissolve() const {
-  m_console->println();
-  bool result = m_console->confirm(
+  auto console = mysqlsh::current_console();
+  console->println();
+  bool result = console->confirm(
                     "Do you want to continue anyway (only the instance "
                     "metadata will be removed)?",
                     Prompt_answer::NO) == Prompt_answer::YES;
-  m_console->println();
+  console->println();
   return result;
 }
 
@@ -114,9 +116,11 @@ void Dissolve::ensure_instance_reachable(
   } catch (const std::exception &err) {
     log_debug("Failed to connect to instance: %s", err.what());
 
+    auto console = mysqlsh::current_console();
+
     // Handle use of 'force' option.
     if (m_force.is_null() || *m_force == false) {
-      m_console->print_error(
+      console->print_error(
           "Unable to connect to instance '" + instance_address +
           "'. Please, verify connection credentials and make sure the "
           "instance is available.");
@@ -137,12 +141,12 @@ void Dissolve::ensure_instance_reachable(
       }
     } else {
       m_skipped_instances.push_back(instance_address);
-      m_console->print_note(
+      console->print_note(
           "The instance '" + instance_address +
           "' is not reachable and it will only be removed from the metadata. "
           "Please take any necessary actions to make sure that the instance "
           "will not start/rejoin the cluster if brought back online.");
-      m_console->println();
+      console->println();
     }
   }
 }
@@ -160,7 +164,7 @@ void Dissolve::ensure_transactions_sync() {
 
       // Handle use of 'force' option.
       if (m_force.is_null() || *m_force == false) {
-        m_console->print_error(
+        mysqlsh::current_console()->print_error(
             "The instance '" + instance_address +
             "' was unable to catch up with cluster transactions. There might "
             "be too many transactions to apply or some replication error. In "
@@ -200,6 +204,8 @@ void Dissolve::ensure_transactions_sync() {
 
 void Dissolve::handle_unavailable_instances(const std::string &instance_address,
                                             const std::string &instance_state) {
+  auto console = mysqlsh::current_console();
+
   if (m_force.is_null() || *m_force == false) {
     // Issue an error if 'force' option is not used or false.
     std::string message =
@@ -219,7 +225,7 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
           "true to proceed with the operation and only remove the instance "
           "from the Cluster Metadata.";
     }
-    m_console->print_error(message);
+    console->print_error(message);
 
     // In interactive mode and 'force' option not used, ask user to
     // continue with the operation.
@@ -239,12 +245,12 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
     }
   } else {
     m_skipped_instances.push_back(instance_address);
-    m_console->print_note(
+    console->print_note(
         "The instance '" + instance_address + "' is '" + instance_state +
         "' and it will only be removed from the metadata. "
         "Please take any necessary actions to make sure that the instance "
         "will not start/rejoin the cluster if brought back online.");
-    m_console->println();
+    console->println();
   }
 }
 
@@ -252,7 +258,7 @@ void Dissolve::prepare() {
   // Confirm execution of operation in interactive mode.
   if (m_interactive) {
     prompt_to_confirm_dissolve();
-    m_console->println();
+    mysqlsh::current_console()->println();
   }
 
   // Get cluster session to use the same authentication credentials for all
@@ -316,29 +322,30 @@ void Dissolve::remove_instance(const std::string &instance_address,
                                const std::size_t instance_index) {
   try {
     // Stop Group Replication and reset (persist) GR variables.
-    mysqlsh::dba::leave_replicaset(*m_available_instances[instance_index],
-                                   m_console);
+    mysqlsh::dba::leave_replicaset(*m_available_instances[instance_index]);
 
     // Remove existing replications users.
     m_replicaset->remove_replication_users(
         *m_available_instances[instance_index], false);
   } catch (const std::exception &err) {
+    auto console = mysqlsh::current_console();
+
     // Skip error if force=true otherwise issue an error.
     if (m_force.is_null() || *m_force == false) {
-      m_console->print_error("Unable to remove instance '" + instance_address +
-                             "' from the cluster.");
+      console->print_error("Unable to remove instance '" + instance_address +
+                           "' from the cluster.");
       throw shcore::Exception::runtime_error(err.what());
     } else {
       m_skipped_instances.push_back(instance_address);
       log_error("Instance '%s' failed to leave the ReplicaSet: %s",
                 instance_address.c_str(), err.what());
-      m_console->print_warning(
+      console->print_warning(
           "An error occured when trying to remove instance '" +
           instance_address +
           "' from the cluster. The instance might have been left active "
           "and in an inconsistent state, requiring manual action to "
           "fully dissolve the cluster.");
-      m_console->println();
+      console->println();
     }
   }
 }
@@ -348,6 +355,8 @@ shcore::Value Dissolve::execute() {
   std::shared_ptr<MetadataStorage> metadata = m_cluster->get_metadata_storage();
   std::string cluster_name = m_cluster->get_name();
   metadata->drop_cluster(cluster_name);
+
+  auto console = mysqlsh::current_console();
 
   // We must stop GR on the online instances only, otherwise we'll
   // get connection failures to the (MISSING) instances
@@ -374,7 +383,7 @@ shcore::Value Dissolve::execute() {
       } catch (const std::exception &err) {
         // Skip error if force=true otherwise issue an error.
         if (m_force.is_null() || *m_force == false) {
-          m_console->print_error(
+          console->print_error(
               "The instance '" + instance_address +
               "' was unable to catch up with cluster transactions. There might "
               "be too many transactions to apply or some replication error.");
@@ -391,13 +400,13 @@ shcore::Value Dissolve::execute() {
               "Instance '%s' was unable to catch up with cluster transactions: "
               "%s",
               instance_address.c_str(), err.what());
-          m_console->print_warning(
+          console->print_warning(
               "An error occured when trying to catch up with cluster "
               "transactions and instance '" +
               instance_address +
               "' might have been left in an inconsistent state that will lead "
               "to errors if it is reused.");
-          m_console->println();
+          console->println();
         }
       }
 
@@ -423,7 +432,7 @@ shcore::Value Dissolve::execute() {
   m_cluster->disconnect({});
 
   // Print appropriate output message depending if some operation was skipped.
-  m_console->println();
+  console->println();
   if (!m_skipped_instances.empty()) {
     // Some instance were skipped and not properly removed from the cluster
     // despite being dissolved.
@@ -446,7 +455,7 @@ shcore::Value Dissolve::execute() {
     warning_msg.append(
         "permanently unavailable or take any necessary manual action to ensure "
         "the cluster is fully dissolved.");
-    m_console->print_warning(warning_msg);
+    console->print_warning(warning_msg);
   } else if (!m_sync_error_instances.empty()) {
     // Some instance failed to catch up with cluster transaction and cluster's
     // metadata might not have been removed.
@@ -467,13 +476,12 @@ shcore::Value Dissolve::execute() {
       warning_msg.append("this instance ");
 
     warning_msg.append("in order to be able to be reused.");
-    m_console->print_warning(warning_msg);
+    console->print_warning(warning_msg);
   } else {
     // Full cluster sucessfuly removed.
-    m_console->println("The cluster was successfully dissolved.");
-    m_console->println(
-        "Replication was disabled but user data was left intact.");
-    m_console->println();
+    console->println("The cluster was successfully dissolved.");
+    console->println("Replication was disabled but user data was left intact.");
+    console->println();
   }
 
   return shcore::Value();

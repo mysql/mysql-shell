@@ -54,10 +54,10 @@
 #include "shellcore/shell_resultset_dumper.h"
 
 #include "commands/command_help.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "src/interactive/interactive_dba_cluster.h"
 #include "src/interactive/interactive_global_dba.h"
 #include "src/interactive/interactive_global_shell.h"
-#include "src/mysqlsh/shell_console.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -368,24 +368,23 @@ REGISTER_HELP(CMD_NOWARNINGS_SYNTAX1, "<b>\\w</b>");
 
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
-    : mysqlsh::Base_shell(cmdline_options, custom_delegate),
-      m_console_handler{std::make_shared<Shell_console>(custom_delegate)} {
+    : mysqlsh::Base_shell(cmdline_options, custom_delegate) {
   DEBUG_OBJ_ALLOC(Mysql_shell);
 
   // Registers the interactive objects if required
   _global_shell = std::shared_ptr<mysqlsh::Shell>(new mysqlsh::Shell(this));
   _global_js_sys =
       std::shared_ptr<mysqlsh::Sys>(new mysqlsh::Sys(_shell.get()));
-  _global_dba = std::shared_ptr<mysqlsh::dba::Dba>(
-      new mysqlsh::dba::Dba(_shell.get(), console()));
-  _global_util = std::shared_ptr<mysqlsh::Util>(
-      new mysqlsh::Util(_shell.get(), console()));
+  _global_dba =
+      std::shared_ptr<mysqlsh::dba::Dba>(new mysqlsh::dba::Dba(_shell.get()));
+  _global_util =
+      std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
 
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
-        new shcore::Global_shell(*_shell.get(), console()));
+        new shcore::Global_shell(*_shell.get()));
     auto interactive_dba = std::shared_ptr<shcore::Global_dba>(
-        new shcore::Global_dba(*_shell.get(), console()));
+        new shcore::Global_dba(*_shell.get()));
 
     interactive_shell->set_target(_global_shell);
     interactive_dba->set_target(_global_dba);
@@ -755,7 +754,7 @@ std::shared_ptr<mysqlsh::dba::Cluster> Mysql_shell::set_default_cluster(
 }
 
 bool Mysql_shell::cmd_print_shell_help(const std::vector<std::string> &args) {
-  return Command_help(_shell, m_console_handler.get())(args);
+  return Command_help(_shell)(args);
 }
 
 bool Mysql_shell::cmd_start_multiline(const std::vector<std::string> &args) {
@@ -797,17 +796,17 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
     } else if (shcore::str_caseeq("-n", arg) ||
                shcore::str_caseeq("-mx", arg)) {
       options.session_type = mysqlsh::SessionType::X;
-      print_error(
+      print_warning(
           "The " + arg +
           " option is deprecated, please use --mysqlx or --mx instead.\n");
     } else if (shcore::str_caseeq("-c", arg) ||
                shcore::str_caseeq("-mc", arg)) {
       options.session_type = mysqlsh::SessionType::Classic;
-      print_error(
+      print_warning(
           "The " + arg +
           " option is deprecated, please use --mysql or --mc instead.\n");
     } else if (shcore::str_caseeq("-ma", arg)) {
-      print_error("The " + arg + " option is deprecated.\n");
+      print_warning("The " + arg + " option is deprecated.\n");
     } else if (!arg.compare("--mysqlx") || !arg.compare("--mx")) {
       options.session_type = mysqlsh::SessionType::X;
     } else if (!arg.compare("--mysql") || !arg.compare("--mc")) {
@@ -1339,7 +1338,7 @@ void Mysql_shell::process_sql_result(
               std::static_pointer_cast<mysqlshdk::db::mysql::Result>(result),
               info.ellapsed_seconds)
               .as_object<mysqlsh::ShellBaseResult>(),
-          _shell->get_delegate(), false);
+          false);
       dumper.dump();
       if (options().interactive) {
         const std::vector<std::string> &gtids(result->get_gtids());
@@ -1353,7 +1352,7 @@ void Mysql_shell::process_sql_result(
               std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(result),
               info.ellapsed_seconds)
               .as_object<mysqlsh::ShellBaseResult>(),
-          _shell->get_delegate(), false);
+          false);
       dumper.dump();
     } else {
       throw std::invalid_argument("Invalid result object");
@@ -1381,8 +1380,10 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
     if (!_last_active_schema.empty() &&
         (!co.has_schema() || co.get_schema() != _last_active_schema))
       co.set_schema(_last_active_schema);
-    if (!force) _shell->print("The global session got disconnected..\n");
-    _shell->print("Attempting to reconnect to '" + co.as_uri() + "'..");
+    if (!force)
+      m_console_handler.get()->print("The global session got disconnected..\n");
+    m_console_handler.get()->print("Attempting to reconnect to '" +
+                                   co.as_uri() + "'..");
 
     shcore::sleep_ms(500);
     int attempts = 6;
@@ -1394,7 +1395,7 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
         ret_val = false;
       }
       if (!ret_val) {
-        _shell->print("..");
+        m_console_handler.get()->print("..");
         attempts--;
         if (attempts > 0) {
           // Try again
@@ -1404,9 +1405,10 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
     }
 
     if (ret_val)
-      _shell->print("\nThe global session was successfully reconnected.\n");
+      m_console_handler.get()->print(
+          "\nThe global session was successfully reconnected.\n");
     else
-      _shell->print(
+      m_console_handler.get()->print(
           "\nThe global session could not be reconnected automatically.\n"
           "Please use '\\reconnect' instead to manually reconnect.\n");
   }

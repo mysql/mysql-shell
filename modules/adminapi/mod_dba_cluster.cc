@@ -36,6 +36,7 @@
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
@@ -68,13 +69,11 @@ REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
 
 Cluster::Cluster(const std::string &name,
                  std::shared_ptr<mysqlshdk::db::ISession> group_session,
-                 std::shared_ptr<MetadataStorage> metadata_storage,
-                 std::shared_ptr<IConsole> console_handler)
+                 std::shared_ptr<MetadataStorage> metadata_storage)
     : _name(name),
       m_invalidated(false),
       _group_session(group_session),
-      _metadata_storage(metadata_storage),
-      m_console(console_handler) {
+      _metadata_storage(metadata_storage) {
   DEBUG_OBJ_ALLOC2(Cluster, [](void *ptr) {
     return "refs:" + std::to_string(reinterpret_cast<Cluster *>(ptr)
                                         ->shared_from_this()
@@ -932,7 +931,7 @@ void Cluster::set_default_replicaset(const std::string &name,
                                      const std::string &topology_type,
                                      const std::string &group_name) {
   _default_replica_set = std::make_shared<ReplicaSet>(
-      name, topology_type, group_name, _metadata_storage, m_console);
+      name, topology_type, group_name, _metadata_storage);
 
   if (_default_replica_set)
     _default_replica_set->set_cluster(shared_from_this());

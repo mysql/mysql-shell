@@ -31,7 +31,6 @@
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
@@ -42,7 +41,6 @@ class Check_instance : public Command_interface {
   Check_instance(mysqlshdk::mysql::IInstance *target_instance,
                  const std::string &verify_mycnf_path,
                  std::shared_ptr<ProvisioningInterface> provisioning_interface,
-                 std::shared_ptr<mysqlsh::IConsole> console_handler,
                  bool silent = false);
   ~Check_instance();
 
@@ -59,7 +57,6 @@ class Check_instance : public Command_interface {
  private:
   mysqlshdk::mysql::IInstance *m_target_instance;
   std::shared_ptr<ProvisioningInterface> m_provisioning_interface;
-  std::shared_ptr<mysqlsh::IConsole> m_console;
   std::string m_mycnf_path;
   bool m_is_valid = false;
   shcore::Value m_ret_val;

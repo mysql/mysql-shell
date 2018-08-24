@@ -29,19 +29,12 @@
 
 #include <memory>
 
-#include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/lang_base.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_core.h"
 
 namespace shcore {
 class Shell_core;
-
-enum class Prompt_answer {
-  NONE = 0,
-  YES = 1,
-  NO = 2,
-};
 
 /**
  * Base object to provide interaction capabilities on calls to the wrapped
@@ -63,9 +56,7 @@ enum class Prompt_answer {
  */
 class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
  public:
-  Interactive_object_wrapper(
-      const std::string &alias, Shell_core &core,
-      std::shared_ptr<mysqlsh::IConsole> console_handler);
+  Interactive_object_wrapper(const std::string &alias, Shell_core &core);
 
   // Returns Undefined if the _target is NOT set
   virtual std::string class_name() const {
@@ -178,7 +169,6 @@ class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
   std::string _alias;
   std::shared_ptr<Cpp_object_bridge> _target;
   Shell_core &_shell_core;
-  std::shared_ptr<mysqlsh::IConsole> _delegate;
 
   // Helper functions to enable implementing interaction
   void print(const std::string &text) const;
@@ -186,8 +176,9 @@ class SHCORE_PUBLIC Interactive_object_wrapper : public Cpp_object_bridge {
   void print_value(const shcore::Value &value, const std::string &tag) const;
   bool prompt(const std::string &prompt, std::string &ret_val,
               bool trim_answer = true) const;
-  Prompt_answer prompt(const std::string &prompt,
-                       Prompt_answer def = Prompt_answer::YES) const;
+  mysqlsh::Prompt_answer confirm(
+      const std::string &prompt,
+      mysqlsh::Prompt_answer def = mysqlsh::Prompt_answer::YES) const;
   bool password(const std::string &prompt, std::string &ret_val) const;
 
   shcore::Value call_target(const std::string &name, const Argument_list &args);

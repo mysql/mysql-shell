@@ -31,6 +31,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -49,8 +50,7 @@ Configure_instance::Configure_instance(
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
     mysqlshdk::utils::nullable<bool> restart,
-    std::shared_ptr<ProvisioningInterface> provisioning_interface,
-    std::shared_ptr<mysqlsh::IConsole> console_handler)
+    std::shared_ptr<ProvisioningInterface> provisioning_interface)
     : m_mycnf_path(mycnf_path),
       m_output_mycnf_path(output_mycnf_path),
       m_cluster_admin(cluster_admin),
@@ -59,10 +59,8 @@ Configure_instance::Configure_instance(
       m_clear_read_only(clear_read_only),
       m_restart(restart),
       m_target_instance(target_instance),
-      m_provisioning_interface(provisioning_interface),
-      m_console(console_handler) {
+      m_provisioning_interface(provisioning_interface) {
   assert(target_instance);
-  assert(console_handler);
   assert(provisioning_interface);
 
   m_local_target = mysqlshdk::utils::Net::is_local_address(
@@ -86,10 +84,12 @@ Configure_instance::~Configure_instance() {}
  *    a path that can be used to write the config file
  */
 bool Configure_instance::check_config_path_for_update() {
+  auto console = mysqlsh::current_console();
+
   if (!m_local_target) {
     // Check if the instance is not local first, if so we can throw an error
     // already
-    m_console->print_warning(
+    console->print_warning(
         "Cannot update configuration file for a remote target instance.");
     return false;
   }
@@ -97,20 +97,18 @@ bool Configure_instance::check_config_path_for_update() {
   // If the cnf file path is empty attempt to resolve it
   if (m_mycnf_path.empty()) {
     if (is_sandbox(*m_target_instance, &m_mycnf_path)) {
-      m_console->println("Sandbox MySQL configuration file at: " +
-                         m_mycnf_path);
+      console->println("Sandbox MySQL configuration file at: " + m_mycnf_path);
     } else {
-      if (m_interactive)
-        m_mycnf_path = prompt_cnf_path(*m_target_instance, m_console);
+      if (m_interactive) m_mycnf_path = prompt_cnf_path(*m_target_instance);
     }
 
     // If interactive is disabled or the attempt to resolve the cnf file
     // path wasn't successful throw an error
     if (m_mycnf_path.empty()) {
-      m_console->print_error(
+      console->print_error(
           "The path to the MySQL configuration file is required to verify and "
           "fix InnoDB cluster related options.");
-      m_console->println("Please provide its path with the mycnfPath option.");
+      console->println("Please provide its path with the mycnfPath option.");
       return false;
     }
   }
@@ -121,17 +119,17 @@ bool Configure_instance::check_config_path_for_update() {
   if (m_output_mycnf_path.empty()) {
     // Check if the configuration file does not exist
     if (!shcore::file_exists(m_mycnf_path)) {
-      m_console->print_warning(m_mycnf_path + " does not exist.");
+      console->print_warning(m_mycnf_path + " does not exist.");
       if (m_interactive) {
         // Ask the user if accepts that a new file is created in the same path
         // as myCnfPath
-        if (m_console->confirm("Do you want to create a new MySQL "
-                               "configuration file at that path?",
-                               Prompt_answer::YES) == Prompt_answer::NO) {
+        if (console->confirm("Do you want to create a new MySQL "
+                             "configuration file at that path?",
+                             Prompt_answer::YES) == Prompt_answer::NO) {
           return false;
         }
       } else {
-        m_console->println(m_mycnf_path + " will be created.");
+        console->println(m_mycnf_path + " will be created.");
       }
     }
     // If path exists (or if it's OK to create it), check if it's also writable
@@ -139,17 +137,17 @@ bool Configure_instance::check_config_path_for_update() {
       shcore::check_file_writable_or_throw(m_mycnf_path);
     } catch (std::exception &e) {
       if (m_interactive) {
-        m_console->print_warning("mycnfPath is not writable: " + m_mycnf_path +
-                                 ": " + e.what());
-        m_console->println(
+        console->print_warning("mycnfPath is not writable: " + m_mycnf_path +
+                               ": " + e.what());
+        console->println(
             "The required configuration changes may be written to a "
             "different file, which you can copy over to its proper location.");
 
         prompt_output_path = true;
       } else {
-        m_console->print_error("mycnfPath is not writable: " + m_mycnf_path +
-                               ": " + e.what());
-        m_console->println(
+        console->print_error("mycnfPath is not writable: " + m_mycnf_path +
+                             ": " + e.what());
+        console->println(
             "The outputMycnfPath option may be used to have "
             "the updated configuration file written to a different path.");
         return false;
@@ -164,8 +162,8 @@ bool Configure_instance::check_config_path_for_update() {
         assert(m_interactive);
         // Prompt the user for an alternative filepath and suggest the user to
         // sudo cp into the right place
-        if (!m_console->prompt("Output path for updated configuration file: ",
-                               &m_output_mycnf_path))
+        if (!console->prompt("Output path for updated configuration file: ",
+                             &m_output_mycnf_path))
           return false;
       }
 
@@ -174,8 +172,8 @@ bool Configure_instance::check_config_path_for_update() {
         break;
       } catch (std::exception &e) {
         // If invalid option is given, we error out
-        m_console->print_error("outputMycnfPath is not writable: " +
-                               m_output_mycnf_path + ": " + e.what());
+        console->print_error("outputMycnfPath is not writable: " +
+                             m_output_mycnf_path + ": " + e.what());
         // If prompt_output_path is false, it means m_output_mycnf_path was
         // given by the user via option, so we fail directly
         if (!prompt_output_path) return false;
@@ -200,8 +198,9 @@ bool Configure_instance::check_persisted_globals_load() {
           "persisted_globals_load");
 
   if (!*persist_global) {
-    m_console->print_note("persisted_globals_load option is OFF");
-    m_console->println(
+    auto console = mysqlsh::current_console();
+    console->print_note("persisted_globals_load option is OFF");
+    console->println(
         "Remote configuration of the instance is not possible because "
         "options changed with SET PERSIST will not be loaded, unless "
         "'persisted_globals_load' is set to ON.");
@@ -218,18 +217,20 @@ bool Configure_instance::check_persisted_globals_load() {
  * if wants to create the same account in '%' or to create a new account.
  */
 void Configure_instance::check_create_admin_user() {
+  auto console = mysqlsh::current_console();
+
   if (m_cluster_admin.empty()) {
     m_cluster_admin_password = "";
 
     // Check that the account in use isn't too restricted (like localhost only)
     if (!check_admin_account_access_restrictions(
-            *m_target_instance, m_current_user, m_current_host, m_console)) {
+            *m_target_instance, m_current_user, m_current_host)) {
       // If interaction is enabled use the console_handler admin-user
       // handling function
       if (m_interactive) {
-        m_console->println();
+        console->println();
         if (!prompt_create_usable_admin_account(m_current_user, m_current_host,
-                                                &m_cluster_admin, m_console)) {
+                                                &m_cluster_admin)) {
           throw shcore::cancelled("Cancelled");
         }
       }
@@ -250,8 +251,8 @@ void Configure_instance::check_create_admin_user() {
     if (admin_user_host.empty()) {
       admin_user_host = "%";
       std::string full = shcore::make_account(admin_user, admin_user_host);
-      m_console->print_note("Assuming full account name " + full + " for " +
-                            m_cluster_admin);
+      console->print_note("Assuming full account name " + full + " for " +
+                          m_cluster_admin);
       m_cluster_admin = full;
     }
 
@@ -263,19 +264,19 @@ void Configure_instance::check_create_admin_user() {
       if (!validate_cluster_admin_user_privileges(
               m_target_instance->get_session(), admin_user, admin_user_host,
               &error_info)) {
-        m_console->print_warning(
+        console->print_warning(
             "User " + m_cluster_admin +
             " already exists and will not be created. However, it is missing "
             "privileges.");
-        m_console->println(error_info);
+        console->println(error_info);
 
         throw shcore::Exception::runtime_error(
             "The account " +
             shcore::make_account(m_current_user, m_current_host) +
             " is missing privileges required to manage an InnoDB cluster.");
       } else {
-        m_console->print_info("User " + m_cluster_admin +
-                              " already exists and will not be created.");
+        console->print_info("User " + m_cluster_admin +
+                            " already exists and will not be created.");
       }
       m_create_cluster_admin = false;
     } else {
@@ -288,7 +289,7 @@ void Configure_instance::check_create_admin_user() {
                                        .get_password();
       } else if (m_cluster_admin_password.is_null()) {
         if (m_interactive) {
-          m_cluster_admin_password = prompt_new_account_password(m_console);
+          m_cluster_admin_password = prompt_new_account_password();
         } else {
           throw shcore::Exception::runtime_error(
               "password for clusterAdmin required");
@@ -332,8 +333,8 @@ void Configure_instance::create_admin_user() {
       throw shcore::Exception::runtime_error(error_msg);
     }
 
-    m_console->print_note("Cluster admin user " + m_cluster_admin +
-                          " created.");
+    mysqlsh::current_console()->print_note("Cluster admin user " +
+                                           m_cluster_admin + " created.");
   }
 }
 
@@ -345,21 +346,23 @@ void Configure_instance::create_admin_user() {
  */
 bool Configure_instance::check_configuration_updates(
     bool *restart, bool *dynamic_sysvar_change, bool *config_file_change) {
+  auto console = mysqlsh::current_console();
+
   // Perform check with no update
 
   // If mycnfPath was used, validate if the file exists and if doesn't do not
   // use it in the check call
   std::string cnf_path = m_mycnf_path;
   if (!m_mycnf_path.empty() && !shcore::file_exists(cnf_path)) {
-    m_console->print_warning("MySQL configuration file " + cnf_path +
-                             " does not exist. Skipping file verification.");
+    console->print_warning("MySQL configuration file " + cnf_path +
+                           " does not exist. Skipping file verification.");
     cnf_path.clear();
   }
 
   bool fatal_errors;
   if (!checks::validate_configuration(
-          m_target_instance, cnf_path, m_console, m_provisioning_interface,
-          restart, config_file_change, dynamic_sysvar_change, &fatal_errors)) {
+          m_target_instance, cnf_path, m_provisioning_interface, restart,
+          config_file_change, dynamic_sysvar_change, &fatal_errors)) {
     // If there are fatal errors, abort immediately
     if (fatal_errors) {
       throw shcore::Exception::runtime_error("errors found");
@@ -372,26 +375,26 @@ bool Configure_instance::check_configuration_updates(
     // Fortunately, in 8.0 log_bin is ON by default, so this should be rare
 
     if (*config_file_change && m_can_set_persist && m_mycnf_path.empty()) {
-      m_console->print_warning(
+      console->print_warning(
           "Some changes that require access to the MySQL configuration file "
           "need to be made. Please perform this operation in the same host as "
           "the target instance and use the mycnfPath option to update it.");
     }
 
     if (*restart && !*config_file_change && !*dynamic_sysvar_change) {
-      m_console->print_note(
+      console->print_note(
           "MySQL server restart is required for configuration to take effect.");
     }
     return false;
   } else {
-    m_console->println();
+    console->println();
     if (*restart) {
-      m_console->print_note(
+      console->print_note(
           "The instance '" + m_target_instance->descr() +
           "' needs to be restarted for configuration changes to take effect.");
     } else {
-      m_console->print_note("The instance '" + m_target_instance->descr() +
-                            "' is valid for InnoDB cluster usage.");
+      console->print_note("The instance '" + m_target_instance->descr() +
+                          "' is valid for InnoDB cluster usage.");
     }
     return !*restart;
   }
@@ -405,23 +408,25 @@ bool Configure_instance::check_configuration_updates(
  */
 void Configure_instance::handle_mp_op_result(
     const shcore::Dictionary_t &result) {
+  auto console = mysqlsh::current_console();
+
   // Handle the results of the configure instance operation
   if (result->get_string("status") == "ok") {
-    m_console->print_info("The instance '" + m_target_instance->descr() +
-                          "' was configured for use in an InnoDB cluster.");
+    console->print_info("The instance '" + m_target_instance->descr() +
+                        "' was configured for use in an InnoDB cluster.");
   } else {
     auto errors = result->get_array("errors");
 
     if (!errors->empty()) {
       for (const shcore::Value &err : *errors) {
-        m_console->print_error(err.as_string());
+        console->print_error(err.as_string());
       }
       throw shcore::Exception::runtime_error(
           "Error updating MySQL configuration");
     }
 
-    m_console->print_info("The instance '" + m_target_instance->descr() +
-                          "' was configured for cluster usage.");
+    console->print_info("The instance '" + m_target_instance->descr() +
+                        "' was configured for cluster usage.");
 
     bool restart = false;
     bool dynamic_sysvar_change = false;
@@ -433,14 +438,16 @@ void Configure_instance::handle_mp_op_result(
 }
 
 void Configure_instance::ensure_instance_address_usable() {
+  auto console = mysqlsh::current_console();
+
   // Sanity check for the instance address
   if (is_sandbox(*m_target_instance, nullptr)) {
-    m_console->print_info("Instance detected as a sandbox.");
-    m_console->println(
+    console->print_info("Instance detected as a sandbox.");
+    console->println(
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
-  if (!checks::validate_host_address(m_target_instance, true, m_console)) {
+  if (!checks::validate_host_address(m_target_instance, true)) {
     throw shcore::Exception::runtime_error("Invalid address detected");
   }
 }
@@ -470,12 +477,14 @@ void Configure_instance::ensure_configuration_change_possible(
     // path is mandatory in case the instance is local. If the instance is
     // remote issue an error
     if (!check_config_path_for_update()) {
-      m_console->print_error("Unable to change MySQL configuration.");
-      m_console->println(
+      auto console = mysqlsh::current_console();
+
+      console->print_error("Unable to change MySQL configuration.");
+      console->println(
           "MySQL server configuration needs to be "
           "updated, but neither remote nor local configuration is possible.");
       if (m_target_instance->get_version() < mysqlshdk::utils::Version(8, 0, 5))
-        m_console->println(
+        console->println(
             "Please run this command locally, in the same host as the MySQL "
             "server being configured, and pass the path to its configuration "
             "file through the mycnfPath option.");
@@ -490,17 +499,18 @@ void Configure_instance::ensure_configuration_change_possible(
  * the command execution
  */
 void Configure_instance::prepare() {
+  auto console = mysqlsh::current_console();
+
   if (!m_local_target) {
-    m_console->print_info("Configuring MySQL instance at " +
-                          m_target_instance->descr() +
-                          " for use in an InnoDB cluster...");
+    console->print_info("Configuring MySQL instance at " +
+                        m_target_instance->descr() +
+                        " for use in an InnoDB cluster...");
   } else {
-    m_console->print_info(
-        "Configuring local MySQL instance listening at port " +
-        std::to_string(m_target_instance->get_session()
-                           ->get_connection_options()
-                           .get_port()) +
-        " for use in an InnoDB cluster...");
+    console->print_info("Configuring local MySQL instance listening at port " +
+                        std::to_string(m_target_instance->get_session()
+                                           ->get_connection_options()
+                                           .get_port()) +
+                        " for use in an InnoDB cluster...");
   }
 
   // Check capabilities based on target server and user options
@@ -517,7 +527,7 @@ void Configure_instance::prepare() {
   m_can_update_mycnf = !m_mycnf_path.empty() && m_local_target;
 
   // Ensure the user has privs to do all these checks
-  ensure_user_privileges(*m_target_instance, m_console);
+  ensure_user_privileges(*m_target_instance);
 
   ensure_instance_address_usable();
 
@@ -552,7 +562,7 @@ void Configure_instance::prepare() {
   if (m_interactive) {
     if (m_needs_configuration_update) {
       // If the user does not accept the changes terminate the operation
-      if (m_console->confirm(
+      if (console->confirm(
               "Do you want to perform the required configuration changes?",
               Prompt_answer::NONE) == Prompt_answer::NO) {
         throw shcore::cancelled("Cancelled");
@@ -561,7 +571,7 @@ void Configure_instance::prepare() {
 
     if (m_can_restart && m_needs_restart && m_restart.is_null()) {
       if (m_needs_configuration_update) {
-        if (m_console->confirm(
+        if (console->confirm(
                 "Do you want to restart the instance after configuring it?",
                 Prompt_answer::NONE) == Prompt_answer::YES) {
           m_restart = true;
@@ -569,8 +579,8 @@ void Configure_instance::prepare() {
           m_restart = false;
         }
       } else {
-        if (m_console->confirm("Do you want to restart the instance now?",
-                               Prompt_answer::NONE) == Prompt_answer::YES) {
+        if (console->confirm("Do you want to restart the instance now?",
+                             Prompt_answer::NONE) == Prompt_answer::YES) {
           m_restart = true;
         } else {
           m_restart = false;
@@ -582,8 +592,8 @@ void Configure_instance::prepare() {
     // Handle clear_read_only interaction
     if (m_clear_read_only.is_null() && m_interactive &&
         m_create_cluster_admin) {
-      m_console->println();
-      if (prompt_super_read_only(*m_target_instance, m_console, true))
+      console->println();
+      if (prompt_super_read_only(*m_target_instance, true))
         m_clear_read_only = true;
     }
   }
@@ -630,13 +640,15 @@ shcore::Value Configure_instance::execute() {
     create_admin_user();
   }
 
+  auto console = mysqlsh::current_console();
+
   if (m_needs_configuration_update) {
     // TODO(someone): as soon as MP is fully rewritten to C++,we must use pure
     // C++ types instead of shcore types. The function return type should be
     // changed to std::map<std::string, std::string>
 
     // Execute the configure instance operation
-    m_console->println("Configuring instance...");
+    console->println("Configuring instance...");
 
     bool use_set_persist = !m_needs_update_mycnf && m_can_set_persist;
 
@@ -647,25 +659,25 @@ shcore::Value Configure_instance::execute() {
     // We can restart and user wants to restart
     if (m_can_restart && !m_restart.is_null() && *m_restart) {
       try {
-        m_console->println("Restarting MySQL...");
+        console->println("Restarting MySQL...");
         m_target_instance->get_session()->query("RESTART");
-        m_console->print_note("MySQL server at " + m_target_instance->descr() +
-                              " was restarted.");
+        console->print_note("MySQL server at " + m_target_instance->descr() +
+                            " was restarted.");
       } catch (const mysqlshdk::db::Error &err) {
         log_error("Error executing RESTART: %s", err.format().c_str());
-        m_console->print_error("Remote restart of MySQL server failed: " +
-                               err.format());
-        m_console->println("Please restart MySQL manually");
+        console->print_error("Remote restart of MySQL server failed: " +
+                             err.format());
+        console->println("Please restart MySQL manually");
       }
     } else {
       if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path &&
           m_needs_configuration_update) {
-        m_console->print_note("You must now copy " + m_output_mycnf_path +
-                              " to the MySQL "
-                              "configuration file path and restart MySQL for "
-                              "changes to take effect.");
+        console->print_note("You must now copy " + m_output_mycnf_path +
+                            " to the MySQL "
+                            "configuration file path and restart MySQL for "
+                            "changes to take effect.");
       } else {
-        m_console->print_note(
+        console->print_note(
             "MySQL server needs to be restarted for configuration changes to "
             "take effect.");
       }
@@ -682,14 +694,14 @@ bool Configure_instance::clear_super_read_only() {
 
   // Handle clear_read_only interaction
   bool super_read_only = validate_super_read_only(
-      m_target_instance->get_session(), m_clear_read_only == true, m_console);
+      m_target_instance->get_session(), m_clear_read_only == true);
 
   // If super_read_only was disabled, print the information
   if (super_read_only) {
     auto session_address = m_target_instance->get_session()->uri(
         mysqlshdk::db::uri::formats::only_transport());
-    m_console->print_info("Disabled super_read_only on the instance '" +
-                          session_address + "'");
+    mysqlsh::current_console()->print_info(
+        "Disabled super_read_only on the instance '" + session_address + "'");
     return true;
   }
   return false;
@@ -701,8 +713,8 @@ void Configure_instance::restore_super_read_only() {
   if (m_clear_read_only == true) {
     auto session_address = m_target_instance->get_session()->uri(
         mysqlshdk::db::uri::formats::only_transport());
-    m_console->print_info("Enabling super_read_only on the instance '" +
-                          session_address + "'");
+    mysqlsh::current_console()->print_info(
+        "Enabling super_read_only on the instance '" + session_address + "'");
     m_target_instance->set_sysvar("super_read_only", "ON",
                                   mysqlshdk::mysql::Var_qualifier::GLOBAL);
   }

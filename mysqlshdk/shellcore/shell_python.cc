@@ -36,7 +36,6 @@ using namespace shcore;
 Shell_python::Shell_python(Shell_core *shcore)
     : Shell_language(shcore),
       _py(new Python_context(
-          shcore->get_delegate(),
           mysqlsh::current_shell_options()->get().interactive)),
       m_last_input_state(Input_state::Ok) {}
 
@@ -140,10 +139,12 @@ bool Shell_python::is_module(const std::string &file_name) {
 
     ret_val = _py->is_module(file_name);
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception while loading ")
-                            .append(file_name)
-                            .append(": ")
-                            .append(exc.what()));
+    mysqlsh::current_console()->raw_print(
+        std::string("Exception while loading ")
+            .append(file_name)
+            .append(": ")
+            .append(exc.what()),
+        mysqlsh::Output_stream::STDERR);
   }
 
   return ret_val;
@@ -166,10 +167,12 @@ void Shell_python::execute_module(const std::string &file_name) {
 
     _result_processor(ret_val);
   } catch (std::exception &exc) {
-    _owner->print_error(std::string("Exception while loading ")
-                            .append(file_name)
-                            .append(": ")
-                            .append(exc.what()));
+    mysqlsh::current_console()->raw_print(
+        std::string("Exception while loading ")
+            .append(file_name)
+            .append(": ")
+            .append(exc.what()),
+        mysqlsh::Output_stream::STDERR);
     // Should shcore::Exceptions bubble up??
   }
 }

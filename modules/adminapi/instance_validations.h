@@ -28,7 +28,6 @@
 #include <string>
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "shellcore/console.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -37,18 +36,14 @@ class ProvisioningInterface;  // NOLINT
 
 namespace checks {
 
-bool validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose,
-                           std::shared_ptr<IConsole> console);
+bool validate_host_address(mysqlshdk::mysql::IInstance *instance, bool verbose);
 
-bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session,
-                      std::shared_ptr<IConsole> console);
+bool validate_schemas(std::shared_ptr<mysqlshdk::db::ISession> session);
 
-void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance,
-                               std::shared_ptr<IConsole> console);
+void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 
 bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
                             const std::string &mycnf_path,
-                            std::shared_ptr<IConsole> console,
                             std::shared_ptr<ProvisioningInterface> mp,
                             bool *restart_needed, bool *mycnf_change_needed,
                             bool *sysvar_change_needed, bool *fatal_errors,
@@ -56,8 +51,7 @@ bool validate_configuration(mysqlshdk::mysql::IInstance *instance,
 
 void ensure_instance_configuration_valid(
     mysqlshdk::mysql::IInstance *target_instance, const std::string &mycnf_path,
-    std::shared_ptr<ProvisioningInterface> mp,
-    std::shared_ptr<mysqlsh::IConsole> console);
+    std::shared_ptr<ProvisioningInterface> mp);
 
 void check_required_actions(const shcore::Dictionary_t &result, bool *restart,
                             bool *dynamic_sysvar_change,

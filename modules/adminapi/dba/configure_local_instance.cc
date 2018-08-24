@@ -28,6 +28,7 @@
 #include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -44,13 +45,10 @@ Configure_local_instance::Configure_local_instance(
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
     mysqlshdk::utils::nullable<bool> restart,
-    std::shared_ptr<ProvisioningInterface> provisioning_interface,
-    std::shared_ptr<mysqlsh::IConsole> console_handler)
+    std::shared_ptr<ProvisioningInterface> provisioning_interface)
     : Configure_instance(target_instance, mycnf_path, output_mycnf_path,
                          cluster_admin, cluster_admin_password, clear_read_only,
-                         interactive, restart, provisioning_interface,
-                         console_handler) {
-  assert(console_handler);
+                         interactive, restart, provisioning_interface) {
   assert(provisioning_interface);
 }
 
@@ -82,13 +80,15 @@ void Configure_local_instance::prepare() {
 
   // Parameters validation for the case we only need to persist GR options
   if (m_instance_type == GRInstanceType::InnoDBCluster) {
-    m_console->println("The instance '" +
-                       m_target_instance->get_connection_options().as_uri(
-                           mysqlshdk::db::uri::formats::only_transport()) +
-                       "' belongs to an InnoDB cluster.");
+    auto console = mysqlsh::current_console();
+
+    console->println("The instance '" +
+                     m_target_instance->get_connection_options().as_uri(
+                         mysqlshdk::db::uri::formats::only_transport()) +
+                     "' belongs to an InnoDB cluster.");
     if (m_target_instance->get_version() >=
         mysqlshdk::utils::Version(8, 0, 5)) {
-      m_console->print_info(
+      console->print_info(
           "Calling this function on a cluster member is only required for "
           "MySQL versions 8.0.4 or earlier.");
       return;
@@ -148,12 +148,13 @@ shcore::Value Configure_local_instance::execute() {
   if (m_instance_type == GRInstanceType::InnoDBCluster) {
     if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
       return {};
-    m_console->println("Persisting the cluster settings...");
+    auto console = mysqlsh::current_console();
+    console->println("Persisting the cluster settings...");
 
     update_mycnf();
 
-    m_console->println();
-    m_console->println(
+    console->println();
+    console->println(
         "The instance cluster settings were successfully persisted.");
 
     return shcore::Value();

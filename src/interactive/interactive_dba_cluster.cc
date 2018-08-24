@@ -86,8 +86,9 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(
     object = cluster->get_default_replicaset();
   }
   if (object) {
-    if (prompt("The default ReplicaSet is already initialized. \
-                Do you want to add a new instance?") == Prompt_answer::YES)
+    if (confirm("The default ReplicaSet is already initialized. \
+                Do you want to add a new instance?") ==
+        mysqlsh::Prompt_answer::YES)
       function = "addInstance";
   } else {
     function = "addSeedInstance";
@@ -132,8 +133,9 @@ shcore::Value Interactive_dba_cluster::add_instance(
     if (cluster) object = cluster->get_default_replicaset();
 
     if (!object) {
-      if (prompt("The default ReplicaSet is not initialized. Do you want to \
-                  initialize it adding a seed instance?") == Prompt_answer::YES)
+      if (confirm("The default ReplicaSet is not initialized. Do you want to \
+                  initialize it adding a seed instance?") ==
+          mysqlsh::Prompt_answer::YES)
         function = "addSeedInstance";
     } else {
       function = "addInstance";
@@ -348,8 +350,8 @@ shcore::Value Interactive_dba_cluster::rescan(
         println("A new instance '" + instance_map->get_string("host") +
                 "' was discovered in the HA setup.");
 
-        if (prompt("Would you like to add it to the cluster metadata?") ==
-            Prompt_answer::YES) {
+        if (confirm("Would you like to add it to the cluster metadata?") ==
+            mysqlsh::Prompt_answer::YES) {
           std::string full_host = instance_map->get_string("host");
           auto instance_def = shcore::get_connection_options(full_host, false);
 
@@ -391,8 +393,8 @@ shcore::Value Interactive_dba_cluster::rescan(
             "') command or you can remove it from the cluster "
             "configuration.");
 
-        if (prompt("Would you like to remove it from the cluster metadata?") ==
-            Prompt_answer::YES) {
+        if (confirm("Would you like to remove it from the cluster metadata?") ==
+            mysqlsh::Prompt_answer::YES) {
           std::string full_host = instance_map->get_string("host");
           auto instance_def = shcore::get_connection_options(full_host, false);
 

@@ -27,6 +27,7 @@
 #include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/instance_validations.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -41,14 +42,11 @@ namespace dba {
 Check_instance::Check_instance(
     mysqlshdk::mysql::IInstance *target_instance,
     const std::string &verify_mycnf_path,
-    std::shared_ptr<ProvisioningInterface> provisioning_interface,
-    std::shared_ptr<mysqlsh::IConsole> console_handler, bool silent)
+    std::shared_ptr<ProvisioningInterface> provisioning_interface, bool silent)
     : m_target_instance(target_instance),
       m_provisioning_interface(provisioning_interface),
-      m_console(console_handler),
       m_mycnf_path(verify_mycnf_path),
       m_silent(silent) {
-  assert(console_handler);
   assert(provisioning_interface);
 }
 
@@ -58,39 +56,42 @@ bool Check_instance::check_instance_address() {
   // Sanity check for the instance address
   if (is_sandbox(*m_target_instance, nullptr)) {
     // bug#26393614
-    m_console->print_note("Instance detected as a sandbox.");
-    m_console->println(
+    auto console = mysqlsh::current_console();
+    console->print_note("Instance detected as a sandbox.");
+    console->println(
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
-  return checks::validate_host_address(m_target_instance, !m_silent, m_console);
+  return checks::validate_host_address(m_target_instance, !m_silent);
 }
 
 bool Check_instance::check_schema_compatibility() {
+  auto console = mysqlsh::current_console();
   if (!m_silent) {
-    m_console->println();
-    m_console->println(
+    console->println();
+    console->println(
         "Checking whether existing tables comply with Group Replication "
         "requirements...");
   }
-  if (checks::validate_schemas(m_target_instance->get_session(), m_console)) {
-    if (!m_silent) m_console->print_info("No incompatible tables detected");
+  if (checks::validate_schemas(m_target_instance->get_session())) {
+    if (!m_silent) console->print_info("No incompatible tables detected");
     return true;
   }
   return false;
 }
 
 bool Check_instance::check_configuration() {
+  auto console = mysqlsh::current_console();
   if (!m_silent) {
-    m_console->println();
-    m_console->println("Checking instance configuration...");
+    console->println();
+    console->println("Checking instance configuration...");
 
     bool local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
     if (m_mycnf_path.empty()) {
       if (m_target_instance->get_version() <
           mysqlshdk::utils::Version(8, 0, 5)) {
-        m_console->print_note(
+        console->print_note(
             "Note: verifyMyCnf option was not given so only dynamic "
             "configuration "
             "will be verified.");
@@ -100,8 +101,8 @@ bool Check_instance::check_configuration() {
         throw shcore::Exception::argument_error(
             "mycnfPath or verifyMyCnf not allowed for remote instances");
       } else {
-        m_console->println("Configuration file " + m_mycnf_path +
-                           " will also be checked.");
+        console->println("Configuration file " + m_mycnf_path +
+                         " will also be checked.");
       }
     }
   } else {
@@ -114,27 +115,27 @@ bool Check_instance::check_configuration() {
   bool dynamic_sysvar_change;
 
   if (!checks::validate_configuration(
-          m_target_instance, m_mycnf_path, m_console, m_provisioning_interface,
-          &restart, &config_file_change, &dynamic_sysvar_change, &fatal_errors,
+          m_target_instance, m_mycnf_path, m_provisioning_interface, &restart,
+          &config_file_change, &dynamic_sysvar_change, &fatal_errors,
           &m_ret_val)) {
     // If there are fatal errors, abort immediately
     if (fatal_errors) {
-      m_console->print_note("Please fix issues and try again.");
+      console->print_note("Please fix issues and try again.");
       return false;
     }
 
     if (config_file_change || dynamic_sysvar_change) {
-      m_console->print_note(
+      console->print_note(
           "Please use the dba.configureInstance() command to repair these "
           "issues.");
     } else {
-      m_console->print_note("Please restart the MySQL server and try again.");
+      console->print_note("Please restart the MySQL server and try again.");
     }
     return false;
   }
 
   if (!m_silent)
-    m_console->print_note(
+    console->print_note(
         "Instance configuration is compatible with InnoDB cluster");
   return true;
 }
@@ -146,20 +147,21 @@ bool Check_instance::check_configuration() {
 void Check_instance::prepare() {
   std::string target = m_target_instance->descr();
 
+  auto console = mysqlsh::current_console();
+
   if (!m_silent) {
     bool local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
     if (!local_target) {
-      m_console->print_info("Validating MySQL instance at " +
-                            m_target_instance->descr() +
-                            " for use in an InnoDB cluster...");
+      console->print_info("Validating MySQL instance at " +
+                          m_target_instance->descr() +
+                          " for use in an InnoDB cluster...");
     } else {
-      m_console->print_info(
-          "Validating local MySQL instance listening at port " +
-          std::to_string(m_target_instance->get_session()
-                             ->get_connection_options()
-                             .get_port()) +
-          " for use in an InnoDB cluster...");
+      console->print_info("Validating local MySQL instance listening at port " +
+                          std::to_string(m_target_instance->get_session()
+                                             ->get_connection_options()
+                                             .get_port()) +
+                          " for use in an InnoDB cluster...");
     }
   }
 
@@ -167,7 +169,7 @@ void Check_instance::prepare() {
   bool bad_schema = false;
 
   try {
-    ensure_user_privileges(*m_target_instance, m_console);
+    ensure_user_privileges(*m_target_instance);
 
     if (!check_instance_address()) m_is_valid = false;
 
@@ -182,14 +184,14 @@ void Check_instance::prepare() {
   }
 
   if (m_is_valid && !m_silent) {
-    m_console->println();
-    m_console->print_note("The instance '" + target +
-                          "' is valid for InnoDB cluster usage.");
+    console->println();
+    console->print_note("The instance '" + target +
+                        "' is valid for InnoDB cluster usage.");
     if (bad_schema) {
-      m_console->print_warning(
+      console->print_warning(
           "Some non-fatal issues were detected in some of the existing "
           "tables.");
-      m_console->println(
+      console->println(
           "You may choose to ignore these issues, although replicated updates "
           "on these tables will not be possible.");
     }
@@ -203,7 +205,7 @@ void Check_instance::prepare() {
  * is a no-op.
  */
 shcore::Value Check_instance::execute() {
-  m_console->println();
+  mysqlsh::current_console()->println();
   return m_ret_val;
 }
 

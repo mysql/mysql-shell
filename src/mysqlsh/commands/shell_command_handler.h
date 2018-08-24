@@ -26,15 +26,13 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_core.h"
 
 namespace mysqlsh {
 class IShell_command {
  public:
-  IShell_command(const std::shared_ptr<shcore::IShell_core> &shell,
-                 const std::shared_ptr<mysqlsh::IConsole> &console)
-      : _shell(shell), _console(console) {}
+  IShell_command(const std::shared_ptr<shcore::IShell_core> &shell)
+      : _shell(shell) {}
   virtual bool execute(const std::vector<std::string> &) = 0;
 
   bool operator()(const std::vector<std::string> &args) {
@@ -43,7 +41,6 @@ class IShell_command {
 
  protected:
   std::shared_ptr<shcore::IShell_core> _shell;
-  std::shared_ptr<mysqlsh::IConsole> _console;
 };
 }  // namespace mysqlsh
 
