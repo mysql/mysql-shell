@@ -31,20 +31,25 @@
 namespace mysqlsh {
 
 enum class Prompt_answer { NONE = 0, YES = 1, NO = 2, ALT = 3 };
-
+enum class Output_stream { STDOUT = 0, STDERR = 1 };
 class IConsole {
  public:
   virtual ~IConsole() {}
 
-  virtual void print(const std::string &text) = 0;
-  virtual void println(const std::string &text = "") = 0;
-  virtual void print_error(const std::string &text) = 0;
-  virtual void print_warning(const std::string &text) = 0;
-  virtual void print_note(const std::string &text) = 0;
-  virtual void print_info(const std::string &text) = 0;
+  virtual void raw_print(const std::string &text,
+                         Output_stream stream) const = 0;
+  virtual void print(const std::string &text) const = 0;
+  virtual void println(const std::string &text = "") const = 0;
+  virtual void print_error(const std::string &text) const = 0;
+  virtual void print_warning(const std::string &text) const = 0;
+  virtual void print_note(const std::string &text) const = 0;
+  virtual void print_info(const std::string &text) const = 0;
+  virtual void print_value(const shcore::Value &value,
+                           const std::string &tag) const = 0;
 
   // Throws shcore::cancelled() on ^C
-  virtual bool prompt(const std::string &prompt, std::string *out_val) = 0;
+  virtual bool prompt(const std::string &prompt,
+                      std::string *out_val) const = 0;
 
   /**
    * Show confirmation prompt with the displayed options.
@@ -64,10 +69,10 @@ class IConsole {
                                 Prompt_answer def = Prompt_answer::NO,
                                 const std::string &yes_label = "&Yes",
                                 const std::string &no_label = "&No",
-                                const std::string &alt_label = "") = 0;
+                                const std::string &alt_label = "") const = 0;
 
   virtual shcore::Prompt_result prompt_password(const std::string &prompt,
-                                                std::string *out_val) = 0;
+                                                std::string *out_val) const = 0;
 };
 
 std::shared_ptr<IConsole> current_console();

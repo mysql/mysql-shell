@@ -30,6 +30,8 @@
 #include <string>
 
 #include "gtest_clean.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
@@ -105,7 +107,12 @@ namespace shcore {
 namespace tests {
 class Python : public ::testing::Test {
  public:
-  Python() { py = new Python_context(&output_handler.deleg, false); }
+  Python()
+      : m_options{std::make_shared<mysqlsh::Shell_options>(0, nullptr)},
+        m_console{
+            std::make_shared<mysqlsh::Shell_console>(&output_handler.deleg)} {
+    py = new Python_context(false);
+  }
 
   static void print(void *, const char *text) { std::cout << text << "\n"; }
 
@@ -113,6 +120,10 @@ class Python : public ::testing::Test {
 
   Shell_test_output_handler output_handler;
   Python_context *py;
+
+ private:
+  mysqlsh::Scoped_shell_options m_options;
+  mysqlsh::Scoped_console m_console;
 };
 
 TEST_F(Python, simple_to_py_and_back) {

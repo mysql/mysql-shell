@@ -31,7 +31,6 @@
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/dba/preconditions.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "scripting/lang_base.h"
 
@@ -47,8 +46,7 @@ class Configure_local_instance : public Configure_instance {
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
       mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
       mysqlshdk::utils::nullable<bool> restart,
-      std::shared_ptr<ProvisioningInterface> provisioning_interface,
-      std::shared_ptr<mysqlsh::IConsole> console_handler);
+      std::shared_ptr<ProvisioningInterface> provisioning_interface);
   ~Configure_local_instance();
 
   void prepare() override;

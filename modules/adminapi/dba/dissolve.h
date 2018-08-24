@@ -32,7 +32,6 @@
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
@@ -101,7 +100,6 @@ class Dissolve : public Command_interface {
   mysqlshdk::utils::nullable<bool> m_force;
   std::shared_ptr<Cluster> m_cluster;
   std::shared_ptr<ReplicaSet> m_replicaset;
-  std::shared_ptr<mysqlsh::IConsole> m_console;
   std::vector<std::unique_ptr<mysqlshdk::mysql::Instance>>
       m_available_instances;
   std::vector<std::string> m_skipped_instances;

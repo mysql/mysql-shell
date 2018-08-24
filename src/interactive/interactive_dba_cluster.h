@@ -36,10 +36,8 @@
 namespace shcore {
 class Interactive_dba_cluster : public Interactive_object_wrapper {
  public:
-  explicit Interactive_dba_cluster(
-      Shell_core &shell_core,
-      std::shared_ptr<mysqlsh::IConsole> console_handler)
-      : Interactive_object_wrapper("dba", shell_core, console_handler) {
+  explicit Interactive_dba_cluster(Shell_core &shell_core)
+      : Interactive_object_wrapper("dba", shell_core) {
     init();
   }
 

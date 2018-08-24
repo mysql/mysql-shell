@@ -41,7 +41,7 @@ using JSObject =
 
 class SHCORE_PUBLIC JScript_context {
  public:
-  JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
+  JScript_context(Object_registry *registry);
   ~JScript_context();
 
   Value execute(const std::string &code, const std::string &source = "",

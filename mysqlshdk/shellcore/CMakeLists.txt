@@ -42,7 +42,8 @@ set(SHELLCORE_SOURCES
   shell_resultset_dumper.cc
   shell_sql.cc
   provider_sql.cc
-  utils_help.cc)
+  utils_help.cc
+  shell_console.cc)
 
 if(HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")

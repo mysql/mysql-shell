@@ -60,20 +60,13 @@ REGISTER_HELP(COMMANDS_EXAMPLE_DESC,
               "Displays information about the <\b>\\connect</b> command.");
 namespace shcore {
 
-Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-    : IShell_core(), _client_delegate(shdelegate) {
+Shell_core::Shell_core(mysqlsh::IConsole *console)
+    : IShell_core(), m_console(console) {
+  assert(m_console);
+
   DEBUG_OBJ_ALLOC(Shell_core);
   _mode = Mode::None;
   _registry = new Object_registry();
-
-  // Setus the shell core delegate
-  _delegate.user_data = this;
-  _delegate.print = &Shell_core::deleg_print;
-  _delegate.print_error = &Shell_core::deleg_print_error;
-  _delegate.prompt = &Shell_core::deleg_prompt;
-  _delegate.password = &Shell_core::deleg_password;
-  _delegate.source = &Shell_core::deleg_source;
-  _delegate.print_value = &Shell_core::deleg_print_value;
 }
 
 Shell_core::~Shell_core() {
@@ -98,104 +91,6 @@ Shell_core::~Shell_core() {
   if (_langs[Mode::Python]) delete _langs[Mode::Python];
 
   if (_langs[Mode::SQL]) delete _langs[Mode::SQL];
-}
-
-void Shell_core::print(const std::string &s) {
-  _delegate.print(_delegate.user_data, s.c_str());
-}
-
-void Shell_core::println(const std::string &s, const std::string &tag) {
-  std::string output(s);
-  bool add_new_line = true;
-
-  // When using JSON output ALL must be JSON
-  if (!s.empty()) {
-    std::string format = mysqlsh::current_shell_options()->get().output_format;
-    if (format.find("json") != std::string::npos) {
-      output = format_json_output(output, tag.empty() ? "info" : tag);
-      add_new_line = false;
-    }
-  }
-
-  if (add_new_line) output += "\n";
-
-  _client_delegate->print(_client_delegate->user_data, output.c_str());
-}
-
-void Shell_core::print_value(const shcore::Value &value,
-                             const std::string &tag) {
-  _delegate.print_value(_delegate.user_data, value, tag.c_str());
-}
-
-std::string Shell_core::format_json_output(const std::string &info,
-                                           const std::string &tag) {
-  // Splits the incoming text in lines
-  auto lines = shcore::split_string(info, "\n");
-
-  std::string target;
-  target.reserve(info.length());
-
-  auto index = lines.begin(), end = lines.end();
-  if (index != end) target = *index++;
-
-  while (index != end) {
-    if (!(*index).empty()) target += " " + *index;
-
-    index++;
-  }
-
-  return format_json_output(shcore::Value(target), tag);
-}
-
-std::string Shell_core::format_json_output(const shcore::Value &info,
-                                           const std::string &tag) {
-  shcore::JSON_dumper dumper(
-      mysqlsh::current_shell_options()->get().output_format == "json");
-  dumper.start_object();
-  dumper.append_value(tag, info);
-  dumper.end_object();
-
-  return dumper.str() + "\n";
-}
-
-void Shell_core::print_error(const std::string &s) {
-  std::string output;
-  // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
-  if (format.find("json") != std::string::npos)
-    output = format_json_output(s, "error");
-  else
-    output = s;
-
-  _client_delegate->print_error(_client_delegate->user_data, output.c_str());
-}
-
-bool Shell_core::password(const std::string &s, std::string &ret_pass) {
-  std::string prompt(s);
-
-  // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
-  if (format.find("json") != std::string::npos)
-    prompt = format_json_output(prompt, "password");
-
-  shcore::Prompt_result result;
-  result = _client_delegate->password(_client_delegate->user_data,
-                                      prompt.c_str(), &ret_pass);
-  return (result == shcore::Prompt_result::Ok);
-}
-
-bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
-  std::string prompt(s);
-
-  // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
-  if (format.find("json") != std::string::npos)
-    prompt = format_json_output(prompt, "prompt");
-
-  shcore::Prompt_result result;
-  result = _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(),
-                                    &ret_val);
-  return (result == shcore::Prompt_result::Ok);
 }
 
 std::string Shell_core::preprocess_input_line(const std::string &s) {
@@ -411,118 +306,6 @@ void Shell_core::execute_module(const std::string &file_name,
   _input_args = argv;
 
   _langs[_mode]->execute_module(file_name);
-}
-
-void Shell_core::deleg_print(void *self, const char *text) {
-  Shell_core *shcore = static_cast<Shell_core *>(self);
-
-  std::string output(text);
-
-  // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
-  if (format.find("json") != std::string::npos)
-    output = shcore->format_json_output(output, "info");
-
-  auto deleg = shcore->_client_delegate;
-  deleg->print(deleg->user_data, output.c_str());
-}
-
-void Shell_core::deleg_print_error(void *self, const char *text) {
-  Shell_core *shcore = static_cast<Shell_core *>(self);
-  auto deleg = shcore->_client_delegate;
-
-  std::string output;
-
-  if (text) output.assign(text);
-
-  // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
-  if (format.find("json") != std::string::npos)
-    output = shcore->format_json_output(output, "error");
-
-  deleg->print_error(deleg->user_data, output.c_str());
-}
-
-shcore::Prompt_result Shell_core::deleg_prompt(void *self, const char *text,
-                                               std::string *ret) {
-  Shell_core *shcore = static_cast<Shell_core *>(self);
-  auto deleg = shcore->_client_delegate;
-  return deleg->prompt(deleg->user_data, text, ret);
-}
-
-shcore::Prompt_result Shell_core::deleg_password(void *self, const char *text,
-                                                 std::string *ret) {
-  Shell_core *shcore = static_cast<Shell_core *>(self);
-  auto deleg = shcore->_client_delegate;
-  return deleg->password(deleg->user_data, text, ret);
-}
-
-void Shell_core::deleg_source(void *self, const char *module) {
-  Shell_core *shcore = static_cast<Shell_core *>(self);
-  auto deleg = shcore->_client_delegate;
-  deleg->source(deleg->user_data, module);
-}
-
-void Shell_core::deleg_print_value(void *self, const shcore::Value &value,
-                                   const char *tag) {
-  Shell_core *shcore = static_cast<Shell_core *>(self);
-  auto deleg = shcore->_client_delegate;
-  std::string mtag;
-
-  if (tag) mtag.assign(tag);
-
-  // If the client delegate has it's own logic to print errors then let it go
-  // not expected to be the case.
-  if (deleg->print_value) {
-    deleg->print_value(deleg->user_data, value, tag);
-  } else {
-    std::string output;
-    bool add_new_line = true;
-    // When using JSON output ALL must be JSON
-    std::string format = mysqlsh::current_shell_options()->get().output_format;
-    if (format.find("json") != std::string::npos) {
-      // If no tag is provided, prints the JSON representation of the Value
-      if (mtag.empty()) {
-        output = value.json(format == "json");
-      } else {
-        if (value.type == shcore::String)
-          output = shcore->format_json_output(value.as_string(), mtag);
-        else
-          output = shcore->format_json_output(value, mtag);
-
-        add_new_line = false;
-      }
-    } else {
-      if (mtag == "error" && value.type == shcore::Map) {
-        output = "ERROR: ";
-        Value::Map_type_ref error_map = value.as_map();
-
-        if (error_map->has_key("code")) {
-          // message.append(" ");
-          output.append(((*error_map)["code"].repr()));
-
-          if (error_map->has_key("state") && (*error_map)["state"])
-            output.append(" (" + (*error_map)["state"].as_string() + ")");
-
-          output.append(": ");
-        }
-
-        if (error_map->has_key("message"))
-          output.append((*error_map)["message"].as_string());
-        else
-          output.append("?");
-      } else {
-        output = value.descr(true);
-      }
-    }
-
-    if (add_new_line) output += "\n";
-
-    if (mtag == "error")
-      deleg->print_error(deleg->user_data, output.c_str());
-    else
-      deleg->print(deleg->user_data, output.c_str());
-  }
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//

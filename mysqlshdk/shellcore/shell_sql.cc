@@ -26,6 +26,7 @@
 #include <fstream>
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
@@ -72,11 +73,12 @@ void Shell_sql::kill_query(uint64_t conn_id,
       kill_session = mysqlshdk::db::mysql::Session::create();
     kill_session->connect(conn_opts);
     kill_session->executef("kill query ?", conn_id);
-    _owner->print("-- query aborted\n");
+    mysqlsh::current_console()->print("-- query aborted\n");
 
     kill_session->close();
   } catch (std::exception &e) {
-    _owner->print(std::string("-- error aborting query: ") + e.what() + "\n");
+    mysqlsh::current_console()->print(std::string("-- error aborting query: ") +
+                                      e.what() + "\n");
   }
 }
 
@@ -237,8 +239,7 @@ void Shell_sql::print_exception(const shcore::Exception &e) {
   // Sends a description of the exception data to the error handler wich will
   // define the final format.
   shcore::Value exception(e.error());
-  _owner->get_delegate()->print_value(_owner->get_delegate()->user_data,
-                                      exception, "error");
+  mysqlsh::current_console()->print_value(exception, "error");
 }
 
 }  // namespace shcore

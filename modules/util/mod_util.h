@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,6 @@
 
 #include <memory>
 #include <string>
-#include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/types_cpp.h"
 
 namespace shcore {
@@ -43,8 +42,7 @@ namespace mysqlsh {
 class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
                            public std::enable_shared_from_this<Util> {
  public:
-  explicit Util(shcore::IShell_core *owner,
-                std::shared_ptr<mysqlsh::IConsole> console_handler);
+  explicit Util(shcore::IShell_core *owner);
 
   std::string class_name() const override { return "Util"; };
 
@@ -58,7 +56,6 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 
  private:
   shcore::IShell_core &_shell_core;
-  std::shared_ptr<mysqlsh::IConsole> m_console_handler;
 };
 
 } /* namespace mysqlsh */

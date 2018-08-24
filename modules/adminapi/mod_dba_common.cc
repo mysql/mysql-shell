@@ -33,6 +33,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -1068,13 +1069,14 @@ bool validate_replicaset_group_name(
  * @return a boolean value indicating the status of super_read_only
  */
 bool validate_super_read_only(std::shared_ptr<mysqlshdk::db::ISession> session,
-                              bool clear_read_only,
-                              std::shared_ptr<mysqlsh::IConsole> console) {
+                              bool clear_read_only) {
   int super_read_only = 0;
 
   get_server_variable(session, "super_read_only", super_read_only, false);
 
   if (super_read_only) {
+    auto console = mysqlsh::current_console();
+
     if (clear_read_only) {
       auto session_address =
           session->uri(mysqlshdk::db::uri::formats::only_transport());
@@ -1240,13 +1242,10 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
  * Resolves the .cnf file path
  *
  * @param instance Instance object which represents the target instance
- * @param console_handler IConsole implementation object
  *
  * @return the target instance resolved .cnf file path
  */
-std::string prompt_cnf_path(
-    const mysqlshdk::mysql::IInstance &instance,
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   // Path is not given, let's try to autodetect it
   std::string cnfPath;
   // Try to locate the .cnf file path
@@ -1254,8 +1253,10 @@ std::string prompt_cnf_path(
   // by our official MySQL packages
 
   // Detect the OS
-  console_handler->println();
-  console_handler->println("Detecting the configuration file...");
+  auto console = mysqlsh::current_console();
+
+  console->println();
+  console->println("Detecting the configuration file...");
 
   shcore::OperatingSystem os = shcore::get_os_type();
   log_info("OS detected as %s", shcore::to_string(os).c_str());
@@ -1293,10 +1294,10 @@ std::string prompt_cnf_path(
   for (const auto &value : default_paths) {
     if (shcore::file_exists(value)) {
       // Prompt the user to validate if shall use it or not
-      console_handler->println(
-          "Found configuration file at standard location: " + value);
+      console->println("Found configuration file at standard location: " +
+                       value);
 
-      if (console_handler->confirm("Do you want to modify this file?") ==
+      if (console->confirm("Do you want to modify this file?") ==
           Prompt_answer::YES) {
         cnfPath = value;
         break;
@@ -1305,16 +1306,14 @@ std::string prompt_cnf_path(
   }
 
   if (cnfPath.empty()) {
-    console_handler->println(
-        "Default file not found at the standard locations.");
+    console->println("Default file not found at the standard locations.");
 
     bool done = false;
     std::string tmpPath;
 
-    while (!done &&
-           console_handler->prompt("Please specify the path to the MySQL "
-                                   "configuration file: ",
-                                   &tmpPath)) {
+    while (!done && console->prompt("Please specify the path to the MySQL "
+                                    "configuration file: ",
+                                    &tmpPath)) {
       if (tmpPath.empty()) {
         done = true;
       } else {
@@ -1322,9 +1321,9 @@ std::string prompt_cnf_path(
           cnfPath = tmpPath;
           done = true;
         } else {
-          console_handler->println(
+          console->println(
               "The given path to the MySQL configuration file is invalid.");
-          console_handler->println();
+          console->println();
         }
       }
     }
@@ -1336,23 +1335,21 @@ std::string prompt_cnf_path(
 /*
  * Prompts new account password and prompts for confirmation of the password
  *
- * @param console_handler IConsole implementation object
- *
  * @return a string with the password introduced by the user
  */
-std::string prompt_new_account_password(
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+std::string prompt_new_account_password() {
   std::string password1;
   std::string password2;
 
+  auto console = mysqlsh::current_console();
+
   for (;;) {
     if (shcore::Prompt_result::Ok ==
-        console_handler->prompt_password("Password for new account: ",
-                                         &password1)) {
+        console->prompt_password("Password for new account: ", &password1)) {
       if (shcore::Prompt_result::Ok ==
-          console_handler->prompt_password("Confirm password: ", &password2)) {
+          console->prompt_password("Confirm password: ", &password2)) {
         if (password1 != password2) {
-          console_handler->println("Passwords don't match, please try again.");
+          console->println("Passwords don't match, please try again.");
           continue;
         }
       }
@@ -1367,28 +1364,26 @@ std::string prompt_new_account_password(
  *
  * @param options a vector of strings containing the optional selections
  * @param defopt the default option
- * @param console_handler IConsole implementation object
  *
  * @return an integer representing the chosen option
  */
-int prompt_menu(const std::vector<std::string> &options, int defopt,
-                std::shared_ptr<mysqlsh::IConsole> console_handler) {
+int prompt_menu(const std::vector<std::string> &options, int defopt) {
   int i = 0;
+  auto console = mysqlsh::current_console();
   for (const auto &opt : options) {
-    console_handler->println(std::to_string(++i) + ") " + opt);
+    console->println(std::to_string(++i) + ") " + opt);
   }
   for (;;) {
     std::string result;
     if (defopt > 0) {
-      console_handler->println();
-      if (!console_handler->prompt(
+      console->println();
+      if (!console->prompt(
               "Please select an option [" + std::to_string(defopt) + "]: ",
               &result))
         return 0;
     } else {
-      console_handler->println();
-      if (!console_handler->prompt("Please select an option: ", &result))
-        return 0;
+      console->println();
+      if (!console->prompt("Please select an option: ", &result)) return 0;
     }
     // Note that menu options start at 1, not 0 since that's what users will
     // input
@@ -1406,15 +1401,13 @@ int prompt_menu(const std::vector<std::string> &options, int defopt,
  * @param instance Instance object which represents the target instance
  * @param user the username
  * @param host the hostname
- * @param console_handler IConsole implementation object
  *
  * @return a boolean value indicating whether the account has enough privileges
  * or not
  */
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::string &host,
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+    const std::string &host) {
   int n_wildcard_accounts, n_non_wildcard_accounts;
   std::vector<std::string> hosts;
 
@@ -1429,11 +1422,13 @@ bool check_admin_account_access_restrictions(
              n_wildcard_accounts + n_non_wildcard_accounts, user.c_str());
     return true;
   } else {
+    auto console = mysqlsh::current_console();
+
     if (hosts.size() == 1 && hosts[0] == "localhost") {
-      console_handler->println();
-      console_handler->print_warning("User '" + user +
-                                     "' can only connect from localhost.");
-      console_handler->println(
+      console->println();
+      console->print_warning("User '" + user +
+                             "' can only connect from localhost.");
+      console->println(
           "If you need to manage this instance while connected from other "
           "hosts, new account(s) with the proper source address specification "
           "must be created.");
@@ -1458,7 +1453,7 @@ bool check_admin_account_access_restrictions(
             // account accepted
             return true;
           } else {
-            console_handler->println(error_msg);
+            console->println(error_msg);
             return false;
           }
         }
@@ -1470,13 +1465,13 @@ bool check_admin_account_access_restrictions(
 }
 
 namespace {
-bool prompt_full_account(std::shared_ptr<mysqlsh::IConsole> console_handler,
-                         std::string *out_account) {
+bool prompt_full_account(std::string *out_account) {
   bool cancelled = false;
+  auto console = mysqlsh::current_console();
   for (;;) {
     std::string create_user;
 
-    if (console_handler->prompt("Account Name: ", &create_user) &&
+    if (console->prompt("Account Name: ", &create_user) &&
         !create_user.empty()) {
       try {
         // normalize the account name
@@ -1498,7 +1493,7 @@ bool prompt_full_account(std::shared_ptr<mysqlsh::IConsole> console_handler,
         if (out_account) *out_account = create_user;
         break;
       } catch (std::runtime_error &) {
-        console_handler->println(
+        console->println(
             "`" + create_user +
             "` is not a valid account name. Must be user[@host] or "
             "'user'[@'host']");
@@ -1511,9 +1506,8 @@ bool prompt_full_account(std::shared_ptr<mysqlsh::IConsole> console_handler,
   return cancelled;
 }
 
-bool prompt_account_host(std::shared_ptr<mysqlsh::IConsole> console_handler,
-                         std::string *out_host) {
-  return !console_handler->prompt("Account Host: ", out_host) ||
+bool prompt_account_host(std::string *out_host) {
+  return !mysqlsh::current_console()->prompt("Account Host: ", out_host) ||
          out_host->empty();
 }
 
@@ -1525,15 +1519,13 @@ bool prompt_account_host(std::shared_ptr<mysqlsh::IConsole> console_handler,
  * @param user the username
  * @param host the hostname
  * @param out_create_account the resolved account to be created
- * @param console_handler IConsole implementation object
  *
  * @return a boolean value indicating whether the account has enough privileges
  * (or was resolved), or not.
  */
-bool prompt_create_usable_admin_account(
-    const std::string &user, const std::string &host,
-    std::string *out_create_account,
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+bool prompt_create_usable_admin_account(const std::string &user,
+                                        const std::string &host,
+                                        std::string *out_create_account) {
   assert(out_create_account);
   int result;
   result = prompt_menu({"Create remotely usable account for '" + user +
@@ -1541,36 +1533,38 @@ bool prompt_create_usable_admin_account(
                         "Create a new admin account for InnoDB "
                         "cluster with minimal required grants",
                         "Ignore and continue", "Cancel"},
-                       1, console_handler);
+                       1);
   bool cancelled;
+  auto console = mysqlsh::current_console();
+
   switch (result) {
     case 1:
-      console_handler->println(
+      console->println(
           "Please provide a source address filter for the account (e.g: "
           "192.168.% or % etc) or leave empty and press Enter to cancel.");
-      cancelled = prompt_account_host(console_handler, out_create_account);
+      cancelled = prompt_account_host(out_create_account);
       if (!cancelled) {
         *out_create_account = shcore::make_account(user, *out_create_account);
       }
       break;
     case 2:
-      console_handler->println(
+      console->println(
           "Please provide an account name (e.g: icroot@%) "
           "to have it created with the necessary\n"
           "privileges or leave empty and press Enter to cancel.");
-      cancelled = prompt_full_account(console_handler, out_create_account);
+      cancelled = prompt_full_account(out_create_account);
       break;
     case 3:
       *out_create_account = "";
       return true;
     case 4:
     default:
-      console_handler->println("Canceling...");
+      console->println("Canceling...");
       return false;
   }
 
   if (cancelled) {
-    console_handler->println("Canceling...");
+    console->println("Canceling...");
     return false;
   }
   return true;
@@ -1581,7 +1575,6 @@ bool prompt_create_usable_admin_account(
  * disable it or not.
  *
  * @param instance Instance object which represents the target instance
- * @param console_handler IConsole implementation object
  * @param throw_on_error boolean value to indicate if an exception shall be
  * thrown or nor in case of an error
  *
@@ -1589,7 +1582,6 @@ bool prompt_create_usable_admin_account(
  * not
  */
 bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                            std::shared_ptr<mysqlsh::IConsole> console_handler,
                             bool throw_on_error) {
   auto session = instance.get_session();
   auto options_session = session->get_connection_options();
@@ -1603,7 +1595,8 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 
   // If super_read_only is not null and enabled
   if (*super_read_only) {
-    console_handler->println(
+    auto console = mysqlsh::current_console();
+    console->println(
         "The MySQL instance at '" + active_session_address +
         "' "
         "currently has the super_read_only \nsystem variable set to "
@@ -1612,14 +1605,14 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
         "to this instance. \n"
         "For more information see: https://dev.mysql.com/doc/refman/"
         "en/server-system-variables.html#sysvar_super_read_only.");
-    console_handler->println();
+    console->println();
 
     // Get the list of open session to the instance
     std::vector<std::pair<std::string, int>> open_sessions;
     open_sessions = mysqlsh::dba::get_open_sessions(session);
 
     if (!open_sessions.empty()) {
-      console_handler->println(
+      console->println(
           "Note: there are open sessions to '" + active_session_address +
           "'.\n"
           "You may want to kill these sessions to prevent them from "
@@ -1629,22 +1622,21 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
         std::string account = value.first;
         int open_sessions = value.second;
 
-        console_handler->println("" + std::to_string(open_sessions) +
-                                 " open session(s) of "
-                                 "'" +
-                                 account + "'. \n");
+        console->println("" + std::to_string(open_sessions) +
+                         " open session(s) of "
+                         "'" +
+                         account + "'. \n");
       }
     }
 
-    if (console_handler->confirm(
-            "Do you want to disable super_read_only and continue?",
-            Prompt_answer::NO) == Prompt_answer::NO) {
-      console_handler->println();
+    if (console->confirm("Do you want to disable super_read_only and continue?",
+                         Prompt_answer::NO) == Prompt_answer::NO) {
+      console->println();
 
       if (throw_on_error)
         throw shcore::cancelled("Cancelled");
       else
-        console_handler->println("Cancelled");
+        console->println("Cancelled");
 
       return false;
     } else {
@@ -1660,12 +1652,10 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
  * @param column_names the names of the table columns
  * @param column_labels the labels for the columns
  * @param documents a Value::Array with the table contents
- * @param console_handler IConsole implementation object
  */
 void dump_table(const std::vector<std::string> &column_names,
                 const std::vector<std::string> &column_labels,
-                shcore::Value::Array_type_ref documents,
-                std::shared_ptr<mysqlsh::IConsole> console_handler) {
+                shcore::Value::Array_type_ref documents) {
   std::vector<uint64_t> max_lengths;
 
   size_t field_count = column_names.size();
@@ -1711,41 +1701,42 @@ void dump_table(const std::vector<std::string> &column_names,
   separator.append("\n");
 
   // Prints the initial separator line and the column headers
-  console_handler->print(separator);
-  console_handler->print("| ");
+  auto console = mysqlsh::current_console();
+  console->print(separator);
+  console->print("| ");
 
   for (index = 0; index < field_count; index++) {
     std::string data = shcore::str_format(formats[index].c_str(),
                                           column_labels[index].c_str());
-    console_handler->print(data.c_str());
+    console->print(data.c_str());
 
     // Once the header is printed, updates the numeric fields formats
     // so they are right aligned
     // if (numerics[index])
     //  formats[index] = formats[index].replace(1, 1, "");
   }
-  console_handler->println();
-  console_handler->print(separator);
+  console->println();
+  console->print(separator);
 
   if (documents) {
     // Now prints the records
     for (auto map : *documents) {
       auto document = map.as_map();
 
-      console_handler->print("| ");
+      console->print("| ");
 
       for (size_t field_index = 0; field_index < field_count; field_index++) {
         std::string raw_value = document->get_string(column_names[field_index]);
         std::string data =
             shcore::str_format(formats[field_index].c_str(), raw_value.c_str());
 
-        console_handler->print(data.c_str());
+        console->print(data.c_str());
       }
-      console_handler->println();
+      console->println();
     }
   }
 
-  console_handler->println(separator);
+  console->println(separator);
 }
 
 /*
@@ -1782,19 +1773,19 @@ ConfigureInstanceAction get_configure_instance_action(
  * confirmation
  *
  * @param result the return value of the MP operation
- * @param console_handler IConsole implementation object
  * @param print_note a boolean value indicating if the column 'note' should be
  * presented or not
  */
-void print_validation_results(
-    const shcore::Value::Map_type_ref &result,
-    std::shared_ptr<mysqlsh::IConsole> console_handler, bool print_note) {
+void print_validation_results(const shcore::Value::Map_type_ref &result,
+                              bool print_note) {
   auto errors = result->get_array("errors");
 
-  for (auto error : *errors) console_handler->print_error(error.as_string());
+  auto console = mysqlsh::current_console();
+
+  for (auto error : *errors) console->print_error(error.as_string());
 
   if (result->has_key("config_errors")) {
-    console_handler->print_note("Some configuration options need to be fixed:");
+    console->print_note("Some configuration options need to be fixed:");
 
     auto config_errors = result->get_array("config_errors");
 
@@ -1835,11 +1826,11 @@ void print_validation_results(
 
       dump_table({"option", "current", "required", "note"},
                  {"Variable", "Current Value", "Required Value", "Note"},
-                 config_errors, console_handler);
+                 config_errors);
     } else {
       dump_table({"option", "current", "required"},
-                 {"Variable", "Current Value", "Required Value"}, config_errors,
-                 console_handler);
+                 {"Variable", "Current Value", "Required Value"},
+                 config_errors);
     }
 
     for (auto option : *config_errors) {

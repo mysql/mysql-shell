@@ -32,9 +32,8 @@
 namespace mysqlsh {
 class Command_help : public IShell_command {
  public:
-  Command_help(const std::shared_ptr<shcore::IShell_core> &shell,
-               const std::shared_ptr<mysqlsh::IConsole> &console)
-      : IShell_command(shell, console) {}
+  Command_help(const std::shared_ptr<shcore::IShell_core> &shell)
+      : IShell_command(shell) {}
 
   bool execute(const std::vector<std::string> &args);
 

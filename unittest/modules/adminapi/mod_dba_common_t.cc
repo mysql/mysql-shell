@@ -39,47 +39,14 @@ using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
 namespace tests {
 
-class Test_console : public mysqlsh::IConsole {
- public:
-  virtual void print(const std::string &text) {}
-
-  virtual void println(const std::string &text = "") {}
-
-  virtual void print_error(const std::string &text) {}
-  virtual void print_warning(const std::string &text) {}
-  virtual void print_note(const std::string &text) {}
-  virtual void print_info(const std::string &text) {}
-
-  virtual bool prompt(const std::string &prompt, std::string *out_val) {
-    return false;
-  }
-
-  virtual mysqlsh::Prompt_answer confirm(
-      const std::string &prompt,
-      mysqlsh::Prompt_answer def = mysqlsh::Prompt_answer::NO,
-      const std::string &yes_label = "&Yes",
-      const std::string &no_label = "&No", const std::string &alt_label = "") {
-    return def;
-  }
-
-  virtual shcore::Prompt_result prompt_password(const std::string &prompt,
-                                                std::string *out_val) {
-    return shcore::Prompt_result::Ok;
-  }
-};
-
 class Dba_common_test : public Admin_api_test {
  public:
   virtual void SetUp() {
     Admin_api_test::SetUp();
     reset_replayable_shell();
-
-    m_console.reset(new Test_console());
   }
 
  protected:
-  std::shared_ptr<Test_console> m_console;
-
   static std::shared_ptr<mysqlshdk::db::ISession> create_session(
       int port, std::string user = "root") {
     auto session = mysqlshdk::db::mysql::Session::create();
@@ -810,8 +777,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
   session->query("set global super_read_only = 1");
 
   try {
-    auto read_only =
-        mysqlsh::dba::validate_super_read_only(session, true, m_console);
+    auto read_only = mysqlsh::dba::validate_super_read_only(session, true);
     EXPECT_TRUE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -838,7 +804,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
   session->query("set global super_read_only = 1");
 
   try {
-    mysqlsh::dba::validate_super_read_only(session, false, m_console);
+    mysqlsh::dba::validate_super_read_only(session, false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -860,7 +826,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   // super_read_only is ON, no active sessions
   session->query("set global super_read_only = 1");
   try {
-    mysqlsh::dba::validate_super_read_only(session, false, m_console);
+    mysqlsh::dba::validate_super_read_only(session, false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -882,8 +848,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
   session->query("set global super_read_only = 0");
 
   try {
-    auto read_only =
-        mysqlsh::dba::validate_super_read_only(session, true, m_console);
+    auto read_only = mysqlsh::dba::validate_super_read_only(session, true);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -906,8 +871,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
   session->query("set global super_read_only = 0");
 
   try {
-    auto read_only =
-        mysqlsh::dba::validate_super_read_only(session, false, m_console);
+    auto read_only = mysqlsh::dba::validate_super_read_only(session, false);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());

@@ -28,14 +28,13 @@
 #include <vector>
 #include "scripting/types.h"
 #include "shellcore/base_shell.h"
-#include "shellcore/scoped_contexts.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/mod_dba.h"
 #include "modules/mod_sys.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "src/mysqlsh/shell_console.h"
+
 namespace mysqlsh {
 class Shell;  // from modules
 class Util;
@@ -76,10 +75,6 @@ class Mysql_shell : public mysqlsh::Base_shell {
     return &_shell_command_handler;
   }
 
-  std::shared_ptr<mysqlsh::IConsole> console() {
-    return m_console_handler.get();
-  }
-
  protected:
   shcore::Shell_command_handler _shell_command_handler;
   static void set_sql_safe_for_logging(const std::string &patterns);
@@ -104,7 +99,6 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::Sys> _global_js_sys;
   std::shared_ptr<mysqlsh::dba::Dba> _global_dba;
   std::shared_ptr<mysqlsh::Util> _global_util;
-  Scoped_console m_console_handler;
 
   /// Last schema set by the user via \use command.
   std::string _last_active_schema;

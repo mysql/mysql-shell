@@ -35,7 +35,6 @@
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/mod_common.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "scripting/types_cpp.h"
@@ -82,8 +81,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   None stop_sandbox_instance(int port, dict options);
 #endif
 
-  Dba(shcore::IShell_core *owner,
-      std::shared_ptr<mysqlsh::IConsole> console_handler);
+  Dba(shcore::IShell_core *owner);
   virtual ~Dba();
 
   static std::set<std::string> _deploy_instance_opts;
@@ -120,10 +118,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   std::shared_ptr<Cluster> get_cluster(
       const char *name, std::shared_ptr<MetadataStorage> metadata,
       std::shared_ptr<mysqlshdk::db::ISession> group_session) const;
-
-  std::shared_ptr<mysqlsh::IConsole> get_console_handler() const {
-    return m_console;
-  }
 
   shcore::Value do_configure_instance(const shcore::Argument_list &args,
                                       bool local);
@@ -183,7 +177,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
  private:
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;
-  std::shared_ptr<mysqlsh::IConsole> m_console;
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args);

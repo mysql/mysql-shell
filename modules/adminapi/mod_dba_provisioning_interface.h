@@ -41,8 +41,7 @@ namespace dba {
 #endif
 class ProvisioningInterface {
  public:
-  explicit ProvisioningInterface(shcore::Interpreter_delegate *deleg,
-                                 const std::string &provision_path);
+  explicit ProvisioningInterface(const std::string &provision_path);
   ~ProvisioningInterface();
 
   int check(const mysqlshdk::db::Connection_options &connection_options,
@@ -98,7 +97,6 @@ class ProvisioningInterface {
 
  private:
   int _verbose;
-  shcore::Interpreter_delegate *_delegate;
   const std::string _local_mysqlprovision_path;
 
   int execute_mysqlprovision(const std::string &cmd,

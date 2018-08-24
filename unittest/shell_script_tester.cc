@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/ishell_core.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "utils/process_launcher.h"
@@ -216,7 +217,7 @@ class Test_debugger {
   bool m_exit_on_test_error = false;
   Shell_core_test_wrapper *m_test = nullptr;
 
-  std::unique_ptr<mysqlsh::Shell_console> m_console;
+  std::shared_ptr<mysqlsh::Shell_console> m_console;
   shcore::Interpreter_delegate m_deleg;
   std::weak_ptr<mysqlsh::Command_line_shell> m_shell;
 

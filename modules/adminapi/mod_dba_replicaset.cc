@@ -42,6 +42,7 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "shellcore/base_session.h"
@@ -82,13 +83,11 @@ enum class Gr_seeds_change_type {
 ReplicaSet::ReplicaSet(const std::string &name,
                        const std::string &topology_type,
                        const std::string &group_name,
-                       std::shared_ptr<MetadataStorage> metadata_storage,
-                       std::shared_ptr<IConsole> console_handler)
+                       std::shared_ptr<MetadataStorage> metadata_storage)
     : _name(name),
       _topology_type(topology_type),
       _group_name(group_name),
-      _metadata_storage(metadata_storage),
-      m_console(console_handler) {
+      _metadata_storage(metadata_storage) {
   assert(topology_type == kTopologyMultiPrimary ||
          topology_type == kTopologySinglePrimary);
   init();
@@ -244,8 +243,7 @@ void ReplicaSet::adopt_from_gr() {
 static void update_group_replication_group_seeds(
     const std::string &gr_address, const Gr_seeds_change_type change_type,
     std::shared_ptr<mysqlshdk::db::ISession> session,
-    const NamingStyle naming_style,
-    std::shared_ptr<mysqlsh::IConsole> console_handler) {
+    const NamingStyle naming_style) {
   std::string gr_group_seeds_new_value;
   std::string address =
       session->get_connection_options().as_uri(only_transport());
@@ -285,6 +283,8 @@ static void update_group_replication_group_seeds(
       break;
   }
 
+  auto console = mysqlsh::current_console();
+
   // Update group_replication_group_seeds variable
   // If server version >= 8.0.11 use set persist, otherwise use set global
   // and warn users that they should use configureLocalInstance to persist
@@ -301,7 +301,7 @@ static void update_group_replication_group_seeds(
           get_member_name("configureLocalInstance", naming_style) +
           " command locally to persist the changes or set "
           "'persisted-globals-load' to 'ON' on the configuration file.";
-      console_handler->print_warning(warn_msg);
+      console->print_warning(warn_msg);
     }
     instance.set_sysvar("group_replication_group_seeds",
                         gr_group_seeds_new_value,
@@ -318,7 +318,7 @@ static void update_group_replication_group_seeds(
         "(MySQL version >= 8.0.11 required). Please use the <Dba>." +
         get_member_name("configureLocalInstance", naming_style) +
         " command locally to persist the changes.";
-    console_handler->print_warning(warn_msg);
+    console->print_warning(warn_msg);
   }
 }
 
@@ -420,6 +420,8 @@ shcore::Value ReplicaSet::add_instance(
   // Check if we need to overwrite the seed instance
   if (overwrite_seed) seed_instance = true;
 
+  auto console = mysqlsh::current_console();
+
   // Retrieves the add options
   if (args.size() == 1) {
     auto add_options = args.map_at(0);
@@ -438,8 +440,8 @@ shcore::Value ReplicaSet::add_instance(
     if (add_options->has_key("memberSslMode")) {
       ssl_mode = add_options->get_string("memberSslMode");
       if (!seed_instance) {
-        m_console->print_warning(kWarningDeprecateSslMode);
-        m_console->println();
+        console->print_warning(kWarningDeprecateSslMode);
+        console->println();
       }
     }
 
@@ -488,8 +490,8 @@ shcore::Value ReplicaSet::add_instance(
     if (!cluster)
       throw shcore::Exception::runtime_error(
           "Cluster object is no longer valid");
-    ensure_instance_configuration_valid(
-        &target_instance, cluster->get_provisioning_interface(), m_console);
+    ensure_instance_configuration_valid(&target_instance,
+                                        cluster->get_provisioning_interface());
   }
 
   // Validate ip whitelist option if used
@@ -681,9 +683,8 @@ shcore::Value ReplicaSet::add_instance(
     // If the groupSeeds option was used (not empty), we use
     // that value, otherwise we use the value of all the
     // group_replication_local_address of all the active instances
-    update_group_replication_group_seeds(group_seeds,
-                                         Gr_seeds_change_type::OVERRIDE,
-                                         session, naming_style, m_console);
+    update_group_replication_group_seeds(
+        group_seeds, Gr_seeds_change_type::OVERRIDE, session, naming_style);
     // Update the group_replication_group_seeds of the members that
     // already belonged to the cluster and are either ONLINE or recovering
     // by adding the gr_local_address of the instance that was just added.
@@ -694,9 +695,9 @@ shcore::Value ReplicaSet::add_instance(
         {"'ONLINE'", "'RECOVERING'"}, instance_cnx_opt, ignore_instances_vec,
         [added_instance_gr_address, change_type,
          this](std::shared_ptr<mysqlshdk::db::ISession> session) {
-          update_group_replication_group_seeds(
-              added_instance_gr_address, change_type, session,
-              this->naming_style, this->m_console);
+          update_group_replication_group_seeds(added_instance_gr_address,
+                                               change_type, session,
+                                               this->naming_style);
         });
     log_debug("Instance add finished");
   }
@@ -912,6 +913,8 @@ shcore::Value ReplicaSet::rejoin_instance(
   shcore::Value::Array_type_ref errors;
   std::shared_ptr<mysqlshdk::db::ISession> session, seed_session;
 
+  auto console = mysqlsh::current_console();
+
   // Retrieves the options
   if (rejoin_options) {
     shcore::Argument_map rejoin_instance_map(*rejoin_options);
@@ -922,8 +925,8 @@ shcore::Value ReplicaSet::rejoin_instance(
 
     if (rejoin_options->has_key("memberSslMode")) {
       ssl_mode = rejoin_options->get_string("memberSslMode");
-      m_console->print_warning(kWarningDeprecateSslMode);
-      m_console->println();
+      console->print_warning(kWarningDeprecateSslMode);
+      console->println();
     }
 
     if (rejoin_options->has_key("ipWhitelist"))
@@ -1256,14 +1259,13 @@ void ReplicaSet::update_group_members_for_removed_member(
   Connection_options instances_cnx_opts = instance.get_connection_options();
 
   log_debug("Updating group_replication_group_seeds of cluster members");
-  execute_in_members({"'ONLINE'", "'RECOVERING'"}, instances_cnx_opts,
-                     ignore_instances_vec,
-                     [local_gr_address, change_type,
-                      this](std::shared_ptr<mysqlshdk::db::ISession> session) {
-                       update_group_replication_group_seeds(
-                           local_gr_address, change_type, session,
-                           this->naming_style, this->m_console);
-                     });
+  execute_in_members(
+      {"'ONLINE'", "'RECOVERING'"}, instances_cnx_opts, ignore_instances_vec,
+      [local_gr_address, change_type,
+       this](std::shared_ptr<mysqlshdk::db::ISession> session) {
+        update_group_replication_group_seeds(local_gr_address, change_type,
+                                             session, this->naming_style);
+      });
 
   // Remove the replication users on the instance and members if
   // remove_rpl_user_on_group = true.
@@ -1902,7 +1904,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   // Check if there is quorum to issue an error.
   mysqlshdk::mysql::Instance target_instance(session);
   if (mysqlshdk::gr::has_quorum(target_instance, nullptr, nullptr)) {
-    m_console->print_error(
+    mysqlsh::current_console()->print_error(
         "Cannot perform operation on an healthy cluster because it can only "
         "be used to restore a cluster from quorum loss.");
 

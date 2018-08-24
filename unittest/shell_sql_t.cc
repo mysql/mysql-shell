@@ -32,6 +32,7 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/common.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
@@ -44,8 +45,8 @@ namespace shcore {
 namespace sql_shell_tests {
 class Environment {
  public:
-  Environment() {
-    shell_core.reset(new Shell_core(&output_handler.deleg));
+  Environment() : m_console(&output_handler.deleg) {
+    shell_core.reset(new Shell_core(&m_console));
 
     shell_sql.reset(new Shell_sql(shell_core.get()));
   }
@@ -53,6 +54,7 @@ class Environment {
   ~Environment() {}
 
   Shell_test_output_handler output_handler;
+  mysqlsh::Shell_console m_console;
   std::shared_ptr<Shell_core> shell_core;
   std::shared_ptr<Shell_sql> shell_sql;
 };

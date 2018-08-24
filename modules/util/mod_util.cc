@@ -28,6 +28,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -49,9 +50,7 @@ REGISTER_HELP(
     UTIL_BRIEF,
     "Global object that groups miscellaneous tools like upgrade checker.");
 
-Util::Util(shcore::IShell_core *owner,
-           std::shared_ptr<mysqlsh::IConsole> console_handler)
-    : _shell_core(*owner), m_console_handler(console_handler) {
+Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   add_method(
       "checkForServerUpgrade",
       std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
@@ -134,7 +133,7 @@ int Util::check_for_server_upgrade(ConnectionData connectionData, dict options);
 class Upgrade_check_output_formatter {
  public:
   static std::unique_ptr<Upgrade_check_output_formatter> get_formatter(
-      shcore::IShell_core *core, const std::string &format);
+      const std::string &format);
 
   virtual ~Upgrade_check_output_formatter() {}
 
@@ -149,69 +148,72 @@ class Upgrade_check_output_formatter {
                          const std::string &text) = 0;
 
  protected:
-  explicit Upgrade_check_output_formatter(shcore::IShell_core *core)
-      : m_shell_core(*core) {}
-
-  shcore::IShell_core &m_shell_core;
+  explicit Upgrade_check_output_formatter() {}
 };
 
 class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
  public:
-  explicit Text_upgrade_checker_output(shcore::IShell_core *core)
-      : Upgrade_check_output_formatter(core) {}
+  explicit Text_upgrade_checker_output() {}
 
   void check_info(const std::string &server_addres,
                   const std::string &server_version,
                   const std::string &target_version) override {
-    m_shell_core.print(shcore::str_format(
+    auto console = mysqlsh::current_console();
+    console->print(shcore::str_format(
         "The MySQL server at %s will now be checked for compatibility "
         "issues for upgrade to MySQL %s...\n",
         server_addres.c_str(), target_version.c_str()));
 
-    m_shell_core.print(
+    console->print(
         shcore::str_format("MySQL version: %s\n", server_version.c_str()));
   }
 
   void check_results(const Upgrade_check &check,
                      const std::vector<Upgrade_issue> &results) override {
-    m_shell_core.print(
+    auto console = mysqlsh::current_console();
+
+    console->print(
         shcore::str_format("\n%d) %s\n", ++check_count, check.get_title()));
 
     std::function<std::string(const Upgrade_issue &)> issue_formater(to_string);
 
     if (results.empty()) {
-      m_shell_core.print("  No issues found\n");
+      console->print("  No issues found\n");
     } else if (check.get_description() != nullptr) {
-      m_shell_core.print(shcore::str_format("  %s", check.get_description()));
+      console->print(shcore::str_format("  %s", check.get_description()));
       if (check.get_doc_link() != nullptr)
-        m_shell_core.print(shcore::str_format("\n  More information: %s",
-                                              check.get_doc_link()));
-      m_shell_core.print("\n\n");
+        console->print(shcore::str_format("\n  More information: %s",
+                                          check.get_doc_link()));
+      console->print("\n\n");
     } else {
       issue_formater = format_upgrade_issue;
     }
 
     for (const auto &issue : results)
-      m_shell_core.print(
+      console->print(
           shcore::str_format("  %s\n", issue_formater(issue).c_str()));
   }
 
   void check_error(const Upgrade_check &check,
                    const char *description) override {
-    m_shell_core.print(
+    auto console = mysqlsh::current_console();
+
+    console->print(
         shcore::str_format("\n%d) %s\n", ++check_count, check.get_title()));
-    m_shell_core.print_error("Check failed: ");
-    m_shell_core.print_error(description);
-    m_shell_core.print("\n");
+    console->raw_print("Check failed: ", mysqlsh::Output_stream::STDERR);
+    console->raw_print(description, mysqlsh::Output_stream::STDERR);
+    console->raw_print("\n", mysqlsh::Output_stream::STDERR);
   }
 
   void summarize(int error, int warning, int notice,
                  const std::string &text) override {
-    m_shell_core.print("\n");
-    m_shell_core.print(shcore::str_format("Errors:   %d\n", error));
-    m_shell_core.print(shcore::str_format("Warnings: %d\n", warning));
-    m_shell_core.print(shcore::str_format("Notices:  %d\n\n", notice));
-    m_shell_core.print(text);
+    auto console = mysqlsh::current_console();
+
+    console->print("\n");
+    console->print(shcore::str_format("Errors:   %d\n", error));
+    console->print(shcore::str_format("Warnings: %d\n", warning));
+    console->print(shcore::str_format("Notices:  %d\n\n", notice));
+    console->print(text);
   }
 
  private:
@@ -220,9 +222,8 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
 class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
  public:
-  explicit JSON_upgrade_checker_output(shcore::IShell_core *core)
-      : Upgrade_check_output_formatter(core),
-        m_json_document(),
+  explicit JSON_upgrade_checker_output()
+      : m_json_document(),
         m_allocator(m_json_document.GetAllocator()),
         m_checks(rapidjson::kArrayType) {
     m_json_document.SetObject();
@@ -320,7 +321,7 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     rapidjson::StringBuffer buffer;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
     m_json_document.Accept(writer);
-    m_shell_core.print(buffer.GetString());
+    mysqlsh::current_console()->print(buffer.GetString());
   }
 
  private:
@@ -330,17 +331,16 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
 };
 
 std::unique_ptr<Upgrade_check_output_formatter>
-Upgrade_check_output_formatter::get_formatter(shcore::IShell_core *core,
-                                              const std::string &format) {
+Upgrade_check_output_formatter::get_formatter(const std::string &format) {
   if (shcore::str_casecmp(format, "JSON") == 0)
     return std::unique_ptr<Upgrade_check_output_formatter>(
-        new JSON_upgrade_checker_output(core));
+        new JSON_upgrade_checker_output());
   else if (shcore::str_casecmp(format, "TEXT") != 0)
     throw std::invalid_argument(
         "Allowed values for outputFormat parameter are TEXT or JSON");
 
   return std::unique_ptr<Upgrade_check_output_formatter>(
-      new Text_upgrade_checker_output(core));
+      new Text_upgrade_checker_output());
 }
 
 shcore::Value Util::check_for_server_upgrade(
@@ -378,8 +378,7 @@ shcore::Value Util::check_for_server_upgrade(
       output_format = dict->get_string("outputFormat", "TEXT");
     }
 
-    auto print = Upgrade_check_output_formatter::get_formatter(&_shell_core,
-                                                               output_format);
+    auto print = Upgrade_check_output_formatter::get_formatter(output_format);
 
     auto session = establish_session(connection_options,
                                      current_shell_options()->get().wizards);

@@ -30,7 +30,6 @@
 
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_string.h"

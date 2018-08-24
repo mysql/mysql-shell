@@ -92,8 +92,6 @@ class Command_line_shell : public Mysql_shell,
                                             std::string *ret);
   static shcore::Prompt_result deleg_password(void *self, const char *text,
                                               std::string *ret);
-  static void deleg_source(void *self, const char *module);
-
   std::string query_variable(
       const std::string &var,
       mysqlsh::Prompt_manager::Dynamic_variable_type type);
@@ -119,6 +117,7 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, history_del_range);
   FRIEND_TEST(Shell_history, history_delete_range);
   FRIEND_TEST(Shell_history, history_numbering);
+  FRIEND_TEST(Shell_error_printing, print_error);
   friend class Test_debugger;
 #endif
 };

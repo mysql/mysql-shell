@@ -34,15 +34,12 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/interactive_object_wrapper.h"
-#include "mysqlshdk/include/shellcore/console.h"
 
 namespace shcore {
 class Global_dba : public Interactive_object_wrapper {
  public:
-  explicit Global_dba(Shell_core &shell_core,
-                      std::shared_ptr<mysqlsh::IConsole> console_handler)
-      : Interactive_object_wrapper("dba", shell_core, console_handler),
-        _delegate(console_handler) {
+  explicit Global_dba(Shell_core &shell_core)
+      : Interactive_object_wrapper("dba", shell_core) {
     init();
   }
 
@@ -63,9 +60,6 @@ class Global_dba : public Interactive_object_wrapper {
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
   shcore::Value check_instance_configuration(const shcore::Argument_list &args);
   shcore::Value configure_local_instance(const shcore::Argument_list &args);
-
- private:
-  std::shared_ptr<mysqlsh::IConsole> _delegate;
 
  private:
   mysqlsh::dba::Cluster_check_info check_preconditions(

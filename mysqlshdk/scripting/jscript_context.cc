@@ -33,7 +33,7 @@
 #endif
 
 #include "mysh_config.h"
-
+#include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/module_registry.h"
 #include "scripting/object_factory.h"
 #include "scripting/object_registry.h"
@@ -70,13 +70,8 @@ struct JScript_context::JScript_context_impl {
   std::map<std::string, v8::Persistent<v8::Object> *> factory_packages;
   v8::Persistent<v8::ObjectTemplate> package_template;
 
-  Interpreter_delegate *delegate;
-
-  JScript_context_impl(JScript_context *owner_, Interpreter_delegate *deleg)
-      : owner(owner_),
-        types(owner_),
-        isolate(v8::Isolate::New()),
-        delegate(deleg) {
+  JScript_context_impl(JScript_context *owner_)
+      : owner(owner_), types(owner_), isolate(v8::Isolate::New()) {
     v8::Isolate::Scope isolate_scope(isolate);
     v8::HandleScope handle_scope(isolate);
 
@@ -451,7 +446,7 @@ struct JScript_context::JScript_context_impl {
     }
     if (new_line) text.append("\n");
 
-    self->delegate->print(self->delegate->user_data, text.c_str());
+    mysqlsh::current_console()->print(text);
   }
 
   static void f_source(const v8::FunctionCallbackInfo<v8::Value> &args) {
@@ -467,7 +462,15 @@ struct JScript_context::JScript_context_impl {
 
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args[0]);
-    self->delegate->source(self->delegate->user_data, *str);
+
+    // Loads the source content
+    std::string source;
+    if (load_text_file(*str, source)) {
+      self->owner->execute(source, *str, {});
+    } else {
+      args.GetIsolate()->ThrowException(
+          v8::String::NewFromUtf8(args.GetIsolate(), "Error loading script"));
+    }
   }
 
   static void f_require(const v8::FunctionCallbackInfo<v8::Value> &args) {
@@ -550,7 +553,7 @@ struct JScript_context::JScript_context_impl {
   }
 
   void print_exception(const std::string &text) {
-    delegate->print_error(delegate->user_data, text.c_str());
+    mysqlsh::current_console()->raw_print(text, mysqlsh::Output_stream::STDERR);
   }
 
   void set_global_item(const std::string &global_name,
@@ -714,9 +717,8 @@ void SHCORE_PUBLIC JScript_context_init() {
   }
 }
 
-JScript_context::JScript_context(Object_registry *registry,
-                                 Interpreter_delegate *deleg)
-    : _impl(new JScript_context_impl(this, deleg)), _registry(registry) {
+JScript_context::JScript_context(Object_registry *registry)
+    : _impl(new JScript_context_impl(this)), _registry(registry) {
   // initialize type conversion class now that everything is ready
   {
     v8::Isolate::Scope isolate_scope(_impl->isolate);
@@ -948,8 +950,9 @@ Value JScript_context::execute(const std::string &code_str,
     v8::Handle<v8::Value> result = script->Run();
     if (try_catch.HasTerminated()) {
       v8::V8::CancelTerminateExecution(_impl->isolate);
-      _impl->delegate->print_error(_impl->delegate->user_data,
-                                   "Script execution interrupted by user.\n");
+      mysqlsh::current_console()->raw_print(
+          "Script execution interrupted by user.\n",
+          mysqlsh::Output_stream::STDERR);
       return Value();
     } else if (!result.IsEmpty()) {
       ret_val = v8_value_to_shcore_value(result);
@@ -1019,18 +1022,19 @@ Value JScript_context::execute_interactive(const std::string &code_str,
       _impl->print_exception(
           format_exception(get_v8_exception_data(&try_catch, true)));
   } else {
+    auto console = mysqlsh::current_console();
     v8::Handle<v8::Value> result = script->Run();
     if (try_catch.HasTerminated()) {
       v8::V8::CancelTerminateExecution(_impl->isolate);
-      _impl->delegate->print_error(_impl->delegate->user_data,
-                                   "Script execution interrupted by user.\n");
+      console->raw_print("Script execution interrupted by user.\n",
+                         mysqlsh::Output_stream::STDERR);
     } else if (result.IsEmpty()) {
       Value exc(get_v8_exception_data(&try_catch, true));
       if (exc)
         _impl->print_exception(format_exception(exc));
       else
-        _impl->delegate->print_error(_impl->delegate->user_data,
-                                     "Error executing script\n");
+        console->raw_print("Error executing script\n",
+                           mysqlsh::Output_stream::STDERR);
     } else {
       try {
         return Value(v8_value_to_shcore_value(result));
@@ -1039,9 +1043,8 @@ Value JScript_context::execute_interactive(const std::string &code_str,
         // thrown from v8_value_to_shcore_value() aren't being caught from
         // main.cc, leading to a crash due to unhandled exception.. so we catch
         // and print it here
-        _impl->delegate->print_error(
-            _impl->delegate->user_data,
-            std::string("INTERNAL ERROR: ").append(exc.what()).c_str());
+        console->raw_print(std::string("INTERNAL ERROR: ").append(exc.what()),
+                           mysqlsh::Output_stream::STDERR);
       }
     }
   }

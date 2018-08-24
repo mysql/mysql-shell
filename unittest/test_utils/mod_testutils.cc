@@ -73,6 +73,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_utils.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 
 // TODO(anyone)
 // - make destroySandbox() expect that the final state of the sandbox is the
@@ -89,8 +90,6 @@ namespace tests {
 constexpr int k_wait_member_timeout = 120;
 constexpr int k_max_start_sandbox_retries = 5;
 const char *k_boilerplate_root_password = "root";
-
-static void print(void *, const char *s) { std::cout << s << "\n"; }
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
                      std::shared_ptr<mysqlsh::Command_line_shell> shell,
@@ -162,15 +161,12 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("rmfile", &Testutils::rm_file, "target");
   expose("touch", &Testutils::touch, "file");
 
-  _delegate.print = print;
-  _delegate.print_error = print;
-
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
 
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
-  _mp.reset(new mysqlsh::dba::ProvisioningInterface(&_delegate, local_mp_path));
+  _mp.reset(new mysqlsh::dba::ProvisioningInterface(local_mp_path));
 }
 
 void Testutils::set_sandbox_snapshot_dir(const std::string &dir) {
@@ -2208,20 +2204,22 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args) {
       if (g_test_trace_scripts && !shell) std::cout << c << std::flush;
       if (c == '\r') continue;
       if (c == '\n') {
-        if (shell) shell->println(output);
+        if (shell) mysqlsh::current_console()->println(output);
         output.clear();
       } else {
         output += c;
       }
     }
     if (!output.empty()) {
-      if (shell) shell->println(output);
+      if (shell) mysqlsh::current_console()->println(output);
     }
     // Wait until it finishes
     exit_code = process.wait();
   } catch (const std::system_error &e) {
     output = e.what();
-    if (shell) shell->println(("Exception calling mysqlsh: " + output).c_str());
+    if (shell)
+      mysqlsh::current_console()->println(
+          ("Exception calling mysqlsh: " + output).c_str());
     exit_code = 256;  // This error code will indicate an error happened
                       // launching the process
   }

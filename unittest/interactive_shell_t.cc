@@ -694,43 +694,49 @@ TEST_F(Interactive_shell_test, shell_command_connect_deprecated_options) {
   // Deprecated is not the same as removed, so these are supposed to still
   // work in 8.0
   execute("\\connect -n " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The -n option is deprecated, please use --mysqlx or --mx instead.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: The -n option is deprecated, please use --mysqlx or --mx "
+      "instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X");
   output_handler.wipe_all();
 
   execute("\\connect -mx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The -mx option is deprecated, please use --mysqlx or --mx instead.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: The -mx option is deprecated, please use --mysqlx or --mx "
+      "instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X");
   output_handler.wipe_all();
 
   execute("\\connect -N " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The -N option is deprecated, please use --mysqlx or --mx instead.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: The -N option is deprecated, please use --mysqlx or --mx "
+      "instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X");
   output_handler.wipe_all();
 
   execute("\\connect -c " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The -c option is deprecated, please use --mysql or --mc instead.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: The -c option is deprecated, please use --mysql or --mc "
+      "instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
   output_handler.wipe_all();
 
   execute("\\connect -mc " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The -mc option is deprecated, please use --mysql or --mc instead.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: The -mc option is deprecated, please use --mysql or --mc "
+      "instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
   output_handler.wipe_all();
 
   execute("\\connect -C " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The -C option is deprecated, please use --mysql or --mc instead.");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "WARNING: The -C option is deprecated, please use --mysql or --mc "
+      "instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
   output_handler.wipe_all();
 
   execute("\\connect -ma " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS("The -ma option is deprecated.");
+  MY_EXPECT_STDOUT_CONTAINS("WARNING: The -ma option is deprecated.");
   output_handler.wipe_all();
 }
 

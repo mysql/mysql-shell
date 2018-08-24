@@ -24,6 +24,7 @@
 
 #include <exception>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "scripting/common.h"
 #include "scripting/module_registry.h"
 #include "utils/utils_file.h"
@@ -167,10 +168,7 @@ void Python_init_singleton::init_python() {
   if (_instance.get() == NULL) _instance.reset(new Python_init_singleton());
 }
 
-Python_context::Python_context(Interpreter_delegate *deleg, bool redirect_stdio)
-    : _types(this) {
-  _delegate = deleg;
-
+Python_context::Python_context(bool redirect_stdio) : _types(this) {
   Python_init_singleton::init_python();
 
   _global_namespace = PyImport_AddModule("__main__");
@@ -657,11 +655,9 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
     }
   }
 
-  if (stream == "error") {
-    ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
-  } else {
-    ctx->_delegate->print(ctx->_delegate->user_data, text.c_str());
-  }
+  mysqlsh::current_console()->raw_print(
+      text, stream == "error" ? mysqlsh::Output_stream::STDERR
+                              : mysqlsh::Output_stream::STDOUT);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -701,15 +697,13 @@ std::pair<shcore::Prompt_result, std::string> Python_context::read_line(
     }
   }
   std::string ret;
-  shcore::Prompt_result result =
-      _delegate->prompt(_delegate->user_data, prompt.c_str(), &ret);
-  if (result != shcore::Prompt_result::Ok) {
-    return {result, ""};
+  if (!mysqlsh::current_console()->prompt(prompt, &ret)) {
+    return {shcore::Prompt_result::Cancel, ""};
   }
   _stdin_buffer.append(ret).append("\n");
   std::string tmp;
   std::swap(tmp, _stdin_buffer);
-  return {result, tmp};
+  return {shcore::Prompt_result::Ok, tmp};
 }
 
 PyObject *Python_context::shell_stdout(PyObject *self, PyObject *args) {

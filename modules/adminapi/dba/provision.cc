@@ -25,16 +25,18 @@
 
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "utils/utils_general.h"
 
 namespace mysqlsh {
 namespace dba {
 
-void leave_replicaset(const mysqlshdk::mysql::Instance &instance,
-                      std::shared_ptr<mysqlsh::IConsole> console) {
+void leave_replicaset(const mysqlshdk::mysql::Instance &instance) {
   std::string instance_address = instance.get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
+
+  auto console = mysqlsh::current_console();
 
   // Check if the instance is actively member of the cluster before trying to
   // stop it (otherwise stop might fail).

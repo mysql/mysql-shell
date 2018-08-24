@@ -27,6 +27,7 @@
 
 #include "modules/adminapi/dba/check_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -34,12 +35,13 @@ namespace dba {
 
 void ensure_instance_configuration_valid(
     mysqlshdk::mysql::IInstance *target_instance,
-    std::shared_ptr<ProvisioningInterface> mp,
-    std::shared_ptr<mysqlsh::IConsole> console) {
+    std::shared_ptr<ProvisioningInterface> mp) {
+  auto console = mysqlsh::current_console();
+
   console->println("Validating instance at " + target_instance->descr() +
                    "...");
 
-  Check_instance check(target_instance, "", mp, console, true);
+  Check_instance check(target_instance, "", mp, true);
   check.prepare();
   shcore::Value result = check.execute();
   check.finish();
@@ -55,8 +57,7 @@ void ensure_instance_configuration_valid(
   }
 }
 
-void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance,
-                            std::shared_ptr<mysqlsh::IConsole> console) {
+void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance) {
   std::string current_user, current_host;
   log_debug("Checking user privileges");
   // Get the current user/host
@@ -65,6 +66,7 @@ void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance,
   std::string error_info;
   if (!validate_cluster_admin_user_privileges(
           instance.get_session(), current_user, current_host, &error_info)) {
+    auto console = mysqlsh::current_console();
     console->print_error(error_info);
     console->println("For more information, see the online documentation.");
     throw shcore::Exception::runtime_error(

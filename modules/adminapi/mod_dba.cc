@@ -49,6 +49,7 @@
 #include "utils/utils_net.h"
 #include "utils/utils_sqlstring.h"
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/innodbcluster/cluster.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -228,11 +229,7 @@ REGISTER_HELP(DBA_VERBOSE_DETAIL3,
 REGISTER_HELP(DBA_VERBOSE_DETAIL4,
               "@li Boolean: equivalent to assign either 0 or 1");
 
-Dba::Dba(shcore::IShell_core *owner,
-         std::shared_ptr<mysqlsh::IConsole> console_handler)
-    : _shell_core(owner), m_console(console_handler) {
-  init();
-}
+Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) { init(); }
 
 Dba::~Dba() {}
 
@@ -284,8 +281,7 @@ void Dba::init() {
 
   if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
 
-  _provisioning_interface.reset(
-      new ProvisioningInterface(_shell_core->get_delegate(), local_mp_path));
+  _provisioning_interface.reset(new ProvisioningInterface(local_mp_path));
 }
 
 void Dba::set_member(const std::string &prop, Value value) {
@@ -560,14 +556,16 @@ shcore::Value Dba::get_cluster_(const shcore::Argument_list &args) const {
       connect_to_target_group({}, &metadata, &group_session,
                               connect_to_primary);
     } catch (mysqlshdk::innodbcluster::cluster_error &e) {
+      auto console = mysqlsh::current_console();
+
       // Print warning in case a cluster error is found (e.g., no quorum).
       if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum) {
-        m_console->print_warning(
+        console->print_warning(
             "Cluster has no quorum and cannot process write transactions: " +
             std::string(e.what()));
       } else {
-        m_console->print_warning("Cluster error connecting to target: " +
-                                 e.format());
+        console->print_warning("Cluster error connecting to target: " +
+                               e.format());
       }
 
       if (e.code() == mysqlshdk::innodbcluster::Error::Group_has_no_quorum &&
@@ -602,7 +600,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
     std::shared_ptr<mysqlshdk::db::ISession> group_session) const {
   std::shared_ptr<mysqlsh::dba::Cluster> cluster(
-      new Cluster("", group_session, metadata, m_console));
+      new Cluster("", group_session, metadata));
 
   if (!name) {
     // Reloads the cluster (to avoid losing _default_cluster in case of error)
@@ -924,6 +922,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   std::string replication_pwd;
   std::string ip_whitelist;
 
+  auto console = mysqlsh::current_console();
+
   try {
     bool multi_primary = false;  // Default single/primary master
     bool adopt_from_gr = false;
@@ -967,8 +967,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
         std::string warn_msg =
             "The multiMaster option is deprecated. "
             "Please use the multiPrimary option instead.";
-        m_console->print_warning(warn_msg);
-        m_console->println();
+        console->print_warning(warn_msg);
+        console->println();
       }
 
       if (opt_map.has_key("multiPrimary"))
@@ -1049,21 +1049,20 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Check instance configuration and state, like dba.checkInstance
       // but skip if we're adopting, since in that case the target is obviously
       // already configured
-      ensure_instance_configuration_valid(
-          &target_instance, get_provisioning_interface(), m_console);
+      ensure_instance_configuration_valid(&target_instance,
+                                          get_provisioning_interface());
     }
 
-    m_console->println(
-        "Creating InnoDB cluster '" + cluster_name + "' on '" +
-        group_session->uri(
-            mysqlshdk::db::uri::formats::no_scheme_no_password()) +
-        "'...");
+    console->println("Creating InnoDB cluster '" + cluster_name + "' on '" +
+                     group_session->uri(
+                         mysqlshdk::db::uri::formats::no_scheme_no_password()) +
+                     "'...");
 
     // Check if super_read_only is turned off and disable it if required
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(group_session, clear_read_only, m_console);
+    validate_super_read_only(group_session, clear_read_only);
 
     // Check replication filters before creating the Metadata.
     validate_replication_filters(group_session);
@@ -1093,7 +1092,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     MetadataStorage::Transaction tx(metadata);
 
     std::shared_ptr<Cluster> cluster(
-        new Cluster(cluster_name, group_session, metadata, m_console));
+        new Cluster(cluster_name, group_session, metadata));
     cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
@@ -1266,7 +1265,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(group_session, clear_read_only, m_console);
+      validate_super_read_only(group_session, clear_read_only);
 
       metadata->drop_metadata_schema();
     } else {
@@ -1487,7 +1486,7 @@ shcore::Value Dba::check_instance_configuration(
 
     // Call the API
     std::unique_ptr<Check_instance> op_check_instance(new Check_instance(
-        &target_instance, mycnf_path, _provisioning_interface, m_console));
+        &target_instance, mycnf_path, _provisioning_interface));
 
     op_check_instance->prepare();
     ret_val = shcore::Value(op_check_instance->execute());
@@ -2138,12 +2137,12 @@ shcore::Value Dba::do_configure_instance(const shcore::Argument_list &args,
       op_configure_instance.reset(new Configure_local_instance(
           &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
           cluster_admin_password, clear_read_only, interactive, restart,
-          _provisioning_interface, m_console));
+          _provisioning_interface));
     else
       op_configure_instance.reset(new Configure_instance(
           &target_instance, mycnf_path, output_mycnf_path, cluster_admin,
           cluster_admin_password, clear_read_only, interactive, restart,
-          _provisioning_interface, m_console));
+          _provisioning_interface));
 
     op_configure_instance->prepare();
     ret_val = shcore::Value(op_configure_instance->execute());
@@ -2731,8 +2730,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
           "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
     }
 
-    cluster.reset(
-        new Cluster(cluster_name, group_session, metadata, m_console));
+    cluster.reset(new Cluster(cluster_name, group_session, metadata));
 
     // Getting the cluster from the metadata already complies with:
     // 1. Ensure that a Metadata Schema exists on the current session instance.
@@ -2876,7 +2874,7 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
       // NOTE: this is left for last to avoid setting super_read_only to true
       // and right before some execution failure of the command leaving the
       // instance in an incorrect state
-      validate_super_read_only(group_session, clear_read_only, m_console);
+      validate_super_read_only(group_session, clear_read_only);
 
       shcore::Argument_list new_args;
 
