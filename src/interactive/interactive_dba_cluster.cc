@@ -156,9 +156,19 @@ shcore::Value Interactive_dba_cluster::add_instance(
       if (args.size() == 2) {
         options = args.map_at(1);
         shcore::Argument_map options_map(*options);
-        options_map.ensure_keys({},
-                                mysqlsh::dba::ReplicaSet::_add_instance_opts,
-                                "instance definition");
+
+        std::string ssl_mode, ip_whitelist, instance_label, local_address,
+            group_seeds, exit_state_action;
+
+        // Retrieves optional options if exists
+        mysqlsh::Unpack_options(options)
+            .optional("memberSslMode", &ssl_mode)
+            .optional("ipWhitelist", &ip_whitelist)
+            .optional("label", &instance_label)
+            .optional("localAddress", &local_address)
+            .optional("groupSeeds", &group_seeds)
+            .optional("exitStateAction", &exit_state_action)
+            .end();
 
         // Validate SSL options for the cluster instance
         mysqlsh::dba::validate_ssl_instance_options(options);
@@ -208,7 +218,8 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
     if (args.size() == 2) {
       options = args.map_at(1);
       shcore::Argument_map options_map(*options);
-      options_map.ensure_keys({}, mysqlsh::dba::ReplicaSet::_add_instance_opts,
+      options_map.ensure_keys({},
+                              mysqlsh::dba::ReplicaSet::_rejoin_instance_opts,
                               "instance definition");
 
       // Validate SSL options for the cluster instance

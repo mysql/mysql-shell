@@ -73,7 +73,7 @@ Cancelled
 ||
 
 //@# create_cluster.read_only_invalid_flag_value
-||Dba.createCluster: Argument 'clearReadOnly' is expected to be a bool
+||Dba.createCluster: Option 'clearReadOnly' is expected to be of type Bool, but is String
 
 //@ prepare create_cluster.read_only_flag_true
 ||

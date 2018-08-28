@@ -684,7 +684,8 @@ int ProvisioningInterface::start_replicaset(
     bool multi_primary, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &group_name,
     const std::string &gr_local_address, const std::string &gr_group_seeds,
-    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
+    const std::string &gr_exit_state_action, bool skip_rpl_user,
+    shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
 
@@ -720,6 +721,9 @@ int ProvisioningInterface::start_replicaset(
   if (!gr_group_seeds.empty()) {
     kwargs["group_seeds"] = shcore::Value(gr_group_seeds);
   }
+  if (!gr_exit_state_action.empty()) {
+    kwargs["exit_state_action"] = shcore::Value(gr_exit_state_action);
+  }
 
   return execute_mysqlprovision("start-replicaset", args, kwargs, errors,
                                 _verbose);
@@ -730,8 +734,8 @@ int ProvisioningInterface::join_replicaset(
     const mysqlshdk::db::Connection_options &peer, const std::string &repl_user,
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &gr_local_address,
-    const std::string &gr_group_seeds, bool skip_rpl_user,
-    shcore::Value::Array_type_ref *errors) {
+    const std::string &gr_group_seeds, const std::string &gr_exit_state_action,
+    bool skip_rpl_user, shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
 
@@ -769,6 +773,9 @@ int ProvisioningInterface::join_replicaset(
   if (instance.has_host() &&
       mysqlshdk::utils::Net::is_local_address(instance.get_host())) {
     kwargs["target_is_local"] = shcore::Value::True();
+  }
+  if (!gr_exit_state_action.empty()) {
+    kwargs["exit_state_action"] = shcore::Value(gr_exit_state_action);
   }
 
   return execute_mysqlprovision("join-replicaset", args, kwargs, errors,

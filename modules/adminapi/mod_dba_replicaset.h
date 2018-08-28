@@ -58,7 +58,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
              std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~ReplicaSet();
 
-  static std::set<std::string> _add_instance_opts;
+  static std::set<std::string> _rejoin_instance_opts;
 
   virtual std::string class_name() const { return "ReplicaSet"; }
   virtual std::string &append_descr(std::string &s_out, int indent = -1,
@@ -230,7 +230,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &repl_user_password, const std::string &ssl_mode,
       const std::string &ip_whitelist, const std::string &group_name = "",
       const std::string &local_address = "",
-      const std::string &group_seeds = "", bool skip_rpl_user = false);
+      const std::string &group_seeds = "",
+      const std::string &exit_state_action = "", bool skip_rpl_user = false);
 
   void validate_instance_address(
       std::shared_ptr<mysqlshdk::db::ISession> session,

@@ -57,7 +57,7 @@ using namespace mysqlsh::dba;
 using namespace shcore;
 using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
-std::set<std::string> ReplicaSet::_add_instance_opts = {
+std::set<std::string> ReplicaSet::_rejoin_instance_opts = {
     "label",       "password",     "memberSslMode",
     "ipWhitelist", "localAddress", "groupSeeds"};
 
@@ -406,7 +406,8 @@ shcore::Value ReplicaSet::add_instance(
 
   bool seed_instance = false;
   std::string ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
-  std::string ip_whitelist, instance_label, local_address, group_seeds;
+  std::string ip_whitelist, instance_label, local_address, group_seeds,
+      exit_state_action;
 
   std::shared_ptr<Cluster> cluster(_cluster.lock());
   if (!cluster)
@@ -425,11 +426,25 @@ shcore::Value ReplicaSet::add_instance(
 
   auto console = mysqlsh::current_console();
 
+  std::shared_ptr<mysqlshdk::db::ISession> session{establish_mysql_session(
+      connection_options, current_shell_options()->get().wizards)};
+  mysqlshdk::mysql::Instance target_instance(session);
+  target_instance.cache_global_sysvars();
+
   // Retrieves the add options
   if (args.size() == 1) {
     auto add_options = args.map_at(0);
     shcore::Argument_map add_instance_map(*add_options);
-    add_instance_map.ensure_keys({}, _add_instance_opts, " options");
+
+    // Retrieves optional options if exists
+    Unpack_options(add_options)
+        .optional("memberSslMode", &ssl_mode)
+        .optional("ipWhitelist", &ip_whitelist)
+        .optional("label", &instance_label)
+        .optional("localAddress", &local_address)
+        .optional("groupSeeds", &group_seeds)
+        .optional("exitStateAction", &exit_state_action)
+        .end();
 
     // Validate SSL options for the cluster instance
     validate_ssl_instance_options(add_options);
@@ -440,19 +455,26 @@ shcore::Value ReplicaSet::add_instance(
     // Validate group seeds option
     validate_group_seeds_option(add_options);
 
+    // Validate if the exitStateAction option is supported on the target
+    // instance and if is not empty.
+    // The validation for the value set is handled at the group-replication
+    // level
+    if (add_options->has_key("exitStateAction")) {
+      if (shcore::str_strip(exit_state_action).empty())
+        throw shcore::Exception::argument_error(
+            "Invalid value for exitStateAction, string value cannot be empty.");
+
+      validate_exit_state_action_supported(session);
+    }
+
     if (add_options->has_key("memberSslMode")) {
-      ssl_mode = add_options->get_string("memberSslMode");
       if (!seed_instance) {
         console->print_warning(kWarningDeprecateSslMode);
         console->println();
       }
     }
 
-    if (add_options->has_key("ipWhitelist"))
-      ip_whitelist = add_options->get_string("ipWhitelist");
-
     if (add_options->has_key("label")) {
-      instance_label = add_options->get_string("label");
       mysqlsh::dba::validate_label(instance_label);
 
       if (!_metadata_storage->is_instance_label_unique(get_id(),
@@ -461,18 +483,7 @@ shcore::Value ReplicaSet::add_instance(
             "An instance with label '" + instance_label +
             "' is already part of this InnoDB cluster");
     }
-
-    if (add_options->has_key("localAddress"))
-      local_address = add_options->get_string("localAddress");
-
-    if (add_options->has_key("groupSeeds"))
-      group_seeds = add_options->get_string("groupSeeds");
   }
-
-  std::shared_ptr<mysqlshdk::db::ISession> session{establish_mysql_session(
-      connection_options, current_shell_options()->get().wizards)};
-  mysqlshdk::mysql::Instance target_instance(session);
-  target_instance.cache_global_sysvars();
 
   // Retrieves the instance definition
   auto target_coptions = session->get_connection_options();
@@ -593,7 +604,15 @@ shcore::Value ReplicaSet::add_instance(
     log_info("Using Group Replication group name: %s", group_name.c_str());
     log_info("Using Group Replication local address: %s",
              local_address.c_str());
-    log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
+
+    if (!group_seeds.empty()) {
+      log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
+    }
+
+    if (!exit_state_action.empty()) {
+      log_info("Using Group Replication exit state action: %s",
+               exit_state_action.c_str());
+    }
 
     set_group_replication_member_options(session, ssl_mode);
 
@@ -601,7 +620,7 @@ shcore::Value ReplicaSet::add_instance(
     success = do_join_replicaset(target_coptions, nullptr, replication_user,
                                  replication_user_password, ssl_mode,
                                  ip_whitelist, group_name, local_address,
-                                 group_seeds, skip_rpl_user);
+                                 group_seeds, exit_state_action, skip_rpl_user);
   } else {
     mysqlshdk::db::Connection_options peer(pick_seed_instance());
     std::shared_ptr<mysqlshdk::db::ISession> peer_session;
@@ -638,7 +657,7 @@ shcore::Value ReplicaSet::add_instance(
     success = do_join_replicaset(target_coptions, &peer, replication_user,
                                  replication_user_password, ssl_mode,
                                  ip_whitelist, group_name, local_address,
-                                 group_seeds, skip_rpl_user);
+                                 group_seeds, exit_state_action, skip_rpl_user);
   }
 
   if (success) {
@@ -648,8 +667,6 @@ shcore::Value ReplicaSet::add_instance(
 
     // Get the gr_address of the instance being added
     auto added_instance = mysqlshdk::mysql::Instance(session);
-    std::string added_instance_address =
-        session->get_connection_options().as_uri(only_transport());
     std::string added_instance_gr_address = *added_instance.get_sysvar_string(
         "group_replication_local_address",
         mysqlshdk::mysql::Var_qualifier::GLOBAL);
@@ -687,7 +704,7 @@ bool ReplicaSet::do_join_replicaset(
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &group_name,
     const std::string &local_address, const std::string &group_seeds,
-    bool skip_rpl_user) {
+    const std::string &exit_state_action, bool skip_rpl_user) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -703,11 +720,12 @@ bool ReplicaSet::do_join_replicaset(
     exit_code = cluster->get_provisioning_interface()->start_replicaset(
         instance, repl_user, repl_user_password,
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
-        group_name, local_address, group_seeds, skip_rpl_user, &errors);
+        group_name, local_address, group_seeds, exit_state_action,
+        skip_rpl_user, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, repl_user_password, ssl_mode, ip_whitelist,
-        local_address, group_seeds, skip_rpl_user, &errors);
+        local_address, group_seeds, exit_state_action, skip_rpl_user, &errors);
   }
 
   if (exit_code == 0) {
@@ -893,7 +911,7 @@ shcore::Value ReplicaSet::rejoin_instance(
   // Retrieves the options
   if (rejoin_options) {
     shcore::Argument_map rejoin_instance_map(*rejoin_options);
-    rejoin_instance_map.ensure_keys({}, _add_instance_opts, " options");
+    rejoin_instance_map.ensure_keys({}, _rejoin_instance_opts, " options");
 
     // Validate SSL options for the cluster instance
     validate_ssl_instance_options(rejoin_options);
@@ -1088,7 +1106,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     // use mysqlprovision to rejoin the cluster.
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         session->get_connection_options(), seed_instance_def, replication_user,
-        replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds,
+        replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds, "",
         keep_repl_user, &errors);
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",

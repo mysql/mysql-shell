@@ -282,6 +282,29 @@ void validate_group_name_option(const shcore::Value::Map_type_ref &options) {
   }
 }
 
+/**
+ * Validate the value specified for the exitStateAction option is supported on
+ * the target instance
+ *
+ * @param options Map type value with containing the specified options.
+ * @throw RuntimeError if the value is not supported on the target instance
+ */
+void validate_exit_state_action_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session) {
+  // The exitStateAction option shall only be allowed if the target MySQL
+  // server version is >= 5.7.24 if 5.0, or >= 8.0.12 if 8.0.
+  auto version = session->get_server_version();
+
+  if (version < mysqlshdk::utils::Version(5, 7, 24) ||
+      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
+       version < mysqlshdk::utils::Version(8, 0, 12))) {
+    throw shcore::Exception::runtime_error(
+        "Option 'exitStateAction' not supported on target server "
+        "version: '" +
+        version.get_full() + "'");
+  }
+}
+
 /*
  * Check the existence of replication filters that do not exclude the
  * metadata from being replicated.

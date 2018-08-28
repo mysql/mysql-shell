@@ -106,7 +106,7 @@
 ||ERROR: Error joining instance to cluster: '<<<localhost>>>:<<<__mysql_sandbox_port2>>>'
 
 //@ Add instance error using groupName (not a valid option)
-||Invalid values in  options: groupName (ArgumentError)
+||Invalid options: groupName (ArgumentError)
 
 //@ Add instance specifying :<valid_port> for localAddress (FR1-TS-2-2)
 ||
