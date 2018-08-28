@@ -163,10 +163,6 @@ std::set<std::string> Dba::_deploy_instance_opts = {
 std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 
-std::set<std::string> Dba::_create_cluster_opts = {
-    "multiMaster",   "adoptFromGR", "force",         "multiPrimary",
-    "memberSslMode", "ipWhitelist", "clearReadOnly", "groupName",
-    "localAddress",  "groupSeeds"};
 std::set<std::string> Dba::_reboot_cluster_opts = {
     "user",         "dbUser", "password", "removeInstances", "rejoinInstances",
     "clearReadOnly"};
@@ -671,14 +667,16 @@ REGISTER_HELP(DBA_CREATECLUSTER_THROWS9,
               "is true and the multiPrimary option is used.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS10,
               "@li If the value for the ipWhitelist, "
-              "groupName, localAddress, or groupSeeds options is empty.");
+              "groupName, localAddress, groupSeeds, or exitStateAction options "
+              "is empty.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS11,
               "RuntimeError in the following scenarios:");
 
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS12,
               "@li If the value for the groupName, "
-              "localAddress, or groupSeeds options is not valid for Group "
+              "localAddress, groupSeeds, or exitStateAction options is not "
+              "valid for Group "
               "Replication.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS13,
               "@li If the current connection cannot be used "
@@ -717,7 +715,6 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL7,
               "@li ipWhitelist: The list of hosts "
               "allowed to connect to the instance "
               "for group replication.");
-
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL8,
               "@li clearReadOnly: boolean value "
               "used to confirm that super_read_only "
@@ -735,37 +732,52 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL11,
               "the Group Replication peer addresses to be used instead of the "
               "automatically generated one.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12,
+              "@li exitStateAction: string value indicating the group "
+              "replication exit state action.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
               "@attention The multiMaster option will be removed in a "
               "future release. Please use the multiPrimary option instead.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
-              "A InnoDB cluster may be setup in two ways:");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14,
+              "A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15,
               "@li Single Primary: One member of the cluster allows write "
               "operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
               "@li Multi Primary: All the members "
               "in the cluster support both read "
               "and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17,
               "By default this function create a Single Primary cluster, use "
               "the multiPrimary option set to true "
               "if a Multi Primary cluster is required.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17,
-              "The memberSslMode option supports these values:");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18,
+              "The memberSslMode option supports the following values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL19,
               "@li REQUIRED: if used, SSL (encryption) will be enabled for the "
               "instances to communicate with other members of the cluster");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL19,
-              "@li DISABLED: if used, SSL (encryption) will be disabled");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL20,
+              "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL21,
               "@li AUTO: if used, SSL (encryption) "
               "will be enabled if supported by the "
               "instance, otherwise disabled");
 REGISTER_HELP(
-    DBA_CREATECLUSTER_DETAIL21,
+    DBA_CREATECLUSTER_DETAIL22,
     "If memberSslMode is not specified AUTO will be used by default.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
+              "The exitStateAction option supports the following values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
+              "@li ABORT_SERVER: if used, the instance shuts itself down if "
+              "it leaves the cluster unintentionally.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL25,
+              "@li READ_ONLY: if used, the instance switches itself to "
+              "super-read-only mode if it leaves the cluster "
+              "unintentionally.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
+              "If exitStateAction is not specified ABORT_SERVER will be used "
+              "by default.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL22,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
               "The ipWhitelist format is a comma separated list of IP "
               "addresses or subnet CIDR "
               "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "
@@ -773,16 +785,16 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL22,
               "from the instance private network to be automatically set for "
               "the whitelist.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
               "The groupName, localAddress, and groupSeeds are advanced "
               "options and their usage is discouraged since incorrect values "
               "can lead to Group Replication errors.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL29,
               "The value for groupName is used to set the Group Replication "
               "system variable 'group_replication_group_name'.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL25,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
               "The value for localAddress is used to set the Group "
               "Replication system variable 'group_replication_local_address'. "
               "The localAddress option accepts values in the format: "
@@ -797,11 +809,22 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL25,
               "(> 65535) then a random value in the range [1000, 65535] is "
               "used.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
               "The value for groupSeeds is used to set the Group Replication "
               "system variable 'group_replication_group_seeds'. The "
               "groupSeeds option accepts a comma-separated list of addresses "
               "in the format: 'host1:port1,...,hostN:portN'.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
+              "The value for exitStateAction is used to configure how Group "
+              "Replication behaves when a server instance leaves the group "
+              "unintentionally, for example after encountering an applier "
+              "error. When set to ABORT_SERVER, the instance shuts itself "
+              "down, and when set to READ_ONLY the server switches itself to "
+              "super-read-only mode. The exitStateAction option accepts "
+              "case-insensitive string values, being the accepted values: "
+              "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
+              "ABORT_SERVER.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -838,9 +861,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
  * $(DBA_CREATECLUSTER_DETAIL8)
  * $(DBA_CREATECLUSTER_DETAIL9)
  * $(DBA_CREATECLUSTER_DETAIL10)
- *
  * $(DBA_CREATECLUSTER_DETAIL11)
- *
  * $(DBA_CREATECLUSTER_DETAIL12)
  * $(DBA_CREATECLUSTER_DETAIL13)
  * $(DBA_CREATECLUSTER_DETAIL14)
@@ -850,20 +871,26 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
  * $(DBA_CREATECLUSTER_DETAIL17)
  * $(DBA_CREATECLUSTER_DETAIL18)
  * $(DBA_CREATECLUSTER_DETAIL19)
- *
  * $(DBA_CREATECLUSTER_DETAIL20)
- *
  * $(DBA_CREATECLUSTER_DETAIL21)
- *
  * $(DBA_CREATECLUSTER_DETAIL22)
  *
  * $(DBA_CREATECLUSTER_DETAIL23)
- *
  * $(DBA_CREATECLUSTER_DETAIL24)
- *
  * $(DBA_CREATECLUSTER_DETAIL25)
- *
  * $(DBA_CREATECLUSTER_DETAIL26)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL27)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL28)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL29)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL30)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL31)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL32)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -916,7 +943,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   // Available options
   Value ret_val;
   // SSL values are only set if available from args.
-  std::string ssl_mode, group_name, local_address, group_seeds;
+  std::string ssl_mode, group_name, local_address, group_seeds,
+      exit_state_action;
 
   std::string replication_user;
   std::string replication_pwd;
@@ -936,13 +964,56 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     mysqlsh::dba::validate_cluster_name(cluster_name);
 
     if (args.size() > 1) {
+      // Handle the deprecation of multiMaster first
+
       // Map with the options
       shcore::Value::Map_type_ref options = args.map_at(1);
+
+      // Retrieves optional options if exists
+      Unpack_options(options)
+          .optional("multiPrimary", &multi_primary)
+          .optional("multiMaster", &multi_primary)
+          .optional("force", &force)
+          .optional("adoptFromGR", &adopt_from_gr)
+          .optional("memberSslMode", &ssl_mode)
+          .optional("clearReadOnly", &clear_read_only)
+          .optional("ipWhitelist", &ip_whitelist)
+          .optional("groupName", &group_name)
+          .optional("localAddress", &local_address)
+          .optional("groupSeeds", &group_seeds)
+          .optional("exitStateAction", &exit_state_action)
+          .end();
 
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
 
-      opt_map.ensure_keys({}, _create_cluster_opts, "the options");
+      if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
+        throw shcore::Exception::argument_error(
+            "Cannot use the multiMaster and multiPrimary options "
+            "simultaneously. The multiMaster option is deprecated, please use "
+            "the multiPrimary option instead.");
+
+      if (opt_map.has_key("multiMaster")) {
+        std::string warn_msg =
+            "The multiMaster option is deprecated. "
+            "Please use the multiPrimary option instead.";
+        console->print_warning(warn_msg);
+        console->println();
+      }
+
+      if (!ip_whitelist.empty()) {
+        // if the ipWhitelist option was provided, we know it is a valid value
+        // since we've already done the validation above.
+        bool hostnames_supported = false;
+
+        // Validate ip whitelist option
+        if (group_session->get_server_version() >=
+            mysqlshdk::utils::Version(8, 0, 4)) {
+          hostnames_supported = true;
+        }
+
+        validate_ip_whitelist_option(ip_whitelist, hostnames_supported);
+      }
 
       // Validate SSL options for the cluster instance
       validate_ssl_instance_options(options);
@@ -956,45 +1027,24 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       // Validate group seeds option
       validate_group_seeds_option(options);
 
-      if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
+      // Validate if the exitStateAction option is supported on the target
+      // instance and if is not empty.
+      // The validation for the value set is handled at the group-replication
+      // level
+      if (options->has_key("exitStateAction")) {
+        if (shcore::str_strip(exit_state_action).empty())
+          throw shcore::Exception::argument_error(
+              "Invalid value for exitStateAction, string value cannot be "
+              "empty.");
+
+        validate_exit_state_action_supported(group_session);
+      }
+
+      if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
         throw shcore::Exception::argument_error(
-            "Cannot use the multiMaster and multiPrimary options "
-            "simultaneously. The multiMaster option is deprecated, please use "
-            "the multiPrimary option instead.");
-
-      if (opt_map.has_key("multiMaster")) {
-        multi_primary = opt_map.bool_at("multiMaster");
-        std::string warn_msg =
-            "The multiMaster option is deprecated. "
-            "Please use the multiPrimary option instead.";
-        console->print_warning(warn_msg);
-        console->println();
-      }
-
-      if (opt_map.has_key("multiPrimary"))
-        multi_primary = opt_map.bool_at("multiPrimary");
-
-      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
-
-      if (opt_map.has_key("adoptFromGR"))
-        adopt_from_gr = opt_map.bool_at("adoptFromGR");
-
-      if (opt_map.has_key("memberSslMode")) {
-        ssl_mode = opt_map.string_at("memberSslMode");
-      }
-      if (opt_map.has_key("ipWhitelist")) {
-        // if the ipWhitelist option was provided, we know it is a valid value
-        // since we've already done the validation above.
-        ip_whitelist = opt_map.string_at("ipWhitelist");
-        bool hostnames_supported = false;
-
-        // Validate ip whitelist option
-        if (group_session->get_server_version() >=
-            mysqlshdk::utils::Version(8, 0, 4)) {
-          hostnames_supported = true;
-        }
-
-        validate_ip_whitelist_option(ip_whitelist, hostnames_supported);
+            "Cannot use multiPrimary option if adoptFromGR is set to true."
+            " Using adoptFromGR mode will adopt the primary mode in use by the "
+            "Cluster.");
       }
 
       if (adopt_from_gr && opt_map.has_key("multiMaster")) {
@@ -1003,23 +1053,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
             " Using adoptFromGR mode will adopt the primary mode in use by the "
             "Cluster.");
       }
-      if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use multiPrimary option if adoptFromGR is set to true."
-            " Using adoptFromGR mode will adopt the primary mode in use by the "
-            "Cluster.");
-      }
-      if (opt_map.has_key("clearReadOnly"))
-        clear_read_only = opt_map.bool_at("clearReadOnly");
-
-      if (opt_map.has_key("groupName"))
-        group_name = opt_map.string_at("groupName");
-
-      if (opt_map.has_key("localAddress"))
-        local_address = opt_map.string_at("localAddress");
-
-      if (opt_map.has_key("groupSeeds"))
-        group_seeds = opt_map.string_at("groupSeeds");
     }
 
     // TODO(alfredo) - this check might be redundant with the ones done
@@ -1123,6 +1156,10 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     // Set group seeds
     if (!group_seeds.empty()) (*options)["groupSeeds"] = Value(group_seeds);
+
+    // Set exitStateAction
+    if (!exit_state_action.empty())
+      (*options)["exitStateAction"] = Value(exit_state_action);
 
     new_args.push_back(shcore::Value(options));
 

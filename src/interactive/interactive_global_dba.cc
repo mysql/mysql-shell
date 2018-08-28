@@ -33,6 +33,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_sql.h"
+#include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -322,6 +323,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   std::string cluster_name;
 
   bool adopt_from_gr = false;
+  bool clear_read_only = false;
 
   try {
     cluster_name = args.string_at(0);
@@ -332,17 +334,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     mysqlsh::dba::validate_cluster_name(cluster_name);
 
     if (args.size() > 1) {
+      // Handle the deprecation of multiMaster first
+
       // Map with the options
       options = args.map_at(1);
 
       // Verification of invalid attributes on the instance creation options
       shcore::Argument_map opt_map(*options);
-
-      opt_map.ensure_keys({}, mysqlsh::dba::Dba::_create_cluster_opts,
-                          "the options");
-
-      // Validate SSL options for the cluster instance
-      mysqlsh::dba::validate_ssl_instance_options(options);
 
       if (opt_map.has_key("multiPrimary") && opt_map.has_key("multiMaster"))
         throw shcore::Exception::argument_error(
@@ -350,33 +348,41 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
             "simultaneously. The multiMaster option is deprecated, please use "
             "the multiPrimary option instead.");
 
-      if (opt_map.has_key("multiMaster"))
-        multi_primary = opt_map.bool_at("multiMaster");
+      std::string ssl_mode, group_name, local_address, group_seeds,
+          exit_state_action, ip_whitelist;
 
-      if (opt_map.has_key("multiPrimary"))
-        multi_primary = opt_map.bool_at("multiPrimary");
+      // Retrieves optional options if exists
+      mysqlsh::Unpack_options(options)
+          .optional("multiPrimary", &multi_primary)
+          .optional("multiMaster", &multi_primary)
+          .optional("force", &force)
+          .optional("adoptFromGR", &adopt_from_gr)
+          .optional("memberSslMode", &ssl_mode)
+          .optional("clearReadOnly", &clear_read_only)
+          .optional("ipWhitelist", &ip_whitelist)
+          .optional("groupName", &group_name)
+          .optional("localAddress", &local_address)
+          .optional("groupSeeds", &group_seeds)
+          .optional("exitStateAction", &exit_state_action)
+          .end();
 
-      if (opt_map.has_key("force")) force = opt_map.bool_at("force");
-
-      if (opt_map.has_key("adoptFromGR"))
-        adopt_from_gr = opt_map.bool_at("adoptFromGR");
+      // Validate SSL options for the cluster instance
+      mysqlsh::dba::validate_ssl_instance_options(options);
 
       if (opt_map.has_key("clearReadOnly")) {
-        // This call is done only to validate the passed data
-        opt_map.bool_at("clearReadOnly");
         prompt_read_only = false;
-      }
-
-      if (adopt_from_gr && opt_map.has_key("multiMaster")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use multiMaster option if adoptFromGR is set to true."
-            " Using adoptFromGR mode will adopt the primary mode in use by the "
-            "Cluster.");
       }
 
       if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
         throw shcore::Exception::argument_error(
             "Cannot use multiPrimary option if adoptFromGR is set to true."
+            " Using adoptFromGR mode will adopt the primary mode in use by the "
+            "Cluster.");
+      }
+
+      if (adopt_from_gr && opt_map.has_key("multiMaster")) {
+        throw shcore::Exception::argument_error(
+            "Cannot use multiMaster option if adoptFromGR is set to true."
             " Using adoptFromGR mode will adopt the primary mode in use by the "
             "Cluster.");
       }

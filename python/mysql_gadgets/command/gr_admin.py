@@ -60,6 +60,7 @@ from mysql_gadgets.common.group_replication import (
     get_gr_name_from_peer,
     setup_gr_config,
     GR_IP_WHITELIST,
+    GR_EXIT_STATE_ACTION,
     GR_START_ON_BOOT,
     GR_FORCE_MEMBERS,
     GR_BOOTSTRAP_GROUP,
@@ -72,7 +73,7 @@ from mysql_gadgets.common.group_replication import (
     get_member_state, get_req_dict, get_req_dict_for_opt_file,
     get_req_dict_user_check, get_rpl_usr, get_group_uuid_name,
     is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
-    stop_gr_plugin, unset_bootstrap, validate_group_name)
+    stop_gr_plugin, unset_bootstrap, validate_exit_state_action, validate_group_name)
 from mysql_gadgets.common.tools import is_listening
 from mysql_gadgets.common.config_parser import create_option_file
 
@@ -383,6 +384,11 @@ def start(server_info, **kwargs):
                                      file when modifying the options file.
                         skip_schema_checks: Skip schema validation.
                         ssl_mode: SSL mode to be used with group replication.
+                        exit_state_action: Group Replication Exit State Action,
+                                           must be a string containing either
+                                           "ABORT_SERVER", "READ_ONLY", "0"
+                                           or "1".
+                                           The string is case-insensitive.
     :type kwargs:       dict
 
     :raise GadgetError:         If server_info is None.
@@ -408,6 +414,7 @@ def start(server_info, **kwargs):
     option_file = kwargs.get("option_file", None)
     skip_backup = kwargs.get("skip_backup", False)
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
+    exit_state_action = kwargs.get("exit_state_action", None)
 
     _LOGGER.step("Checking Group Replication prerequisites.")
     try:
@@ -436,6 +443,11 @@ def start(server_info, **kwargs):
         # verify the group replication is not Disabled in the server.
         check_gr_plugin_is_installed(server, option_file, dry_run)
 
+        # attempt to set the group_replication_exit_state_action in order to
+        # let GR do the value validation and catch any error right away
+        if exit_state_action is not None:
+            validate_exit_state_action(server, exit_state_action, dry_run)
+
         # verify the server does not belong already to a GR group.
         if is_active_member(server):
             health(server, **kwargs)
@@ -455,6 +467,9 @@ def start(server_info, **kwargs):
         # file) to use the default server value and not set it with None.
         if gr_config_vars[GR_IP_WHITELIST] is None:
             gr_config_vars.pop(GR_IP_WHITELIST)
+
+        if gr_config_vars[GR_EXIT_STATE_ACTION] is None:
+            gr_config_vars.pop(GR_EXIT_STATE_ACTION)
 
         if gr_config_vars[GR_GROUP_NAME] is None:
             new_uuid = get_group_uuid_name(server)
@@ -761,6 +776,7 @@ def join(server_info, peer_server_info, **kwargs):
     ssl_mode = kwargs.get("ssl_mode", GR_SSL_REQUIRED)
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
     target_is_local = kwargs.get("target_is_local", False)
+    exit_state_action = kwargs.get("exit_state_action", None)
 
     # Connect to the server
     server = get_server(server_info=server_info)
@@ -826,6 +842,11 @@ def join(server_info, peer_server_info, **kwargs):
 
         # verify the group replication is installed and not disabled.
         check_gr_plugin_is_installed(server, option_file, dry_run)
+
+        # attempt to set the group_replication_exit_state_action in order to
+        # let GR do the value validation and catch any error right away
+        if exit_state_action is not None:
+            validate_exit_state_action(server, exit_state_action, dry_run)
 
         # Initialize log error access and get current position in it
         error_log_size = None
@@ -925,6 +946,9 @@ def join(server_info, peer_server_info, **kwargs):
         # file) to use the default server value and not set it with None.
         if gr_config_vars[GR_IP_WHITELIST] is None:
             gr_config_vars.pop(GR_IP_WHITELIST)
+
+        if gr_config_vars[GR_EXIT_STATE_ACTION] is None:
+            gr_config_vars.pop(GR_EXIT_STATE_ACTION)
 
         gr_config_vars[GR_START_ON_BOOT] = "ON"
 

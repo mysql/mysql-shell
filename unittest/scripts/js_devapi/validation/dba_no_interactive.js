@@ -20,7 +20,7 @@
 ||Argument #1 is expected to be a string
 ||Dba.createCluster: The Cluster name cannot be empty
 ||Argument #2 is expected to be a map
-||Invalid values in the options: another, invalid
+||Invalid options: another, invalid
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.

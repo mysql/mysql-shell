@@ -94,6 +94,7 @@ GR_GROUP_NAME = "group_replication_group_name"
 GR_GROUP_SEEDS = "group_replication_group_seeds"
 GR_IP_WHITELIST = "group_replication_ip_whitelist"
 GR_LOCAL_ADDRESS = "group_replication_local_address"
+GR_EXIT_STATE_ACTION = "group_replication_exit_state_action"
 GR_FORCE_MEMBERS = "group_replication_force_members"
 GR_PIPELINE_TYPE_VAR = "group_replication_pipeline_type_var"
 GR_RECOVERY_COMPLETE_AT = "group_replication_recovery_complete_at"
@@ -190,7 +191,8 @@ DEFAULTS_FILE_OPTIONS = frozenset((GR_IP_WHITELIST,
                                    GR_GROUP_NAME,
                                    GR_GROUP_SEEDS,
                                    GR_LOCAL_ADDRESS,
-                                   GR_SINGLE_PRIMARY_MODE))
+                                   GR_SINGLE_PRIMARY_MODE,
+                                   GR_EXIT_STATE_ACTION))
 
 EQUIVALENT_OPTION_VALUES = {
     "ON": ("ON", "1"),
@@ -300,6 +302,11 @@ ERROR_PEERS_VARIABLE = ("The value '{0}' in variable '{1}' differs from the "
 
 PEER_VARIABLES = (TRANSACTION_WRITE_SET_EXTRACTION, )
 
+# MySQL SQL syntax error
+MYSQL_ER_PARSE_ERROR = 1064
+
+# MySQL variable invalid value
+MYSQL_ER_WRONG_VALUE_FOR_VAR = 1231
 
 def _format_table_results(dict_result, verbose=False):
     """Formats a table of the given dictionary results.
@@ -470,6 +477,30 @@ def unset_bootstrap(server, dry_run=False):
             server.exec_query("SET GLOBAL {0} = 0".format(GR_BOOTSTRAP_GROUP))
 
 
+def validate_exit_state_action(server, exit_state_action, dry_run=False):
+    """Validates the value of group_replication_exit_state_action by attempting
+    to set it and catch any error from GR
+
+    :param server:            A server with group replication plugin loaded
+    :type server:             Server instance (mysql_gadgets.common.server).
+    :param exit_state_action: The value of group_replication_exit_state_action.
+    :type exit_state_actrion: String
+    :param dry_run:           If true no actions will affect the given server.
+    :type dry_run:            bool.
+    """
+    if not dry_run:
+        try:
+            server.exec_query("SET GLOBAL group_replication_exit_state_action = "
+                              "{0}".format(exit_state_action))
+        except GadgetQueryError as db_err:
+            if db_err.errno == MYSQL_ER_PARSE_ERROR or db_err.errno == MYSQL_ER_WRONG_VALUE_FOR_VAR:
+                raise GadgetError("Invalid value for exitStateAction, can't be set "
+                                  "to the value of '{0}'"
+                                  .format(exit_state_action))
+            else:
+                raise GadgetError("An error occurred while setting variable "
+                                  "\n{0}: {1}".format(msg, db_err.errmsg))
+
 def get_gr_name_from_peer(peer_server):
     """Retrieves the GR name from where the given server belongs.
     :param peer_server: A server that is already member of a replication group.
@@ -586,8 +617,8 @@ def setup_gr_config(server, gr_config_vars, disable_binlog=True,
                     server.exec_query("SET SQL_LOG_BIN=0")
                 # NOTE: all quoting should really be happening here, not the
                 # caller
-                if (gr_config_vars[var] and type(gr_config_vars[var]) is str
-                      and gr_config_vars[var][0] in "'\""):
+                if ((gr_config_vars[var] and type(gr_config_vars[var]) is str
+                      and gr_config_vars[var][0] in "'\"") or var == GR_EXIT_STATE_ACTION):
                     server.exec_query("SET {0} {1} = {2}"
                                       "".format(set_mode, var,
                                                 gr_config_vars[var]))
@@ -2139,6 +2170,10 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                             for example: 192.168.1.0/24,10.0.0.1.
                             By default: AUTOMATIC (private network addresses
                             automatically allowed).
+        exit_state_action:  Group Replication Exit State Action, must be a
+                            string containing either "ABORT_SERVER",
+                            "READ_ONLY", "0" or "1".
+                            The string is case-insensitive.
     :param options_parser: Option file parser used to read the values in the
                            options file if available.
     :type options_parser: MySQLOptionsParser
@@ -2168,7 +2203,8 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_LOCAL_ADDRESS: local_address,
         GR_SINGLE_PRIMARY_MODE: options.get("single_primary", None),
         GR_GROUP_SEEDS: options.get("group_seeds", None),
-        GR_IP_WHITELIST: options.get("ip_whitelist", None)
+        GR_IP_WHITELIST: options.get("ip_whitelist", None),
+        GR_EXIT_STATE_ACTION: options.get("exit_state_action", None)
     }
 
     # Validate Group Name

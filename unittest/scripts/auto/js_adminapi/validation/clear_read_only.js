@@ -1,6 +1,6 @@
 
 //@ Dba_create_cluster.clear_read_only_invalid
-||Dba.createCluster: Argument 'clearReadOnly' is expected to be a bool (TypeError)
+||Dba.createCluster: Option 'clearReadOnly' is expected to be of type Bool, but is String (TypeError)
 
 //@<OUT> Dba_create_cluster.clear_read_only_unset
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...

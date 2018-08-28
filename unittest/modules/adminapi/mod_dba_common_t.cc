@@ -1113,6 +1113,30 @@ TEST_F(Dba_common_test, validate_ipwhitelist_option) {
   session->close();
   testutil->destroy_sandbox(_mysql_sandbox_port1);
 }
+
+TEST_F(Dba_common_test, validate_exit_state_action_supported) {
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  auto session = create_session(_mysql_sandbox_port1);
+  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+
+  auto version = session->get_server_version();
+
+  (*options)["exitStateAction"] = shcore::Value("1");
+
+  // Error only if the target server version is >= 5.7.24 if 5.0, or >= 8.0.12
+  // if 8.0.
+  if (version < mysqlshdk::utils::Version(5, 7, 24) ||
+      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
+       version < mysqlshdk::utils::Version(8, 0, 12))) {
+    EXPECT_THROW(mysqlsh::dba::validate_exit_state_action_supported(session),
+                 shcore::Exception);
+  } else {
+    EXPECT_NO_THROW(
+        mysqlsh::dba::validate_exit_state_action_supported(session));
+  }
+
+  session->close();
+}
 }  // namespace tests
 
 TEST(mod_dba_common, validate_label) {

@@ -329,6 +329,8 @@ DESCRIPTION
       - groupSeeds: string value with a comma-separated list of the Group
         Replication peer addresses to be used instead of the automatically
         generated one.
+      - exitStateAction: string value indicating the group replication exit
+        state action.
 
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
@@ -343,7 +345,7 @@ DESCRIPTION
       By default this function create a Single Primary cluster, use the
       multiPrimary option set to true if a Multi Primary cluster is required.
 
-      The memberSslMode option supports these values:
+      The memberSslMode option supports the following values:
 
       - REQUIRED: if used, SSL (encryption) will be enabled for the instances
         to communicate with other members of the cluster
@@ -352,6 +354,15 @@ DESCRIPTION
         instance, otherwise disabled
 
       If memberSslMode is not specified AUTO will be used by default.
+
+      The exitStateAction option supports the following values:
+
+      - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
+        cluster unintentionally.
+      - READ_ONLY: if used, the instance switches itself to super-read-only
+        mode if it leaves the cluster unintentionally.
+
+      If exitStateAction is not specified ABORT_SERVER will be used by default.
 
       The ipWhitelist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
@@ -381,6 +392,15 @@ DESCRIPTION
       comma-separated list of addresses in the format:
       'host1:port1,...,hostN:portN'.
 
+      The value for exitStateAction is used to configure how Group Replication
+      behaves when a server instance leaves the group unintentionally, for
+      example after encountering an applier error. When set to ABORT_SERVER,
+      the instance shuts itself down, and when set to READ_ONLY the server
+      switches itself to super-read-only mode. The exitStateAction option
+      accepts case-insensitive string values, being the accepted values:
+      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is
+      ABORT_SERVER.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -395,13 +415,13 @@ EXCEPTIONS
       - If adoptFromGR is true and the memberSslMode option is used.
       - If the value for the memberSslMode option is not one of the allowed.
       - If adoptFromGR is true and the multiPrimary option is used.
-      - If the value for the ipWhitelist, groupName, localAddress, or
-        groupSeeds options is empty.
+      - If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
+        or exitStateAction options is empty.
 
       RuntimeError in the following scenarios:
 
-      - If the value for the groupName, localAddress, or groupSeeds options is
-        not valid for Group Replication.
+      - If the value for the groupName, localAddress, groupSeeds, or
+        exitStateAction options is not valid for Group Replication.
       - If the current connection cannot be used for Group Replication.
 
 #@<OUT> dba.delete_sandbox_instance
