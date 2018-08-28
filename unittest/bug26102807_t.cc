@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -45,10 +45,17 @@ TEST_F(Command_line_test, bug26102807) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "create table bug26102807.test(a varchar (32));\nQuery OK");
 
+#ifdef HAVE_V8
     execute(
-        {_mysqlsh, uri.c_str(), "--interactive=full", "-e",
+        {_mysqlsh, uri.c_str(), "--js", "--interactive=full", "-e",
          "session.sql('select * from bug26102807.test').execute().getColumns()",
          NULL});
+#else
+    execute({_mysqlsh, uri.c_str(), "--py", "--interactive=full", "-e",
+             "session.sql('select * from "
+             "bug26102807.test').execute().get_columns()",
+             NULL});
+#endif
     MY_EXPECT_CMD_OUTPUT_CONTAINS("[");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("<Column>");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("]");
@@ -67,8 +74,13 @@ TEST_F(Command_line_test, bug26102807) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "create table bug26102807.test(a varchar (32));\nQuery OK");
 
-    execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e",
+#ifdef HAVE_V8
+    execute({_mysqlsh, uri.c_str(), "--js", "--interactive=full", "-e",
              "session.runSql('select * from bug26102807.test');", NULL});
+#else
+    execute({_mysqlsh, uri.c_str(), "--py", "--interactive=full", "-e",
+             "session.run_sql('select * from bug26102807.test');", NULL});
+#endif
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Empty set");
   }
 

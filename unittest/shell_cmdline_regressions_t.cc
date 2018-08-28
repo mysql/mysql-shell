@@ -68,6 +68,7 @@ MY_EXPECT_MULTILINE_OUTPUT("select -127 << 1.1",
 }
 ;
 
+#ifdef HAVE_V8
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
   // In 8.0.4, the mysqlx_cache_cleaner is also supposed to be installed
@@ -121,6 +122,7 @@ TEST_F(Command_line_test, bug23508428) {
       "connections on port " +
       _port);
 }
+#endif
 
 TEST_F(Command_line_test, bug24905066) {
   // Tests URI formatting using classic protocol
@@ -356,8 +358,13 @@ TEST_F(Command_line_test, bug26970629) {
     FAIL();
   } else {
     std::string usr = "--user=" + _user;
-    execute({_mysqlsh, usr.c_str(), pwd.c_str(), host.c_str(), socket.c_str(),
-             "-e", "dba.createCluster('sample')", NULL});
+#ifdef HAVE_V8
+    execute({_mysqlsh, "--js", usr.c_str(), pwd.c_str(), host.c_str(),
+             socket.c_str(), "-e", "dba.createCluster('sample')", NULL});
+#else
+    execute({_mysqlsh, "--py", usr.c_str(), pwd.c_str(), host.c_str(),
+             socket.c_str(), "-e", "dba.create_cluster('sample')", NULL});
+#endif
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "a MySQL session through TCP/IP is required to perform this operation");
   }

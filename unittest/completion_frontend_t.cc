@@ -489,11 +489,16 @@ TEST_F(Completer_frontend, builtin_others) {
   EXPECT_AFTER_TAB("\\hi", "\\history");
   EXPECT_AFTER_TAB("\\he", "\\help");
 
-  EXPECT_AFTER_TAB_TAB(
-      "\\", strv({"\\", "\\connect", "\\exit", "\\help", "\\history", "\\js",
-                  "\\nowarnings", "\\option", "\\py", "\\quit", "\\reconnect",
-                  "\\rehash", "\\source", "\\sql", "\\status", "\\use",
-                  "\\warnings"}));
+  auto expect = strv({"\\", "\\connect", "\\exit", "\\help", "\\history",
+                      "\\js", "\\nowarnings", "\\option", "\\py", "\\quit",
+                      "\\reconnect", "\\rehash", "\\source", "\\sql",
+                      "\\status", "\\use", "\\warnings"});
+
+#ifndef HAVE_V8
+  expect.erase(std::find(expect.begin(), expect.end(), "\\js"));
+#endif
+
+  EXPECT_AFTER_TAB_TAB("\\", expect);
 }
 
 // FR4
@@ -575,6 +580,7 @@ TEST_F(Completer_frontend, sql_table_o3) {
   EXPECT_AFTER_TAB("describe `pl", "describe `plugin`");
 }
 
+#ifdef HAVE_V8
 TEST_F(Completer_frontend, js_keywords) {
   execute("\\js");
 
@@ -1061,7 +1067,7 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"query", "('select 1')"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 }
-
+#endif
 // -----
 
 TEST_F(Completer_frontend, py_keywords) {

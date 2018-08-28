@@ -31,6 +31,16 @@
 
 namespace tests {
 class Collection_find : public Shell_core_test_wrapper {
+ protected:
+#ifdef HAVE_V8
+  const std::string start_txn_stmt = "session.startTransaction();";
+  const std::string lock_shared_fn = "lockShared";
+  const std::string lock_exclusive_fn = "lockExclusive";
+#else
+  const std::string start_txn_stmt = "session.start_transaction();";
+  const std::string lock_shared_fn = "lock_shared";
+  const std::string lock_exclusive_fn = "lock_exclusive";
+#endif
  public:
   virtual void set_options() {
     _options->interactive = true;
@@ -48,8 +58,13 @@ class Collection_find : public Shell_core_test_wrapper {
     // Connects the two shell instances to be used on these tests
     execute("\\connect --mx " + _uri);
 
+#ifdef HAVE_V8
     execute("var schema = session.getSchema('test_locking');");
     execute("var col = schema.getCollection('test');");
+#else
+    execute("schema = session.get_schema('test_locking');");
+    execute("col = schema.get_collection('test');");
+#endif
 
     // Cleans the stream
     _cout.str("");
@@ -71,12 +86,17 @@ class Collection_find : public Shell_core_test_wrapper {
     // preparation
     global_shell.execute(
         "session.sql('drop schema if exists test_locking').execute();");
+#ifdef HAVE_V8
     global_shell.execute("var schema = session.createSchema('test_locking');");
     global_shell.execute("var col = schema.createCollection('test');");
+#else
+    global_shell.execute("schema = session.create_schema('test_locking');");
+    global_shell.execute("col = schema.create_collection('test');");
+#endif
 
-    global_shell.execute("col.add({_id:'1', a: 1}).execute();");
-    global_shell.execute("col.add({_id:'2', a: 1}).execute();");
-    global_shell.execute("col.add({_id:'3', a: 1}).execute();");
+    global_shell.execute("col.add({'_id':'1', 'a': 1}).execute();");
+    global_shell.execute("col.add({'_id':'2', 'a': 1}).execute();");
+    global_shell.execute("col.add({'_id':'3', 'a': 1}).execute();");
 
     global_shell.execute("session.close();");
 
@@ -87,7 +107,11 @@ class Collection_find : public Shell_core_test_wrapper {
     tests::Shell_test_wrapper global_shell;
     global_shell.execute("\\connect --mx " + shell_test_server_uri('x'));
 
+#ifdef HAVE_V8
     global_shell.execute("session.dropSchema('test_locking');");
+#else
+    global_shell.execute("session.drop_schema('test_locking');");
+#endif
     global_shell.execute("session.close();");
   }
 
@@ -138,9 +162,9 @@ TEST_F(Collection_find, lock_none) {
 }
 
 TEST_F(Collection_find, lock_shared) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockShared();");
+  execute("col.find('_id = \"1\"')." + lock_shared_fn + "();");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_shared",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -182,9 +206,9 @@ TEST_F(Collection_find, lock_shared) {
 }
 
 TEST_F(Collection_find, lock_shared_nowait_string) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockShared('nowait');");
+  execute("col.find('_id = \"1\"')." + lock_shared_fn + "('nowait');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_shared",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -227,9 +251,10 @@ TEST_F(Collection_find, lock_shared_nowait_string) {
 }
 
 TEST_F(Collection_find, lock_shared_nowait_constant) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockShared(mysqlx.LockContention.NOWAIT);");
+  execute("col.find('_id = \"1\"')." + lock_shared_fn +
+          "(mysqlx.LockContention.NOWAIT);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_shared",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -272,9 +297,9 @@ TEST_F(Collection_find, lock_shared_nowait_constant) {
 }
 
 TEST_F(Collection_find, lock_shared_skip_lock_string) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockShared('skip_locked');");
+  execute("col.find('_id = \"1\"')." + lock_shared_fn + "('skip_locked');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_shared",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -317,10 +342,10 @@ TEST_F(Collection_find, lock_shared_skip_lock_string) {
 }
 
 TEST_F(Collection_find, lock_shared_skip_lock_constant) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute(
-      "col.find('_id = \"1\"').lockShared(mysqlx.LockContention.SKIP_LOCKED);");
+  execute("col.find('_id = \"1\"')." + lock_shared_fn +
+          "(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_shared",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -363,9 +388,9 @@ TEST_F(Collection_find, lock_shared_skip_lock_constant) {
 }
 
 TEST_F(Collection_find, lock_exclusive) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockExclusive();");
+  execute("col.find('_id = \"1\"')." + lock_exclusive_fn + "();");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_exclusive",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -407,9 +432,9 @@ TEST_F(Collection_find, lock_exclusive) {
 }
 
 TEST_F(Collection_find, lock_exclusive_nowait_string) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockExclusive('nowait');");
+  execute("col.find('_id = \"1\"')." + lock_exclusive_fn + "('nowait');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_exclusive",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -452,10 +477,10 @@ TEST_F(Collection_find, lock_exclusive_nowait_string) {
 }
 
 TEST_F(Collection_find, lock_exclusive_nowait_constant) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute(
-      "col.find('_id = \"1\"').lockExclusive(mysqlx.LockContention.NOWAIT);");
+  execute("col.find('_id = \"1\"')." + lock_exclusive_fn +
+          "(mysqlx.LockContention.NOWAIT);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_exclusive",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -498,9 +523,9 @@ TEST_F(Collection_find, lock_exclusive_nowait_constant) {
 }
 
 TEST_F(Collection_find, lock_exclusive_skip_lock_string) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
-  execute("col.find('_id = \"1\"').lockExclusive('skip_locked');");
+  execute("col.find('_id = \"1\"')." + lock_exclusive_fn + "('skip_locked');");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_exclusive",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",
@@ -543,11 +568,12 @@ TEST_F(Collection_find, lock_exclusive_skip_lock_string) {
 }
 
 TEST_F(Collection_find, lock_exclusive_skip_lock_constant) {
-  execute("session.startTransaction();");
+  execute(start_txn_stmt);
   _cout.str("");
   execute(
       "col.find('_id = "
-      "\"1\"').lockExclusive(mysqlx.LockContention.SKIP_LOCKED);");
+      "\"1\"')." +
+      lock_exclusive_fn + "(mysqlx.LockContention.SKIP_LOCKED);");
   // Validates the stream
   MY_EXPECT_MULTILINE_OUTPUT("Collection_find.lock_exclusive",
                              multiline({">>>> SEND Mysqlx.Crud.Find {",

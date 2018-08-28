@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,6 +84,7 @@ TEST_F(Shell_error_printing, python_stack) {
       output_handler.std_err);
 }
 
+#ifdef HAVE_V8
 TEST_F(Shell_error_printing, js_stack) {
   reset_shell();
   execute("\\js");
@@ -106,6 +107,7 @@ TEST_F(Shell_error_printing, js_stack) {
       "dba.deploySandboxInstance(-1, {'password':''})\n       ^\n",
       output_handler.std_err);
 }
+#endif
 
 TEST_F(Shell_error_printing, sql_error) {
   execute("\\sql");

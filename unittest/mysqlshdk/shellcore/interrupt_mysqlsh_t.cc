@@ -216,6 +216,7 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
   std::thread kill_thread;
 };
 
+#ifdef HAVE_V8
 TEST_F(Interrupt_mysqlsh, crud_js_x_cli) {
   // FR8-b-8 FR9-b-9
   kill_on_ready();
@@ -228,6 +229,7 @@ TEST_F(Interrupt_mysqlsh, crud_js_x_cli) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("nterrupted");
 }
+#endif
 
 TEST_F(Interrupt_mysqlsh, crud_py_x_cli) {
   // FR8-b-9 FR9-b-9
@@ -251,6 +253,7 @@ TEST_F(Interrupt_mysqlsh, py_cli) {
   EXPECT_EQ(130, rc);
 }
 
+#ifdef HAVE_V8
 TEST_F(Interrupt_mysqlsh, js_cli) {
   // FR8-b-8 FR9-b-8
   kill_on_ready();
@@ -259,6 +262,7 @@ TEST_F(Interrupt_mysqlsh, js_cli) {
       {_mysqlsh, "--js", "-e", "print('ready'); os.sleep(10)", nullptr});
   EXPECT_EQ(130, rc);
 }
+#endif
 
 #define TEST_INTERRUPT_SCRIPT_I(uri, lang, file)                              \
   {                                                                           \
@@ -345,6 +349,7 @@ TEST_F(Interrupt_mysqlsh, py_file_batch) {
   TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--py", "test_queryc.py");
 }
 
+#ifdef HAVE_V8
 TEST_F(Interrupt_mysqlsh, js_file_interactive) {
   // Test cases for FR8-a-2 FR8-b-2 FR9-a-2 FR9-b-2
   const char *expect = "Script execution interrupted by user";
@@ -395,6 +400,7 @@ TEST_F(Interrupt_mysqlsh, js_file_batch) {
   TEST_INTERRUPT_SCRIPT_B(_uri.c_str(), "--js", "test_queryx.js");
   TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--js", "test_queryc.js");
 }
+#endif
 
   //------------------------------------------------------------------------------
 

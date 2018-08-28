@@ -32,6 +32,12 @@ extern mysqlshdk::utils::Version g_target_server_version;
 
 namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
+ protected:
+#ifdef HAVE_V8
+  const std::string to_scripting = "\\js";
+#else
+  const std::string to_scripting = "\\py";
+#endif
  public:
   virtual void set_options() {
     _options->interactive = true;
@@ -846,7 +852,8 @@ TEST_F(Interactive_shell_test, shell_command_sql_use) {
       "Fetching table and column names from `mysql` for auto-completion...");
   output_handler.wipe_all();
 
-  execute("\\js");
+  execute(to_scripting);
+
   output_handler.wipe_all();
   execute("db");
   EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
@@ -912,6 +919,7 @@ TEST_F(Interactive_shell_test, shell_empty_source_command) {
   output_handler.wipe_all();
 }
 
+#ifdef HAVE_V8
 TEST_F(Interactive_shell_test, shell_command_source_invalid_path_js) {
   _interactive_shell->process_line("\\js");
 
@@ -932,6 +940,7 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_js) {
 
   output_handler.wipe_all();
 }
+#endif
 
 TEST_F(Interactive_shell_test, shell_command_source_invalid_path_py) {
   _interactive_shell->process_line("\\py");
@@ -1017,6 +1026,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   }
 }
 
+#ifdef HAVE_V8
 TEST_F(Interactive_shell_test, js_startup_scripts) {
   std::string user_path = shcore::get_user_config_path();
   user_path += "mysqlshrc.js";
@@ -1078,6 +1088,7 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
     }
   }
 }
+#endif
 
 TEST_F(Interactive_shell_test, expired_account_support_classic) {
   // Test secure call passing uri with no password (will be prompted)
@@ -1100,7 +1111,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
-  execute("\\js");
+  execute(to_scripting);
   execute("session.close()");
   execute("\\sql");
 
@@ -1128,13 +1139,13 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   output_handler.wipe_all();
 
-  execute("\\js");
+  execute(to_scripting);
   execute("session.close()");
   execute("\\sql");
 
   execute("\\c " + _mysql_uri);
   execute("drop user if exists expired;");
-  execute("\\js ");
+  execute(to_scripting);
   execute("session.close()");
   MY_EXPECT_STDOUT_CONTAINS("");
 }
@@ -1160,7 +1171,7 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
-  execute("\\js");
+  execute(to_scripting);
   execute("session.close()");
   execute("\\sql");
 
@@ -1188,13 +1199,13 @@ TEST_F(Interactive_shell_test, expired_account_support_node) {
   MY_EXPECT_STDOUT_CONTAINS("1 row in set");
   output_handler.wipe_all();
 
-  execute("\\js");
+  execute(to_scripting);
   execute("session.close()");
   execute("\\sql");
 
   execute("\\c " + _uri);
   execute("drop user if exists expired;");
-  execute("\\js ");
+  execute(to_scripting);
   execute("session.close()");
   MY_EXPECT_STDOUT_CONTAINS("");
 }
@@ -1242,7 +1253,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "+---+-------+--------+----------+-------+-------+-------+----------------------+------------------------+\n"
       "4 rows in set (");
   // clang-format on
-  execute("\\js");
+  execute(to_scripting);
   execute("shell.options['outputFormat']='vertical'");
   execute("\\sql");
   wipe_all();
@@ -1291,7 +1302,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "    i: NULL\n"
       "4 rows in set");
 
-  execute("\\js");
+  execute(to_scripting);
   execute("shell.options['outputFormat']='json'");
   execute("\\sql");
   wipe_all();
@@ -1399,7 +1410,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n"
       "4 rows in set (");
   // clang-format on
-  execute("\\js");
+  execute(to_scripting);
   execute("shell.options['outputFormat']='vertical'");
   execute("\\sql");
   wipe_all();
@@ -1448,7 +1459,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "    i: NULL\n"
       "4 rows in set");
 
-  execute("\\js");
+  execute(to_scripting);
   execute("shell.options['outputFormat']='json'");
   execute("\\sql");
   wipe_all();
@@ -1738,6 +1749,7 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   EXPECT_EQ("", output_handler.std_err);
   EXPECT_TRUE(_options->show_warnings);
 
+#ifdef HAVE_V8
   execute("\\js");
   wipe_all();
 
@@ -1785,6 +1797,7 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   EXPECT_TRUE(_options->show_warnings);
 
   wipe_all();
+#endif
   reset_options();
   reset_shell();
 }
@@ -1944,8 +1957,12 @@ TEST_F(Interactive_shell_test, bug_28240437) {
   EXPECT_EQ("", output_handler.std_err);
   wipe_all();
 
-  execute("\\js");
+  execute(to_scripting);
+#ifdef HAVE_V8
   MY_EXPECT_STDOUT_CONTAINS("Switching to JavaScript mode...");
+#else
+  MY_EXPECT_STDOUT_CONTAINS("Switching to Python mode...");
+#endif
   EXPECT_EQ("", output_handler.std_err);
   wipe_all();
 
@@ -1988,11 +2005,13 @@ TEST_F(Interactive_shell_test, invalid_command) {
 }
 
 TEST_F(Interactive_shell_test, multi_line_command) {
+#ifdef HAVE_V8
   wipe_all();
   execute("\\js");
   wipe_all();
   execute("\\");
   MY_EXPECT_STDERR_CONTAINS("SyntaxError: Unexpected token ILLEGAL");
+#endif
 
   wipe_all();
   execute("\\py");

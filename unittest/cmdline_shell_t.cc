@@ -93,7 +93,8 @@ TEST(Cmdline_shell, query_variable_x) {
                     "bogus", mysqlsh::Prompt_manager::Mysql_system_variable));
 }
 
-TEST(Cmdline_shell, prompt) {
+#ifdef HAVE_V8
+TEST(Cmdline_shell, prompt_js) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   const_cast<char *>("--interactive"), nullptr};
   mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(3, args));
@@ -115,6 +116,42 @@ TEST(Cmdline_shell, prompt) {
   shell.process_line("if (1) {");
   EXPECT_EQ("  -> ", shell.prompt());
   shell.process_line("}");
+  shell.process_line("");
+
+  EXPECT_EQ("A B> ", shell.prompt());
+
+  // bad theme data
+  of.open("test.theme");
+  of << "{'segments':{'text':'A'}}\n";
+  of.close();
+  EXPECT_NO_THROW(shell.load_prompt_theme("test.theme"));
+
+  shcore::delete_file("test.theme");
+}
+#endif
+
+TEST(Cmdline_shell, prompt_py) {
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
+                  const_cast<char *>("--interactive"), nullptr};
+  mysqlsh::Command_line_shell shell(std::make_shared<Shell_options>(3, args));
+  shell.finish_init();
+
+  EXPECT_EQ("mysql-py> ", shell.prompt());
+
+  EXPECT_NO_THROW(shell.load_prompt_theme("invalid"));
+
+  std::ofstream of;
+  of.open("test.theme");
+  of << "{'segments':[{'text':'A'},{'text':'B'}]}\n";
+  of.close();
+
+  shell.load_prompt_theme("test.theme");
+  EXPECT_EQ("A B> ", shell.prompt());
+
+  // continuation
+  shell.process_line("if 1:");
+  EXPECT_EQ("  -> ", shell.prompt());
+  shell.process_line("  pass");
   shell.process_line("");
 
   EXPECT_EQ("A B> ", shell.prompt());

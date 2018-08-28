@@ -120,6 +120,14 @@ class ShellRunScript : public Shell_core_test_wrapper {
 };
 
 class ShellExeRunScript : public tests::Command_line_test {
+ protected:
+#ifdef HAVE_V8
+  const std::string mode = "--js";
+  const std::string file = "good.js";
+#else
+  const std::string mode = "--py";
+  const std::string file = "good.py";
+#endif
  public:
   static void SetUpTestCase() {
     shcore::create_file("good.sql",
@@ -180,6 +188,25 @@ class ShellExeRunScript : public tests::Command_line_test {
                         "try {session.sql('kill ?').bind("
                         "[session.sql('select connection_id()').execute()"
                         ".fetchOne()[0]]).execute(); } catch(e){};\n"
+                        "session.sql('select 1').execute();\n"
+                        "session.sql('select 1').execute();\n");
+    shcore::create_file("reconnect_mysql.py",
+                        "session.run_sql('select 1');\n"
+                        "try:\n"
+                        "  session.run_sql('kill ?', [session.run_sql('select "
+                        "connection_id()').fetch_one()[0]]);\n"
+                        "except Exception, err:\n"
+                        "  pass\n\n"
+                        "session.run_sql('select 1');\n"
+                        "session.run_sql('select 1');\n");
+    shcore::create_file("reconnect_mysqlx.py",
+                        "session.sql('select 1').execute();\n"
+                        "try:\n"
+                        "  session.sql('kill ?').bind([session.sql('select "
+                        "connection_id()').execute().fetch_one()[0]])."
+                        "execute();\n"
+                        "except Exception, err:\n"
+                        "  pass\n\n"
                         "session.sql('select 1').execute();\n"
                         "session.sql('select 1').execute();\n");
     // disable prompt theme, so we can check output along with prompt
@@ -351,6 +378,7 @@ TEST_F(ShellRunScript, sql_stream) {
   }
 }
 
+#ifdef HAVE_V8
 TEST_F(ShellRunScript, js_file) {
   {
     RESET_BATCH("js");
@@ -461,6 +489,7 @@ TEST_F(ShellRunScript, js_stream) {
     MY_EXPECT_STDERR_CONTAINS("error");
   }
 }
+#endif
 
 TEST_F(ShellRunScript, py_file) {
   {
@@ -581,8 +610,8 @@ end)";
 
   {
     wipe_out();
-    int rc =
-        execute({_mysqlsh, _uri.c_str(), "--js", nullptr}, nullptr, "good.js");
+    int rc = execute({_mysqlsh, _uri.c_str(), mode.c_str(), nullptr}, nullptr,
+                     file.c_str());
     // no error, exit code 0
     EXPECT_EQ(0, rc);
     MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
@@ -601,9 +630,9 @@ end)";
 
   {
     wipe_out();
-    int rc = execute(
-        {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
-        _pwd.c_str());
+    int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), mode.c_str(), "-f",
+                      file.c_str(), nullptr},
+                     _pwd.c_str());
     // no error, exit code 0
     EXPECT_EQ(0, rc);
     MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
@@ -612,9 +641,9 @@ end)";
   {
     wipe_out();
     std::string password_followed_by_whitespace = _pwd + " ";
-    int rc = execute(
-        {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
-        password_followed_by_whitespace.c_str());
+    int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), mode.c_str(), "-f",
+                      file.c_str(), nullptr},
+                     password_followed_by_whitespace.c_str());
     // wrong password, exit code 1
     EXPECT_EQ(1, rc);
     if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
@@ -628,9 +657,9 @@ end)";
   {
     wipe_out();
     std::string wrong_password = _pwd + "zaq12WSX";
-    int rc = execute(
-        {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
-        wrong_password.c_str());
+    int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), mode.c_str(), "-f",
+                      file.c_str(), nullptr},
+                     wrong_password.c_str());
     // wrong password, exit code 1
     EXPECT_EQ(1, rc);
     if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
@@ -645,9 +674,9 @@ end)";
 
 TEST_F(ShellExeRunScript, file_prompt_password_cancel) {
   wipe_out();
-  int rc = execute(
-      {_mysqlsh, _uri_nopasswd.c_str(), "--js", "-f", "good.js", nullptr},
-      "pass\x03");
+  int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), mode.c_str(), "-f",
+                    file.c_str(), nullptr},
+                   "pass\x03");
   // cancelled, exit code 1
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Cancelled");
@@ -661,8 +690,8 @@ end)";
 
   {
     wipe_out();
-    int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), "--js", nullptr},
-                     _pwd.c_str(), "good.js");
+    int rc = execute({_mysqlsh, _uri_nopasswd.c_str(), mode.c_str(), nullptr},
+                     _pwd.c_str(), file.c_str());
     // no error, exit code 0
     EXPECT_EQ(0, rc);
     MY_EXPECT_CMD_OUTPUT_CONTAINS(good_js_output);
@@ -670,8 +699,8 @@ end)";
 }
 
 #endif  // ! _WIN32
-
-TEST_F(ShellExeRunScript, reconnect_mysql_session) {
+#ifdef HAVE_V8
+TEST_F(ShellExeRunScript, reconnect_mysql_session_js) {
   static constexpr auto first_execution =
       R"(No default schema selected; type \use <schema> to set one.
 NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
@@ -708,7 +737,7 @@ mysql-js []> session.runSql('select 1');
   MY_EXPECT_CMD_OUTPUT_CONTAINS(third_execution);
 }
 
-TEST_F(ShellExeRunScript, reconnect_mysqlx_session) {
+TEST_F(ShellExeRunScript, reconnect_mysqlx_session_js) {
   static constexpr auto first_execution =
       R"(No default schema selected; type \use <schema> to set one.
 NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
@@ -737,6 +766,78 @@ mysql-js []> session.sql('select 1').execute();
   int rc =
       execute({_mysqlsh, _uri.c_str(), "--js", "--interactive=full", nullptr},
               nullptr, "reconnect_mysqlx.js");
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(first_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(second_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(third_execution);
+}
+#endif
+
+TEST_F(ShellExeRunScript, reconnect_mysql_session_py) {
+  static constexpr auto first_execution =
+      R"(No default schema selected; type \use <schema> to set one.
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+mysql-py []> session.run_sql('select 1');
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+  static constexpr auto second_execution =
+      R"(MySQL Error (2013): ClassicSession.run_sql: Lost connection to MySQL server during query
+The global session got disconnected..
+Attempting to reconnect to 'mysql://)";
+  static constexpr auto third_execution =
+      R"(The global session was successfully reconnected.
+mysql-py []> session.run_sql('select 1');
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+
+  wipe_out();
+  int rc = execute(
+      {_mysqlsh, _mysql_uri.c_str(), "--py", "--interactive=full", nullptr},
+      nullptr, "reconnect_mysql.py");
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(first_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(second_execution);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(third_execution);
+}
+
+TEST_F(ShellExeRunScript, reconnect_mysqlx_session_py) {
+  static constexpr auto first_execution =
+      R"(No default schema selected; type \use <schema> to set one.
+NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+mysql-py []> session.sql('select 1').execute();
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+  static constexpr auto second_execution =
+      R"(mysqlsh.DBError: MySQL Error (2006): MySQL server has gone away
+The global session got disconnected..
+Attempting to reconnect to 'mysqlx://)";
+  static constexpr auto third_execution =
+      R"(The global session was successfully reconnected.
+mysql-py []> session.sql('select 1').execute();
++---+
+| 1 |
++---+
+| 1 |
++---+
+1 row in set)";
+  wipe_out();
+  int rc =
+      execute({_mysqlsh, _uri.c_str(), "--py", "--interactive=full", nullptr},
+              nullptr, "reconnect_mysqlx.py");
   // no error, exit code 0
   EXPECT_EQ(0, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(first_execution);
