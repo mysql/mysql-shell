@@ -33,6 +33,12 @@ namespace tests {
 #endif
 
 class Mysqlsh_credential_store : public tests::Command_line_test {
+ protected:
+#ifdef HAVE_V8
+  const std::string mode = "--js";
+#else
+  const std::string mode = "--py";
+#endif
  public:
   void SetUp() override {
     unsetenv("MYSQLSH_CREDENTIAL_STORE_HELPER");
@@ -51,22 +57,22 @@ class Mysqlsh_credential_store : public tests::Command_line_test {
 };
 
 TEST_F(Mysqlsh_credential_store, default_helper) {
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("default");
   wipe_out();
 }
 
 TEST_F(Mysqlsh_credential_store, cmdline_plaintext_helper) {
-  execute({_mysqlsh, "--credential-store-helper=plaintext", "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, "--credential-store-helper=plaintext", mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("plaintext");
   wipe_out();
 }
 
 TEST_F(Mysqlsh_credential_store, cmdline_disabled_helper) {
-  execute({_mysqlsh, "--credential-store-helper=<disabled>", "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, "--credential-store-helper=<disabled>", mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<disabled>");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
       "Credential store mechanism is going to be disabled.");
@@ -74,8 +80,8 @@ TEST_F(Mysqlsh_credential_store, cmdline_disabled_helper) {
 }
 
 TEST_F(Mysqlsh_credential_store, cmdline_invalid_helper) {
-  execute({_mysqlsh, "--credential-store-helper=unknown", "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, "--credential-store-helper=unknown", mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Failed to initialize the user-specified helper \"unknown\": Credential "
       "helper named \"unknown\" could not be found or is invalid. "
@@ -89,8 +95,8 @@ TEST_F(Mysqlsh_credential_store, cmdline_invalid_helper) {
 TEST_F(Mysqlsh_credential_store, env_plaintext_helper) {
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=plaintext"));
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("plaintext");
   wipe_out();
 }
@@ -98,8 +104,8 @@ TEST_F(Mysqlsh_credential_store, env_plaintext_helper) {
 TEST_F(Mysqlsh_credential_store, env_disabled_helper) {
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=<disabled>"));
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<disabled>");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
       "Credential store mechanism is going to be disabled.");
@@ -109,8 +115,8 @@ TEST_F(Mysqlsh_credential_store, env_disabled_helper) {
 TEST_F(Mysqlsh_credential_store, env_invalid_helper) {
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_HELPER=unknown"));
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Failed to initialize the user-specified helper \"unknown\": Credential "
       "helper named \"unknown\" could not be found or is invalid. "
@@ -122,31 +128,31 @@ TEST_F(Mysqlsh_credential_store, env_invalid_helper) {
 }
 
 TEST_F(Mysqlsh_credential_store, default_save_passwords) {
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("prompt");
   wipe_out();
 }
 
 TEST_F(Mysqlsh_credential_store, cmdline_never_save_passwords) {
-  execute({_mysqlsh, "--save-passwords=never", "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, "--save-passwords=never", mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("never");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("must be one of");
   wipe_out();
 }
 
 TEST_F(Mysqlsh_credential_store, cmdline_always_save_passwords) {
-  execute({_mysqlsh, "--save-passwords=always", "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, "--save-passwords=always", mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("always");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("must be one of");
   wipe_out();
 }
 
 TEST_F(Mysqlsh_credential_store, cmdline_prompt_save_passwords) {
-  execute({_mysqlsh, "--save-passwords=prompt", "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, "--save-passwords=prompt", mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("prompt");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("must be one of");
   wipe_out();
@@ -163,8 +169,8 @@ TEST_F(Mysqlsh_credential_store, cmdline_invalid_save_passwords) {
 TEST_F(Mysqlsh_credential_store, env_never_save_passwords) {
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=never"));
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("never");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("must be one of");
   wipe_out();
@@ -173,8 +179,8 @@ TEST_F(Mysqlsh_credential_store, env_never_save_passwords) {
 TEST_F(Mysqlsh_credential_store, env_always_save_passwords) {
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=always"));
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("always");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("must be one of");
   wipe_out();
@@ -183,8 +189,8 @@ TEST_F(Mysqlsh_credential_store, env_always_save_passwords) {
 TEST_F(Mysqlsh_credential_store, env_prompt_save_passwords) {
   putenv(const_cast<char *>("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS=prompt"));
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.savePasswords'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.savePasswords'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("prompt");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("must be one of");
   wipe_out();
@@ -209,8 +215,8 @@ TEST_F(Mysqlsh_credential_store, bug_28216485) {
   // This test ensures that color capability is detected before any other
   // output is printed.
 
-  execute({_mysqlsh, "--js", "-e",
-           "println(shell.options['credentialStore.helper'])", nullptr});
+  execute({_mysqlsh, mode.c_str(), "-e",
+           "print(shell.options['credentialStore.helper'])", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "ERROR: Failed to initialize the user-specified helper \"unknown\": "
       "Credential helper named \"unknown\" could not be found or is invalid. "

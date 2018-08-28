@@ -39,6 +39,12 @@
 namespace mysqlsh {
 
 class Shell_history : public ::testing::Test {
+ protected:
+#ifdef HAVE_V8
+  const std::string to_scripting = "\\js";
+#else
+  const std::string to_scripting = "\\py";
+#endif
  public:
   Shell_history()
       : _options_file(
@@ -133,22 +139,28 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
 
+#ifdef HAVE_V8
+  std::string print_stmt = "println('secret');";
+#else
+  std::string print_stmt = "print 'secret';";
+#endif
+
   // SQL filter only applies to SQL mode
-  shell.process_line("\\js");
-  shell.process_line("println('secret');");
+  shell.process_line(to_scripting);
+  shell.process_line(print_stmt);
   EXPECT_EQ(4, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
-  EXPECT_STREQ("\\js", linenoiseHistoryLine(2));
-  EXPECT_STREQ("println('secret');", linenoiseHistoryLine(3));
+  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(2));
+  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(3));
 
   shell.process_line("\\py");
   shell.process_line("print 'secret'");
   EXPECT_EQ(6, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
-  EXPECT_STREQ("\\js", linenoiseHistoryLine(2));
-  EXPECT_STREQ("println('secret');", linenoiseHistoryLine(3));
+  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(2));
+  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(3));
   EXPECT_STREQ("\\py", linenoiseHistoryLine(4));
   EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(5));
 
@@ -165,7 +177,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   // multiple strings separated by a colon (:) works correctly
   // TS_CV#7
   // TS_CV#8
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '*bla*:*ble*';");
   shell.process_line("\\sql");
@@ -176,7 +188,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("select 'bla';");
   shell.process_line("select '*bla*';");
   shell.process_line("select 'bgi';");
-  EXPECT_STREQ("\\js", linenoiseHistoryLine(7));
+  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(7));
   EXPECT_STREQ("shell.options['history.sql.ignorePattern'] = '*bla*:*ble*';",
                linenoiseHistoryLine(8));
   EXPECT_STREQ("\\sql", linenoiseHistoryLine(9));
@@ -184,7 +196,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_STREQ("select 'bge';", linenoiseHistoryLine(11));
   EXPECT_STREQ("select 'bgi';", linenoiseHistoryLine(12));
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = 'set;';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
@@ -199,7 +211,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ(3, linenoiseHistorySize());
   EXPECT_STREQ("xset;", linenoiseHistoryLine(2));
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = '*';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
@@ -213,7 +225,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line(";");
   EXPECT_EQ(0, linenoiseHistorySize());
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = '**';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
@@ -227,7 +239,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line(";");
   EXPECT_EQ(0, linenoiseHistorySize());
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = '?';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
@@ -239,7 +251,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("aa;");
   EXPECT_EQ(3, linenoiseHistorySize());
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = '?*';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
@@ -251,7 +263,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("aa;");
   EXPECT_EQ(0, linenoiseHistorySize());
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = 'a?b?c*';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
@@ -289,7 +301,7 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
 
   // ? = match exactly one
   EXPECT_EQ(0, linenoiseHistorySize());
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '?ELECT 1;'");
   shell.process_line("\\sql");
@@ -301,7 +313,7 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   shell.process_line("ELECT 1;");
   EXPECT_EQ(4, linenoiseHistorySize());
 
-  shell.process_line("\\js");
+  shell.process_line(to_scripting);
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '?? ??;:?\?'");
   shell.process_line("\\sql");
@@ -598,7 +610,8 @@ TEST_F(Shell_history, history_autosave_int) {
   }
 }
 
-TEST_F(Shell_history, check_history_source) {
+#ifdef HAVE_V8
+TEST_F(Shell_history, check_history_source_js) {
   // WL#10446 says \source shall no add entries to the history
   // Only history entry shall the \source itself
 
@@ -629,6 +642,40 @@ TEST_F(Shell_history, check_history_source) {
   }
 
   shcore::delete_file("test_source.js");
+}
+#endif
+
+TEST_F(Shell_history, check_history_source_py) {
+  // WL#10446 says \source shall no add entries to the history
+  // Only history entry shall the \source itself
+
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
+                  const_cast<char *>(shell_test_server_uri().c_str()), nullptr};
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(3, args, _options_file));
+  shell._history.set_limit(10);
+
+  std::ofstream of;
+  of.open("test_source.py");
+  of << "print 1;\n";
+  of << "print 2;\n";
+  of.close();
+
+  EXPECT_NO_THROW(shell.load_state(shcore::get_user_config_path()));
+  EXPECT_EQ(0, linenoiseHistorySize());
+
+  {
+    std::string capture;
+    shell._delegate->print = print_capture;
+    shell._delegate->print_error = print_capture;
+    shell._delegate->user_data = &capture;
+
+    shell.process_line("\\source test_source.py");
+    EXPECT_EQ(1, linenoiseHistorySize());
+    EXPECT_EQ("1\n\n\n2\n\n\n", capture);
+  }
+
+  shcore::delete_file("test_source.py");
 }
 
 TEST_F(Shell_history, check_history_overflow_del) {
@@ -830,6 +877,9 @@ TEST_F(Shell_history, history_sizes) {
   shell.process_line("print(2);");
   shell.process_line("print(3);");
   shell.process_line("print(4);");
+
+  capture.clear();
+
   shell.process_line("\\history");
 
   EXPECT_EQ(4, shell._history.size());
@@ -837,10 +887,6 @@ TEST_F(Shell_history, history_sizes) {
   // NOTE: Always use shell._history.size() to check history size, otherwise
   // you will get different results when test cases are ran on UTs vs manually
   EXPECT_EQ(
-      "1\n"
-      "2\n"
-      "3\n"
-      "4\n"
       "    2  print(1);\n\n"
       "    3  print(2);\n\n"
       "    4  print(3);\n\n"
@@ -928,8 +974,8 @@ TEST_F(Shell_history, history_source_history) {
   shell._delegate->print_error = print_capture;
   shell._delegate->user_data = &capture;
 
-  shell.process_line("// 1");
-  shell.process_line("// 2");
+  shell.process_line("session");
+  shell.process_line("dba");
   shell.process_line("\\history save");
 
   std::string histfile = shcore::get_user_config_path() + "/history";
@@ -940,8 +986,8 @@ TEST_F(Shell_history, history_source_history) {
 
   EXPECT_EQ(
       "Command history file saved with 2 entries.\n\n"
-      "    1  // 1\n\n"
-      "    2  // 2\n\n"
+      "    1  session\n\n"
+      "    2  dba\n\n"
       "    3  \\history save\n\n"
       "    4  " +
           line + "\n\n",
@@ -957,12 +1003,12 @@ TEST_F(Shell_history, history_del_range) {
   shell._delegate->print_error = print_capture;
   shell._delegate->user_data = &capture;
 
-  shell.process_line("// 1");
-  shell.process_line("// 2");
-  shell.process_line("// 3");
-  shell.process_line("// 4");
-  shell.process_line("// 5");
-  shell.process_line("// 6");
+  shell.process_line("session");
+  shell.process_line("dba");
+  shell.process_line("mysql");
+  shell.process_line("mysqlx");
+  shell.process_line("shell");
+  shell.process_line("util");
   EXPECT_EQ(6, shell._history.size());
   // valid range
   shell.process_line("\\history del 1-3");
@@ -971,9 +1017,9 @@ TEST_F(Shell_history, history_del_range) {
   EXPECT_EQ(5, shell._history.size());
 
   EXPECT_EQ(
-      "    4  // 4\n\n"
-      "    5  // 5\n\n"
-      "    6  // 6\n\n"
+      "    4  mysqlx\n\n"
+      "    5  shell\n\n"
+      "    6  util\n\n"
       "    7  \\history del 1-3\n\n",
       capture);
 
@@ -990,8 +1036,8 @@ TEST_F(Shell_history, history_del_range) {
       capture);
 
   shell.process_line("\\history clear");
-  shell.process_line("// 1");
-  shell.process_line("// 2");
+  shell.process_line("session");
+  shell.process_line("dba");
   capture.clear();
   shell.process_line("\\history del 1 - 3");
   // Not sure if we want to give an error here or be gentle and accept space
@@ -1011,15 +1057,15 @@ TEST_F(Shell_history, history_entry_number_reset) {
   shell._delegate->print_error = print_capture;
   shell._delegate->user_data = &capture;
 
-  shell.process_line("// 1");
-  shell.process_line("// 2");
-  shell.process_line("// 3");
+  shell.process_line("session");
+  shell.process_line("dba");
+  shell.process_line("util");
   shell.process_line("\\history");
   EXPECT_EQ(4, shell._history.size());
   EXPECT_EQ(
-      "    1  // 1\n\n"
-      "    2  // 2\n\n"
-      "    3  // 3\n\n",
+      "    1  session\n\n"
+      "    2  dba\n\n"
+      "    3  util\n\n",
       capture);
 
   capture.clear();
@@ -1240,78 +1286,85 @@ TEST_F(Shell_history, history_numbering) {
   }
 
   // Test sequential numbering of history
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//3", (strv{"1  //1", "2  //2", "3  //3"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
 
   // Must reset to 0 on clear
   shell._history.clear();
-  CHECK_NUMBERING_ADD("//A", (strv{"1  //A"}));
+  CHECK_NUMBERING_ADD("mysqlx", (strv{"1  mysqlx"}));
 
   // Must reset on load
-  shcore::create_file("testhistory", "//X\n//Y\n");
+  shcore::create_file("testhistory", "mysql\nmysqlx\n");
   shell._history.load("testhistory");
-  CHECK_NUMBERING_ADD("//after", (strv{"1  //X", "2  //Y", "3  //after"}));
+  CHECK_NUMBERING_ADD("shell", (strv{"1  mysql", "2  mysqlx", "3  shell"}));
 
   // Adding a duplicate item ignores the duplicate
   shell._history.clear();
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//3", (strv{"1  //1", "2  //2", "3  //3"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2", "3  //3", "4  //2"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
+  CHECK_NUMBERING_ADD("dba",
+                      (strv{"1  session", "2  dba", "3  util", "4  dba"}));
 
   // Continued sequential numbering after filling up history
   shell._history.clear();
   shell._history.set_limit(3);
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//3", (strv{"1  //1", "2  //2", "3  //3"}));
-  CHECK_NUMBERING_ADD("//4", (strv{"2  //2", "3  //3", "4  //4"}));
-  CHECK_NUMBERING_ADD("//5", (strv{"3  //3", "4  //4", "5  //5"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
+  CHECK_NUMBERING_ADD("mysql", (strv{"2  dba", "3  util", "4  mysql"}));
+  CHECK_NUMBERING_ADD("mysqlx", (strv{"3  util", "4  mysql", "5  mysqlx"}));
 
   // Delete 1st id
   shell._history.clear();
   shell._history.set_limit(10);
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
   CHECK_NUMBERING_ADD("\\history del 1",
-                      (strv{"2  //2", "3  \\history del 1"}));
+                      (strv{"2  dba", "3  \\history del 1"}));
 
   // Deleting an id that was already deleted is a no-op
   shell._history.clear();
   shell._history.set_limit(10);
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//3", (strv{"1  //1", "2  //2", "3  //3"}));
-  CHECK_NUMBERING_ADD("//4", (strv{"1  //1", "2  //2", "3  //3", "4  //4"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
+  CHECK_NUMBERING_ADD("mysql",
+                      (strv{"1  session", "2  dba", "3  util", "4  mysql"}));
 
-  CHECK_NUMBERING_ADD("\\history del 3", (strv{"1  //1", "2  //2", "4  //4",
-                                               "5  \\history del 3"}));
+  CHECK_NUMBERING_ADD(
+      "\\history del 3",
+      (strv{"1  session", "2  dba", "4  mysql", "5  \\history del 3"}));
 
-  CHECK_NUMBERING_ADD("//aa", (strv{"1  //1", "2  //2", "4  //4",
-                                    "5  \\history del 3", "6  //aa"}));
+  CHECK_NUMBERING_ADD("shell", (strv{"1  session", "2  dba", "4  mysql",
+                                     "5  \\history del 3", "6  shell"}));
 
   shell.process_line("\\history del 3");
-  CHECK_NUMBERING_ADD("\\history del 3",
-                      (strv{"1  //1", "2  //2", "4  //4", "5  \\history del 3",
-                            "6  //aa", "7  \\history del 3"}));
+  CHECK_NUMBERING_ADD(
+      "\\history del 3",
+      (strv{"1  session", "2  dba", "4  mysql", "5  \\history del 3",
+            "6  shell", "7  \\history del 3"}));
 
   // Deleting the item at the limit
   shell._history.clear();
   shell._history.set_limit(4);
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//3", (strv{"1  //1", "2  //2", "3  //3"}));
-  CHECK_NUMBERING_ADD("//4", (strv{"1  //1", "2  //2", "3  //3", "4  //4"}));
-  CHECK_NUMBERING_ADD("\\history del 4", (strv{"1  //1", "2  //2", "3  //3",
-                                               "5  \\history del 4"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
+  CHECK_NUMBERING_ADD("mysql",
+                      (strv{"1  session", "2  dba", "3  util", "4  mysql"}));
+  CHECK_NUMBERING_ADD(
+      "\\history del 4",
+      (strv{"1  session", "2  dba", "3  util", "5  \\history del 4"}));
   shell._history.clear();
   shell._history.set_limit(4);
-  CHECK_NUMBERING_ADD("//1", (strv{"1  //1"}));
-  CHECK_NUMBERING_ADD("//2", (strv{"1  //1", "2  //2"}));
-  CHECK_NUMBERING_ADD("//3", (strv{"1  //1", "2  //2", "3  //3"}));
-  CHECK_NUMBERING_ADD("//4", (strv{"1  //1", "2  //2", "3  //3", "4  //4"}));
+  CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
+  CHECK_NUMBERING_ADD("dba", (strv{"1  session", "2  dba"}));
+  CHECK_NUMBERING_ADD("util", (strv{"1  session", "2  dba", "3  util"}));
+  CHECK_NUMBERING_ADD("mysql",
+                      (strv{"1  session", "2  dba", "3  util", "4  mysql"}));
   capture.clear();
   shell.process_line("\\history del 5");
   EXPECT_EQ("Invalid history entry 5\n\n", capture);

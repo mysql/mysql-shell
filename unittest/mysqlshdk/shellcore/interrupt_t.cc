@@ -329,7 +329,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
     thd.join();
   }
 }
-
+#ifdef HAVE_V8
 TEST_F(Interrupt_mysql, sql_classic_javascript) {
   // Test case for FR5-a
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
@@ -359,6 +359,7 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
     MY_EXPECT_STDOUT_CONTAINS("last");
   }
 }
+#endif
 
 TEST_F(Interrupt_mysql, sql_classic_py) {
   // Test case for FR7-a
@@ -448,6 +449,7 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
   }
 }
 
+#ifdef HAVE_V8
 // Test that JS code running SQL gets interrupted
 TEST_F(Interrupt_mysqlx, db_javascript_sql) {
   // Test case for FR5-b-1
@@ -683,6 +685,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
       "'rows')");
   MY_EXPECT_STDOUT_CONTAINS("102 rows");
 }
+#endif
 
 // Test that Python code running SQL gets interrupted
 TEST_F(Interrupt_mysqlx, db_python_sql) {
@@ -879,6 +882,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
   }
 }
 
+#ifdef HAVE_V8
 TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   // Test case for FR5 b
   execute("\\js");
@@ -938,6 +942,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   auto row = result->fetch_one();
   EXPECT_EQ(2, row->get_int(0));
 }
+#endif
 
 TEST_F(Interrupt_mysqlx, db_python_drop) {
   // Test case for FR7 b
@@ -1003,6 +1008,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
 }
 
 // Test that native JavaScript code gets interrupted
+#ifdef HAVE_V8
 TEST_F(Interrupt_mysql, javascript) {
   // Test case for FR4 JS
   execute("\\js");
@@ -1018,6 +1024,7 @@ TEST_F(Interrupt_mysql, javascript) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
   thd.join();
 }
+#endif
 
 // Test that native Python code gets interrupted
 TEST_F(Interrupt_mysql, python) {

@@ -72,10 +72,12 @@ TEST_F(Completion_cache_refresh, startup) {
   _options->devapi_schema_object_handles = true;
 
   // No connectin, no refresh
+#ifdef HAVE_V8
   reset_shell("", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+#endif
 
   reset_shell("", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
@@ -89,10 +91,12 @@ TEST_F(Completion_cache_refresh, startup) {
 
   // Classic
   // Connection without default schema, refresh schemas only
+#ifdef HAVE_V8
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+#endif
 
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
@@ -105,10 +109,12 @@ TEST_F(Completion_cache_refresh, startup) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
 
   // Connection with default schema, refresh schemas and objects
+#ifdef HAVE_V8
   reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+#endif
 
   reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
@@ -122,10 +128,12 @@ TEST_F(Completion_cache_refresh, startup) {
 
   // X proto
   // Connection without default schema, refresh schemas only
+#ifdef HAVE_V8
   reset_shell(_uri, shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+#endif
 
   reset_shell(_uri, shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
@@ -138,6 +146,7 @@ TEST_F(Completion_cache_refresh, startup) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
 
   // Connection with default schema, refresh schemas and objects
+#ifdef HAVE_V8
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
@@ -147,6 +156,7 @@ TEST_F(Completion_cache_refresh, startup) {
   execute("dir(db)");
   MY_EXPECT_STDOUT_CONTAINS("\"user\"");
   MY_EXPECT_STDOUT_CONTAINS("\"help_category\"");
+#endif
 
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
@@ -169,6 +179,7 @@ TEST_F(Completion_cache_refresh, connect_interactive) {
   _options->devapi_schema_object_handles = true;
 
   // Start with no connection
+#ifdef HAVE_V8
   reset_shell("", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
@@ -194,6 +205,7 @@ TEST_F(Completion_cache_refresh, connect_interactive) {
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `sys`");
+#endif
 
   reset_shell("", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
@@ -246,7 +258,14 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
 
-  reset_shell("", shcore::IShell_core::Mode::JavaScript);
+  shcore::IShell_core::Mode scripting_mode;
+#ifdef HAVE_V8
+  scripting_mode = shcore::IShell_core::Mode::JavaScript;
+#else
+  scripting_mode = shcore::IShell_core::Mode::Python;
+#endif
+
+  reset_shell("", scripting_mode);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -255,7 +274,7 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
 
-  reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
+  reset_shell(_mysql_uri, scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -264,7 +283,7 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
 
-  reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+  reset_shell(_mysql_uri + "/mysql", scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -273,7 +292,7 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
 
-  reset_shell(_uri, shcore::IShell_core::Mode::JavaScript);
+  reset_shell(_uri, scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -282,7 +301,7 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
 
-  reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+  reset_shell(_uri + "/mysql", scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -297,7 +316,12 @@ TEST_F(Completion_cache_refresh, switch_schema_js) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
 
+#ifdef HAVE_V8
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
+#else
+  reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
+#endif
+
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -328,7 +352,11 @@ TEST_F(Completion_cache_refresh, switch_schema_sql) {
   MY_EXPECT_STDOUT_CONTAINS(
       "Fetching table and column names from `information_schema`");
 
+#ifdef HAVE_V8
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
+#else
+  reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
+#endif
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
@@ -391,7 +419,12 @@ TEST_F(Completion_cache_refresh, rehash_db) {
   _options->devapi_schema_object_handles = true;
 
   // Check that rehash also updates the object cache in db
+#ifdef HAVE_V8
   reset_shell(_uri, shcore::IShell_core::Mode::JavaScript);
+#else
+  reset_shell(_uri, shcore::IShell_core::Mode::Python);
+#endif
+
   execute("session.sql('drop schema if exists dropme').execute();");
   execute("session.sql('create schema dropme').execute();");
   execute("session.sql('create table dropme.tbl (a int);').execute()");
@@ -414,7 +447,13 @@ TEST_F(Completion_cache_refresh, rehash_db) {
   MY_EXPECT_STDOUT_CONTAINS("<Table:dropme>");
 
   _options->devapi_schema_object_handles = true;
+
+#ifdef HAVE_V8
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+#else
+  reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
+#endif
+
   wipe_all();
   execute("db.user");
   MY_EXPECT_STDOUT_CONTAINS("<Table:user>");
@@ -427,7 +466,17 @@ TEST_F(Completion_cache_refresh, rehash_db) {
   MY_EXPECT_STDOUT_CONTAINS("help_category");
 
   _options->devapi_schema_object_handles = false;
+
+#ifdef HAVE_V8
+  const std::string bool_true = "true";
+  const std::string bool_false = "false";
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+#else
+  const std::string bool_true = "True";
+  const std::string bool_false = "False";
+  reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
+#endif
+
   wipe_all();
   execute("db.user");
   MY_EXPECT_STDOUT_NOT_CONTAINS("<Table:user>");
@@ -438,7 +487,7 @@ TEST_F(Completion_cache_refresh, rehash_db) {
   wipe_all();
   execute("dir(db)");
   MY_EXPECT_STDOUT_NOT_CONTAINS("help_category");
-  execute("shell.options['devapi.dbObjectHandles']=true;");
+  execute("shell.options['devapi.dbObjectHandles']=" + bool_true);
   execute("\\rehash");
   wipe_all();
   execute("db.user");
@@ -446,7 +495,7 @@ TEST_F(Completion_cache_refresh, rehash_db) {
   wipe_all();
   execute("dir(db)");
   MY_EXPECT_STDOUT_CONTAINS("help_category");
-  execute("shell.options['devapi.dbObjectHandles']=false;");
+  execute("shell.options['devapi.dbObjectHandles']=" + bool_false);
   wipe_all();
   execute("db.user");
   MY_EXPECT_STDOUT_NOT_CONTAINS("<Table:user>");
@@ -461,13 +510,25 @@ TEST_F(Completion_cache_refresh, rehash_db) {
 TEST_F(Completion_cache_refresh, options_db_object_handles) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
+#ifdef HAVE_V8
+  const std::string bool_true = "true";
+  const std::string bool_false = "false";
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+#else
+  const std::string bool_true = "True";
+  const std::string bool_false = "False";
+  reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
+#endif
   execute("shell.options['devapi.dbObjectHandles']");
   MY_EXPECT_STDOUT_CONTAINS("true");
 
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = false;
+#ifdef HAVE_V8
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+#else
+  reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
+#endif
   wipe_all();
   execute("db.user");
   MY_EXPECT_STDOUT_NOT_CONTAINS("<Table:user>");
@@ -481,7 +542,7 @@ TEST_F(Completion_cache_refresh, options_db_object_handles) {
   wipe_all();
   execute("shell.options['devapi.dbObjectHandles']");
   MY_EXPECT_STDOUT_CONTAINS("false");
-  execute("shell.options['devapi.dbObjectHandles']=true;");
+  execute("shell.options['devapi.dbObjectHandles']=" + bool_true);
   execute("\\rehash");  // rehash required after enabling db handles
   wipe_all();
   execute("db.user");
@@ -489,7 +550,7 @@ TEST_F(Completion_cache_refresh, options_db_object_handles) {
   wipe_all();
   execute("dir(db)");
   MY_EXPECT_STDOUT_CONTAINS("help_category");
-  execute("shell.options['devapi.dbObjectHandles']=false;");
+  execute("shell.options['devapi.dbObjectHandles']=" + bool_false);
   wipe_all();
   execute("db.user");
   MY_EXPECT_STDOUT_NOT_CONTAINS("<Table:user>");
@@ -502,8 +563,14 @@ TEST_F(Completion_cache_refresh, options_db_object_handles) {
 TEST_F(Completion_cache_refresh, options_db_name_cache) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
+
+#ifdef HAVE_V8
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
+#else
+  reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
+#endif
   execute("shell.options['autocomplete.nameCache']");
+
   MY_EXPECT_STDOUT_CONTAINS("true");
 
   _options->db_name_cache = false;

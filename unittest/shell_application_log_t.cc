@@ -71,6 +71,7 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
 
 std::string Shell_application_log_tests::error = "";
 
+#ifdef HAVE_V8
 TEST_F(Shell_application_log_tests, test) {
   // issue an stmt with syntax error, then check the log.
   error = "SyntaxError: Unexpected token ; at :1:9\nin print('x';";
@@ -86,6 +87,7 @@ TEST_F(Shell_application_log_tests, test) {
 
   execute("session.close();");
 }
+#endif
 
 int Shell_application_log_tests::i;
 }  // namespace shcore

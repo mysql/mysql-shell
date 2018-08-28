@@ -120,10 +120,11 @@ TEST_F(Command_line_connection_test, classic_port) {
 }
 
 TEST_F(Command_line_connection_test, bug25268670) {
-  execute({_mysqlsh, "-e",
-           "shell.connect({user:'root',password:'',host:'localhost',invalid_"
-           "option:'wahtever'})",
-           NULL});
+  execute(
+      {_mysqlsh, "-e",
+       "shell.connect({'user':'root','password':'','host':'localhost','invalid_"
+       "option':'wahtever'})",
+       NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Shell.connect: Invalid values in connection options: invalid_option");
@@ -524,7 +525,8 @@ TEST_F(Command_line_connection_test, expired_account) {
 TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   {
     execute({_mysqlsh, "-e",
-             "shell.connect({user:'root',password:'',host:'localhost',sslMode:"
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslMode':"
              "'whatever'})",
              NULL});
 
@@ -534,7 +536,8 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
 
   {
     execute({_mysqlsh, "-e",
-             "shell.connect({user:'root',password:'',host:'localhost',sslCa:'"
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslCa':'"
              "whatever'})",
              NULL});
 
@@ -543,11 +546,11 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute(
-        {_mysqlsh, "-e",
-         "shell.connect({user:'root',password:'',host:'localhost',sslCaPath:'"
-         "whatever'})",
-         NULL});
+    execute({_mysqlsh, "-e",
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslCaPath':'"
+             "whatever'})",
+             NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Shell.connect: Invalid values in connection options: sslCaPath");
@@ -555,7 +558,8 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
 
   {
     execute({_mysqlsh, "-e",
-             "shell.connect({user:'root',password:'',host:'localhost',sslCrl:'"
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslCrl':'"
              "whatever'})",
              NULL});
 
@@ -564,11 +568,11 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute(
-        {_mysqlsh, "-e",
-         "shell.connect({user:'root',password:'',host:'localhost',sslCrlPath:"
-         "'whatever'})",
-         NULL});
+    execute({_mysqlsh, "-e",
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslCrlPath':"
+             "'whatever'})",
+             NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Shell.connect: Invalid values in connection options: sslCrlPath");
@@ -576,7 +580,8 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
 
   {
     execute({_mysqlsh, "-e",
-             "shell.connect({user:'root',password:'',host:'localhost',sslCert:'"
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslCert':'"
              "whatever'})",
              NULL});
 
@@ -586,7 +591,8 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
 
   {
     execute({_mysqlsh, "-e",
-             "shell.connect({user:'root',password:'',host:'localhost',sslKey:'"
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslKey':'"
              "whatever'})",
              NULL});
 
@@ -595,11 +601,11 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute(
-        {_mysqlsh, "-e",
-         "shell.connect({user:'root',password:'',host:'localhost',sslCipher:"
-         "'whatever'})",
-         NULL});
+    execute({_mysqlsh, "-e",
+             "shell.connect({'user':'root','password':'','host':'localhost','"
+             "sslCipher':"
+             "'whatever'})",
+             NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Shell.connect: Invalid values in connection options: sslCipher");
@@ -607,8 +613,8 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
 
   {
     execute({_mysqlsh, "-e",
-             "shell.connect({user:'root',password:'',host:'localhost',"
-             "sslTlsVersion:'whatever'})",
+             "shell.connect({'user':'root','password':'','host':'localhost',"
+             "'sslTlsVersion':'whatever'})",
              NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(

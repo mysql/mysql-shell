@@ -106,7 +106,8 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, history_management);
   FRIEND_TEST(Shell_history, history_sizes);
   FRIEND_TEST(Shell_history, check_history_overflow_del);
-  FRIEND_TEST(Shell_history, check_history_source);
+  FRIEND_TEST(Shell_history, check_history_source_js);
+  FRIEND_TEST(Shell_history, check_history_source_py);
   FRIEND_TEST(Shell_history, history_autosave_int);
   FRIEND_TEST(Shell_history, check_help_shows_history);
   FRIEND_TEST(Shell_history, history_del_invisible_entry);

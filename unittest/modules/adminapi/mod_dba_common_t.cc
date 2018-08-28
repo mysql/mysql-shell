@@ -292,7 +292,11 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
+#ifdef HAVE_V8
   execute("var c = dba.createCluster('sample', {memberSslMode:'REQUIRED'})");
+#else
+  execute("c = dba.create_cluster('sample', {'memberSslMode':'REQUIRED'})");
+#endif
   execute("c.disconnect()");
 
   auto peer_session = create_session(_mysql_sandbox_port1);
@@ -420,7 +424,11 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
+#ifdef HAVE_V8
   execute("var c = dba.createCluster('sample', {memberSslMode:'DISABLED'})");
+#else
+  execute("c = dba.create_cluster('sample', {'memberSslMode':'DISABLED'})");
+#endif
   execute("c.disconnect()");
 
   auto peer_session = create_session(_mysql_sandbox_port1);
