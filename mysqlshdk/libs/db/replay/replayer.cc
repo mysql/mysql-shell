@@ -115,10 +115,10 @@ class Replayer_impl {
 
   void close() {
     if (_open) {
+      _open = false;
       _trace->expected_close();
       _trace->expected_status();
     }
-    _open = false;
   }
 
   bool is_open() const { return _open; }
