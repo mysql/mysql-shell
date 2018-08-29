@@ -111,7 +111,7 @@ print_gr_local_address();
 c.dissolve({force: true});
 
 //@ Create cluster specifying <valid_port> for localAddress (FR1-TS-1-4)
-var __local_address_4 = "12345";
+var __local_address_4 = "13579";
 var __result_local_address_4 = localhost + ":" + __local_address_4;
 var c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_4});
 

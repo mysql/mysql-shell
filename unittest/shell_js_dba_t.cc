@@ -233,10 +233,6 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       code = "var __recording = false;";
     exec_and_out_equals(code);
   }
-
-  virtual void validate_interactive(const std::string &f) {
-    Shell_js_script_tester::validate_interactive(f);
-  }
 };
 
 bool Shell_js_dba_tests::have_sandboxes = true;
