@@ -722,6 +722,17 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
     if (default_cluster) {
       println("Reconfiguring the default cluster from complete outage...");
       cluster = dba->get_cluster(nullptr, metadata, group_session);
+
+      // BUG#28207565: DBA.REBOOTCLUSTERFROMCOMPLETEOUTAGE DOES NOT USE DEFAULT
+      // CLUSTER.
+      // The interactive layer will add a map of options to the function
+      // call so the detection of default cluster won't happen because args
+      // won't be zero:
+      // if (args.size() == 0) {
+      //    default_cluster = true;
+      // To avoid that bug, we must obtain the default cluster name here
+      // and use it for the function call.
+      cluster_name = cluster->get_name();
     } else {
       println("Reconfiguring the cluster '" + cluster_name +
               "' from complete outage...");
