@@ -1252,9 +1252,15 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
 
 #ifdef _WIN32
   // TODO(alfredo)  Escape chars getting stripped in windows
+#ifdef HAVE_V8
   EXPECT_DBL_PROMPT(" MySQL  " + _host + ":" + _port +
                     "+ ssl  mysql  JS \n  > ");
 #else
+  EXPECT_DBL_PROMPT(" MySQL  " + _host + ":" + _port +
+                    "+ ssl  mysql  Py \n  > ");
+#endif
+#else
+#ifdef HAVE_V8
   EXPECT_DBL_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
       "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " +
@@ -1262,6 +1268,15 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
       "+ ssl "
       "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
       "\x1B[0m\x1B[48;5;221m\x1B[38;5;0m JS \x1B[0m\n\x1B[48;5;0m  > \x1B[0m");
+#else
+  EXPECT_DBL_PROMPT(
+      "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
+      "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " +
+      _host + ":" + _port +
+      "+ ssl "
+      "\x1B[0m\x1B[48;5;242m\x1B[38;5;15m mysql "
+      "\x1B[0m\x1B[48;5;25m\x1B[38;5;15m Py \x1B[0m\n\x1B[48;5;0m  > \x1B[0m");
+#endif
 #endif
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   putenv(const_cast<char *>("MYSQLSH_COLOR_MODE="));
