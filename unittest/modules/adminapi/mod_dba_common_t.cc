@@ -1128,11 +1128,37 @@ TEST_F(Dba_common_test, validate_exit_state_action_supported) {
   if (version < mysqlshdk::utils::Version(5, 7, 24) ||
       (version >= mysqlshdk::utils::Version(8, 0, 0) &&
        version < mysqlshdk::utils::Version(8, 0, 12))) {
-    EXPECT_THROW(mysqlsh::dba::validate_exit_state_action_supported(session),
-                 shcore::Exception);
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_exit_state_action_supported(session),
+        shcore::Exception,
+        "Option 'memberWeight' not supported on target server "
+        "version:");
   } else {
     EXPECT_NO_THROW(
         mysqlsh::dba::validate_exit_state_action_supported(session));
+  }
+}
+
+TEST_F(Dba_common_test, validate_member_weight_supported) {
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  auto session = create_session(_mysql_sandbox_port1);
+  shcore::Value::Map_type_ref options(new shcore::Value::Map_type);
+
+  auto version = session->get_server_version();
+
+  (*options)["memberWeight"] = shcore::Value(1);
+
+  // Error only if the target server version is < 5.7.20 if 5.0, or < 8.0.11
+  // if 8.0.
+  if (version < mysqlshdk::utils::Version(5, 7, 20) ||
+      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
+       version < mysqlshdk::utils::Version(8, 0, 11))) {
+    EXPECT_THROW_LIKE(mysqlsh::dba::validate_member_weight_supported(session),
+                      shcore::Exception,
+                      "Option 'memberWeight' not supported on target server "
+                      "version:");
+  } else {
+    EXPECT_NO_THROW(mysqlsh::dba::validate_member_weight_supported(session));
   }
 
   session->close();

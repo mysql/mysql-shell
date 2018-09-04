@@ -102,6 +102,8 @@ DESCRIPTION
         generated one.
       - exitStateAction: string value indicating the group replication exit
         state action.
+      - memberWeight: integer value with a percentage weight for automatic
+        primary election on failover.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -160,6 +162,12 @@ DESCRIPTION
       ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is
       ABORT_SERVER.
 
+      The value for memberWeight is used to set the Group Replication system
+      variable 'group_replication_member_weight'. The memberWeight option
+      accepts integer values. Group Replication limits the value range from 0
+      to 100, automatically adjusting it if a lower/bigger value is provided.
+      Group Replication uses a default value of 50 if no value is provided.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -183,8 +191,8 @@ EXCEPTIONS
       - If the instance is not in bootstrapped state.
       - If the SSL mode specified is not compatible with the one used in the
         cluster.
-      - If the value for the localAddress, groupSeeds, or exitStateAction
-        options is not valid for Group Replication.
+      - If the value for the localAddress, groupSeeds, exitStateAction, or
+        memberWeight options is not valid for Group Replication.
 
 //@<OUT> Check Instance State
 NAME
