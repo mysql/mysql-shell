@@ -131,6 +131,8 @@ void validate_group_seeds_option(const shcore::Value::Map_type_ref &options);
 void validate_group_name_option(const shcore::Value::Map_type_ref &options);
 void validate_exit_state_action_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session);
+void validate_member_weight_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_replication_filters(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 std::pair<int, int> find_cluster_admin_accounts(

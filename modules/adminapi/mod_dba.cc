@@ -673,11 +673,12 @@ REGISTER_HELP(DBA_CREATECLUSTER_THROWS10,
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS11,
               "RuntimeError in the following scenarios:");
 
-REGISTER_HELP(DBA_CREATECLUSTER_THROWS12,
-              "@li If the value for the groupName, "
-              "localAddress, groupSeeds, or exitStateAction options is not "
-              "valid for Group "
-              "Replication.");
+REGISTER_HELP(
+    DBA_CREATECLUSTER_THROWS12,
+    "@li If the value for the groupName, "
+    "localAddress, groupSeeds, exitStateAction, or memberWeight options is not "
+    "valid for Group "
+    "Replication.");
 REGISTER_HELP(DBA_CREATECLUSTER_THROWS13,
               "@li If the current connection cannot be used "
               "for Group Replication.");
@@ -735,49 +736,55 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL12,
               "@li exitStateAction: string value indicating the group "
               "replication exit state action.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL13,
+              "@li memberWeight: integer value with a percentage weight for "
+              "automatic primary election on failover.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14,
               "@attention The multiMaster option will be removed in a "
               "future release. Please use the multiPrimary option instead.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL14,
-              "A InnoDB cluster may be setup in two ways:");
+
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL15,
+              "A InnoDB cluster may be setup in two ways:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
               "@li Single Primary: One member of the cluster allows write "
               "operations while the rest are in read only mode.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL16,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17,
               "@li Multi Primary: All the members "
               "in the cluster support both read "
               "and write operations.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL17,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18,
               "By default this function create a Single Primary cluster, use "
               "the multiPrimary option set to true "
               "if a Multi Primary cluster is required.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL18,
-              "The memberSslMode option supports the following values:");
+
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL19,
+              "The memberSslMode option supports the following values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL20,
               "@li REQUIRED: if used, SSL (encryption) will be enabled for the "
               "instances to communicate with other members of the cluster");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL20,
-              "@li DISABLED: if used, SSL (encryption) will be disabled");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL21,
+              "@li DISABLED: if used, SSL (encryption) will be disabled");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL22,
               "@li AUTO: if used, SSL (encryption) "
               "will be enabled if supported by the "
               "instance, otherwise disabled");
 REGISTER_HELP(
-    DBA_CREATECLUSTER_DETAIL22,
+    DBA_CREATECLUSTER_DETAIL23,
     "If memberSslMode is not specified AUTO will be used by default.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL23,
-              "The exitStateAction option supports the following values:");
+
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL24,
+              "The exitStateAction option supports the following values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL25,
               "@li ABORT_SERVER: if used, the instance shuts itself down if "
               "it leaves the cluster unintentionally.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL25,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
               "@li READ_ONLY: if used, the instance switches itself to "
               "super-read-only mode if it leaves the cluster "
               "unintentionally.");
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
               "If exitStateAction is not specified ABORT_SERVER will be used "
               "by default.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
               "The ipWhitelist format is a comma separated list of IP "
               "addresses or subnet CIDR "
               "notation, for example: 192.168.1.0/24,10.0.0.1. By default the "
@@ -785,16 +792,16 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
               "from the instance private network to be automatically set for "
               "the whitelist.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL29,
               "The groupName, localAddress, and groupSeeds are advanced "
               "options and their usage is discouraged since incorrect values "
               "can lead to Group Replication errors.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL29,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
               "The value for groupName is used to set the Group Replication "
               "system variable 'group_replication_group_name'.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
               "The value for localAddress is used to set the Group "
               "Replication system variable 'group_replication_local_address'. "
               "The localAddress option accepts values in the format: "
@@ -809,13 +816,13 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL30,
               "(> 65535) then a random value in the range [1000, 65535] is "
               "used.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL31,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
               "The value for groupSeeds is used to set the Group Replication "
               "system variable 'group_replication_group_seeds'. The "
               "groupSeeds option accepts a comma-separated list of addresses "
               "in the format: 'host1:port1,...,hostN:portN'.");
 
-REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL33,
               "The value for exitStateAction is used to configure how Group "
               "Replication behaves when a server instance leaves the group "
               "unintentionally, for example after encountering an applier "
@@ -825,6 +832,14 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
               "case-insensitive string values, being the accepted values: "
               "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
               "ABORT_SERVER.");
+
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL34,
+              "The value for memberWeight is used to set the Group Replication "
+              "system variable 'group_replication_member_weight'. The "
+              "memberWeight option accepts integer values. Group Replication "
+              "limits the value range from 0 to 100, automatically adjusting "
+              "it if a lower/bigger value is provided. Group Replication uses "
+              "a default value of 50 if no value is provided.");
 
 /**
  * $(DBA_CREATECLUSTER_BRIEF)
@@ -891,6 +906,10 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL32,
  * $(DBA_CREATECLUSTER_DETAIL31)
  *
  * $(DBA_CREATECLUSTER_DETAIL32)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL33)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL34)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, Dictionary options) {}
@@ -945,6 +964,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   // SSL values are only set if available from args.
   std::string ssl_mode, group_name, local_address, group_seeds,
       exit_state_action;
+  mysqlshdk::utils::nullable<int64_t> member_weight;
 
   std::string replication_user;
   std::string replication_pwd;
@@ -982,6 +1002,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           .optional("localAddress", &local_address)
           .optional("groupSeeds", &group_seeds)
           .optional("exitStateAction", &exit_state_action)
+          .optional_exact("memberWeight", &member_weight)
           .end();
 
       // Verification of invalid attributes on the instance creation options
@@ -1039,6 +1060,13 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
         validate_exit_state_action_supported(group_session);
       }
+
+      // Validate if the memberWeight option is supported on the target
+      // instance and if it used in the optional parameters.
+      // The validation for the value set is handled at the group-replication
+      // level
+      if (!member_weight.is_null())
+        validate_member_weight_supported(group_session);
 
       if (adopt_from_gr && opt_map.has_key("multiPrimary")) {
         throw shcore::Exception::argument_error(
@@ -1160,6 +1188,10 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // Set exitStateAction
     if (!exit_state_action.empty())
       (*options)["exitStateAction"] = Value(exit_state_action);
+
+    // Set memberWeight
+    if (!member_weight.is_null())
+      (*options)["memberWeight"] = Value(*member_weight);
 
     new_args.push_back(shcore::Value(options));
 

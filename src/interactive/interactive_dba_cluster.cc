@@ -160,6 +160,8 @@ shcore::Value Interactive_dba_cluster::add_instance(
         std::string ssl_mode, ip_whitelist, instance_label, local_address,
             group_seeds, exit_state_action;
 
+        mysqlshdk::utils::nullable<int64_t> member_weight;
+
         // Retrieves optional options if exists
         mysqlsh::Unpack_options(options)
             .optional("memberSslMode", &ssl_mode)
@@ -168,6 +170,7 @@ shcore::Value Interactive_dba_cluster::add_instance(
             .optional("localAddress", &local_address)
             .optional("groupSeeds", &group_seeds)
             .optional("exitStateAction", &exit_state_action)
+            .optional("memberWeight", &member_weight)
             .end();
 
         // Validate SSL options for the cluster instance

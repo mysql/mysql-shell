@@ -228,8 +228,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const mysqlshdk::db::Connection_options &instance,
       mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
       const std::string &repl_user_password, const std::string &ssl_mode,
-      const std::string &ip_whitelist, const std::string &group_name = "",
-      const std::string &local_address = "",
+      const std::string &ip_whitelist,
+      mysqlshdk::utils::nullable<int64_t> member_weight,
+      const std::string &group_name = "", const std::string &local_address = "",
       const std::string &group_seeds = "",
       const std::string &exit_state_action = "", bool skip_rpl_user = false);
 

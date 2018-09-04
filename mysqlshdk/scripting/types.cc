@@ -1737,6 +1737,36 @@ Value Option_unpacker::get_optional(const char *name, Value_type type,
   return Value();
 }
 
+Value Option_unpacker::get_optional_exact(const char *name, Value_type type,
+                                          bool case_insensitive) {
+  if (!m_options) {
+    return Value();
+  }
+  auto opt = m_options->find(name);
+
+  if (case_insensitive && opt == m_options->end()) {
+    for (auto it = m_options->begin(); it != m_options->end(); ++it) {
+      if (str_caseeq(it->first.c_str(), name)) {
+        name = it->first.c_str();
+        opt = it;
+        break;
+      }
+    }
+  }
+  if (opt != m_options->end()) {
+    m_unknown.erase(name);
+
+    if (type != Undefined && (opt->second.type != type)) {
+      throw Exception::type_error(str_format(
+          "Option '%s' is expected to be of type %s, but is %s", name,
+          type_name(type).c_str(), type_name(opt->second.type).c_str()));
+    }
+
+    return opt->second;
+  }
+  return Value();
+}
+
 void Option_unpacker::end() { validate(); }
 
 void Option_unpacker::validate() {

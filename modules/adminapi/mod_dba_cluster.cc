@@ -312,7 +312,8 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS13,
               "with the one used in the cluster.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_THROWS14,
               "@li If the value for the localAddress, "
-              "groupSeeds, or exitStateAction options is not valid for Group "
+              "groupSeeds, exitStateAction, or memberWeight options is not "
+              "valid for Group "
               "Replication.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_RETURNS, "@returns nothing");
@@ -358,49 +359,53 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL10,
               "replication exit state action.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL11,
+              "@li memberWeight: integer value with a percentage weight for "
+              "automatic primary election on failover.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
               "The password may be contained on "
               "the instance definition, "
               "however, it can be overwritten "
               "if it is specified on the options.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL12,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
               "@attention The memberSslMode option will be removed in a "
               "future release.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL13,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
               "The memberSslMode option supports "
               "the following values:");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL14,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
               "@li REQUIRED: if used, SSL "
               "(encryption) will be enabled for "
               "the instance to communicate with "
               "other members of the cluster");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL15,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
               "@li DISABLED: if used, SSL "
               "(encryption) will be disabled");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL16,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
               "@li AUTO: if used, SSL (encryption)"
               " will be automatically "
               "enabled or disabled based on the "
               "cluster configuration");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL17,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
               "If memberSslMode is not specified "
               "AUTO will be used by default.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL18,
-              "The exitStateAction option supports the following values:");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL19,
+              "The exitStateAction option supports the following values:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
               "@li ABORT_SERVER: if used, the instance shuts itself down if "
               "it leaves the cluster unintentionally.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL20,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21,
               "@li READ_ONLY: if used, the instance switches itself to "
               "super-read-only mode if it leaves the cluster "
               "unintentionally.");
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
               "If exitStateAction is not specified ABORT_SERVER will be used "
               "by default.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23,
               "The ipWhitelist format is a comma "
               "separated list of IP "
               "addresses or subnet CIDR "
@@ -413,12 +418,12 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
               "automatically set for "
               "the whitelist.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24,
               "The localAddress and groupSeeds are advanced options and "
               "their usage is discouraged since incorrect values can lead to "
               "Group Replication errors.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
               "The value for localAddress is used to set the Group "
               "Replication system variable 'group_replication_local_address'. "
               "The localAddress option accepts values in the format: "
@@ -432,13 +437,13 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL24,
               "determined default port value is invalid (> 65535) then a "
               "random value in the range [1000, 65535] is used.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26,
               "The value for groupSeeds is used to set the Group Replication "
               "system variable 'group_replication_group_seeds'. The "
               "groupSeeds option accepts a comma-separated list of addresses "
               "in the format: 'host1:port1,...,hostN:portN'.");
 
-REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26,
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL27,
               "The value for exitStateAction is used to configure how Group "
               "Replication behaves when a server instance leaves the group "
               "unintentionally, for example after encountering an applier "
@@ -448,6 +453,14 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26,
               "case-insensitive string values, being the accepted values: "
               "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
               "ABORT_SERVER.");
+
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL28,
+              "The value for memberWeight is used to set the Group Replication "
+              "system variable 'group_replication_member_weight'. The "
+              "memberWeight option accepts integer values. Group Replication "
+              "limits the value range from 0 to 100, automatically adjusting "
+              "it if a lower/bigger value is provided. Group Replication uses "
+              "a default value of 50 if no value is provided.");
 
 /**
  * $(CLUSTER_ADDINSTANCE_BRIEF)
@@ -513,6 +526,10 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26,
  * $(CLUSTER_ADDINSTANCE_DETAIL25)
  *
  * $(CLUSTER_ADDINSTANCE_DETAIL26)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL27)
+ *
+ * $(CLUSTER_ADDINSTANCE_DETAIL28)
  */
 #if DOXYGEN_JS
 Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}

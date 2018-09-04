@@ -408,6 +408,7 @@ shcore::Value ReplicaSet::add_instance(
   std::string ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
   std::string ip_whitelist, instance_label, local_address, group_seeds,
       exit_state_action;
+  mysqlshdk::utils::nullable<int64_t> member_weight;
 
   std::shared_ptr<Cluster> cluster(_cluster.lock());
   if (!cluster)
@@ -444,6 +445,7 @@ shcore::Value ReplicaSet::add_instance(
         .optional("localAddress", &local_address)
         .optional("groupSeeds", &group_seeds)
         .optional("exitStateAction", &exit_state_action)
+        .optional_exact("memberWeight", &member_weight)
         .end();
 
     // Validate SSL options for the cluster instance
@@ -466,6 +468,12 @@ shcore::Value ReplicaSet::add_instance(
 
       validate_exit_state_action_supported(session);
     }
+
+    // Validate if the memberWeight option is supported on the target
+    // instance and if it used in the optional parameters.
+    // The validation for the value set is handled at the group-replication
+    // level
+    if (!member_weight.is_null()) validate_member_weight_supported(session);
 
     if (add_options->has_key("memberSslMode")) {
       if (!seed_instance) {
@@ -584,7 +592,7 @@ shcore::Value ReplicaSet::add_instance(
   std::string replication_user(existing_replication_user);
   std::string replication_user_password(existing_replication_password);
 
-  // Call the gadget to bootstrap the group with this instance
+  // Handle the replication user
   if (seed_instance) {
     // Creates the replication user ONLY if not already given and if
     // skip_rpl_user was not set to true.
@@ -601,26 +609,6 @@ shcore::Value ReplicaSet::add_instance(
     log_info("Joining '%s' to group with user %s",
              target_coptions.uri_endpoint().c_str(),
              target_coptions.get_user().c_str());
-    log_info("Using Group Replication group name: %s", group_name.c_str());
-    log_info("Using Group Replication local address: %s",
-             local_address.c_str());
-
-    if (!group_seeds.empty()) {
-      log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
-    }
-
-    if (!exit_state_action.empty()) {
-      log_info("Using Group Replication exit state action: %s",
-               exit_state_action.c_str());
-    }
-
-    set_group_replication_member_options(session, ssl_mode);
-
-    // Call mysqlprovision to bootstrap the group using "start"
-    success = do_join_replicaset(target_coptions, nullptr, replication_user,
-                                 replication_user_password, ssl_mode,
-                                 ip_whitelist, group_name, local_address,
-                                 group_seeds, exit_state_action, skip_rpl_user);
   } else {
     mysqlshdk::db::Connection_options peer(pick_seed_instance());
     std::shared_ptr<mysqlshdk::db::ISession> peer_session;
@@ -643,8 +631,44 @@ shcore::Value ReplicaSet::add_instance(
 
       log_debug("Created replication user '%s'", replication_user.c_str());
     }
+  }
 
-    set_group_replication_member_options(session, ssl_mode);
+  // Set the ssl mode
+  set_group_replication_member_options(session, ssl_mode);
+
+  // Common informative logging
+  if (!local_address.empty()) {
+    log_info("Using Group Replication local address: %s",
+             local_address.c_str());
+  }
+
+  if (!group_seeds.empty()) {
+    log_info("Using Group Replication group seeds: %s", group_seeds.c_str());
+  }
+
+  if (!exit_state_action.empty()) {
+    log_info("Using Group Replication exit state action: %s",
+             exit_state_action.c_str());
+  }
+
+  if (!member_weight.is_null()) {
+    log_info("Using Group Replication member weight: %s",
+             std::to_string(*member_weight).c_str());
+  }
+
+  // Call MP
+  if (seed_instance) {
+    if (!group_name.empty()) {
+      log_info("Using Group Replication group name: %s", group_name.c_str());
+    }
+
+    // Call mysqlprovision to bootstrap the group using "start"
+    success = do_join_replicaset(
+        target_coptions, nullptr, replication_user, replication_user_password,
+        ssl_mode, ip_whitelist, member_weight, group_name, local_address,
+        group_seeds, exit_state_action, skip_rpl_user);
+  } else {
+    mysqlshdk::db::Connection_options peer(pick_seed_instance());
 
     // if no group_seeds value was provided by the user, then,
     // before joining instance to cluster, get the values of the
@@ -654,10 +678,10 @@ shcore::Value ReplicaSet::add_instance(
              target_coptions.uri_endpoint().c_str(), peer.get_user().c_str(),
              peer.uri_endpoint().c_str());
     // Call mysqlprovision to do the work
-    success = do_join_replicaset(target_coptions, &peer, replication_user,
-                                 replication_user_password, ssl_mode,
-                                 ip_whitelist, group_name, local_address,
-                                 group_seeds, exit_state_action, skip_rpl_user);
+    success = do_join_replicaset(
+        target_coptions, &peer, replication_user, replication_user_password,
+        ssl_mode, ip_whitelist, member_weight, group_name, local_address,
+        group_seeds, exit_state_action, skip_rpl_user);
   }
 
   if (success) {
@@ -702,9 +726,11 @@ bool ReplicaSet::do_join_replicaset(
     const mysqlshdk::db::Connection_options &instance,
     mysqlshdk::db::Connection_options *peer, const std::string &repl_user,
     const std::string &repl_user_password, const std::string &ssl_mode,
-    const std::string &ip_whitelist, const std::string &group_name,
-    const std::string &local_address, const std::string &group_seeds,
-    const std::string &exit_state_action, bool skip_rpl_user) {
+    const std::string &ip_whitelist,
+    mysqlshdk::utils::nullable<int64_t> member_weight,
+    const std::string &group_name, const std::string &local_address,
+    const std::string &group_seeds, const std::string &exit_state_action,
+    bool skip_rpl_user) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -721,11 +747,12 @@ bool ReplicaSet::do_join_replicaset(
         instance, repl_user, repl_user_password,
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, exit_state_action,
-        skip_rpl_user, &errors);
+        member_weight, skip_rpl_user, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, repl_user_password, ssl_mode, ip_whitelist,
-        local_address, group_seeds, exit_state_action, skip_rpl_user, &errors);
+        local_address, group_seeds, exit_state_action, member_weight,
+        skip_rpl_user, &errors);
   }
 
   if (exit_code == 0) {
@@ -1107,7 +1134,8 @@ shcore::Value ReplicaSet::rejoin_instance(
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         session->get_connection_options(), seed_instance_def, replication_user,
         replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds, "",
-        keep_repl_user, &errors);
+        mysqlshdk::utils::nullable<int64_t>(), keep_repl_user, &errors);
+
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",
                seed_instance.uri_endpoint().c_str());

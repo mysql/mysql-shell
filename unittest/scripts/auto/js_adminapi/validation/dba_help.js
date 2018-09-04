@@ -347,6 +347,8 @@ DESCRIPTION
         generated one.
       - exitStateAction: string value indicating the group replication exit
         state action.
+      - memberWeight: integer value with a percentage weight for automatic
+        primary election on failover.
 
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
@@ -417,6 +419,12 @@ DESCRIPTION
       ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is
       ABORT_SERVER.
 
+      The value for memberWeight is used to set the Group Replication system
+      variable 'group_replication_member_weight'. The memberWeight option
+      accepts integer values. Group Replication limits the value range from 0
+      to 100, automatically adjusting it if a lower/bigger value is provided.
+      Group Replication uses a default value of 50 if no value is provided.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -436,8 +444,9 @@ EXCEPTIONS
 
       RuntimeError in the following scenarios:
 
-      - If the value for the groupName, localAddress, groupSeeds, or
-        exitStateAction options is not valid for Group Replication.
+      - If the value for the groupName, localAddress, groupSeeds,
+        exitStateAction, or memberWeight options is not valid for Group
+        Replication.
       - If the current connection cannot be used for Group Replication.
 
 //@<OUT> Delete Sandbox

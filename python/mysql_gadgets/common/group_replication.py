@@ -95,6 +95,7 @@ GR_GROUP_SEEDS = "group_replication_group_seeds"
 GR_IP_WHITELIST = "group_replication_ip_whitelist"
 GR_LOCAL_ADDRESS = "group_replication_local_address"
 GR_EXIT_STATE_ACTION = "group_replication_exit_state_action"
+GR_MEMBER_WEIGHT = "group_replication_member_weight"
 GR_FORCE_MEMBERS = "group_replication_force_members"
 GR_PIPELINE_TYPE_VAR = "group_replication_pipeline_type_var"
 GR_RECOVERY_COMPLETE_AT = "group_replication_recovery_complete_at"
@@ -192,7 +193,8 @@ DEFAULTS_FILE_OPTIONS = frozenset((GR_IP_WHITELIST,
                                    GR_GROUP_SEEDS,
                                    GR_LOCAL_ADDRESS,
                                    GR_SINGLE_PRIMARY_MODE,
-                                   GR_EXIT_STATE_ACTION))
+                                   GR_EXIT_STATE_ACTION,
+                                   GR_MEMBER_WEIGHT))
 
 EQUIVALENT_OPTION_VALUES = {
     "ON": ("ON", "1"),
@@ -476,6 +478,29 @@ def unset_bootstrap(server, dry_run=False):
         else:
             server.exec_query("SET GLOBAL {0} = 0".format(GR_BOOTSTRAP_GROUP))
 
+def validate_member_weight(server, member_weight, dry_run=False):
+    """Validates the value of group_replication_member_weight by attempting
+    to set it and catch any error from GR
+
+    :param server:            A server with group replication plugin loaded
+    :type server:             Server instance (mysql_gadgets.common.server).
+    :param member_weight:     The value of group_replication_member_weight.
+    :type member_weight:      Int
+    :param dry_run:           If true no actions will affect the given server.
+    :type dry_run:            bool.
+    """
+    if not dry_run:
+        try:
+            server.exec_query("SET GLOBAL group_replication_member_weight = "
+                              "{0}".format(member_weight))
+        except GadgetQueryError as db_err:
+            if db_err.errno == MYSQL_ER_PARSE_ERROR or db_err.errno == MYSQL_ER_WRONG_VALUE_FOR_VAR:
+                raise GadgetError("Invalid value for memberWeight, can't be set "
+                                  "to the value of '{0}'"
+                                  .format(member_weight))
+            else:
+                raise GadgetError("An error occurred while setting variable "
+                                  "\n{0}: {1}".format(msg, db_err.errmsg))
 
 def validate_exit_state_action(server, exit_state_action, dry_run=False):
     """Validates the value of group_replication_exit_state_action by attempting
@@ -2174,6 +2199,10 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                             string containing either "ABORT_SERVER",
                             "READ_ONLY", "0" or "1".
                             The string is case-insensitive.
+        member_weight:      Group Replication Member Weight,
+                            must be an integer value, with a
+                            percentage weight for automatic
+                            primary election on failover.
     :param options_parser: Option file parser used to read the values in the
                            options file if available.
     :type options_parser: MySQLOptionsParser
@@ -2204,7 +2233,8 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_SINGLE_PRIMARY_MODE: options.get("single_primary", None),
         GR_GROUP_SEEDS: options.get("group_seeds", None),
         GR_IP_WHITELIST: options.get("ip_whitelist", None),
-        GR_EXIT_STATE_ACTION: options.get("exit_state_action", None)
+        GR_EXIT_STATE_ACTION: options.get("exit_state_action", None),
+        GR_MEMBER_WEIGHT: options.get("member_weight", None)
     }
 
     # Validate Group Name

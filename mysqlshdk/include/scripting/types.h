@@ -554,6 +554,26 @@ class Option_unpacker {
     return *this;
   }
 
+  // Extract optional option with exact type (no conversions)
+  template <typename T>
+  Option_unpacker &optional_exact(const char *name, T *out_value) {
+    Value value = get_optional_exact(name, value_type_for_native<T>::type);
+    if (value) {
+      *out_value = value_type_for_native<T>::extract(value);
+    }
+    return *this;
+  }
+
+  template <typename T>
+  Option_unpacker &optional_exact(const char *name,
+                                  mysqlshdk::utils::nullable<T> *out_value) {
+    Value value = get_optional_exact(name, value_type_for_native<T>::type);
+    if (value) {
+      *out_value = value_type_for_native<T>::extract(value);
+    }
+    return *this;
+  }
+
   // Case insensitive
   template <typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {
@@ -574,6 +594,8 @@ class Option_unpacker {
   Value get_required(const char *name, Value_type type);
   Value get_optional(const char *name, Value_type type,
                      bool case_insensitive = false);
+  Value get_optional_exact(const char *name, Value_type type,
+                           bool case_insensitive = false);
 
   void validate();
 };

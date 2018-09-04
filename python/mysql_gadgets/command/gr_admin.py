@@ -61,6 +61,7 @@ from mysql_gadgets.common.group_replication import (
     setup_gr_config,
     GR_IP_WHITELIST,
     GR_EXIT_STATE_ACTION,
+    GR_MEMBER_WEIGHT,
     GR_START_ON_BOOT,
     GR_FORCE_MEMBERS,
     GR_BOOTSTRAP_GROUP,
@@ -73,7 +74,8 @@ from mysql_gadgets.common.group_replication import (
     get_member_state, get_req_dict, get_req_dict_for_opt_file,
     get_req_dict_user_check, get_rpl_usr, get_group_uuid_name,
     is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
-    stop_gr_plugin, unset_bootstrap, validate_exit_state_action, validate_group_name)
+    stop_gr_plugin, unset_bootstrap, validate_exit_state_action,
+    validate_member_weight, validate_group_name)
 from mysql_gadgets.common.tools import is_listening
 from mysql_gadgets.common.config_parser import create_option_file
 
@@ -389,6 +391,10 @@ def start(server_info, **kwargs):
                                            "ABORT_SERVER", "READ_ONLY", "0"
                                            or "1".
                                            The string is case-insensitive.
+                        member_weight: Group Replication Member Weight,
+                                       must be an integer value, with a
+                                       percentage weight for automatic
+                                       primary election on failover.
     :type kwargs:       dict
 
     :raise GadgetError:         If server_info is None.
@@ -415,6 +421,7 @@ def start(server_info, **kwargs):
     skip_backup = kwargs.get("skip_backup", False)
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
     exit_state_action = kwargs.get("exit_state_action", None)
+    member_weight = kwargs.get("member_weight", None)
 
     _LOGGER.step("Checking Group Replication prerequisites.")
     try:
@@ -448,6 +455,11 @@ def start(server_info, **kwargs):
         if exit_state_action is not None:
             validate_exit_state_action(server, exit_state_action, dry_run)
 
+        # attempt to set the group_replication_member_weight in order to
+        # let GR do the value validation and catch any error right away
+        if member_weight is not None:
+            validate_member_weight(server, member_weight, dry_run)
+
         # verify the server does not belong already to a GR group.
         if is_active_member(server):
             health(server, **kwargs)
@@ -470,6 +482,9 @@ def start(server_info, **kwargs):
 
         if gr_config_vars[GR_EXIT_STATE_ACTION] is None:
             gr_config_vars.pop(GR_EXIT_STATE_ACTION)
+
+        if gr_config_vars[GR_MEMBER_WEIGHT] is None:
+            gr_config_vars.pop(GR_MEMBER_WEIGHT)
 
         if gr_config_vars[GR_GROUP_NAME] is None:
             new_uuid = get_group_uuid_name(server)
@@ -777,6 +792,7 @@ def join(server_info, peer_server_info, **kwargs):
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
     target_is_local = kwargs.get("target_is_local", False)
     exit_state_action = kwargs.get("exit_state_action", None)
+    member_weight = kwargs.get("member_weight", None)
 
     # Connect to the server
     server = get_server(server_info=server_info)
@@ -847,6 +863,11 @@ def join(server_info, peer_server_info, **kwargs):
         # let GR do the value validation and catch any error right away
         if exit_state_action is not None:
             validate_exit_state_action(server, exit_state_action, dry_run)
+
+        # attempt to set the group_replication_member_weight in order to
+        # let GR do the value validation and catch any error right away
+        if member_weight is not None:
+            validate_member_weight(server, member_weight, dry_run)
 
         # Initialize log error access and get current position in it
         error_log_size = None
@@ -949,6 +970,9 @@ def join(server_info, peer_server_info, **kwargs):
 
         if gr_config_vars[GR_EXIT_STATE_ACTION] is None:
             gr_config_vars.pop(GR_EXIT_STATE_ACTION)
+
+        if gr_config_vars[GR_MEMBER_WEIGHT] is None:
+            gr_config_vars.pop(GR_MEMBER_WEIGHT)
 
         gr_config_vars[GR_START_ON_BOOT] = "ON"
 
