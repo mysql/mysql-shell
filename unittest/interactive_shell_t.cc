@@ -2038,7 +2038,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   // get the initial pager
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  const auto default_pager = output_handler.std_out;
+  const auto default_pager = shcore::str_strip(output_handler.std_out);
   wipe_all();
 
   // set pager to a command enclosed in quotes, they should be removed
@@ -2047,7 +2047,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more", output_handler.std_out);
+  EXPECT_EQ("more", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // reset pager to the initial value using command with no arguments
@@ -2056,7 +2056,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ(default_pager, output_handler.std_out);
+  EXPECT_EQ(default_pager, shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command
@@ -2065,7 +2065,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more", output_handler.std_out);
+  EXPECT_EQ("more", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // reset pager to the initial value using command with an empty argument
@@ -2074,7 +2074,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ(default_pager, output_handler.std_out);
+  EXPECT_EQ(default_pager, shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument, both enclosed in quotes
@@ -2083,7 +2083,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument, the first one enclosed in quotes
@@ -2092,7 +2092,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument, the second one enclosed in quotes
@@ -2101,7 +2101,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument without using quotes
@@ -2110,7 +2110,7 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument which is enclosed in quotes
@@ -2119,7 +2119,8 @@ TEST_F(Interactive_shell_test, pager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("some_cmd print \"hello\"", output_handler.std_out);
+  EXPECT_EQ("some_cmd print \"hello\"",
+            shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   reset_options();
@@ -2129,7 +2130,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   // get the initial pager
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  const auto default_pager = output_handler.std_out;
+  const auto default_pager = shcore::str_strip(output_handler.std_out);
   wipe_all();
 
   // set pager to a command enclosed in quotes, they should be removed
@@ -2138,7 +2139,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more", output_handler.std_out);
+  EXPECT_EQ("more", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // reset pager to the initial value using command with no arguments
@@ -2147,7 +2148,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ(default_pager, output_handler.std_out);
+  EXPECT_EQ(default_pager, shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command
@@ -2156,7 +2157,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more", output_handler.std_out);
+  EXPECT_EQ("more", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // reset pager to the initial value using command with an empty argument
@@ -2165,7 +2166,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ(default_pager, output_handler.std_out);
+  EXPECT_EQ(default_pager, shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument, both enclosed in quotes
@@ -2174,7 +2175,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument, the first one enclosed in quotes
@@ -2183,7 +2184,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument, the second one enclosed in quotes
@@ -2192,7 +2193,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument without using quotes
@@ -2201,7 +2202,7 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // set pager to a command with argument which is enclosed in quotes
@@ -2210,7 +2211,8 @@ TEST_F(Interactive_shell_test, pager_short_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("some_cmd print \"hello\"", output_handler.std_out);
+  EXPECT_EQ("some_cmd print \"hello\"",
+            shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   reset_options();
@@ -2223,7 +2225,7 @@ TEST_F(Interactive_shell_test, nopager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("more -10", output_handler.std_out);
+  EXPECT_EQ("more -10", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   // reset pager to an empty string
@@ -2232,7 +2234,7 @@ TEST_F(Interactive_shell_test, nopager_command) {
   wipe_all();
   execute("print(shell.options.pager)");
   EXPECT_EQ("", output_handler.std_err);
-  EXPECT_EQ("", output_handler.std_out);
+  EXPECT_EQ("", shcore::str_strip(output_handler.std_out));
   wipe_all();
 
   static constexpr auto expected_error = R"(NAME
