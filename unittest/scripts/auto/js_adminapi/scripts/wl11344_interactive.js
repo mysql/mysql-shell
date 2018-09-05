@@ -68,7 +68,10 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__hostname_uri1);
-cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __mysql_sandbox_port2, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+
+var __local_address_1 = "14679";
+
+cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
 //@ FR1-TS-04/05 {VER(>=8.0.11)}
 print_persisted_variables(session);
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
@@ -191,7 +194,8 @@ s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
 cluster = dba.getCluster("ClusterName");
-cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __mysql_sandbox_port3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+var __local_address_2 = "15679";
+cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.11)}
@@ -234,7 +238,8 @@ s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__hostname_uri1);
 dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 cluster = dba.getCluster("ClusterName");
-cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __mysql_sandbox_port3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
+var __local_address_3 = "16679";
+cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip});
 session.close();
 shell.connect(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
