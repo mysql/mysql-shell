@@ -31,6 +31,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "shellcore/interrupt_handler.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -47,6 +48,101 @@ Result::Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
   if (info_) _info.assign(info_);
 }
 
+// MYSQL-SERVER-CODE mysql.cc:3341
+static const char *fieldtype2str(enum enum_field_types type) {
+  switch (type) {
+    case MYSQL_TYPE_BIT:
+      return "BIT";
+    case MYSQL_TYPE_BLOB:
+      return "BLOB";
+    case MYSQL_TYPE_DATE:
+      return "DATE";
+    case MYSQL_TYPE_DATETIME:
+      return "DATETIME";
+    case MYSQL_TYPE_NEWDECIMAL:
+      return "NEWDECIMAL";
+    case MYSQL_TYPE_DECIMAL:
+      return "DECIMAL";
+    case MYSQL_TYPE_DOUBLE:
+      return "DOUBLE";
+    case MYSQL_TYPE_ENUM:
+      return "ENUM";
+    case MYSQL_TYPE_FLOAT:
+      return "FLOAT";
+    case MYSQL_TYPE_GEOMETRY:
+      return "GEOMETRY";
+    case MYSQL_TYPE_INT24:
+      return "INT24";
+    case MYSQL_TYPE_JSON:
+      return "JSON";
+    case MYSQL_TYPE_LONG:
+      return "LONG";
+    case MYSQL_TYPE_LONGLONG:
+      return "LONGLONG";
+    case MYSQL_TYPE_LONG_BLOB:
+      return "LONG_BLOB";
+    case MYSQL_TYPE_MEDIUM_BLOB:
+      return "MEDIUM_BLOB";
+    case MYSQL_TYPE_NEWDATE:
+      return "NEWDATE";
+    case MYSQL_TYPE_NULL:
+      return "NULL";
+    case MYSQL_TYPE_SET:
+      return "SET";
+    case MYSQL_TYPE_SHORT:
+      return "SHORT";
+    case MYSQL_TYPE_STRING:
+      return "STRING";
+    case MYSQL_TYPE_TIME:
+      return "TIME";
+    case MYSQL_TYPE_TIMESTAMP:
+      return "TIMESTAMP";
+    case MYSQL_TYPE_TINY:
+      return "TINY";
+    case MYSQL_TYPE_TINY_BLOB:
+      return "TINY_BLOB";
+    case MYSQL_TYPE_VAR_STRING:
+      return "VAR_STRING";
+    case MYSQL_TYPE_YEAR:
+      return "YEAR";
+    default:
+      return "?-unknown-?";
+  }
+}
+
+// MYSQL-SERVER-CODE (slightly modified) mysql.c:3402
+static std::string fieldflags2str(unsigned int f) {
+  std::stringstream s;
+
+#define ff2s_check_flag(X) \
+  if (f & X##_FLAG) {      \
+    s << #X " ";           \
+    f &= ~X##_FLAG;        \
+  }
+  ff2s_check_flag(NOT_NULL);
+  ff2s_check_flag(PRI_KEY);
+  ff2s_check_flag(UNIQUE_KEY);
+  ff2s_check_flag(MULTIPLE_KEY);
+  ff2s_check_flag(BLOB);
+  ff2s_check_flag(UNSIGNED);
+  ff2s_check_flag(ZEROFILL);
+  ff2s_check_flag(BINARY);
+  ff2s_check_flag(ENUM);
+  ff2s_check_flag(AUTO_INCREMENT);
+  ff2s_check_flag(TIMESTAMP);
+  ff2s_check_flag(SET);
+  ff2s_check_flag(NO_DEFAULT_VALUE);
+  ff2s_check_flag(NUM);
+  ff2s_check_flag(PART_KEY);
+  ff2s_check_flag(GROUP);
+  ff2s_check_flag(UNIQUE);
+  ff2s_check_flag(BINCMP);
+  ff2s_check_flag(ON_UPDATE_NOW);
+#undef ff2s_check_flag
+  if (f) s << shcore::str_format(" unknowns=0x%04x", f);
+  return s.str();
+}
+
 void Result::fetch_metadata() {
   int num_fields = 0;
 
@@ -61,13 +157,16 @@ void Result::fetch_metadata() {
 
     for (int index = 0; index < num_fields; index++) {
       _metadata.push_back(mysqlshdk::db::Column(
-          fields[index].db, fields[index].org_table, fields[index].table,
-          fields[index].org_name, fields[index].name, fields[index].length,
-          fields[index].decimals,
+          fields[index].catalog, fields[index].db, fields[index].org_table,
+          fields[index].table, fields[index].org_name, fields[index].name,
+          fields[index].length, fields[index].decimals,
           map_data_type(fields[index].type, fields[index].flags),
-          fields[index].charsetnr, bool(fields[index].flags & UNSIGNED_FLAG),
-          bool(fields[index].flags & ZEROFILL_FLAG),
-          bool(fields[index].flags & BINARY_FLAG)));
+          fields[index].charsetnr,
+          static_cast<bool>(fields[index].flags & UNSIGNED_FLAG),
+          static_cast<bool>(fields[index].flags & ZEROFILL_FLAG),
+          static_cast<bool>(fields[index].flags & BINARY_FLAG),
+          fieldflags2str(fields[index].flags),
+          fieldtype2str(fields[index].type)));
     }
   }
 }

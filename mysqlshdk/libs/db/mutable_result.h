@@ -38,7 +38,8 @@ namespace db {
 class Mutable_result : public IResult {
  public:
   static inline Column make_column(const std::string &name, Type type) {
-    return Column("", "", "", name, name, 0, 0, type, 0, false, false, false);
+    return Column("", "", "", "", name, name, 0, 0, type, 0, false, false,
+                  false);
   }
 
  public:

@@ -95,6 +95,11 @@ Usage: mysqlsh [OPTIONS] [URI]
   --passwords-from-stdin        Read passwords from stdin instead of the tty.
   --show-warnings=<true|false>  Automatically display SQL warnings on SQL mode
                                 if available.
+  --column-type-info            Display column type information in SQL mode.
+                                Please be aware that output may depend on the
+                                protocol you are using to connect to the
+                                server, e.g. DbType field is approximated when
+                                using X protocol.
   --histignore=filters          Shell's history ignore list.
   --pager=value                 Pager used to display text output of statements
                                 executed in SQL mode as well as some other

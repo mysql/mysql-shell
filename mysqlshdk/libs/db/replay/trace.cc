@@ -537,7 +537,7 @@ void unserialize_result_metadata(rapidjson::Value *clist,
   for (unsigned i = 0; i < clist->Size(); i++) {
     rapidjson::Value &cobj((*clist)[i]);
     db::Column column(
-        get_string(cobj["schema"]), get_string(cobj["table_name"]),
+        "", get_string(cobj["schema"]), get_string(cobj["table_name"]),
         get_string(cobj["table_label"]), get_string(cobj["column_name"]),
         get_string(cobj["column_label"]), get_int(cobj["length"]),
         get_int(cobj["fractional"]),

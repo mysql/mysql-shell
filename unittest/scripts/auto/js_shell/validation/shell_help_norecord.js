@@ -105,6 +105,10 @@ DESCRIPTION
         read passwords from stdin instead of the tty
       - sandboxDir: default path where the new sandbox instances for InnoDB
         cluster will be deployed
+      - showColumnTypeInfo: display column type information in SQL mode. Please
+        be aware that output may depend on the protocol you are using to
+        connect to the server, e.g. DbType field is approximated when using X
+        protocol.
       - showWarnings: boolean value to indicate whether warnings shall be
         included when printing an SQL result
       - useWizards: read-only, boolean value to indicate if the Shell is using
