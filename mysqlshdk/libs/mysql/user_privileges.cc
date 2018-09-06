@@ -152,6 +152,8 @@ User_privileges::User_privileges(const std::shared_ptr<db::ISession> &session,
   read_table_privileges(session);
 }
 
+const char User_privileges::k_wildcard[] = "*";
+
 bool User_privileges::user_exists() const { return m_user_exists; }
 
 bool User_privileges::has_grant_option(const std::string &schema,

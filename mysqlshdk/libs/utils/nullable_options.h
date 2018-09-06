@@ -76,8 +76,8 @@ class SHCORE_PUBLIC Nullable_options {
 
   size_t size() const { return _options.size(); }
 
-  virtual bool operator==(const Nullable_options &other) const;
-  virtual bool operator!=(const Nullable_options &other) const;
+  bool operator==(const Nullable_options &other) const;
+  bool operator!=(const Nullable_options &other) const;
   int compare(const std::string &lhs, const std::string &rhs) const;
 
   const_iterator begin() const { return _options.cbegin(); }

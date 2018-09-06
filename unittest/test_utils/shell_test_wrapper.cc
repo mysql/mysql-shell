@@ -424,7 +424,11 @@ void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
               new tests::Override_row_string(std::move(source), datadir_column,
                                              datadir)};
         }
+#ifdef __SunOS
+        return std::move(source);
+#else
         return source;
+#endif
       });
 }
 

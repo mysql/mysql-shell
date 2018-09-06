@@ -27,6 +27,10 @@
 #include <string>
 #include <utility>
 
+#ifdef __SunOS
+#include <sys/wait.h>
+#endif
+
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -145,26 +149,21 @@ class Shell_pager : public IPager {
   static shcore::Prompt_result prompt(void *user_data, const char *prompt,
                                       std::string *ret_input) {
     const auto self = static_cast<Shell_pager *>(user_data);
-    return self->call_delegate(&Delegate::prompt, prompt, ret_input);
+    return self->m_original_delegate.password(
+        self->m_original_delegate.user_data, prompt, ret_input);
   }
 
   static shcore::Prompt_result password(void *user_data, const char *prompt,
                                         std::string *ret_password) {
     const auto self = static_cast<Shell_pager *>(user_data);
-    return self->call_delegate(&Delegate::password, prompt, ret_password);
+    return self->m_original_delegate.password(
+        self->m_original_delegate.user_data, prompt, ret_password);
   }
 
   static void print_error(void *user_data, const char *text) {
     const auto self = static_cast<Shell_pager *>(user_data);
-    self->call_delegate(&Delegate::print_error, text);
-  }
-
-  template <typename F, typename... Args>
-  auto call_delegate(F func, Args &&... args)
-      -> decltype((std::declval<Delegate>().*
-                   func)(nullptr, std::forward<Args>(args)...)) {
-    return (m_original_delegate.*func)(m_original_delegate.user_data,
-                                       std::forward<Args>(args)...);
+    self->m_original_delegate.print_error(self->m_original_delegate.user_data,
+                                          text);
   }
 
   Delegate *m_delegate = nullptr;

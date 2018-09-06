@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 #define MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 
+#include <cstdarg>
 #include <fstream>
 #include <list>
 #include <memory>

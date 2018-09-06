@@ -291,7 +291,7 @@ std::string get_system_user() {
   if (geteuid() == 0) {
     ret_val = "root"; /* allow use of surun */
   } else {
-#if defined(HAVE_GETPWUID_R) and defined(HAVE_GETLOGIN_R)
+#if defined(HAVE_GETPWUID_R) && defined(HAVE_GETLOGIN_R)
     auto name_size = sysconf(_SC_LOGIN_NAME_MAX);
     char *name = reinterpret_cast<char *>(malloc(name_size));
     if (!getlogin_r(name, name_size)) {
@@ -331,13 +331,12 @@ std::string get_system_user() {
 
 std::string errno_to_string(int err) {
 #ifdef _WIN32
-  std::string ret;
-  ret.resize(256);
-  auto i = strerror_s(&ret[0], ret.size(), err);
-  assert(i == 0);
-  (void)i;
-  ret.resize(strlen(&ret[0]));
-  return ret;
+#define strerror_r(E, B, S) strerror_s(B, S, E)
+#endif
+#if defined(_WIN32) || defined(__SunOS)
+  char buf[256];
+  if (!strerror_r(err, buf, sizeof(buf))) return std::string(buf);
+  return "";
 #elif __APPLE__ || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && \
                     !_GNU_SOURCE)  // NOLINT
   std::string ret;
@@ -859,6 +858,8 @@ OperatingSystem get_os_type() {
   os = OperatingSystem::WINDOWS;
 #elif __APPLE__
   os = OperatingSystem::MACOS;
+#elif __SunOS
+  os = OperatingSystem::SOLARIS;
 #elif __linux__
   os = OperatingSystem::LINUX;
 
@@ -921,6 +922,8 @@ std::string to_string(OperatingSystem os_type) {
       return "windows";
     case OperatingSystem::MACOS:
       return "macos";
+    case OperatingSystem::SOLARIS:
+      return "solaris";
     default:
       assert(0);
       return "unknown";

@@ -732,17 +732,11 @@ PyObject *Python_context::shell_stdin_read(PyObject *self, PyObject *args) {
   // stdin.read(n) requires n number of chars to be read,
   // but we can only read one line at a time. Thus, we read one line at a time
   // from user, buffer it and return the requested number of chars
-  size_t n = 0;
+  int n = 0;
   if (!PyArg_ParseTuple(args, "I", &n)) return nullptr;
 
+  std::string read_buffer;
   for (;;) {
-    if (ctx->_stdin_buffer.size() >= n) {
-      PyObject *str =
-          PyString_FromString(ctx->_stdin_buffer.substr(0, n).c_str());
-      ctx->_stdin_buffer = ctx->_stdin_buffer.substr(n);
-      return str;
-    }
-
     shcore::Prompt_result result;
     std::string line;
     std::tie(result, line) = ctx->read_line("");
@@ -754,7 +748,18 @@ PyObject *Python_context::shell_stdin_read(PyObject *self, PyObject *args) {
       PyErr_SetNone(PyExc_EOFError);
       return nullptr;
     }
-    ctx->_stdin_buffer.append(line);
+
+    read_buffer += line;
+
+    if (static_cast<int>(read_buffer.size()) >= n) {
+      PyObject *str = PyString_FromString(read_buffer.substr(0, n).c_str());
+
+      // Prepend to the buffer what was not consumed
+      if (static_cast<int>(read_buffer.size()) > n)
+        ctx->_stdin_buffer = read_buffer.substr(n) + ctx->_stdin_buffer;
+
+      return str;
+    }
   }
 }
 

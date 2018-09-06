@@ -1018,7 +1018,7 @@ bool Global_dba::resolve_cnf_path(
 
   auto session = mysqlsh::dba::Dba::get_session(connection_args);
 
-  enum class OperatingSystem { DEBIAN, REDHAT, LINUX, WINDOWS, MACOS };
+  enum class OperatingSystem { DEBIAN, REDHAT, LINUX, WINDOWS, MACOS, SOLARIS };
 
   // If the instance is a sandbox, we can obtain directly the path from
   // the datadir
@@ -1063,6 +1063,8 @@ bool Global_dba::resolve_cnf_path(
     os = OperatingSystem::WINDOWS;
 #elif __APPLE__
     os = OperatingSystem::MACOS;
+#elif __SunOS
+    os = OperatingSystem::SOLARIS;
 #else
     os = OperatingSystem::LINUX;
 
@@ -1115,6 +1117,7 @@ bool Global_dba::resolve_cnf_path(
         default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
         break;
       case OperatingSystem::REDHAT:
+      case OperatingSystem::SOLARIS:
         default_paths.push_back("/etc/my.cnf");
         break;
       case OperatingSystem::LINUX:

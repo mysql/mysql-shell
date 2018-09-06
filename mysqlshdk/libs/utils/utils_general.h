@@ -63,7 +63,15 @@ class Scoped_callback {
 
 using on_leave_scope = Scoped_callback;
 
-enum class OperatingSystem { UNKNOWN, DEBIAN, REDHAT, LINUX, WINDOWS, MACOS };
+enum class OperatingSystem {
+  UNKNOWN,
+  DEBIAN,
+  REDHAT,
+  LINUX,
+  WINDOWS,
+  MACOS,
+  SOLARIS
+};
 std::string SHCORE_PUBLIC to_string(OperatingSystem os_type);
 
 bool SHCORE_PUBLIC is_valid_identifier(const std::string &name);

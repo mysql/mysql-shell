@@ -45,7 +45,6 @@
 #else
 #include <arpa/inet.h>
 #include <ifaddrs.h>
-#include <net/if.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -74,6 +73,12 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
+
+// clang-format off
+#ifndef _WIN32
+#include <net/if.h>
+#endif
+// clang-format on
 
 // TODO(anyone)
 // - make destroySandbox() expect that the final state of the sandbox is the

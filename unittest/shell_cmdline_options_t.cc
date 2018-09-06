@@ -25,7 +25,6 @@
 #include <fstream>
 #include <string>
 
-#include "gtest_clean.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_base_test.h"
@@ -659,7 +658,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.interactive);
   EXPECT_EQ(options.log_level, ngcommon::Logger::LOG_INFO);
   EXPECT_EQ("table", options.output_format);
-  EXPECT_EQ(NULL, options.password);
+  EXPECT_EQ(nullptr, options.password);
   EXPECT_FALSE(options.passwords_from_stdin);
   EXPECT_EQ(options.port, 0);
   EXPECT_FALSE(options.prompt_password);

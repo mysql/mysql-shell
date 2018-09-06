@@ -709,15 +709,20 @@ class Helper_executable_tester : public Helper_tester {
 
   void clear_last_error() const { m_last_error.clear(); }
 
-  static constexpr auto k_exe_prefix = "mysql-secret-store-";
-  static constexpr auto k_secret = "Secret";
-  static constexpr auto k_secret_type = "SecretType";
-  static constexpr auto k_server_url = "ServerURL";
+  static const char k_exe_prefix[];
+  static const char k_secret[];
+  static const char k_secret_type[];
+  static const char k_server_url[];
 
   std::unique_ptr<Helper_invoker> m_invoker;
 
   mutable std::string m_last_error;
 };
+
+const char Helper_executable_tester::k_exe_prefix[] = "mysql-secret-store-";
+const char Helper_executable_tester::k_secret[] = "Secret";
+const char Helper_executable_tester::k_secret_type[] = "SecretType";
+const char Helper_executable_tester::k_server_url[] = "ServerURL";
 
 template <typename T>
 class Parametrized_helper_test : public ::testing::TestWithParam<std::string> {
