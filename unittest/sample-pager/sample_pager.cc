@@ -145,9 +145,9 @@ class Pager {
     }
   }
 
-  static constexpr auto k_echo_command = "--echo";
-  static constexpr auto k_append_command = "--append";
-  static constexpr auto k_file_command = "--file=";
+  static const char k_echo_command[];
+  static const char k_append_command[];
+  static const char k_file_command[];
   static constexpr size_t k_buffer_size = 512;
 
   std::string m_file;
@@ -157,6 +157,9 @@ class Pager {
   int m_fd = -1;
 };
 
+const char Pager::k_echo_command[] = "--echo";
+const char Pager::k_append_command[] = "--append";
+const char Pager::k_file_command[] = "--file=";
 }  // namespace
 
 int main(int argc, char *argv[]) { return Pager().run(argc, argv); }

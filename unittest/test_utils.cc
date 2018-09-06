@@ -488,7 +488,11 @@ void Shell_core_test_wrapper::reset_replayable_shell(
               new tests::Override_row_string(std::move(source), datadir_column,
                                              datadir)};
         }
+#ifdef __SunOS
+        return std::move(source);
+#else
         return source;
+#endif
       });
 }
 

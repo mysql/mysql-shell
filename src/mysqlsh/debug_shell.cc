@@ -103,7 +103,11 @@ void handle_debug_options(int *argc, char ***argv) {
   }
 
   for (int j = 0, i = 0, c = *argc; i < c; i++) {
-    if (strcmp((*argv)[i], "--trace-sql") == 0) {
+    if (strcmp((*argv)[i], "--trace") == 0) {
+      // stop executing script on failure
+      g_test_trace_scripts = 2;
+      (*argc)--;
+    } else if (strcmp((*argv)[i], "--trace-sql") == 0) {
       print_traces = 1;
       (*argc)--;
     } else if (strcmp((*argv)[i], "--trace-all-sql") == 0) {

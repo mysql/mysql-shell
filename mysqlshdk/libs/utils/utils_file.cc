@@ -50,7 +50,11 @@
 #include <limits.h>
 #include <mach-o/dyld.h>
 #else
+#ifdef __SunOS
+#include <limits.h>
+#else
 #include <linux/limits.h>
+#endif
 #endif
 #endif
 
@@ -199,6 +203,18 @@ std::string get_binary_path() {
         "get_binary_folder: _NSGetExecutablePath failed.\n");
 
 #else
+#ifdef __SunOS
+  char cwd[PATH_MAX]{'\0'};
+
+  const char *path = getexecname();
+
+  if (path && getcwd(cwd, PATH_MAX)) {
+    exe_path = shcore::path::join_path(cwd, path);
+  } else {
+    throw std::runtime_error(str_format(
+        "get_binary_folder: Realpath failed with error %d\n", errno));
+  }
+#else
 #ifdef __linux__
   char path[PATH_MAX]{'\0'};
   ssize_t len = readlink("/proc/self/exe", path, PATH_MAX);
@@ -208,6 +224,7 @@ std::string get_binary_path() {
   } else
     throw std::runtime_error(str_format(
         "get_binary_folder: Readlink failed with error %d\n", errno));
+#endif
 #endif
 #endif
 #endif
@@ -781,7 +798,7 @@ void rename_file(const std::string &from, const std::string &to) {
 
 void copy_dir(const std::string &from, const std::string &to) {
   create_directory(to);
-  iterdir(from, [from, to](const std::string &name) {
+  iterdir(from, [from, to](const std::string &name) -> bool {
     try {
       if (is_folder(path::join_path(from, name)))
         copy_dir(path::join_path(from, name), path::join_path(to, name));

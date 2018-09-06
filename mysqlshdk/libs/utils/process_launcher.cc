@@ -54,7 +54,7 @@
 #include <libutil.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
 #include <util.h>
-#elif !defined(WIN32)
+#elif !defined(WIN32) && !defined(__SunOS)
 #include <pty.h>
 #endif
 

@@ -45,7 +45,7 @@ class User_privileges {
   /**
    * Specifies a string which matches any schema or any table.
    */
-  static constexpr auto k_wildcard = "*";
+  static const char k_wildcard[];
 
   /**
    * Gathers privileges for the given user using provided session.

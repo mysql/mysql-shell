@@ -135,10 +135,11 @@ class Pager_initialization_test : public Mysqlsh_pager_test {
   }
 
  private:
-  static constexpr auto k_file = "pager_initialization_test";
+  static const char k_file[];
   static constexpr const char *const k_cmdline_pager = "--pager=cmd";
 };
 
+const char Pager_initialization_test::k_file[] = "pager_initialization_test";
 constexpr const char *const Pager_initialization_test::k_cmdline_pager;
 
 TEST_F(Pager_initialization_test, default_pager) {
@@ -569,10 +570,12 @@ TEST_F(Pager_script_test, WL10755_TS12_2) {
   static constexpr auto expected_mysqlsh_output =
       "sh: invalid_command: command not found";
   static constexpr auto platform_specific_output =
-#ifdef _WIN32
+#if defined(_WIN32)
       R"('invalid_command' is not recognized as an internal or external command,
 operable program or batch file.)";
-#else   // !_WIN32
+#elif defined(__SunOS)
+      "sh: invalid_command: not found";  // output on Solaris
+#else
       "sh: 1: invalid_command: not found";  // output on Debian
 #endif  // !_WIN32
 

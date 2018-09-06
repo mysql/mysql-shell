@@ -1316,6 +1316,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
       default_paths.push_back("/etc/mysql/mysql.conf.d/mysqld.cnf");
       break;
     case shcore::OperatingSystem::REDHAT:
+    case shcore::OperatingSystem::SOLARIS:
       default_paths.push_back("/etc/my.cnf");
       break;
     case shcore::OperatingSystem::LINUX:

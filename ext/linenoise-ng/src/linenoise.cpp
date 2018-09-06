@@ -112,6 +112,11 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+
+#ifdef __SunOS
+#include <sys/stat.h>
+#endif
+
 #include <cctype>
 #include <wctype.h>
 
