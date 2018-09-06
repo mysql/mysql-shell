@@ -263,6 +263,7 @@
  passwordsFromStdin              false
  resultFormat                    table
  sandboxDir                      <<<_defaultSandboxDir>>>
+ showColumnTypeInfo              false
  showWarnings                    true
  useWizards                      true
 
@@ -285,6 +286,7 @@
  passwordsFromStdin              false (Compiled default)
  resultFormat                    table (Compiled default)
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
+ showColumnTypeInfo              false (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)
 
@@ -338,6 +340,7 @@
  passwordsFromStdin              false
  resultFormat                    table
  sandboxDir                      <<<_defaultSandboxDir>>>
+ showColumnTypeInfo              false
  showWarnings                    true
  useWizards                      true
 
@@ -361,5 +364,6 @@
  passwordsFromStdin              false (Compiled default)
  resultFormat                    table (Compiled default)
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
+ showColumnTypeInfo              false (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)

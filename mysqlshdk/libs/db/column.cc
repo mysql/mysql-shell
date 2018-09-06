@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/db/column.h"
+#include <sstream>
 #include <stdexcept>
 #include "mysqlshdk/libs/db/charset.h"
 
@@ -103,12 +104,15 @@ Type string_to_type(const std::string &type) {
     throw std::logic_error("Unknown type " + type);
 }
 
-Column::Column(const std::string &schema, const std::string &table_name,
-               const std::string &table_label, const std::string &column_name,
-               const std::string &column_label, uint32_t length, int fractional,
-               Type type, uint32_t collation_id, bool unsigned_, bool zerofill,
-               bool binary)
-    : _schema(schema),
+Column::Column(const std::string &catalog, const std::string &schema,
+               const std::string &table_name, const std::string &table_label,
+               const std::string &column_name, const std::string &column_label,
+               uint32_t length, int fractional, Type type,
+               uint32_t collation_id, bool unsigned_, bool zerofill,
+               bool binary, const std::string &flags,
+               const std::string &db_type)
+    : _catalog(catalog),
+      _schema(schema),
       _table_name(table_name),
       _table_label(table_label),
       _column_name(column_name),
@@ -117,9 +121,71 @@ Column::Column(const std::string &schema, const std::string &table_name,
       _length(length),
       _fractional(fractional),
       _type(type),
+      _db_type(db_type),
       _unsigned(unsigned_),
       _zerofill(zerofill),
-      _binary(binary) {}
+      _binary(binary),
+      _flags(flags) {}
+
+std::string Column::get_dbtype() const {
+  if (_db_type.empty()) {
+    switch (_type) {
+      case Type::Bit:
+        return "BIT";
+      case Type::Integer:
+      case Type::UInteger:
+        switch (_length) {
+          case 1:
+          case 3:
+          case 4:
+            return "TINY";
+          case 5:
+          case 6:
+            return "SHORT";
+          case 8:
+          case 9:
+            return "INT24";
+          case 10:
+          case 11:
+            return "LONG";
+          case 20:
+            return "LONGLONG";
+          default:
+            return "UNKNOWN INTEGER";
+        }
+        break;
+      case Type::Float:
+        return "FLOAT";
+      case Type::Double:
+        return "DOUBLE";
+      case Type::Date:
+        return "DATE";
+      case Type::DateTime:
+        if (_flags.find("TIMESTAMP") == std::string::npos) return "DATETIME";
+        return "TIMESTAMP";
+      case Type::Decimal:
+        return "NEWDECIMAL";
+      case Type::Geometry:
+        return "GEOMETRY";
+      case Type::Json:
+        return "JSON";
+      case Type::Set:
+      case Type::Enum:
+        return "STRING";
+      case Type::Bytes:
+      case Type::String:
+        if (_flags.find("BLOB") != std::string::npos) return "BLOB";
+        return "VAR_STRING";
+      case Type::Null:
+        return "NULL";
+      case Type::Time:
+        return "TIME";
+      default:
+        return "?-unknown-?";
+    }
+  }
+  return _db_type;
+}
 
 std::string Column::get_collation_name() const {
   return charset::collation_name_from_collation_id(_collation_id);
@@ -130,9 +196,36 @@ std::string Column::get_charset_name() const {
 }
 
 bool Column::is_numeric() const {
-  return (_type == Type::Integer || _type == Type::UInteger ||
-          _type == Type::Float || _type == Type::Decimal ||
-          _type == Type::Double);
+  switch (_type) {
+    case Type::Integer:
+    case Type::UInteger:
+    case Type::Float:
+    case Type::Double:
+    case Type::Decimal:
+      return true;
+    default:
+      return false;
+  }
+}
+
+std::string to_string(const Column &c) {
+  std::stringstream ss;
+  uint32_t coll_id = c._collation_id == 0 ? 63 : c._collation_id;
+  ss << "Name:      `" << c._column_label << "`\n";
+  ss << "Org_name:  `" << c._column_name << "`\n";
+  ss << "Catalog:   `" << c._catalog << "`\n";
+  ss << "Database:  `" << c._schema << "`\n";
+  ss << "Table:     `" << c._table_label << "`\n";
+  ss << "Org_table: `" << c._table_name << "`\n";
+  ss << "Type:      " << to_string(c._type) << "\n";
+  ss << "DbType:    " << c.get_dbtype() << "\n";
+  ss << "Collation: " << charset::collation_name_from_collation_id(coll_id)
+     << " (" << coll_id << ")\n";
+  ss << "Length:    " << c._length << "\n";
+  ss << "Decimals:  " << c._fractional << "\n";
+  ss << "Flags:     " << c._flags << "\n";
+
+  return ss.str();
 }
 
 }  // namespace db

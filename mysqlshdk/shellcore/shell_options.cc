@@ -360,6 +360,11 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.show_warnings, true, SHCORE_SHOW_WARNINGS,
         cmdline("--show-warnings=<true|false>"),
         "Automatically display SQL warnings on SQL mode if available.")
+    (&storage.show_column_type_info, false, "showColumnTypeInfo",
+        cmdline("--column-type-info"),
+        "Display column type information in SQL mode. Please be aware that "
+        "output may depend on the protocol you are using to connect to the "
+        "server, e.g. DbType field is approximated when using X protocol.")
     (&storage.history_max_size, 1000, SHCORE_HISTORY_MAX_SIZE,
         "Shell's history maximum size",
         shcore::opts::Range<int>(0, std::numeric_limits<int>::max()))

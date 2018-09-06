@@ -33,8 +33,8 @@ Mutable_result::Mutable_result() {}
 
 Mutable_result::Mutable_result(const std::vector<Type> &types) {
   for (size_t i = 0; i < types.size(); ++i) {
-    add_column(Column("dummy", "generic", "", "A" + std::to_string(i), "", 0, 0,
-                      types[i], 63, false, false, false));
+    add_column(Column("", "dummy", "generic", "", "A" + std::to_string(i), "",
+                      0, 0, types[i], 63, false, false, false));
   }
 }
 

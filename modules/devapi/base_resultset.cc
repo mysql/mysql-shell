@@ -45,24 +45,8 @@ bool ShellBaseResult::operator==(const Object_bridge &other) const {
   return this == &other;
 }
 
-Column::Column(const std::string &schema, const std::string &table_name,
-               const std::string &table_label, const std::string &column_name,
-               const std::string &column_label, shcore::Value type,
-               uint32_t length, int fractional, bool is_unsigned,
-               const std::string &collation, const std::string &charset,
-               bool zerofill)
-    : _schema(schema),
-      _table_name(table_name),
-      _table_label(table_label),
-      _column_name(column_name),
-      _column_label(column_label),
-      _collation(collation),
-      _charset(charset),
-      _length(length),
-      _type(type),
-      _fractional(fractional),
-      _unsigned(is_unsigned),
-      _zerofill(zerofill) {
+Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
+    : _c(meta), _type(type) {
   add_property("schemaName", "getSchemaName");
   add_property("tableName", "getTableName");
   add_property("tableLabel", "getTableLabel");
@@ -77,38 +61,8 @@ Column::Column(const std::string &schema, const std::string &table_name,
   add_property("zeroFill", "isZeroFill");
 }
 
-Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
-    : Column(meta.get_schema(), meta.get_table_name(), meta.get_table_label(),
-             meta.get_column_name(), meta.get_column_label(), type,
-             meta.get_length(), meta.get_fractional(), meta.is_unsigned(),
-             meta.get_collation_name(), meta.get_charset_name(),
-             meta.is_zerofill()) {}
-
 bool Column::operator==(const Object_bridge &other) const {
   return this == &other;
-}
-
-bool Column::is_numeric() const {
-  std::string id = _type.descr();
-  if (id.length() > 7) id = id.substr(6, id.length() - 7);
-
-  return (id == "BIT" || id == "TINYINT" || id == "SMALLINT" ||
-          id == "MEDIUMINT" || id == "INT" || id == "INTEGER" || id == "LONG" ||
-          id == "BIGINT" || id == "FLOAT" || id == "DECIMAL" || id == "DOUBLE");
-}
-
-bool Column::is_number_signed() const {
-  return is_numeric() ? !_unsigned : false;
-}
-
-bool Column::is_binary() const {
-  std::string id = _type.descr();
-  if (id.length() > 7) id = id.substr(6, id.length() - 7);
-
-  return (_charset == "binary" &&
-          (id == "BIT" || id == "BYTES" || id == "BLOB" || id == "LONG_BLOB" ||
-           id == "MEDIUM_BLOB" || id == "TINY_BLOB" || id == "VAR_STRING" ||
-           id == "STRING" || id == "VARCHAR" || id == "GEOMETRY"));
 }
 
 REGISTER_HELP_PROPERTY(schemaName, Column);
@@ -173,29 +127,29 @@ REGISTER_HELP_FUNCTION(getZeroFill, Column);
 shcore::Value Column::get_member(const std::string &prop) const {
   shcore::Value ret_val;
   if (prop == "schemaName")
-    ret_val = shcore::Value(_schema);
+    ret_val = shcore::Value(_c.get_schema());
   else if (prop == "tableName")
-    ret_val = shcore::Value(_table_name);
+    ret_val = shcore::Value(_c.get_table_name());
   else if (prop == "tableLabel")
-    ret_val = shcore::Value(_table_label);
+    ret_val = shcore::Value(_c.get_table_label());
   else if (prop == "columnName")
-    ret_val = shcore::Value(_column_name);
+    ret_val = shcore::Value(_c.get_column_name());
   else if (prop == "columnLabel")
-    ret_val = shcore::Value(_column_label);
+    ret_val = shcore::Value(_c.get_column_label());
   else if (prop == "type")
     ret_val = shcore::Value(_type);
   else if (prop == "length")
-    ret_val = shcore::Value(_length);
+    ret_val = shcore::Value(_c.get_length());
   else if (prop == "fractionalDigits")
-    ret_val = shcore::Value(_fractional);
+    ret_val = shcore::Value(_c.get_fractional());
   else if (prop == "numberSigned")
     ret_val = shcore::Value(is_number_signed());
   else if (prop == "collationName")
-    ret_val = shcore::Value(_collation);
+    ret_val = shcore::Value(_c.get_collation_name());
   else if (prop == "characterSetName")
-    ret_val = shcore::Value(_charset);
+    ret_val = shcore::Value(_c.get_charset_name());
   else if (prop == "zeroFill")
-    ret_val = shcore::Value(_zerofill);
+    ret_val = shcore::Value(_c.is_zerofill());
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
 

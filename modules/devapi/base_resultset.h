@@ -55,12 +55,6 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
  */
 class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
  public:
-  Column(const std::string &schema, const std::string &org_table,
-         const std::string &table, const std::string &org_name,
-         const std::string &name, shcore::Value type, uint32_t length,
-         int fractional, bool is_unsigned, const std::string &collation,
-         const std::string &charset, bool zerofill);
-
   Column(const mysqlshdk::db::Column &meta, shcore::Value type);
 
   virtual bool operator==(const Object_bridge &other) const;
@@ -105,7 +99,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_schema_name() {}
 #endif
-  const std::string &get_schema_name() const { return _schema; }
+  const std::string &get_schema_name() const { return _c.get_schema(); }
 
 /**
  * Retrieves table name where the column is defined.
@@ -116,7 +110,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_table_name() {}
 #endif
-  const std::string &get_table_name() const { return _table_name; }
+  const std::string &get_table_name() const { return _c.get_table_name(); }
 
 /**
  * Retrieves table alias where the column is defined.
@@ -128,7 +122,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_table_label() {}
 #endif
-  const std::string &get_table_label() const { return _table_label; }
+  const std::string &get_table_label() const { return _c.get_table_label(); }
 
 /**
  * Retrieves column name.
@@ -139,7 +133,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_column_name() {}
 #endif
-  const std::string &get_column_name() const { return _column_name; }
+  const std::string &get_column_name() const { return _c.get_column_name(); }
 
 /**
  * Retrieves column alias.
@@ -151,7 +145,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_column_label() {}
 #endif
-  const std::string &get_column_label() const { return _column_label; }
+  const std::string &get_column_label() const { return _c.get_column_label(); }
 
 /**
  * Retrieves column Type.
@@ -173,7 +167,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   int get_length() {}
 #endif
-  uint32_t get_length() const { return _length; }
+  uint32_t get_length() const { return _c.get_length(); }
 
 /**
  * Retrieves the fractional digits if applicable
@@ -185,7 +179,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   int get_fractional_digits() {}
 #endif
-  int get_fractional_digits() const { return _fractional; }
+  int get_fractional_digits() const { return _c.get_fractional(); }
 
 /**
  * Indicates if a numeric column is signed.
@@ -196,7 +190,9 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   bool is_number_signed() {}
 #endif
-  bool is_number_signed() const;
+  bool is_number_signed() const {
+    return _c.is_numeric() ? !_c.is_unsigned() : false;
+  }
 
 /**
  * Retrieves the collation name
@@ -208,7 +204,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_collation_name() {}
 #endif
-  const std::string &get_collation_name() const { return _collation; }
+  std::string get_collation_name() const { return _c.get_collation_name(); }
 
 /**
  * Retrieves the character set name
@@ -220,7 +216,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   str get_character_setName() {}
 #endif
-  const std::string &get_character_set_name() const { return _charset; }
+  std::string get_character_set_name() const { return _c.get_charset_name(); }
 
 /**
  * Indicates if zerofill is set for the column
@@ -231,24 +227,14 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 #elif DOXYGEN_PY
   bool is_zero_fill() {}
 #endif
-  bool is_zerofill() const { return _zerofill; }
+  bool is_zerofill() const { return _c.is_zerofill(); }
 
-  bool is_binary() const;
-  bool is_numeric() const;
+  bool is_binary() const { return _c.is_binary(); }
+  bool is_numeric() const { return _c.is_numeric(); }
 
  private:
-  std::string _schema;
-  std::string _table_name;
-  std::string _table_label;
-  std::string _column_name;
-  std::string _column_label;
-  std::string _collation;
-  std::string _charset;
-  uint32_t _length;
+  mysqlshdk::db::Column _c;
   shcore::Value _type;
-  int _fractional;
-  bool _unsigned;
-  bool _zerofill;
 };
 
 /**

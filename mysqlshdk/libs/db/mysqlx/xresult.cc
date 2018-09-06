@@ -30,6 +30,18 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "shellcore/interrupt_handler.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
+
+#define TINYTEXT_LENGHT 255
+#define TEXT_LENGHT 65535
+#define MEDIUMTEXT_LENGTH 16777215
+#define LONGTEXT_LENGHT 4294967295
+
+#define MYSQLX_COLUMN_FLAGS_NOT_NULL 0x0010
+#define MYSQLX_COLUMN_FLAGS_PRIMARY_KEY 0x0020
+#define MYSQLX_COLUMN_FLAGS_UNIQUE_KEY 0x0040
+#define MYSQLX_COLUMN_FLAGS_MULTIPLE_KEY 0x0080
+#define MYSQLX_COLUMN_FLAGS_AUTO_INCREMENT 0x0100
 
 namespace mysqlshdk {
 namespace db {
@@ -50,6 +62,7 @@ void Result::fetch_metadata() {
     bool is_zerofill = false;
     bool is_binary = false;
     bool is_numeric = false;
+    bool is_timestamp = false;
     switch (column.type) {
       case ::xcl::Column_type::UINT:
         is_zerofill = (column.flags & 0x001) != 0;
@@ -116,7 +129,8 @@ void Result::fetch_metadata() {
         break;
       case ::xcl::Column_type::DATETIME:
         is_binary = true;
-        if (column.flags & 0x001)
+        is_timestamp = column.flags & 0x001;
+        if (is_timestamp)
           type = Type::DateTime;  // TIMESTAMP
         else if (column.length == 10)
           type = Type::Date;
@@ -135,12 +149,34 @@ void Result::fetch_metadata() {
     // It is internal to the client lib
     (void)is_padded;
 
+    std::stringstream flags;
+    if (column.flags & MYSQLX_COLUMN_FLAGS_NOT_NULL) flags << "NOT_NULL ";
+    if (column.flags & MYSQLX_COLUMN_FLAGS_PRIMARY_KEY) flags << "PRI_KEY ";
+    if (column.flags & MYSQLX_COLUMN_FLAGS_UNIQUE_KEY) flags << "UNIQUE_KEY ";
+    if (column.flags & MYSQLX_COLUMN_FLAGS_MULTIPLE_KEY) flags << "UNIQUE_KEY ";
+    if (type == Type::Json || type == Type::Geometry ||
+        ((type == Type::String || type == Type::Bytes) &&
+         (column.length == TINYTEXT_LENGHT || column.length == TEXT_LENGHT ||
+          column.length == MEDIUMTEXT_LENGTH ||
+          column.length == LONGTEXT_LENGHT)))
+      flags << "BLOB ";
+    if (is_unsigned) flags << "UNSIGNED ";
+    if (is_zerofill) flags << "ZEROFILL ";
+    if (is_binary || type == Type::Json || type == Type::Geometry)
+      flags << "BINARY ";
+    if (type == Type::Enum) flags << "ENUM ";
+    if (column.flags & MYSQLX_COLUMN_FLAGS_AUTO_INCREMENT)
+      flags << "AUTO_INCREMENT ";
+    if (is_timestamp) flags << "TIMESTAMP ";
+    if (type == Type::Set) flags << "SET ";
+    if (is_numeric) flags << "NUM ";
+
     _metadata.push_back(mysqlshdk::db::Column(
-        column.schema,
+        column.catalog, column.schema,
         column.original_table.empty() ? column.table : column.original_table,
         column.table, column.original_name, column.name, column.length,
         column.fractional_digits, type, column.collation,
-        is_numeric ? is_unsigned : false, is_zerofill, is_binary));
+        is_numeric ? is_unsigned : false, is_zerofill, is_binary, flags.str()));
   }
 }
 
@@ -233,7 +269,7 @@ void Result::buffer() {
     return false;
   });
   pre_fetch_rows(true);
-};
+}
 
 bool Result::pre_fetch_rows(bool persistent) {
   if (_result) {

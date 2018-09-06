@@ -76,11 +76,12 @@ inline bool is_string_type(Type type) {
  */
 class SHCORE_PUBLIC Column {
  public:
-  Column(const std::string &schema, const std::string &table_name,
-         const std::string &table_label, const std::string &column_name,
-         const std::string &column_label, uint32_t length, int frac_digits,
-         Type type, uint32_t collation_id, bool unsigned_, bool zerofill,
-         bool binary);
+  Column(const std::string &catalog, const std::string &schema,
+         const std::string &table_name, const std::string &table_label,
+         const std::string &column_name, const std::string &column_label,
+         uint32_t length, int frac_digits, Type type, uint32_t collation_id,
+         bool unsigned_, bool zerofill, bool binary,
+         const std::string &flags = "", const std::string &db_type = "");
 
   bool operator==(const Column &o) const {
     return _schema == o._schema && _table_name == o._table_name &&
@@ -92,6 +93,7 @@ class SHCORE_PUBLIC Column {
            _binary == o._binary;
   }
 
+  const std::string &get_catalog() const { return _catalog; }
   const std::string &get_schema() const { return _schema; }
   const std::string &get_table_name() const { return _table_name; }
   const std::string &get_table_label() const { return _table_label; }
@@ -100,16 +102,21 @@ class SHCORE_PUBLIC Column {
   uint32_t get_length() const { return _length; }
   int get_fractional() const { return _fractional; }
   Type get_type() const { return _type; }
+  std::string get_dbtype() const;
   std::string get_collation_name() const;
   std::string get_charset_name() const;
   uint32_t get_collation() const { return _collation_id; }
+  std::string get_flags() const { return _flags; }
 
   bool is_unsigned() const { return _unsigned; }
   bool is_zerofill() const { return _zerofill; }
   bool is_binary() const { return _binary; }
   bool is_numeric() const;
 
+  friend std::string to_string(const Column &c);
+
  private:
+  std::string _catalog;
   std::string _schema;
   std::string _table_name;
   std::string _table_label;
@@ -119,11 +126,13 @@ class SHCORE_PUBLIC Column {
   uint32_t _length;
   int _fractional;
   Type _type;
+  std::string _db_type;
 
   // Flags
   bool _unsigned;
   bool _zerofill;
   bool _binary;
+  std::string _flags;
 };
 }  // namespace db
 }  // namespace mysqlshdk

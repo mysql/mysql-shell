@@ -98,25 +98,31 @@ REGISTER_HELP(OPTIONS_DETAIL17,
               "@li sandboxDir: default path where the "
               "new sandbox instances for InnoDB "
               "cluster will be deployed");
-REGISTER_HELP(OPTIONS_DETAIL18,
+REGISTER_HELP(
+    OPTIONS_DETAIL18,
+    "@li showColumnTypeInfo: display column type information in SQL mode. "
+    "Please be aware that "
+    "output may depend on the protocol you are using to connect to the "
+    "server, e.g. DbType field is approximated when using X protocol.");
+REGISTER_HELP(OPTIONS_DETAIL19,
               "@li showWarnings: boolean value to "
               "indicate whether warnings shall be "
               "included when printing an SQL result");
-REGISTER_HELP(OPTIONS_DETAIL19,
+REGISTER_HELP(OPTIONS_DETAIL20,
               "@li useWizards: read-only, boolean value "
               "to indicate if the Shell is using the "
               "interactive wrappers (wizard mode)");
 
-REGISTER_HELP(OPTIONS_DETAIL20,
-              "The resultFormat option supports the following values:");
 REGISTER_HELP(OPTIONS_DETAIL21,
+              "The resultFormat option supports the following values:");
+REGISTER_HELP(OPTIONS_DETAIL22,
               "@li table: displays the output in table format (default)");
-REGISTER_HELP(OPTIONS_DETAIL22, "@li json: displays the output in JSON format");
-REGISTER_HELP(
-    OPTIONS_DETAIL23,
-    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(OPTIONS_DETAIL23, "@li json: displays the output in JSON format");
 REGISTER_HELP(
     OPTIONS_DETAIL24,
+    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(
+    OPTIONS_DETAIL25,
     "@li vertical: displays the outputs vertically, one line per column value");
 
 std::string &Options::append_descr(std::string &s_out, int indent,

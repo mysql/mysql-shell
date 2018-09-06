@@ -119,6 +119,7 @@ class Shell_options : public shcore::Options {
     std::vector<std::string> import_args;
     std::string pager;
     Quiet_start quiet_start = Quiet_start::NOT_SET;
+    bool show_column_type_info = false;
 
     int exit_code = 0;
 

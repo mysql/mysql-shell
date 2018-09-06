@@ -148,6 +148,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->m_connect_timeout;
     else if (option == "quiet-start")
       return AS__STRING(static_cast<int>(options->quiet_start));
+    else if (option == "showColumnTypeInfo")
+      return AS__STRING(options->show_column_type_info);
 
     return "";
   }
@@ -689,6 +691,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.default_session_type);
   EXPECT_TRUE(options.m_connect_timeout.empty());
   EXPECT_EQ(Shell_options::Quiet_start::NOT_SET, options.quiet_start);
+  EXPECT_FALSE(options.show_column_type_info);
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -799,6 +802,7 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("--quiet-start", "quiet-start", "1");
   test_option_with_value("quiet-start", "", "2", "1", !IS_CONNECTION_DATA,
                          IS_NULLABLE, "quiet-start", "2");
+  test_option_with_no_value("--column-type-info", "showColumnTypeInfo", "1");
   test_option_with_value("interactive", "", "full", "1", !IS_CONNECTION_DATA,
                          IS_NULLABLE, "interactive", "1");
   // test_option_with_value("interactive", "", "full", "1", !IS_CONNECTION_DATA,
