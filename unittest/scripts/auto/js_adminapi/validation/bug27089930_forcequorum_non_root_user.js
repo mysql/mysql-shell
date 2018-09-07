@@ -43,7 +43,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://gr_user@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Kill instance 2
@@ -74,19 +74,19 @@
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://gr_user@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

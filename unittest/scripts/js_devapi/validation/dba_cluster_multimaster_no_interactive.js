@@ -70,7 +70,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 
@@ -122,7 +122,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: removeInstance 3
@@ -175,7 +175,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# Dba: stop instance 3
@@ -224,7 +224,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: disconnect should work, tho

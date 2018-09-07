@@ -39,7 +39,7 @@ Cluster.removeInstance: This function is not available through a session to a re
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ Fini

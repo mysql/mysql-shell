@@ -53,6 +53,8 @@ class Cluster;
 class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                    public shcore::Cpp_object_bridge {
  public:
+  using Instance_info = mysqlshdk::innodbcluster::Instance_info;
+
   ReplicaSet(const std::string &name, const std::string &topology_type,
              const std::string &group_name,
              std::shared_ptr<MetadataStorage> metadata_storage);
@@ -81,6 +83,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   const std::string &get_group_name() const { return _group_name; }
 
+  void sanity_check() const;
+
   void set_group_name(const std::string &group_name);
 
   void add_instance_metadata(
@@ -95,6 +99,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::vector<std::string> get_online_instances();
 
   std::vector<Instance_definition> get_instances_from_metadata();
+
+  std::vector<Instance_info> get_instances();
 
   void execute_in_members(
       const std::vector<std::string> &states,
@@ -152,7 +158,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of_(
       const shcore::Argument_list &args);
-  shcore::Value get_status(const mysqlsh::dba::Cluster_check_info &state) const;
 
   Cluster_check_info check_preconditions(
       std::shared_ptr<mysqlshdk::db::ISession> group_session,

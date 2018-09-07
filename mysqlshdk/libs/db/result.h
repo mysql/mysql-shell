@@ -32,7 +32,7 @@
 #include <vector>
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
-#include "mysqlshdk/libs/db/row_map.h"
+#include "mysqlshdk/libs/db/row_by_name.h"
 #include "mysqlshdk_export.h"
 
 namespace mysqlshdk {
@@ -61,8 +61,18 @@ class SHCORE_PUBLIC IResult {
    */
   virtual const IRow *fetch_one() = 0;
 
-  Row_ref_map fetch_one_map() {
-    return Row_ref_map(field_names(), fetch_one());
+  Row_ref_by_name fetch_one_named() {
+    return Row_ref_by_name(field_names(), fetch_one());
+  }
+
+  const IRow *fetch_one_or_throw() {
+    const IRow *row = fetch_one();
+    if (!row) throw std::logic_error("Query returned fewer rows than expected");
+    return row;
+  }
+
+  Row_ref_by_name fetch_one_named_or_throw() {
+    return Row_ref_by_name(field_names(), fetch_one_or_throw());
   }
 
   double get_execution_time() const { return m_execution_time; }

@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/dba/cluster_status.h"
 #include "modules/adminapi/dba/remove_instance.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
@@ -38,6 +39,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
@@ -1117,6 +1119,8 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
 
 REGISTER_HELP_FUNCTION(status, Cluster);
 REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
+REGISTER_HELP(CLUSTER_STATUS_PARAM,
+              "@param options Optional dictionary with options.");
 
 REGISTER_HELP(CLUSTER_STATUS_THROWS,
               "MetadataError in the following scenarios:");
@@ -1129,52 +1133,21 @@ REGISTER_HELP(CLUSTER_STATUS_RETURNS,
 
 REGISTER_HELP(CLUSTER_STATUS_DETAIL,
               "This function describes the status of the cluster including its "
-              "ReplicaSets and Instances.");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL1,
-              "The returned JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL2, "@li clusterName: the cluster name");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL3,
-              "@li defaultReplicaSet: the default ReplicaSet object");
+              "ReplicaSets and Instances. The following options may be given "
+              "to control the amount of information gathered and returned.");
 REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL4,
-    "@li groupInformationSourceMember: URI of the internal connection used to "
-    "obtain information about the cluster");
+    CLUSTER_STATUS_DETAIL1,
+    "@li extended: if true, includes information about transactions processed "
+    "by connection and applier, as well as groupName and memberId values.");
 REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL5,
-    "@li metadataServer: optional, URI of the metadata server if it is "
-    "different from groupInformationSourceMember");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL6,
-    "@li warning: optional, string containing any warning messages raised "
-    "during execution of this operation");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL7,
-    "The defaultReplicaSet JSON object contains the following attributes:");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL8, "@li name: the ReplicaSet name");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL9,
-              "@li primary: the ReplicaSet single-primary primary instance");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL10, "@li ssl: the ReplicaSet SSL mode");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL11, "@li status: the ReplicaSet status");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL12,
-              "@li statusText: the descriptive text of ReplicaSet status");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL13,
-    "@li topology: a dictionary of instances belonging to the ReplicaSet, "
-    "where keys are instance labels and values are instance objects");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL14,
-    "Each instance is a dictionary containing the following attributes:");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL15,
-              "@li address: the instance address in the form of host:port");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL16, "@li mode: the instance mode");
-REGISTER_HELP(
-    CLUSTER_STATUS_DETAIL17,
-    "@li readReplicas: a list of read replica Instances of the instance.");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL18, "@li role: the instance role");
-REGISTER_HELP(CLUSTER_STATUS_DETAIL19, "@li status: the instance status");
+    CLUSTER_STATUS_DETAIL2,
+    "@li queryMembers: if true, connect to each Instance of the ReplicaSets to "
+    "query for more detailed stats about the replication machinery.");
 
 /**
  * $(CLUSTER_STATUS_BRIEF)
+ *
+ * $(CLUSTER_STATUS_PARAM)
  *
  * $(CLUSTER_STATUS_THROWS)
  * $(CLUSTER_STATUS_THROWS1)
@@ -1186,25 +1159,6 @@ REGISTER_HELP(CLUSTER_STATUS_DETAIL19, "@li status: the instance status");
  *
  * $(CLUSTER_STATUS_DETAIL1)
  * $(CLUSTER_STATUS_DETAIL2)
- * $(CLUSTER_STATUS_DETAIL3)
- * $(CLUSTER_STATUS_DETAIL4)
- * $(CLUSTER_STATUS_DETAIL5)
- * $(CLUSTER_STATUS_DETAIL6)
- *
- * $(CLUSTER_STATUS_DETAIL7)
- * $(CLUSTER_STATUS_DETAIL8)
- * $(CLUSTER_STATUS_DETAIL9)
- * $(CLUSTER_STATUS_DETAIL10)
- * $(CLUSTER_STATUS_DETAIL11)
- * $(CLUSTER_STATUS_DETAIL12)
- * $(CLUSTER_STATUS_DETAIL13)
- *
- * $(CLUSTER_STATUS_DETAIL14)
- * $(CLUSTER_STATUS_DETAIL15)
- * $(CLUSTER_STATUS_DETAIL16)
- * $(CLUSTER_STATUS_DETAIL17)
- * $(CLUSTER_STATUS_DETAIL18)
- * $(CLUSTER_STATUS_DETAIL19)
  */
 #if DOXYGEN_JS
 String Cluster::status() {}
@@ -1216,34 +1170,28 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
-  args.ensure_count(0, get_function_name("status").c_str());
+  args.ensure_count(0, 1, get_function_name("status").c_str());
 
   auto state = check_preconditions("status");
 
   bool warning = (state.source_state != ManagedInstance::OnlineRW &&
                   state.source_state != ManagedInstance::OnlineRO);
 
+  bool query_members = false;
+  bool extended = false;
+  if (args.size() > 0) {
+    shcore::Value::Map_type_ref options = args.map_at(0);
+
+    Unpack_options(options)
+        .optional("extended", &extended)
+        .optional("queryMembers", &query_members)
+        .end();
+  }
+
   shcore::Value ret_val;
   try {
-    ret_val = shcore::Value::new_map();
-
-    auto status = ret_val.as_map();
-
-    (*status)["clusterName"] = shcore::Value(_name);
-
-    if (!_default_replica_set)
-      (*status)["defaultReplicaSet"] = shcore::Value::Null();
-    else
-      (*status)["defaultReplicaSet"] = _default_replica_set->get_status(state);
-
-    (*status)["groupInformationSourceMember"] =
-        shcore::Value(_group_session->get_connection_options().as_uri());
-    // metadata server, if its a different one
-    if (_metadata_storage->get_session() != _group_session) {
-      auto mdsession = _metadata_storage->get_session();
-      (*status)["metadataServer"] =
-          shcore::Value(mdsession->get_connection_options().as_uri());
-    }
+    ret_val = shcore::Value(
+        cluster_status(this, query_members, query_members || extended));
 
     if (warning) {
       std::string warning =
@@ -1252,7 +1200,7 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
       warning.append(ManagedInstance::describe(
           static_cast<ManagedInstance::State>(state.source_state)));
       warning.append(" state");
-      (*status)["warning"] = shcore::Value(warning);
+      (*ret_val.as_map())["warning"] = shcore::Value(warning);
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
@@ -1812,7 +1760,7 @@ void Cluster::sync_transactions(
                              ->fetch_one()
                              ->get_string(0);
 
-  bool sync_res = mysqlshdk::gr::wait_for_gtid_set(
+  bool sync_res = mysqlshdk::mysql::wait_for_gtid_set(
       target_instance, gtid_set,
       current_shell_options()->get().dba_gtid_wait_timeout);
   if (!sync_res) {

@@ -20,7 +20,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Add instance 2
@@ -59,28 +59,28 @@
         "topology": {
             "<<<localhost>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster.forceQuorumUsingPartitionOf errors
@@ -120,21 +120,21 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Rejoin instance 2
@@ -176,7 +176,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Finalization

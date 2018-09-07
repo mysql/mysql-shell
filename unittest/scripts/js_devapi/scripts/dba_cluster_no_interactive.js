@@ -18,11 +18,6 @@ devCluster.disconnect();
 //@ Cluster: validating members
 var Cluster = dba.getCluster('devCluster');
 
-// Sets the correct local host
-var desc = Cluster.describe();
-var localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0];
-var hostname = localhost;
-
 var members = dir(Cluster);
 
 print("Cluster Members:", members.length);

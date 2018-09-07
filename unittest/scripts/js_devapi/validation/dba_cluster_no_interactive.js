@@ -27,7 +27,7 @@
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist: string value cannot be empty.
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||Cluster.addInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 ||Cluster.addInstance: The label can not be empty.
 ||Cluster.addInstance: The label can only start with an alphanumeric or the '_' character.
 ||Cluster.addInstance: The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
@@ -97,7 +97,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: removeInstance errors
@@ -158,7 +158,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: addInstance read only back
@@ -223,7 +223,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: remove_instance master
@@ -289,7 +289,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ Cluster: addInstance adding old master as read only
@@ -353,7 +353,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@# Dba: kill instance 3
@@ -413,7 +413,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ Cluster: dissolve errors

@@ -52,7 +52,7 @@ group_replication_start_on_boot = ON
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR1-TS-01 TEARDOWN {VER(>=8.0.12)}
@@ -189,7 +189,7 @@ group_replication_start_on_boot = ON
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR1-TS-7 TEARDOWN {VER(>=8.0.12)}
@@ -232,14 +232,14 @@ true
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-1 start instance 1 {VER(>=8.0.12)}
@@ -272,7 +272,7 @@ true
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-1 TEARDOWN {VER(>=8.0.12)}
@@ -324,7 +324,7 @@ ONLINE
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-3 TEARDOWN {VER(>=8.0.12)}
@@ -465,14 +465,14 @@ group_replication_start_on_boot = ON
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 ONLINE
 {
@@ -499,7 +499,7 @@ ONLINE
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-8 TEARDOWN {VER(>=8.0.12)}
@@ -571,21 +571,21 @@ group_replication_start_on_boot = ON
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 ONLINE
 ONLINE
@@ -621,7 +621,7 @@ ONLINE
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ FR2-TS-9 TEARDOWN {VER(>=8.0.12)}
@@ -751,7 +751,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 

@@ -13,21 +13,21 @@
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Reconnect
@@ -45,21 +45,21 @@
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# getCluster() and connectToPrimary:true (fail)
@@ -78,21 +78,21 @@
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Connect shell to surviving member with --redirect-primary (fail)
@@ -115,21 +115,21 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "localhost:<<<__mysql_sandbox_port2>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Create new cluster and now kill the primary
@@ -147,7 +147,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
@@ -161,7 +161,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@# 2 getCluster() and connectToPrimary:true (fail)
@@ -180,7 +180,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
@@ -194,7 +194,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@<OUT> 2 Connect shell to surviving member with --redirect-primary (fail)
@@ -217,7 +217,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
         "topology": {
             "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
@@ -231,7 +231,7 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ Finalization

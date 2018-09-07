@@ -37,6 +37,7 @@
 #endif
 
 namespace mysqlshdk {
+// TODO(.) namespace gr should probably be renamed to mysql
 namespace gr {
 
 static constexpr char kPluginName[] = "group_replication";
@@ -74,7 +75,7 @@ struct Member {
   // member_id aka server_uuid of the member
   std::string uuid;
   // State of the member
-  Member_state state;
+  Member_state state = Member_state::MISSING;
   // Role of the member (primary vs secondary)
   Member_role role;
 };
@@ -84,7 +85,8 @@ bool is_member(const mysqlshdk::mysql::IInstance &instance);
 bool is_member(const mysqlshdk::mysql::IInstance &instance,
                const std::string &group_name);
 Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance);
-std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance);
+std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
+                                bool *out_single_primary_mode = nullptr);
 
 bool is_primary(const mysqlshdk::mysql::IInstance &instance);
 
@@ -156,21 +158,6 @@ std::map<std::string, std::string> check_server_variables(
  */
 bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance);
-
-/**
- * Wait until the given GTID set is applied on the target instance.
- *
- * @param instance target instance to wait for GTIDs to be applied.
- * @param gtid_set string with the GTID set to wait to be applied.
- * @param timeout positive integer with the maximum time in seconds to wait for
- *                all GTIDs to be applied on the instance.
- * @return Return true if the operation succeeded and false if the timeout was
- *         reached.
- * @throws an error if some issue occured when waiting for transaction to be
- *         applied.
- */
-bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
-                       const std::string gtid_set, int timeout);
 
 }  // namespace gr
 }  // namespace mysqlshdk

@@ -124,6 +124,10 @@ struct SHCORE_PUBLIC Value {
 
     Value_type get_type(const std::string &k) const;
 
+    bool is_null(const std::string &k) const {
+      return get_type(k) == shcore::Null;
+    }
+
     std::string get_string(const std::string &k,
                            const std::string &def = "") const;
     bool get_bool(const std::string &k, bool def = false) const;

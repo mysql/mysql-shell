@@ -45,6 +45,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "shellcore/base_session.h"
 #include "utils/utils_general.h"
 #include "utils/utils_net.h"
@@ -108,18 +109,6 @@ void ReplicaSet::append_json(shcore::JSON_dumper &dumper) const {
   dumper.end_object();
 }
 
-static void append_member_status(const shcore::Value::Map_type_ref &node,
-                                 const Instance_definition &instance,
-                                 bool read_write,
-                                 bool active_session_instance) {
-  (*node)["address"] = shcore::Value(instance.endpoint);
-
-  (*node)["status"] = instance.state.empty() ? shcore::Value("(MISSING)")
-                                             : shcore::Value(instance.state);
-  (*node)["role"] = shcore::Value(instance.role);
-  (*node)["mode"] = shcore::Value(read_write ? "R/W" : "R/O");
-}
-
 bool ReplicaSet::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
@@ -173,6 +162,8 @@ void ReplicaSet::init() {
       "forceQuorumUsingPartitionOf",
       std::bind(&ReplicaSet::force_quorum_using_partition_of_, this, _1));
 }
+
+void ReplicaSet::sanity_check() const { verify_topology_type_change(); }
 
 /*
  * Verify if the topology type changed and issue an error if needed.
@@ -1974,144 +1965,6 @@ shcore::Value ReplicaSet::get_description() const {
   return ret_val;
 }
 
-shcore::Value ReplicaSet::get_status(
-    const mysqlsh::dba::Cluster_check_info &state) const {
-  shcore::Value ret_val = shcore::Value::new_map();
-  auto status = ret_val.as_map();
-
-  // First, check if the topology type matchs the current state in order to
-  // retrieve the status correctly, otherwise issue an error.
-  this->verify_topology_type_change();
-
-  bool single_primary_mode = _topology_type == kTopologySinglePrimary;
-
-  // get the current cluster session from the metadata
-  auto instance_session = _metadata_storage->get_session();
-
-  // Identifies the master node
-  std::string master_uuid;
-  if (single_primary_mode) {
-    get_status_variable(instance_session, "group_replication_primary_member",
-                        master_uuid, false);
-  }
-
-  // Get SSL Mode used by the cluster (same on all members of the replicaset).
-  std::string gr_ssl_mode;
-  get_server_variable(instance_session, "group_replication_ssl_mode",
-                      gr_ssl_mode, true);
-
-  auto instances = _metadata_storage->get_replicaset_instances(_id, true);
-
-  Instance_definition master;
-  bool master_found = false;
-  int online_count = 0, total_count = 0;
-
-  for (const auto &value : instances) {
-    total_count++;
-    if (value.uuid == master_uuid) {
-      master = value;
-      master_found = true;
-    }
-
-    if (value.state == "ONLINE") online_count++;
-  }
-
-  /*
-   * Theory:
-   *
-   * unreachable_instances = COUNT(member_state = 'UNREACHABLE')
-   * quorum = unreachable_instances < (total_instances / 2)
-   * total_ha_instances = 2 * (number_of_failures) + 1
-   * number_of_failures = (total_ha_instances - 1) / 2
-   */
-
-  int number_of_failures = (online_count - 1) / 2;
-  int non_active = total_count - online_count;
-
-  std::string desc_status;
-  ReplicaSetStatus::Status rs_status;
-
-  // Get the current cluster session from the metadata
-  auto session = _metadata_storage->get_session();
-  auto options = session->get_connection_options();
-
-  std::string active_session_address = options.as_uri(only_transport());
-
-  if (state.quorum == ReplicationQuorum::Quorumless) {
-    rs_status = ReplicaSetStatus::NO_QUORUM;
-    desc_status = "Cluster has no quorum as visible from '" +
-                  active_session_address +
-                  "' and cannot process write transactions.";
-  } else {
-    if (number_of_failures == 0) {
-      rs_status = ReplicaSetStatus::OK_NO_TOLERANCE;
-
-      desc_status = "Cluster is NOT tolerant to any failures.";
-    } else {
-      if (non_active > 0)
-        rs_status = ReplicaSetStatus::OK_PARTIAL;
-      else
-        rs_status = ReplicaSetStatus::OK;
-
-      if (number_of_failures == 1)
-        desc_status = "Cluster is ONLINE and can tolerate up to ONE failure.";
-      else
-        desc_status = "Cluster is ONLINE and can tolerate up to " +
-                      std::to_string(number_of_failures) + " failures.";
-    }
-  }
-
-  if (non_active > 0) {
-    if (non_active == 1)
-      desc_status.append(" " + std::to_string(non_active) +
-                         " member is not active");
-    else
-      desc_status.append(" " + std::to_string(non_active) +
-                         " members are not active");
-  }
-
-  (*status)["name"] = shcore::Value(_name);
-  (*status)["statusText"] = shcore::Value(desc_status);
-  (*status)["status"] = shcore::Value(ReplicaSetStatus::describe(rs_status));
-  (*status)["ssl"] = shcore::Value(gr_ssl_mode);
-
-  // In single primary mode we need to add the "primary" field
-  if (single_primary_mode && master_found)
-    (*status)["primary"] = shcore::Value(master.endpoint);
-
-  // Creates the topology node
-  (*status)["topology"] = shcore::Value::new_map();
-  auto instance_owner_node = status->get_map("topology");
-
-  // Inserts the instances
-  for (const auto &value : instances) {
-    // Gets each row
-    auto instance_label = value.label;
-    (*instance_owner_node)[instance_label] = shcore::Value::new_map();
-    auto instance_node = instance_owner_node->get_map(instance_label);
-
-    // check if it is the active session instance
-    bool active_session_instance = false;
-
-    if (active_session_address == value.endpoint)
-      active_session_instance = true;
-
-    // We compare the server's uuid to match instances, which means that
-    // if uuid for an instances changes, the status will look off.
-    // re-syncing uuid should be done in a separate step
-    if (value.uuid == master.uuid && single_primary_mode)
-      append_member_status(instance_node, value, true, active_session_instance);
-    else
-      append_member_status(instance_node, value,
-                           single_primary_mode ? false : true,
-                           active_session_instance);
-
-    (*instance_node)["readReplicas"] = shcore::Value::new_map();
-  }
-
-  return ret_val;
-}
-
 void ReplicaSet::remove_instances(
     const std::vector<std::string> &remove_instances) {
   if (!remove_instances.empty()) {
@@ -2226,6 +2079,11 @@ void ReplicaSet::validate_server_uuid(
 
 std::vector<Instance_definition> ReplicaSet::get_instances_from_metadata() {
   return _metadata_storage->get_replicaset_instances(get_id());
+}
+
+std::vector<ReplicaSet::Instance_info> ReplicaSet::get_instances() {
+  return _metadata_storage->get_new_metadata()->get_replicaset_instances(
+      get_id());
 }
 
 /** Iterates through all the cluster members in a given state calling the given

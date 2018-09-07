@@ -14,6 +14,9 @@
 //@ WL#12049: Add instance using a valid exitStateAction 1 {VER(>=5.7.24)}
 ||
 
+//@ WL#12049: Finalization cluster {VER(>=5.7.24)}
+||
+
 //@ WL#12049: Finalization
 ||
 

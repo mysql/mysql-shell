@@ -46,7 +46,7 @@ size_t find_different_row_fields(const IRow &lrow, const IRow &rrow,
                                  std::function<bool(int)> callback);
 
 size_t find_different_row_fields(
-    const Row_ref_map &lrow, const Row_ref_map &rrow,
+    const Row_ref_by_name &lrow, const Row_ref_by_name &rrow,
     std::function<bool(const std::string &)> callback);
 
 size_t find_different_rows(
@@ -56,7 +56,7 @@ size_t find_different_rows(
 
 size_t find_different_rows(
     IResult *left, IResult *right,
-    std::function<bool(const Row_ref_map &, const Row_ref_map &,
+    std::function<bool(const Row_ref_by_name &, const Row_ref_by_name &,
                        Row_difference)>
         callback,
     bool call_for_all = false);
@@ -75,7 +75,7 @@ size_t find_different_rows_with_key_names(
 size_t find_different_rows_with_key_names(
     IResult *left, IResult *right,
     const std::vector<std::string> &key_field_names,
-    std::function<bool(const Row_ref_map &, const Row_ref_map &,
+    std::function<bool(const Row_ref_by_name &, const Row_ref_by_name &,
                        Row_difference)>
         callback,
     bool call_for_all = false);

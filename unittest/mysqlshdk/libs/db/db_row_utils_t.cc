@@ -40,14 +40,14 @@ TEST_F(Row_utils, row_by_name) {
     auto result = session->query("SELECT 1 as one, 'two' as two");
     auto row = result->fetch_one();
     {
-      Row_ref_map rowb(result->field_names(), row);
+      Row_ref_by_name rowb(result->field_names(), row);
       EXPECT_EQ(1, rowb.get_uint("one"));
       EXPECT_EQ("two", rowb.get_string("two"));
       EXPECT_THROW(rowb.get_string("three"), std::invalid_argument);
       EXPECT_THROW(rowb.get_string("one"), std::invalid_argument);
     }
 
-    Row_map rowcopy(result->field_names(), *row);
+    Row_by_name rowcopy(result->field_names(), *row);
     EXPECT_EQ(1, rowcopy.get_uint("one"));
     EXPECT_EQ("two", rowcopy.get_string("two"));
     EXPECT_THROW(rowcopy.get_string("three"), std::invalid_argument);
@@ -55,7 +55,7 @@ TEST_F(Row_utils, row_by_name) {
     result = session->query("SELECT 0 as foo");
     row = result->fetch_one();
     {
-      Row_ref_map rowb(result->field_names(), row);
+      Row_ref_by_name rowb(result->field_names(), row);
       EXPECT_EQ(0, rowb.get_uint("foo"));
       EXPECT_THROW(rowb.get_string("one"), std::invalid_argument);
     }
@@ -72,7 +72,7 @@ TEST_F(Row_utils, fetch_one_n) {
     ASSERT_NO_THROW(session->connect(Connection_options(uri())));
 
     auto result = session->query("SELECT 1 as one, 'two' as two");
-    auto rowb = result->fetch_one_map();
+    auto rowb = result->fetch_one_named();
     {
       EXPECT_EQ(1, rowb.get_uint("one"));
       EXPECT_EQ("two", rowb.get_string("two"));
@@ -80,13 +80,13 @@ TEST_F(Row_utils, fetch_one_n) {
       EXPECT_THROW(rowb.get_string("one"), std::invalid_argument);
     }
 
-    Row_map rowcopy(rowb);
+    Row_by_name rowcopy(rowb);
     EXPECT_EQ(1, rowcopy.get_uint("one"));
     EXPECT_EQ("two", rowcopy.get_string("two"));
     EXPECT_THROW(rowcopy.get_string("three"), std::invalid_argument);
 
     result = session->query("SELECT 0 as foo");
-    rowb = result->fetch_one_map();
+    rowb = result->fetch_one_named();
     {
       EXPECT_EQ(0, rowb.get_uint("foo"));
       EXPECT_THROW(rowb.get_string("one"), std::invalid_argument);

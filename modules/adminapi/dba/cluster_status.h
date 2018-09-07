@@ -21,13 +21,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_DB_ROW_UTILS_H_
-#define MYSQLSHDK_LIBS_DB_ROW_UTILS_H_
+#ifndef MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
+#define MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_
 
-#include "mysqlshdk/libs/db/mutable_result.h"
-#include "mysqlshdk/libs/db/row_by_name.h"
-#include "mysqlshdk/libs/db/row_copy.h"
-#include "mysqlshdk/libs/db/utils/diff.h"
-#include "mysqlshdk/libs/db/utils/utils.h"
+#include "modules/adminapi/mod_dba_cluster.h"
+#include "scripting/types.h"
 
-#endif  // MYSQLSHDK_LIBS_DB_ROW_UTILS_H_
+namespace mysqlsh {
+namespace dba {
+
+shcore::Dictionary_t cluster_status(Cluster *cluster, bool query_members,
+                                    bool extended);
+
+}  // namespace dba
+}  // namespace mysqlsh
+
+#endif  // MODULES_ADMINAPI_DBA_CLUSTER_STATUS_H_

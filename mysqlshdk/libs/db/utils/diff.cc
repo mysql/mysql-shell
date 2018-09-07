@@ -179,7 +179,7 @@ size_t find_different_row_fields(const IRow &lrow, const IRow &rrow,
  * on fields with different values.
  */
 size_t find_different_row_fields(
-    const Row_ref_map &lrow, const Row_ref_map &rrow,
+    const Row_ref_by_name &lrow, const Row_ref_by_name &rrow,
     std::function<bool(const std::string &)> callback) {
   assert(lrow.num_fields() == rrow.num_fields());
   size_t c = 0;
@@ -253,7 +253,7 @@ size_t find_different_rows(
 
 size_t find_different_rows(
     IResult *left, IResult *right,
-    std::function<bool(const Row_ref_map &, const Row_ref_map &,
+    std::function<bool(const Row_ref_by_name &, const Row_ref_by_name &,
                        Row_difference)>
         callback,
     bool call_on_identical) {
@@ -263,8 +263,8 @@ size_t find_different_rows(
   std::unique_ptr<IResult, void (*)(IResult *)> lr(left, reset_result);
   std::unique_ptr<IResult, void (*)(IResult *)> rr(right, reset_result);
   size_t count = 0;
-  auto lrow = left->fetch_one_map();
-  auto rrow = right->fetch_one_map();
+  auto lrow = left->fetch_one_named();
+  auto rrow = right->fetch_one_named();
   while (lrow || rrow) {
     int d = !lrow ? 1 : (!rrow ? -1 : compare(*lrow, *rrow));
     ++count;
@@ -273,16 +273,16 @@ size_t find_different_rows(
         if (call_on_identical &&
             !callback(lrow, rrow, Row_difference::Identical))
           return count;
-        lrow = left->fetch_one_map();
-        rrow = right->fetch_one_map();
+        lrow = left->fetch_one_named();
+        rrow = right->fetch_one_named();
         break;
       case -1:
         if (!callback(lrow, {}, Row_difference::Row_missing)) return count;
-        lrow = left->fetch_one_map();
+        lrow = left->fetch_one_named();
         break;
       case 1:
         if (!callback({}, rrow, Row_difference::Row_added)) return count;
-        rrow = right->fetch_one_map();
+        rrow = right->fetch_one_named();
         break;
     }
   }
@@ -399,7 +399,7 @@ size_t find_different_rows_with_key_names(
 size_t find_different_rows_with_key_names(
     IResult *left, IResult *right,
     const std::vector<std::string> &key_field_names,
-    std::function<bool(const Row_ref_map &, const Row_ref_map &,
+    std::function<bool(const Row_ref_by_name &, const Row_ref_by_name &,
                        Row_difference)>
         callback,
     bool call_on_identical) {
@@ -424,7 +424,7 @@ size_t find_different_rows_with_key_names(
 
   return find_different_rows(
       left, right, keys, callback, call_on_identical,
-      [](IResult *result) { return result->fetch_one_map(); });
+      [](IResult *result) { return result->fetch_one_named(); });
 }
 
 std::unique_ptr<Mutable_result> merge_sorted(

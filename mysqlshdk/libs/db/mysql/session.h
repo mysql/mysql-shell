@@ -223,6 +223,14 @@ class SHCORE_PUBLIC Session : public ISession,
  private:
   std::shared_ptr<Session_impl> _impl;
 };
+
+inline std::shared_ptr<Session> open_session(
+    const mysqlshdk::db::Connection_options &copts) {
+  auto session = Session::create();
+  session->connect(copts);
+  return session;
+}
+
 }  // namespace mysql
 }  // namespace db
 }  // namespace mysqlshdk

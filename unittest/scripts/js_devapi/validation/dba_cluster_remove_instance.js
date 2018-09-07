@@ -42,7 +42,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Remove instance failure due to wrong credentials
@@ -77,7 +77,7 @@ Cluster.removeInstance: Access denied for user 'foo'@'localhost' (using password
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Removing instance
@@ -111,7 +111,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Adding instance on port2 back (interactive use)
@@ -297,21 +297,21 @@ OFF
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Error removing stopped instance on port2
@@ -358,7 +358,7 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port3>>>' was successfully remo
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Remove instances post actions since remove when unreachable (ensure they do not rejoin cluster)

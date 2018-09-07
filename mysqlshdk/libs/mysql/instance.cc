@@ -44,6 +44,20 @@ std::string Instance::descr() const {
       db::uri::formats::only_transport());
 }
 
+std::string Instance::get_canonical_hostname() const {
+  // returns the hostname that should be used to reach this instance
+  auto result = _session->query("SELECT COALESCE(@@report_host, @@hostname)");
+  auto row = result->fetch_one();
+  return row->get_as_string(0);
+}
+
+int Instance::get_canonical_port() const {
+  // returns the hostname that should be used to reach this instance
+  auto result = _session->query("SELECT COALESCE(@@report_port, @@port)");
+  auto row = result->fetch_one();
+  return row->is_null(0) ? 0 : row->get_int(0);
+}
+
 void Instance::cache_global_sysvars(bool force_refresh) {
   if (force_refresh || _global_sysvars.empty())
     _global_sysvars = get_system_variables({}, Var_qualifier::GLOBAL);
@@ -317,6 +331,23 @@ utils::nullable<std::string> Instance::get_plugin_status(
     return utils::nullable<std::string>();
 }
 
+const std::string &Instance::get_version_compile_os() const {
+  if (m_version_compile_os.empty()) {
+    m_version_compile_os = *get_sysvar_string("version_compile_os");
+  }
+  return m_version_compile_os;
+}
+
+std::string Instance::get_plugin_library_extension() const {
+  std::string instance_os = shcore::str_upper(get_version_compile_os());
+
+  if (instance_os.find("WIN") != std::string::npos) {
+    return ".dll";
+  } else {
+    return ".so";
+  }
+}
+
 /**
  * Install the specified plugin.
  *
@@ -326,14 +357,7 @@ utils::nullable<std::string> Instance::get_plugin_status(
  */
 void Instance::install_plugin(const std::string &plugin_name) const {
   // Determine the extension of the plugin library.
-  std::string instance_os =
-      shcore::str_upper(get_sysvar_string("version_compile_os"));
-  std::string plugin_lib = plugin_name;
-  if (instance_os.find("WIN") != std::string::npos) {
-    plugin_lib += ".dll";
-  } else {
-    plugin_lib += ".so";
-  }
+  std::string plugin_lib = plugin_name + get_plugin_library_extension();
 
   // Install the GR plugin.
   try {
@@ -420,10 +444,11 @@ void Instance::create_user(
  * @param user string with the username part for the user account to drop.
  * @param host string with the host part of the user account to drop.
  */
-void Instance::drop_user(const std::string &user,
-                         const std::string &host) const {
+void Instance::drop_user(const std::string &user, const std::string &host,
+                         bool if_exists) const {
   // Drop the user
-  std::string drop_stmt_fmt = "DROP USER ?@?";
+  std::string drop_stmt_fmt =
+      if_exists ? "DROP USER IF EXISTS ?@?" : "DROP USER ?@?";
   shcore::sqlstring drop_stmt = shcore::sqlstring(drop_stmt_fmt.c_str(), 0);
   drop_stmt << user;
   drop_stmt << host;
@@ -559,5 +584,6 @@ bool Instance::user_exists(const std::string &username,
   }
   return true;
 }
+
 }  // namespace mysql
 }  // namespace mysqlshdk
