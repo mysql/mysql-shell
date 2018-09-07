@@ -149,8 +149,8 @@ class Shell_pager : public IPager {
   static shcore::Prompt_result prompt(void *user_data, const char *prompt,
                                       std::string *ret_input) {
     const auto self = static_cast<Shell_pager *>(user_data);
-    return self->m_original_delegate.password(
-        self->m_original_delegate.user_data, prompt, ret_input);
+    return self->m_original_delegate.prompt(self->m_original_delegate.user_data,
+                                            prompt, ret_input);
   }
 
   static shcore::Prompt_result password(void *user_data, const char *prompt,
