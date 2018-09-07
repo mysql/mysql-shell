@@ -36,22 +36,58 @@
 namespace mysqlshdk {
 namespace db {
 
+class Field_names {
+ public:
+  explicit Field_names(const std::vector<Column> &metadata) {
+    for (const auto &col : metadata) add(col.get_column_label());
+  }
+
+  Field_names(const Field_names &) = delete;
+
+  Field_names() {}
+
+  inline void add(const std::string &name) {
+    uint32_t idx = m_fields.size();
+    m_fields[name] = idx;
+  }
+
+  inline uint32_t field_index(const std::string &name) {
+    auto it = m_fields.find(name);
+    if (it == m_fields.end())
+      throw std::invalid_argument("invalid field name " + name);
+    return it->second;
+  }
+
+  inline const std::string &field_name(uint32_t index) {
+    for (const auto &f : m_fields) {
+      if (f.second == index) return f.first;
+    }
+    throw std::invalid_argument("invalid field index " + std::to_string(index));
+  }
+
+  inline bool has_field(const std::string &field) const {
+    return m_fields.find(field) != m_fields.end();
+  }
+
+ private:
+  std::map<std::string, uint32_t> m_fields;
+};
+
 class Row_ref_by_name {
  public:
   Row_ref_by_name() {}
 
-  Row_ref_by_name(std::shared_ptr<IResult> result, const IRow *row)
-      : Row_ref_by_name(result) {
-    _row_ref = row;
-  }
+  Row_ref_by_name(const std::shared_ptr<Field_names> &field_names,
+                  const IRow *row)
+      : _field_names(field_names), _row_ref(row) {}
 
-  explicit Row_ref_by_name(Row_ref_by_name &&p)
+  Row_ref_by_name(const Row_ref_by_name &p) = default;
+
+  Row_ref_by_name(Row_ref_by_name &&p)
       : _field_names(std::move(p._field_names)),
         _row_ref(std::move(p._row_ref)) {}
 
   virtual ~Row_ref_by_name() {}
-
-  void operator=(const IRow *row) { _row_ref = row; }
 
   Row_ref_by_name &operator=(Row_ref_by_name &&o) {
     _field_names = std::move(o._field_names);
@@ -59,67 +95,74 @@ class Row_ref_by_name {
     return *this;
   }
 
-  uint32_t num_fields() const { return _row_ref->num_fields(); }
+  const IRow &operator*() const { return *ref(); }
+
+  operator bool() const { return _row_ref != nullptr; }
+
+  uint32_t num_fields() const { return ref()->num_fields(); }
 
   Type get_type(const std::string &field) const {
-    return _row_ref->get_type(field_index(field));
+    return ref()->get_type(field_index(field));
   }
 
   bool is_null(const std::string &field) const {
-    return _row_ref->is_null(field_index(field));
+    return ref()->is_null(field_index(field));
   }
 
   std::string get_as_string(const std::string &field) const {
-    return _row_ref->get_as_string(field_index(field));
+    return ref()->get_as_string(field_index(field));
   }
 
   std::string get_string(const std::string &field) const {
-    return _row_ref->get_string(field_index(field));
+    return ref()->get_string(field_index(field));
   }
 
   int64_t get_int(const std::string &field) const {
-    return _row_ref->get_int(field_index(field));
+    return ref()->get_int(field_index(field));
   }
 
   uint64_t get_uint(const std::string &field) const {
-    return _row_ref->get_uint(field_index(field));
+    return ref()->get_uint(field_index(field));
   }
 
   float get_float(const std::string &field) const {
-    return _row_ref->get_float(field_index(field));
+    return ref()->get_float(field_index(field));
   }
 
   double get_double(const std::string &field) const {
-    return _row_ref->get_double(field_index(field));
+    return ref()->get_double(field_index(field));
   }
 
   std::pair<const char *, size_t> get_string_data(
       const std::string &field) const {
-    return _row_ref->get_string_data(field_index(field));
+    return ref()->get_string_data(field_index(field));
   }
 
   uint64_t get_bit(const std::string &field) const {
-    return _row_ref->get_bit(field_index(field));
+    return ref()->get_bit(field_index(field));
   }
 
- protected:
-  explicit Row_ref_by_name(std::shared_ptr<IResult> result)
-      : _row_ref(nullptr) {
-    const auto &columns = result->get_metadata();
-    uint32_t i = 0;
-    for (const auto &col : columns) {
-      _field_names[col.get_column_label()] = i++;
-    }
+  bool has_field(const std::string &field) const {
+    return _field_names->has_field(field);
   }
 
   uint32_t field_index(const std::string &field) const {
-    auto it = _field_names.find(field);
-    if (it == _field_names.end())
-      throw std::invalid_argument("invalid field name " + field);
-    return it->second;
+    return _field_names->field_index(field);
   }
 
-  std::map<std::string, uint32_t> _field_names;
+  const std::string &field_name(uint32_t i) const {
+    return _field_names->field_name(i);
+  }
+
+  std::shared_ptr<Field_names> field_names() const { return _field_names; }
+
+  const IRow *ref() const {
+    if (!_row_ref) throw std::invalid_argument("invalid row reference");
+    return _row_ref;
+  }
+
+ protected:
+  std::shared_ptr<Field_names> _field_names;
   const IRow *_row_ref = nullptr;
 };
 
@@ -127,17 +170,21 @@ class Row_by_name : public Row_ref_by_name {
  public:
   Row_by_name() {}
 
-  Row_by_name(std::shared_ptr<IResult> result, const IRow &row)
-      : Row_ref_by_name(result), _row_copy(row) {
-    _row_ref = &_row_copy;
-  }
+  Row_by_name(const std::shared_ptr<Field_names> &field_names, const IRow &row)
+      : Row_ref_by_name(field_names, &_row_copy), _row_copy(row) {}
 
-  Row_by_name(std::shared_ptr<IResult> result, Row_copy &&row_copy)
-      : Row_ref_by_name(result), _row_copy(std::move(row_copy)) {
-    _row_ref = &_row_copy;
-  }
+  Row_by_name(const std::shared_ptr<Field_names> &field_names,
+              Row_copy &&row_copy)
+      : Row_ref_by_name(field_names, &_row_copy),
+        _row_copy(std::move(row_copy)) {}
 
-  explicit Row_by_name(Row_by_name &&rbn)
+  Row_by_name(const Row_by_name &rbn) = default;
+
+  explicit Row_by_name(const Row_ref_by_name &rbn)
+      : Row_ref_by_name(rbn.field_names(), &_row_copy),
+        _row_copy(rbn.ref() ? Row_copy(*rbn.ref()) : Row_copy()) {}
+
+  Row_by_name(Row_by_name &&rbn)
       : Row_ref_by_name(std::move(rbn)), _row_copy(std::move(rbn._row_copy)) {
     _row_ref = &_row_copy;
   }

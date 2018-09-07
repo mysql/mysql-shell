@@ -31,7 +31,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.11)}
@@ -66,14 +66,14 @@
             },
             "localhost:<<<__mysql_sandbox_port3>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Rescan

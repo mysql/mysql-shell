@@ -155,7 +155,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: removeInstance errors
@@ -215,7 +215,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Cluster: dissolve error: not empty
@@ -353,7 +353,7 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# Dba: kill instance 3
@@ -422,7 +422,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Cluster: final dissolve

@@ -3,3 +3,5 @@ coverage_build
 coverage-filtered.xml
 commitmsg
 covbuild
+source_downloads
+unittest/traces

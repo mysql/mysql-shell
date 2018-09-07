@@ -46,8 +46,10 @@ c.addInstance(__sandbox_uri2, {exitStateAction: "10"});
 //@ WL#12049: Add instance using a valid exitStateAction 1 {VER(>=5.7.24)}
 c.addInstance(__sandbox_uri2, {exitStateAction: "ABORT_SERVER"});
 
-//@ WL#12049: Finalization
+//@ WL#12049: Finalization cluster {VER(>=5.7.24)}
 c.disconnect();
+
+//@ WL#12049: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

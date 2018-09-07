@@ -75,7 +75,6 @@ shcore::Value get_master_status(
 std::vector<std::string> get_peer_seeds(
     std::shared_ptr<mysqlshdk::db::ISession> connection,
     const std::string &instance_host);
-std::string generate_password(size_t password_length);
 std::vector<std::pair<std::string, int>> get_open_sessions(
     std::shared_ptr<mysqlshdk::db::ISession> connection);
 }  // namespace dba

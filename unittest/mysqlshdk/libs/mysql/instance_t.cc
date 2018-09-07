@@ -800,7 +800,7 @@ TEST_F(Instance_test, get_system_variables) {
   _session->close();
 }
 
-TEST_F(Instance_test, install_plugin) {
+TEST_F(Instance_test, install_plugin_win) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
@@ -817,6 +817,15 @@ TEST_F(Instance_test, install_plugin) {
   EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
                                "'validate_password.dll'"));
   instance.install_plugin("validate_password");
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
+TEST_F(Instance_test, install_plugin_lin) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
 
   // Install plugin on Non-Windows
   session

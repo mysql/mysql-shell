@@ -52,9 +52,9 @@ struct Instance_info {
   std::string name;
   std::string classic_endpoint;
   std::string x_endpoint;
+  std::string role;
 };
 
-// Metadata query methods go here
 class Metadata : public std::enable_shared_from_this<Metadata> {
  public:
   Metadata() = default;
@@ -81,9 +81,11 @@ class Metadata : public std::enable_shared_from_this<Metadata> {
 
   virtual std::vector<Instance_info> get_group_instances(
       const Group_id &rsid) = 0;
+
+  virtual std::vector<Instance_info> get_replicaset_instances(
+      const Replicaset_id &rsid) = 0;
 };
 
-// Metadata update methods go here
 class Metadata_mutable : public Metadata {
  public:
 };
@@ -109,6 +111,9 @@ class Metadata_mysql : public Metadata_mutable {
       Cluster_id cluster_id, std::vector<Group_id> *out_group_ids) override;
 
   std::vector<Instance_info> get_group_instances(const Group_id &rsid) override;
+
+  std::vector<Instance_info> get_replicaset_instances(
+      const Replicaset_id &rsid) override;
 
   std::shared_ptr<db::ISession> get_session() const { return _session; }
 

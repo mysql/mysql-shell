@@ -24,6 +24,7 @@ set(mysql_SOURCE
     mycnf.cc
     sandbox.cc
     script.cc
+    replication.cc
     group_replication.cc
     user_privileges.cc
     utils.cc

@@ -2,7 +2,7 @@
 ||
 
 //@ WL#12049: Unsupported server version {VER(<5.7.24)}
-||Option 'exitStateAction' not available for target server version.
+||Option 'exitStateAction' not supported on target server version: '<<<__version>>>'
 
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.

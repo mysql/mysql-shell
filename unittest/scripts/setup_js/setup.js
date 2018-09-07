@@ -25,11 +25,38 @@ var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandb
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
 
+// JSON utils
+
+// Find a key in a json object recursively
+function json_find_key(json, key) {
+  if (key in json) {
+    return json[key];
+  }
+
+  for (var k in json) {
+    if (type(json[k]) == 'Object' || type(json[k]) == 'm.Map') {
+      var o = json_find_key(json[k], key);
+      if (o != undefined)
+        return o;
+    } else if (type(json[k]) == 'Array' || type(json[k]) == 'm.Array') {
+      for (var i in json[k]) {
+        var o = json_find_key(json[k][i], key);
+        if (o != undefined)
+          return o;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 // -------- Test Expectations
 
-function EXPECT_EQ(expected, actual) {
+function EXPECT_EQ(expected, actual, note) {
+  if (note == undefined)
+    note = "";
   if (repr(expected) != repr(actual)) {
-    var context = "<red>Tested values don't match as expected:</red>\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    var context = "<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
     testutil.fail(context);
   }
 }
@@ -50,9 +77,11 @@ function EXPECT_ARRAY_CONTAINS(expected, actual) {
   testutil.fail(context);
 }
 
-function EXPECT_NE(expected, actual) {
+function EXPECT_NE(expected, actual, note) {
+  if (note == undefined)
+    note = "";
   if (expected == actual) {
-    var context = "<red>Tested values don't differ as expected:</red>\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
+    var context = "<red>Tested values don't differ as expected:</red> "+note+"\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
     testutil.fail(context);
   }
 }

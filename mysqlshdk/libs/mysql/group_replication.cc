@@ -292,18 +292,22 @@ Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance) {
  * MISSING).
  *
  * @param instance session object to connect to the target instance.
+ * @param out_single_primary_mode if not NULL, assigned to true if group is
+ *        single primary
  *
  * @return A list of GR_member objects corresponding to the current known
  *         members of the group (from the point of view of the specified
  *         instance).
  */
-std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance) {
+std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
+                                bool *out_single_primary_mode) {
   std::vector<Member> members;
 
   // 8.0.2 added a member_role column
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
     std::shared_ptr<db::IResult> result(instance.get_session()->query(
-        "SELECT member_id, member_state, member_host, member_port, member_role"
+        "SELECT member_id, member_state, member_host, member_port, member_role,"
+        "        @@group_replication_single_primary_mode"
         " FROM performance_schema.replication_group_members"));
     {
       const db::IRow *row = result->fetch_one();
@@ -323,6 +327,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance) {
         member.host = row->get_string(2);
         member.gr_port = row->get_int(3);
         member.role = to_member_role(row->get_string(4));
+        if (out_single_primary_mode) *out_single_primary_mode = row->get_int(5);
         members.push_back(member);
 
         row = result->fetch_one();
@@ -336,7 +341,8 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance) {
         "     member_id = (select variable_value"
         "       from performance_schema.global_status"
         "       where variable_name = 'group_replication_primary_member'),"
-        "   'PRIMARY', 'SECONDARY') as member_role"
+        "   'PRIMARY', 'SECONDARY') as member_role,"
+        "    @@group_replication_single_primary_mode"
         " FROM performance_schema.replication_group_members"));
     {
       const db::IRow *row = result->fetch_one();
@@ -347,6 +353,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance) {
         member.host = row->get_string(2);
         member.gr_port = row->get_int(3);
         member.role = to_member_role(row->get_string(4));
+        if (out_single_primary_mode) *out_single_primary_mode = row->get_int(5);
         members.push_back(member);
 
         row = result->fetch_one();
@@ -651,16 +658,6 @@ mysql::User_privileges_result check_replication_user(
   return instance.get_user_privileges(user, host)->validate(gr_grants);
 }
 
-/**
- * Create a replication (recovery) user with the required privileges for
- * Group Replication, with a random username and password.
- *
- * @param instance session object to connect to the target instance.
- * @param out_user assigned to the generated username.
- * @param hosts list of strings with the host part for the user account. If none
- * is provide (empty) then use '%' and localhost
- * @param out_pwd assigned to the generated password
- */
 void create_replication_random_user_pass(
     const mysqlshdk::mysql::IInstance &instance, std::string *out_user,
     const std::vector<std::string> &hosts, std::string *out_pwd) {
@@ -793,20 +790,6 @@ bool is_group_replication_delayed_starting(
     log_warning("Error checking GR state: %s", e.what());
     return false;
   }
-}
-
-bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
-                       const std::string gtid_set, int timeout) {
-  // NOTE: According to the GR team the max supported timeout value for
-  //       WAIT_FOR_EXECUTED_GTID_SET() is 18446744073.7096 seconds
-  //       (2^64/1000000000). Therefore, a type with a max value that include
-  //       that range should be used.
-  auto result = instance.get_session()->queryf(
-      "SELECT WAIT_FOR_EXECUTED_GTID_SET(?, ?)", gtid_set, timeout);
-  auto row = result->fetch_one();
-  // WAIT_FOR_EXECUTED_GTID_SET() returns 0 for success, 1 for timeout,
-  // otherwise an error is generated.
-  return row->get_int(0) == 0;
 }
 
 }  // namespace gr

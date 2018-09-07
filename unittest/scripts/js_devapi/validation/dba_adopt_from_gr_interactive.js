@@ -58,7 +58,7 @@ false
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Create cluster adopting from GR - answer 'no' to prompt
@@ -102,7 +102,7 @@ Cluster successfully created based on existing replication group.
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Create cluster adopting from multi-primary GR - use 'adoptFromGR' option
@@ -139,7 +139,7 @@ Cluster successfully created based on existing replication group.
             }
         }
     },
-    "groupInformationSourceMember": "mysql://root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ dissolve the cluster

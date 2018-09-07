@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,7 +44,7 @@ namespace utils {
 
 void init_stacktrace() {}
 
-#ifdef _WIN32
+#if defined(_WIN32) && 0
 
 void print_stacktrace() {
   void *callstack[MAX_STACK_DEPTH];

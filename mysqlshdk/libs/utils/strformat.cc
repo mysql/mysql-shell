@@ -22,6 +22,8 @@
  */
 
 #include "mysqlshdk/libs/utils/strformat.h"
+#include <time.h>
+#include <cmath>
 #include <cstdio>
 #include <tuple>
 #include <utility>
@@ -58,6 +60,42 @@ std::string format_seconds(double secs) {
   snprintf(buffer, sizeof(buffer), "%01.4f sec", secs);
   if (!str.empty()) str.append(" ");
   str.append(buffer);
+  return str;
+}
+
+std::string format_microseconds(double secs) {
+  char buffer[256];
+  std::string str;
+  int d = secs / (3600 * 24);
+  secs -= d * 3600 * 24;
+  int h = secs / 3600;
+  secs -= h * 3600;
+  int m = secs / 60;
+  secs -= m * 60;
+  if (d > 0) {
+    snprintf(buffer, sizeof(buffer), d > 1 ? "%i days" : "%i day", d);
+    str.append(buffer);
+  }
+  if (h > 0) {
+    snprintf(buffer, sizeof(buffer), h > 1 ? "%i hours" : "%i hour", h);
+    if (!str.empty()) str.append(" ");
+    str.append(buffer);
+  }
+  if (m > 0) {
+    snprintf(buffer, sizeof(buffer), "%i min", m);
+    if (!str.empty()) str.append(" ");
+    str.append(buffer);
+  }
+  if (round(secs) > 0) {
+    snprintf(buffer, sizeof(buffer), "%i sec", static_cast<int>(secs));
+    if (!str.empty()) str.append(" ");
+    str.append(buffer);
+  }
+  snprintf(buffer, sizeof(buffer), "%i usec",
+           static_cast<int>((secs - round(secs)) * 1000000));
+  if (!str.empty()) str.append(" ");
+  str.append(buffer);
+
   return str;
 }
 
@@ -98,6 +136,23 @@ std::string format_throughput_bytes(uint64_t bytes, double seconds) {
   std::tie(unit, nitems) = scale_value(bytes);
   snprintf(buffer, sizeof(buffer), "%.2f ", nitems / seconds);
   return buffer + unit + "B/s";
+}
+
+std::string fmttime(const char *fmt) {
+  time_t t = time(nullptr);
+  char buf[64];
+
+#ifdef _WIN32
+  struct tm lt;
+  localtime_s(&lt, &t);
+  strftime(buf, sizeof(buf), fmt, &lt);
+#else
+  struct tm lt;
+  localtime_r(&t, &lt);
+  strftime(buf, sizeof(buf), fmt, &lt);
+#endif
+
+  return buf;
 }
 
 }  // namespace utils

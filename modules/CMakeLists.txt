@@ -55,6 +55,7 @@ file(GLOB api_module_SOURCES
       "adminapi/mod_dba_sql.cc"
       "adminapi/dba/validations.cc"
       "adminapi/dba/check_instance.cc"
+      "adminapi/dba/cluster_status.cc"
       "adminapi/dba/configure_local_instance.cc"
       "adminapi/dba/configure_instance.cc"
       "adminapi/dba/dissolve.cc"

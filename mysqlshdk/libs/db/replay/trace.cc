@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/db/replay/replayer.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 // TODO(alfredo) warnings, multi-results, mysqlx
@@ -45,6 +46,9 @@ namespace replay {
 sequence_error::sequence_error(const std::string &what)
     : db::Error(what.c_str(), 9999) {
   std::cerr << "SESSION REPLAY ERROR: " << what << "\n";
+
+  mysqlshdk::utils::print_stacktrace();
+
   if (getenv("TEST_DEBUG")) assert(0);
 }
 

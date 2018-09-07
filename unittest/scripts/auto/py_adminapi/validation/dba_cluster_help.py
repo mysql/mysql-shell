@@ -51,7 +51,7 @@ FUNCTIONS
       rescan()
             Rescans the cluster.
 
-      status()
+      status([options])
             Describe the status of the cluster.
 
       For more help on a specific function use: cluster.help('<functionName>')
@@ -603,43 +603,23 @@ NAME
       status - Describe the status of the cluster.
 
 SYNTAX
-      <Cluster>.status()
+      <Cluster>.status([options])
+
+WHERE
+      options: Dictionary with options.
 
 RETURNS
        A JSON object describing the status of the cluster.
 
 DESCRIPTION
       This function describes the status of the cluster including its
-      ReplicaSets and Instances.
+      ReplicaSets and Instances. The following options may be given to control
+      the amount of information gathered and returned.
 
-      The returned JSON object contains the following attributes:
-
-      - clusterName: the cluster name
-      - defaultReplicaSet: the default ReplicaSet object
-      - groupInformationSourceMember: URI of the internal connection used to
-        obtain information about the cluster
-      - metadataServer: optional, URI of the metadata server if it is different
-        from groupInformationSourceMember
-      - warning: optional, string containing any warning messages raised during
-        execution of this operation
-
-      The defaultReplicaSet JSON object contains the following attributes:
-
-      - name: the ReplicaSet name
-      - primary: the ReplicaSet single-primary primary instance
-      - ssl: the ReplicaSet SSL mode
-      - status: the ReplicaSet status
-      - statusText: the descriptive text of ReplicaSet status
-      - topology: a dictionary of instances belonging to the ReplicaSet, where
-        keys are instance labels and values are instance objects
-
-      Each instance is a dictionary containing the following attributes:
-
-      - address: the instance address in the form of host:port
-      - mode: the instance mode
-      - readReplicas: a list of read replica Instances of the instance.
-      - role: the instance role
-      - status: the instance status
+      - extended: if true, includes information about transactions processed by
+        connection and applier, as well as groupName and memberId values.
+      - queryMembers: if true, connect to each Instance of the ReplicaSets to
+        query for more detailed stats about the replication machinery.
 
 EXCEPTIONS
       MetadataError in the following scenarios:

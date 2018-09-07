@@ -159,6 +159,43 @@ std::vector<Instance_info> Metadata_mysql::get_group_instances(
   return instances;
 }
 
+namespace {
+std::vector<Instance_info> query_instances_with_filter(
+    db::ISession *session, const std::string &filter) {
+  std::vector<Instance_info> instances;
+
+  std::shared_ptr<db::IResult> result(
+      session->query("SELECT i.mysql_server_uuid, i.instance_name, i.role,"
+                     "     i.addresses->>'$.mysqlClassic' as endpoint,"
+                     "     i.addresses->>'$.mysqlX' as xendpoint,"
+                     "     i.role as role"
+                     " FROM mysql_innodb_cluster_metadata.instances as i"
+                     " JOIN mysql_innodb_cluster_metadata.replicasets as rs"
+                     "     ON i.replicaset_id = rs.replicaset_id"
+                     " WHERE " +
+                     filter));
+
+  while (const db::IRow *row = result->fetch_one()) {
+    Instance_info info;
+
+    info.uuid = row->get_string(0);
+    info.name = row->get_string(1);
+    info.classic_endpoint = row->is_null(3) ? "" : row->get_string(3);
+    info.x_endpoint = row->is_null(4) ? "" : row->get_string(4);
+    info.role = row->is_null(5) ? "" : row->get_string(5);
+
+    instances.push_back(info);
+  }
+  return instances;
+}
+}  // namespace
+
+std::vector<Instance_info> Metadata_mysql::get_replicaset_instances(
+    const Replicaset_id &rsid) {
+  return query_instances_with_filter(
+      _session.get(), shcore::sqlstring("rs.replicaset_id = ?", 0) << rsid);
+}
+
 utils::nullable<Instance_info> Metadata_mysql::get_instance_info_by_uuid(
     const std::string &uuid) const {
   auto res = _session->queryf(

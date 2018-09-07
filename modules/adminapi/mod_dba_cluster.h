@@ -64,7 +64,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan();
-  String status();
+  String status(Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -77,7 +77,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
   None rescan();
-  str status();
+  str status(dict options);
 #endif
 
   Cluster(const std::string &name,

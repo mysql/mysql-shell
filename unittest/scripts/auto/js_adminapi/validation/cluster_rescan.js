@@ -25,7 +25,7 @@
             }
         }
     }, 
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> No-op
@@ -56,7 +56,7 @@
             }
         }
     }, 
-    "groupInformationSourceMember": "mysql://root@localhost:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> addInstance should fail and suggest a rescan

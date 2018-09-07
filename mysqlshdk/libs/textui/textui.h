@@ -210,6 +210,21 @@ inline std::string notice(const std::string &text) {
   return vt100::attr(6, -1) + text + vt100::attr();
 }
 
+inline std::string green(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(2, -1) + text + vt100::attr();
+}
+
+inline std::string yellow(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(3, -1) + text + vt100::attr();
+}
+
+inline std::string red(const std::string &text) {
+  if (!has_color()) return text;
+  return vt100::attr(1, -1) + text + vt100::attr();
+}
+
 /**
  * Creates a remark.
  *

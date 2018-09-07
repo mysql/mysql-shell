@@ -438,7 +438,7 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ Remove instance
@@ -473,7 +473,7 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ Add the instance back to the cluster
@@ -521,7 +521,7 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ dba_configure_local_instance() 1: {VER(<8.0.11)}
@@ -572,7 +572,7 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ Kill instance 2 - quorum-loss
@@ -593,28 +593,28 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
+                "mode": "R/O",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "ONLINE"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@<OUT> Restore the cluster quorum
@@ -645,21 +645,21 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ Restart instance 2 - quorum-loss
@@ -701,7 +701,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ Kill instance 2 - complete-outage
@@ -761,7 +761,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@ Remove instance 3 from the MD schema
@@ -802,7 +802,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
             }
         }
     },
-    "groupInformationSourceMember": "mysql://myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 #@<OUT> Dissolve cluster {VER(<8.0.11)}

@@ -32,7 +32,7 @@
             },
             "<<<localhost>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
+                "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
                 "status": "(MISSING)"
@@ -46,7 +46,7 @@
             }
         }
     },
-    "groupInformationSourceMember": "mysql://foo@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Rejoin instance 2
@@ -86,7 +86,7 @@ WARNING: Option 'memberSslMode' is deprecated for this operation and it will be 
             }
         }
     },
-    "groupInformationSourceMember": "mysql://foo@<<<localhost>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329

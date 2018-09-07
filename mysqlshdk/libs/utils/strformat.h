@@ -44,6 +44,8 @@ inline std::pair<std::string, double> scale_value(T n) {
 }
 
 std::string format_seconds(double secs);
+std::string format_microseconds(double secs);
+
 std::string format_bytes(uint64_t bytes);
 
 std::string format_throughput_items(const std::string &item_name_singular,
@@ -51,6 +53,8 @@ std::string format_throughput_items(const std::string &item_name_singular,
                                     const uint64_t items, double seconds);
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds);
+
+std::string fmttime(const char *fmt);
 
 }  // namespace utils
 }  // namespace mysqlshdk
