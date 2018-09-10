@@ -409,8 +409,9 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         auto session = create_session(copy);
 
         if (prompted_for_password) {
-          shcore::Credential_manager::get().save_password(
-              session->get_connection_options());
+          // save password using the same connection options as the ones used
+          // to fetch the password from the secret storage
+          shcore::Credential_manager::get().save_password(copy);
         }
 
         return session;

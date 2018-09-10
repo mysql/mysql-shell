@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <mysqlx_version.h>
+
 #include <memory>
 #include <sstream>
 #include <string>
@@ -134,9 +136,6 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (_enable_trace) _trace_handler = do_enable_trace(_mysql.get());
 
   _connection_options = data;
-
-  if (!_connection_options.has_scheme())
-    _connection_options.set_scheme("mysqlx");
 
   if (_connection_options.has(mysqlshdk::db::kGetServerPublicKey)) {
     _mysql.reset();
@@ -303,7 +302,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 #endif
   } else {
     err =
-        _mysql->connect(host.c_str(), data.has_port() ? data.get_port() : 33060,
+        _mysql->connect(host.c_str(), data.has_port() ? data.get_port() : 0,
                         data.has_user() ? data.get_user().c_str() : "",
                         data.has_password() ? data.get_password().c_str() : "",
                         data.has_schema() ? data.get_schema().c_str() : "");
@@ -330,6 +329,18 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   // If the account is not expired, retrieves additional session information
   if (!_expired_account) load_session_info();
+
+  // fill in defaults
+  if (!_connection_options.has_scheme())
+    _connection_options.set_scheme("mysqlx");
+
+  // When neither port or socket were specified on the connection data
+  // it means it was able to use default connection data
+  if (!_connection_options.has_port() && !_connection_options.has_socket()) {
+    // if neither port nor socket are set, connection is going to use default
+    // X port
+    _connection_options.set_port(MYSQLX_TCP_PORT);
+  }
 }
 
 void XSession_impl::close() {
