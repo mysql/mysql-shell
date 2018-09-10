@@ -47,7 +47,7 @@ std::string Shell_python::preprocess_input_line(const std::string &s) {
 }
 
 void Shell_python::set_result_processor(
-    std::function<void(shcore::Value)> result_processor) {
+    std::function<void(shcore::Value, bool)> result_processor) {
   _result_processor = result_processor;
 }
 
@@ -85,7 +85,8 @@ void Shell_python::handle_input(std::string &code, Input_state &state) {
   _last_handled = code;
 
   // Only processes the result when full statements are executed
-  if (state == Input_state::Ok) _result_processor(result);
+  if (state == Input_state::Ok)
+    _result_processor(result, result.type == shcore::Undefined);
 
   m_last_input_state = state;
 }
@@ -165,7 +166,7 @@ void Shell_python::execute_module(const std::string &file_name) {
 
     ret_val = _py->execute_module(file_name, _owner->get_input_args());
 
-    _result_processor(ret_val);
+    _result_processor(ret_val, ret_val.type == shcore::Undefined);
   } catch (std::exception &exc) {
     mysqlsh::current_console()->raw_print(
         std::string("Exception while loading ")

@@ -40,6 +40,8 @@ class JScript_map_wrapper {
   static bool unwrap(v8::Handle<v8::Object> value,
                      std::shared_ptr<Value::Map_type> &ret_map);
 
+  static bool is_map(v8::Handle<v8::Object> value);
+
  private:
   static void handler_getter(v8::Local<v8::String> property,
                              const v8::PropertyCallbackInfo<v8::Value> &info);

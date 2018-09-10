@@ -35,7 +35,7 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
     : Shell_language(shcore), _js(new JScript_context(shcore->registry())) {}
 
 void Shell_javascript::set_result_processor(
-    std::function<void(shcore::Value)> result_processor) {
+    std::function<void(shcore::Value, bool)> result_processor) {
   _result_processor = result_processor;
 }
 
@@ -48,12 +48,13 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
     return true;
   });
 
+  bool got_error = true;
   if (mysqlsh::current_shell_options()->get().interactive)
-    result = _js->execute_interactive(code, state);
+    std::tie(result, got_error) = _js->execute_interactive(code, state);
   else {
     try {
-      result = _js->execute(code, _owner->get_input_source(),
-                            _owner->get_input_args());
+      std::tie(result, got_error) = _js->execute(
+          code, _owner->get_input_source(), _owner->get_input_args());
     } catch (std::exception &exc) {
       mysqlsh::current_console()->raw_print(exc.what(),
                                             mysqlsh::Output_stream::STDERR);
@@ -62,7 +63,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
 
   _last_handled = code;
 
-  _result_processor(result);
+  _result_processor(result, got_error);
   m_last_input_state = state;
 }
 

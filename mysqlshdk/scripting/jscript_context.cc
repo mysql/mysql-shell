@@ -808,11 +808,13 @@ std::tuple<JSObject, std::string> JScript_context::get_global_js(
 }
 
 std::vector<std::pair<bool, std::string>> JScript_context::list_globals() {
-  Value globals(execute(
-      "Object.keys(this).map(function(x) {"
-      " if (typeof this[x] == 'function') return '('+x; else return '.'+x;"
-      "})",
-      {}));
+  Value globals(
+      execute(
+          "Object.keys(this).map(function(x) {"
+          " if (typeof this[x] == 'function') return '('+x; else return '.'+x;"
+          "})",
+          {})
+          .first);
   assert(globals.type == shcore::Array);
 
   std::vector<std::pair<bool, std::string>> ret;
@@ -913,9 +915,9 @@ Argument_list JScript_context::convert_args(
   return _impl->convert_args(args);
 }
 
-Value JScript_context::execute(const std::string &code_str,
-                               const std::string &source,
-                               const std::vector<std::string> &argv) {
+std::pair<Value, bool> JScript_context::execute(
+    const std::string &code_str, const std::string &source,
+    const std::vector<std::string> &argv) {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
   // creates a pool for all the handles that are created in this scope
@@ -934,8 +936,6 @@ Value JScript_context::execute(const std::string &code_str,
 
   // Since ret_val can't be used to check whether all was ok or not
   // Will use a boolean flag
-  Value ret_val;
-  bool executed_ok = false;
 
   shcore::Value args_value = get_global("sys").as_object()->get_member("argv");
   auto args = args_value.as_array();
@@ -953,20 +953,14 @@ Value JScript_context::execute(const std::string &code_str,
       mysqlsh::current_console()->raw_print(
           "Script execution interrupted by user.\n",
           mysqlsh::Output_stream::STDERR);
-      return Value();
-    } else if (!result.IsEmpty()) {
-      ret_val = v8_value_to_shcore_value(result);
-      executed_ok = true;
-    }
-    if (!executed_ok) {
-      if (try_catch.HasCaught()) {
-        Value e = get_v8_exception_data(&try_catch, false);
 
-        throw Exception::scripting_error(format_exception(e));
-      } else {
-        throw shcore::Exception::logic_error(
-            "Unexpected error processing script, no exception caught!");
-      }
+      return {Value(), true};
+    } else if (!try_catch.HasCaught()) {
+      return {v8_value_to_shcore_value(result), false};
+    } else {
+      Value e = get_v8_exception_data(&try_catch, false);
+
+      throw Exception::scripting_error(format_exception(e));
     }
   } else {
     if (try_catch.HasCaught()) {
@@ -978,19 +972,10 @@ Value JScript_context::execute(const std::string &code_str,
           "Unexpected error compiling script, no exception caught!");
     }
   }
-
-  // hack to workaround hack for signalling script execution errors
-  // via _global_return_code
-  if (executed_ok && ret_val.type == shcore::Undefined)
-    ret_val = shcore::Value::Null();
-
-  // while (!_impl->isolate->IdleNotification(1000)) {}
-
-  return ret_val;
 }
 
-Value JScript_context::execute_interactive(const std::string &code_str,
-                                           Input_state &r_state) noexcept {
+std::pair<Value, bool> JScript_context::execute_interactive(
+    const std::string &code_str, Input_state &r_state) noexcept {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
   // creates a pool for all the handles that are created in this scope
@@ -1028,7 +1013,7 @@ Value JScript_context::execute_interactive(const std::string &code_str,
       v8::V8::CancelTerminateExecution(_impl->isolate);
       console->raw_print("Script execution interrupted by user.\n",
                          mysqlsh::Output_stream::STDERR);
-    } else if (result.IsEmpty()) {
+    } else if (try_catch.HasCaught()) {
       Value exc(get_v8_exception_data(&try_catch, true));
       if (exc)
         _impl->print_exception(format_exception(exc));
@@ -1037,7 +1022,7 @@ Value JScript_context::execute_interactive(const std::string &code_str,
                            mysqlsh::Output_stream::STDERR);
     } else {
       try {
-        return Value(v8_value_to_shcore_value(result));
+        return {v8_value_to_shcore_value(result), false};
       } catch (std::exception &exc) {
         // we used to let the exception bubble up, but somehow, exceptions
         // thrown from v8_value_to_shcore_value() aren't being caught from
@@ -1048,7 +1033,7 @@ Value JScript_context::execute_interactive(const std::string &code_str,
       }
     }
   }
-  return Value();
+  return {Value(), true};
 }
 
 std::string JScript_context::format_exception(const shcore::Value &exc) {
@@ -1087,14 +1072,18 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc,
   if (exc->Exception().IsEmpty() || exc->Exception()->IsUndefined())
     return Value();
 
-  v8::String::Utf8Value exec_error(exc->Exception());
-  if (*exec_error) {
-    // JS errors produced by V8 most likely will fall on this branch
-    data.reset(new Value::Map_type());
-    (*data)["message"] = Value(*exec_error);
-  } else {
-    // Errors produced by C++ code we exposed to the JS engine will fall here
+  if (exc->Exception()->IsObject() &&
+      JScript_map_wrapper::is_map(exc->Exception()->ToObject())) {
     data = _impl->types.v8_value_to_shcore_value(exc->Exception()).as_map();
+  } else {
+    v8::String::Utf8Value excstr(exc->Exception());
+    data.reset(new Value::Map_type());
+    if (*excstr) {
+      // JS errors produced by V8 most likely will fall on this branch
+      (*data)["message"] = Value(*excstr);
+    } else {
+      (*data)["message"] = Value("Exception");
+    }
   }
 
   bool include_location = !interactive;

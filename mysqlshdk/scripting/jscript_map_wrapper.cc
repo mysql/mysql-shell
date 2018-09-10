@@ -110,12 +110,7 @@ void JScript_map_wrapper::handler_getter(
   else*/
   {
     Value::Map_type::const_iterator iter = map->find(*prop);
-    if (iter == map->end())
-      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(
-          info.GetIsolate(),
-          (std::string("Invalid map member '").append(*prop).append("'"))
-              .c_str()));
-    else
+    if (iter != map->end())
       info.GetReturnValue().Set(
           self->_context->shcore_value_to_v8_value(iter->second));
   }
@@ -160,6 +155,14 @@ void JScript_map_wrapper::handler_enumerator(
                 v8::String::NewFromUtf8(info.GetIsolate(), iter.first.c_str()));
   }
   info.GetReturnValue().Set(marray);
+}
+
+bool JScript_map_wrapper::is_map(v8::Handle<v8::Object> value) {
+  if (value->InternalFieldCount() == 3 &&
+      value->GetAlignedPointerFromInternalField(0) == (void *)&magic_pointer) {
+    return true;
+  }
+  return false;
 }
 
 bool JScript_map_wrapper::unwrap(v8::Handle<v8::Object> value,
