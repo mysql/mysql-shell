@@ -124,7 +124,7 @@ void Session_impl::connect(
   if (!_connection_options.has_port() && !_connection_options.has_socket()) {
     std::string connection_info(get_connection_info());
 
-    // If connection is through TCP/IP it means te default port was used
+    // If connection is through TCP/IP it means the default port was used
     if (connection_info.find("via TCP/IP") != std::string::npos) {
       _connection_options.set_port(MYSQL_PORT);
     } else {
