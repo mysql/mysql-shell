@@ -316,7 +316,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
           auto js = static_cast<shcore::Shell_javascript *>(
               _shell->language_object(mode));
           js->set_result_processor(
-              std::bind(&Base_shell::process_result, this, _1));
+              std::bind(&Base_shell::process_result, this, _1, _2));
           _completer.add_provider(
               shcore::IShell_core::Mode_mask(
                   shcore::IShell_core::Mode::JavaScript),
@@ -336,7 +336,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
           auto py = static_cast<shcore::Shell_python *>(
               _shell->language_object(mode));
           py->set_result_processor(
-              std::bind(&Base_shell::process_result, this, _1));
+              std::bind(&Base_shell::process_result, this, _1, _2));
           _completer.add_provider(
               shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::Python),
               std::unique_ptr<shcore::completer::Provider>(
@@ -463,7 +463,7 @@ void Base_shell::print_result(shcore::Value result) {
         shcore::Value hook_result = object->call("__shell_hook__", args);
 
         // Recursive call to continue processing shell hooks if any
-        process_result(hook_result);
+        process_result(hook_result, false);
       }
     }
 
@@ -496,13 +496,12 @@ void Base_shell::print_result(shcore::Value result) {
   }
 }
 
-void Base_shell::process_result(shcore::Value result) {
+void Base_shell::process_result(shcore::Value result, bool got_error) {
   assert(_shell->interactive_mode() != shcore::Shell_core::Mode::SQL);
 
   if (options().interactive) print_result(result);
 
-  // Return value of undefined implies an error processing
-  if (result.type == shcore::Undefined) _shell->set_error_processing();
+  if (got_error) _shell->set_error_processing();
 }
 
 int Base_shell::process_file(const std::string &path,

@@ -189,10 +189,10 @@ class JavaScript : public ::testing::Test {
 TEST_F(JavaScript, basic) {
   ASSERT_TRUE(env.js);
 
-  shcore::Value result = env.js->execute("'hello world'");
+  shcore::Value result = env.js->execute("'hello world'").first;
   ASSERT_EQ(result.repr(), "\"hello world\"");
 
-  result = env.js->execute("1+1");
+  result = env.js->execute("1+1").first;
   ASSERT_EQ(result.as_int(), 2);
 }
 
@@ -298,9 +298,9 @@ TEST_F(JavaScript, array_to_js) {
 
   // addressing a wrapped shcore::Value array from JS
   env.js->set_global("arr", v);
-  ASSERT_EQ(env.js->execute("arr[0]").repr(), Value(123).repr());
+  ASSERT_EQ(env.js->execute("arr[0]").first.repr(), Value(123).repr());
 
-  ASSERT_EQ(env.js->execute("arr.length").repr(), Value(3).repr());
+  ASSERT_EQ(env.js->execute("arr.length").first.repr(), Value(3).repr());
 
   // tests enumeration
   env.js->execute("type(arr[0])");
@@ -310,7 +310,7 @@ TEST_F(JavaScript, array_to_js) {
   ASSERT_EQ(Value("2").repr(), env.js->get_global("g").repr());
 
   // this forces conversion of a native JS array into a Value
-  shcore::Value result = env.js->execute("[1,2,3]");
+  shcore::Value result = env.js->execute("[1,2,3]").first;
   ASSERT_EQ(result.repr(), "[1, 2, 3]");
 }
 
@@ -344,7 +344,7 @@ TEST_F(JavaScript, map_to_js) {
 
   // test enumerator
   ASSERT_EQ("[\"k1\", \"k2\", \"k3\"]",
-            env.js->execute("Object.keys(mapval)").descr(false));
+            env.js->execute("Object.keys(mapval)").first.descr(false));
 
   // test setter
   env.js->execute("mapval[\"k4\"] = 'test'");
@@ -352,8 +352,17 @@ TEST_F(JavaScript, map_to_js) {
   ASSERT_EQ((*map)["k4"].descr(false), Value("test").descr(false));
 
   // this forces conversion of a native JS map into a Value
-  shcore::Value result = env.js->execute("a={\"submap\": 444}");
+  shcore::Value result = env.js->execute("a={\"submap\": 444}").first;
   ASSERT_EQ(result, Value(map2));
+
+  result = env.js->execute("'k1' in mapval").first;
+  EXPECT_EQ("true", result.descr());
+
+  result = env.js->execute("'bad' in mapval").first;
+  EXPECT_EQ("false", result.descr());
+
+  result = env.js->execute("mapval['invalid']").first;
+  EXPECT_EQ(shcore::Undefined, result.type);
 }
 
 TEST_F(JavaScript, object_to_js) {
@@ -382,10 +391,10 @@ TEST_F(JavaScript, object_to_js) {
   // expose the object to JS
   env.js->set_global("test_obj",
                      Value(std::static_pointer_cast<Object_bridge>(obj)));
-  ASSERT_EQ(env.js->execute("type(test_obj)").descr(false), "m.Test");
+  ASSERT_EQ(env.js->execute("type(test_obj)").first.descr(false), "m.Test");
 
   // test getting member from obj
-  ASSERT_EQ(env.js->execute("test_obj.constant").descr(false), "BLA");
+  ASSERT_EQ(env.js->execute("test_obj.constant").first.descr(false), "BLA");
 
   // test setting member of obj
   env.js->execute("test_obj.value=42");
@@ -409,16 +418,16 @@ TEST_F(JavaScript, maparray_to_js) {
   // expose the object to JS
   env.js->set_global("test_ma",
                      Value(std::static_pointer_cast<Object_bridge>(obj)));
-  ASSERT_EQ(env.js->execute("type(test_ma)").descr(false), "m.MapArray");
+  ASSERT_EQ(env.js->execute("type(test_ma)").first.descr(false), "m.MapArray");
 
-  ASSERT_EQ(env.js->execute("test_ma.length").descr(false), "3");
-  ASSERT_EQ(env.js->execute("test_ma[0]").descr(false), "42");
-  ASSERT_EQ(env.js->execute("test_ma[1]").descr(false), "hello");
-  ASSERT_EQ(env.js->execute("test_ma[2]").descr(false), "null");
+  ASSERT_EQ(env.js->execute("test_ma.length").first.descr(false), "3");
+  ASSERT_EQ(env.js->execute("test_ma[0]").first.descr(false), "42");
+  ASSERT_EQ(env.js->execute("test_ma[1]").first.descr(false), "hello");
+  ASSERT_EQ(env.js->execute("test_ma[2]").first.descr(false), "null");
 
-  ASSERT_EQ(env.js->execute("test_ma['one']").descr(false), "42");
-  ASSERT_EQ(env.js->execute("test_ma['two']").descr(false), "hello");
-  ASSERT_EQ(env.js->execute("test_ma['three']").descr(false), "null");
+  ASSERT_EQ(env.js->execute("test_ma['one']").first.descr(false), "42");
+  ASSERT_EQ(env.js->execute("test_ma['two']").first.descr(false), "hello");
+  ASSERT_EQ(env.js->execute("test_ma['three']").first.descr(false), "null");
 }
 
 shcore::Value do_test(const Argument_list &args) {
@@ -449,9 +458,10 @@ TEST_F(JavaScript, function_to_js) {
 
   env.js->set_global("test_func", v);
 
-  ASSERT_EQ(env.js->execute("type(test_func)").descr(false), "m.Function");
+  ASSERT_EQ(env.js->execute("type(test_func)").first.descr(false),
+            "m.Function");
 
-  ASSERT_EQ(env.js->execute("test_func('hello')").descr(false), "HELLO");
+  ASSERT_EQ(env.js->execute("test_func('hello')").first.descr(false), "HELLO");
 
   ASSERT_THROW(env.js->execute("test_func(123)"), shcore::Exception);
 }
@@ -463,8 +473,9 @@ TEST_F(JavaScript, builtin_functions) {
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
 
-  ASSERT_EQ(env.js->execute("repr(unrepr(repr(\"hello world\")))").descr(false),
-            "\"hello world\"");
+  ASSERT_EQ(
+      env.js->execute("repr(unrepr(repr(\"hello world\")))").first.descr(false),
+      "\"hello world\"");
 }
 
 TEST_F(JavaScript, js_date_object) {
@@ -473,7 +484,7 @@ TEST_F(JavaScript, js_date_object) {
   v8::TryCatch try_catch;
   v8::Context::Scope context_scope(
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-  shcore::Value object = env.js->execute("new Date(2014,0,1)");
+  shcore::Value object = env.js->execute("new Date(2014,0,1)").first;
 
   ASSERT_EQ(Object, object.type);
   ASSERT_TRUE(object.as_object()->class_name() == "Date");

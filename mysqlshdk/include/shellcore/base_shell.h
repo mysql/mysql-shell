@@ -101,7 +101,7 @@ class SHCORE_PUBLIC Base_shell {
   const Shell_options::Storage &options() const { return get_options()->get(); }
 
   virtual void print_result(shcore::Value result);
-  virtual void process_result(shcore::Value result);
+  virtual void process_result(shcore::Value result, bool got_error);
 
  protected:
   void request_prompt_variables_update(bool clear_cache = false);

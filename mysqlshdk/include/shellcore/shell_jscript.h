@@ -36,7 +36,7 @@ class Shell_javascript : public Shell_language {
   explicit Shell_javascript(Shell_core *shcore);
 
   void set_result_processor(
-      std::function<void(shcore::Value)> result_processor);
+      std::function<void(shcore::Value, bool)> result_processor);
 
   virtual void set_global(const std::string &name, const Value &value);
 
@@ -50,7 +50,7 @@ class Shell_javascript : public Shell_language {
  private:
   void abort() noexcept;
   std::shared_ptr<JScript_context> _js;
-  std::function<void(shcore::Value)> _result_processor;
+  std::function<void(shcore::Value, bool)> _result_processor;
   Input_state m_last_input_state;
 };
 };  // namespace shcore

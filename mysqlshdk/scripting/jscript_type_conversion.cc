@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -141,7 +141,7 @@ Object_bridge_ref JScript_type_bridger::js_object_to_native(
 
 Value JScript_type_bridger::v8_value_to_shcore_value(
     const v8::Handle<v8::Value> &value) {
-  if (value->IsUndefined())
+  if (value.IsEmpty() || value->IsUndefined())
     return Value();
   else if (value->IsNull())
     return Value::Null();

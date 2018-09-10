@@ -38,7 +38,7 @@ class Shell_python : public Shell_language {
   virtual void set_global(const std::string &name, const Value &value);
 
   void set_result_processor(
-      std::function<void(shcore::Value)> result_processor);
+      std::function<void(shcore::Value, bool)> result_processor);
 
   virtual std::string preprocess_input_line(const std::string &s);
   virtual void handle_input(std::string &code, Input_state &state);
@@ -54,7 +54,7 @@ class Shell_python : public Shell_language {
  private:
   static int check_signals(void *);
   std::shared_ptr<Python_context> _py;
-  std::function<void(shcore::Value)> _result_processor;
+  std::function<void(shcore::Value, bool)> _result_processor;
   Input_state m_last_input_state;
   long _pending_interrupt_thread;
   bool _aborted = false;
