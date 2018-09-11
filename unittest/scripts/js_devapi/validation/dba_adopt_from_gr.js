@@ -16,8 +16,14 @@
 //@ Check cluster status after drop metadata schema
 ||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
 
+//@ Get data about existing replication users before createCluster with adoptFromGR.
+||
+
 //@ Create cluster adopting from GR
 ||
+
+//@<OUT> Confirm no new replication user was created.
+false
 
 //@<OUT> Check cluster status
 {

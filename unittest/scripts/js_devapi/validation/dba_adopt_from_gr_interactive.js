@@ -16,6 +16,9 @@ Are you sure you want to remove the Metadata? [y/N]: Metadata Schema successfull
 //@ Check cluster status after drop metadata schema
 ||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
 
+//@ Get data about existing replication users before createCluster with adoptFromGR.
+||
+
 //@<OUT> Create cluster adopting from GR - answer 'yes' to prompt
 You are connected to an instance that belongs to an unmanaged replication group.
 Do you want to setup an InnoDB cluster based on this replication group? [Y/n]: A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'.
@@ -25,6 +28,9 @@ Adding Seed Instance...
 Adding Instance '<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>'...
 
 Cluster successfully created based on existing replication group.
+
+//@<OUT> Confirm no new replication user was created.
+false
 
 //@<OUT> Check cluster status - success
 {

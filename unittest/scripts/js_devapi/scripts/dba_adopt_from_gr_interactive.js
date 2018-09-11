@@ -3,6 +3,34 @@
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
+function get_rpl_users() {
+    var result = session.runSql(
+        "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
+        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\"");
+    return result.fetchAll();
+}
+
+function has_new_rpl_users(rows) {
+    var sql =
+        "SELECT GRANTEE FROM INFORMATION_SCHEMA.USER_PRIVILEGES " +
+        "WHERE GRANTEE REGEXP \"'mysql_innodb_cluster_r[0-9]{10}.*\" " +
+        "AND GRANTEE NOT IN (";
+    for (i = 0; i < rows.length; i++) {
+        sql += "\"" + rows[i][0] + "\"";
+        if (i != rows.length-1) {
+            sql += ", ";
+        }
+    }
+    sql += ")";
+    var result = session.runSql(sql);
+    var new_user_rows = result.fetchAll();
+    if (new_user_rows.length == 0) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 shell.connect(__sandbox_uri2);
 
 // Create root@<hostname> account with all privileges, required to create a
@@ -55,8 +83,17 @@ shell.connect({scheme:'mysql', host: real_hostname, port: __mysql_sandbox_port1,
 
 cluster.disconnect();
 
+//@ Get data about existing replication users before createCluster with adoptFromGR.
+// Regression for BUG#28054500: replication users should be removed when adoptFromGR is used
+var rpl_users_rows = get_rpl_users();
+
 //@<OUT> Create cluster adopting from GR - answer 'yes' to prompt
 var cluster = dba.createCluster('testCluster');
+
+//@<OUT> Confirm no new replication user was created.
+// Regression for BUG#28054500: replication users should be removed when adoptFromGR is used
+print(has_new_rpl_users(rpl_users_rows) + "\n");
+
 //@<OUT> Check cluster status - success
 cluster.status();
 
