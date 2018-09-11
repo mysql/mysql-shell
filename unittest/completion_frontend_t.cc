@@ -378,9 +378,9 @@ class Completer_frontend : public Shell_core_test_wrapper {
 
     std::vector<std::string> expected;
     for (const shcore::Value &value : *result.as_array()) {
-      if (value.as_string()[0] == '_')  // skip __methods from python
+      if (value.get_string()[0] == '_')  // skip __methods from python
         continue;
-      expected.push_back(value.as_string());
+      expected.push_back(value.get_string());
     }
     std::sort(expected.begin(), expected.end());
     std::sort(completions.begin(), completions.end());

@@ -761,7 +761,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       rejoin_instances_ref = opt_map.array_at("rejoinInstances");
 
       for (auto value : *rejoin_instances_ref.get()) {
-        std::string instance = value.as_string();
+        std::string instance = value.get_string();
 
         shcore::Argument_list args;
         args.push_back(shcore::Value(instance));
@@ -796,7 +796,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
       remove_instances_ref = opt_map.array_at("removeInstances");
 
       for (auto value : *remove_instances_ref.get()) {
-        std::string instance = value.as_string();
+        std::string instance = value.get_string();
 
         shcore::Argument_list args;
         args.push_back(shcore::Value(instance));
@@ -850,7 +850,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
           auto it = std::find_if(remove_instances_ref.get()->begin(),
                                  remove_instances_ref.get()->end(),
                                  [&instance_address](shcore::Value val) {
-                                   return val.as_string() == instance_address;
+                                   return val.get_string() == instance_address;
                                  });
           if (it != remove_instances_ref.get()->end()) continue;
         }
@@ -882,7 +882,7 @@ shcore::Value Global_dba::reboot_cluster_from_complete_outage(
           auto it = std::find_if(rejoin_instances_ref.get()->begin(),
                                  rejoin_instances_ref.get()->end(),
                                  [&instance_address](shcore::Value val) {
-                                   return val.as_string() == instance_address;
+                                   return val.get_string() == instance_address;
                                  });
           if (it != rejoin_instances_ref.get()->end()) continue;
         }
@@ -960,7 +960,7 @@ void Global_dba::print_validation_results(
   println();
 
   auto errors = result->get_array("errors");
-  for (auto error : *errors) println(" - " + error.as_string());
+  for (auto error : *errors) println(" - " + error.get_string());
 
   bool restart_required = result->get_bool("restart_required");
 

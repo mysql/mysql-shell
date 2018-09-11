@@ -354,7 +354,7 @@ shcore::Value Row::get_field(const shcore::Argument_list &args) {
     throw shcore::Exception::argument_error(
         "Row.getField: Argument #1 is expected to be a string");
 
-  return get_field_(args[0].as_string());
+  return get_field_(args[0].get_string());
 }
 
 shcore::Value Row::get_field_(const std::string &field) const {

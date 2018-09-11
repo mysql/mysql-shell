@@ -541,7 +541,7 @@ void ResultsetDumper::dump_normal(
       mysqlsh::current_console()->print(output);
     }
 
-    std::string info = result->get_member("info").as_string();
+    std::string info = result->get_member("info").get_string();
     if (!info.empty()) {
       info = "\n" + info + "\n";
       mysqlsh::current_console()->print(info);
@@ -838,7 +838,7 @@ int ResultsetDumper::get_warning_and_execution_time_stats(
 
     output_stats.append(" ");
     output_stats.append(shcore::str_format(
-        "(%s)", _resultset->get_member("executionTime").as_string().c_str()));
+        "(%s)", _resultset->get_member("executionTime").get_string().c_str()));
     output_stats.append("\n");
   }
 
@@ -883,8 +883,8 @@ void ResultsetDumper::dump_warnings(bool classic) {
 
       unsigned long error = row->get_member(code).as_int();
 
-      std::string type = row->get_member(level).as_string();
-      std::string msg = row->get_member(message).as_string();
+      std::string type = row->get_member(level).get_string();
+      std::string msg = row->get_member(message).get_string();
       mysqlsh::current_console()->print((shcore::str_format(
           "%s (code %ld): %s\n", type.c_str(), error, msg.c_str())));
 

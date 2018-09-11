@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -97,6 +97,10 @@ TEST(ValueTests, Conversion) {
   EXPECT_FALSE(Value(0U).as_bool());
   EXPECT_EQ(true, Value(42.5).as_bool());
   EXPECT_FALSE(Value(0.0).as_bool());
+  EXPECT_FALSE(Value("0").as_bool());
+  EXPECT_FALSE(Value("false").as_bool());
+  EXPECT_TRUE(Value("1").as_bool());
+  EXPECT_TRUE(Value("true").as_bool());
   EXPECT_THROW(Value("foo").as_bool(), shcore::Exception);
   EXPECT_THROW(Value::new_array().as_bool(), shcore::Exception);
   EXPECT_THROW(Value::new_map().as_bool(), shcore::Exception);
@@ -108,9 +112,13 @@ TEST(ValueTests, Conversion) {
   EXPECT_EQ(0, Value(0).as_int());
   EXPECT_EQ(42, Value(42U).as_int());
   EXPECT_EQ(0, Value(0U).as_int());
-  EXPECT_EQ(-42, Value(-42.5).as_int());
-  EXPECT_EQ(42, Value(42.5).as_int());
+  EXPECT_EQ(-42, Value(-42.0).as_int());
+  EXPECT_EQ(42, Value(42.0).as_int());
+  EXPECT_THROW(Value(-42.5).as_uint(), shcore::Exception);
+  EXPECT_THROW(Value(42.5).as_uint(), shcore::Exception);
   EXPECT_EQ(0, Value(0.0).as_int());
+  EXPECT_EQ(-42, Value("-42").as_int());
+  EXPECT_EQ(42, Value("42").as_int());
   EXPECT_THROW(Value("foo").as_int(), shcore::Exception);
   EXPECT_THROW(Value::new_array().as_int(), shcore::Exception);
   EXPECT_THROW(Value::new_map().as_int(), shcore::Exception);
@@ -118,12 +126,16 @@ TEST(ValueTests, Conversion) {
   EXPECT_EQ(1, Value::True().as_uint());
   EXPECT_EQ(0, Value::False().as_uint());
   EXPECT_THROW(Value(-42).as_uint(), shcore::Exception);
+  EXPECT_THROW(Value("-42").as_uint(), shcore::Exception);
   EXPECT_EQ(42, Value(42).as_uint());
   EXPECT_EQ(0, Value(0).as_uint());
   EXPECT_EQ(42, Value(42U).as_uint());
   EXPECT_EQ(0, Value(0U).as_uint());
+  EXPECT_EQ(42, Value("42").as_uint());
+  EXPECT_EQ(42, Value(42.0).as_uint());
   EXPECT_THROW(Value(-42.5).as_uint(), shcore::Exception);
-  EXPECT_EQ(42, Value(42.5).as_uint());
+  EXPECT_THROW(Value(42.5).as_uint(), shcore::Exception);
+  EXPECT_THROW(Value("42.0").as_uint(), shcore::Exception);
   EXPECT_EQ(0, Value(0.0).as_uint());
   EXPECT_THROW(Value("foo").as_uint(), shcore::Exception);
   EXPECT_THROW(Value::new_array().as_uint(), shcore::Exception);
@@ -139,9 +151,17 @@ TEST(ValueTests, Conversion) {
   EXPECT_EQ(-42.5, Value(-42.5).as_double());
   EXPECT_EQ(42.5, Value(42.5).as_double());
   EXPECT_EQ(0.0, Value(0.0).as_double());
+  EXPECT_EQ(-42.5, Value("-42.5").as_double());
+  EXPECT_EQ(42.5, Value("42.5").as_double());
   EXPECT_THROW(Value("foo").as_double(), shcore::Exception);
   EXPECT_THROW(Value::new_array().as_double(), shcore::Exception);
   EXPECT_THROW(Value::new_map().as_double(), shcore::Exception);
+
+  EXPECT_EQ("true", Value::True().as_string());
+  EXPECT_EQ("false", Value::False().as_string());
+  EXPECT_EQ("-42", Value(-42).as_string());
+  EXPECT_EQ("42", Value(static_cast<uint64_t>(42)).as_string());
+  EXPECT_EQ("42.5", Value(42.5).as_string());
 }
 
 TEST(ValueTests, ConversionRanges) {
@@ -249,16 +269,16 @@ TEST(ValueTests, SimpleString) {
 
   // Test unicode literal
   EXPECT_STREQ(u8"\u0061",
-               shcore::Value::parse("\"\\u0061\"").as_string().c_str());
+               shcore::Value::parse("\"\\u0061\"").get_string().c_str());
 
   EXPECT_STREQ(u8"\u0161",
-               shcore::Value::parse("\"\\u0161\"").as_string().c_str());
+               shcore::Value::parse("\"\\u0161\"").get_string().c_str());
 
   EXPECT_STREQ(u8"\u0ab0",
-               shcore::Value::parse("\"\\u0ab0\"").as_string().c_str());
+               shcore::Value::parse("\"\\u0ab0\"").get_string().c_str());
 
   EXPECT_STREQ(u8"\u100b0",
-               shcore::Value::parse("\"\\u100b0\"").as_string().c_str());
+               shcore::Value::parse("\"\\u100b0\"").get_string().c_str());
 }
 
 TEST(ValueTests, ArrayCompare) {
@@ -456,7 +476,7 @@ TEST(Parsing, Map) {
 
   EXPECT_TRUE(map->has_key("string"));
   EXPECT_EQ(shcore::String, (*map)["string"].type);
-  EXPECT_EQ("string value", (*map)["string"].as_string());
+  EXPECT_EQ("string value", (*map)["string"].get_string());
 
   EXPECT_TRUE(map->has_key("integer"));
   EXPECT_EQ(shcore::Integer, (*map)["integer"].type);
@@ -469,7 +489,7 @@ TEST(Parsing, Map) {
 
   EXPECT_TRUE(nested->has_key("inner"));
   EXPECT_EQ(shcore::String, (*nested)["inner"].type);
-  EXPECT_EQ("value", (*nested)["inner"].as_string());
+  EXPECT_EQ("value", (*nested)["inner"].get_string());
 
   shcore::Value v2 = shcore::Value::parse("{}");
   EXPECT_EQ(shcore::Map, v2.type);
@@ -508,7 +528,7 @@ TEST(Parsing, Array) {
   EXPECT_EQ(3.5e-10, (*array)[2].as_double());
 
   EXPECT_EQ(shcore::String, (*array)[3].type);
-  EXPECT_EQ("a string", (*array)[3].as_string());
+  EXPECT_EQ("a string", (*array)[3].get_string());
 
   EXPECT_EQ(shcore::Array, (*array)[4].type);
   Value::Array_type_ref inner = (*array)[4].as_array();
@@ -527,7 +547,7 @@ TEST(Parsing, Array) {
 
   EXPECT_TRUE(nested->has_key("nested"));
   EXPECT_EQ(shcore::String, (*nested)["nested"].type);
-  EXPECT_EQ("document", (*nested)["nested"].as_string());
+  EXPECT_EQ("document", (*nested)["nested"].get_string());
 
   EXPECT_EQ(shcore::Bool, (*array)[6].type);
   EXPECT_TRUE((*array)[6].as_bool());
@@ -585,7 +605,7 @@ TEST(Argument_map, all) {
     EXPECT_EQ(args.int_at("int"), -1234);
     EXPECT_EQ(args.int_at("uint"), 4321);
     EXPECT_THROW(args.int_at("str"), Exception);
-    EXPECT_EQ(args.int_at("flt"), 1);
+    EXPECT_THROW(args.int_at("flt"), Exception);
     EXPECT_THROW(args.int_at("vec"), Exception);
     EXPECT_THROW(args.int_at("map"), Exception);
 
@@ -593,7 +613,7 @@ TEST(Argument_map, all) {
     EXPECT_THROW(args.uint_at("int"), Exception);
     EXPECT_EQ(args.uint_at("uint"), 4321);
     EXPECT_THROW(args.uint_at("str"), Exception);
-    EXPECT_EQ(args.uint_at("flt"), 1);
+    EXPECT_THROW(args.uint_at("flt"), Exception);
     EXPECT_THROW(args.uint_at("vec"), Exception);
     EXPECT_THROW(args.uint_at("map"), Exception);
 
@@ -713,8 +733,8 @@ TEST(Types_repr, encode_decode_simple) {
     EXPECT_EQ(serialized, expect_serialized);
     Value to_original = Value::parse(serialized);
     EXPECT_EQ(s, to_original);
-    EXPECT_STREQ(text, to_original.as_string().c_str());
-    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+    EXPECT_STREQ(text, to_original.get_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.get_string());
   }
 }
 
@@ -727,8 +747,8 @@ TEST(Types_repr, encode_decode_nontrivial) {
     EXPECT_EQ(serialized, expect_serialized);
     Value to_original = Value::parse(serialized);
     EXPECT_EQ(s, to_original);
-    EXPECT_STREQ(text, to_original.as_string().c_str());
-    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+    EXPECT_STREQ(text, to_original.get_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.get_string());
   }
 
   {
@@ -739,8 +759,8 @@ TEST(Types_repr, encode_decode_nontrivial) {
     EXPECT_EQ(serialized, expect_serialized);
     Value to_original = Value::parse(serialized);
     EXPECT_EQ(s, to_original);
-    EXPECT_STREQ(text, to_original.as_string().c_str());
-    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+    EXPECT_STREQ(text, to_original.get_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.get_string());
   }
 
   {
@@ -751,8 +771,8 @@ TEST(Types_repr, encode_decode_nontrivial) {
     EXPECT_EQ(serialized, expect_serialized);
     Value to_original = Value::parse(serialized);
     EXPECT_EQ(s, to_original);
-    EXPECT_STREQ(text, to_original.as_string().c_str());
-    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.as_string());
+    EXPECT_STREQ(text, to_original.get_string().c_str());
+    EXPECT_EQ(std::string(text, sizeof(text) - 1), to_original.get_string());
   }
 }
 
@@ -765,7 +785,7 @@ TEST(Types_repr, encode_decode_one_char) {
       const std::string serialized = s.repr();
       Value to_original = Value::parse(serialized);
       EXPECT_EQ(s, to_original);
-      EXPECT_EQ(std::string(text, sizeof(text)), to_original.as_string());
+      EXPECT_EQ(std::string(text, sizeof(text)), to_original.get_string());
     }
   }
 }
@@ -783,7 +803,7 @@ TEST(Types_repr, encode_decode_random) {
       const std::string serialized = s.repr();
       Value to_original = Value::parse(serialized);
       EXPECT_EQ(s, to_original);
-      EXPECT_EQ(std::string(text, sizeof(text)), to_original.as_string());
+      EXPECT_EQ(std::string(text, sizeof(text)), to_original.get_string());
     }
   }
 }
@@ -797,19 +817,19 @@ TEST(Types_repr, encode_decode_random) {
 TEST(Types_repr, backslash_backtracking) {
   {
     const char text[] = {'"', 'p', 's', '\\', '"', 'W', '}', 'q', 't', '"', 0};
-    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).get_string()).repr());
     EXPECT_THROW_NOTHING(Value::parse(Value(text).repr()));
   }
   {
     const char text[] = {'"', 'p', 's', '\\', '\\', '\\', '"',
                          'W', '}', 'q', 't',  '"',  0};
-    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).get_string()).repr());
     EXPECT_THROW_NOTHING(Value::parse(Value(text).repr()));
   }
   {
     const char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\',
                          '"', 'W', '}', 'q',  't',  '"',  0};
-    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).get_string()).repr());
     EXPECT_THROW_NOTHING(Value::parse(Value(text).repr()));
   }
 }
@@ -819,27 +839,27 @@ TEST(Types_repr, wrong_repr) {
     // good.
     char text[] = {'"', 'p', 's',  '\\', '\\', '\\', '\\', '\\', '"', 'W', '}',
                    'q', 't', '\\', '"',  '\\', '"',  '\\', '"',  '"', 0};
-    EXPECT_THROW_NOTHING(Value::parse(Value(text).as_string()).repr());
+    EXPECT_THROW_NOTHING(Value::parse(Value(text).get_string()).repr());
   }
   {
     // non-escaped `"`.
     char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\', '"', 'W',
                    '}', 'q', 't', '\\', '"',  '\\', '"',  '"',  '"', 0};
-    EXPECT_THROW(Value::parse(Value(text).as_string()).repr(),
+    EXPECT_THROW(Value::parse(Value(text).get_string()).repr(),
                  shcore::Exception);
   }
   {
     // non-escaped `""`.
     char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\', '"', 'W',
                    '}', 'q', 't', '\\', '"',  '"',  '"',  '"',  0};
-    EXPECT_THROW(Value::parse(Value(text).as_string()).repr(),
+    EXPECT_THROW(Value::parse(Value(text).get_string()).repr(),
                  shcore::Exception);
   }
   {
     // non-escaped `"""`.
     char text[] = {'"', 'p', 's', '\\', '\\', '\\', '\\', '\\', '"',
                    'W', '}', 'q', 't',  '"',  '"',  '"',  '"',  0};
-    EXPECT_THROW(Value::parse(Value(text).as_string()).repr(),
+    EXPECT_THROW(Value::parse(Value(text).get_string()).repr(),
                  shcore::Exception);
   }
 }

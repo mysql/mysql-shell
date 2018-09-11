@@ -893,7 +893,7 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
               if (field->has_key("type") &&
                   (*field)["type"].type == shcore::String)
                 is_geojson = shcore::str_caseeq(
-                    (*field)["type"].as_string().c_str(), "GEOJSON");
+                    (*field)["type"].get_string().c_str(), "GEOJSON");
 
               if (!field->has_key("required")) {
                 (*field)["required"] = shcore::Value(is_geojson);

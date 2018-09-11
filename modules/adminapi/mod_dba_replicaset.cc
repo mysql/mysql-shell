@@ -963,7 +963,7 @@ shcore::Value ReplicaSet::rejoin_instance(
           get_id(), instance_def->uri_endpoint())) {
     std::string message = "The instance '" + instance_def->uri_endpoint() +
                           "' " + "does not belong to the ReplicaSet: '" +
-                          get_member("name").as_string() + "'.";
+                          get_member("name").get_string() + "'.";
 
     throw shcore::Exception::runtime_error(message);
   }
@@ -1068,7 +1068,7 @@ shcore::Value ReplicaSet::rejoin_instance(
           mysqlshdk::gr::to_string(mysqlshdk::gr::get_member_state(instance));
       std::string nice_error_msg = "Cannot rejoin instance '" +
                                    instance.descr() + "' to the ReplicaSet '" +
-                                   get_member("name").as_string() +
+                                   get_member("name").get_string() +
                                    "' since it is an active (" + member_state +
                                    ") member of the ReplicaSet.";
       session->close();
@@ -1765,7 +1765,7 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
     std::string message = "The instance '" + instance_address + "'";
 
     message.append(" does not belong to the ReplicaSet: '" +
-                   get_member("name").as_string() + "'.");
+                   get_member("name").get_string() + "'.");
 
     throw shcore::Exception::runtime_error(message);
   }
@@ -2108,7 +2108,7 @@ void ReplicaSet::remove_instances(
       } else {
         std::string message = "The instance '" + instance + "'";
         message.append(" does not belong to the ReplicaSet: '" +
-                       get_member("name").as_string() + "'.");
+                       get_member("name").get_string() + "'.");
         throw shcore::Exception::runtime_error(message);
       }
     }

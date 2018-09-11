@@ -905,7 +905,7 @@ void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
       std::shared_ptr<Constant> constant =
           std::dynamic_pointer_cast<Constant>(args.object_at(0));
       if (constant && constant->group() == "LockContention")
-        lock_contention = constant->data().as_string();
+        lock_contention = constant->data().get_string();
     } else if (args[0].type == shcore::String) {
       lock_contention = args.string_at(0);
     }

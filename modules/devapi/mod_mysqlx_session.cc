@@ -868,7 +868,7 @@ shcore::Value Session::_drop_schema(const shcore::Argument_list &args) {
   args.ensure_count(1, function.c_str());
 
   try {
-    drop_schema(args[0].as_string());
+    drop_schema(args[0].get_string());
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(function);
 
@@ -1094,7 +1094,7 @@ static ::xcl::Argument_value convert(const shcore::Value &value) {
     case shcore::Integer:
       return xcl::Argument_value(value.as_int());
     case shcore::String:
-      return xcl::Argument_value(value.as_string());
+      return xcl::Argument_value(value.get_string());
     case shcore::Float:
       return xcl::Argument_value(value.as_double());
     case shcore::Map:
@@ -1363,7 +1363,7 @@ shcore::Value Session::quote_name(const shcore::Argument_list &args) {
     throw shcore::Exception::type_error(
         "Argument #1 is expected to be a string");
 
-  std::string id = args[0].as_string();
+  std::string id = args[0].get_string();
 
   return shcore::Value(get_quoted_name(id));
 }
@@ -1401,7 +1401,7 @@ shcore::Value Session::_set_current_schema(const shcore::Argument_list &args) {
 
   try {
     if (is_open()) {
-      std::string name = args[0].as_string();
+      std::string name = args[0].get_string();
 
       set_current_schema(name);
     } else {

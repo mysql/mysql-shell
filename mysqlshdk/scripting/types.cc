@@ -308,7 +308,7 @@ std::string Value::Map_type::get_string(const std::string &k,
   const_iterator iter = find(k);
   if (iter == end()) return def;
   iter->second.check_type(String);
-  return iter->second.as_string();
+  return iter->second.get_string();
 }
 
 bool Value::Map_type::get_bool(const std::string &k, bool def) const {
@@ -593,7 +593,7 @@ Value Value::parse_map(const char **pc) {
 
       value = parse(pc);
 
-      (*map)[key.as_string()] = value;
+      (*map)[key.get_string()] = value;
 
       // Skips the spaces
       while (**pc == ' ' || **pc == '\t' || **pc == '\n') ++*pc;
@@ -1312,10 +1312,13 @@ int64_t Value::as_int() const {
       if (value.ui <= (uint64_t)std::numeric_limits<int64_t>::max())
         return static_cast<int64_t>(value.ui);
       throw type_range_error(type, Integer);
-    case Float:
-      if (value.d >= -(1LL << DBL_MANT_DIG) && value.d <= (1LL << DBL_MANT_DIG))
+    case Float: {
+      double integral;
+      if (modf(value.d, &integral) == 0.0 &&
+          value.d >= -(1LL << DBL_MANT_DIG) && value.d <= (1LL << DBL_MANT_DIG))
         return static_cast<int64_t>(value.d);
       throw type_range_error(type, Integer);
+    }
     case Bool:
       return value.b ? 1 : 0;
     case String:
@@ -1337,10 +1340,13 @@ uint64_t Value::as_uint() const {
     case Integer:
       if (value.i >= 0) return static_cast<uint64_t>(value.i);
       throw type_range_error(type, UInteger);
-    case Float:
-      if (value.d >= 0.0 && value.d <= (1LL << DBL_MANT_DIG))
+    case Float: {
+      double integral;
+      if (modf(value.d, &integral) == 0.0 && value.d >= 0.0 &&
+          value.d <= (1LL << DBL_MANT_DIG))
         return static_cast<uint64_t>(value.d);
       throw type_range_error(type, UInteger);
+    }
     case Bool:
       return value.b ? 1 : 0;
     case String:
@@ -1383,6 +1389,24 @@ double Value::as_double() const {
       break;
   }
   throw type_conversion_error(type, Float);
+}
+
+std::string Value::as_string() const {
+  switch (type) {
+    case UInteger:
+      return std::to_string(value.ui);
+    case Integer:
+      return std::to_string(value.i);
+    case Float:
+      return lexical_cast<std::string>(value.d);
+    case Bool:
+      return lexical_cast<std::string>(value.b);
+    case String:
+      return *value.s;
+    default:
+      break;
+  }
+  throw type_conversion_error(type, String);
 }
 
 //---
@@ -1733,8 +1757,9 @@ Value Option_unpacker::get_optional_exact(const char *name, Value_type type,
   }
   if (opt != m_options->end()) {
     m_unknown.erase(name);
-
-    if (type != Undefined && (opt->second.type != type)) {
+    if (type != Undefined &&
+        ((opt->second.type == String && !is_compatible_type(String, type)) ||
+         (opt->second.type != String && opt->second.type != type))) {
       throw Exception::type_error(str_format(
           "Option '%s' is expected to be of type %s, but is %s", name,
           type_name(type).c_str(), type_name(opt->second.type).c_str()));

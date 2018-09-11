@@ -1832,7 +1832,7 @@ void print_validation_results(const shcore::Value::Map_type_ref &result,
 
   auto console = mysqlsh::current_console();
 
-  for (auto error : *errors) console->print_error(error.as_string());
+  for (auto error : *errors) console->print_error(error.get_string());
 
   if (result->has_key("config_errors")) {
     console->print_note("Some configuration options need to be fixed:");

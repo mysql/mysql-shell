@@ -228,7 +228,7 @@ std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent),
   s_out.append("<" + _group + "." + _id);
 
   if (_data.type == shcore::String) {
-    std::string data = _data.as_string();
+    const std::string &data = _data.get_string();
     size_t pos = data.find("(");
     if (pos != std::string::npos) s_out.append(data.substr(pos));
   }
@@ -239,7 +239,7 @@ std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent),
 }
 
 void Constant::set_param(const std::string &data) {
-  std::string temp = _data.as_string();
+  std::string temp = _data.get_string();
   temp += "(" + data + ")";
   _data = Value(temp);
 }

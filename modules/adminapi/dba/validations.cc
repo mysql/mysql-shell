@@ -46,7 +46,7 @@ void ensure_instance_configuration_valid(
   shcore::Value result = check.execute();
   check.finish();
 
-  if (result.as_map()->at("status").as_string() == "ok") {
+  if (result.as_map()->at("status").get_string() == "ok") {
     console->println("Instance configuration is suitable.");
   } else {
     console->print_error(

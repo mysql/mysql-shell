@@ -460,7 +460,7 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
     std::string rs_name;
 
     if (default_replica_set)
-      rs_name = default_replica_set->get_member("name").as_string();
+      rs_name = default_replica_set->get_member("name").get_string();
     else
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 

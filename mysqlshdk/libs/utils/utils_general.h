@@ -28,6 +28,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 #ifdef _WIN32
 #include <windows.h>
@@ -186,15 +187,18 @@ T lexical_cast(const T &data) {
   return data;
 }
 
-template <class T>
-std::string lexical_cast(const T &data) {
+template <class T, class S>
+typename std::enable_if<std::is_same<T, std::string>::value, T>::type
+lexical_cast(const S &data) {
   std::stringstream ss;
+  if (std::is_same<S, bool>::value) ss << std::boolalpha;
   ss << data;
   return ss.str();
 }
 
 template <class T, class S>
-T lexical_cast(const S &data) {
+typename std::enable_if<!std::is_same<T, std::string>::value, T>::type
+lexical_cast(const S &data) {
   std::stringstream ss;
   ss << data;
   if (std::is_unsigned<T>::value && ss.peek() == '-')

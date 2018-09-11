@@ -390,7 +390,7 @@ void Shell_console::print_value(const shcore::Value &value,
       output = value.json(format == "json");
     } else {
       if (value.type == shcore::String)
-        output = json_obj(tag.c_str(), value.as_string());
+        output = json_obj(tag.c_str(), value.get_string());
       else
         output = json_obj(tag.c_str(), value);
 
@@ -406,13 +406,13 @@ void Shell_console::print_value(const shcore::Value &value,
         output.append(((*error_map)["code"].repr()));
 
         if (error_map->has_key("state") && (*error_map)["state"])
-          output.append(" (" + (*error_map)["state"].as_string() + ")");
+          output.append(" (" + (*error_map)["state"].get_string() + ")");
 
         output.append(": ");
       }
 
       if (error_map->has_key("message"))
-        output.append((*error_map)["message"].as_string());
+        output.append((*error_map)["message"].get_string());
       else
         output.append("?");
     } else {

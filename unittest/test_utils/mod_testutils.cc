@@ -834,7 +834,7 @@ void Testutils::start_sandbox(int port) {
       if (errors && !errors->empty()) {
         int num_errors = 0;
         for (auto err : *errors) {
-          if ((*err.as_map())["type"].as_string() == "ERROR") {
+          if ((*err.as_map())["type"].get_string() == "ERROR") {
             num_errors++;
           }
         }

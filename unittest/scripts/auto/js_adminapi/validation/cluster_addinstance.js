@@ -65,9 +65,9 @@ group_replication_start_on_boot = ON
 ||
 
 //@ WL#11032: addInstance() errors using memberWeight option {VER(>=5.7.20)}
-||Option 'memberWeight' is expected to be of type Integer, but is String (TypeError)
+||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Bool (TypeError)
-||Option 'memberWeight' is expected to be of type Integer, but is String (TypeError)
+||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
 
 //@ WL#11032: Add instance using a valid value for memberWeight (25) {VER(>=5.7.20)}

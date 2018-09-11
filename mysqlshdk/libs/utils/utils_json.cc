@@ -60,7 +60,7 @@ void JSON_dumper::append_value(const Value &value) {
       _writer->append_float(value.as_double());
       break;
     case String:
-      _writer->append_string(value.as_string());
+      _writer->append_string(value.get_string());
       break;
     case Object: {
       auto object = value.as_object();

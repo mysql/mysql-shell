@@ -405,7 +405,7 @@ std::string ClassicSession::get_current_schema() {
       std::shared_ptr<mysqlsh::Row> row = next_row.as_object<mysqlsh::Row>();
       shcore::Value schema = row->get_member(0);
 
-      if (schema) name = schema.as_string();
+      if (schema) name = schema.get_string();
     }
   }
 
@@ -467,7 +467,7 @@ std::string ClassicSession::db_object_exists(std::string &type,
 
     if (val_row) {
       auto row = val_row.as_object<mysqlsh::Row>();
-      if (row) ret_val = row->get_member(0).as_string();
+      if (row) ret_val = row->get_member(0).get_string();
     }
   } else {
     statement = sqlstring("show full tables from ! like ?", 0)
@@ -480,16 +480,16 @@ std::string ClassicSession::db_object_exists(std::string &type,
       auto row = val_row.as_object<mysqlsh::Row>();
 
       if (row) {
-        std::string db_type = row->get_member(1).as_string();
+        std::string db_type = row->get_member(1).get_string();
 
         if (type == "Table" &&
             (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
-          ret_val = row->get_member(0).as_string();
+          ret_val = row->get_member(0).get_string();
         else if (type == "View" &&
                  (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
-          ret_val = row->get_member(0).as_string();
+          ret_val = row->get_member(0).get_string();
         else if (type.empty()) {
-          ret_val = row->get_member(0).as_string();
+          ret_val = row->get_member(0).get_string();
           type = db_type;
         }
       }
@@ -747,7 +747,7 @@ std::string ClassicSession::query_one_string(const std::string &query,
   if (val_row) {
     auto row = val_row.as_object<mysqlsh::Row>();
     if (row) {
-      return row->get_member(field).as_string();
+      return row->get_member(field).get_string();
     }
   }
   return "";

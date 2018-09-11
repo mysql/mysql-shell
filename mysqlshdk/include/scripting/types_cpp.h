@@ -116,7 +116,7 @@ struct Type_info<bool> {
 template <>
 struct Type_info<std::string> {
   static const std::string &to_native(const shcore::Value &in) {
-    return in.as_string();
+    return in.get_string();
   }
   static Value_type vtype() { return shcore::String; }
   static const char *code() { return "s"; }
@@ -126,7 +126,7 @@ struct Type_info<std::string> {
 template <>
 struct Type_info<const std::string &> {
   static const std::string &to_native(const shcore::Value &in) {
-    return in.as_string();
+    return in.get_string();
   }
   static Value_type vtype() { return shcore::String; }
   static const char *code() { return "s"; }
@@ -139,7 +139,7 @@ struct Type_info<const std::vector<std::string> &> {
     std::vector<std::string> strs;
     shcore::Array_t array(in.as_array());
     for (size_t i = 0; i < array->size(); ++i) {
-      strs.push_back(array->at(i).as_string());
+      strs.push_back(array->at(i).get_string());
     }
     return strs;
   }

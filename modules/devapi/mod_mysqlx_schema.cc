@@ -611,14 +611,14 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
         function + ": Argument #1 is expected to be a string");
 
   Value schema = this->get_member("name");
-  std::string name = args[0].as_string();
+  std::string name = args[0].get_string();
 
   try {
     if (type == "View") {
       std::shared_ptr<Session> sess(
           std::static_pointer_cast<Session>(_session.lock()));
       sess->_execute_sql(sqlstring("drop view if exists !.!", 0)
-                             << schema.as_string() << name + "",
+                             << schema.get_string() << name + "",
                          shcore::Argument_list());
     } else {
       if ((type == "Table") || (type == "Collection")) {
