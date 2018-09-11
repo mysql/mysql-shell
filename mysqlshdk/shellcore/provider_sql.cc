@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -138,7 +138,7 @@ void Provider_sql::refresh_schema_cache(
   auto row = res->call("fetchOne", shcore::Argument_list());
   while (row && !cancelled_) {
     std::string column =
-        row.as_object<mysqlsh::Row>()->get_member(0).as_string();
+        row.as_object<mysqlsh::Row>()->get_member(0).get_string();
     schema_names_.push_back(column);
     row = res->call("fetchOne", shcore::Argument_list());
   }
@@ -174,7 +174,7 @@ void Provider_sql::refresh_name_cache(
       auto row = res->call("fetchOne", shcore::Argument_list());
       while (row && !cancelled_) {
         std::string table =
-            row.as_object<mysqlsh::Row>()->get_member(0).as_string();
+            row.as_object<mysqlsh::Row>()->get_member(0).get_string();
         object_names_.push_back(table);
         schema_tables.push_back(table);
         row = res->call("fetchOne", shcore::Argument_list());
@@ -190,7 +190,7 @@ void Provider_sql::refresh_name_cache(
       auto row = res->call("fetchOne", shcore::Argument_list());
       while (row && !cancelled_) {
         std::string column =
-            row.as_object<mysqlsh::Row>()->get_member(0).as_string();
+            row.as_object<mysqlsh::Row>()->get_member(0).get_string();
         // FIXME add quoting
         object_names_.push_back(column);
         object_dot_names_.push_back(t + "." + column);

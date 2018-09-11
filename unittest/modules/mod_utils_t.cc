@@ -560,17 +560,24 @@ TEST(modules_mod_utils, unpack_options_types) {
   Unpack_options(maked("n", shcore::Value(0))).optional("n", &b).end();
   EXPECT_FALSE(b);
 
+  b = false;
+  Unpack_options(maked("n", shcore::Value("true"))).optional("n", &b).end();
+  EXPECT_TRUE(b);
+
+  b = true;
+  Unpack_options(maked("n", shcore::Value("false"))).optional("n", &b).end();
+  EXPECT_FALSE(b);
+
   d = 0;
   Unpack_options(maked("n", shcore::Value(32))).optional("n", &d).end();
   EXPECT_EQ(32.0, d);
 
   // invalid type
-  EXPECT_THROW_LIKE(
-      Unpack_options(maked("neg", shcore::Value("-555")))
-          .optional("neg", &ui)
-          .end(),
-      shcore::Exception,
-      "Option 'neg': Invalid typecast: UInteger expected, but value is String");
+  EXPECT_THROW_LIKE(Unpack_options(maked("neg", shcore::Value("-555")))
+                        .optional("neg", &ui)
+                        .end(),
+                    shcore::Exception,
+                    "Option 'neg' UInteger expected, but value is String");
 
   str = "xxx";
   EXPECT_THROW_LIKE(
@@ -584,8 +591,7 @@ TEST(modules_mod_utils, unpack_options_types) {
   i = 0;
   EXPECT_THROW_LIKE(
       Unpack_options(maked("str", shcore::Value(""))).optional("str", &i).end(),
-      shcore::Exception,
-      "Option 'str': Invalid typecast: Integer expected, but value is String");
+      shcore::Exception, "Option 'str' Integer expected, but value is String");
   EXPECT_EQ(0, i);
 
   EXPECT_THROW_LIKE(
@@ -601,6 +607,12 @@ TEST(modules_mod_utils, unpack_options_types) {
           .end(),
       shcore::Exception,
       "Option 'int' is expected to be of type String, but is Integer");
+
+  EXPECT_THROW_LIKE(Unpack_options(maked("str", shcore::Value("whatever")))
+                        .optional("str", &b)
+                        .end(),
+                    shcore::Exception,
+                    "Option 'str' Bool expected, but value is String");
 }
 
 }  // namespace mysqlsh

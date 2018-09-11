@@ -461,7 +461,7 @@ Shell_options::Shell_options(int argc, char **argv,
 }
 
 static inline std::string value_to_string(const shcore::Value &value) {
-  return value.type == shcore::Value_type::String ? value.as_string()
+  return value.type == shcore::Value_type::String ? value.get_string()
                                                   : value.repr();
 }
 

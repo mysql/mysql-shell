@@ -482,7 +482,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
         int_index++;
         if (index->type == shcore::String) {
           set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE,
-                        index->as_string(), shcore::Value());
+                        index->get_string(), shcore::Value());
         } else {
           throw shcore::Exception::type_error(
               str_format("Element #%d is expected to be a string", int_index));

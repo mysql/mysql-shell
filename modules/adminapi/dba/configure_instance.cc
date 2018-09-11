@@ -419,7 +419,7 @@ void Configure_instance::handle_mp_op_result(
 
     if (!errors->empty()) {
       for (const shcore::Value &err : *errors) {
-        console->print_error(err.as_string());
+        console->print_error(err.get_string());
       }
       throw shcore::Exception::runtime_error(
           "Error updating MySQL configuration");

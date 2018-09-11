@@ -819,7 +819,7 @@ std::vector<std::pair<bool, std::string>> JScript_context::list_globals() {
 
   std::vector<std::pair<bool, std::string>> ret;
   for (shcore::Value g : *globals.as_array()) {
-    std::string n = g.as_string();
+    std::string n = g.get_string();
     ret.push_back({n[0] == '(', n.substr(1)});
   }
   return ret;

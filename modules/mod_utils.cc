@@ -136,7 +136,7 @@ void SHCORE_PUBLIC set_password_from_map(
       // duplicate on the second map, let the error raise
       if (!override_pwd) options->clear_password();
 
-      options->set_password(option.second.as_string());
+      options->set_password(option.second.get_string());
       key = option.first;
       override_pwd = true;
     }
@@ -158,7 +158,7 @@ void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
       // duplicate on the second map, let the error raise
       if (!override_user) options->clear_user();
 
-      options->set_user(option.second.as_string());
+      options->set_user(option.second.get_string());
       key = option.first;
       override_user = true;
     }

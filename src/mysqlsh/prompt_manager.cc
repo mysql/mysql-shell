@@ -278,7 +278,7 @@ void Prompt_manager::apply_classes(
 
   if (class_defs) {
     for (auto &citer : *classes) {
-      std::string class_name = apply_vars(citer.as_string());
+      std::string class_name = apply_vars(citer.get_string());
       if (class_defs->has_key(class_name)) {
         try {
           shcore::Value::Map_type_ref class_def(

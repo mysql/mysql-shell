@@ -250,7 +250,7 @@ Cluster.dissolve: Operation canceled by user. (RuntimeError)
 ||Cluster.dissolve: Invalid number of arguments, expected 0 to 1 but got 2
 ||Cluster.dissolve: Argument #1 is expected to be a map
 ||Cluster.dissolve: Invalid options: enforce
-||Cluster.dissolve: Option 'force': Invalid typecast: Bool expected, but value is String
+||Cluster.dissolve: Option 'force' Bool expected, but value is String
 
 //@ Cluster: remove_instance 3
 ||

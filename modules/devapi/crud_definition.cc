@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,7 +76,7 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args,
         throw shcore::Exception::argument_error(shcore::str_format(
             "Element #%d is expected to be a string", count));
       else
-        data.push_back(index->as_string());
+        data.push_back(index->get_string());
     }
   } else {
     for (size_t index = 0; index < args.size(); index++)
@@ -285,7 +285,7 @@ std::unique_ptr<Mysqlx::Datatypes::Scalar> Crud_definition::convert_value(
       return my_scalar;
 
     case shcore::String:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.as_string());
+      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.get_string());
       return my_scalar;
 
     case shcore::Float:

@@ -98,7 +98,7 @@ typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
            Null Bool  String  Integer UInteger  Float Object  Array Map
  Null      OK   -     -       -       -         -     OK      OK    OK
  Bool      -    OK    -       OK      OK        OK    -       -     -
- String    -    -     OK      -       -         -     -       -     -
+ String    -    OK    OK      OK      OK        OK    -       -     -
  Integer   -    OK    -       OK      OK        OK    -       -     -
  UInteger  -    OK    -       OK      OK        OK    -       -     -
  Float     -    OK    -       OK      OK        OK    -       -     -
@@ -286,7 +286,8 @@ struct SHCORE_PUBLIC Value {
   int64_t as_int() const;
   uint64_t as_uint() const;
   double as_double() const;
-  const std::string &as_string() const {
+  std::string as_string() const;
+  const std::string &get_string() const {
     check_type(String);
     return *value.s;
   }
@@ -317,7 +318,7 @@ struct SHCORE_PUBLIC Value {
     std::vector<std::string> vec;
     check_type(Array);
     for (const Value &v : *as_array()) {
-      vec.push_back(v.as_string());
+      vec.push_back(v.get_string());
     }
     return vec;
   }
@@ -578,13 +579,21 @@ class Option_unpacker {
 
   virtual ~Option_unpacker() {}
 
+// TODO(konrad): try to rewrite this macro as function/method
+#define EXTRACT_VALUE()                                                       \
+  try {                                                                       \
+    *out_value = value_type_for_native<T>::extract(value);                    \
+  } catch (const std::exception &e) {                                         \
+    std::string msg = e.what();                                               \
+    if (msg.compare(0, 18, "Invalid typecast: ") == 0) msg = msg.substr(18);  \
+    throw Exception::type_error(std::string("Option '") + name + "' " + msg); \
+  }
+
   // Extract required option
   template <typename T>
   Option_unpacker &required(const char *name, T *out_value) {
     Value value = get_required(name, value_type_for_native<T>::type);
-    if (value) {
-      *out_value = value_type_for_native<T>::extract(value);
-    }
+    if (value) EXTRACT_VALUE();
     return *this;
   }
 
@@ -592,14 +601,7 @@ class Option_unpacker {
   template <typename T>
   Option_unpacker &optional(const char *name, T *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type);
-    if (value) {
-      try {
-        *out_value = value_type_for_native<T>::extract(value);
-      } catch (const std::exception &e) {
-        throw Exception::type_error(std::string("Option '") + name +
-                                    "': " + e.what());
-      }
-    }
+    if (value) EXTRACT_VALUE();
     return *this;
   }
 
@@ -607,14 +609,7 @@ class Option_unpacker {
   Option_unpacker &optional(const char *name,
                             mysqlshdk::utils::nullable<T> *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type);
-    if (value) {
-      try {
-        *out_value = value_type_for_native<T>::extract(value);
-      } catch (const std::exception &e) {
-        throw Exception::type_error(std::string("Option '") + name +
-                                    "': " + e.what());
-      }
-    }
+    if (value) EXTRACT_VALUE();
     return *this;
   }
 
@@ -622,9 +617,7 @@ class Option_unpacker {
   template <typename T>
   Option_unpacker &optional_exact(const char *name, T *out_value) {
     Value value = get_optional_exact(name, value_type_for_native<T>::type);
-    if (value) {
-      *out_value = value_type_for_native<T>::extract(value);
-    }
+    if (value) EXTRACT_VALUE();
     return *this;
   }
 
@@ -632,9 +625,7 @@ class Option_unpacker {
   Option_unpacker &optional_exact(const char *name,
                                   mysqlshdk::utils::nullable<T> *out_value) {
     Value value = get_optional_exact(name, value_type_for_native<T>::type);
-    if (value) {
-      *out_value = value_type_for_native<T>::extract(value);
-    }
+    if (value) EXTRACT_VALUE();
     return *this;
   }
 
@@ -642,11 +633,11 @@ class Option_unpacker {
   template <typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {
     Value value = get_optional(name, value_type_for_native<T>::type, true);
-    if (value) {
-      *out_value = value_type_for_native<T>::extract(value);
-    }
+    if (value) EXTRACT_VALUE();
     return *this;
   }
+
+#undef EXTRACT_VALUE
 
   void end();
 

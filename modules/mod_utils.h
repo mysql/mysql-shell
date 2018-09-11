@@ -77,7 +77,7 @@ class Unpack_options : public shcore::Option_unpacker {
     if (value) {
       if (value.type == shcore::String) {
         try {
-          *out_value = Connection_options(value.as_string());
+          *out_value = Connection_options(value.get_string());
         } catch (std::exception &e) {
           throw shcore::Exception::argument_error(
               std::string("Invalid value for option ") + name + ": " +

@@ -1,6 +1,6 @@
 
 //@ Dba_create_cluster.clear_read_only_invalid
-||Dba.createCluster: Option 'clearReadOnly': Invalid typecast: Bool expected, but value is String (TypeError)
+||Dba.createCluster: Option 'clearReadOnly' Bool expected, but value is String (TypeError)
 
 //@<OUT> Dba_create_cluster.clear_read_only_unset
 Validating instance at localhost:<<<__mysql_sandbox_port1>>>...
@@ -34,7 +34,7 @@ Dba.createCluster: Server in SUPER_READ_ONLY mode (RuntimeError)
 ||
 
 //@ Dba_configure_local_instance.clear_read_only_invalid
-||Dba.configureLocalInstance: Option 'clearReadOnly': Invalid typecast: Bool expected, but value is String
+||Dba.configureLocalInstance: Option 'clearReadOnly' Bool expected, but value is String
 
 
 //@<OUT> Dba_configure_local_instance.clear_read_only_unset

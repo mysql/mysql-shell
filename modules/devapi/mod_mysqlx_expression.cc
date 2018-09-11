@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,7 +78,7 @@ std::shared_ptr<shcore::Object_bridge> Expression::create(
     throw shcore::Exception::argument_error(
         "mysqlx.expr: Argument #1 is expected to be a string");
 
-  std::shared_ptr<Expression> expression(new Expression(args[0].as_string()));
+  std::shared_ptr<Expression> expression(new Expression(args[0].get_string()));
 
   return expression;
 }

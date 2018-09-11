@@ -2752,23 +2752,23 @@ shcore::Value Dba::reboot_cluster_from_complete_outage(
     if (remove_instances_ref) {
       for (auto value : *remove_instances_ref.get()) {
         // Check if seed instance is present on the list
-        if (value.as_string() == instance_session_address)
+        if (value.get_string() == instance_session_address)
           throw shcore::Exception::argument_error(
               "The current session instance "
               "cannot be used on the 'removeInstances' list.");
 
-        remove_instances_list.push_back(value.as_string());
+        remove_instances_list.push_back(value.get_string());
       }
     }
 
     if (rejoin_instances_ref) {
       for (auto value : *rejoin_instances_ref.get()) {
         // Check if seed instance is present on the list
-        if (value.as_string() == instance_session_address)
+        if (value.get_string() == instance_session_address)
           throw shcore::Exception::argument_error(
               "The current session instance "
               "cannot be used on the 'rejoinInstances' list.");
-        rejoin_instances_list.push_back(value.as_string());
+        rejoin_instances_list.push_back(value.get_string());
       }
     }
 

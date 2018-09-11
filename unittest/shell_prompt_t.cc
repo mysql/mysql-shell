@@ -494,7 +494,7 @@ TEST_F(Shell_prompt, color_i256_unicode) {
       prompt.render());
 
   prompt.clear();
-  prompt.set_prompt(shcore::Value::parse("'\\uF37A'").as_string(), "",
+  prompt.set_prompt(shcore::Value::parse("'\\uF37A'").get_string(), "",
                     mysqlshdk::textui::Style());
   EXPECT_EQ(u8"\uF37A", prompt.render());
 }

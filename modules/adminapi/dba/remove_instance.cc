@@ -72,7 +72,7 @@ void Remove_instance::ensure_instance_belong_to_replicaset() {
 
     std::string err_msg = "The instance '" + m_instance_address +
                           "' does not belong to the ReplicaSet: '" +
-                          m_replicaset->get_member("name").as_string() + "'.";
+                          m_replicaset->get_member("name").get_string() + "'.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }

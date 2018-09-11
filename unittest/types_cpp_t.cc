@@ -147,7 +147,7 @@ class Test_object : public Cpp_object_bridge {
 
   std::string f_s_s(const std::string &s) { return s; }
 
-  std::string f_s_D(shcore::Dictionary_t d) { return (*d)["bla"].as_string(); }
+  std::string f_s_D(shcore::Dictionary_t d) { return (*d)["bla"].get_string(); }
 
   std::string f_s_a(shcore::Array_t a) {
     if (a) return (*a)[0].repr();
@@ -253,43 +253,43 @@ TEST_F(Types_cpp, expose) {
   EXPECT_EQ(obj.f_i64_v(), obj.call("f_i64_v", make_args()).as_int());
   EXPECT_EQ(obj.f_u64_v(), obj.call("f_u64_v", make_args()).as_uint());
   EXPECT_EQ(obj.f_b_v(), obj.call("f_b_v", make_args()).as_bool());
-  EXPECT_EQ(obj.f_s_v(), obj.call("f_s_v", make_args()).as_string());
+  EXPECT_EQ(obj.f_s_v(), obj.call("f_s_v", make_args()).get_string());
   EXPECT_TRUE(obj.call("f_o_v", make_args()).as_object<Test_object>().get() !=
               nullptr);
   EXPECT_EQ(obj.f_d_v(), obj.call("f_d_v", make_args()).as_double());
   EXPECT_EQ(*obj.f_m_v(), *obj.call("f_m_v", make_args()).as_map());
   EXPECT_EQ(*obj.f_a_v(), *obj.call("f_a_v", make_args()).as_array());
 
-  EXPECT_EQ(obj.f_s_i(42), obj.call("f_s_i", make_args(42)).as_string());
-  EXPECT_EQ(obj.f_s_u(42U), obj.call("f_s_u", make_args(42U)).as_string());
-  EXPECT_EQ(obj.f_s_i64(-42), obj.call("f_s_i64", make_args(-42)).as_string());
-  EXPECT_EQ(obj.f_s_u64(42U), obj.call("f_s_u64", make_args(42U)).as_string());
+  EXPECT_EQ(obj.f_s_i(42), obj.call("f_s_i", make_args(42)).get_string());
+  EXPECT_EQ(obj.f_s_u(42U), obj.call("f_s_u", make_args(42U)).get_string());
+  EXPECT_EQ(obj.f_s_i64(-42), obj.call("f_s_i64", make_args(-42)).get_string());
+  EXPECT_EQ(obj.f_s_u64(42U), obj.call("f_s_u64", make_args(42U)).get_string());
   EXPECT_EQ(obj.f_s_d(0.1234543),
-            obj.call("f_s_d", make_args(0.1234543)).as_string());
-  EXPECT_EQ(obj.f_s_b(true), obj.call("f_s_b", make_args(true)).as_string());
-  EXPECT_EQ(obj.f_s_s("bla"), obj.call("f_s_s", make_args("bla")).as_string());
+            obj.call("f_s_d", make_args(0.1234543)).get_string());
+  EXPECT_EQ(obj.f_s_b(true), obj.call("f_s_b", make_args(true)).get_string());
+  EXPECT_EQ(obj.f_s_s("bla"), obj.call("f_s_s", make_args("bla")).get_string());
   shcore::Array_t array = shcore::make_array();
   array->push_back(shcore::Value(765));
-  EXPECT_EQ(obj.f_s_a(array), obj.call("f_s_a", make_args(array)).as_string());
+  EXPECT_EQ(obj.f_s_a(array), obj.call("f_s_a", make_args(array)).get_string());
   EXPECT_EQ(obj.f_s_a(shcore::Array_t()),
-            obj.call("f_s_a", make_args(shcore::Value::Null())).as_string());
+            obj.call("f_s_a", make_args(shcore::Value::Null())).get_string());
   shcore::Dictionary_t dict = shcore::make_dict();
   (*dict)["bla"] = shcore::Value("hello");
-  EXPECT_EQ(obj.f_s_D(dict), obj.call("f_s_D", make_args(dict)).as_string());
+  EXPECT_EQ(obj.f_s_D(dict), obj.call("f_s_D", make_args(dict)).get_string());
   std::shared_ptr<Test_object> o(new Test_object());
-  EXPECT_EQ(obj.f_s_o(o), obj.call("f_s_o", make_args(o)).as_string());
+  EXPECT_EQ(obj.f_s_o(o), obj.call("f_s_o", make_args(o)).get_string());
   EXPECT_EQ(o.get(),
             obj.call("f_o_o", make_args(o)).as_object<Test_object>().get());
   EXPECT_EQ(obj.f_s_is(50, "bla"),
-            obj.call("f_s_is", make_args(50, "bla")).as_string());
+            obj.call("f_s_is", make_args(50, "bla")).get_string());
   EXPECT_EQ(obj.f_s_isd(22, "xx", dict),
-            obj.call("f_s_isd", make_args(22, "xx", dict)).as_string());
+            obj.call("f_s_isd", make_args(22, "xx", dict)).get_string());
   EXPECT_EQ(obj.f_s_ii_op(32, 111),
-            obj.call("f_s_ii_op", make_args(32)).as_string());
+            obj.call("f_s_ii_op", make_args(32)).get_string());
   EXPECT_NE(obj.f_s_ii_op(32, 112),
-            obj.call("f_s_ii_op", make_args(32)).as_string());
+            obj.call("f_s_ii_op", make_args(32)).get_string());
   EXPECT_EQ(obj.f_s_ii_op(32, 20),
-            obj.call("f_s_ii_op", make_args(32, 20)).as_string());
+            obj.call("f_s_ii_op", make_args(32, 20)).get_string());
 }
 
 TEST_F(Types_cpp, arg_check_optional) {
@@ -298,28 +298,28 @@ TEST_F(Types_cpp, arg_check_optional) {
   obj.do_expose_optionals();
 
   EXPECT_EQ(obj.f_s_isd(42, "foo", shcore::Dictionary_t()),
-            obj.call("test1", make_args(42, "foo")).as_string());
+            obj.call("test1", make_args(42, "foo")).get_string());
 
   EXPECT_EQ(obj.f_s_isd(42, "foo", shcore::Dictionary_t()),
-            obj.call("test1", make_args(42.0, "foo")).as_string());
+            obj.call("test1", make_args(42.0, "foo")).get_string());
   EXPECT_EQ(obj.f_s_isd(42, "foo", shcore::Dictionary_t()),
-            obj.call("test1", make_args(42U, "foo")).as_string());
+            obj.call("test1", make_args(42U, "foo")).get_string());
   EXPECT_EQ(obj.f_s_isd(1, "foo", shcore::Dictionary_t()),
-            obj.call("test1", make_args(true, "foo")).as_string());
+            obj.call("test1", make_args(true, "foo")).get_string());
   EXPECT_EQ(obj.f_s_isd(0, "foo", shcore::Dictionary_t()),
-            obj.call("test1", make_args(false, "foo")).as_string());
+            obj.call("test1", make_args(false, "foo")).get_string());
 
   EXPECT_EQ(obj.f_s_isd(42, "bla", shcore::Dictionary_t()),
-            obj.call("test2", make_args(42)).as_string());
+            obj.call("test2", make_args(42)).get_string());
   EXPECT_EQ(obj.f_s_isd(42, "foo", shcore::Dictionary_t()),
-            obj.call("test2", make_args(42, "foo")).as_string());
+            obj.call("test2", make_args(42, "foo")).get_string());
 
   EXPECT_EQ(obj.f_s_isd(-1, "bla", shcore::Dictionary_t()),
-            obj.call("test3", make_args()).as_string());
+            obj.call("test3", make_args()).get_string());
   EXPECT_EQ(obj.f_s_isd(42, "bla", shcore::Dictionary_t()),
-            obj.call("test3", make_args(42)).as_string());
+            obj.call("test3", make_args(42)).get_string());
   EXPECT_EQ(obj.f_s_isd(42, "foo", shcore::Dictionary_t()),
-            obj.call("test3", make_args(42, "foo")).as_string());
+            obj.call("test3", make_args(42, "foo")).get_string());
 }
 
 TEST_F(Types_cpp, arg_check_type_fail) {

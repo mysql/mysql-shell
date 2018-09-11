@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/shellcore/shell_cli_operation.h"
 #include "unittest/test_utils.h"
@@ -75,7 +76,7 @@ TEST_F(Shell_cli_operation_test, parse_commandline) {
   EXPECT_EQ(Value::Null(), m_argument_list.at(7));
 
   const char *arg2[] = {"dba", "deploy-sandbox-instance", "3307",
-                        "--password=foo", "--sandbox-dir=/tmp"};
+                        "--password=foo", "--sandbox-dir=-"};
   it.reset(new Options::Cmdline_iterator(5, arg2, 0));
   parse(it.get());
   EXPECT_EQ("dba", m_object_name);
@@ -85,11 +86,12 @@ TEST_F(Shell_cli_operation_test, parse_commandline) {
   EXPECT_NO_THROW(m_argument_list.map_at(1));
   EXPECT_EQ(2, m_argument_map->size());
   EXPECT_EQ("foo", m_argument_map->get_string("password"));
-  EXPECT_EQ("/tmp", m_argument_map->get_string("sandboxDir"));
+  EXPECT_NO_THROW(
+      m_argument_map->at("sandboxDir").check_type(Value_type::Null));
 
-  const char *arg3[] = {"cluster",      "addInstance",   "--port=3307",
-                        "--force",      "--bool=false",  "--std-dev=0.7",
-                        "--pass-word=", "--sandboxDir=-"};
+  const char *arg3[] = {"cluster",      "addInstance",      "--port=3307",
+                        "--force",      "--bool=false",     "--std-dev=0.7",
+                        "--pass-word=", "--sandboxDir=/tmp"};
   it.reset(new Options::Cmdline_iterator(8, arg3, 0));
   parse(it.get());
   EXPECT_EQ("cluster", m_object_name);
@@ -106,7 +108,24 @@ TEST_F(Shell_cli_operation_test, parse_commandline) {
   EXPECT_FALSE(map.bool_at("bool"));
   EXPECT_EQ(0.7, map.double_at("stdDev"));
   EXPECT_EQ("", map.string_at("passWord"));
-  EXPECT_NO_THROW(map.at("sandboxDir").check_type(Value_type::Null));
+  EXPECT_EQ("/tmp", map.string_at("sandboxDir"));
+
+  int64_t port;
+  bool force;
+  double std;
+  std::string pwd;
+  EXPECT_NO_THROW(mysqlsh::Unpack_options(m_argument_map)
+                      .required("port", &port)
+                      .required("force", &force)
+                      .optional("bool", &force)
+                      .optional_ci("stddev", &std)
+                      .optional_ci("password", &pwd)
+                      .optional_exact("sandboxDir", &pwd)
+                      .end());
+
+  mysqlsh::Unpack_options up(m_argument_map);
+  EXPECT_THROW(up.required("stdDev", &force), Exception);
+  EXPECT_THROW(up.optional("sandboxDir", &force), Exception);
 }
 
 TEST_F(Shell_cli_operation_test, local_dict) {

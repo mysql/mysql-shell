@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -240,11 +240,11 @@ shcore::Value DatabaseObject::existsInDatabase(
           !session
                ->db_object_exists(
                    type, _name,
-                   schema ? schema->get_member("name").as_string() : "")
+                   schema ? schema->get_member("name").get_string() : "")
                .empty());
     else {
       std::string name = _name;
-      if (schema) name = schema->get_member("name").as_string() + "." + _name;
+      if (schema) name = schema->get_member("name").get_string() + "." + _name;
 
       throw shcore::Exception::logic_error("Unable to verify existence of '" +
                                            name + "', no Session available");

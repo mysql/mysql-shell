@@ -232,7 +232,7 @@ void Credential_manager::register_options(Options *options) {
           std::vector<std::string> filters;
 
           for (const auto &filter : *list) {
-            filters.emplace_back(filter.as_string());
+            filters.emplace_back(filter.get_string());
           }
 
           return filters;
