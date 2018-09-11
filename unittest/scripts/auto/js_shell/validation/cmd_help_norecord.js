@@ -360,7 +360,7 @@ e.g.: \? SQL Syntax/SELECT
 |e.g.: \? Account Management|
 
 //@<OUT> Help for SQL Syntax, no connection
-No help items found matching 'SQL Syntax'
+SQL help requires the Shell to be connected to a MySQL server.
 
 //@<OUT> Help for API Command Line Integration
 Following syntax can be used to execute methods of the Shell global objects

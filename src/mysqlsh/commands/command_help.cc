@@ -56,7 +56,8 @@ bool Command_help::execute(const std::vector<std::string> &args) {
 
     auto console = mysqlsh::current_console();
 
-    if (!_shell->get_dev_session() && is_sql_search) {
+    if (is_sql_search &&
+        (!_shell->get_dev_session() || !_shell->get_dev_session()->is_open())) {
       console->println(
           "SQL help requires the Shell to be connected to a "
           "MySQL server.\n");
