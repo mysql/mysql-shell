@@ -21,7 +21,6 @@
 
 //@ WL#12049: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
 shell.connect(__sandbox_uri1);
 
