@@ -22,6 +22,7 @@ print_persisted_variables(session);
 session.close();
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 shell.connect(__sandbox_uri1);
 
 //@ FR1-TS-01 reboot cluster and check persisted variables {VER(>=8.0.11)}
@@ -111,6 +112,7 @@ print_persisted_variables(session);
 session.close();
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port1, 'root', 0);
 shell.connect(__sandbox_uri1);
 
 //@ FR1-TS-7 reboot cluster and check persisted variables {VER(>=8.0.11)}
