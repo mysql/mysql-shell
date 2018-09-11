@@ -413,10 +413,7 @@ std::string ClassicSession::get_current_schema() {
 }
 
 void ClassicSession::set_current_schema(const std::string &name) {
-  shcore::Argument_list query;
-  query.push_back(Value(sqlstring("use !", 0) << name));
-
-  run_sql(query);
+  execute_sql(sqlstring("use !", 0) << name);
 }
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
