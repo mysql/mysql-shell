@@ -795,5 +795,23 @@ TEST(Textui, format_markup_text_multiple) {
   }
 }
 
+TEST(Textui, remark_color) {
+  set_color_capability(Color_16);
+
+  EXPECT_EQ("\x1B[1m\x1B[0m", remark(""));
+  EXPECT_EQ("\x1B[1mword\x1B[0m", remark("word"));
+  EXPECT_EQ("\x1B[1mwhat's up\x1B[0m", remark("what's up"));
+  EXPECT_EQ("\x1B[1m\"two words\"\x1B[0m", remark("\"two words\""));
+}
+
+TEST(Textui, remark_no_color) {
+  set_color_capability(No_color);
+
+  EXPECT_EQ("''", remark(""));
+  EXPECT_EQ("'word'", remark("word"));
+  EXPECT_EQ("\"what's up\"", remark("what's up"));
+  EXPECT_EQ("'\"two words\"'", remark("\"two words\""));
+}
+
 }  // namespace textui
 }  // namespace mysqlshdk

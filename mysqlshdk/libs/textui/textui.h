@@ -211,6 +211,23 @@ inline std::string notice(const std::string &text) {
 }
 
 /**
+ * Creates a remark.
+ *
+ * If terminal does not support color output, text is going to be enclosed in
+ * single quotes, unless it contains a single quote, then it's going to be
+ * enclosed in double quotes. If terminal supports color output, text is going
+ * to be bold.
+ *
+ * @param text A text to be formatted.
+ * @return Formatted text.
+ */
+inline std::string remark(const std::string &text) {
+  const char quote = text.find('\'') == std::string::npos ? '\'' : '"';
+  if (!has_color()) return quote + text + quote;
+  return bold(text);
+}
+
+/**
  * Multiparagraph markup formatting function.
  *
  * Each received line will create a paragraph which could be separated by the

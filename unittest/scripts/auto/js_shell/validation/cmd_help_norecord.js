@@ -293,7 +293,7 @@ For more details about how to create a session with the X DevAPI use: \?
 mysqlx.getSession
 
 //@<OUT> Help on unknown topic
-No help items found matching unknown
+No help items found matching 'unknown'
 
 //@<OUT> Help on topic with several matches
 Found several entries matching session
@@ -360,7 +360,7 @@ e.g.: \? SQL Syntax/SELECT
 |e.g.: \? Account Management|
 
 //@<OUT> Help for SQL Syntax, no connection
-No help items found matching SQL Syntax
+No help items found matching 'SQL Syntax'
 
 //@<OUT> Help for API Command Line Integration
 Following syntax can be used to execute methods of the Shell global objects
