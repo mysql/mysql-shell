@@ -45,8 +45,8 @@ bool Command_help::execute(const std::vector<std::string> &args) {
     // Returned topics must be remain valid for the printing functions
     // So this needs to be declated here.
     std::vector<shcore::Help_topic> sql_topics;
-    auto tokens = shcore::str_split(args[0], " ", 1);
-    auto pattern = tokens[1];
+    const auto tokens = shcore::str_split(shcore::str_strip(args[0]), " ", 1);
+    const auto pattern = shcore::str_strip(tokens[1]);
     std::vector<shcore::Help_topic *> topics;
     bool is_sql_search = false;
 
@@ -76,7 +76,7 @@ bool Command_help::execute(const std::vector<std::string> &args) {
       }
       if (topics.empty()) {
         console->println("No help items found matching " +
-                         textui::bold(pattern));
+                         textui::remark(pattern));
       } else if (topics.size() == 1) {
         auto topic = *topics.begin();
         if (is_sql_search || topic->is_sql()) {
