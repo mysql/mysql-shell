@@ -1132,12 +1132,16 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     // exists
     metadata->create_metadata_schema();
 
-    // Creates the replication account to for the primary instance
-    mysqlshdk::gr::create_replication_random_user_pass(
-        target_instance, &replication_user,
-        convert_ipwhitelist_to_netmask(ip_whitelist), &replication_pwd);
+    // BUG#28054500: Do not create new users, not needed, when creating a
+    // cluster with adoptFromGR.
+    if (!adopt_from_gr) {
+      // Creates the replication account to for the primary instance
+      mysqlshdk::gr::create_replication_random_user_pass(
+          target_instance, &replication_user,
+          convert_ipwhitelist_to_netmask(ip_whitelist), &replication_pwd);
 
-    log_debug("Created replication user '%s'", replication_user.c_str());
+      log_debug("Created replication user '%s'", replication_user.c_str());
+    }
 
     MetadataStorage::Transaction tx(metadata);
 
