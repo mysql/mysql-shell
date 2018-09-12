@@ -30,11 +30,11 @@ Usage: mysqlsh [OPTIONS] [URI]
   --connect-timeout=#           Connection timeout in milliseconds.
   -S, --socket=sock             Socket name to use in UNIX, pipe name to use in
                                 Windows (only classic sessions).
-  -u, --dbuser=name             User for the connection to the server.
-  --user=name                   see above
-  -p, --password[=name]         Password to use when connecting to server.
-  --dbpassword[=name]           see above
-  -p                            Request password prompt to set the password
+  -u, --user=name               User for the connection to the server.
+  --password=[pass]             Password to use when connecting to server. If
+                                password is empty, connection will be made
+                                without using a password.
+  -p, --password                Request password prompt to set the password
   --import file collection      Import JSON documents from file to collection
   --import file table [column]  or table in MySQL Server. Set file to - if you
                                 want to read the data from stdin. Requires a
@@ -138,4 +138,3 @@ $ mysqlsh --uri root@localhost --py -f sample.py sample param
 $ mysqlsh root@targethost:33070 -s world_x -f sample.js
 $ mysqlsh -- util check-for-server-upgrade root@localhost --output-format=JSON
 $ mysqlsh mysqlx://user@host/db --import ~/products.json shop
-
