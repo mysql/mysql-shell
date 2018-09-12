@@ -833,55 +833,115 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
 TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
   std::string firstArg, secondArg;
 
-  SCOPED_TRACE("TESTING: deprecated --node argument");
-  firstArg = "root@localhost:3301";
-  secondArg = "--node";
+  {
+    SCOPED_TRACE("TESTING: deprecated --node argument");
+    firstArg = "root@localhost:3301";
+    secondArg = "--node";
 
-  char *argv[] = {const_cast<char *>("ut"),
-                  const_cast<char *>(firstArg.c_str()),
-                  const_cast<char *>(secondArg.c_str()), NULL};
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(firstArg.c_str()),
+                    const_cast<char *>(secondArg.c_str()), NULL};
 
-  // Redirect cout.
-  std::streambuf *cout_backup = std::cout.rdbuf();
-  std::ostringstream cout;
-  std::cout.rdbuf(cout.rdbuf());
+    // Redirect cout.
+    std::streambuf *cout_backup = std::cout.rdbuf();
+    std::ostringstream cout;
+    std::cout.rdbuf(cout.rdbuf());
 
-  Shell_options cmd_options(3, argv);
+    Shell_options cmd_options(3, argv);
 
-  // Restore old cout.
-  std::cout.rdbuf(cout_backup);
+    // Restore old cout.
+    std::cout.rdbuf(cout_backup);
 
-  EXPECT_EQ(0, cmd_options.get().exit_code);
-  EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
-  MY_EXPECT_OUTPUT_CONTAINS(
-      "The --node option has been deprecated, "
-      "please use --mysqlx instead. (Option has been processed "
-      "as --mysqlx).",
-      cout.str());
+    EXPECT_EQ(0, cmd_options.get().exit_code);
+    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    MY_EXPECT_OUTPUT_CONTAINS(
+        "The --node option has been deprecated, "
+        "please use --mysqlx instead. (Option has been processed "
+        "as --mysqlx).",
+        cout.str());
+  }
 
-  SCOPED_TRACE("TESTING: deprecated --classic argument");
-  firstArg = "root@localhost:3301";
-  secondArg = "--classic";
+  {
+    SCOPED_TRACE("TESTING: deprecated --classic argument");
+    firstArg = "root@localhost:3301";
+    secondArg = "--classic";
 
-  char *argv2[] = {const_cast<char *>("ut"),
-                   const_cast<char *>(firstArg.c_str()),
-                   const_cast<char *>(secondArg.c_str()), NULL};
-  // Redirect cout.
-  cout_backup = std::cout.rdbuf();
-  std::cout.rdbuf(cout.rdbuf());
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(firstArg.c_str()),
+                    const_cast<char *>(secondArg.c_str()), NULL};
 
-  Shell_options cmd_options2(3, argv2);
+    // Redirect cout.
+    std::streambuf *cout_backup = std::cout.rdbuf();
+    std::ostringstream cout;
+    std::cout.rdbuf(cout.rdbuf());
 
-  // Restore old cout.
-  std::cout.rdbuf(cout_backup);
+    Shell_options cmd_options(3, argv);
 
-  EXPECT_EQ(0, cmd_options2.get().exit_code);
-  EXPECT_STREQ(cmd_options2.get().uri.c_str(), "root@localhost:3301");
-  MY_EXPECT_OUTPUT_CONTAINS(
-      "The --classic option has been deprecated, "
-      "please use --mysql instead. (Option has been processed as "
-      "--mysql).",
-      cout.str());
+    // Restore old cout.
+    std::cout.rdbuf(cout_backup);
+
+    EXPECT_EQ(0, cmd_options.get().exit_code);
+    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    MY_EXPECT_OUTPUT_CONTAINS(
+        "The --classic option has been deprecated, "
+        "please use --mysql instead. (Option has been processed as "
+        "--mysql).",
+        cout.str());
+  }
+
+  {
+    SCOPED_TRACE("TESTING: deprecated --dbpassword argument");
+    firstArg = "root@localhost:3301";
+    secondArg = "--dbpassword=pass";
+
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(firstArg.c_str()),
+                    const_cast<char *>(secondArg.c_str()), NULL};
+
+    // Redirect cout.
+    std::streambuf *cout_backup = std::cout.rdbuf();
+    std::ostringstream cout;
+    std::cout.rdbuf(cout.rdbuf());
+
+    Shell_options cmd_options(3, argv);
+
+    // Restore old cout.
+    std::cout.rdbuf(cout_backup);
+
+    EXPECT_EQ(0, cmd_options.get().exit_code);
+    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    MY_EXPECT_OUTPUT_CONTAINS(
+        "The --dbpassword option has been deprecated, please use --password "
+        "instead.",
+        cout.str());
+  }
+
+  {
+    SCOPED_TRACE("TESTING: deprecated --dbuser argument");
+    firstArg = "root@localhost:3301";
+    secondArg = "--dbuser=root";
+
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(firstArg.c_str()),
+                    const_cast<char *>(secondArg.c_str()), NULL};
+
+    // Redirect cout.
+    std::streambuf *cout_backup = std::cout.rdbuf();
+    std::ostringstream cout;
+    std::cout.rdbuf(cout.rdbuf());
+
+    Shell_options cmd_options(3, argv);
+
+    // Restore old cout.
+    std::cout.rdbuf(cout_backup);
+
+    EXPECT_EQ(0, cmd_options.get().exit_code);
+    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    MY_EXPECT_OUTPUT_CONTAINS(
+        "The --dbuser option has been deprecated, please use --user instead. "
+        "(Option has been processed as --user=root).",
+        cout.str());
+  }
 }
 
 TEST_F(Shell_cmdline_options, test_positional_argument) {

@@ -22,10 +22,13 @@
  */
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
+
 #include <stdlib.h>
 #include <cstdio>
+
 #include <iostream>
 #include <limits>
+
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
@@ -166,11 +169,16 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.sock, "", cmdline("-S", "--socket=sock"),
         "Socket name to use in UNIX, "
         "pipe name to use in Windows (only classic sessions).")
-    (&storage.user, "", cmdline("-u", "--dbuser=name", "--user=name"),
+    (&storage.user, "", cmdline("-u", "--user=name"),
         "User for the connection to the server.")
-    (cmdline("-p", "--password[=name] ", "--dbpassword[=name]"),
-        "Password to use when connecting to server.")
-    (cmdline("-p"), "Request password prompt to set the password")
+    (cmdline("--dbuser=name"),
+      deprecated("--user", [this](const std::string &, const char *value) {
+        storage.user = value;
+      }))
+    (cmdline("--password=[pass]"), "Password to use when connecting to server. "
+      "If password is empty, connection will be made without using a password.")
+    (cmdline("--dbpassword[=pass]"), deprecated("--password"))
+    (cmdline("-p", "--password"), "Request password prompt to set the password")
     (cmdline("--import file collection", "--import file table [column]"),
         "Import JSON documents from file to collection or table in MySQL"
         " Server. Set file to - if you want to read the data from stdin."
@@ -611,6 +619,35 @@ bool Shell_options::custom_cmdline_handler(Cmdline_iterator *iterator) {
     // empty so it will not be prompted)
     // -p<value> sets the password to <value>
     // --password=<value> sets the password to <value>
+
+    {
+      // move back and check actual option name
+
+      if (Format::SEPARATE_VALUE == arg_format && value) {
+        // skip value
+        iterator->back();
+      }
+
+      // get option name
+      const auto option = iterator->back();
+
+      if (shcore::str_ibeginswith(option, "--dbpassword")) {
+        // Deprecated handler is not going to be invoked, need to inform the
+        // user that --dbpassword should not longer be used.
+        // Console is not available lat this time, need to use stdout.
+        std::cout << "WARNING: The --dbpassword option has been deprecated, "
+                     "please use --password instead."
+                  << std::endl;
+      }
+
+      // move past option name
+      iterator->get();
+
+      if (Format::SEPARATE_VALUE == arg_format && value) {
+        // move past value
+        iterator->get();
+      }
+    }
 
     if (!value) {
       // --password=
