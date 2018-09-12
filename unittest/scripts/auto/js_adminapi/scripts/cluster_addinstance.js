@@ -28,6 +28,14 @@ function print_auto_increment_variables() {
   print("\n");
 }
 
+function print_metadata_instance_addresses(session) {
+    var res = session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll();
+    for (var i = 0; i < res.length; i++) {
+        print(res[i][4] + " = " + res[i][7] + "\n");
+    }
+    print("\n");
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -408,6 +416,31 @@ var __expected_auto_inc_offset = 1 + server_id%7
 print_auto_increment_variables(session);
 
 //@ BUG#27084767: Finalization non-sandbox
+c.disconnect();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+//@ BUG#27677227 cluster with x protocol disabled setup
+WIPE_SHELL_LOG();
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"mysqlx":"0"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0"});
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+
+shell.connect(__sandbox_uri1);
+c = dba.createCluster('noxplugin');
+c.addInstance(__sandbox_uri2);
+c.addInstance(__sandbox_uri3);
+
+var msg1 = "The X plugin is not enabled on instance '" + localhost + ":" + __mysql_sandbox_port1 + "'. No value will be assumed for the X protocol address.";
+var msg2 = "The X plugin is not enabled on instance '" + localhost + ":" + __mysql_sandbox_port2 + "'. No value will be assumed for the X protocol address.";
+EXPECT_SHELL_LOG_CONTAINS(msg1);
+EXPECT_SHELL_LOG_CONTAINS(msg2);
+
+//@<OUT> BUG#27677227 cluster with x protocol disabled, mysqlx should be NULL
+print_metadata_instance_addresses(session);
+
+//@ BUG#27677227 cluster with x protocol disabled cleanup
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
