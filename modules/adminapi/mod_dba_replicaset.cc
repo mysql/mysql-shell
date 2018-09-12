@@ -1574,7 +1574,6 @@ void ReplicaSet::add_instance_metadata(
 
       auto options = classic->get_connection_options();
       port = options.get_port();
-      xport = port * 10;
       joiner_host = options.get_host();
       instance_address = options.as_uri(only_transport());
       joiner_user = options.get_user();
@@ -1616,8 +1615,10 @@ void ReplicaSet::add_instance_metadata(
       auto xport_row = result->fetch_one();
       if (xport_row) xport = xport_row->get_int(0);
     } catch (std::exception &e) {
-      log_info("Could not query xplugin port, using default value: %s",
-               e.what());
+      log_info(
+          "The X plugin is not enabled on instance '%s'. No value will be "
+          "assumed for the X protocol address.",
+          classic->get_connection_options().uri_endpoint().c_str());
     }
 
     // Loads the local HR host data
@@ -1636,7 +1637,10 @@ void ReplicaSet::add_instance_metadata(
     }
   }
   std::string instance_xaddress;
-  instance_xaddress = mysql_server_address + ":" + std::to_string(xport);
+  if (xport != -1)
+    instance_xaddress = mysql_server_address + ":" + std::to_string(xport);
+  else
+    instance_xaddress = "NULL";
   Instance_definition instance;
 
   instance.role = "HA";
