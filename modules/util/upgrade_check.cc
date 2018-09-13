@@ -659,13 +659,17 @@ class Removed_functions_check : public Sql_upgrade_check {
   Removed_functions_check()
       : Sql_upgrade_check(
             "removedFunctionsCheck", "Usage of removed functions",
-            {"select routine_schema, routine_name, '', routine_type, "
+            {"select table_schema, table_name, '', 'VIEW', "
+             "UPPER(view_definition) from information_schema.views",
+             "select routine_schema, routine_name, '', routine_type, "
              "UPPER(routine_definition) from information_schema.routines;",
              "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'COLUMN'"
              ", UPPER(GENERATION_EXPRESSION) from "
              "information_schema.columns where extra regexp 'generated';",
              "select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
-             "UPPER(ACTION_STATEMENT) from information_schema.triggers;"},
+             "UPPER(ACTION_STATEMENT) from information_schema.triggers;",
+             "select event_schema, event_name, '', 'EVENT', "
+             "UPPER(EVENT_DEFINITION) from information_schema.events"},
             Upgrade_issue::ERROR,
             "Following DB objects make use of functions that have "
             "been removed in version 8.0. Please make sure to update them to "

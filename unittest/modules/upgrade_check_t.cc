@@ -371,6 +371,11 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
   PrepareTestDatabase("aaa_test_enum_set_element_length");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_enum_set_element_length_check();
+  EXPECT_EQ(
+      0,
+      strcmp(
+          "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
+          check->get_doc_link()));
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   std::size_t original = issues.size();
@@ -419,6 +424,9 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
       Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check();
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
+  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
+                      "mysql-nutshell.html#mysql-nutshell-removals",
+                      check->get_doc_link()));
   ASSERT_TRUE(issues.empty());
 
   EXPECT_NO_THROW(session->execute(
@@ -448,6 +456,11 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   ASSERT_NO_THROW(session->execute(
       "create table geotab1 (col1 int ,col2 geometry,col3 geometry, col4 int "
       "generated always as (contains(col2,col3)));"));
+
+  ASSERT_NO_THROW(
+      session->execute("create view touch_view as select *, "
+                       "TOUCHES(`col2`,`col3`) from geotab1;"));
+
   ASSERT_NO_THROW(session->execute(
       "create trigger contr AFTER INSERT on geotab1 FOR EACH ROW delete from \n"
       "-- This is a test NUMGEOMETRIES ()\n"
@@ -466,22 +479,36 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   ASSERT_NO_THROW(
       session->execute("create function test_enc() returns text deterministic "
                        "return encrypt('123');"));
+
+  ASSERT_NO_THROW(
+      session->execute("create event e_contains ON SCHEDULE AT "
+                       "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
+                       "DO select contains(col2,col3) from geotab1;"));
   // Unable to test generated columns as at least in 5.7.19 they are
   // automatically converted to supported functions
   ASSERT_NO_THROW(issues = check->run(session));
-  EXPECT_EQ(4, issues.size());
-  EXPECT_NE(std::string::npos, issues[0].description.find("CONTAINS"));
-  EXPECT_NE(std::string::npos,
-            issues[0].description.find("consider using MBRCONTAINS"));
+  EXPECT_EQ(6, issues.size());
   EXPECT_NE(std::string::npos, issues[0].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[0].description.find("ST_TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[0].description.find("VIEW"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("CONTAINS"));
+  EXPECT_NE(std::string::npos,
+            issues[1].description.find("consider using MBRCONTAINS"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("PROCEDURE"));
   EXPECT_NE(std::string::npos,
             issues[0].description.find("ST_TOUCHES instead"));
-  EXPECT_NE(std::string::npos, issues[1].description.find("ASTEXT"));
-  EXPECT_NE(std::string::npos, issues[1].description.find("ST_ASTEXT"));
-  EXPECT_NE(std::string::npos, issues[2].description.find("ENCRYPT"));
-  EXPECT_NE(std::string::npos, issues[2].description.find("SHA2"));
-  EXPECT_NE(std::string::npos, issues[3].description.find("TOUCHES"));
-  EXPECT_NE(std::string::npos, issues[3].description.find("ST_TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("ST_ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("FUNCTION"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("ENCRYPT"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("SHA2"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("FUNCTION"));
+  EXPECT_NE(std::string::npos, issues[4].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[4].description.find("ST_TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[5].description.find("CONTAINS"));
+  EXPECT_NE(std::string::npos, issues[5].description.find("MBRCONTAINS"));
+  EXPECT_NE(std::string::npos, issues[5].description.find("EVENT"));
 }
 
 TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
@@ -492,6 +519,9 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   PrepareTestDatabase("aaa_test_group_by_asc");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_groupby_asc_syntax_check();
+  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
+                      "news-8-0-13.html#mysqld-8-0-13-sql-syntax",
+                      check->get_doc_link()));
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   ASSERT_TRUE(issues.empty());
