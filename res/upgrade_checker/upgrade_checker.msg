@@ -118,6 +118,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 # characters limit.
 
 * enumSetElementLenghtCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
 
 * partitionedTablesInSharedTablespaceCheck.title
 # Usage of partitioned tables in shared tablespaces
@@ -129,6 +130,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 # TABLESPACE=innodb_file_per_table);'
 
 * partitionedTablesInSharedTablespaceCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
 * removedFunctionsCheck.title
 # Usage of removed functions
@@ -148,6 +150,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 # that ASC/DESC keyword is removed from GROUP BY clause and placed in appropriate ORDER BY clause.
 
 * groupByAscCheck.docLink
+https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-sql-syntax
 
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command
