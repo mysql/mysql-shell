@@ -2289,14 +2289,27 @@ int InputBuffer::completeLine(PromptBase& pi) {
  */
 void linenoiseClearScreen(void) {
 #ifdef _WIN32
-  COORD coord = {0, 0};
+  static constexpr COORD coord = {0, 0};
+  const HANDLE screenHandle = GetStdHandle(STD_OUTPUT_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO inf;
-  HANDLE screenHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+  // Get the number of character cells in the current buffer.
   GetConsoleScreenBufferInfo(screenHandle, &inf);
+
+  const DWORD characterCount = inf.dwSize.X * inf.dwSize.Y;
+  DWORD charactersWritten;
+
+  // Fill the entire screen with blanks.
+  FillConsoleOutputCharacterA(screenHandle, ' ', characterCount, coord,
+                              &charactersWritten);
+  // Set the buffer's attributes to default values, erasing the background.
+  FillConsoleOutputAttribute(screenHandle,
+                             WIN_ATTR._defaultAttribute |
+                                 WIN_ATTR._defaultColor |
+                                 WIN_ATTR._defaultBackground,
+                             characterCount, coord, &charactersWritten);
+  // Put the cursor at its home coordinates.
   SetConsoleCursorPosition(screenHandle, coord);
-  DWORD count;
-  FillConsoleOutputCharacterA(screenHandle, ' ', inf.dwSize.X * inf.dwSize.Y,
-                              coord, &count);
 #else
   if (write(1, "\x1b[H\x1b[2J", 7) <= 0) return;
 #endif
