@@ -81,6 +81,7 @@ class Shell_options : public shcore::Options {
     std::string uri;
 
     std::string output_format;
+    bool user_defined_output_format = false;
     mysqlsh::SessionType session_type = mysqlsh::SessionType::Auto;
     bool default_session_type = true;
     bool force = false;

@@ -886,6 +886,7 @@ void Shell_options::set_output_format(const std::string &format) {
   }
 
   storage.output_format = format;
+  storage.user_defined_output_format = true;
   ngcommon::Logger::set_stderr_output_format(format);
 }
 
