@@ -832,7 +832,7 @@ std::vector<Upgrade_issue> Check_table_command::run(
   auto result = session->query(
       "SELECT TABLE_SCHEMA, TABLE_NAME FROM "
       "INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA not in "
-      "('information_schema', 'performance_schema')");
+      "('information_schema', 'performance_schema', 'sys')");
   const mysqlshdk::db::IRow *pair = nullptr;
   while ((pair = result->fetch_one()) != nullptr)
     tables.push_back(std::pair<std::string, std::string>(pair->get_string(0),
@@ -864,12 +864,14 @@ std::vector<Upgrade_issue> Check_table_command::run(
   return issues;
 }
 
+// TODO(konrad): reimplement to use some generator instead of listing all the
+// versions
 namespace {
 bool UNUSED_VARIABLE(register_check_table) = Upgrade_check::register_check(
     [](const Version &, const Version &) {
       return std::unique_ptr<Upgrade_check>(new Check_table_command());
     },
-    "8.0.11");
+    "8.0.11", "8.0.12", "8.0.13");
 }
 
 } /* namespace mysqlsh */

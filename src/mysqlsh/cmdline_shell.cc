@@ -101,7 +101,7 @@ REGISTER_HELP(CMD_HISTORY_DETAIL,
               "options. Valid options are:");
 REGISTER_HELP(
     CMD_HISTORY_DETAIL1,
-    "@li <b>del</b> <num>[-<num>] Deletes entry/entries from history.");
+    "@li <b>del</b> range         Deletes entry/entries from history.");
 REGISTER_HELP(CMD_HISTORY_DETAIL2,
               "@li <b>clear</b>             Clear history.");
 REGISTER_HELP(CMD_HISTORY_DETAIL3,
@@ -110,6 +110,17 @@ REGISTER_HELP(
     CMD_HISTORY_DETAIL4,
     "If no options are given the command will display the history entries.");
 REGISTER_HELP(CMD_HISTORY_DETAIL5,
+              "Range in the delete operation can be given in one of the "
+              "following forms:");
+REGISTER_HELP(CMD_HISTORY_DETAIL6,
+              "@li <b>num</b> single number identifying entry to delete.");
+REGISTER_HELP(CMD_HISTORY_DETAIL7,
+              "@li <b>num-num</b> numbers specifying lower and upper bounds of "
+              "the range.");
+REGISTER_HELP(CMD_HISTORY_DETAIL8,
+              "@li <b>num-</b> range from num till the end of history.");
+REGISTER_HELP(CMD_HISTORY_DETAIL9, "@li <b>-num</b> last num entries.");
+REGISTER_HELP(CMD_HISTORY_DETAIL10,
               "NOTE: The history.autoSave shell option must be set to true to "
               "automatically save the contents of the command history when "
               "MySQL Shell exits.");
@@ -125,6 +136,9 @@ REGISTER_HELP(
 REGISTER_HELP(CMD_HISTORY_EXAMPLE3, "<b>\\history del</b> 10-");
 REGISTER_HELP(CMD_HISTORY_EXAMPLE3_DESC,
               "Deletes entries from number 10 and ahead from the history.");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE4, "<b>\\history del</b> -5");
+REGISTER_HELP(CMD_HISTORY_EXAMPLE4_DESC,
+              "Deletes last 5 entries from the history.");
 
 REGISTER_HELP(CMD_PAGER_BRIEF, "Sets the current pager.");
 REGISTER_HELP(CMD_PAGER_DETAIL,
@@ -248,7 +262,7 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
     if (args.size() == 2) {
       _history.clear();
     } else {
-      println("\\history clear does not take any parameters");
+      print_error("\\history clear does not take any parameters");
     }
   } else if (args[1] == "save") {
     std::string path = shcore::get_user_config_path() + "/history";
@@ -261,46 +275,67 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
     }
   } else if (args[1] == "delete" || args[1] == "del") {
     if (args.size() != 3) {
-      println("\\history delete requires entry number to be deleted");
+      print_error("\\history delete requires entry number to be deleted");
     } else {
       auto sep = args[2].find('-');
-      try {
-        uint32_t first = 0;
-        uint32_t last = 0;
+      if (sep != args[2].rfind('-')) {
+        print_error(
+            "\\history delete range argument needs to be in format first-last");
+      } else {
         try {
-          if (sep != std::string::npos) {
-            first = std::stoul(args[2].substr(0, sep), nullptr);
-            if (args[2].substr(sep + 1).empty()) {
-              last = _history.last_entry();
-            } else {
-              last = std::stoul(args[2].substr(sep + 1), nullptr);
-              if (first > last) {
-                println("Invalid history range " + args[2] +
-                        ". Last item must be greater than first");
+          uint32_t first = 0;
+          uint32_t last = 0;
+          try {
+            if (sep != std::string::npos) {
+              const auto l = args[2].substr(sep + 1);
+              const auto f = args[2].substr(0, sep);
+              if (l.empty())
+                last = _history.last_entry();
+              else
+                last = std::stoul(l, nullptr);
+
+              if (f.empty()) {
+                first = _history.size() > last
+                            ? _history.last_entry() - last + 1
+                            : _history.first_entry();
+                last = _history.last_entry();
+              } else {
+                first = std::stoul(f, nullptr);
+              }
+              if (first > last && !l.empty()) {
+                print_error("Invalid history range " + args[2] +
+                            ". Last item must be greater than first");
                 return true;
               }
+            } else {
+              first = std::stoul(args[2], nullptr);
+              last = first;
             }
-          } else {
-            first = std::stoul(args[2], nullptr);
-            last = first;
+          } catch (...) {
+            print_error("Invalid history entry " + args[2]);
+            return true;
           }
-        } catch (...) {
-          println("Invalid history entry " + args[2]);
-          return true;
+          if (_history.size() == 0) {
+            print_error("The history is already empty");
+          } else if (first < _history.first_entry() ||
+                     first > _history.last_entry()) {
+            print_error(shcore::str_format(
+                "Invalid history %s: %s - valid range is %u-%u",
+                sep == std::string::npos ? "entry" : "range", args[2].c_str(),
+                _history.first_entry(), _history.last_entry()));
+          } else {
+            if (last > _history.last_entry()) last = _history.last_entry();
+            _history.del(first, last);
+          }
+        } catch (std::invalid_argument &) {
+          print_error(
+              "\\history delete requires entry number or range to be deleted");
         }
-        if (_history.size() == 0 || first < _history.first_entry() ||
-            first > _history.last_entry()) {
-          println("Invalid history entry " + args[2]);
-        } else {
-          if (last > _history.last_entry()) last = _history.last_entry();
-          _history.del(first, last);
-        }
-      } catch (std::invalid_argument &) {
-        println("\\history delete requires entry number to be deleted");
       }
     }
   } else {
-    println("Invalid options for \\history. See \\help history for syntax.");
+    print_error(
+        "Invalid options for \\history. See \\help history for syntax.");
   }
   return true;
 }

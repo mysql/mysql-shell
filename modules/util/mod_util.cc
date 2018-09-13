@@ -443,22 +443,20 @@ shcore::Value Util::check_for_server_upgrade(
     if (errors > 0) {
       summary = shcore::str_format(
           "%i errors were found. Please correct these issues before upgrading "
-          "to MySQL 8 to avoid compatibility issues.\n",
+          "to avoid compatibility issues.\n",
           errors);
     } else if (warnings > 0) {
       summary =
-          "No fatal errors were found that would prevent a MySQL 8 upgrade, "
+          "No fatal errors were found that would prevent an upgrade, "
           "but some potential issues were detected. Please ensure that the "
           "reported issues are not significant before upgrading.\n";
     } else if (notices > 0) {
       summary =
-          "No fatal errors were found that would prevent a MySQL 8 upgrade, "
+          "No fatal errors were found that would prevent an upgrade, "
           "but some potential issues were detected. Please ensure that the "
           "reported issues are not significant before upgrading.\n";
     } else {
-      summary =
-          "No known compatibility errors or issues for upgrading the target "
-          "server to MySQL 8 were found.\n";
+      summary = "No known compatibility errors or issues were found.\n";
     }
     print->summarize(errors, warnings, notices, summary);
   }
