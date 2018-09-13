@@ -585,7 +585,7 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
     shell_options->set_db_name_cache(false);
 
   // Switch default output format to tab separated instead of table
-  if (!options.interactive && options.output_format == "table")
+  if (!options.interactive && !options.user_defined_output_format)
     shell_options->set(SHCORE_OUTPUT_FORMAT, shcore::Value("tabbed"));
 
   return shell_options;

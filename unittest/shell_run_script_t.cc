@@ -845,4 +845,19 @@ mysql-py []> session.sql('select 1').execute();
   MY_EXPECT_CMD_OUTPUT_CONTAINS(third_execution);
 }
 
+TEST_F(ShellExeRunScript, table_output_noninteractive_mode) {
+  static constexpr auto expected_output = R"(+---+
+| 1 |
++---+
+| 1 |
++---+)";
+
+  wipe_out();
+  int rc = execute({_mysqlsh, _uri.c_str(), "--sql", "--table", "--execute",
+                    "SELECT 1", nullptr});
+  // no error, exit code 0
+  EXPECT_EQ(0, rc);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output);
+}
+
 }  // namespace shellcore
