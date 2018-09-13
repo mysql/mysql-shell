@@ -902,6 +902,8 @@ def join(server_info, peer_server_info, **kwargs):
         if peer_server.select_variable(
             "group_replication_single_primary_mode") in ('1', 'ON'):
             kwargs["single_primary"] = "ON"
+        else:
+            kwargs["single_primary"] = "OFF"
 
         option_parser = req_dict.get(OPTION_PARSER, None)
         gr_config_vars = get_gr_config_vars(local_address, kwargs,

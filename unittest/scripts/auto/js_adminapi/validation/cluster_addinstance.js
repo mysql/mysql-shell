@@ -116,3 +116,77 @@ group_replication_start_on_boot = ON
 
 //@ WL#11032: Finalization
 ||
+
+//@ BUG#27084767: Initialize new instances
+||
+
+//@ BUG#27084767: Create a cluster in single-primary mode
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance
+auto_increment_increment = 1
+auto_increment_offset = 2
+
+//@ BUG#27084767: Add instance to cluster in single-primary mode
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_%
+auto_increment_increment = 1
+auto_increment_offset = 2
+
+//@ BUG#27084767: Dissolve the cluster
+||
+
+//@ BUG#27084767: Create a cluster in multi-primary mode
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance in multi-primary mode
+auto_increment_increment = 7
+auto_increment_offset = <<<__expected_auto_inc_offset>>>
+
+//@ BUG#27084767: Add instance to cluster in multi-primary mode
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% multi-primary
+auto_increment_increment = 7
+auto_increment_offset = <<<__expected_auto_inc_offset>>>
+
+//@ BUG#27084767: Finalization
+||
+
+//@ BUG#27084767: Initialize new non-sandbox instance
+||
+
+//@ BUG#27084767: Create a cluster in single-primary mode non-sandbox
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance non-sandbox
+auto_increment_increment = 1
+auto_increment_offset = 2
+
+//@ BUG#27084767: Add instance to cluster in single-primary mode non-sandbox
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% non-sandbox
+auto_increment_increment = 1
+auto_increment_offset = 2
+
+//@ BUG#27084767: Dissolve the cluster non-sandbox
+||
+
+//@ BUG#27084767: Create a cluster in multi-primary mode non-sandbox
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in multi-primary non-sandbox
+auto_increment_increment = 7
+auto_increment_offset = <<<__expected_auto_inc_offset>>>
+
+//@ BUG#27084767: Add instance to cluster in multi-primary mode non-sandbox
+||
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% multi-primary non-sandbox
+auto_increment_increment = 7
+auto_increment_offset = <<<__expected_auto_inc_offset>>>
+
+//@ BUG#27084767: Finalization non-sandbox
+||
