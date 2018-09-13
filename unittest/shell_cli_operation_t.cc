@@ -261,6 +261,8 @@ TEST_F(Shell_cli_operation_test, util_object) {
   }
 
 TEST_F(Shell_cli_operation_test, integration_test) {
+  SKIP_UNLESS_DIRECT_MODE();
+
   std::vector<std::string> env{"MYSQLSH_TERM_COLOR_MODE=nocolor"};
   MY_EXPECT_EQ_OR_DUMP(
       0, testutil->call_mysqlsh_c({"--", "shell", "status"}, "", env));

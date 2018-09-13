@@ -41,6 +41,11 @@ extern int g_test_trace_scripts;
 extern bool g_test_fail_early;
 extern int g_test_trace_sql;
 extern bool g_test_color_output;
+extern mysqlshdk::db::replay::Mode g_test_recording_mode;
+
+#define SKIP_UNLESS_DIRECT_MODE()                                   \
+  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) \
+    SKIP_TEST("This only runs in --direct mode.");
 
 #define ASSERT_THROW_LIKE(expr, exc, msg)                              \
   try {                                                                \
