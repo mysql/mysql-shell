@@ -2274,7 +2274,13 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         gr_config_vars[GR_GROUP_SEEDS] = peer_local_address
 
     # Pick auto_increment params depending on single_primary mode
-    if options.get("single_primary", None) == "ON":
+    if options.get("single_primary", None) == "OFF":
+        # If in multi-primary mode, we need to ensure that the offset value
+        # is smaller than auto_increment_increment (which defaults to 7)
+        if server_id:
+            gr_config_vars[AUTO_INCREMENT_OFFSET] = 1 + int(server_id) % 7
+            gr_config_vars[AUTO_INCREMENT_INCREMENT] = 7
+    else:
         # GR plugin will override auto_increment params to values that are
         # suitable for multi-primary, even when in single-primary, except
         # in 8.0; so we must override it back.
@@ -2282,12 +2288,6 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         # is the default value and will override it
         gr_config_vars[AUTO_INCREMENT_INCREMENT] = 1
         gr_config_vars[AUTO_INCREMENT_OFFSET] = 2
-    else:
-        # If in multi-primary mode, we need to ensure that the offset value
-        # is smaller than auto_increment_increment (which defaults to 7)
-        if server_id:
-            gr_config_vars[AUTO_INCREMENT_OFFSET] = 1 + int(server_id) % 7
-            gr_config_vars[AUTO_INCREMENT_INCREMENT] = 7
 
     # Read values from option file if available.
     if options_parser is not None:

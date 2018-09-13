@@ -20,6 +20,14 @@ function print_gr_member_weight() {
   print(row[0] + "\n");
 }
 
+function print_auto_increment_variables() {
+  var res = session.runSql('SHOW VARIABLES like "auto_increment%"').fetchAll();
+  for (var i = 0; i < 2; i++) {
+        print(res[i][0] + " = " + res[i][1] + "\n");
+  }
+  print("\n");
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //

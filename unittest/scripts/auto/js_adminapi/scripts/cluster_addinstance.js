@@ -20,6 +20,14 @@ function print_gr_member_weight() {
   print(row[0] + "\n");
 }
 
+function print_auto_increment_variables() {
+  var res = session.runSql('SHOW VARIABLES like "auto_increment%"').fetchAll();
+  for (var i = 0; i < 2; i++) {
+        print(res[i][0] + " = " + res[i][1] + "\n");
+  }
+  print("\n");
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -211,6 +219,194 @@ shell.connect(__sandbox_uri2);
 print_persisted_variables(session);
 
 //@ WL#11032: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+// BUG#27084767: CREATECLUSTER()/ ADDINSTANCE() DOES NOT CORRECTLY SET AUTO_INCREMENT_OFFSET
+//
+// dba.createCluster() and addInstance() in single-primary mode, must set the following values:
+//
+// auto_increment_offset = 2
+// auto_increment_increment = 1
+//
+// And in multi-primary mode:
+//
+// auto_increment_offset = 1 + server_id % 7
+// auto_increment_increment = 7
+//
+// The value setting should not differ if the target instance is a sandbox or not
+
+// Test with a sandbox
+
+// Test in single-primary mode
+
+//@ BUG#27084767: Initialize new instances
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+
+shell.connect(__sandbox_uri1);
+
+//@ BUG#27084767: Create a cluster in single-primary mode
+var c = dba.createCluster('test');
+
+// Reconnect the session before validating the values of auto_increment_%
+// This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
+session.close();
+shell.connect(__sandbox_uri1);
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance
+print_auto_increment_variables(session);
+
+//@ BUG#27084767: Add instance to cluster in single-primary mode
+c.addInstance(__sandbox_uri2)
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+// Connect to the instance 2 to perform the auto_increment_% validations
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_%
+print_auto_increment_variables(session);
+
+// Test in multi-primary mode
+
+// Reconnect to instance 1
+session.close();
+shell.connect(__sandbox_uri1);
+
+//@ BUG#27084767: Dissolve the cluster
+c.dissolve({force: true})
+
+//@ BUG#27084767: Create a cluster in multi-primary mode
+var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true});
+
+// Reconnect the session before validating the values of auto_increment_%
+// This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
+session.close();
+shell.connect(__sandbox_uri1);
+
+// Get the server_id to calculate the expected value of auto_increment_offset
+var result = session.runSql("SELECT @@server_id");
+var row = result.fetchOne();
+var server_id = row[0];
+
+var __expected_auto_inc_offset = 1 + server_id%7
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance in multi-primary mode
+print_auto_increment_variables(session);
+
+//@ BUG#27084767: Add instance to cluster in multi-primary mode
+c.addInstance(__sandbox_uri2)
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+// Connect to the instance 2 to perform the auto_increment_% validations
+session.close();
+shell.connect(__sandbox_uri2);
+
+// Get the server_id to calculate the expected value of auto_increment_offset
+var result = session.runSql("SELECT @@server_id");
+var row = result.fetchOne();
+var server_id = row[0];
+
+var __expected_auto_inc_offset = 1 + server_id%7
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% multi-primary
+print_auto_increment_variables(session);
+
+//@ BUG#27084767: Finalization
+c.disconnect()
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+// Test with non-sandbox instance
+
+// Test in single-primary mode
+
+//@ BUG#27084767: Initialize new non-sandbox instance
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname});
+testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {'report_host': hostname});
+var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: sandbox_cnf1});
+testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port1);
+var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', clusterAdminPassword:'root', mycnfPath: sandbox_cnf2});
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port2);
+
+// Connect to instance1 to create the cluster
+shell.connect(__hostname_uri1);
+
+//@ BUG#27084767: Create a cluster in single-primary mode non-sandbox
+var c = dba.createCluster('test');
+
+// Reconnect the session before validating the values of auto_increment_%
+// This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
+session.close();
+shell.connect(__sandbox_uri1);
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in the seed instance non-sandbox
+print_auto_increment_variables(session);
+
+//@ BUG#27084767: Add instance to cluster in single-primary mode non-sandbox
+c.addInstance(__hostname_uri2)
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+// Connect to the instance 2 to perform the auto_increment_% validations
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% non-sandbox
+print_auto_increment_variables(session);
+
+// Test in multi-primary mode
+
+//@ BUG#27084767: Dissolve the cluster non-sandbox
+c.dissolve({force: true})
+
+// Connect to instance1 to create the cluster
+shell.connect(__hostname_uri1);
+
+//@ BUG#27084767: Create a cluster in multi-primary mode non-sandbox
+var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true});
+
+// Reconnect the session before validating the values of auto_increment_%
+// This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
+session.close();
+shell.connect(__sandbox_uri1);
+
+// Get the server_id to calculate the expected value of auto_increment_offset
+var result = session.runSql("SELECT @@server_id");
+var row = result.fetchOne();
+var server_id = row[0];
+
+var __expected_auto_inc_offset = 1 + server_id%7
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% in multi-primary non-sandbox
+print_auto_increment_variables(session);
+
+//@ BUG#27084767: Add instance to cluster in multi-primary mode non-sandbox
+c.addInstance(__hostname_uri2)
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+// Connect to the instance 2 to perform the auto_increment_% validations
+session.close();
+shell.connect(__sandbox_uri2);
+
+// Get the server_id to calculate the expected value of auto_increment_offset
+var result = session.runSql("SELECT @@server_id");
+var row = result.fetchOne();
+var server_id = row[0];
+
+var __expected_auto_inc_offset = 1 + server_id%7
+
+//@<OUT> BUG#27084767: Verify the values of auto_increment_% multi-primary non-sandbox
+print_auto_increment_variables(session);
+
+//@ BUG#27084767: Finalization non-sandbox
+c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
