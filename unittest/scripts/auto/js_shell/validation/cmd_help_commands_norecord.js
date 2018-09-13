@@ -98,11 +98,18 @@ DESCRIPTION
       The operation done by this command depends on the given options. Valid
       options are:
 
-      - del <num>[-<num>] Deletes entry/entries from history.
+      - del range         Deletes entry/entries from history.
       - clear             Clear history.
       - save              Save history to file.
 
       If no options are given the command will display the history entries.
+
+      Range in the delete operation can be given in one of the following forms:
+
+      - num single number identifying entry to delete.
+      - num-num numbers specifying lower and upper bounds of the range.
+      - num- range from num till the end of history.
+      - -num last num entries.
 
       NOTE: The history.autoSave shell option must be set to true to
       automatically save the contents of the command history when MySQL Shell
@@ -120,6 +127,9 @@ EXAMPLES
 
       \history del 10-
             Deletes entries from number 10 and ahead from the history.
+
+      \history del -5
+            Deletes last 5 entries from the history.
 
 //@<OUT> JavaScript Command
 NAME

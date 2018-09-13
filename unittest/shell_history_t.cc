@@ -471,47 +471,43 @@ TEST_F(Shell_history, history_linenoise) {
 
     capture.clear();
     shell.process_line("\\history");
-    EXPECT_EQ("    7  \\history del 6\n\n", capture);
+    EXPECT_EQ("    1  \\history del 6\n\n", capture);
 
     capture.clear();
     shell.process_line("print(5);");
 
     capture.clear();
     shell.process_line("\\history 1");
-    EXPECT_EQ(
-        "Invalid options for \\history. See \\help history for syntax.\n\n",
-        capture);
+    EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
+              capture);
 
     capture.clear();
     shell.process_line("\\history 1 x");
-    EXPECT_EQ(
-        "Invalid options for \\history. See \\help history for syntax.\n\n",
-        capture);
+    EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
+              capture);
 
     capture.clear();
     shell.process_line("\\history x 1");
-    EXPECT_EQ(
-        "Invalid options for \\history. See \\help history for syntax.\n\n",
-        capture);
+    EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
+              capture);
 
     capture.clear();
     shell.process_line("\\history clear 1");
-    EXPECT_EQ("\\history clear does not take any parameters\n\n", capture);
+    EXPECT_EQ("\\history clear does not take any parameters\n", capture);
 
     capture.clear();
     shell.process_line("\\history del");
-    EXPECT_EQ("\\history delete requires entry number to be deleted\n\n",
+    EXPECT_EQ("\\history delete requires entry number to be deleted\n",
               capture);
 
     capture.clear();
     shell.process_line("\\history del 50");
-    EXPECT_EQ("Invalid history entry 50\n\n", capture);
+    EXPECT_EQ("Invalid history entry: 50 - valid range is 8-8\n", capture);
 
     capture.clear();
     shell.process_line("\\history 0 -1 -1");
-    EXPECT_EQ(
-        "Invalid options for \\history. See \\help history for syntax.\n\n",
-        capture);
+    EXPECT_EQ("Invalid options for \\history. See \\help history for syntax.\n",
+              capture);
 
     // TS_SC#4 - cancelled
 
@@ -974,7 +970,7 @@ TEST_F(Shell_history, history_del_invisible_entry) {
   shell._delegate->user_data = &capture;
 
   // Trivial and should be covered elsewhere already
-  shell.process_line("\\history del -1");
+  shell.process_line("\\history del 10-1");
   EXPECT_TRUE(strstr(capture.c_str(), "Invalid"));
 
   // History has now one command and it will get the index 1
@@ -1049,14 +1045,13 @@ TEST_F(Shell_history, history_del_range) {
   // invalid range: using former entries
   capture.clear();
   shell.process_line("\\history del 1-3");
-  EXPECT_EQ("Invalid history entry 1-3\n\n", capture);
+  EXPECT_EQ("Invalid history range: 1-3 - valid range is 4-8\n", capture);
 
   // lower bound bigger than upper bound
   capture.clear();
   shell.process_line("\\history del 7-4");
-  EXPECT_EQ(
-      "Invalid history range 7-4. Last item must be greater than first\n\n",
-      capture);
+  EXPECT_EQ("Invalid history range 7-4. Last item must be greater than first\n",
+            capture);
 
   shell.process_line("\\history clear");
   shell.process_line("session");
@@ -1064,8 +1059,7 @@ TEST_F(Shell_history, history_del_range) {
   capture.clear();
   shell.process_line("\\history del 1 - 3");
   // Not sure if we want to give an error here or be gentle and accept space
-  EXPECT_EQ("\\history delete requires entry number to be deleted\n\n",
-            capture);
+  EXPECT_EQ("\\history delete requires entry number to be deleted\n", capture);
 }
 
 TEST_F(Shell_history, history_entry_number_reset) {
@@ -1143,13 +1137,13 @@ TEST_F(Shell_history, history_delete_range) {
 
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE(
-      "4-4", strv({"1  one", "2  two", "3  three", "5  \\history del 4-4"}));
+      "4-4", strv({"1  one", "2  two", "3  three", "4  \\history del 4-4"}));
   EXPECT_TRUE(capture.empty());
 
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("5-5", strv({"1  one", "2  two", "3  three", "4  four",
                               "5  \\history del 5-5"}));
-  EXPECT_EQ("Invalid history entry 5-5\n\n", capture);
+  EXPECT_EQ("Invalid history range: 5-5 - valid range is 1-4\n", capture);
 
   // range of 2
   capture.clear();
@@ -1160,7 +1154,7 @@ TEST_F(Shell_history, history_delete_range) {
   capture.clear();
   CHECK_DELRANGE("1-3", strv({"3  three", "4  four", "5  \\history del 1-2",
                               "6  \\history del 1-3"}));
-  EXPECT_EQ("Invalid history entry 1-3\n\n", capture);
+  EXPECT_EQ("Invalid history range: 1-3 - valid range is 3-5\n", capture);
 
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
@@ -1173,14 +1167,13 @@ TEST_F(Shell_history, history_delete_range) {
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("2-1", strv({"1  one", "2  two", "3  three", "4  four",
                               "5  \\history del 2-1"}));
-  EXPECT_EQ(
-      "Invalid history range 2-1. Last item must be greater than first\n\n",
-      capture);
+  EXPECT_EQ("Invalid history range 2-1. Last item must be greater than first\n",
+            capture);
 
   // start inside, end outside
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
-  CHECK_DELRANGE("3-5", strv({"1  one", "2  two", "5  \\history del 3-5"}));
+  CHECK_DELRANGE("3-5", strv({"1  one", "2  two", "3  \\history del 3-5"}));
 
   // start outside, end outside
   capture.clear();
@@ -1189,7 +1182,7 @@ TEST_F(Shell_history, history_delete_range) {
       "1-1", strv({"2  two", "3  three", "4  four", "5  \\history del 1-1"}));
   CHECK_DELRANGE("1-5", strv({"2  two", "3  three", "4  four",
                               "5  \\history del 1-1", "6  \\history del 1-5"}));
-  EXPECT_EQ("Invalid history entry 1-5\n\n", capture);
+  EXPECT_EQ("Invalid history range: 1-5 - valid range is 2-5\n", capture);
 
   // outside to end
   capture.clear();
@@ -1198,45 +1191,64 @@ TEST_F(Shell_history, history_delete_range) {
       "1-1", strv({"2  two", "3  three", "4  four", "5  \\history del 1-1"}));
   CHECK_DELRANGE("1-", strv({"2  two", "3  three", "4  four",
                              "5  \\history del 1-1", "6  \\history del 1-"}));
-  EXPECT_EQ("Invalid history entry 1-\n\n", capture);
+  EXPECT_EQ("Invalid history range: 1- - valid range is 2-5\n", capture);
 
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("5-", strv({"1  one", "2  two", "3  three", "4  four",
                              "5  \\history del 5-"}));
-  EXPECT_EQ("Invalid history entry 5-\n\n", capture);
+  EXPECT_EQ("Invalid history range: 5- - valid range is 1-4\n", capture);
 
   // middle to end
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
-  CHECK_DELRANGE("3-", strv({"1  one", "2  two", "5  \\history del 3-"}));
+  CHECK_DELRANGE("3-", strv({"1  one", "2  two", "3  \\history del 3-"}));
   EXPECT_TRUE(capture.empty());
 
   // last to end
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("4-",
-                 strv({"1  one", "2  two", "3  three", "5  \\history del 4-"}));
+                 strv({"1  one", "2  two", "3  three", "4  \\history del 4-"}));
   EXPECT_TRUE(capture.empty());
 
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("5-", strv({"1  one", "2  two", "3  three", "4  four",
                              "5  \\history del 5-"}));
-  EXPECT_EQ("Invalid history entry 5-\n\n", capture);
+  EXPECT_EQ("Invalid history range: 5- - valid range is 1-4\n", capture);
+
+  capture.clear();
+  LOAD_HISTORY(strv({"one", "two", "three"}));
+  CHECK_DELRANGE("-2", strv({"1  one", "2  \\history del -2"}));
+  EXPECT_TRUE(capture.empty());
+
+  capture.clear();
+  LOAD_HISTORY(strv({"one", "two", "three"}));
+  CHECK_DELRANGE("-5", strv({"1  \\history del -5"}));
+  EXPECT_TRUE(capture.empty());
+
+  capture.clear();
+  LOAD_HISTORY(strv({"one", "two", "three", "four"}));
+  CHECK_DELRANGE("3",
+                 strv({"1  one", "2  two", "4  four", "5  \\history del 3"}));
+  CHECK_DELRANGE("-3", strv({"1  one", "2  two", "3  \\history del -3"}));
+  EXPECT_TRUE(capture.empty());
 
   // invalid
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three", "four"}));
   CHECK_DELRANGE("-1-2", strv({"1  one", "2  two", "3  three", "4  four",
                                "5  \\history del -1-2"}));
-  EXPECT_EQ("Invalid history entry -1-2\n\n", capture);
+  EXPECT_EQ(
+      "\\history delete range argument needs to be in format first-last\n",
+      capture);
 
   // small history size
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   shell._history.set_limit(3);
-  CHECK_DELRANGE("3", strv({"1  one", "2  two", "4  \\history del 3"}));
+  CHECK_DELRANGE("3", strv({"1  one", "2  two", "3  \\history del 3"}));
   EXPECT_TRUE(capture.empty());
 
   capture.clear();
@@ -1248,7 +1260,7 @@ TEST_F(Shell_history, history_delete_range) {
   capture.clear();
   LOAD_HISTORY(strv({"one", "two"}));
   shell._history.set_limit(2);
-  CHECK_DELRANGE("2", strv({"1  one", "3  \\history del 2"}));
+  CHECK_DELRANGE("2", strv({"1  one", "2  \\history del 2"}));
   EXPECT_TRUE(capture.empty());
 
   capture.clear();
@@ -1260,24 +1272,24 @@ TEST_F(Shell_history, history_delete_range) {
   capture.clear();
   LOAD_HISTORY(strv({"one"}));
   shell._history.set_limit(1);
-  CHECK_DELRANGE("1", strv({"2  \\history del 1"}));
+  CHECK_DELRANGE("1", strv({"1  \\history del 1"}));
   EXPECT_TRUE(capture.empty());
 
   capture.clear();
   shell._history.clear();
   shell._history.set_limit(0);
   CHECK_DELRANGE("1", strv({}));
-  EXPECT_EQ("Invalid history entry 1\n\n", capture);
+  EXPECT_EQ("The history is already empty\n", capture);
   capture.clear();
   CHECK_DELRANGE("0", strv({}));
-  EXPECT_EQ("Invalid history entry 0\n\n", capture);
+  EXPECT_EQ("The history is already empty\n", capture);
 
   // load and shrink
   capture.clear();
   LOAD_HISTORY(strv({"one", "two", "three"}));
   shell._history.set_limit(1);
   CHECK_DELRANGE("0", strv({"2  \\history del 0"}));
-  EXPECT_EQ("Invalid history entry 0\n\n", capture);
+  EXPECT_EQ("Invalid history entry: 0 - valid range is 1-1\n", capture);
 
 #undef CHECK_DELRANGE
   shcore::delete_file("testhistory");
@@ -1380,7 +1392,7 @@ TEST_F(Shell_history, history_numbering) {
                       (strv{"1  session", "2  dba", "3  util", "4  mysql"}));
   CHECK_NUMBERING_ADD(
       "\\history del 4",
-      (strv{"1  session", "2  dba", "3  util", "5  \\history del 4"}));
+      (strv{"1  session", "2  dba", "3  util", "4  \\history del 4"}));
   shell._history.clear();
   shell._history.set_limit(4);
   CHECK_NUMBERING_ADD("session", (strv{"1  session"}));
@@ -1390,7 +1402,7 @@ TEST_F(Shell_history, history_numbering) {
                       (strv{"1  session", "2  dba", "3  util", "4  mysql"}));
   capture.clear();
   shell.process_line("\\history del 5");
-  EXPECT_EQ("Invalid history entry 5\n\n", capture);
+  EXPECT_EQ("Invalid history entry: 5 - valid range is 1-4\n", capture);
 
 #undef CHECK_NUMBERING
   shcore::delete_file("testhistory");

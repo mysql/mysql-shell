@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 #include "ext/linenoise-ng/include/linenoise.h"
 
@@ -133,14 +134,19 @@ void History::del(uint32_t serial_first, uint32_t serial_last) {
   assert(serial_last >= first_entry() && serial_last <= last_entry());
   assert(serial_first <= serial_last);
 
+  auto iter = _serials.end();
   for (uint32_t ser = serial_last; ser >= serial_first; ser--) {
-    auto iter = std::find(_serials.begin(), _serials.end(), ser);
+    iter = std::find(_serials.begin(), _serials.end(), ser);
     if (iter != _serials.end()) {
       int index = iter - _serials.begin();
       if (!linenoiseHistoryDelete(index)) break;
       _serials.erase(iter);
     }
   }
+  if (_serials.empty())
+    clear();
+  else if (_serials.back() < serial_last)
+    _serial = _serials.back();
 }
 
 }  // namespace mysqlsh
