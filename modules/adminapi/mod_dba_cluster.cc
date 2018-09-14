@@ -435,7 +435,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL25,
               "the port is not specified, the default value is the port of "
               "the target instance * 10 + 1. In case the automatically "
               "determined default port value is invalid (> 65535) then a "
-              "random value in the range [1000, 65535] is used.");
+              "random value in the range [10000, 65535] is used.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL26,
               "The value for groupSeeds is used to set the Group Replication "
