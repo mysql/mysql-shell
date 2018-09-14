@@ -24,6 +24,7 @@
 #include "scripting/types.h"
 #include <rapidjson/prettywriter.h>
 #include <cfloat>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -1314,7 +1315,7 @@ int64_t Value::as_int() const {
       throw type_range_error(type, Integer);
     case Float: {
       double integral;
-      if (modf(value.d, &integral) == 0.0 &&
+      if (std::modf(value.d, &integral) == 0.0 &&
           value.d >= -(1LL << DBL_MANT_DIG) && value.d <= (1LL << DBL_MANT_DIG))
         return static_cast<int64_t>(value.d);
       throw type_range_error(type, Integer);
@@ -1342,7 +1343,7 @@ uint64_t Value::as_uint() const {
       throw type_range_error(type, UInteger);
     case Float: {
       double integral;
-      if (modf(value.d, &integral) == 0.0 && value.d >= 0.0 &&
+      if (std::modf(value.d, &integral) == 0.0 && value.d >= 0.0 &&
           value.d <= (1LL << DBL_MANT_DIG))
         return static_cast<uint64_t>(value.d);
       throw type_range_error(type, UInteger);
