@@ -709,9 +709,13 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
 }
 
 TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
+  Version shell_version(MYSH_VERSION);
   // session established with 8.0 server
-  if (_target_server_version < Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 8.0");
+  if (_target_server_version < Version(8, 0, 0) ||
+      _target_server_version < shell_version)
+    SKIP_TEST(
+        "This test requires running against MySQL server version 8.0, equal or "
+        "greather than the shell version");
   Util util(_interactive_shell->shell_context().get());
   shcore::Argument_list args;
   args.push_back(shcore::Value(_mysql_uri));

@@ -41,7 +41,7 @@ DESCRIPTION
 
       - outputFormat - value can be either TEXT (default) or JSON.
       - targetVersion - version to which upgrade will be checked
-        (default=8.0.13)
+        (default=<<<__mysh_version>>>)
       - password - password for connection.
 
       The connection data may be specified in the following formats:
