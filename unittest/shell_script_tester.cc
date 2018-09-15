@@ -1321,6 +1321,9 @@ void Shell_js_script_tester::set_defaults() {
   code = "var __mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
   exec_and_out_equals(code);
 
+  code = "var __mysh_version = '" + std::string(MYSH_VERSION) + "'";
+  exec_and_out_equals(code);
+
   code = "var __version = '" + _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
@@ -1343,6 +1346,9 @@ void Shell_py_script_tester::set_defaults() {
   exec_and_out_equals(code);
 
   code = "__mysh_full_version = '" + std::string(MYSH_FULL_VERSION) + "'";
+  exec_and_out_equals(code);
+
+  code = "__mysh_version = '" + std::string(MYSH_VERSION) + "'";
   exec_and_out_equals(code);
 
   code = "__version = '" + _target_server_version.get_base() + "'";
