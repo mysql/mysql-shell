@@ -51,7 +51,9 @@
 
 #ifdef WIN32
 #undef max
+#define fileno _fileno
 #define snprintf _snprintf
+#define write _write
 #endif
 
 extern char *mysh_get_tty_password(const char *opt_message);
@@ -92,6 +94,77 @@ std::string get_pager_message(const std::string &pager) {
   }
 }
 
+static int utf8_bytes_length(unsigned char c) {
+  static constexpr uint8_t lengths[256] = {
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+      2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+      4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0};
+  return lengths[c];
+}
+
+void write_to_console(int fd, const char *text) {
+  const char *p = text;
+  size_t bytes_left = strlen(text);
+  while (bytes_left > 0) {
+    int flush_bytes = BUFSIZ < bytes_left ? BUFSIZ : bytes_left;
+    const char *flush_end = p + flush_bytes;
+
+    // Windows Console requires all bytes of utf-8 encoded character printed at
+    // once, therefore we don't cut utf-8 multi-byte character in the middle.
+    // To be safe we use this behaviour on all platforms.
+    while (utf8_bytes_length(static_cast<unsigned char>(*flush_end)) == 0 &&
+           (p != flush_end)) {
+      --flush_end;
+    }
+
+    if (p != flush_end) {
+      flush_bytes = std::distance(p, flush_end);
+    }
+
+    const int written = write(fd, p, flush_bytes);
+    if (written == -1) {
+      const int error_no = errno;
+      if ((error_no == EINTR) || (error_no == EWOULDBLOCK) ||
+          (error_no == EAGAIN)) {
+        continue;
+      } else {
+        break;
+      }
+    }
+
+#ifdef _WIN32
+    // On Windows platform, if stdout is redirected to console, _write returns
+    // number of characters printed to console (which is not equal to bytes
+    // written). We are not able to determine how many bytes were send to
+    // console having information about number of printed chars, because:
+    // clang-format off
+    //   _write(1, "\xe2\x80\x99\n", 4); -> 2
+    //   _write(1, "\xe2\x80\x99\n", 3); -> 1
+    //   _write(1, "\xe2\x80\x99\n", 2); -> 1
+    //   _write(1, "\xe2\x80\x99\n", 1); -> 1
+    // clang-format on
+    // Therefore we need to assume that number of flush_bytes was written to
+    // output and advance *p and subtract bytes_left accordingly. If flush_bytes
+    // is less than BUFSIZ we should be fine.
+    //
+    // If stdout is redirected to file _write returns number of bytes written.
+
+    const int bytes_written = isatty(fd) ? flush_bytes : written;
+#else
+    const int bytes_written = written;
+#endif
+    bytes_left -= bytes_written;
+    p += bytes_written;
+  }
+}
 }  // namespace
 
 REGISTER_HELP(CMD_HISTORY_BRIEF, "View and edit command line history.");
@@ -382,7 +455,7 @@ bool Command_line_shell::cmd_nopager(const std::vector<std::string> &args) {
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
-    std::cout << text << std::flush;
+    write_to_console(fileno(stdout), text);
     self->_output_printed = true;
   }
 }
@@ -390,7 +463,7 @@ void Command_line_shell::deleg_print(void *cdata, const char *text) {
 void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
-    std::cerr << text;
+    write_to_console(fileno(stderr), text);
     self->_output_printed = true;
   }
 }
@@ -583,7 +656,7 @@ void Command_line_shell::command_loop() {
         // Ensure prompt is in its own line, in case there was any output
         // without a \n
         if (_output_printed) {
-          std::cout << "\n";
+          mysqlsh::current_console()->print("\n");
           _output_printed = false;
         }
         char *tmp = Command_line_shell::readline(prompt().c_str());
@@ -603,7 +676,8 @@ void Command_line_shell::command_loop() {
           break;
         }
       } else {
-        if (options().full_interactive) std::cout << prompt() << std::flush;
+        if (options().full_interactive)
+          mysqlsh::current_console()->print(prompt());
         if (!std::getline(std::cin, cmd)) {
           if (_interrupted || !std::cin.eof()) {
             _interrupted = false;
@@ -612,7 +686,7 @@ void Command_line_shell::command_loop() {
           break;
         }
       }
-      if (options().full_interactive) std::cout << cmd << "\n";
+      if (options().full_interactive) mysqlsh::current_console()->println(cmd);
     }
     process_line(cmd);
     reconnect_if_needed();

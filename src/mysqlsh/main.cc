@@ -457,8 +457,10 @@ std::string pick_prompt_theme() {
   if (char *theme = getenv("MYSQLSH_PROMPT_THEME")) {
     if (*theme) {
       if (!shcore::file_exists(theme)) {
-        std::cout << "NOTE: MYSQLSH_PROMPT_THEME prompt theme file '" << theme
-                  << "' does not exist.\n";
+        mysqlsh::current_console()->print(
+            "NOTE: MYSQLSH_PROMPT_THEME prompt theme file '");
+        mysqlsh::current_console()->print(theme);
+        mysqlsh::current_console()->print("' does not exist.\n");
         return "";
       }
       log_debug("Using prompt theme file %s", theme);
