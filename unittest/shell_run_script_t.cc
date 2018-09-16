@@ -225,6 +225,8 @@ class ShellExeRunScript : public tests::Command_line_test {
     shcore::delete_file("badsyn.py");
     shcore::delete_file("reconnect_mysql.js");
     shcore::delete_file("reconnect_mysqlx.js");
+    shcore::delete_file("reconnect_mysql.py");
+    shcore::delete_file("reconnect_mysqlx.py");
     putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME="));
   }
 };
