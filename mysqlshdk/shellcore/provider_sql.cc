@@ -50,7 +50,7 @@ void add_matches_ci(const std::vector<std::string> &options,
   while (iter != options.end()) {
     if (shcore::str_ibeginswith(*iter, prefix)) {
       if (back_quote)
-        out_list->push_back(shcore::quote_identifier(*iter, '`'));
+        out_list->push_back(shcore::quote_identifier(*iter));
       else
         out_list->push_back(*iter);
       ++iter;
