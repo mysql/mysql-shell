@@ -108,8 +108,8 @@ void clone_user(const std::shared_ptr<db::ISession> &session,
                 const std::string &orig_user, const std::string &orig_host,
                 const std::string &new_user, const std::string &new_host,
                 const std::string &password, Account_attribute_set flags) {
-  std::string account = shcore::quote_identifier(new_user, '`') + "@" +
-                        shcore::quote_identifier(new_host, '`');
+  std::string account = shcore::quote_identifier(new_user) + "@" +
+                        shcore::quote_identifier(new_host);
 
   // create user
   session->executef("CREATE USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*(*/ ? /*)*/",

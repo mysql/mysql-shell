@@ -380,9 +380,14 @@ bool is_reserved_word(const std::string &word) {
 
 //--------------------------------------------------------------------------------------------------
 
-std::string quote_identifier(const std::string &identifier,
-                             const char quote_char) {
-  return quote_char + identifier + quote_char;
+std::string quote_sql_string(const std::string &s) {
+  return "'" + escape_sql_string(s) + "'";
+}
+
+//--------------------------------------------------------------------------------------------------
+
+std::string quote_identifier(const std::string &identifier) {
+  return "`" + escape_backticks(identifier) + "`";
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -393,8 +398,7 @@ std::string quote_identifier(const std::string &identifier,
  * allowed in unquoted identifiers. Leading numbers are not strictly forbidden
  * but discouraged as they may lead to ambiguous behavior.
  */
-std::string quote_identifier_if_needed(const std::string &ident,
-                                       const char quote_char) {
+std::string quote_identifier_if_needed(const std::string &ident) {
   bool needs_quotation =
       is_reserved_word(ident);  // check whether it's a reserved keyword
   size_t digits = 0;
@@ -414,7 +418,7 @@ std::string quote_identifier_if_needed(const std::string &ident,
   }
 
   if (needs_quotation || digits == ident.length())
-    return quote_char + ident + quote_char;
+    return quote_identifier(ident);
   else
     return ident;
 }
@@ -507,14 +511,11 @@ sqlstring &sqlstring::operator<<(const std::string &v) {
   if (esc == '!') {
     std::string escaped = escape_backticks(v);
     if ((_format._flags & QuoteOnlyIfNeeded) != 0)
-      append(quote_identifier_if_needed(escaped, '`'));
+      append(quote_identifier_if_needed(escaped));
     else
-      append(quote_identifier(escaped, '`'));
+      append(quote_identifier(escaped));
   } else if (esc == '?') {
-    if (_format._flags & UseAnsiQuotes)
-      append("\"").append(escape_sql_string(v)).append("\"");
-    else
-      append("'").append(escape_sql_string(v)).append("'");
+    append("'").append(escape_sql_string(v)).append("'");
   } else {  // shouldn't happen
     throw std::invalid_argument(
         "Error formatting SQL query: internal error, expected ? or ! escape "
@@ -548,10 +549,7 @@ sqlstring &sqlstring::operator<<(const char *v) {
       append("`").append(quoted).append("`");
   } else if (esc == '?') {
     if (v) {
-      if (_format._flags & UseAnsiQuotes)
-        append("\"").append(escape_sql_string(v)).append("\"");
-      else
-        append("'").append(escape_sql_string(v)).append("'");
+      append(quote_sql_string(v));
     } else {
       append("NULL");
     }

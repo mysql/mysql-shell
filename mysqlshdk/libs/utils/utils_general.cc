@@ -780,7 +780,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
 
     if (try_quoting) {
       std::string quoted_s =
-          s.substr(0, old_p) + quote_identifier(s.substr(old_p), '\'');
+          s.substr(0, old_p) + "'" + escape_backticks(s.substr(old_p)) + "'";
       // reset out_string
       if (out_string) *out_string = "";
       res = span_quotable_string_literal(quoted_s, old_p, out_string, true);
