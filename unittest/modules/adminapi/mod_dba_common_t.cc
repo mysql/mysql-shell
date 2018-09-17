@@ -1137,6 +1137,9 @@ TEST_F(Dba_common_test, validate_exit_state_action_supported) {
     EXPECT_NO_THROW(
         mysqlsh::dba::validate_exit_state_action_supported(session));
   }
+
+  session->close();
+  testutil->destroy_sandbox(_mysql_sandbox_port1);
 }
 
 TEST_F(Dba_common_test, validate_member_weight_supported) {
@@ -1162,6 +1165,7 @@ TEST_F(Dba_common_test, validate_member_weight_supported) {
   }
 
   session->close();
+  testutil->destroy_sandbox(_mysql_sandbox_port1);
 }
 }  // namespace tests
 
