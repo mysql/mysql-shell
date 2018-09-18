@@ -66,6 +66,7 @@ class Upgrade_check {
       std::pair<std::forward_list<mysqlshdk::utils::Version>, Creator>>;
 
   static const mysqlshdk::utils::Version TRANSLATION_MODE;
+  static const mysqlshdk::utils::Version ALL_VERSIONS;
 
   template <class... Ts>
   static bool register_check(Creator creator, Ts... params) {
@@ -73,6 +74,13 @@ class Upgrade_check {
     std::forward_list<mysqlshdk::utils::Version> vers;
     for (const auto &v : vs) vers.emplace_front(mysqlshdk::utils::Version(v));
     s_available_checks.emplace_back(std::move(vers), creator);
+    return true;
+  }
+
+  static bool register_check(Creator creator,
+                             const mysqlshdk::utils::Version &ver) {
+    s_available_checks.emplace_back(
+        std::forward_list<mysqlshdk::utils::Version>{ver}, creator);
     return true;
   }
 
