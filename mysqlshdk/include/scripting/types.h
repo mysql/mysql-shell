@@ -579,65 +579,53 @@ class Option_unpacker {
 
   virtual ~Option_unpacker() {}
 
-// TODO(konrad): try to rewrite this macro as function/method
-#define EXTRACT_VALUE()                                                       \
-  try {                                                                       \
-    *out_value = value_type_for_native<T>::extract(value);                    \
-  } catch (const std::exception &e) {                                         \
-    std::string msg = e.what();                                               \
-    if (msg.compare(0, 18, "Invalid typecast: ") == 0) msg = msg.substr(18);  \
-    throw Exception::type_error(std::string("Option '") + name + "' " + msg); \
-  }
-
   // Extract required option
   template <typename T>
   Option_unpacker &required(const char *name, T *out_value) {
-    Value value = get_required(name, value_type_for_native<T>::type);
-    if (value) EXTRACT_VALUE();
+    extract_value<T>(name, out_value,
+                     get_required(name, value_type_for_native<T>::type));
     return *this;
   }
 
   // Extract optional option
   template <typename T>
   Option_unpacker &optional(const char *name, T *out_value) {
-    Value value = get_optional(name, value_type_for_native<T>::type);
-    if (value) EXTRACT_VALUE();
+    extract_value<T>(name, out_value,
+                     get_optional(name, value_type_for_native<T>::type));
     return *this;
   }
 
   template <typename T>
   Option_unpacker &optional(const char *name,
                             mysqlshdk::utils::nullable<T> *out_value) {
-    Value value = get_optional(name, value_type_for_native<T>::type);
-    if (value) EXTRACT_VALUE();
+    extract_value<T>(name, out_value,
+                     get_optional(name, value_type_for_native<T>::type));
     return *this;
   }
 
   // Extract optional option with exact type (no conversions)
   template <typename T>
   Option_unpacker &optional_exact(const char *name, T *out_value) {
-    Value value = get_optional_exact(name, value_type_for_native<T>::type);
-    if (value) EXTRACT_VALUE();
+    extract_value<T>(name, out_value,
+                     get_optional_exact(name, value_type_for_native<T>::type));
     return *this;
   }
 
   template <typename T>
   Option_unpacker &optional_exact(const char *name,
                                   mysqlshdk::utils::nullable<T> *out_value) {
-    Value value = get_optional_exact(name, value_type_for_native<T>::type);
-    if (value) EXTRACT_VALUE();
+    extract_value<T>(name, out_value,
+                     get_optional_exact(name, value_type_for_native<T>::type));
     return *this;
   }
 
   // Case insensitive
   template <typename T>
   Option_unpacker &optional_ci(const char *name, T *out_value) {
-    Value value = get_optional(name, value_type_for_native<T>::type, true);
-    if (value) EXTRACT_VALUE();
+    extract_value<T>(name, out_value,
+                     get_optional(name, value_type_for_native<T>::type, true));
     return *this;
   }
-
-#undef EXTRACT_VALUE
 
   void end();
 
@@ -645,6 +633,20 @@ class Option_unpacker {
   Dictionary_t m_options;
   std::set<std::string> m_unknown;
   std::set<std::string> m_missing;
+
+  template <typename T, typename S>
+  void extract_value(const char *name, S *out_value, const Value &value) {
+    if (value) {
+      try {
+        *out_value = value_type_for_native<T>::extract(value);
+      } catch (const std::exception &e) {
+        std::string msg = e.what();
+        if (msg.compare(0, 18, "Invalid typecast: ") == 0) msg = msg.substr(18);
+        throw Exception::type_error(std::string("Option '") + name + "' " +
+                                    msg);
+      }
+    }
+  }
 
   Value get_required(const char *name, Value_type type);
   Value get_optional(const char *name, Value_type type,

@@ -67,6 +67,7 @@ std::string Upgrade_issue::get_db_object() const {
 }
 
 const Version Upgrade_check::TRANSLATION_MODE("0.0.0");
+const Version Upgrade_check::ALL_VERSIONS("777.777.777");
 
 Upgrade_check::Collection Upgrade_check::s_available_checks;
 
@@ -95,7 +96,7 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
   std::vector<std::unique_ptr<Upgrade_check>> result;
   for (const auto &c : s_available_checks)
     for (const auto &ver : c.first)
-      if (ver > src_version && ver <= dst_version) {
+      if (ver == ALL_VERSIONS || (ver > src_version && ver <= dst_version)) {
         result.emplace_back(c.second(src_version, dst_version));
         break;
       }
@@ -864,14 +865,12 @@ std::vector<Upgrade_issue> Check_table_command::run(
   return issues;
 }
 
-// TODO(konrad): reimplement to use some generator instead of listing all the
-// versions
 namespace {
 bool UNUSED_VARIABLE(register_check_table) = Upgrade_check::register_check(
     [](const Version &, const Version &) {
       return std::unique_ptr<Upgrade_check>(new Check_table_command());
     },
-    "8.0.11", "8.0.12", "8.0.13");
+    Upgrade_check::ALL_VERSIONS);
 }
 
 } /* namespace mysqlsh */

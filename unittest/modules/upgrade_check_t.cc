@@ -92,8 +92,13 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
                       "5.7.19", current.get_base().c_str()));
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7.17", "8.0"));
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist("5.7", "8.0.12"));
+
+  checks.clear();
   EXPECT_NO_THROW(
       checks = Upgrade_check::create_checklist(prev.get_base(), MYSH_VERSION));
+  // Check for table command is there for every valid version as a last check
+  EXPECT_FALSE(checks.empty());
+  EXPECT_EQ(0, strcmp("checkTableOutput", checks.back()->get_name()));
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
