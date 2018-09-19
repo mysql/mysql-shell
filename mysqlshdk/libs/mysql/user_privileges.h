@@ -96,6 +96,15 @@ class User_privileges {
       const std::string &schema = k_wildcard,
       const std::string &table = k_wildcard) const;
 
+  /**
+   * Get the set of roles/users granted to the user.
+   *
+   * @return set with the roles/user account granted to the target user of the
+   *         User_privileges object (empty set if no roles/users are associated
+   *         to the user).
+   */
+  std::set<std::string> get_user_roles() const { return m_roles; }
+
  private:
   friend class User_privileges_result;
 
@@ -115,40 +124,69 @@ class User_privileges {
    *
    * @param result The result of database query.
    * @param map_row Converts a single row into readable data.
+   * @param user_role string with the target user/role.
    */
   void parse_privileges(const std::shared_ptr<db::IResult> &result,
-                        Row_mapper map_row);
+                        Row_mapper map_row, const std::string &user_role);
 
   /**
-   * Reads global privileges of an user.
+   * Reads global privileges of a user or role.
    *
    * @param session A session object for communication with database.
+   * @param user_role string with the target user or role.
    */
-  void read_global_privileges(const std::shared_ptr<db::ISession> &session);
+  void read_global_privileges(const std::shared_ptr<db::ISession> &session,
+                              const std::string &user_role);
 
   /**
-   * Reads privileges of an user on all schemas.
+   * Reads privileges of a user or role on all schemas.
    *
    * @param session A session object for communication with database.
+   * @param user_role string with the target user or role.
    */
-  void read_schema_privileges(const std::shared_ptr<db::ISession> &session);
+  void read_schema_privileges(const std::shared_ptr<db::ISession> &session,
+                              const std::string &user_role);
 
   /**
-   * Reads privileges of an user on all tables.
+   * Reads privileges of a user or role on all tables.
    *
    * @param session A session object for communication with database.
+   * @param user_role string with the target user or role.
    */
-  void read_table_privileges(const std::shared_ptr<db::ISession> &session);
+  void read_table_privileges(const std::shared_ptr<db::ISession> &session,
+                             const std::string &user_role);
 
   /**
-   * Reads privileges of an user from result of specified query.
+   * Reads privileges of a user/role from result of specified query.
    *
    * @param session A session object for communication with database.
    * @param query A query to be executed.
    * @param map_row Converts a single row into readable data.
+   * @param user_role string with the target user/role.
    */
   void read_privileges(const std::shared_ptr<db::ISession> &session,
-                       const char *const query, Row_mapper map_row);
+                       const char *const query, Row_mapper map_row,
+                       const std::string &user_role);
+
+  /**
+   * Get the defined mandatory roles.
+   *
+   * NOTE: the returned roles might not be active.
+   *
+   * @param session The session object used to query the database.
+   * @return a set of strings with the defined mandatory role, each role in the
+   *         set has the format '<user>'@'<host>' (empty set if there are no
+   *         mandatory roles).
+   */
+  std::set<std::string> get_mandatory_roles(
+      const std::shared_ptr<db::ISession> &session) const;
+
+  /**
+   * Read roles/users granted to the user.
+   *
+   * @param session The session object used to query the database.
+   */
+  void read_user_roles(const std::shared_ptr<db::ISession> &session);
 
   /**
    * Checks if the given user account has GRANT OPTION privilege on specified
@@ -182,12 +220,23 @@ class User_privileges {
 
   bool m_user_exists = false;
 
-  std::unordered_map<std::string,
-                     std::unordered_map<std::string, std::set<std::string>>>
+  // Map with user privileges information:
+  // {user/roles -> {schema -> {table -> {privileges}}}}
+  std::unordered_map<
+      std::string,
+      std::unordered_map<
+          std::string, std::unordered_map<std::string, std::set<std::string>>>>
       m_privileges;
 
-  std::unordered_map<std::string, std::unordered_map<std::string, bool>>
+  // Map with user grant option information:
+  // {user/roles -> {schema -> {table -> is_grantable}}}
+  std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::unordered_map<std::string, bool>>>
       m_grants;
+
+  // Set of roles/users granted.
+  std::set<std::string> m_roles;
 };
 
 /**

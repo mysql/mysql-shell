@@ -23,9 +23,11 @@
 
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 
+#include <mysqld_error.h>
 #include <algorithm>
 #include <iterator>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -126,6 +128,33 @@ bool is_grantable(const std::string &grant) {
   return grant.compare("YES") == 0;
 }
 
+/**
+ * Get all the child roles (recursively) for the specified role.
+ *
+ * @param role_edges Map with the information of all the defined role edges.
+ * @param out_child_roles Output set with all the resulting child roles.
+ * @param role String with the target role to obtain all its children.
+ */
+void get_child_roles(
+    const std::unordered_map<std::string, std::set<std::string>> &role_edges,
+    std::set<std::string> *out_child_roles, const std::string &role) {
+  // Get direct children (iterator) from the target role/user.
+  auto children_iter = role_edges.find(role);
+  if (children_iter == role_edges.end()) {
+    // No child role found, exit.
+    return;
+  }
+
+  for (const std::string &child_role : children_iter->second) {
+    // Add child to resulting set and recursively get its children if not
+    // already in the result role set.
+    if (out_child_roles->find(child_role) == out_child_roles->end()) {
+      out_child_roles->emplace(child_role);
+      get_child_roles(role_edges, out_child_roles, child_role);
+    }
+  }
+}
+
 }  // namespace
 
 struct User_privileges::Mapped_row {
@@ -139,17 +168,46 @@ User_privileges::User_privileges(const std::shared_ptr<db::ISession> &session,
                                  const std::string &host) {
   m_account = shcore::make_account(user, host);
 
-  read_global_privileges(session);
+  read_global_privileges(session, m_account);
 
-  if (m_privileges[k_wildcard][k_wildcard].empty()) {
+  if (m_privileges[m_account][k_wildcard][k_wildcard].empty()) {
     // User does not exist (all users have at least one privilege: USAGE)
     return;
   }
 
   m_user_exists = true;
 
-  read_schema_privileges(session);
-  read_table_privileges(session);
+  read_schema_privileges(session, m_account);
+  read_table_privileges(session, m_account);
+
+  // Use of roles is only supported starting from MySQL 8.0.0.
+  if (session->get_server_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+    // Read user roles.
+    try {
+      log_debug("Reading roles information for user %s", m_account.c_str());
+      read_user_roles(session);
+    } catch (const mysqlshdk::db::Error &err) {
+      log_debug("%s", err.format().c_str());
+      if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
+        auto console = mysqlsh::current_console();
+        console->print_error("Unable to check privileges for user " +
+                             m_account +
+                             ". User requires SELECT privilege on mysql.* to "
+                             "obtain information about all roles.");
+        throw std::runtime_error{"Unable to get roles information."};
+      } else {
+        throw;
+      }
+    }
+
+    // Read privileges for all user roles.
+    for (const std::string &user_role : m_roles) {
+      log_debug("Reading privileges for role/user %s", user_role.c_str());
+      read_global_privileges(session, user_role);
+      read_schema_privileges(session, user_role);
+      read_table_privileges(session, user_role);
+    }
+  }
 }
 
 const char User_privileges::k_wildcard[] = "*";
@@ -159,23 +217,29 @@ bool User_privileges::user_exists() const { return m_user_exists; }
 bool User_privileges::has_grant_option(const std::string &schema,
                                        const std::string &table) const {
   if (user_exists()) {
-    bool grant = m_grants.at(k_wildcard).at(k_wildcard);
+    bool grant = false;
 
-    if (!grant && schema != k_wildcard) {
-      auto schema_grants = m_grants.find(schema);
+    // Check grantable for user and roles.
+    for (const auto &kv : m_grants) {
+      auto role_grant = kv.second;
+      grant |= role_grant.at(k_wildcard).at(k_wildcard);
 
-      if (schema_grants != m_grants.end()) {
-        auto table_grants = schema_grants->second.find(k_wildcard);
+      if (!grant && schema != k_wildcard) {
+        auto schema_grants = role_grant.find(schema);
 
-        if (table_grants != schema_grants->second.end()) {
-          grant |= table_grants->second;
-        }
-
-        if (!grant && table != k_wildcard) {
-          table_grants = schema_grants->second.find(table);
+        if (schema_grants != role_grant.end()) {
+          auto table_grants = schema_grants->second.find(k_wildcard);
 
           if (table_grants != schema_grants->second.end()) {
             grant |= table_grants->second;
+          }
+
+          if (!grant && table != k_wildcard) {
+            table_grants = schema_grants->second.find(table);
+
+            if (table_grants != schema_grants->second.end()) {
+              grant |= table_grants->second;
+            }
           }
         }
       }
@@ -194,25 +258,35 @@ std::set<std::string> User_privileges::get_missing_privileges(
   std::set<std::string> missing_privileges;
 
   if (user_exists()) {
-    auto user_privileges = m_privileges.at(k_wildcard).at(k_wildcard);
+    std::set<std::string> user_privileges;
 
-    if (schema != k_wildcard) {
-      auto schema_privileges = m_privileges.find(schema);
+    // Get privileges from user and associated roles.
+    for (const auto &kv : m_privileges) {
+      // Get wildcard privileges.
+      auto role_privileges = kv.second;
+      auto wildcard_privileges = role_privileges.at(k_wildcard).at(k_wildcard);
+      user_privileges.insert(wildcard_privileges.begin(),
+                             wildcard_privileges.end());
 
-      if (schema_privileges != m_privileges.end()) {
-        auto table_privileges = schema_privileges->second.find(k_wildcard);
+      // Get schema/table privileges.
+      if (schema != k_wildcard) {
+        auto schema_privileges = role_privileges.find(schema);
 
-        if (table_privileges != schema_privileges->second.end()) {
-          user_privileges.insert(table_privileges->second.begin(),
-                                 table_privileges->second.end());
-        }
-
-        if (table != k_wildcard) {
-          table_privileges = schema_privileges->second.find(table);
+        if (schema_privileges != role_privileges.end()) {
+          auto table_privileges = schema_privileges->second.find(k_wildcard);
 
           if (table_privileges != schema_privileges->second.end()) {
             user_privileges.insert(table_privileges->second.begin(),
                                    table_privileges->second.end());
+          }
+
+          if (table != k_wildcard) {
+            table_privileges = schema_privileges->second.find(table);
+
+            if (table_privileges != schema_privileges->second.end()) {
+              user_privileges.insert(table_privileges->second.begin(),
+                                     table_privileges->second.end());
+            }
           }
         }
       }
@@ -243,7 +317,8 @@ User_privileges_result User_privileges::validate(
 }
 
 void User_privileges::parse_privileges(
-    const std::shared_ptr<db::IResult> &result, Row_mapper map_row) {
+    const std::shared_ptr<db::IResult> &result, Row_mapper map_row,
+    const std::string &user_role) {
   Mapped_row mapped_row;
   std::string schema;
   std::string table;
@@ -253,8 +328,8 @@ void User_privileges::parse_privileges(
   auto select_table = [&]() {
     schema = mapped_row.schema;
     table = mapped_row.table;
-    privileges = &m_privileges[schema][table];
-    grants = &m_grants[schema][table];
+    privileges = &m_privileges[user_role][schema][table];
+    grants = &m_grants[user_role][schema][table];
   };
 
   select_table();
@@ -271,18 +346,162 @@ void User_privileges::parse_privileges(
   }
 }
 
-void User_privileges::read_global_privileges(
+std::set<std::string> User_privileges::get_mandatory_roles(
+    const std::shared_ptr<db::ISession> &session) const {
+  // Get value of the system variable with the mandatory roles.
+  std::string query{"SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'"};
+  auto result = session->query(query);
+  auto row = result->fetch_one();
+  std::string str_roles = row->get_string(1);
+
+  // Return an empty set if no mandatory roles are defined.
+  if (str_roles.empty()) {
+    return std::set<std::string>{};
+  }
+
+  // Convert the string value for 'mandatory_roles to a set of strings, each
+  // role with the format '<user>'@'<host>'.
+  std::set<std::string> mandatory_roles;
+
+  std::vector<std::string> roles =
+      shcore::str_split(shcore::str_strip(str_roles), ",", -1);
+
+  for (const std::string role : roles) {
+    // Split each role account to handle backticks and the optional host part.
+    std::string user, host;
+    shcore::split_account(role, &user, &host);
+
+    // If the host part is not defined then % must be used by default.
+    if (host.empty()) {
+      host = '%';
+    }
+
+    // Insert role in the resulting set with the desired format.
+    mandatory_roles.insert(shcore::make_account(user, host));
+  }
+
+  return mandatory_roles;
+}
+
+void User_privileges::read_user_roles(
     const std::shared_ptr<db::ISession> &session) {
+  // Get user and host parts from the user account.
+  std::string user, host;
+  shcore::split_account(m_account, &user, &host);
+
+  // Get value of system variable that indicates if all roles are active.
+  std::string query{"SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'"};
+  auto result = session->query(query);
+  auto row = result->fetch_one();
+  bool all_roles_active = (row->get_string(1) == "ON") ? true : false;
+
+  std::set<std::string> active_roles;
+  if (!all_roles_active) {
+    // Get active roles for the user account (specified with SET DEFAULT ROLE).
+    // NOTE: activate_all_roles_on_login as precedence over default roles.
+    shcore::sqlstring sql_query = shcore::sqlstring(
+        "SELECT default_role_user, default_role_host "
+        "FROM mysql.default_roles WHERE user = ? AND host = ?",
+        0);
+    sql_query << user;
+    sql_query << host;
+    sql_query.done();
+    result = session->query(sql_query);
+    row = result->fetch_one();
+
+    // If there are no active roles then exit.
+    if (!row) {
+      return;
+    }
+
+    // Get all active roles
+    while (row) {
+      std::string role_user = row->get_string(0);
+      std::string role_host = row->get_string(1);
+      active_roles.emplace(shcore::make_account(role_user, role_host));
+      row = result->fetch_one();
+    }
+  }
+
+  // Get all roles to obtain hierarchy and dependency between roles.
+  std::unordered_map<std::string, std::set<std::string>> all_roles;
+  query =
+      "SELECT from_user, from_host, to_user, to_host "
+      "FROM mysql.role_edges";
+  result = session->query(query);
+  row = result->fetch_one();
+  while (row) {
+    std::string from_role =
+        shcore::make_account(row->get_string(0), row->get_string(1));
+    std::string to_role =
+        shcore::make_account(row->get_string(2), row->get_string(3));
+
+    // Each role/user can have multiple roles/users associated to it.
+    auto it = all_roles.find(to_role);
+    if (it == all_roles.end()) {
+      // New role/user association.
+      all_roles.emplace(to_role, std::set<std::string>{from_role});
+    } else {
+      // Add another role/user association to an existing one.
+      it->second.emplace(from_role);
+    }
+    row = result->fetch_one();
+  }
+
+  // Get mandatory roles and add them to the user.
+  std::set<std::string> mandatory_roles = get_mandatory_roles(session);
+  if (!mandatory_roles.empty()) {
+    auto it = all_roles.find(m_account);
+    if (it == all_roles.end()) {
+      // No roles defined for the user, add the mandatory roles
+      all_roles.emplace(m_account, std::set<std::string>{mandatory_roles});
+    } else {
+      // Already exist roles defined for user, add the mandatory roles.
+      it->second.insert(mandatory_roles.begin(), mandatory_roles.end());
+    }
+  }
+
+  // 'activate_all_roles_on_login' is ON then all roles associated to the user
+  // are active (if he has any).
+  if (all_roles_active) {
+    auto it = all_roles.find(m_account);
+    if (it != all_roles.end()) {
+      active_roles.insert(it->second.begin(), it->second.end());
+    }
+  }
+
+  // Initial result list contains: user account + all (active) associated roles.
+  // NOTE: user account is added because it can be granted to a role it has.
+  m_roles.emplace(m_account);
+  m_roles.insert(active_roles.begin(), active_roles.end());
+
+  // Get remaining child roles for all active roles and add them to the result
+  // role list.
+  // NOTE: Role dependencies ("sub-roles") are automatically active (behaviour
+  // confirmed with the server team).
+  for (const std::string active_role : active_roles) {
+    get_child_roles(all_roles, &m_roles, active_role);
+  }
+
+  // Remove the user account to set assigned user/roles (excluding itself).
+  m_roles.erase(m_account);
+}
+
+void User_privileges::read_global_privileges(
+    const std::shared_ptr<db::ISession> &session,
+    const std::string &user_role) {
   const char *const query =
       "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
       "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
       "WHERE GRANTEE = ?";
 
-  read_privileges(session, query, [](const db::IRow *const, Mapped_row *) {});
+  read_privileges(session, query, [](const db::IRow *const, Mapped_row *) {},
+                  user_role);
 }
 
 void User_privileges::read_schema_privileges(
-    const std::shared_ptr<db::ISession> &session) {
+    const std::shared_ptr<db::ISession> &session,
+    const std::string &user_role) {
   const char *const query =
       "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
       "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
@@ -291,11 +510,13 @@ void User_privileges::read_schema_privileges(
   read_privileges(session, query,
                   [](const db::IRow *const row, Mapped_row *result) {
                     result->schema = row->get_string(2);
-                  });
+                  },
+                  user_role);
 }
 
 void User_privileges::read_table_privileges(
-    const std::shared_ptr<db::ISession> &session) {
+    const std::shared_ptr<db::ISession> &session,
+    const std::string &user_role) {
   const char *const query =
       "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
       "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
@@ -305,18 +526,19 @@ void User_privileges::read_table_privileges(
                   [](const db::IRow *const row, Mapped_row *result) {
                     result->schema = row->get_string(2);
                     result->table = row->get_string(3);
-                  });
+                  },
+                  user_role);
 }
 
 void User_privileges::read_privileges(
     const std::shared_ptr<db::ISession> &session, const char *const query,
-    Row_mapper map_row) {
+    Row_mapper map_row, const std::string &user_role) {
   shcore::sqlstring sql_query = shcore::sqlstring(query, 0);
 
-  sql_query << m_account;
+  sql_query << user_role;
   sql_query.done();
 
-  parse_privileges(session->query(sql_query), map_row);
+  parse_privileges(session->query(sql_query), map_row, user_role);
 }
 
 User_privileges_result::User_privileges_result(

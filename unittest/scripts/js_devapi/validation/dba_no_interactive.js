@@ -150,7 +150,11 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was configured for use in a
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
 
-//@# Dba: configureLocalInstance not enough privileges
+//@# Dba: configureLocalInstance not enough privileges {VER(>=8.0.0)}
+|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
+
+//@# Dba: configureLocalInstance not enough privileges {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'<<<localhost>>>' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
 |Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|

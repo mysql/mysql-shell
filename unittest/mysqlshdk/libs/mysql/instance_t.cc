@@ -1048,6 +1048,29 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
              {"DROP", "YES", "test_db", "t2"},
              {"ALTER", "YES", "test_db", "t2"}}}});
 
+  // Simulate 8.0.0 version is always used.
+  EXPECT_CALL(session, get_server_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
+
+  // User with no roles.
+  session
+      .expect_query("SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String},
+                     {{"activate_all_roles_on_login", "OFF"}}}});
+  session
+      .expect_query(
+          "SELECT default_role_user, default_role_host "
+          "FROM mysql.default_roles "
+          "WHERE user = 'test_user' AND host = 'test_host'")
+      .then_return({{
+          "",
+          {"default_role_user", "default_role_host"},
+          {Type::String, Type::String},
+          {}  // No Records.
+      }});
+
   auto up = instance.get_user_privileges("test_user", "test_host");
 
   ASSERT_TRUE(nullptr != up);

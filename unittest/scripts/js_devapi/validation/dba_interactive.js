@@ -169,7 +169,11 @@ The instance cluster settings were successfully persisted.
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
 
-//@# Dba: configureLocalInstance not enough privileges 1
+//@# Dba: configureLocalInstance not enough privileges 1 {VER(>=8.0.0)}
+|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
+
+//@# Dba: configureLocalInstance not enough privileges 1 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
 |Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
@@ -178,8 +182,11 @@ The instance cluster settings were successfully persisted.
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
+//@# Dba: configureLocalInstance not enough privileges 2 {VER(>=8.0.0)}
+|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
 
-//@# Dba: configureLocalInstance not enough privileges 2
+//@# Dba: configureLocalInstance not enough privileges 2 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
 |Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
@@ -188,8 +195,11 @@ The instance cluster settings were successfully persisted.
 |For more information, see the online documentation.|
 ||Dba.configureLocalInstance: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
+//@# Dba: configureLocalInstance not enough privileges 3 {VER(>=8.0.0)}
+|ERROR: Unable to check privileges for user 'missingprivileges'@'<<<localhost>>>'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
 
-//@# Dba: configureLocalInstance not enough privileges 3
+//@# Dba: configureLocalInstance not enough privileges 3 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN.|
 |Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
@@ -290,7 +300,11 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 //@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|
 
-//@# Check if all missing privileges are reported for user with no privileges
+//@# Check if all missing privileges are reported for user with no privileges {VER(>=8.0.0)}
+|ERROR: Unable to check privileges for user 'no_privileges'@'%'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
+||Dba.configureLocalInstance: Unable to get roles information. (RuntimeError)
+
+//@# Check if all missing privileges are reported for user with no privileges {VER(<8.0.0)}
 |ERROR: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster:|
 |Missing global privileges: CREATE USER, FILE, GRANT OPTION, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER.|
 |Missing privileges on schema 'mysql': DELETE, INSERT, SELECT, UPDATE.|
