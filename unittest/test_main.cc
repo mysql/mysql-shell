@@ -367,6 +367,38 @@ static void catch_segv(int sig) {
 #define unsetenv(var) _putenv(var "=")
 #endif
 
+#ifdef __APPLE__
+static std::string get_test_keychain() {
+  static constexpr auto k_keychain = "mysqlsh-test-keychain";
+  return shcore::path::join_path(shcore::get_user_config_path(), k_keychain);
+}
+
+static void setup_test_keychain() {
+  const auto keychain = get_test_keychain();
+
+  std::cout << "Using keychain: " << keychain << std::endl;
+  std::cout << "Deleting old keychain (may fail): "
+            << system(("security delete-keychain " + keychain).c_str())
+            << std::endl;
+  std::cout << "Creating keychain: "
+            << system(("security create-keychain -p pass " + keychain).c_str())
+            << std::endl;
+  std::cout << "Disabling timeout: "
+            << system(("security set-keychain-settings " + keychain).c_str())
+            << std::endl;
+
+  static std::string env = "MYSQLSH_CREDENTIAL_STORE_KEYCHAIN=" + keychain;
+  putenv(&env[0]);
+}
+
+static void remove_test_keychain() {
+  const auto keychain = get_test_keychain();
+  std::cout << "Deleting test keychain: "
+            << system(("security delete-keychain " + keychain).c_str())
+            << std::endl;
+}
+#endif  // __APPLE__
+
 void setup_test_environment() {
   if (!getenv("MYSQL_PORT")) {
     if (putenv(const_cast<char *>("MYSQL_PORT=3306")) != 0) {
@@ -479,14 +511,7 @@ void setup_test_environment() {
   }
 
 #ifdef __APPLE__
-#define MACOS_TEST_KEYCHAIN "mysqlsh-test-keychain"
-  system("security delete-keychain " MACOS_TEST_KEYCHAIN " >/dev/null 2>&1");
-  system("security create-keychain -p pass " MACOS_TEST_KEYCHAIN
-         " >/dev/null 2>&1");
-  system("security set-keychain-settings " MACOS_TEST_KEYCHAIN
-         " >/dev/null 2>&1");
-  putenv(const_cast<char *>(
-      "MYSQLSH_CREDENTIAL_STORE_KEYCHAIN=" MACOS_TEST_KEYCHAIN));
+  setup_test_keychain();
 #endif  // __APPLE__
 
   // disable PAGER so it doesn't break the tests
@@ -797,7 +822,7 @@ int main(int argc, char **argv) {
   mysqlsh::global_end();
 
 #ifdef __APPLE__
-  system("security delete-keychain " MACOS_TEST_KEYCHAIN " >/dev/null 2>&1");
+  remove_test_keychain();
 #endif  // __APPLE__
 
   return ret_val;
