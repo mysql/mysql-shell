@@ -1,8 +1,8 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 function get_cluster_id(cluster_name) {
     var result = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_name = '" + cluster_name + "'");

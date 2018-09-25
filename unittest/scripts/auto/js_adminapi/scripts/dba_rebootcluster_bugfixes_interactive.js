@@ -1,7 +1,7 @@
 //@ Deploy sandboxes
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 // BUG#28207565: DBA.REBOOTCLUSTERFROMCOMPLETEOUTAGE DOES NOT USE DEFAULT
 // CLUSTER

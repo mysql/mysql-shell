@@ -127,7 +127,7 @@ DESCRIPTION
       - READ_ONLY: if used, the instance switches itself to super-read-only
         mode if it leaves the cluster unintentionally.
 
-      If exitStateAction is not specified ABORT_SERVER will be used by default.
+      If exitStateAction is not specified READ_ONLY will be used by default.
 
       The ipWhitelist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
@@ -159,8 +159,7 @@ DESCRIPTION
       the instance shuts itself down, and when set to READ_ONLY the server
       switches itself to super-read-only mode. The exitStateAction option
       accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is
-      ABORT_SERVER.
+      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
 
       The value for memberWeight is used to set the Group Replication system
       variable 'group_replication_member_weight'. The memberWeight option

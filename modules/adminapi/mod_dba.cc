@@ -781,7 +781,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL26,
               "super-read-only mode if it leaves the cluster "
               "unintentionally.");
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL27,
-              "If exitStateAction is not specified ABORT_SERVER will be used "
+              "If exitStateAction is not specified READ_ONLY will be used "
               "by default.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL28,
@@ -831,7 +831,7 @@ REGISTER_HELP(DBA_CREATECLUSTER_DETAIL33,
               "super-read-only mode. The exitStateAction option accepts "
               "case-insensitive string values, being the accepted values: "
               "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
-              "ABORT_SERVER.");
+              "READ_ONLY.");
 
 REGISTER_HELP(DBA_CREATECLUSTER_DETAIL34,
               "The value for memberWeight is used to set the Group Replication "
@@ -1081,6 +1081,15 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
             " Using adoptFromGR mode will adopt the primary mode in use by the "
             "Cluster.");
       }
+    }
+
+    // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
+    // - exitStateAction default value must be READ_ONLY
+    // - exitStateAction default value should only be set if supported in
+    // the target instance
+    if (exit_state_action.empty() &&
+        is_exit_state_action_supported(group_session)) {
+      exit_state_action = "READ_ONLY";
     }
 
     // TODO(alfredo) - this check might be redundant with the ones done
