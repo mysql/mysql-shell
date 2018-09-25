@@ -555,15 +555,28 @@ bool UNUSED_VARIABLE(register_enum_set_element_length_check) =
 }
 
 std::unique_ptr<Sql_upgrade_check>
-Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check() {
+Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
+    const mysqlshdk::utils::Version &ver) {
   return std::unique_ptr<Sql_upgrade_check>(new Sql_upgrade_check(
       "partitionedTablesInSharedTablespaceCheck",
       "Usage of partitioned tables in shared tablespaces",
-      {"SELECT TABLE_SCHEMA, TABLE_NAME, concat('Partition ', PARTITION_NAME, "
-       "' is in shared tablespace ', TABLESPACE_NAME) as description FROM "
-       "information_schema.PARTITIONS WHERE PARTITION_NAME IS NOT NULL AND "
-       "(TABLESPACE_NAME IS NOT NULL AND "
-       "TABLESPACE_NAME!='innodb_file_per_table');"},
+      {ver < Version(8, 0, 0)
+           ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
+             "concat('Partition ', PARTITION_NAME, "
+             "' is in shared tablespace ', TABLESPACE_NAME) "
+             "as description FROM "
+             "information_schema.PARTITIONS WHERE "
+             "PARTITION_NAME IS NOT NULL AND "
+             "(TABLESPACE_NAME IS NOT NULL AND "
+             "TABLESPACE_NAME!='innodb_file_per_table');"
+           : "select SUBSTRING_INDEX(it.name, '/', 1), "
+             "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, '/', -1), '#', 1), "
+             "concat('Partition ', SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, "
+             "'/', -1), '#', -1), ' is in shared tablespce ', itb.name) from "
+             "information_schema.INNODB_TABLES it, "
+             "information_schema.INNODB_TABLESPACES itb where it.SPACE = "
+             "itb.space and it.name like '%#P#%' and it.space_type != "
+             "'Single';"},
       Upgrade_issue::ERROR,
       "The following tables have partitions in shared tablespaces. Before "
       "upgrading to 8.0 they need to be moved to file-per-table tablespace. "
@@ -576,7 +589,8 @@ namespace {
 bool UNUSED_VARIABLE(register_sharded_tablespaces) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::
-                      get_partitioned_tables_in_shared_tablespaces_check),
+                      get_partitioned_tables_in_shared_tablespaces_check,
+                  std::placeholders::_1),
         "8.0.11", "8.0.13");
 }
 

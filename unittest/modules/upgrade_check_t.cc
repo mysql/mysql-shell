@@ -417,11 +417,12 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
 
 TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
   if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
+      _target_server_version >= Version(8, 0, 13))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("aaa_test_partitioned_in_shared");
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check();
+      Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
+          _target_server_version);
   std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session));
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
