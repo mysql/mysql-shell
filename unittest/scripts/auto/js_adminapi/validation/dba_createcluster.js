@@ -47,10 +47,10 @@ READ_ONLY
 //@ WL#12049: Dissolve cluster 4 {VER(>=5.7.24)}
 ||
 
-//@ WL#12049: Create cluster {VER(>=8.0.11)}
+//@ WL#12049: Create cluster {VER(>=8.0.12)}
 ||
 
-//@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
+//@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
@@ -62,17 +62,18 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
-//@ WL#12049: Dissolve cluster 6 {VER(>=8.0.11)}
+//@ WL#12049: Dissolve cluster 6 {VER(>=8.0.12)}
 ||
 
 //@ WL#12049: Initialize new instance
 ||
 
-//@ WL#12049: Create cluster 2 {VER(>=8.0.11)}
+//@ WL#12049: Create cluster 2 {VER(>=8.0.12)}
 ||
 
-//@<OUT> WL#12049: exitStateAction must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
+//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -127,8 +128,9 @@ group_replication_start_on_boot = ON
 //@ WL#11032: Create cluster {VER(>=8.0.11)}
 ||
 
-//@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
+//@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+group_replication_exit_state_action = READ_ONLY
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
@@ -148,8 +150,9 @@ group_replication_start_on_boot = ON
 //@ WL#11032: Create cluster 2 {VER(>=8.0.11)}
 ||
 
-//@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
+//@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -157,7 +160,6 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-
 
 //@ WL#11032: Finalization
 ||

@@ -122,20 +122,20 @@ print_gr_exit_state_action();
 //@ WL#12049: Dissolve cluster 4 {VER(>=5.7.24)}
 c.dissolve({force: true});
 
-// Verify if exitStateAction is persisted on >= 8.0.11
+// Verify if exitStateAction is persisted on >= 8.0.12
 
 // F2 - On a successful [dba.]createCluster() or [Cluster.]addInstance() call
 // using the option exitStateAction, the GR sysvar
 // group_replication_exit_state_action must be persisted using SET PERSIST at
-// the target instance, if the MySQL Server instance version is >= 8.0.11.
+// the target instance, if the MySQL Server instance version is >= 8.0.12.
 
-//@ WL#12049: Create cluster {VER(>=8.0.11)}
+//@ WL#12049: Create cluster {VER(>=8.0.12)}
 var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY"});
 
-//@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
+//@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
 print_persisted_variables(session);
 
-//@ WL#12049: Dissolve cluster 6 {VER(>=8.0.11)}
+//@ WL#12049: Dissolve cluster 6 {VER(>=8.0.12)}
 c.dissolve({force: true});
 
 // Verify that group_replication_exit_state_action is not persisted when not used
@@ -148,10 +148,10 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 
 shell.connect(__sandbox_uri1);
 
-//@ WL#12049: Create cluster 2 {VER(>=8.0.11)}
+//@ WL#12049: Create cluster 2 {VER(>=8.0.12)}
 var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
-//@<OUT> WL#12049: exitStateAction must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.11)}
+//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
 print_persisted_variables(session);
 
 //@ WL#12049: Finalization

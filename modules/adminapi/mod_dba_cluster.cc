@@ -402,7 +402,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL21,
               "super-read-only mode if it leaves the cluster "
               "unintentionally.");
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL22,
-              "If exitStateAction is not specified ABORT_SERVER will be used "
+              "If exitStateAction is not specified READ_ONLY will be used "
               "by default.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL23,
@@ -452,7 +452,7 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL27,
               "super-read-only mode. The exitStateAction option accepts "
               "case-insensitive string values, being the accepted values: "
               "ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is "
-              "ABORT_SERVER.");
+              "READ_ONLY.");
 
 REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL28,
               "The value for memberWeight is used to set the Group Replication "
