@@ -125,7 +125,8 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check();
   static std::unique_ptr<Sql_upgrade_check> get_enum_set_element_length_check();
   static std::unique_ptr<Sql_upgrade_check>
-  get_partitioned_tables_in_shared_tablespaces_check();
+  get_partitioned_tables_in_shared_tablespaces_check(
+      const mysqlshdk::utils::Version &ver);
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
   static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
 
