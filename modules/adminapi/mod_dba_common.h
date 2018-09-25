@@ -129,6 +129,8 @@ void validate_ip_whitelist_option(const std::string &ip_whitelist,
 void validate_local_address_option(const shcore::Value::Map_type_ref &options);
 void validate_group_seeds_option(const shcore::Value::Map_type_ref &options);
 void validate_group_name_option(const shcore::Value::Map_type_ref &options);
+bool is_exit_state_action_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_exit_state_action_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_member_weight_supported(

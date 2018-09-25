@@ -493,6 +493,14 @@ shcore::Value ReplicaSet::add_instance(
     }
   }
 
+  // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
+  // - exitStateAction default value must be READ_ONLY
+  // - exitStateAction default value should only be set if supported in
+  // the target instance
+  if (exit_state_action.empty() && is_exit_state_action_supported(session)) {
+    exit_state_action = "READ_ONLY";
+  }
+
   // Retrieves the instance definition
   auto target_coptions = session->get_connection_options();
 

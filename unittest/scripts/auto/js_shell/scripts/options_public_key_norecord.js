@@ -1,5 +1,5 @@
 //@ GlobalSetUp {VER(>=8.0.4)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
 var rootsess = mysql.getClassicSession(__sandbox_uri1);
 
 rootsess.runSql("CREATE USER local_blank@localhost IDENTIFIED WITH caching_sha2_password BY ''");

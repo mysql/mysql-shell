@@ -1,9 +1,9 @@
 //@ Deploy sandboxes
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {loose_group_replication_exit_state_action: "READ_ONLY"});
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
