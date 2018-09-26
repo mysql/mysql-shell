@@ -656,7 +656,7 @@ void Command_line_shell::command_loop() {
         // Ensure prompt is in its own line, in case there was any output
         // without a \n
         if (_output_printed) {
-          mysqlsh::current_console()->print("\n");
+          write_to_console(fileno(stdout), "\n");
           _output_printed = false;
         }
         char *tmp = Command_line_shell::readline(prompt().c_str());
@@ -677,7 +677,7 @@ void Command_line_shell::command_loop() {
         }
       } else {
         if (options().full_interactive)
-          mysqlsh::current_console()->print(prompt());
+          write_to_console(fileno(stdout), prompt().c_str());
         if (!std::getline(std::cin, cmd)) {
           if (_interrupted || !std::cin.eof()) {
             _interrupted = false;
@@ -686,7 +686,8 @@ void Command_line_shell::command_loop() {
           break;
         }
       }
-      if (options().full_interactive) mysqlsh::current_console()->println(cmd);
+      if (options().full_interactive)
+        write_to_console(fileno(stdout), (cmd + "\n").c_str());
     }
     process_line(cmd);
     reconnect_if_needed();
