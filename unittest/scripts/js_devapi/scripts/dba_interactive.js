@@ -333,6 +333,29 @@ var c2 = dba.getCluster("over40chars_12345678901234567890123456789");
 var c2 = dba.getCluster('devCluster');
 c2;
 
+//@ Dba: getCluser validate object serialization output - tabbed
+const original_output = shell.options.outputFormat
+shell.options.outputFormat = 'tabbed'
+c2;
+
+//@ Dba: getCluser validate object serialization output - table
+shell.options.outputFormat = 'table'
+c2;
+
+//@ Dba: getCluser validate object serialization output - vertical
+shell.options.outputFormat = 'vertical'
+c2;
+
+//@ Dba: getCluser validate object serialization output - json
+shell.options.outputFormat = 'json'
+c2;
+
+//@ Dba: getCluser validate object serialization output - json/raw
+shell.options.outputFormat = 'json/raw'
+c2;
+
+shell.options.outputFormat = original_output
+
 //@<OUT> Dba: getCluster with interaction (default)
 var c3 = dba.getCluster();
 c3;

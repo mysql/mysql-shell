@@ -29,6 +29,7 @@
 #include <vector>
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "scripting/types_cpp.h"
+#include "utils/utils_json.h"
 
 namespace mysqlsh {
 
@@ -86,6 +87,8 @@ class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
   void set_member(const std::string &prop, shcore::Value value) override;
   std::string &append_descr(std::string &s_out, int indent = -1,
                             int quote_strings = 0) const override;
+
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
 #if DOXYGEN_JS
   Undefined set(String optionName, Value value);

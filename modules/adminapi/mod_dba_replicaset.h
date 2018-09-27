@@ -60,12 +60,13 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   static std::set<std::string> _rejoin_instance_opts;
 
-  virtual std::string class_name() const { return "ReplicaSet"; }
-  virtual std::string &append_descr(std::string &s_out, int indent = -1,
-                                    int quote_strings = 0) const;
-  virtual bool operator==(const Object_bridge &other) const;
+  std::string class_name() const override { return "ReplicaSet"; }
+  std::string &append_descr(std::string &s_out, int indent = -1,
+                            int quote_strings = 0) const override;
+  void append_json(shcore::JSON_dumper &dumper) const override;
+  bool operator==(const Object_bridge &other) const override;
 
-  virtual shcore::Value get_member(const std::string &prop) const;
+  shcore::Value get_member(const std::string &prop) const override;
 
   void set_id(uint64_t id) { _id = id; }
   uint64_t get_id() { return _id; }

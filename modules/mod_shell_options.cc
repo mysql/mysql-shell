@@ -129,6 +129,14 @@ std::string &Options::append_descr(std::string &s_out, int indent,
   return s_out;
 }
 
+void Options::append_json(shcore::JSON_dumper &dumper) const {
+  dumper.start_object();
+  for (const auto &name : shell_options->get_named_options()) {
+    dumper.append_value(name, Value(shell_options->get(name)));
+  }
+  dumper.end_object();
+}
+
 bool Options::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name();
 }

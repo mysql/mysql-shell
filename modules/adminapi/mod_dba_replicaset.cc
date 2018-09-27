@@ -101,6 +101,13 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent),
   return s_out;
 }
 
+void ReplicaSet::append_json(shcore::JSON_dumper &dumper) const {
+  dumper.start_object();
+  dumper.append_string("class", class_name());
+  dumper.append_string("name", _name);
+  dumper.end_object();
+}
+
 static void append_member_status(const shcore::Value::Map_type_ref &node,
                                  const Instance_definition &instance,
                                  bool read_write,

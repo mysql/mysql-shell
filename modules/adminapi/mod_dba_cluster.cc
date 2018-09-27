@@ -90,6 +90,13 @@ std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
   return s_out;
 }
 
+void Cluster::append_json(shcore::JSON_dumper &dumper) const {
+  dumper.start_object();
+  dumper.append_string("class", class_name());
+  dumper.append_string("name", _name);
+  dumper.end_object();
+}
+
 bool Cluster::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }

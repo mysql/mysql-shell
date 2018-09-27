@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_MOD_DBA_CLUSTER_H_
 #define MODULES_ADMINAPI_MOD_DBA_CLUSTER_H_
 
+#include <memory>
 #include <string>
 
 #include "scripting/types.h"
@@ -84,14 +85,15 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
           std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~Cluster();
 
-  virtual std::string class_name() const { return "Cluster"; }
-  virtual std::string &append_descr(std::string &s_out, int indent = -1,
-                                    int quote_strings = 0) const;
-  virtual bool operator==(const Object_bridge &other) const;
+  std::string class_name() const override { return "Cluster"; }
+  std::string &append_descr(std::string &s_out, int indent = -1,
+                            int quote_strings = 0) const override;
+  void append_json(shcore::JSON_dumper &dumper) const override;
+  bool operator==(const Object_bridge &other) const override;
 
-  virtual shcore::Value call(const std::string &name,
-                             const shcore::Argument_list &args);
-  virtual shcore::Value get_member(const std::string &prop) const;
+  shcore::Value call(const std::string &name,
+                     const shcore::Argument_list &args) override;
+  shcore::Value get_member(const std::string &prop) const override;
 
   uint64_t get_id() const { return _id; }
   void set_id(uint64_t id) { _id = id; }
