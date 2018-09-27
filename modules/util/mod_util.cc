@@ -154,7 +154,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
                  const std::string &text) override {
     auto console = mysqlsh::current_console();
 
-    console->print("\n");
+    console->raw_print("\n", mysqlsh::Output_stream::STDOUT, false);
     console->print(shcore::str_format("Errors:   %d\n", error));
     console->print(shcore::str_format("Warnings: %d\n", warning));
     console->print(shcore::str_format("Notices:  %d\n\n", notice));

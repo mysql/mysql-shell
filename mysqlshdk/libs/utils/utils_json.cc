@@ -169,6 +169,10 @@ void JSON_dumper::append_string(const std::string &data) const {
   _writer->append_string(data);
 }
 
+void JSON_dumper::append_string(const char *data, size_t length) const {
+  _writer->append_string(data, length);
+}
+
 void JSON_dumper::append_string(const std::string &key,
                                 const std::string &data) const {
   _writer->append_string(key);
@@ -182,4 +186,10 @@ void JSON_dumper::append_float(double data) const {
 void JSON_dumper::append_float(const std::string &key, double data) const {
   _writer->append_string(key);
   _writer->append_float(data);
+}
+
+void JSON_dumper::append_json(const std::string &data) const {
+  rapidjson::Document document;
+  document.Parse(data.c_str());
+  _writer->append_document(document);
 }

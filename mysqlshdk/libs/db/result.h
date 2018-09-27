@@ -65,6 +65,9 @@ class SHCORE_PUBLIC IResult {
     return Row_ref_map(field_names(), fetch_one());
   }
 
+  double get_execution_time() const { return m_execution_time; }
+  void set_execution_time(double time) { m_execution_time = time; }
+
   virtual bool next_resultset() = 0;
 
   /**
@@ -89,7 +92,13 @@ class SHCORE_PUBLIC IResult {
   virtual const std::vector<Column> &get_metadata() const = 0;
   virtual std::shared_ptr<Field_names> field_names() const = 0;
 
+  virtual void buffer() = 0;
+  virtual void rewind() = 0;
+
   virtual ~IResult() {}
+
+ protected:
+  double m_execution_time;
 };
 
 }  // namespace db

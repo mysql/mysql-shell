@@ -111,6 +111,9 @@ class Mock_result : public mysqlshdk::db::IResult {
   virtual const mysqlshdk::db::IRow *fetch_one();
   virtual std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
 
+  virtual void rewind() {}
+  virtual void buffer() {}
+
   virtual ~Mock_result() {}
 
   void add_result(const std::vector<std::string> &names,

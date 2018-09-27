@@ -10,8 +10,8 @@
 //@<OUT> find()
 [
     {
-        "_id": "1",
-        "a": 1
+        "a": 1,
+        "_id": "1"
     },
     {
         "_id": "2",
@@ -31,13 +31,11 @@
     },
     {
         "_id": "6",
-        "new_line": "\\n is a newline
-this is second line."
+        "new_line": "\\n is a newline\nthis is second line."
     },
     {
         "_id": "7",
-        "tab_stop": "\\t is a tab stop
-	newline with tab stop."
+        "tab_stop": "\\t is a tab stop\n\tnewline with tab stop."
     }
 ]
 

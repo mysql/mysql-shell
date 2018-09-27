@@ -25,7 +25,6 @@
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
-#include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_string.h"
 
@@ -1257,13 +1256,9 @@ shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
 
 shcore::Value CollectionModify::execute() {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
-  mysqlshdk::utils::Profile_timer timer;
   insert_bound_values(message_.mutable_args());
-  timer.stage_begin("CollectionModify::execute");
   result.reset(new mysqlx::Result(safe_exec(
       [this]() { return session()->session()->execute_crud(message_); })));
-  timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

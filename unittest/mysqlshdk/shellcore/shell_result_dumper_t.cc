@@ -50,7 +50,7 @@ void test_get_data_sizes(const char *file, int line, const char *text,
   }
 }
 
-TEST(ResultsetDumper, get_data_sizes) {
+TEST(Resultset_dumper, get_data_sizes) {
   TEST_DATA_SIZES("AB\0CD", 5, Print_flags(), 4, 5);
   TEST_DATA_SIZES("AB\0CD", 5, Print_flags(Print_flag::PRINT_0_AS_SPC), 5, 5);
   TEST_DATA_SIZES("AB\0CD", 5, Print_flags(Print_flag::PRINT_0_AS_ESC), 6, 6);

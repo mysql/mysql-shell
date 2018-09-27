@@ -38,7 +38,6 @@
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session_sql.h"
 #include "modules/mod_utils.h"
-#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_uuid.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/object_factory.h"
@@ -1148,17 +1147,11 @@ shcore::Value Session::_execute_stmt(const std::string &ns,
                                      const std::string &command,
                                      const ::xcl::Arguments &args,
                                      bool expect_data) {
-  mysqlshdk::utils::Profile_timer timer;
-  timer.stage_begin("Session::execute_stmt");
   if (expect_data) {
     SqlResult *result = new SqlResult(execute_stmt(ns, command, args));
-    timer.stage_end();
-    result->set_execution_time(timer.total_seconds_ellapsed());
     return shcore::Value::wrap(result);
   } else {
     Result *result = new Result(execute_stmt(ns, command, args));
-    timer.stage_end();
-    result->set_execution_time(timer.total_seconds_ellapsed());
     return shcore::Value::wrap(result);
   }
   return {};
@@ -1176,11 +1169,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
 
 shcore::Value Session::_execute_sql(const std::string &statement,
                                     const shcore::Argument_list &args) {
-  mysqlshdk::utils::Profile_timer timer;
-  timer.stage_begin("Session::execute_sql");
   SqlResult *result = new SqlResult(execute_sql(statement, args));
-  timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
   return shcore::Value::wrap(result);
 }
 

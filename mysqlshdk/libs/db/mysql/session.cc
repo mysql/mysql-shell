@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <mysql_version.h>
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "utils/utils_general.h"
 
 namespace mysqlshdk {
@@ -219,6 +220,8 @@ void Session_impl::execute(const std::string &sql) {
 std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
                                                bool buffered) {
   if (_mysql == nullptr) throw std::runtime_error("Not connected");
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("run_sql");
   if (_prev_result) {
     _prev_result.reset();
   } else {
@@ -243,7 +246,8 @@ std::shared_ptr<IResult> Session_impl::run_sql(const std::string &query,
                  mysql_info(_mysql)));
 
   prepare_fetch(result.get(), buffered);
-
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
   return std::static_pointer_cast<IResult>(result);
 }
 

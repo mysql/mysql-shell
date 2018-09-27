@@ -38,7 +38,6 @@
 
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_utils.h"
-#include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
@@ -288,15 +287,11 @@ shcore::Value ClassicSession::execute_sql(const std::string &query,
     } else {
       Interruptible intr(this);
       try {
-        mysqlshdk::utils::Profile_timer timer;
-        timer.stage_begin("query");
         ClassicResult *result;
         ret_val = Value::wrap(
             result = new ClassicResult(
                 std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
                     _session->query(sub_query_placeholders(query, args)))));
-        timer.stage_end();
-        result->set_execution_time(timer.total_seconds_ellapsed());
       } catch (const mysqlshdk::db::Error &error) {
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());
@@ -316,15 +311,9 @@ std::shared_ptr<ClassicResult> ClassicSession::execute_sql(
     if (query.empty()) {
       throw Exception::argument_error("No query specified.");
     } else {
-      mysqlshdk::utils::Profile_timer timer;
-      timer.activate();
-      timer.stage_begin("query");
       auto result = std::shared_ptr<ClassicResult>(new ClassicResult(
           std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
               _session->query(query))));
-      timer.stage_end();
-      timer.deactivate();
-      result->set_execution_time(timer.total_seconds_ellapsed());
       return result;
     }
   }

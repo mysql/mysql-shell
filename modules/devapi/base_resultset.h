@@ -34,6 +34,7 @@
 #include "db/column.h"
 #include "db/row.h"
 #include "modules/mod_common.h"
+#include "mysqlshdk/libs/db/result.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
@@ -42,10 +43,10 @@ namespace mysqlsh {
 class ShellBaseResult : public shcore::Cpp_object_bridge {
  public:
   virtual bool operator==(const Object_bridge &other) const;
-
-  // Doing nothing by default to avoid impacting the classic result
-  virtual void buffer() {}
-  virtual bool rewind() { return false; }
+  virtual mysqlshdk::db::IResult *get_result() = 0;
+  bool is_result() const { return class_name() == "Result"; }
+  bool is_doc_result() const { return class_name() == "DocResult"; }
+  bool is_row_result() const { return class_name() == "RowResult"; }
 };
 
 /**

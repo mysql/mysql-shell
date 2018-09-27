@@ -12,10 +12,8 @@
 ||
 
 //@<OUT> check if there are any deprecated warnings (2)
-    "affectedItemsCount": 0,
-    "warningCount": 0,
-    "warningsCount": 0,
-    "warnings": [],
+{
+    "hasData": true,
     "rows": [
         {
             "1": 1,
@@ -23,8 +21,13 @@
             "3": 3
         }
     ],
-    "hasData": true,
+    "executionTime": "[[*]]",
     "affectedRowCount": 0,
+    "affectedItemsCount": 0,
+    "warningCount": 0,
+    "warningsCount": 0,
+    "warnings": [],
+    "info": "",
     "autoIncrementValue": 0
 }
 

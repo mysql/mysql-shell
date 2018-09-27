@@ -684,10 +684,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
                   get_function_name("affectedItemsCount").c_str());
     }
 
-    return shcore::Value(
-        (int64_t)((_result->get_affected_row_count() == ~(my_ulonglong)0)
-                      ? 0
-                      : _result->get_affected_row_count()));
+    return shcore::Value(_result->get_affected_row_count());
   }
 
   if (prop == "warningCount" || prop == "warningsCount") {
@@ -734,7 +731,8 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
   }
 
   if (prop == "executionTime")
-    return shcore::Value(mysqlshdk::utils::format_seconds(_execution_time));
+    return shcore::Value(
+        mysqlshdk::utils::format_seconds(_result->get_execution_time()));
 
   if (prop == "autoIncrementValue")
     return shcore::Value((int)_result->get_auto_increment_value());

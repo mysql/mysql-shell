@@ -1354,31 +1354,6 @@ class XShell_TestCases(unittest.TestCase):
         results = exec_xshell_commands(init_command, x_cmds)
         self.assertEqual(results, 'PASS')
 
-    def test_MYS_224_00(self):
-        """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-224 with node session and json=raw"""
-        results = ''
-        error = ''
-        init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                        '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--mysqlx', '--py', '--json=raw']
-        x_cmds = [("\n", 'mysql-py>'),
-                  ("session\n",
-                   '{"class":"Session","connected":true,"uri":"mysqlx://' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '"}'),
-                  ("\\sql\n", "mysql-sql>"),
-                  ("use world_x;\n",
-                   "{\"info\":\"Default schema set to `world_x`.\"}"),
-                  ("create table test_classic (variable varchar(10));\n",
-                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
-                  ("select * from test_classic;\n",
-                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":0}"),
-                  ("drop table world_x.test_classic;\n",
-                   "\"affectedItemsCount\":0,\"warningCount\":0,\"warningsCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":0}")]
-        xPrompts.add("{\"info\":\"mysql-py> \"}")
-        xPrompts.add("{\"info\":\"mysql-sql> \"}")
-        results = exec_xshell_commands(init_command, x_cmds)
-        xPrompts.remove_last()
-        xPrompts.remove_last()
-        self.assertEqual(results, 'PASS')
-
     def test_MYS_225_00(self):
         """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-225 with classic session"""
         results = ''

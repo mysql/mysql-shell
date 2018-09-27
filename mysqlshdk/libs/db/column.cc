@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,6 +127,12 @@ std::string Column::get_collation_name() const {
 
 std::string Column::get_charset_name() const {
   return charset::charset_name_from_collation_id(_collation_id);
+}
+
+bool Column::is_numeric() const {
+  return (_type == Type::Integer || _type == Type::UInteger ||
+          _type == Type::Float || _type == Type::Decimal ||
+          _type == Type::Double);
 }
 
 }  // namespace db

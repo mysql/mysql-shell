@@ -29,6 +29,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
 
@@ -432,18 +433,23 @@ std::shared_ptr<IResult> XSession_impl::after_query(
   res->fetch_metadata();
   _prev_result = res;
 
-  if (buffered) res->pre_fetch_rows(false);
+  if (buffered) res->pre_fetch_rows(buffered);
 
   return std::static_pointer_cast<IResult>(res);
 }
 
 std::shared_ptr<IResult> XSession_impl::query(const std::string &sql,
                                               bool buffered) {
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("query");
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(_mysql->execute_sql(sql, &error));
   check_error_and_throw(error);
-  return after_query(std::move(xresult), buffered);
+  auto result = after_query(std::move(xresult), buffered);
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
 }
 
 void XSession_impl::execute(const std::string &sql) {
@@ -455,52 +461,77 @@ void XSession_impl::execute(const std::string &sql) {
 std::shared_ptr<IResult> XSession_impl::execute_stmt(
     const std::string &ns, const std::string &stmt,
     const xcl::Arguments &args) {
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("execute_stmt");
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->execute_stmt(ns, stmt, args, &error));
   check_error_and_throw(error);
-  return after_query(std::move(xresult));
+  auto result = after_query(std::move(xresult));
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
 }
 
 std::shared_ptr<IResult> XSession_impl::execute_crud(
     const ::Mysqlx::Crud::Insert &msg) {
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("Mysqlx::Crud::Insert");
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_insert(msg, &error));
   check_error_and_throw(error);
-  return after_query(std::move(xresult));
+  auto result = after_query(std::move(xresult));
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
 }
 
 std::shared_ptr<IResult> XSession_impl::execute_crud(
     const ::Mysqlx::Crud::Update &msg) {
   before_query();
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("Mysqlx::Crud::Update");
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_update(msg, &error));
   check_error_and_throw(error);
-  return after_query(std::move(xresult));
+  auto result = after_query(std::move(xresult));
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
 }
 
 std::shared_ptr<IResult> XSession_impl::execute_crud(
     const ::Mysqlx::Crud::Delete &msg) {
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("Mysqlx::Crud::Delete");
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_delete(msg, &error));
   check_error_and_throw(error);
-  return after_query(std::move(xresult));
+  auto result = after_query(std::move(xresult));
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
 }
 
 std::shared_ptr<IResult> XSession_impl::execute_crud(
     const ::Mysqlx::Crud::Find &msg) {
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("Mysqlx::Crud::Find");
   before_query();
   xcl::XError error;
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->get_protocol().execute_find(msg, &error));
   check_error_and_throw(error);
-  return after_query(std::move(xresult));
+  auto result = after_query(std::move(xresult));
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
 }
 
 void XSession_impl::check_error_and_throw(const xcl::XError &error) {

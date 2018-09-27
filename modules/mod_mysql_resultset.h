@@ -150,13 +150,10 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 
   shcore::Value::Array_type_ref get_columns() const;
 
-  void set_execution_time(double execution_time) {
-    _execution_time = execution_time;
-  }
+  virtual mysqlshdk::db::IResult *get_result() { return _result.get(); };
 
  private:
   std::shared_ptr<mysqlshdk::db::mysql::Result> _result;
-  double _execution_time;
   std::shared_ptr<std::vector<std::string>> _column_names;
   mutable shcore::Value::Array_type_ref _columns;
 };

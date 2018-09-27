@@ -29,6 +29,7 @@
 
 #include "mysqlshdk/libs/db/mysql/row.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "shellcore/interrupt_handler.h"
 #include "utils/utils_general.h"
 
 namespace mysqlshdk {
@@ -74,34 +75,55 @@ void Result::fetch_metadata() {
 Result::~Result() {}
 
 const IRow *Result::fetch_one() {
-  _row.reset();
-  if (has_resultset()) {
-    // Loads the first row
-    std::shared_ptr<MYSQL_RES> res = _result.lock();
+  if (_pre_fetched) {
+    if (!_persistent_pre_fetch) {
+      if (!_pre_fetched_rows.empty()) {
+        if (_fetched_row_count > 0)  // free the previously fetched row
+          _pre_fetched_rows.pop_front();
+        if (!_pre_fetched_rows.empty()) {
+          // return the next row, but don't pop it yet otherwise it'll be freed
+          const IRow *row = &_pre_fetched_rows.front();
+          _fetched_row_count++;
+          return row;
+        }
+      }
+    } else {
+      if (_fetched_row_count < _pre_fetched_rows.size()) {
+        return &_pre_fetched_rows[_fetched_row_count++];
+      }
+    }
+  } else {
+    _row.reset();
+    if (has_resultset()) {
+      // Loads the first row
+      std::shared_ptr<MYSQL_RES> res = _result.lock();
 
-    if (res) {
-      MYSQL_ROW mysql_row = mysql_fetch_row(res.get());
-      if (mysql_row) {
-        unsigned long *lengths;
-        lengths = mysql_fetch_lengths(res.get());
+      if (res) {
+        MYSQL_ROW mysql_row = mysql_fetch_row(res.get());
+        if (mysql_row) {
+          unsigned long *lengths;
+          lengths = mysql_fetch_lengths(res.get());
 
-        _row.reset(new Row(this, mysql_row, lengths));
+          _row.reset(new Row(this, mysql_row, lengths));
 
-        // Each read row increases the count
-        _fetched_row_count++;
-      } else {
-        if (auto session = _session.lock()) {
-          int code = 0;
-          const char *state;
-          const char *err = session->get_last_error(&code, &state);
-          if (code != 0)
-            throw shcore::Exception::mysql_error_with_code_and_state(err, code,
-                                                                     state);
+          // Each read row increases the count
+          _fetched_row_count++;
+        } else {
+          if (auto session = _session.lock()) {
+            int code = 0;
+            const char *state;
+            const char *err = session->get_last_error(&code, &state);
+            if (code != 0)
+              throw shcore::Exception::mysql_error_with_code_and_state(
+                  err, code, state);
+          }
         }
       }
     }
+    return _row.get();
   }
-  return _row.get();
+
+  return nullptr;
 }
 
 bool Result::next_resultset() {
@@ -159,6 +181,33 @@ void Result::reset(std::shared_ptr<MYSQL_RES> res) {
   _result = res;
   if (auto s = _session.lock()) _gtids = s->get_last_gtids();
 }
+
+void Result::buffer() {
+  shcore::Interrupt_handler intr([this]() {
+    stop_pre_fetch();
+    return false;
+  });
+  pre_fetch_rows(true);
+}
+
+bool Result::pre_fetch_rows(bool persistent) {
+  auto result = _result.lock();
+  if (result) {
+    _persistent_pre_fetch = persistent;
+    _stop_pre_fetch = false;
+    if (!has_resultset()) return false;
+    while (auto row = fetch_one()) {
+      if (_stop_pre_fetch) return true;
+      _pre_fetched_rows.push_back(mysqlshdk::db::Row_copy(*row));
+    }
+    _fetched_row_count = 0;
+
+    _pre_fetched = true;
+  }
+  return true;
+}
+
+void Result::stop_pre_fetch() { _stop_pre_fetch = true; }
 
 std::shared_ptr<Field_names> Result::field_names() const {
   if (!_field_names) {

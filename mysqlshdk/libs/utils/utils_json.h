@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,15 +24,53 @@
 #ifndef __MYSH__UTILS_JSON__
 #define __MYSH__UTILS_JSON__
 
+#include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/writer.h>
 #include <string>
 
+#include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk_export.h"
 
 namespace shcore {
-// This class is to wrap the Raw and Pretty writers from rapidjson since
-// they
+/**
+ * Raw JSON wrapper with custom conversion of the Double value using
+ * the my_gcvt function ported from the server, which generates a string
+ * value with the most number of significat digits and thus precision.
+ */
+template <typename T>
+class My_writer : public rapidjson::Writer<T> {
+ public:
+  My_writer(T &outstream) : rapidjson::Writer<T>(outstream) {}
+  bool Double(double data) {
+    char buffer[32];
+    size_t len;
+    len = my_gcvt(data, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer, NULL);
+
+    rapidjson::Writer<T>::Prefix(rapidjson::kNumberType);
+    return rapidjson::Writer<T>::WriteRawValue(buffer, len);
+  }
+};
+
+/**
+ * Pretty JSON wrapper with custom conversion of the Double value using
+ * the my_gcvt function ported from the server, which generates a string
+ * value with the most number of significat digits and thus precision.
+ */
+template <typename T>
+class My_pretty_writer : public rapidjson::PrettyWriter<T> {
+ public:
+  My_pretty_writer(T &outstream) : rapidjson::PrettyWriter<T>(outstream) {}
+  bool Double(double data) {
+    char buffer[32];
+    size_t len;
+    len = my_gcvt(data, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer, NULL);
+
+    rapidjson::PrettyWriter<T>::PrettyPrefix(rapidjson::kNumberType);
+    return rapidjson::PrettyWriter<T>::WriteRawValue(buffer, len);
+  }
+};
+
 class SHCORE_PUBLIC Writer_base {
  protected:
   class SStream {
@@ -61,7 +99,9 @@ class SHCORE_PUBLIC Writer_base {
   virtual void append_uint(unsigned int data) = 0;
   virtual void append_uint64(uint64_t data) = 0;
   virtual void append_string(const std::string &data) = 0;
+  virtual void append_string(const char *data, size_t length) = 0;
   virtual void append_float(double data) = 0;
+  virtual void append_document(const rapidjson::Document &document) = 0;
 
  public:
   std::string str() { return _data.data; }
@@ -83,13 +123,19 @@ class SHCORE_PUBLIC Raw_writer : public Writer_base {
   virtual void append_int64(int64_t data) { _writer.Int64(data); };
   virtual void append_uint(unsigned int data) { _writer.Uint(data); };
   virtual void append_uint64(uint64_t data) { _writer.Uint64(data); };
+  virtual void append_string(const char *data, size_t length) {
+    _writer.String(data, unsigned(length));
+  };
   virtual void append_string(const std::string &data) {
     _writer.String(data.c_str(), unsigned(data.length()));
   };
   virtual void append_float(double data) { _writer.Double(data); };
+  virtual void append_document(const rapidjson::Document &document) {
+    document.Accept(_writer);
+  };
 
  private:
-  rapidjson::Writer<SStream> _writer;
+  My_writer<SStream> _writer;
 };
 
 class SHCORE_PUBLIC Pretty_writer : public Writer_base {
@@ -108,13 +154,20 @@ class SHCORE_PUBLIC Pretty_writer : public Writer_base {
   virtual void append_int64(int64_t data) { _writer.Int64(data); }
   virtual void append_uint(unsigned int data) { _writer.Uint(data); }
   virtual void append_uint64(uint64_t data) { _writer.Uint64(data); }
+  virtual void append_string(const char *data, size_t length) {
+    _writer.String(data, unsigned(length));
+  };
   virtual void append_string(const std::string &data) {
     _writer.String(data.c_str(), unsigned(data.length()));
   }
   virtual void append_float(double data) { _writer.Double(data); }
 
+  virtual void append_document(const rapidjson::Document &document) {
+    document.Accept(_writer);
+  };
+
  private:
-  rapidjson::PrettyWriter<SStream> _writer;
+  My_pretty_writer<SStream> _writer;
 };
 
 struct Value;
@@ -162,10 +215,13 @@ class SHCORE_PUBLIC JSON_dumper {
   void append_uint64(const std::string &key, uint64_t data) const;
 
   void append_string(const std::string &data) const;
+  void append_string(const char *data, size_t length) const;
   void append_string(const std::string &key, const std::string &data) const;
 
   void append_float(double data) const;
   void append_float(const std::string &key, double data) const;
+
+  void append_json(const std::string &data) const;
 
   int deep_level() { return _deep_level; }
 
