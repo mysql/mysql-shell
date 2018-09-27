@@ -348,6 +348,31 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' is valid for InnoDB cluster
 //@<OUT> Dba: getCluster with interaction
 <Cluster:devCluster>
 
+//@<OUT> Dba: getCluser validate object serialization output - tabbed
+tabbed
+<Cluster:devCluster>
+
+//@<OUT> Dba: getCluser validate object serialization output - table
+table
+<Cluster:devCluster>
+
+//@<OUT> Dba: getCluser validate object serialization output - vertical
+vertical
+<Cluster:devCluster>
+
+//@<OUT> Dba: getCluser validate object serialization output - json
+{
+    "value": "json"
+}
+{
+    "class": "Cluster",
+    "name": "devCluster"
+}
+
+//@<OUT> Dba: getCluser validate object serialization output - json/raw
+{"value":"json/raw"}
+{"class":"Cluster","name":"devCluster"}
+
 //@<OUT> Dba: getCluster with interaction (default)
 <Cluster:devCluster>
 

@@ -67,9 +67,6 @@ class cluster_error : public std::runtime_error {
   Error _code;
 };
 
-class Replicaset;
-class Group;
-
 enum class Protocol_type { X, Classic };
 
 /*

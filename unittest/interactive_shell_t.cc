@@ -1758,8 +1758,18 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   execute("shell.options");
   auto named_opts = _opts->get_named_options();
   for (const auto &name : named_opts) {
-    MY_EXPECT_STDOUT_CONTAINS(name);
+    MY_EXPECT_STDOUT_CONTAINS("\"" + name + "\":");
   }
+  wipe_all();
+
+  execute("shell.options.outputFormat = 'json'");
+  execute("shell.options");
+  for (const auto &name : named_opts) {
+    MY_EXPECT_STDOUT_CONTAINS("\"" + name + "\":");
+  }
+  reset_options(0, nullptr, false);
+  reset_shell();
+  wipe_all();
 
   EXPECT_TRUE(_options->show_warnings);
   execute("shell.options.showWarnings=false");
