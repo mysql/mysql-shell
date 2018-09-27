@@ -383,8 +383,6 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   _global_util =
       std::shared_ptr<mysqlsh::Util>(new mysqlsh::Util(_shell.get()));
 
-  auto shell_cli_operation = cmdline_options->get_shell_cli_operation();
-
   if (options().wizards) {
     auto interactive_shell = std::shared_ptr<shcore::Global_shell>(
         new shcore::Global_shell(*_shell.get()));
@@ -402,16 +400,6 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
         "dba",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(interactive_dba),
         shcore::IShell_core::all_scripting_modes());
-    if (shell_cli_operation) {
-      shell_cli_operation->register_provider("dba", [interactive_dba]() {
-        return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
-            interactive_dba);
-      });
-      shell_cli_operation->register_provider("shell", [interactive_shell]() {
-        return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
-            interactive_shell);
-      });
-    }
   } else {
     set_global_object(
         "shell",
@@ -421,12 +409,6 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
         "dba",
         std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_dba),
         shcore::IShell_core::all_scripting_modes());
-    if (shell_cli_operation) {
-      shell_cli_operation->register_provider("dba",
-                                             [this]() { return _global_dba; });
-      shell_cli_operation->register_provider(
-          "shell", [this]() { return _global_shell; });
-    }
   }
 
   set_global_object(
@@ -438,7 +420,16 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
       std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(_global_util),
       shcore::IShell_core::all_scripting_modes());
 
+  auto shell_cli_operation = cmdline_options->get_shell_cli_operation();
   if (shell_cli_operation) {
+    shell_cli_operation->register_provider("dba", [this]() {
+      return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
+          _shell->get_global("dba").as_object());
+    });
+    shell_cli_operation->register_provider("shell", [this]() {
+      return std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(
+          _shell->get_global("shell").as_object());
+    });
     shell_cli_operation->register_provider(
         "cluster", [this]() { return this->set_default_cluster(""); });
     shell_cli_operation->register_provider("util",
