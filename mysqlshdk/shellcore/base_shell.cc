@@ -478,9 +478,17 @@ void Base_shell::print_result(shcore::Value result) {
 
         // Result buffering will be done ONLY if on any of the scripting
         // interfaces
-        ResultsetDumper dumper(resultset, _shell->interactive_mode() !=
-                                              shcore::IShell_core::Mode::SQL);
-        dumper.dump();
+        Resultset_dumper dumper(
+            resultset->get_result(),
+            _shell->interactive_mode() != shcore::IShell_core::Mode::SQL);
+
+        bool is_doc_result = resultset->is_doc_result();
+        bool is_query = is_doc_result || resultset->is_row_result();
+        std::string item_label = is_doc_result
+                                     ? "document"
+                                     : resultset->is_result() ? "item" : "row";
+
+        dumper.dump(item_label, is_query, is_doc_result);
       } else {
         // In JSON mode: the json representation is used for Object, Array and
         // Map For anything else a map is printed with the "value" key

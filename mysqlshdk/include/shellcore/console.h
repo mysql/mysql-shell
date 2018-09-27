@@ -49,8 +49,8 @@ class IConsole {
  public:
   virtual ~IConsole() {}
 
-  virtual void raw_print(const std::string &text,
-                         Output_stream stream) const = 0;
+  virtual void raw_print(const std::string &text, Output_stream stream,
+                         bool format_json = true) const = 0;
   virtual void print(const std::string &text) const = 0;
   virtual void println(const std::string &text = "") const = 0;
   virtual void print_error(const std::string &text) const = 0;

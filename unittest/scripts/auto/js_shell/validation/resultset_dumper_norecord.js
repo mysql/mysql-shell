@@ -37,11 +37,7 @@ ab\ncd
     "value": "json"
 }
 {
-    "executionTime": "<<<result.executionTime>>>",
-    "affectedItemsCount": 0,
-    "warningCount": 0,
-    "warningsCount": 0,
-    "warnings": [],
+    "hasData": true,
     "rows": [
         {
             "data": "ab\u0000cd"
@@ -53,8 +49,13 @@ ab\ncd
             "data": "ab\ncd"
         }
     ],
-    "hasData": true,
+    "executionTime": "<<<result.executionTime>>>",
     "affectedRowCount": 0,
+    "affectedItemsCount": 0,
+    "warningCount": 0,
+    "warningsCount": 0,
+    "warnings": [],
+    "info": "",
     "autoIncrementValue": 0
 }
 
@@ -90,8 +91,7 @@ ab\ncd
     "value": "json"
 }
 {
-    "executionTime": "<<<result.executionTime>>>",
-    "info": "",
+    "hasData": true,
     "rows": [
         {
             "data": "ab\u0000cd"
@@ -103,12 +103,13 @@ ab\ncd
             "data": "ab\ncd"
         }
     ],
+    "executionTime": "<<<result.executionTime>>>",
+    "affectedRowCount": 0,
+    "affectedItemsCount": 0,
     "warningCount": 0,
     "warningsCount": 0,
     "warnings": [],
-    "hasData": true,
-    "affectedRowCount": 0,
-    "affectedItemsCount": 0,
+    "info": "",
     "autoIncrementValue": 0
 }
 

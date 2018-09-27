@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,7 +30,6 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/utils/profiling.h"
 #include "scripting/common.h"
 
 using namespace std::placeholders;
@@ -507,13 +506,9 @@ shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("execute").c_str());
 
   try {
-    mysqlshdk::utils::Profile_timer timer;
     insert_bound_values(message_.mutable_args());
-    timer.stage_begin("TableUpdate::execute");
     result.reset(new mysqlx::Result(safe_exec(
         [this]() { return session()->session()->execute_crud(message_); })));
-    timer.stage_end();
-    result->set_execution_time(timer.total_seconds_ellapsed());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 

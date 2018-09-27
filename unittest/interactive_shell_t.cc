@@ -1311,7 +1311,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
 
   execute("select * from itst.tbl;");
   MY_EXPECT_STDOUT_CONTAINS(
-      "    \"info\": \"\",\n"
+      "    \"hasData\": true,\n"
       "    \"rows\": [\n"
       "        {\n"
       "            \"a\": 1,\n"
@@ -1322,7 +1322,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "            \"f\": 42,\n"
       "            \"ggggg\": 42,\n"
       "            \"h\": 42,\n"
-      "            \"i\": 42.0\n"
+      "            \"i\": 42\n"
       "        },\n"
       "        {\n"
       "            \"a\": 2,\n"
@@ -1333,7 +1333,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "            \"f\": 12345,\n"
       "            \"ggggg\": 123,\n"
       "            \"h\": 12345,\n"
-      "            \"i\": 12345.0\n"
+      "            \"i\": 12345\n"
       "        },\n"
       "        {\n"
       "            \"a\": 3,\n"
@@ -1344,7 +1344,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "            \"f\": 0,\n"
       "            \"ggggg\": 0,\n"
       "            \"h\": 0,\n"
-      "            \"i\": 0.0\n"
+      "            \"i\": 0\n"
       "        },\n"
       "        {\n"
       "            \"a\": 4,\n"
@@ -1357,15 +1357,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "            \"h\": null,\n"
       "            \"i\": null\n"
       "        }\n"
-      "    ],\n"
-      "    \"warningCount\": 0,\n"
-      "    \"warningsCount\": 0,\n"
-      "    \"warnings\": [],\n"
-      "    \"hasData\": true,\n"
-      "    \"affectedRowCount\": 0,\n"
-      "    \"affectedItemsCount\": 0,\n"
-      "    \"autoIncrementValue\": 0\n"
-      "}\n");
+      "    ],\n");
 
   execute("drop schema itst;");
 }
@@ -1409,8 +1401,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "| 2 | two   | -12345 | 00012345 | 12345 | 12345 |   123 | 00000000000000012345 | 12345 |\n"
       "| 3 | three |      0 | 00000000 |    00 | 00000 |   000 | 00000000000000000000 |     0 |\n"
       "| 4 | four  |   NULL |     NULL |  NULL |  NULL |  NULL |                 NULL |  NULL |\n"
-      "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n"
-      "4 rows in set (");
+      "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n");
   // clang-format on
   execute(to_scripting);
   execute("shell.options['outputFormat']='vertical'");
@@ -1468,10 +1459,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
 
   execute("select * from itst.tbl;");
   MY_EXPECT_STDOUT_CONTAINS(
-      "    \"affectedItemsCount\": 0,\n"
-      "    \"warningCount\": 0,\n"
-      "    \"warningsCount\": 0,\n"
-      "    \"warnings\": [],\n"
+      "    \"hasData\": true,\n"
       "    \"rows\": [\n"
       "        {\n"
       "            \"a\": 1,\n"
@@ -1482,7 +1470,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "            \"f\": 42,\n"
       "            \"ggggg\": 42,\n"
       "            \"h\": 42,\n"
-      "            \"i\": 42.0\n"
+      "            \"i\": 42\n"
       "        },\n"
       "        {\n"
       "            \"a\": 2,\n"
@@ -1493,7 +1481,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "            \"f\": 12345,\n"
       "            \"ggggg\": 123,\n"
       "            \"h\": 12345,\n"
-      "            \"i\": 12345.0\n"
+      "            \"i\": 12345\n"
       "        },\n"
       "        {\n"
       "            \"a\": 3,\n"
@@ -1504,7 +1492,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "            \"f\": 0,\n"
       "            \"ggggg\": 0,\n"
       "            \"h\": 0,\n"
-      "            \"i\": 0.0\n"
+      "            \"i\": 0\n"
       "        },\n"
       "        {\n"
       "            \"a\": 4,\n"
@@ -1517,9 +1505,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "            \"h\": null,\n"
       "            \"i\": null\n"
       "        }\n"
-      "    ],\n"
-      "    \"hasData\": true,\n"
-      "    \"affectedRowCount\": 0,\n");
+      "    ],\n");
 
   execute("drop schema itst;");
 }

@@ -176,16 +176,19 @@ class Shell_pager : public IPager {
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {}
 
-void Shell_console::raw_print(const std::string &text,
-                              Output_stream stream) const {
-  std::string tag = stream == Output_stream::STDOUT ? "info" : "error";
-  std::string output = use_json() ? json_obj(tag.c_str(), text) : text;
-
+void Shell_console::raw_print(const std::string &text, Output_stream stream,
+                              bool format_json) const {
   using Print_func = void (*)(void *, const char *);
   Print_func print =
       stream == Output_stream::STDOUT ? m_ideleg->print : m_ideleg->print_error;
 
-  print(m_ideleg->user_data, output.c_str());
+  if (format_json) {
+    std::string tag = stream == Output_stream::STDOUT ? "info" : "error";
+    std::string output = use_json() ? json_obj(tag.c_str(), text) : text;
+    print(m_ideleg->user_data, output.c_str());
+  } else {
+    print(m_ideleg->user_data, text.c_str());
+  }
 
   log_debug("%s", text.c_str());
 }

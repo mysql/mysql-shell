@@ -33,7 +33,6 @@
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/obj_date.h"
-#include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
 
 using shcore::Value;
@@ -51,7 +50,7 @@ REGISTER_HELP(
     "Base class for the different types of results returned by the server.");
 
 BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
-    : _result(result), _execution_time(0) {
+    : _result(result) {
   add_property("affectedItemsCount", "getAffectedItemsCount");
   add_property("executionTime", "getExecutionTime");
   add_property("warningCount", "getWarningCount");
@@ -60,19 +59,6 @@ BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
 }
 
 BaseResult::~BaseResult() {}
-
-void BaseResult::buffer() {
-  shcore::Interrupt_handler intr([this]() {
-    _result->stop_pre_fetch();
-    return false;
-  });
-  _result->pre_fetch_rows(true);
-}
-
-bool BaseResult::rewind() {
-  _result->rewind();
-  return true;
-}
 
 // Documentation of getWarnings function
 REGISTER_HELP_PROPERTY(warnings, BaseResult);
@@ -206,7 +192,7 @@ str BaseResult::get_execution_time() {}
 #endif
 
 std::string BaseResult::get_execution_time() const {
-  return mysqlshdk::utils::format_seconds(_execution_time);
+  return mysqlshdk::utils::format_seconds(_result->get_execution_time());
 }
 
 // Documentation of getWarningCount function

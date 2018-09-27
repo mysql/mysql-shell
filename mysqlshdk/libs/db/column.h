@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -107,6 +107,7 @@ class SHCORE_PUBLIC Column {
   bool is_unsigned() const { return _unsigned; }
   bool is_zerofill() const { return _zerofill; }
   bool is_binary() const { return _binary; }
+  bool is_numeric() const;
 
  private:
   std::string _schema;

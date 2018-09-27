@@ -63,7 +63,8 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   // Read and buffer all rows for the active data set
   bool pre_fetch_rows(bool persistent = false);
   void stop_pre_fetch();
-  void rewind();
+  void rewind() override;
+  void buffer() override;
 
   // Metadata retrieval
   int64_t get_auto_increment_value() const override;

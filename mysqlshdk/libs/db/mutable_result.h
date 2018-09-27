@@ -87,6 +87,8 @@ class Mutable_result : public IResult {
   }
 
   void reset() { _fetched_row_count = 0; }
+  void rewind() override {}
+  void buffer() override {}
 
  public:
   const IRow *fetch_one() override;

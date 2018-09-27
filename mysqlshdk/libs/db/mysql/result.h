@@ -29,6 +29,7 @@
 
 #include "mysqlshdk/libs/db/result.h"
 
+#include <deque>
 #include <list>
 #include <memory>
 #include <string>
@@ -51,23 +52,38 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual const IRow *fetch_one();
   virtual bool next_resultset();
   virtual std::unique_ptr<Warning> fetch_one_warning();
-  void rewind();  // Not part of IResult
 
   // Metadata retrieval
   virtual int64_t get_auto_increment_value() const { return _last_insert_id; }
   virtual bool has_resultset() { return _has_resultset; }
-  virtual uint64_t get_affected_row_count() const { return _affected_rows; }
+  virtual uint64_t get_affected_row_count() const {
+    return (_affected_rows == ~(my_ulonglong)0) ? 0 : _affected_rows;
+  }
   virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
   virtual uint64_t get_warning_count() const { return _warning_count; }
   virtual std::string get_info() const { return _info; }
   virtual const std::vector<std::string> &get_gtids() const { return _gtids; }
   virtual const std::vector<Column> &get_metadata() const { return _metadata; }
 
+  virtual void buffer();
+  virtual void rewind();
+
  protected:
   Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
          uint64_t affected_rows, unsigned int warning_count,
          uint64_t last_insert_id, const char *info);
   void reset(std::shared_ptr<MYSQL_RES> res);
+
+  std::deque<mysqlshdk::db::Row_copy> _pre_fetched_rows;
+  // size_t _fetched_row_count = 0;
+  // size_t _fetched_warning_count = 0;
+  bool _stop_pre_fetch = false;
+  bool _pre_fetched = false;
+  bool _persistent_pre_fetch = false;
+
+  bool pre_fetch_rows(bool persistent);
+  void stop_pre_fetch();
+
   void fetch_metadata();
   Type map_data_type(int raw_type, int flags);
 

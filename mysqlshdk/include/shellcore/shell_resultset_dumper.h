@@ -29,9 +29,8 @@
 #include <memory>
 #include <string>
 #include <tuple>
-#include "modules/devapi/base_resultset.h"
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/utils/enumset.h"
-#include "scripting/lang_base.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -57,36 +56,30 @@ using Print_flags =
 std::tuple<size_t, size_t> get_utf8_sizes(const char *text, size_t length,
                                           Print_flags flags);
 
-class ResultsetDumper {
+class Resultset_dumper {
  public:
-  ResultsetDumper(std::shared_ptr<mysqlsh::ShellBaseResult> target,
-                  bool buffer_data);
-  virtual ~ResultsetDumper() = default;
-  virtual void dump();
+  Resultset_dumper(mysqlshdk::db::IResult *target, bool buffer_data);
+  virtual ~Resultset_dumper() = default;
+  virtual void dump(const std::string &item_label, bool is_query,
+                    bool is_doc_result);
 
  protected:
-  std::shared_ptr<mysqlsh::ShellBaseResult> _resultset;
+  mysqlshdk::db::IResult *_rset;
   std::string _format;
   bool _show_warnings;
   bool _interactive;
   bool _buffer_data;
   bool _cancelled;
 
-  void dump_json();
-  void dump_normal();
-  void dump_normal(std::shared_ptr<mysqlsh::mysql::ClassicResult> result);
-  void dump_normal(std::shared_ptr<mysqlsh::mysqlx::SqlResult> result);
-  void dump_normal(std::shared_ptr<mysqlsh::mysqlx::RowResult> result);
-  void dump_normal(std::shared_ptr<mysqlsh::mysqlx::DocResult> result);
-  void dump_normal(std::shared_ptr<mysqlsh::mysqlx::Result> result);
-
-  std::string get_affected_stats(const std::string &legend);
+  std::string get_affected_stats(const std::string &item_label);
   int get_warning_and_execution_time_stats(std::string &output_stats);
   void dump_records(std::string &output_stats);
-  size_t dump_tabbed(shcore::Value::Array_type_ref records);
-  size_t dump_table(shcore::Value::Array_type_ref records);
-  size_t dump_vertical(shcore::Value::Array_type_ref records);
-  void dump_warnings(bool classic = false);
+  size_t dump_tabbed();
+  size_t dump_table();
+  size_t dump_vertical();
+  size_t dump_documents();
+  size_t dump_json(const std::string &item_label, bool is_doc_result);
+  void dump_warnings();
 };
 
 }  // namespace mysqlsh

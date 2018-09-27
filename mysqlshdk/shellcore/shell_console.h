@@ -43,19 +43,22 @@ class Shell_console : public IConsole {
    * The produced output will depend on the active output format and provided
    * stream.
    *
-   * If the active output format is not JSON the raw text will be sent to the
-   * indicated stream.
+   * If the active output format is not JSON or format_json is false the raw
+   * text will be sent to the indicated stream.
    *
-   * If the active output is JSON, a JSON object will be created depending on
-   * the target stream:
+   * If format_json is true and the active output is JSON, a JSON object will
+   * be created depending on the target stream:
    *
    * - STDOUT: {"info", <text> }
    * - STDERR: {"error", <text> }
    *
    * @param text   data to the indicated stream.
    * @param stream where the text will be sent.
+   * @param format_json indicates the text should be automatically
+   * formatted as JSON when shell output format is json or json/raw.
    */
-  void raw_print(const std::string &text, Output_stream stream) const override;
+  void raw_print(const std::string &text, Output_stream stream,
+                 bool format_json = true) const override;
 
   /**
    * Sends the provided text to the STDOUT.

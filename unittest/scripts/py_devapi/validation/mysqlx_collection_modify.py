@@ -205,20 +205,20 @@
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
         "age": 13,
-        "gender": "female",
-        "name": "alma"
+        "name": "alma",
+        "gender": "female"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
         "age": 15,
-        "gender": "female",
-        "name": "carol"
+        "name": "carol",
+        "gender": "female"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
         "age": 16,
-        "gender": "female",
-        "name": "donna"
+        "name": "donna",
+        "gender": "female"
     }
 ]
 
@@ -227,27 +227,27 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
-        "address": "TBD",
         "age": 13,
+        "name": "alma",
         "gender": "female",
-        "hobbies": [],
-        "name": "alma"
+        "address": "TBD",
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
-        "address": "TBD",
         "age": 15,
+        "name": "carol",
         "gender": "female",
-        "hobbies": [],
-        "name": "carol"
+        "address": "TBD",
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
-        "address": "TBD",
         "age": 16,
+        "name": "donna",
         "gender": "female",
-        "hobbies": [],
-        "name": "donna"
+        "address": "TBD",
+        "hobbies": []
     }
 ]
 
@@ -255,68 +255,67 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "street": "TBD"
         },
-        "age": 13,
-        "gender": "female",
-        "hobbies": [],
-        "name": "alma"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "street": "TBD"
         },
-        "age": 15,
-        "gender": "female",
-        "hobbies": [],
-        "name": "carol"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "street": "TBD"
         },
-        "age": 16,
-        "gender": "female",
-        "hobbies": [],
-        "name": "donna"
+        "hobbies": []
     }
 ]
-
 
 #@<OUT> CollectionModify: Patch updating field on multiple nested documents (WL10856-FR1_5)
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "street": "Main"
         },
-        "age": 13,
-        "gender": "female",
-        "hobbies": [],
-        "name": "alma"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "street": "Main"
         },
-        "age": 15,
-        "gender": "female",
-        "hobbies": [],
-        "name": "carol"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "street": "Main"
         },
-        "age": 16,
-        "gender": "female",
-        "hobbies": [],
-        "name": "donna"
+        "hobbies": []
     }
 ]
 
@@ -324,71 +323,70 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "Main"
         },
-        "age": 13,
-        "gender": "female",
-        "hobbies": [],
-        "name": "alma"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "Main"
         },
-        "age": 15,
-        "gender": "female",
-        "hobbies": [],
-        "name": "carol"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "Main"
         },
-        "age": 16,
-        "gender": "female",
-        "hobbies": [],
-        "name": "donna"
+        "hobbies": []
     }
 ]
-
 
 #@<OUT> CollectionModify: Patch removing field on multiple nested documents (WL10856-FR1_8)
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "street": "Main"
         },
-        "age": 13,
-        "gender": "female",
-        "hobbies": [],
-        "name": "alma"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "street": "Main"
         },
-        "age": 15,
-        "gender": "female",
-        "hobbies": [],
-        "name": "carol"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "street": "Main"
         },
-        "age": 16,
-        "gender": "female",
-        "hobbies": [],
-        "name": "donna"
+        "hobbies": []
     }
 ]
 
@@ -397,54 +395,55 @@
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
         "age": 13,
+        "name": "alma",
         "gender": "female",
-        "hobbies": [],
-        "name": "alma"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
         "age": 15,
+        "name": "carol",
         "gender": "female",
-        "hobbies": [],
-        "name": "carol"
+        "hobbies": []
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
         "age": 16,
+        "name": "donna",
         "gender": "female",
-        "hobbies": [],
-        "name": "donna"
+        "hobbies": []
     }
 ]
+
 
 #@<OUT> CollectionModify: Patch adding field with multiple calls to patch (WL10856-FR2.1_1)
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
-        "address": {},
         "age": 13,
+        "name": "alma",
         "gender": "female",
+        "address": {},
         "hobbies": [],
-        "last_name": "doe",
-        "name": "alma"
+        "last_name": "doe"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
-        "address": {},
         "age": 15,
+        "name": "carol",
         "gender": "female",
+        "address": {},
         "hobbies": [],
-        "last_name": "doe",
-        "name": "carol"
+        "last_name": "doe"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
-        "address": {},
         "age": 16,
+        "name": "donna",
         "gender": "female",
+        "address": {},
         "hobbies": [],
-        "last_name": "doe",
-        "name": "donna"
+        "last_name": "doe"
     }
 ]
 
@@ -452,39 +451,39 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "main"
         },
-        "age": 13,
-        "gender": "female",
         "hobbies": [],
-        "last_name": "doe",
-        "name": "alma"
+        "last_name": "doe"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "main"
         },
-        "age": 15,
-        "gender": "female",
         "hobbies": [],
-        "last_name": "doe",
-        "name": "carol"
+        "last_name": "doe"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "main"
         },
-        "age": 16,
-        "gender": "female",
         "hobbies": [],
-        "last_name": "doe",
-        "name": "donna"
+        "last_name": "doe"
     }
 ]
 
@@ -492,39 +491,39 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "riverside"
         },
-        "age": 13,
-        "gender": "female",
         "hobbies": [],
-        "last_name": "houston",
-        "name": "alma"
+        "last_name": "houston"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "riverside"
         },
-        "age": 15,
-        "gender": "female",
         "hobbies": [],
-        "last_name": "houston",
-        "name": "carol"
+        "last_name": "houston"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "number": 0,
             "street": "riverside"
         },
-        "age": 16,
-        "gender": "female",
         "hobbies": [],
-        "last_name": "houston",
-        "name": "donna"
+        "last_name": "houston"
     }
 ]
 
@@ -532,33 +531,33 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "street": "riverside"
         },
-        "age": 13,
-        "gender": "female",
-        "last_name": "houston",
-        "name": "alma"
+        "last_name": "houston"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "street": "riverside"
         },
-        "age": 15,
-        "gender": "female",
-        "last_name": "houston",
-        "name": "carol"
+        "last_name": "houston"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "street": "riverside"
         },
-        "age": 16,
-        "gender": "female",
-        "last_name": "houston",
-        "name": "donna"
+        "last_name": "houston"
     }
 ]
 
@@ -603,39 +602,39 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "alma",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "ide"
         },
-        "age": 13,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "alma"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "carol",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "ide"
         },
-        "age": 15,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "carol"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "donna",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "ide"
         },
-        "age": 16,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "donna"
+        "last_update": "<<<last_update>>>"
     }
 ]
 
@@ -643,39 +642,39 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "Alma",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "ide"
         },
-        "age": 13,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Alma"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "Carol",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "ide"
         },
-        "age": 15,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Carol"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "Donna",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "ide"
         },
-        "age": 16,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Donna"
+        "last_update": "<<<last_update>>>"
     }
 ]
 
@@ -683,39 +682,39 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "name": "Alma",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 13,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Alma"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "name": "Carol",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 15,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Carol"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "name": "Donna",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 16,
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Donna"
+        "last_update": "<<<last_update>>>"
     }
 ]
 
@@ -723,44 +722,45 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "city": "Washington",
+        "name": "Alma",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 13,
-        "city": "Washington",
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Alma"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "city": "Washington",
+        "name": "Carol",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 15,
-        "city": "Washington",
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Carol"
+        "last_update": "<<<last_update>>>"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "city": "Washington",
+        "name": "Donna",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 16,
-        "city": "Washington",
-        "gender": "female",
         "last_name": "houston",
-        "last_update": "<<<last_update>>>",
-        "name": "Donna"
+        "last_update": "<<<last_update>>>"
     }
 ]
+
 
 #@ CollectionModify: Patch adding field with null value coming from an expression (WL10856-ET_19)
 |Query OK, 0 items affected|
@@ -769,39 +769,39 @@
 [
     {
         "_id": "5C514FF38144957BE71111C04E0D1249",
+        "age": 13,
+        "city": "Washington",
+        "name": "Alma",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 13,
-        "city": "Washington",
-        "gender": "female",
-        "last_name": "houston",
-        "name": "Alma"
+        "last_name": "houston"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1250",
+        "age": 15,
+        "city": "Washington",
+        "name": "Carol",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 15,
-        "city": "Washington",
-        "gender": "female",
-        "last_name": "houston",
-        "name": "Carol"
+        "last_name": "houston"
     },
     {
         "_id": "5C514FF38144957BE71111C04E0D1251",
+        "age": 16,
+        "city": "Washington",
+        "name": "Donna",
+        "gender": "female",
         "address": {
             "street": "riverside",
             "street_short": "riv"
         },
-        "age": 16,
-        "city": "Washington",
-        "gender": "female",
-        "last_name": "houston",
-        "name": "Donna"
+        "last_name": "houston"
     }
 ]
 

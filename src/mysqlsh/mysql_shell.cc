@@ -1328,34 +1328,6 @@ void Mysql_shell::process_sql_result(
 
   Base_shell::process_sql_result(result, info);
   if (result) {
-    // TODO(.): Shell_options dependency from dumper should be moved out:
-    // Resultset_dumper dumper(result, _shell->get_delegate());
-    // size_t nrows = dumper.dump_rows(format);
-    // if (options().interactive)
-    //   dumper.print_stats(nrows);
-    // if (options().show_warnings)
-    //   dumper.print_warnings();
-
-    // temporary adapter code:
-
-    auto wrap_result = [](std::shared_ptr<mysqlshdk::db::mysql::Result> result,
-                          double t) {
-      mysqlsh::mysql::ClassicResult *res;
-      shcore::Value ret_val =
-          shcore::Value::wrap(res = new mysqlsh::mysql::ClassicResult(result));
-      res->set_execution_time(t);
-      return ret_val;
-    };
-
-    auto wrap_resultx =
-        [](std::shared_ptr<mysqlshdk::db::mysqlx::Result> result, double t) {
-          mysqlsh::mysqlx::SqlResult *res;
-          shcore::Value ret_val =
-              shcore::Value::wrap(res = new mysqlsh::mysqlx::SqlResult(result));
-          res->set_execution_time(t);
-          return ret_val;
-        };
-
     auto old_format = options().output_format;
     if (info.show_vertical)
       mysqlsh::current_shell_options()->set(SHCORE_OUTPUT_FORMAT,
@@ -1364,30 +1336,15 @@ void Mysql_shell::process_sql_result(
       mysqlsh::current_shell_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
     });
 
-    if (dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get())) {
-      ResultsetDumper dumper(
-          wrap_result(
-              std::static_pointer_cast<mysqlshdk::db::mysql::Result>(result),
-              info.ellapsed_seconds)
-              .as_object<mysqlsh::ShellBaseResult>(),
-          false);
-      dumper.dump();
-      if (options().interactive) {
-        const std::vector<std::string> &gtids(result->get_gtids());
-        if (!gtids.empty()) {
-          println("GTIDs: " + shcore::str_join(gtids, ", "));
-        }
+    Resultset_dumper dumper(result.get(), false);
+    dumper.dump("row", false, false);
+
+    auto cresult = dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get());
+    if (cresult && options().interactive) {
+      const std::vector<std::string> &gtids(result->get_gtids());
+      if (!gtids.empty()) {
+        println("GTIDs: " + shcore::str_join(gtids, ", "));
       }
-    } else if (dynamic_cast<mysqlshdk::db::mysqlx::Result *>(result.get())) {
-      ResultsetDumper dumper(
-          wrap_resultx(
-              std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(result),
-              info.ellapsed_seconds)
-              .as_object<mysqlsh::ShellBaseResult>(),
-          false);
-      dumper.dump();
-    } else {
-      throw std::invalid_argument("Invalid result object");
     }
   }
 }

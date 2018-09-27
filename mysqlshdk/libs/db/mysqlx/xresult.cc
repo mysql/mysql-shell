@@ -28,6 +28,7 @@
 #include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/db/mysqlx/row.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "shellcore/interrupt_handler.h"
 #include "utils/utils_general.h"
 
 namespace mysqlshdk {
@@ -192,14 +193,16 @@ Result::~Result() {
 
 const IRow *Result::fetch_one() {
   if (_pre_fetched) {
-    if (_persistent_pre_fetch && !_pre_fetched_rows.empty()) {
-      if (_fetched_row_count > 0)  // free the previously fetched row
-        _pre_fetched_rows.pop_front();
+    if (!_persistent_pre_fetch) {
       if (!_pre_fetched_rows.empty()) {
-        // return the next row, but don't pop it yet otherwise it'll be freed
-        const IRow *row = &_pre_fetched_rows.front();
-        _fetched_row_count++;
-        return row;
+        if (_fetched_row_count > 0)  // free the previously fetched row
+          _pre_fetched_rows.pop_front();
+        if (!_pre_fetched_rows.empty()) {
+          // return the next row, but don't pop it yet otherwise it'll be freed
+          const IRow *row = &_pre_fetched_rows.front();
+          _fetched_row_count++;
+          return row;
+        }
       }
     } else {
       if (_fetched_row_count < _pre_fetched_rows.size()) {
@@ -223,6 +226,14 @@ const IRow *Result::fetch_one() {
 }
 
 void Result::rewind() { _fetched_row_count = 0; }
+
+void Result::buffer() {
+  shcore::Interrupt_handler intr([this]() {
+    stop_pre_fetch();
+    return false;
+  });
+  pre_fetch_rows(true);
+};
 
 bool Result::pre_fetch_rows(bool persistent) {
   if (_result) {
