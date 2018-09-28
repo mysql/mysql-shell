@@ -65,6 +65,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
   bool cmd_rehash(const std::vector<std::string> &args);
   bool cmd_option(const std::vector<std::string> &args);
   virtual bool cmd_process_file(const std::vector<std::string> &params);
+  bool cmd_show(const std::vector<std::string> &args);
+  bool cmd_watch(const std::vector<std::string> &args);
 
   void process_line(const std::string &line) override;
   bool reconnect_if_needed(bool force = false);

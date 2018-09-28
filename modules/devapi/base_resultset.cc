@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 
+#include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
@@ -193,58 +194,9 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
     // O on this case the values would be available as
     // row.property
     if (shcore::is_valid_identifier(key) && !has_member(key)) add_property(key);
-
-    if (row.is_null(i)) {
-      value_array.push_back(Value::Null());
-    } else {
-      switch (row.get_type(i)) {
-        case mysqlshdk::db::Type::Null:
-          value_array.push_back(Value::Null());
-          break;
-        case mysqlshdk::db::Type::String:
-          value_array.push_back(Value(row.get_string(i)));
-          break;
-        case mysqlshdk::db::Type::Integer:
-          value_array.push_back(Value(row.get_int(i)));
-          break;
-        case mysqlshdk::db::Type::UInteger:
-          value_array.push_back(Value(row.get_uint(i)));
-          break;
-        case mysqlshdk::db::Type::Float:
-          value_array.push_back(Value(row.get_float(i)));
-          break;
-        case mysqlshdk::db::Type::Double:
-          value_array.push_back(Value(row.get_double(i)));
-          break;
-        case mysqlshdk::db::Type::Decimal:
-          value_array.push_back(Value(row.get_as_string(i)));
-          break;
-        case mysqlshdk::db::Type::Bytes:
-          value_array.push_back(Value(row.get_string(i)));
-          break;
-        case mysqlshdk::db::Type::Geometry:
-        case mysqlshdk::db::Type::Json:
-          value_array.push_back(Value(row.get_string(i)));
-          break;
-        case mysqlshdk::db::Type::Time:
-          value_array.push_back(Value(row.get_string(i)));
-          break;
-        case mysqlshdk::db::Type::Date:
-          value_array.push_back(Value(shcore::Date::unrepr(row.get_string(i))));
-          break;
-        case mysqlshdk::db::Type::DateTime:
-          value_array.push_back(Value(shcore::Date::unrepr(row.get_string(i))));
-          break;
-        case mysqlshdk::db::Type::Bit:
-          value_array.push_back(Value(row.get_bit(i)));
-          break;
-        case mysqlshdk::db::Type::Enum:
-        case mysqlshdk::db::Type::Set:
-          value_array.push_back(Value(row.get_string(i)));
-          break;
-      }
-    }
   }
+
+  value_array = get_row_values(row);
 }
 
 std::string &Row::append_descr(std::string &s_out, int indent,

@@ -189,29 +189,15 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
   return sql_topics;
 }
 
-struct Id_compare {
-  bool operator()(shcore::Help_topic *const &lhs,
-                  shcore::Help_topic *const &rhs) const {
-    if (!lhs) {
-      return true;
-    } else if (!rhs) {
-      return false;
-    } else {
-      int ret_val = shcore::str_casecmp(lhs->m_id.c_str(), rhs->m_id.c_str());
-
-      // If case insensitive are equal, does case sensitive comparison
-      return ret_val == 0 ? (lhs->m_id < rhs->m_id) : ret_val < 0;
-    }
-  }
-};
-
 void Command_help::print_help_multiple_topics(
     const std::string &pattern,
     const std::vector<shcore::Help_topic *> &topics) {
   std::vector<std::string> output;
   output.push_back("Found several entries matching <b>" + pattern + "</b>");
 
-  std::map<std::string, std::set<shcore::Help_topic *, Id_compare>> groups;
+  std::map<std::string,
+           std::set<shcore::Help_topic *, shcore::Help_topic_id_compare>>
+      groups;
   for (auto topic : topics) {
     if (groups.find(topic->get_category()->m_name) == groups.end())
       groups[topic->get_category()->m_name] = {};

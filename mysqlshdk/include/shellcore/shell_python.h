@@ -35,21 +35,22 @@ class Shell_python : public Shell_language {
  public:
   Shell_python(Shell_core *shcore);
 
-  virtual void set_global(const std::string &name, const Value &value);
+  void set_global(const std::string &name, const Value &value) override;
 
   void set_result_processor(
       std::function<void(shcore::Value, bool)> result_processor);
 
-  virtual std::string preprocess_input_line(const std::string &s);
-  virtual void handle_input(std::string &code, Input_state &state);
+  std::string preprocess_input_line(const std::string &s) override;
+  void handle_input(std::string &code, Input_state &state) override;
 
-  virtual bool is_module(const std::string &file_name);
-  virtual void execute_module(const std::string &file_name);
+  bool is_module(const std::string &file_name) override;
+  void execute_module(const std::string &file_name) override;
+  void load_plugin(const std::string &file_name) override;
 
   std::shared_ptr<Python_context> python_context() { return _py; }
 
-  virtual void clear_input();
-  virtual std::string get_continued_input_context();
+  void clear_input() override;
+  std::string get_continued_input_context() override;
 
  private:
   static int check_signals(void *);

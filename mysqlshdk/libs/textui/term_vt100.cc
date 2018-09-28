@@ -43,6 +43,8 @@ namespace mysqlshdk {
 namespace vt100 {
 #ifndef WIN32
 
+namespace {
+
 int tty_fd() {
   static int fd = -1;
   if (fd >= 0) return fd;
@@ -53,6 +55,10 @@ int tty_fd() {
   fd = open(ttydev, O_RDWR | O_NOCTTY);
   return fd;
 }
+
+}  // namespace
+
+bool is_available() { return true; }
 
 bool get_screen_size(int *rows, int *columns) {
   struct winsize size;
@@ -95,6 +101,22 @@ bool read_escape(const char *terminator, char *buffer, size_t buflen) {
 }
 #endif
 #else  // WIN32
+
+bool is_available() {
+#ifdef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+  {
+    DWORD mode = 0;
+    GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &mode);
+
+    if (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING) {
+      return true;
+    }
+  }
+#endif  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+
+  return false;
+}
+
 bool get_screen_size(int *rows, int *columns) {
   CONSOLE_SCREEN_BUFFER_INFO csbi;
 
@@ -108,7 +130,10 @@ bool get_screen_size(int *rows, int *columns) {
 }
 
 void send_escape(const char *s) {
-  // not implemented
+  if (s) {
+    DWORD written = 0;
+    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), s, strlen(s), &written, nullptr);
+  }
 }
 
 #if 0

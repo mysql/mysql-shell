@@ -53,7 +53,7 @@ class Options_test : public Shell_core_test_wrapper, public Options {
 
   void HandleMode(const std::string &opt, const char *value) {
     assert(value == nullptr);
-    if (opt == "--some-mode") some_mode = true;
+    if (opt == "--some-mode" || opt == "-m") some_mode = true;
   }
 
   void CreateTestOptions() {
@@ -78,7 +78,7 @@ class Options_test : public Shell_core_test_wrapper, public Options {
         "This is a super long help message that does not say really anything.",
         std::bind(&Options_test::DummySetter, this, _2))
       // Option with custom command line handling
-      (cmdline("--some-mode"),
+      (cmdline("--some-mode", "-m"),
         "Elaborate description of mode.",
         std::bind(&Options_test::HandleMode, this, _1, _2))
       // This option is supposed to be handled externally by handler
@@ -333,6 +333,10 @@ TEST_F(Options_test, cmd_line_handling) {
   char *argv15[] = {const_cast<char *>("ut"),
                     const_cast<char *>("--some-mode=x"), NULL};
   EXPECT_THROW_LIKE(handle_cmdline_options(2, argv15), std::invalid_argument,
+                    "does not require an argument");
+
+  char *argv16[] = {const_cast<char *>("ut"), const_cast<char *>("-mx"), NULL};
+  EXPECT_THROW_LIKE(handle_cmdline_options(2, argv16), std::invalid_argument,
                     "does not require an argument");
 }
 

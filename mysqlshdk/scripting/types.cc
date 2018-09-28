@@ -1446,6 +1446,205 @@ std::string Value::as_string() const {
   throw type_conversion_error(type, String);
 }
 
+std::string Value::yaml() const { return "---\n" + yaml(0) + "\n"; }
+
+std::string Value::yaml(int indent) const {
+  // implementation based on: http://yaml.org/spec/1.2/spec.html
+  static constexpr size_t k_indent_size = 2;
+
+  const auto new_line = [](std::string *s, int indent) {
+    s->append(1, '\n');
+    s->append(k_indent_size * indent, ' ');
+  };
+
+  const auto map2yaml = [&](const Dictionary_t &m, int indent) {
+    if (!m) {
+      // null -> empty string
+      return std::string{};
+    }
+
+    std::string map;
+    bool first_item = true;
+
+    for (const auto &kv : *m) {
+      if (first_item) {
+        first_item = false;
+      } else {
+        new_line(&map, indent);
+      }
+
+      map += kv.first + ":";
+      const auto sub_yaml = kv.second.yaml(indent + 1);
+
+      // if value is a map or an array it needs to be in a separate line
+      if (kv.second.type == Value_type::Map ||
+          kv.second.type == Value_type::MapRef ||
+          kv.second.type == Value_type::Array) {
+        new_line(&map, indent + 1);
+      } else {
+        if (!sub_yaml.empty()) {
+          map += " ";
+        }
+      }
+
+      map += sub_yaml;
+    }
+
+    return map;
+  };
+
+  const auto string2yaml = [](const std::string &s, int indent) -> std::string {
+    if (s.empty()) {
+      // empty string must be explicitly quoted
+      return "''";
+    }
+
+    auto content = split_string(s, "\n");
+
+    if (content.size() == 1) {
+      // use either plain or quoted style
+      bool quote = false;
+
+      {
+        // plain string cannot contain leading or trailing white-space
+        // characters
+        static constexpr auto k_whitespace = " \t";
+        if (std::string{k_whitespace}.find(s[0]) != std::string::npos ||
+            std::string{k_whitespace}.find(s.back()) != std::string::npos) {
+          quote = true;
+        }
+      }
+
+      if (!quote) {
+        // plain string cannot start with an indicator
+        if (std::string{"-?:,[]{}#&*!|>'\"%@`"}.find(s[0]) !=
+            std::string::npos) {
+          if (s.length() > 1 &&
+              std::string{"-?:"}.find(s[0]) != std::string::npos &&
+              s[1] != ' ') {
+            // unless it's '-', '?' or ':' and it's not followed by a space
+            quote = false;
+          } else {
+            quote = true;
+          }
+        }
+      }
+
+      if (!quote) {
+        // plain scalars must never contain the ": " and " #" character
+        // combinations
+        if (s.find(": ") != std::string::npos ||
+            s.find(" #") != std::string::npos) {
+          quote = true;
+        }
+      }
+
+      if (quote) {
+        return "'" + str_replace(s, "'", "''") + "'";
+      } else {
+        return s;
+      }
+    } else {
+      // by default set chomping to 'strip'
+      char chomping = '-';
+
+      if (content.back().empty()) {
+        // if the last line is an empty string, it means that the input string
+        // ends with a new line character and the extra line is not needed
+        content.pop_back();
+        // chomping needs to be set to 'clip', so the final line break is
+        // included
+        chomping = 0;
+      }
+
+      if (content.back().empty()) {
+        // if the last line is still an empty string, set chomping to 'keep',
+        // so multiple empty lines are preserved
+        chomping = '+';
+      }
+
+      // use literal block style
+      std::string literal = "|";
+      // increase the indent for contents
+      ++indent;
+
+      if (content[0][0] == ' ' || content[0][0] == '\t') {
+        // if the first line starts with a white-space, we need to explicitly
+        // specify the indent
+        literal += std::to_string(k_indent_size * indent);
+      }
+
+      // add chomping indicator if not 'clip'
+      if (chomping) {
+        literal += chomping;
+      }
+
+      literal += "\n";
+
+      for (const auto &line : content) {
+        literal.append(k_indent_size * indent, ' ');
+        literal += line;
+        literal.append(1, '\n');
+      }
+
+      // remove the last new line character
+      literal.pop_back();
+
+      return literal;
+    }
+  };
+
+  switch (type) {
+    case Value_type::Undefined:
+    case Value_type::Null:
+      // YAML has no notion of these values, they are represented by empty
+      // strings
+      return "";
+
+    case Value_type::Bool:
+    case Value_type::Integer:
+    case Value_type::UInteger:
+    case Value_type::Float:
+    case Value_type::Object:
+    case Value_type::Function:
+      // we treat these as scalars
+      return string2yaml(descr(), indent);
+
+    case Value_type::String:
+      return string2yaml(*value.s, indent);
+
+    case Value_type::Array: {
+      std::string array;
+      bool first_item = true;
+
+      for (const auto &v : **value.array) {
+        if (first_item) {
+          first_item = false;
+        } else {
+          new_line(&array, indent);
+        }
+
+        array += "-";
+        const auto sub_yaml = v.yaml(indent + 1);
+
+        if (!sub_yaml.empty()) {
+          array += " " + sub_yaml;
+        }
+      }
+
+      return array;
+    }
+
+    case Value_type::Map:
+      return map2yaml(*value.map, indent);
+
+    case Value_type::MapRef:
+      return map2yaml(value.mapref->lock(), indent);
+  }
+
+  throw std::logic_error("Type '" + type_name(type) + "' was not handled.");
+}
+
 //---
 
 const std::string &Argument_list::string_at(unsigned int i) const {

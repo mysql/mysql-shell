@@ -118,6 +118,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   bool is_module(const std::string &file_name);
   Value execute_module(const std::string &file_name,
                        const std::vector<std::string> &argv);
+  void load_plugin(const std::string &file_name);
 
   Value pyobj_to_shcore_value(PyObject *value);
   PyObject *shcore_value_to_pyobj(const Value &value);
@@ -144,6 +145,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   AutoPyObject get_shell_function_class();
 
   PyObject *db_error() { return _db_error; }
+
+  std::string fetch_and_clear_exception();
 
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,

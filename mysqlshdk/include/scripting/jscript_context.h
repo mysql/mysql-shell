@@ -80,11 +80,14 @@ class SHCORE_PUBLIC JScript_context {
 
   std::string to_string(v8::Local<v8::Value> obj);
 
+  std::string translate_exception(const v8::TryCatch &exc, bool interactive);
+  void load_plugin(const std::string &file_name);
+
  private:
   struct JScript_context_impl;
   JScript_context_impl *_impl;
 
-  Value get_v8_exception_data(v8::TryCatch *exc, bool interactive);
+  Value get_v8_exception_data(const v8::TryCatch &exc, bool interactive);
   std::string format_exception(const shcore::Value &exc);
 };
 

@@ -10,6 +10,12 @@ shell.help("options")
 //@ Help on Options, \? [USE:Help on Options]
 \? shell.options
 
+//@ Help on Reports
+shell.help("reports")
+
+//@ Help on Reports, \? [USE:Help on Reports]
+\? reports
+
 //@ Help on Connect
 shell.help("connect")
 
@@ -87,6 +93,12 @@ shell.help("reconnect")
 
 //@ Help on reconnect, \? [USE:Help on reconnect]
 \? reconnect
+
+//@ Help on registerReport
+shell.help("registerReport")
+
+//@ Help on registerReport, \? [USE:Help on registerReport]
+\? registerReport
 
 //@ Help on setCurrentSchema
 shell.help("setCurrentSchema")

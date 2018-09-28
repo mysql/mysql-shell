@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,8 @@
 
 namespace mysqlshdk {
 namespace vt100 {
+
+bool is_available();
 
 bool get_screen_size(int *rows, int *columns);
 
@@ -81,6 +83,9 @@ inline void font_set_g0() { send_escape("\033("); }
 
 // Set alternate font.
 inline void font_set_g1() { send_escape("\033)"); }
+
+// Moves cursor to the upper left corner of the screen.
+inline void cursor_home() { send_escape("\033[H"); }
 
 // Sets the cursor position where subsequent text will begin. If no row/column
 // parameters are provided (ie. <ESC>[H), the cursor will move to the home
@@ -148,11 +153,11 @@ inline void scroll_screen(int start, int end) {
   send_escape(buffer);
 }
 
-// Scroll display down one line.
-inline void scroll_down() { send_escape("\033[D"); }
+// Scroll viewport down one line, text moves up.
+inline void scroll_down() { send_escape("\033D"); }
 
-// Scroll display up one line.
-inline void scroll_up() { send_escape("\033[M"); }
+// Scroll viewport up one line, text moves down.
+inline void scroll_up() { send_escape("\033M"); }
 
 // Sets a tab at the current position.
 inline void set_tab() { send_escape("\033H"); }
@@ -178,7 +183,7 @@ inline void erase_down() { send_escape("\033[J"); }
 // Erases the screen from the current line up to the top of the screen.
 inline void erase_up() { send_escape("\033[1J"); }
 
-// Erases the screen with the background colour and moves the cursor to home.
+// Erases the screen with the background colour.
 inline void erase_screen() { send_escape("\033[2J"); }
 
 const int ResetAllAttributes = 0;

@@ -1,0 +1,3084 @@
+// WL11263_TSF12_1 - Validate that an exception is thrown using \show command without an active session.
+
+//@ WL11263_TSF12_1 - run \show without a session
+||Executing the report requires an existing, open session.
+
+// WL11263_TSF12_2 - Validate that an exception is thrown using \watch command without an active session.
+
+//@ create a session
+|<Session:<<<__uri>>>>|
+
+//@ close the session immediately
+||
+
+//@ create a classic session
+|<ClassicSession:<<<__mysql_uri>>>>|
+
+//@ classic session - switch to Python
+|Switching to Python mode...|
+
+//@<OUT> run \show with classic session in Python
++---+
+| 1 |
++---+
+| 1 |
++---+
+
+//@ classic session - switch to SQL mode
+|Switching to SQL mode... Commands end with ;|
+
+//@ classic session - switch to JavaScript
+|Switching to JavaScript mode...|
+
+// WL11263_TSF2_2 - Validate that the \show command can be used in all the scripting modes: JS, PY, SQL.
+
+//@ WL11263_TSF2_2 - switch to Python
+|Switching to Python mode...|
+
+//@<OUT> WL11263_TSF2_2 - run show command in Python
++---+
+| 1 |
++---+
+| 1 |
++---+
+
+//@ WL11263_TSF2_2 - switch to SQL mode
+|Switching to SQL mode... Commands end with ;|
+
+//@ WL11263_TSF2_2 - switch to JavaScript
+|Switching to JavaScript mode...|
+
+//@ WL11263_TSF2_3 - Validate that using the \show command with an invalid report name throws an exception.
+||Unknown report: unknown_report
+
+//@ WL11263_TSF2_4 - Validate that using the \show command without a report name list the reports available.
+|Available reports: query.|
+
+//@ WL11263_TSF5_4 - use \watch command with an invalid --interval value (below threshold)
+||The value of '--interval' option should be a float in range [0.1, 86400], got: '0.09'.
+
+//@ WL11263_TSF5_5 - use \watch command with an invalid --interval value (above threshold)
+||The value of '--interval' option should be a float in range [0.1, 86400], got: '86400.1'.
+
+// -----------------------------------------------------------------------------
+// WL11263_TSF2_5 - Validate that a report registered with an all lower-case name can be invoked by the \show command using all upper-case name.
+
+//@ WL11263_TSF2_5 - register the report with all lower-case name
+||
+
+//@ WL11263_TSF2_5 - call the report using upper-case name
+|lower-case report name|
+
+//@ WL11263_TSF2_5 - register the report with all upper-case name
+||
+
+//@ WL11263_TSF2_5 - call the report using lower-case name
+|upper-case report name|
+
+// -----------------------------------------------------------------------------
+// WL11263_TSF2_6 - Validate that a report registered with a name containing '_' character can be invoked by the \show command using a name with '_' character replaced by '-' character.
+
+//@ WL11263_TSF2_6 - register the report with name containing '_'
+||
+
+//@ WL11263_TSF2_6 - call the report using hyphen
+|report name with underscore|
+
+//@ WL11263_TSF2_6 - call the report - mix upper-case, underscore and hyphen
+|report name with underscore|
+
+//@ WL11263_TSF2_6 - register the report with upper-case name containing '_'
+||
+
+//@ WL11263_TSF2_6 - call the upper-case report - mix upper-case, underscore and hyphen
+|upper-case report name with underscore|
+
+//@ try to register the report with function set to undefined
+||Shell.registerReport: Argument #3 is expected to be a function (ArgumentError)
+
+//@ try to register the report with options set to invalid type
+||Shell.registerReport: Argument ?description at pos 3 for registerReport() has wrong type: expected Map but got String (ArgumentError)
+
+//@ WL11263_TSF9_1 - Try to register a plugin report with a duplicated name, error is expected.
+||Shell.registerReport: Duplicate report: query (ArgumentError)
+
+//@ WL11263_TSF9_2 - Try to register a plugin report with an invalid identifier as its name, error is expected.
+||Shell.registerReport: The function name '1' is not a valid identifier. (ArgumentError)
+
+// WL11263_TSF9_3 - Try to register a plugin report without giving a value to the 'name' dictionary option, error is expected.
+
+//@ WL11263_TSF9_3 - The 'name' key is set to undefined
+||Shell.registerReport: Argument #1 is expected to be a string (ArgumentError)
+
+//@ WL11263_TSF9_3 - The 'name' key is set to an empty string
+||Shell.registerReport: The function name '' is not a valid identifier. (ArgumentError)
+
+// WL11263_TSF9_4 - Try to register a plugin report without giving a value to the 'type' parameter, error is expected.
+
+//@ WL11263_TSF9_4 - The 'type' key is set to undefined
+||Shell.registerReport: Argument #2 is expected to be a string (ArgumentError)
+
+// WL11263_TSF9_5 - Try to register a plugin report with a value different than the supported as the value for the 'type' dictionary option, error is expected.
+
+//@ WL11263_TSF9_5 - The 'name' key is set to an empty string
+||Shell.registerReport: Report type must be one of: list, report, print. (ArgumentError)
+
+//@ Register report with valid type - 'print'
+||
+
+//@ Register report with valid type - 'report'
+||
+
+//@ Register report with valid type - 'list'
+||
+
+//@ WL11263_TSF9_6 - Validate that plugin report can be registered if the dictionary options 'description' and 'options' are not provided.
+||
+
+// Try to register a plugin report giving an invalid value to the 'brief' dictionary option, error is expected.
+
+//@ The 'brief' key is set to undefined
+||Shell.registerReport: Option 'brief' is expected to be of type String, but is Undefined (TypeError)
+
+//@ The 'brief' key is set to null
+||Shell.registerReport: Option 'brief' is expected to be of type String, but is Null (TypeError)
+
+//@ The 'brief' key is set to an invalid type
+||Shell.registerReport: Option 'brief' is expected to be of type String, but is Map (TypeError)
+
+// Try to register a plugin report giving an invalid value to the 'details' dictionary option, error is expected.
+
+//@ The 'details' key is set to undefined
+||Shell.registerReport: Option 'details' is expected to be of type Array, but is Undefined (TypeError)
+
+//@ The 'details' key is set to an invalid type
+||Shell.registerReport: Option 'details' is expected to be of type Array, but is Map (TypeError)
+
+//@ The 'details' array holds an invalid type
+||Shell.registerReport: Option 'details' String expected, but value is Integer (TypeError)
+
+//@ The 'options' key is set to undefined
+||Shell.registerReport: Option 'options' is expected to be of type Array, but is Undefined (TypeError)
+
+//@ The 'options' key is set to an invalid type
+||Shell.registerReport: Option 'options' is expected to be of type Array, but is String (TypeError)
+
+//@ The 'options' key is set to an array of invalid types
+||Shell.registerReport: Invalid definition at 'options' #1 (ArgumentError)
+
+// WL11263_TSF9_7 - If the dictionary option 'options' is given when registering a plugin report, validate that an exception is thrown if the 'name' key is not provided.
+
+//@ WL11263_TSF9_7 - Missing 'name' key
+||Shell.registerReport: Missing required options at 'options' #1: name (ArgumentError)
+
+//@ WL11263_TSF9_7 - The 'name' key is set to undefined
+||Shell.registerReport: Option 'name' is expected to be of type String, but is Undefined (TypeError)
+
+//@ WL11263_TSF9_7 - The 'name' key is set to null
+||Shell.registerReport: Option 'name' is expected to be of type String, but is Null (TypeError)
+
+//@ WL11263_TSF9_7 - The 'name' key is set to an invalid type
+||Shell.registerReport: Option 'name' is expected to be of type String, but is Map (TypeError)
+
+//@ WL11263_TSF9_7 - The 'name' key is set to an empty string
+||Shell.registerReport: parameter 'options' option #1 is not a valid identifier: ''. (ArgumentError)
+
+//@ WL11263_TSF9_8 - If the dictionary option 'options' is given when registering a plugin report, validate that an exception is thrown if the 'name' is not a valid identifier.
+||Shell.registerReport: parameter 'options' option #1 is not a valid identifier: '1'. (ArgumentError)
+
+//@ WL11263_TSF9_9 - Option duplicates --help
+||Shell.registerReport: Report already has an option named: 'help'. (ArgumentError)
+
+//@ WL11263_TSF9_9 - Option duplicates --interval
+||Shell.registerReport: Report already has an option named: 'interval'. (ArgumentError)
+
+//@ WL11263_TSF9_9 - Option duplicates --nocls
+||Shell.registerReport: Report already has an option named: 'nocls'. (ArgumentError)
+
+//@ WL11263_TSF9_9 - Option duplicates --vertical in a 'list' type report
+||Shell.registerReport: Report already has an option named: 'vertical'. (ArgumentError)
+
+//@ WL11263_TSF9_9 - Two options with the same name
+||Shell.registerReport: Report already has an option named: 'option'. (ArgumentError)
+
+//@ Report uses --vertical option in a 'print' type report - no error
+||
+
+//@ Report uses --vertical option in a 'report' type report - no error
+||
+
+//@ WL11263_TSF9_10 - Register the report
+||
+
+//@<OUT> WL11263_TSF9_10 - Execute the report
++-----------------+
+| value           |
++-----------------+
+| some text value |
++-----------------+
+
+//@ The 'shortcut' key is set to undefined
+||Shell.registerReport: Option 'shortcut' is expected to be of type String, but is Undefined (TypeError)
+
+//@ The 'shortcut' key is set to null
+||Shell.registerReport: Option 'shortcut' is expected to be of type String, but is Null (TypeError)
+
+//@ The 'shortcut' key is set to an invalid type
+||Shell.registerReport: Option 'shortcut' is expected to be of type String, but is Map (TypeError)
+
+//@ The 'shortcut' key is set to non-alphanumeric
+||Shell.registerReport: Short name of an option must be an alphanumeric character. (ArgumentError)
+
+//@ The 'shortcut' key is set to more than one character
+||Shell.registerReport: Short name of an option must be exactly one character long. (ArgumentError)
+
+//@ WL11263_TSF9_11 - Option duplicates -i
+||Shell.registerReport: Report already has an option with short name: 'i'. (ArgumentError)
+
+//@ WL11263_TSF9_11 - Option duplicates -E in a 'list' type report
+||Shell.registerReport: Report already has an option with short name: 'E'. (ArgumentError)
+
+//@ WL11263_TSF9_11 - Two options with the same name
+||Shell.registerReport: Report already has an option with short name: 'o'. (ArgumentError)
+
+//@ Report uses -E option in a 'print' type report - no error
+||
+
+//@ Report uses -E option in a 'report' type report - no error
+||
+
+//@ WL11263_TSF9_12 - Register the report.
+||
+
+//@<OUT> WL11263_TSF9_12 - Execute the report with long option.
++------------+
+| value      |
++------------+
+| 1234567890 |
++------------+
+
+//@ The options['brief'] key is set to undefined
+||Shell.registerReport: Option 'brief' is expected to be of type String, but is Undefined (TypeError)
+
+//@ The options['brief'] key is set to null
+||Shell.registerReport: Option 'brief' is expected to be of type String, but is Null (TypeError)
+
+//@ The options['brief'] key is set to an invalid type
+||Shell.registerReport: Option 'brief' is expected to be of type String, but is Map (TypeError)
+
+//@ The options['details'] key is set to undefined
+||Shell.registerReport: Option 'details' is expected to be of type Array, but is Undefined (TypeError)
+
+//@ The options['details'] key is set to an invalid type
+||Shell.registerReport: Option 'details' is expected to be of type Array, but is Map (TypeError)
+
+//@ The options['details'] key holds an invalid type
+||Shell.registerReport: Option 'details' String expected, but value is Integer (TypeError)
+
+//@ WL11263_TSF9_13 - The 'type' key is set to undefined
+||Shell.registerReport: Option 'type' is expected to be of type String, but is Undefined (TypeError)
+
+//@ WL11263_TSF9_13 - The 'type' key is set to null
+||Shell.registerReport: Option 'type' is expected to be of type String, but is Null (TypeError)
+
+//@ WL11263_TSF9_13 - The 'type' key is set to an invalid type
+||Shell.registerReport: Option 'type' is expected to be of type String, but is Map (TypeError)
+
+//@ WL11263_TSF9_13 - The 'type' key is set to an empty string
+||Option type must be one of: 'string', 'bool', 'integer', 'float'. (ArgumentError)
+
+//@ WL11263_TSF9_13 - The 'type' key is set to an invalid value
+||Option type must be one of: 'string', 'bool', 'integer', 'float'. (ArgumentError)
+
+//@ WL11263_TSF9_13 - The 'type' key has valid values
+||
+
+//@ The 'required' key is set to undefined
+||Shell.registerReport: Option 'required' is expected to be of type Bool, but is Undefined (TypeError)
+
+//@ The 'required' key is set to null
+||Shell.registerReport: Option 'required' is expected to be of type Bool, but is Null (TypeError)
+
+//@ The 'required' key is set to an invalid type
+||Shell.registerReport: Option 'required' is expected to be of type Bool, but is Map (TypeError)
+
+//@ Option cannot be 'required' if it's bool
+||Shell.registerReport: Option of type 'bool' cannot be required. (ArgumentError)
+
+//@ WL11263_TSF9_14 - Register the report.
+||
+
+//@ WL11263_TSF9_14 - Execute the report without required option.
+||list_report_with_required_option: missing required option(s): --test.
+
+//@<OUT> WL11263_TSF9_14 - Execute the report with required option.
++--------+
+| value  |
++--------+
+| qwerty |
++--------+
+
+//@ WL11263_TSF9_15 - Register the report.
+||
+
+//@<OUT> WL11263_TSF9_15 - Execute the report without non-required options.
++------------+
+| value      |
++------------+
+| 9876.54321 |
++------------+
+
+//@ The 'values' key is set to undefined
+||Shell.registerReport: Option 'values' is expected to be of type Array, but is Undefined (TypeError)
+
+//@ The 'values' key is set to an invalid type
+||Shell.registerReport: Option 'values' is expected to be of type Array, but is Map (TypeError)
+
+//@ The 'values' list holds invalid type
+||Shell.registerReport: Option 'values' String expected, but value is Map (TypeError)
+
+//@ The 'values' list cannot be defined for an 'integer' type
+||Shell.registerReport: Invalid options at 'options' 'invalid_option': values (ArgumentError)
+
+//@ The 'values' list cannot be defined for a 'bool' type
+||Shell.registerReport: Invalid options at 'options' 'invalid_option': values (ArgumentError)
+
+//@ The 'values' list cannot be defined for a 'float' type
+||Shell.registerReport: Invalid options at 'options' 'invalid_option': values (ArgumentError)
+
+//@ WL11263_TSF9_16 - Register the report.
+||
+
+//@ WL11263_TSF9_16 - Execute the report with a disallowed value.
+||list_report_with_list_of_allowed_values: option '--test' only accepts the following values: one, two, three.
+
+//@<OUT> Execute the report with an allowed value.
++-------+
+| value |
++-------+
+| three |
++-------+
+
+//@ Option definition cannot contain unknown keys
+||Shell.registerReport: Invalid options at 'options' 'invalid_option': unknown_key (ArgumentError)
+
+//@ The 'argc' key is set to undefined
+||Shell.registerReport: Option 'argc' is expected to be of type String, but is Undefined (TypeError)
+
+//@ The 'argc' key is set to null
+||Shell.registerReport: Option 'argc' is expected to be of type String, but is Null (TypeError)
+
+//@ The 'argc' key is set to an invalid type
+||Shell.registerReport: Option 'argc' is expected to be of type String, but is Map (TypeError)
+
+//@ WL11263_TSF9_17 - The 'argc' value contains a letter
+||Shell.registerReport: Cannot convert 'x' to an unsigned integer. (ArgumentError)
+
+//@ WL11263_TSF9_17 - The 'argc' value contains a question mark
+||Shell.registerReport: Cannot convert '?' to an unsigned integer. (ArgumentError)
+
+//@ WL11263_TSF9_17 - The 'argc' value contains two letters
+||Shell.registerReport: Cannot convert 'y' to an unsigned integer. (ArgumentError)
+
+//@ WL11263_TSF9_17 - The 'argc' value contains asterisk at wrong position
+||Shell.registerReport: Cannot convert '*' to an unsigned integer. (ArgumentError)
+
+//@ WL11263_TSF9_17 - The 'argc' value contains ill defined range
+||Shell.registerReport: The lower limit of 'argc' cannot be greater than upper limit. (ArgumentError)
+
+//@ WL11263_TSF9_17 - The 'argc' value contains ill defined range - third number
+||Shell.registerReport: The value associated with the key named 'argc' has wrong format. (ArgumentError)
+
+//@ WL11263_TSF9_17 - The 'argc' is set to 0
+||
+
+//@ WL11263_TSF9_17 - The 'argc' is set to 7
+||
+
+//@ WL11263_TSF9_17 - The 'argc' is set to *
+||
+
+//@ WL11263_TSF9_17 - The 'argc' is set to 0-2
+||
+
+//@ WL11263_TSF9_17 - The 'argc' is set to 1-2
+||
+
+//@ WL11263_TSF9_17 - The 'argc' is set to 0-*
+||
+
+//@ WL11263_TSF9_17 - The 'argc' is set to 1-*
+||
+
+//@ WL11263_TSF9_18 - Register the JavaScript report
+||
+
+//@ WL11263_TSF9_18 - Call JS report in JS mode
+|This is a JavaScript report|
+
+//@ WL11263_TSF9_18 - Switch to Python
+|Switching to Python mode...|
+
+//@ WL11263_TSF9_18 - Register the Python report
+||
+
+//@ WL11263_TSF9_18 - Call JS report in PY mode
+|This is a JavaScript report|
+
+//@ WL11263_TSF9_18 - Call PY report in PY mode
+|This is a Python report|
+
+//@ WL11263_TSF9_18 - Switch to SQL
+|Switching to SQL mode... Commands end with ;|
+
+//@ WL11263_TSF9_18 - Call JS report in SQL mode
+|This is a JavaScript report|
+
+//@ WL11263_TSF9_18 - Call PY report in SQL mode
+|This is a Python report|
+
+//@ WL11263_TSF9_18 - Switch to JavaScript
+|Switching to JavaScript mode...|
+
+//@ WL11263_TSF9_18 - Call PY report in JS mode
+|This is a Python report|
+
+//@ Register the JavaScript report which throws an exception
+||
+
+//@<ERR> Call JS report which throws in JS mode
+reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
+This is a JavaScript exception at (shell):1:89
+in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
+                                                                                            ^
+
+//@ Switch to Python to create a report and call both of them
+|Switching to Python mode...|
+
+//@ Register the Python report which throws an exception
+||
+
+//@<ERR> Call JS report which throws in PY mode
+reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
+This is a JavaScript exception at (shell):1:89
+in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
+                                                                                            ^
+
+//@<ERR> Call PY report which throws in PY mode
+reports.python_report_which_throws_an_exception: User-defined function threw an exception:
+Traceback (most recent call last):
+  File "<string>", line 2, in python_report_which_throws_an_exception
+Exception: This is a Python exception
+
+//@ Switch to SQL to call both throwing reports
+|Switching to SQL mode... Commands end with ;|
+
+//@<ERR> Call JS report which throws in SQL mode
+reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
+This is a JavaScript exception at (shell):1:89
+in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
+                                                                                            ^
+
+//@<ERR> Call PY report which throws in SQL mode
+reports.python_report_which_throws_an_exception: User-defined function threw an exception:
+Traceback (most recent call last):
+  File "<string>", line 2, in python_report_which_throws_an_exception
+Exception: This is a Python exception
+
+//@ Switch to JavaScript to call Python report which throws
+|Switching to JavaScript mode...|
+
+//@<ERR> Call PY report which throws in JS mode
+reports.python_report_which_throws_an_exception: User-defined function threw an exception:
+Traceback (most recent call last):
+  File "<string>", line 2, in python_report_which_throws_an_exception
+Exception: This is a Python exception
+
+//@ WL11263_TSF9_19 - register the report
+||
+
+//@<OUT> WL11263_TSF9_19 - Check output
+before
+Some random text
+after
+
+//@ WL11263_TSF9_20 - register the report
+||
+
+//@ WL11263_TSF9_20 - Check output
+|Another random text|
+
+//@ WL11263_TSF9_21 - register the report
+||
+
+//@ WL11263_TSF9_21 - Check output - no error
+|Very interesting report|
+
+
+//@ WL11263_TSF9_22 - register the report
+||
+
+//@ WL11263_TSF9_22 - Check output - error
+||List report should return a list of lists.
+
+//@ WL11263_TSF9_23 - register the report
+||
+
+//@ WL11263_TSF9_23 - Check output - error
+||List report should contain at least one row.
+
+
+//@ WL11263_TSF9_24 - register the report
+||
+
+//@ WL11263_TSF9_24 - Check output - error
+||Option 'report' is expected to be of type Array, but is Undefined
+
+
+//@ WL11263_TSF9_25 - register the report
+||
+
+//@ WL11263_TSF9_25 - Check output - error
+||Option 'report' is expected to be of type Array, but is Undefined
+
+//@ WL11263_TSF9_26 - register the report
+||
+
+//@ WL11263_TSF9_26 - Check output - error
+||Report of type 'report' should contain exactly one element.
+
+//@ WL11263_TSF9_27 - register the report
+||
+
+//@ WL11263_TSF9_27 - Check output - error
+||Report of type 'report' should contain exactly one element.
+
+
+//@ WL11263_TSF9_28 - register the lower-case report
+||
+
+//@ WL11263_TSF9_28 - try to register report with the same name but converted to upper-case
+||Shell.registerReport: Name 'SAMPLE_REPORT_WITH_LOWER_CASE_NAME' conflicts with an existing report: sample_report_with_lower_case_name (ArgumentError)
+
+//@ WL11263_TSF9_28 - register the upper-case report
+||
+
+//@ WL11263_TSF9_28 - try to register report with the same name but converted to lower-case
+||Shell.registerReport: Name 'sample_report_with_upper_case_name' conflicts with an existing report: SAMPLE_REPORT_WITH_UPPER_CASE_NAME (ArgumentError)
+
+//@ WL11263_TSF9_28 - it's not possible to register a report name containing hyphen
+||Shell.registerReport: The function name 'sample_report_with-hyphen' is not a valid identifier. (ArgumentError)
+
+//@ register the report - list_report_testing_various_options
+||
+
+//@ call list_report_testing_various_options with an unknown option
+||list_report_testing_various_options: unknown option --unknown
+
+//@ call list_report_testing_various_options with an unknown short option
+||list_report_testing_various_options: unknown option -u
+
+//@ call list_report_testing_various_options using the first option without value
+||list_report_testing_various_options: option --one requires an argument
+
+//@ call list_report_testing_various_options using the first option without value - short
+||list_report_testing_various_options: option -1 requires an argument
+
+//@<OUT> call list_report_testing_various_options using the first option
++------+--------+---------+
+| name | type   | value   |
++------+--------+---------+
+| one  | String | default |
++------+--------+---------+
+
+//@ call list_report_testing_various_options using the second option without value
+||list_report_testing_various_options: option --two requires an argument
+
+//@ call list_report_testing_various_options using the second option without value - short
+||list_report_testing_various_options: option -2 requires an argument
+
+//@<OUT> call list_report_testing_various_options using the second option
++------+--------+-------+
+| name | type   | value |
++------+--------+-------+
+| two  | String | text  |
++------+--------+-------+
+
+//@<OUT> call list_report_testing_various_options using the second option - int is converted to string
++------+--------+-------+
+| name | type   | value |
++------+--------+-------+
+| two  | String | 2     |
++------+--------+-------+
+
+//@<OUT> call list_report_testing_various_options using the second option - bool is converted to string
++------+--------+-------+
+| name | type   | value |
++------+--------+-------+
+| two  | String | false |
++------+--------+-------+
+
+//@<OUT> call list_report_testing_various_options using the second option - float is converted to string
++------+--------+-------+
+| name | type   | value |
++------+--------+-------+
+| two  | String | 3.14  |
++------+--------+-------+
+
+//@ call list_report_testing_various_options not using the third option (it's not added to options dictionary when calling the function)
+|Report returned no data.|
+
+//@<OUT> call list_report_testing_various_options using the third option
++-------+------+-------+
+| name  | type | value |
++-------+------+-------+
+| three | Bool | true  |
++-------+------+-------+
+
+//@ call list_report_testing_various_options using the third option and providing a value - it's treated as an argument
+||list_report_testing_various_options: expecting 0 arguments.
+
+//@ call list_report_testing_various_options using the third option and providing a value - error
+||list_report_testing_various_options: option --three does not require an argument
+
+//@ call list_report_testing_various_options using the third option and providing a value - short - error
+||list_report_testing_various_options: option -3 does not require an argument
+
+//@ call list_report_testing_various_options using the fourth option without value
+||list_report_testing_various_options: option --four requires an argument
+
+//@ call list_report_testing_various_options using the fourth option without value - short
+||list_report_testing_various_options: option -4 requires an argument
+
+//@<OUT> call list_report_testing_various_options using the fourth option
++------+---------+-------+
+| name | type    | value |
++------+---------+-------+
+| four | Integer | 123   |
++------+---------+-------+
+
+//@ call list_report_testing_various_options using the fourth option - string is not converted to int
+||list_report_testing_various_options: cannot convert 'text' to a signed integer
+
+//@ call list_report_testing_various_options using the fourth option - bool is not converted to int
+||list_report_testing_various_options: cannot convert 'false' to a signed integer
+
+//@ call list_report_testing_various_options using the fourth option - float is not converted to int
+||list_report_testing_various_options: cannot convert '3.14' to a signed integer
+
+//@ call list_report_testing_various_options using the fifth option without value
+||list_report_testing_various_options: option --five requires an argument
+
+//@ call list_report_testing_various_options using the fifth option without value - short
+||list_report_testing_various_options: option -5 requires an argument
+
+//@<OUT> call list_report_testing_various_options using the fifth option
++------+--------+---------+
+| name | type   | value   |
++------+--------+---------+
+| five | Number | 123.456 |
++------+--------+---------+
+
+//@ call list_report_testing_various_options using the fifth option - string is not converted to float
+||list_report_testing_various_options: cannot convert 'text' to a floating-point number
+
+//@ call list_report_testing_various_options using the fifth option - bool is not converted to float
+||list_report_testing_various_options: cannot convert 'false' to a floating-point number
+
+//@<OUT> call list_report_testing_various_options using the fifth option - int is converted to float
++------+---------+-------+
+| name | type    | value |
++------+---------+-------+
+| five | Integer | 3     |
++------+---------+-------+
+
+//@<OUT> call list_report_testing_various_options using --vertical option, should not be added to options
+*************************** 1. row ***************************
+ name: one
+ type: String
+value: text
+
+//@<OUT> call list_report_testing_various_options using all options
++-------+---------+---------+
+| name  | type    | value   |
++-------+---------+---------+
+| five  | Number  | 654.321 |
+| four  | Integer | 987     |
+| one   | String  | text    |
+| three | Bool    | true    |
+| two   | String  | query   |
++-------+---------+---------+
+
+//@ register the report - list_report_testing_argc_default
+||
+
+//@ call list_report_testing_argc_default with no arguments
+|Report returned no data.|
+
+//@ call list_report_testing_argc_default with an argument
+||list_report_testing_argc_default: expecting 0 arguments
+
+//@ register the report - list_report_testing_argc_0
+||
+
+//@ call list_report_testing_argc_0 with no arguments
+|Report returned no data.|
+
+//@ call list_report_testing_argc_0 with an argument
+||list_report_testing_argc_0: expecting 0 arguments
+
+
+//@ register the report - list_report_testing_argc_1
+||
+
+//@ call list_report_testing_argc_1 with no arguments
+||list_report_testing_argc_1: expecting 1 argument
+
+//@<OUT> call list_report_testing_argc_1 with an argument
++------+---------+----------+
+| name | type    | value    |
++------+---------+----------+
+| argv | m.Array | ["arg0"] |
++------+---------+----------+
+
+//@ call list_report_testing_argc_1 with two arguments
+||list_report_testing_argc_1: expecting 1 argument
+
+//@ register the report - list_report_testing_argc_asterisk
+||
+
+//@ call list_report_testing_argc_asterisk with no arguments
+|Report returned no data.|
+
+//@<OUT> call list_report_testing_argc_asterisk with an argument
++------+---------+----------+
+| name | type    | value    |
++------+---------+----------+
+| argv | m.Array | ["arg0"] |
++------+---------+----------+
+
+//@<OUT> call list_report_testing_argc_asterisk with two arguments
++------+---------+------------------+
+| name | type    | value            |
++------+---------+------------------+
+| argv | m.Array | ["arg0", "arg1"] |
++------+---------+------------------+
+
+//@ register the report - list_report_testing_argc_1_2
+||
+
+//@ call list_report_testing_argc_1_2 with no arguments
+||list_report_testing_argc_1_2: expecting 1-2 arguments
+
+//@<OUT> call list_report_testing_argc_1_2 with an argument
++------+---------+----------+
+| name | type    | value    |
++------+---------+----------+
+| argv | m.Array | ["arg0"] |
++------+---------+----------+
+
+//@<OUT> call list_report_testing_argc_1_2 with two arguments
++------+---------+------------------+
+| name | type    | value            |
++------+---------+------------------+
+| argv | m.Array | ["arg0", "arg1"] |
++------+---------+------------------+
+
+//@ call list_report_testing_argc_1_2 with three arguments
+||list_report_testing_argc_1_2: expecting 1-2 arguments
+
+//@ register the report - list_report_testing_argc_1_asterisk
+||
+
+//@ call list_report_testing_argc_1_asterisk with no arguments
+||list_report_testing_argc_1_asterisk: expecting 1-* arguments
+
+//@<OUT> call list_report_testing_argc_1_asterisk with an argument
++------+---------+----------+
+| name | type    | value    |
++------+---------+----------+
+| argv | m.Array | ["arg0"] |
++------+---------+----------+
+
+//@<OUT> call list_report_testing_argc_1_asterisk with two arguments
++------+---------+------------------+
+| name | type    | value            |
++------+---------+------------------+
+| argv | m.Array | ["arg0", "arg1"] |
++------+---------+------------------+
+
+//@<OUT> call list_report_testing_argc_1_asterisk with three arguments
++------+---------+--------------------------+
+| name | type    | value                    |
++------+---------+--------------------------+
+| argv | m.Array | ["arg0", "arg1", "arg2"] |
++------+---------+--------------------------+
+
+//@ WL11263_TSF10_1 - register the report - ths_list_no_options_no_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_no_options_no_arguments
+NAME
+      ths_list_no_options_no_arguments - testing help
+
+SYNTAX
+      reports.ths_list_no_options_no_arguments(session)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_options_no_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_options_no_arguments
+NAME
+      ths_list_options_no_arguments - testing help
+
+SYNTAX
+      reports.ths_list_options_no_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 0 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_no_options_one_argument
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_no_options_one_argument
+NAME
+      ths_list_no_options_one_argument - testing help
+
+SYNTAX
+      reports.ths_list_no_options_one_argument(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1 argument.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_no_options_unbound_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_no_options_unbound_arguments
+NAME
+      ths_list_no_options_unbound_arguments - testing help
+
+SYNTAX
+      reports.ths_list_no_options_unbound_arguments(session[, argv])
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects any number of arguments.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_no_options_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_no_options_range_of_arguments
+NAME
+      ths_list_no_options_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_list_no_options_range_of_arguments(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_no_options_unbound_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_no_options_unbound_range_of_arguments
+NAME
+      ths_list_no_options_unbound_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_list_no_options_unbound_range_of_arguments(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_options_one_argument
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_options_one_argument
+NAME
+      ths_list_options_one_argument - testing help
+
+SYNTAX
+      reports.ths_list_options_one_argument(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1 argument.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_options_unbound_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_options_unbound_arguments
+NAME
+      ths_list_options_unbound_arguments - testing help
+
+SYNTAX
+      reports.ths_list_options_unbound_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects any number of arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_options_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_options_range_of_arguments
+NAME
+      ths_list_options_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_list_options_range_of_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_options_range_of_arguments_details
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_options_range_of_arguments_details
+NAME
+      ths_list_options_range_of_arguments_details - testing help
+
+SYNTAX
+      reports.ths_list_options_range_of_arguments_details(session, argv,
+      options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      More details
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_list_options_unbound_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_list_options_unbound_range_of_arguments
+NAME
+      ths_list_options_unbound_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_list_options_unbound_range_of_arguments(session, argv,
+      options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_no_options_no_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_no_options_no_arguments
+NAME
+      ths_report_no_options_no_arguments - testing help
+
+SYNTAX
+      reports.ths_report_no_options_no_arguments(session)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_options_no_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_options_no_arguments
+NAME
+      ths_report_options_no_arguments - testing help
+
+SYNTAX
+      reports.ths_report_options_no_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 0 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_no_options_one_argument
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_no_options_one_argument
+NAME
+      ths_report_no_options_one_argument - testing help
+
+SYNTAX
+      reports.ths_report_no_options_one_argument(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1 argument.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_no_options_unbound_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_no_options_unbound_arguments
+NAME
+      ths_report_no_options_unbound_arguments - testing help
+
+SYNTAX
+      reports.ths_report_no_options_unbound_arguments(session[, argv])
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects any number of arguments.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_no_options_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_no_options_range_of_arguments
+NAME
+      ths_report_no_options_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_report_no_options_range_of_arguments(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_no_options_unbound_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_no_options_unbound_range_of_arguments
+NAME
+      ths_report_no_options_unbound_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_report_no_options_unbound_range_of_arguments(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_options_one_argument
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_options_one_argument
+NAME
+      ths_report_options_one_argument - testing help
+
+SYNTAX
+      reports.ths_report_options_one_argument(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1 argument.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_options_unbound_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_options_unbound_arguments
+NAME
+      ths_report_options_unbound_arguments - testing help
+
+SYNTAX
+      reports.ths_report_options_unbound_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects any number of arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_options_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_options_range_of_arguments
+NAME
+      ths_report_options_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_report_options_range_of_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_options_range_of_arguments_details
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_options_range_of_arguments_details
+NAME
+      ths_report_options_range_of_arguments_details - testing help
+
+SYNTAX
+      reports.ths_report_options_range_of_arguments_details(session, argv,
+      options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      More details
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_report_options_unbound_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_report_options_unbound_range_of_arguments
+NAME
+      ths_report_options_unbound_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_report_options_unbound_range_of_arguments(session, argv,
+      options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'report' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_no_options_no_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_no_options_no_arguments
+NAME
+      ths_print_no_options_no_arguments - testing help
+
+SYNTAX
+      reports.ths_print_no_options_no_arguments(session)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_options_no_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_options_no_arguments
+NAME
+      ths_print_options_no_arguments - testing help
+
+SYNTAX
+      reports.ths_print_options_no_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 0 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_no_options_one_argument
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_no_options_one_argument
+NAME
+      ths_print_no_options_one_argument - testing help
+
+SYNTAX
+      reports.ths_print_no_options_one_argument(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1 argument.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_no_options_unbound_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_no_options_unbound_arguments
+NAME
+      ths_print_no_options_unbound_arguments - testing help
+
+SYNTAX
+      reports.ths_print_no_options_unbound_arguments(session[, argv])
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects any number of arguments.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_no_options_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_no_options_range_of_arguments
+NAME
+      ths_print_no_options_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_print_no_options_range_of_arguments(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_no_options_unbound_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_no_options_unbound_range_of_arguments
+NAME
+      ths_print_no_options_unbound_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_print_no_options_unbound_range_of_arguments(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_options_one_argument
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_options_one_argument
+NAME
+      ths_print_options_one_argument - testing help
+
+SYNTAX
+      reports.ths_print_options_one_argument(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1 argument.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_options_unbound_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_options_unbound_arguments
+NAME
+      ths_print_options_unbound_arguments - testing help
+
+SYNTAX
+      reports.ths_print_options_unbound_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects any number of arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_options_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_options_range_of_arguments
+NAME
+      ths_print_options_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_print_options_range_of_arguments(session, argv, options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_options_range_of_arguments_details
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_options_range_of_arguments_details
+NAME
+      ths_print_options_range_of_arguments_details - testing help
+
+SYNTAX
+      reports.ths_print_options_range_of_arguments_details(session, argv,
+      options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      More details
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@ WL11263_TSF10_1 - register the report - ths_print_options_unbound_range_of_arguments
+||
+
+//@<OUT> WL11263_TSF10_1 - show help - ths_print_options_unbound_range_of_arguments
+NAME
+      ths_print_options_unbound_range_of_arguments - testing help
+
+SYNTAX
+      reports.ths_print_options_unbound_range_of_arguments(session, argv,
+      options)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+      options: Dictionary. Options expected by the report.
+
+DESCRIPTION
+      This is a 'print' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+      The options parameter accepts the following options:
+
+      - one Optional String. Option with default type.
+      - two String. Option with "string" type.
+      - three Optional Bool. Option with "bool" type.
+      - four Optional Integer. Option with "integer" type.
+      - five Optional Float. Option with "float" type.
+
+      The one option accepts the following values:
+
+      - a
+      - b
+      - c
+
+      Details of parameter three.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_no_arguments
+ths_list_no_options_no_arguments - testing help
+
+Usage:
+       \show ths_list_no_options_no_arguments [OPTIONS]
+       \watch ths_list_no_options_no_arguments [OPTIONS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_no_arguments
+ths_list_options_no_arguments - testing help
+
+Usage:
+       \show ths_list_options_no_arguments [OPTIONS]
+       \watch ths_list_options_no_arguments [OPTIONS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_one_argument
+ths_list_no_options_one_argument - testing help
+
+Usage:
+       \show ths_list_no_options_one_argument [OPTIONS] [ARGUMENTS]
+       \watch ths_list_no_options_one_argument [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+Arguments:
+  This report accepts 1 argument.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_unbound_arguments
+ths_list_no_options_unbound_arguments - testing help
+
+Usage:
+       \show ths_list_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_list_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+Arguments:
+  This report accepts any number of arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_range_of_arguments
+ths_list_no_options_range_of_arguments - testing help
+
+Usage:
+       \show ths_list_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_list_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_no_options_unbound_range_of_arguments
+ths_list_no_options_unbound_range_of_arguments - testing help
+
+Usage:
+       \show ths_list_no_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+       \watch ths_list_no_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_one_argument
+ths_list_options_one_argument - testing help
+
+Usage:
+       \show ths_list_options_one_argument [OPTIONS] [ARGUMENTS]
+       \watch ths_list_options_one_argument [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1 argument.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_unbound_arguments
+ths_list_options_unbound_arguments - testing help
+
+Usage:
+       \show ths_list_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_list_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts any number of arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_range_of_arguments
+ths_list_options_range_of_arguments - testing help
+
+Usage:
+       \show ths_list_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_list_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_range_of_arguments_details
+ths_list_options_range_of_arguments_details - testing help
+
+More details
+
+Usage:
+       \show ths_list_options_range_of_arguments_details [OPTIONS] [ARGUMENTS]
+       \watch ths_list_options_range_of_arguments_details [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_list_options_unbound_range_of_arguments
+ths_list_options_unbound_range_of_arguments - testing help
+
+Usage:
+       \show ths_list_options_unbound_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_list_options_unbound_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_no_arguments
+ths_report_no_options_no_arguments - testing help
+
+Usage:
+       \show ths_report_no_options_no_arguments [OPTIONS]
+       \watch ths_report_no_options_no_arguments [OPTIONS]
+
+Options:
+  --help                        Display this help and exit.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_no_arguments
+ths_report_options_no_arguments - testing help
+
+Usage:
+       \show ths_report_options_no_arguments [OPTIONS]
+       \watch ths_report_options_no_arguments [OPTIONS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_one_argument
+ths_report_no_options_one_argument - testing help
+
+Usage:
+       \show ths_report_no_options_one_argument [OPTIONS] [ARGUMENTS]
+       \watch ths_report_no_options_one_argument [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts 1 argument.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_unbound_arguments
+ths_report_no_options_unbound_arguments - testing help
+
+Usage:
+       \show ths_report_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_report_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts any number of arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_range_of_arguments
+ths_report_no_options_range_of_arguments - testing help
+
+Usage:
+       \show ths_report_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_report_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_no_options_unbound_range_of_arguments
+ths_report_no_options_unbound_range_of_arguments - testing help
+
+Usage:
+       \show ths_report_no_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+       \watch ths_report_no_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_one_argument
+ths_report_options_one_argument - testing help
+
+Usage:
+       \show ths_report_options_one_argument [OPTIONS] [ARGUMENTS]
+       \watch ths_report_options_one_argument [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1 argument.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_unbound_arguments
+ths_report_options_unbound_arguments - testing help
+
+Usage:
+       \show ths_report_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_report_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts any number of arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_range_of_arguments
+ths_report_options_range_of_arguments - testing help
+
+Usage:
+       \show ths_report_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_report_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_range_of_arguments_details
+ths_report_options_range_of_arguments_details - testing help
+
+More details
+
+Usage:
+       \show ths_report_options_range_of_arguments_details [OPTIONS]
+[ARGUMENTS]
+       \watch ths_report_options_range_of_arguments_details [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_report_options_unbound_range_of_arguments
+ths_report_options_unbound_range_of_arguments - testing help
+
+Usage:
+       \show ths_report_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+       \watch ths_report_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_no_arguments
+ths_print_no_options_no_arguments - testing help
+
+Usage:
+       \show ths_print_no_options_no_arguments [OPTIONS]
+       \watch ths_print_no_options_no_arguments [OPTIONS]
+
+Options:
+  --help                        Display this help and exit.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_no_arguments
+ths_print_options_no_arguments - testing help
+
+Usage:
+       \show ths_print_options_no_arguments [OPTIONS]
+       \watch ths_print_options_no_arguments [OPTIONS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_one_argument
+ths_print_no_options_one_argument - testing help
+
+Usage:
+       \show ths_print_no_options_one_argument [OPTIONS] [ARGUMENTS]
+       \watch ths_print_no_options_one_argument [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts 1 argument.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_unbound_arguments
+ths_print_no_options_unbound_arguments - testing help
+
+Usage:
+       \show ths_print_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_print_no_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts any number of arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_range_of_arguments
+ths_print_no_options_range_of_arguments - testing help
+
+Usage:
+       \show ths_print_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_print_no_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_no_options_unbound_range_of_arguments
+ths_print_no_options_unbound_range_of_arguments - testing help
+
+Usage:
+       \show ths_print_no_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+       \watch ths_print_no_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_one_argument
+ths_print_options_one_argument - testing help
+
+Usage:
+       \show ths_print_options_one_argument [OPTIONS] [ARGUMENTS]
+       \watch ths_print_options_one_argument [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1 argument.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_unbound_arguments
+ths_print_options_unbound_arguments - testing help
+
+Usage:
+       \show ths_print_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_print_options_unbound_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts any number of arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_range_of_arguments
+ths_print_options_range_of_arguments - testing help
+
+Usage:
+       \show ths_print_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_print_options_range_of_arguments [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_range_of_arguments_details
+ths_print_options_range_of_arguments_details - testing help
+
+More details
+
+Usage:
+       \show ths_print_options_range_of_arguments_details [OPTIONS] [ARGUMENTS]
+       \watch ths_print_options_range_of_arguments_details [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-2 arguments.
+
+//@<OUT> WL11263_TSF18_1 - call \show --help - ths_print_options_unbound_range_of_arguments
+ths_print_options_unbound_range_of_arguments - testing help
+
+Usage:
+       \show ths_print_options_unbound_range_of_arguments [OPTIONS] [ARGUMENTS]
+       \watch ths_print_options_unbound_range_of_arguments [OPTIONS]
+[ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --one=string, -1              Option with default type. Allowed values: a, b,
+                                c.
+  --two=string, -2              (required) Option with "string" type.
+  --three, -3                   Option with "bool" type.
+  --four=integer, -4            Option with "integer" type.
+  --five=float, -5              Option with "float" type.
+
+  Details of parameter three.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> WL11263_TSF13_1 - call shell.reports.list_report_testing_various_options() in JS mode
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "one",
+            "String",
+            "text"
+        ]
+    ]
+}
+
+//@ WL11263_TSF13_1 - switch to Python
+|Switching to Python mode...|
+
+//@ WL11263_TSF13_1 - switch to back to JS
+|Switching to JavaScript mode...|
+
+//@ call shell.reports.list_report_testing_various_options without options
+||reports.list_report_testing_various_options: Invalid number of arguments, expected 1 to 3 but got 0 (ArgumentError)
+
+
+//@ call shell.reports.list_report_testing_various_options with session - undefined
+||reports.list_report_testing_various_options: Argument #1 is expected to be an object (ArgumentError)
+
+//@ call shell.reports.list_report_testing_various_options with session - null
+||reports.list_report_testing_various_options: Argument #1 is expected to be an object (ArgumentError)
+
+//@ call shell.reports.list_report_testing_various_options with session - string
+||reports.list_report_testing_various_options: Argument #1 is expected to be an object (ArgumentError)
+
+
+//@ call shell.reports.list_report_testing_various_options with options - undefined
+||reports.list_report_testing_various_options: Argument #3 is expected to be a map (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_various_options with options - null
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_various_options with options - string
+||reports.list_report_testing_various_options: Argument #3 is expected to be a map (ArgumentError)
+
+
+//@ call shell.reports.list_report_testing_various_options with an unknown option
+||reports.list_report_testing_various_options: Invalid options at Argument #3: unknown (ArgumentError)
+
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the first option without value
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_various_options using the first option with int
+||reports.list_report_testing_various_options: option one at Argument #3 is expected to be a string (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the first option with string
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "one",
+            "String",
+            "default"
+        ]
+    ]
+}
+
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the second option without value
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_various_options using the second option with int
+||reports.list_report_testing_various_options: option two at Argument #3 is expected to be a string (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the second option with string
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "two",
+            "String",
+            "text"
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options not using the third option
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the third option with int
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "three",
+            "Integer",
+            3
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the third option with float
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "three",
+            "Number",
+            3.14
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_various_options using the third option with string
+||reports.list_report_testing_various_options: option three at Argument #3 is expected to be a bool (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the third option with bool
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "three",
+            "Bool",
+            false
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the third option with bool - true
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "three",
+            "Bool",
+            true
+        ]
+    ]
+}
+
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fourth option without value
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fourth option with bool
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "four",
+            "Bool",
+            false
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fourth option with float
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "four",
+            "Number",
+            3.14
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_various_options using the fourth option with string
+||reports.list_report_testing_various_options: option four at Argument #3 is expected to be an integer (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fourth option with int
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "four",
+            "Integer",
+            4
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fifth option without value
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fifth option with bool
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "five",
+            "Bool",
+            false
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_various_options using the fifth option with string
+||reports.list_report_testing_various_options: option five at Argument #3 is expected to be a float (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fifth option with int
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "five",
+            "Integer",
+            5
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the fifth option with float
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "five",
+            "Number",
+            3.14
+        ]
+    ]
+}
+
+
+//@<OUT> call shell.reports.list_report_testing_various_options using all options
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "five",
+            "Number",
+            654.321
+        ],
+        [
+            "four",
+            "Integer",
+            987
+        ],
+        [
+            "one",
+            "String",
+            "text"
+        ],
+        [
+            "three",
+            "String",
+            "true"
+        ],
+        [
+            "two",
+            "String",
+            "query"
+        ]
+    ]
+}
+
+//@ call shell.reports.list_report_testing_argc_default with no arguments
+||reports.list_report_testing_argc_default: Invalid number of arguments, expected 1 but got 2 (ArgumentError)
+
+
+//@ call shell.reports.list_report_testing_argc_0 with no arguments
+||reports.list_report_testing_argc_0: Invalid number of arguments, expected 1 but got 2 (ArgumentError)
+
+
+//@ call shell.reports.list_report_testing_argc_1 with no arguments
+||reports.list_report_testing_argc_1: Argument #2 'argv' is expecting 1 argument. (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_argc_1 with an argument
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0"
+            ]
+        ]
+    ]
+}
+
+
+//@<OUT> call shell.reports.list_report_testing_argc_asterisk with no arguments
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_argc_asterisk with an argument
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0"
+            ]
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_argc_asterisk with two arguments
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0",
+                "arg1"
+            ]
+        ]
+    ]
+}
+
+
+//@ call shell.reports.list_report_testing_argc_1_2 with no arguments
+||reports.list_report_testing_argc_1_2: Argument #2 'argv' is expecting 1-2 arguments. (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_argc_1_2 with an argument
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0"
+            ]
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_argc_1_2 with two arguments
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0",
+                "arg1"
+            ]
+        ]
+    ]
+}
+
+
+//@ call shell.reports.list_report_testing_argc_1_asterisk with no arguments
+||reports.list_report_testing_argc_1_asterisk: Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
+
+//@<OUT> call shell.reports.list_report_testing_argc_1_asterisk with an argument
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0"
+            ]
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_argc_1_asterisk with two arguments
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0",
+                "arg1"
+            ]
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_argc_1_asterisk with three arguments
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "argv",
+            "m.Array",
+            [
+                "arg0",
+                "arg1",
+                "arg2"
+            ]
+        ]
+    ]
+}
+
+//@ WL11263_TSF14_1 - register report - returns undefined
+||
+
+//@ WL11263_TSF14_1 - call the report - undefined means an error
+||Report should return a dictionary.
+
+//@ WL11263_TSF14_1 - call the report - empty dictionary means an error
+||Missing required options: report
+
+//@ WL11263_TSF14_1 - call the report - unknown key means an error
+||Invalid and missing options (invalid: unknown), (missing: report)
+
+//@ WL11263_TSF14_1 - call the report - undefined report means an error
+||Option 'report' is expected to be of type Array, but is Undefined
+
+//@ WL11263_TSF14_1 - call the report - null report means an error
+||Option 'report' is expected to be of type Array, but is Null
+
+//@ WL11263_TSF14_1 - call the report - string report means an error
+||Option 'report' is expected to be of type Array, but is String
+
+//@<OUT> WL11263_TSF15_1 - call an existing report, expect tabular output
++-------+---------+---------+
+| name  | type    | value   |
++-------+---------+---------+
+| five  | Number  | 654.321 |
+| four  | Integer | 987     |
+| one   | String  | text    |
+| three | Bool    | true    |
+| two   | String  | query   |
++-------+---------+---------+
+
+//@ WL11263_TSF15_2 - register a report
+||
+
+//@<OUT> WL11263_TSF15_2 - call the report
++-------+-------+
+| left  | right |
++-------+-------+
+| one   | two   |
+| three | NULL  |
+| four  | five  |
+| seven | eight |
++-------+-------+
+
+//@<OUT> WL11263_TSF16_1 - call an existing report, expect vertical output
+*************************** 1. row ***************************
+ name: five
+ type: Number
+value: 654.321
+*************************** 2. row ***************************
+ name: four
+ type: Integer
+value: 987
+*************************** 3. row ***************************
+ name: one
+ type: String
+value: text
+*************************** 4. row ***************************
+ name: three
+ type: Bool
+value: true
+*************************** 5. row ***************************
+ name: two
+ type: String
+value: query
+
+//@<OUT> WL11263_TSF16_2 - call the existing report
+*************************** 1. row ***************************
+ left: one
+right: two
+*************************** 2. row ***************************
+ left: three
+right: NULL
+*************************** 3. row ***************************
+ left: four
+right: five
+*************************** 4. row ***************************
+ left: seven
+right: eight
+
+//@ WL11263_TSF15_2 - register a 'print' report
+||
+
+//@ WL11263_TSF15_2 - call the 'print' report with --vertical option
+||print_report_to_test_vertical_option: unknown option --vertical
+
+//@ WL11263_TSF15_2 - call the 'print' report with -E option
+||print_report_to_test_vertical_option: unknown option -E
+
+//@ WL11263_TSF15_2 - register a 'report' report
+||
+
+//@ WL11263_TSF15_2 - call the 'report' type report with --vertical option
+||report_type_report_to_test_vertical_option: unknown option --vertical
+
+//@ WL11263_TSF15_2 - call the 'report' type report with -E option
+||report_type_report_to_test_vertical_option: unknown option -E
+
+//@ WL11263_TSF17_1 - register a 'report' type report
+||
+
+//@<OUT> WL11263_TSF17_1 - call the 'report' type report - test the output
+---
+- text
+- 2
+- 3.14
+- |-
+    multi
+    line
+    text
+- 1: value
+  2: 4
+  3: 7.777
+  4:
+    - 1
+    - 2
+    - 3
+  5:
+    key: value
+
+//@ 'query' - create database
+|Report returned no data.|
+
+//@ 'query' - show tables, no result
+|Report returned no data.|
+
+//@ 'query' - create sample table
+|Report returned no data.|
+
+//@<OUT> 'query' - show tables, result contains the table
++-----------------------+
+| Tables_in_report_test |
++-----------------------+
+| sample                |
++-----------------------+
+
+//@<OUT> 'query' - show description of sample table
++----------+------------------+------+-----+---------+-------+
+| Field    | Type             | Null | Key | Default | Extra |
++----------+------------------+------+-----+---------+-------+
+| one      | varchar(20)      | YES  |     | NULL    |       |
+| two      | int(11)          | YES  |     | NULL    |       |
+| three    | int(10) unsigned | YES  |     | NULL    |       |
+| four     | float            | YES  |     | NULL    |       |
+| five     | double           | YES  |     | NULL    |       |
+| six      | decimal(10,0)    | YES  |     | NULL    |       |
+| seven    | date             | YES  |     | NULL    |       |
+| eight    | datetime         | YES  |     | NULL    |       |
+| nine     | bit(1)           | YES  |     | NULL    |       |
+| ten      | blob             | YES  |     | NULL    |       |
+| eleven   | geometry         | YES  |     | NULL    |       |
+| twelve   | json             | YES  |     | NULL    |       |
+| thirteen | time             | YES  |     | NULL    |       |
+| fourteen | enum('a','b')    | YES  |     | NULL    |       |
+| fifteen  | set('c','d')     | YES  |     | NULL    |       |
++----------+------------------+------+-----+---------+-------+
+
+//@ 'query' - insert some values
+|Report returned no data.|
+
+//@<OUT> 'query' - query for values
++-----+-----+-------+------+-------+-----+------------+---------------------+------+------+--------+----------+----------+----------+---------+
+| one | two | three | four | five  | six | seven      | eight               | nine | ten  | eleven | twelve   | thirteen | fourteen | fifteen |
++-----+-----+-------+------+-------+-----+------------+---------------------+------+------+--------+----------+----------+----------+---------+
+| z   | -1  | 2     | 3.14 | -6.28 | 123 | 2018-11-23 | 2018-11-23 08:06:34 | 0    | BLOB | NULL   | {"a": 3} | 08:06:34 | b        | c,d     |
++-----+-----+-------+------+-------+-----+------------+---------------------+------+------+--------+----------+----------+----------+---------+
+
+//@ 'query' - delete the database
+|Report returned no data.|
+
+//@<OUT> 'query' - --help
+query - Executes the SQL statement given as arguments.
+
+Usage:
+       \show query [OPTIONS] [ARGUMENTS]
+       \watch query [OPTIONS] [ARGUMENTS]
+
+Options:
+  --help                        Display this help and exit.
+  --vertical, -E                Display records vertically.
+
+Arguments:
+  This report accepts 1-* arguments.
+
+//@<OUT> 'query' - help system
+NAME
+      query - Executes the SQL statement given as arguments.
+
+SYNTAX
+      reports.query(session, argv)
+
+WHERE
+      session: Object. A Session object to be used to execute the report.
+      argv: Array. Extra arguments. Report expects 1-* arguments.
+
+DESCRIPTION
+      This is a 'list' type report.
+
+      The session parameter must be any of ClassicSession, Session.
+
+//@ 'query' - call method with null arguments
+||reports.query: Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
+
+//@ 'query' - call method with null options
+||reports.query: Invalid number of arguments, expected 2 but got 3 (ArgumentError)

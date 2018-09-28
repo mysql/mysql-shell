@@ -32,6 +32,7 @@
 #include <mutex>
 #include <system_error>
 #include <thread>
+#include <utility>
 
 #ifdef _WIN32
 // clang-format off
@@ -195,14 +196,14 @@ void Testutils::enable_extensible() {
   md = expose("registerModule", &Testutils::register_module, "parent", "name",
               "?options");
 
-  // Creates an object validator for the options parameter
-  auto options1 = std::make_shared<shcore::Option_validator>();
-  options1->allowed = {
-      {"brief", shcore::Value_type::String, shcore::Param_flag::Optional},
-      {"details", shcore::Value_type::Array, shcore::Param_flag::Optional}};
-
-  // Overwrites the default validator with the created one
-  md->signature[2].validator = options1;
+  // Sets allowed values for the options parameter
+  std::vector<std::shared_ptr<shcore::Parameter>> allowed;
+  allowed.emplace_back(std::make_shared<shcore::Parameter>(
+      "brief", shcore::Value_type::String, shcore::Param_flag::Optional));
+  allowed.emplace_back(std::make_shared<shcore::Parameter>(
+      "details", shcore::Value_type::Array, shcore::Param_flag::Optional));
+  md->signature[2]->validator<shcore::Option_validator>()->set_allowed(
+      std::move(allowed));
 
   // Registers the function help on the help system
   register_function_help(

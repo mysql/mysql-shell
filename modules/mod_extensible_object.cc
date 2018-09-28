@@ -22,6 +22,7 @@
  */
 #include "modules/mod_extensible_object.h"
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -32,11 +33,67 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+
+namespace {
+
+std::string to_string(shcore::Value_type t) {
+  if (shcore::Value_type::Map == t) {
+    return "Dictionary";
+  } else {
+    return shcore::type_name(t);
+  }
+}
+
+shcore::Cpp_function::Raw_signature to_raw_signature(
+    const Function_definition::Parameters &in) {
+  shcore::Cpp_function::Raw_signature out;
+
+  for (const auto &p : in) {
+    out.emplace_back(p->parameter);
+  }
+
+  return out;
+}
+
+}  // namespace
+
+Parameter_definition::Parameter_definition()
+    : parameter{std::make_shared<shcore::Parameter>()} {}
+
+Parameter_definition::Parameter_definition(const std::string &n,
+                                           shcore::Value_type t,
+                                           shcore::Param_flag f)
+    : parameter{std::make_shared<shcore::Parameter>(n, t, f)} {}
+
+bool Parameter_definition::is_required() const {
+  return shcore::Param_flag::Mandatory == parameter->flag;
+}
+
+void Parameter_definition::set_options(const Options &options) {
+  validate_options();
+
+  m_options = options;
+  parameter->validator<shcore::Option_validator>()->set_allowed(
+      to_raw_signature(options));
+}
+
+const Parameter_definition::Options &Parameter_definition::options() const {
+  validate_options();
+
+  return m_options;
+}
+
+void Parameter_definition::validate_options() const {
+  if (parameter->type() != shcore::Value_type::Map) {
+    throw std::logic_error("Only map type can have options.");
+  }
+}
+
 Extensible_object::Extensible_object(const std::string &name,
                                      const std::string &qualified_name)
     : m_name(name), m_qualified_name(qualified_name) {}
 
-Extensible_object::~Extensible_object() { enable_help(false); }
+Extensible_object::~Extensible_object() { disable_help(); }
 bool Extensible_object::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
@@ -81,35 +138,27 @@ void Extensible_object::register_object(const std::string &name,
 void Extensible_object::register_function(
     const std::string &name, const shcore::Function_base_ref &function,
     const shcore::Dictionary_t &definition) {
+  Function_definition description;
   shcore::Array_t params;
-  std::string brief;
-  std::vector<std::string> details;
+
   shcore::Option_unpacker unpacker(definition);
   unpacker.optional("parameters", &params);
-  unpacker.optional("brief", &brief);
-  unpacker.optional("details", &details);
+  unpacker.optional("brief", &description.brief);
+  unpacker.optional("details", &description.details);
   unpacker.end("at function definition");
 
-  auto names = shcore::str_split(name, "|");
-  if (names.size() > 2) {
-    throw shcore::Exception::argument_error(
-        "Invalid function name. When using custom names only two names should "
-        "be provided.");
-  }
-
-  for (const auto &cname : names) {
-    if (!shcore::is_valid_identifier(cname))
-      throw shcore::Exception::argument_error("The function name '" + cname +
-                                              "'is not a valid identifier.");
-  }
-
   // Builds the parameter list
-  std::vector<shcore::Parameter> parameters;
-  std::vector<std::pair<std::string, shcore::Value_type>> ptypes;
+  description.parameters = parse_parameters(params, {"parameter"}, true);
 
-  parameters = parse_parameters(params, {"parameter"}, true);
+  register_function(name, function, description);
+}
 
-  expose(name, function, std::move(parameters));
+void Extensible_object::register_function(
+    const std::string &name, const shcore::Function_base_ref &function,
+    const Function_definition &definition) {
+  validate_function(name, definition.parameters);
+
+  expose(name, function, to_raw_signature(definition.parameters));
 
   register_function_help(name, definition);
 }
@@ -160,10 +209,10 @@ shcore::Value_type Extensible_object::map_type(const std::string &value) {
   return shcore::Value_type::Undefined;
 }
 
-std::vector<shcore::Parameter> Extensible_object::parse_parameters(
-    shcore::Array_t data, const shcore::Parameter_context &context,
+Function_definition::Parameters Extensible_object::parse_parameters(
+    const shcore::Array_t &data, const shcore::Parameter_context &context,
     bool default_require) {
-  std::vector<shcore::Parameter> parameters;
+  Function_definition::Parameters parameters;
 
   if (data) {
     for (size_t index = 0; index < data->size(); index++) {
@@ -184,99 +233,84 @@ std::vector<shcore::Parameter> Extensible_object::parse_parameters(
   return parameters;
 }
 
-shcore::Parameter Extensible_object::parse_parameter(
+std::shared_ptr<Parameter_definition>
+Extensible_object::start_parsing_parameter(const shcore::Dictionary_t &,
+                                           shcore::Option_unpacker *) const {
+  return std::make_shared<Parameter_definition>();
+}
+
+std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
     const shcore::Dictionary_t &definition,
     const shcore::Parameter_context &context, bool default_require) {
-  shcore::Parameter param;
   std::string type;
   bool required = default_require;
   shcore::Option_unpacker unpacker(definition);
-  unpacker.required("name", &param.name);
+
+  auto param_definition = start_parsing_parameter(definition, &unpacker);
+  const auto &param = param_definition->parameter;
+
+  unpacker.required("name", &param->name);
   unpacker.required("type", &type);
   unpacker.optional("required", &required);
+  unpacker.optional("brief", &param_definition->brief);
+  unpacker.optional("details", &param_definition->details);
 
-  // Pulling these two is for parameter validation purposes only
-  std::string brief;
-  std::vector<std::string> details;
-  unpacker.optional("brief", &brief);
-  unpacker.optional("details", &details);
+  param->set_type(map_type(type));
 
-  param.type = map_type(type);
-
-  if (param.type == shcore::Value_type::String) {
-    auto validator = std::make_shared<shcore::String_validator>();
-    unpacker.optional("values", &validator->allowed);
-    param.validator = validator;
+  if (param->type() == shcore::Value_type::String) {
+    std::vector<std::string> allowed;
+    unpacker.optional("values", &allowed);
+    param->validator<shcore::String_validator>()->set_allowed(
+        std::move(allowed));
   }
 
-  if (param.type == shcore::Value_type::Object) {
-    auto validator = std::make_shared<shcore::Object_validator>();
-    unpacker.optional("classes", &validator->allowed);
+  if (param->type() == shcore::Value_type::Object) {
+    std::vector<std::string> allowed_classes;
+    unpacker.optional("classes", &allowed_classes);
 
     std::string allowed;
     unpacker.optional("class", &allowed);
-    if (!allowed.empty()) validator->allowed.push_back(allowed);
+    if (!allowed.empty()) allowed_classes.push_back(allowed);
 
-    param.validator = validator;
+    param->validator<shcore::Object_validator>()->set_allowed(
+        std::move(allowed_classes));
   }
 
   shcore::Array_t options;
-  if (param.type == shcore::Value_type::Map)
+  if (param->type() == shcore::Value_type::Map)
     unpacker.required("options", &options);
 
-  bool valid_identifier = shcore::is_valid_identifier(param.name);
-
   std::string current_ctx;
-  if (valid_identifier)
-    current_ctx = context.title + " '" + param.name + "'";
+  if (shcore::is_valid_identifier(param->name))
+    current_ctx = context.title + " '" + param->name + "'";
   else
     current_ctx = context.str();
 
   unpacker.end("at " + current_ctx);
 
-  if (!valid_identifier) {
-    auto error = shcore::str_format("%s is not a valid identifier: '%s'.",
-                                    current_ctx.c_str(), param.name.c_str());
-    throw shcore::Exception::argument_error(error);
-  }
-
-  if (param.type == shcore::Value_type::Undefined) {
-    auto error = shcore::str_format("Unsupported data type '%s' at %s.",
-                                    type.c_str(), current_ctx.c_str());
-    throw shcore::Exception::argument_error(error);
-  }
-
-  if (param.type == shcore::Value_type::Map) {
-    // Options must be defined
-    if (!(options && !options->empty())) {
-      auto error =
-          shcore::str_format("Missing 'options' at %s.", current_ctx.c_str());
-      throw shcore::Exception::argument_error(error);
+  if (param->type() == shcore::Value_type::Map) {
+    if (options && !options->empty()) {
+      param_definition->set_options(
+          parse_parameters(options, {current_ctx + " option"}, false));
     }
-
-    auto validator = std::make_shared<shcore::Option_validator>();
-    validator->allowed =
-        parse_parameters(options, {current_ctx + " option"}, false);
-
-    param.validator = std::move(validator);
   }
 
-  param.flag =
+  param->flag =
       required ? shcore::Param_flag::Mandatory : shcore::Param_flag::Optional;
 
-  return param;
+  return param_definition;
 }
 void Extensible_object::register_object_help(
     const std::string &brief, const std::vector<std::string> &details) {
   auto help = shcore::Help_registry::get();
 
-  // Attempts getting the fully quialified object
+  // Attempts getting the fully qualified object
   shcore::Help_topic *topic = help->get_topic(m_qualified_name, true);
 
   if (topic) {
     mysqlsh::current_console()->print_warning("Help for " + m_qualified_name +
                                               " already exists.");
-    enable_help(true);
+    enable_help();
   } else {
     // Defines the modes where the help will be available
     auto mask = shcore::IShell_core::all_scripting_modes();
@@ -312,175 +346,253 @@ void Extensible_object::register_function_help(
     auto mask = shcore::IShell_core::all_scripting_modes();
 
     // Creates the help topic for the function
-    help->add_help_topic(name, shcore::Topic_type::FUNCTION, name,
+    help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
                          m_qualified_name, mask);
 
     // Now registers the function brief, parameters and details
     auto prefix = shcore::str_upper(m_name + "_" + names[0]);
-    help->add_help(prefix, "BRIEF", brief);
+    if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
     help->add_help(prefix, "PARAM", params);
     help->add_help(prefix, "DETAIL", details);
+  } else {
+    topic->set_enabled(true);
   }
 }
 
 void Extensible_object::register_function_help(
-    const std::string &name, const shcore::Dictionary_t &function) {
-  auto help = shcore::Help_registry::get();
+    const std::string &name, const Function_definition &definition) {
+  // Param details are inserted at the end of the function details by default.
+  // If @PARAMDETAILS entry is found on the function details, the parameter
+  // details wil be inserted right there.
+  bool param_details = true;
 
-  // The help is registered using the base name as tag
-  auto names = shcore::str_split(name, "|");
+  std::vector<std::string> params;
+  std::vector<std::string> details;
 
-  shcore::Help_topic *topic =
-      help->get_topic(m_qualified_name + "." + names[0], true);
-
-  if (!topic) {
-    // Defines the modes where the help will be available
-    auto mask = shcore::IShell_core::all_scripting_modes();
-
-    help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
-                         m_qualified_name, mask);
-
-    // Now registers the brief abd description help data if provided
-    std::string help_prefix = shcore::str_upper(m_name + "_" + names[0]);
-    shcore::Option_unpacker unpacker(function);
-    std::string brief;
-    unpacker.optional("brief", &brief);
-    if (!brief.empty()) help->add_help(help_prefix, "BRIEF", brief);
-
-    size_t detail_count = 0;
-    size_t param_count = 0;
-
-    // Param details are inserted at the end of the function details by defaule.
-    // If @PARAMDETAILS entry is found on the function details, the parameter
-    // details wil be inserted right there.
-    std::vector<std::string> details;
-    shcore::Array_t parameters;
-    unpacker.optional("details", &details);
-    unpacker.optional("parameters", &parameters);
-    bool param_details = true;
-    for (const auto &detail : details) {
-      if (!detail.empty()) {
-        if (detail == "@PARAMDETAILS") {
-          if (parameters) {
-            for (const auto &param : *parameters) {
-              register_param_help_detail(param.as_map(), help_prefix,
-                                         &detail_count, true);
-            }
-          }
-          param_details = false;
-        } else {
-          help->add_help(help_prefix, "DETAIL", &detail_count, {detail});
+  for (const auto &detail : definition.details) {
+    if (!detail.empty()) {
+      if (detail == "@PARAMDETAILS") {
+        for (const auto &param : definition.parameters) {
+          get_param_help_detail(*param, true, &params);
         }
-      }
-    }
 
-    if (parameters) {
-      for (const auto &param : *parameters) {
-        register_param_help_brief(param.as_map(), help_prefix, &param_count,
-                                  true);
-
-        if (param_details)
-          register_param_help_detail(param.as_map(), help_prefix, &detail_count,
-                                     true);
+        param_details = false;
+      } else {
+        details.emplace_back(detail);
       }
     }
   }
+
+  for (const auto &param : definition.parameters) {
+    get_param_help_brief(*param, true, &params);
+
+    if (param_details) {
+      get_param_help_detail(*param, true, &details);
+    }
+  }
+
+  register_function_help(name, definition.brief, params, details);
 }
 
-void Extensible_object::register_param_help_brief(
-    const shcore::Dictionary_t &param, const std::string &prefix,
-    size_t *sequence, bool as_parameter) {
+void Extensible_object::get_param_help_brief(
+    const Parameter_definition &param_definition, bool as_parameter,
+    std::vector<std::string> *target) {
   std::string param_help(as_parameter ? "@param " : "@li ");
-  std::string suffix(as_parameter ? "PARAM" : "DETAIL");
+  const auto &param = param_definition.parameter;
 
-  shcore::Option_unpacker unpacker(param);
+  param_help += param->name;
 
-  std::string name;
-  std::string type;
-  std::string brief;
-  bool required = as_parameter;
-  unpacker.required("name", &name);
-  unpacker.required("type", &type);
-  unpacker.optional("required", &required);
-  unpacker.optional("brief", &brief);
+  if (!param_definition.is_required()) param_help += " Optional";
 
-  param_help += name;
+  param_help += " " + to_string(param->type()) + ".";
 
-  if (!required) param_help += " Optional";
+  if (!param_definition.brief.empty())
+    param_help.append(" " + param_definition.brief);
 
-  param_help += " " + type + ".";
-
-  if (!brief.empty()) param_help.append(" " + brief);
-
-  shcore::Help_registry::get()->add_help(prefix, suffix, sequence,
-                                         {param_help});
+  target->emplace_back(std::move(param_help));
 }
 
-void Extensible_object::register_param_help_detail(
-    const shcore::Dictionary_t &param, const std::string &prefix,
-    size_t *sequence, bool as_parameter) {
-  shcore::Option_unpacker unpacker(param);
-  std::vector<std::string> details;
-  std::string type, name;
-  unpacker.required("name", &name);
-  unpacker.required("type", &type);
-  unpacker.optional("details", &details);
+void Extensible_object::get_param_help_detail(
+    const Parameter_definition &param_definition, bool as_parameter,
+    std::vector<std::string> *details) {
+  details->insert(details->end(), param_definition.details.begin(),
+                  param_definition.details.end());
 
-  auto help = shcore::Help_registry::get();
-
-  help->add_help(prefix, "DETAIL", sequence, details);
+  const auto &param = param_definition.parameter;
 
   std::string help_entry =
-      "The " + name + (as_parameter ? " parameter" : " option");
-  if (type == "object") {
-    std::vector<std::string> classes;
-    unpacker.optional("classes", &classes);
+      "The " + param->name + (as_parameter ? " parameter" : " option");
 
-    std::string aclass;
-    unpacker.optional("class", &aclass);
-    if (!aclass.empty()) classes.push_back(aclass);
+  switch (param->type()) {
+    case shcore::Value_type::Object: {
+      const auto &classes =
+          param->validator<shcore::Object_validator>()->allowed();
 
-    if (classes.size() == 1)
-      help_entry += " must be a " + classes[0] + " object.";
-    else
-      help_entry += " must be any of " + shcore::str_join(classes, ", ") + ".";
+      if (classes.size() == 1)
+        help_entry += " must be a " + classes[0] + " object.";
+      else
+        help_entry +=
+            " must be any of " + shcore::str_join(classes, ", ") + ".";
 
-    help->add_help(prefix, "DETAIL", sequence, {help_entry});
-  } else if (type == "string") {
-    std::vector<std::string> values;
-    unpacker.optional("values", &values);
+      details->emplace_back(std::move(help_entry));
 
-    if (!values.empty()) {
-      help_entry += " accepts the following values: ";
-      help->add_help(prefix, "DETAIL", sequence, {help_entry});
-
-      for (const auto &value : values)
-        help->add_help(prefix, "DETAIL", sequence, {"@li " + value});
+      break;
     }
-  } else if (type == "dictionary") {
-    help_entry += " accepts the following options:";
-    help->add_help(prefix, "DETAIL", sequence, {help_entry});
 
-    shcore::Array_t options;
-    unpacker.required("options", &options);
+    case shcore::Value_type::String: {
+      const auto &values =
+          param->validator<shcore::String_validator>()->allowed();
 
-    if (options) {
-      for (const auto &option : *options)
-        register_param_help_brief(option.as_map(), prefix, sequence, false);
+      if (!values.empty()) {
+        help_entry += " accepts the following values: ";
+        details->emplace_back(std::move(help_entry));
 
-      for (const auto &option : *options)
-        register_param_help_detail(option.as_map(), prefix, sequence, false);
+        for (const auto &value : values) details->emplace_back("@li " + value);
+      }
+
+      break;
+    }
+
+    case shcore::Value_type::Map: {
+      help_entry += " accepts the following options:";
+      details->emplace_back(std::move(help_entry));
+
+      const auto &options = param_definition.options();
+
+      for (const auto &option : options)
+        get_param_help_brief(*option, false, details);
+
+      for (const auto &option : options)
+        get_param_help_detail(*option, false, details);
+
+      break;
+    }
+
+    default:
+      // no action
+      break;
+  }
+}
+
+void Extensible_object::validate_function(
+    const std::string &name,
+    const Function_definition::Parameters &parameters) {
+  const auto names = shcore::str_split(name, "|");
+
+  if (names.size() > 2) {
+    throw shcore::Exception::argument_error(
+        "Invalid function name. When using custom names only two names should "
+        "be provided.");
+  }
+
+  for (const auto &cname : names) {
+    if (!shcore::is_valid_identifier(cname))
+      throw shcore::Exception::argument_error("The function name '" + cname +
+                                              "' is not a valid identifier.");
+  }
+
+  int index = 0;
+
+  for (const auto &param : parameters) {
+    validate_parameter(*param->parameter, {"parameter", ++index});
+  }
+}
+
+void Extensible_object::validate_parameter(
+    const shcore::Parameter &param, const shcore::Parameter_context &context) {
+  bool valid_identifier = shcore::is_valid_identifier(param.name);
+
+  std::string current_ctx;
+
+  if (valid_identifier) {
+    current_ctx = context.title + " '" + param.name + "'";
+  } else {
+    current_ctx = context.str();
+  }
+
+  if (!valid_identifier) {
+    const auto error =
+        shcore::str_format("%s is not a valid identifier: '%s'.",
+                           current_ctx.c_str(), param.name.c_str());
+    throw shcore::Exception::argument_error(error);
+  }
+
+  if (param.type() == shcore::Value_type::Undefined) {
+    const auto error =
+        shcore::str_format("Unsupported data type at %s.", current_ctx.c_str());
+    throw shcore::Exception::argument_error(error);
+  }
+
+  if (param.type() == shcore::Value_type::Map) {
+    const auto &options =
+        param.validator<shcore::Option_validator>()->allowed();
+    // Options must be defined
+    if (options.empty()) {
+      auto error =
+          shcore::str_format("Missing 'options' at %s.", current_ctx.c_str());
+      throw shcore::Exception::argument_error(error);
+    } else {
+      int index = 0;
+
+      for (const auto &option : options) {
+        validate_parameter(*option, {current_ctx + " option", ++index});
+      }
     }
   }
 }
 
-void Extensible_object::enable_help(bool enable) {
+namespace {
+
+struct Compare_help_topic_and_string {
+  bool operator()(const shcore::Help_topic *left, const std::string &right) {
+    return left->m_help_tag < right;
+  }
+
+  bool operator()(const std::string &left, const shcore::Help_topic *right) {
+    return left < right->m_help_tag;
+  }
+};
+
+}  // namespace
+
+void Extensible_object::enable_help() {
   auto topic = shcore::Help_registry::get()->get_topic(m_qualified_name, true);
 
-  if (topic && topic->is_enabled() != enable) {
-    topic->set_enabled(enable);
+  if (topic && !topic->is_enabled()) {
+    topic->set_enabled(true);
 
-    for (auto &child : m_children) child.second->enable_help(enable);
+    const auto members = get_members();
+    std::vector<shcore::Help_topic *> to_enable;
+
+    // find topics for currently existing members
+    std::set_intersection(topic->m_childs.begin(), topic->m_childs.end(),
+                          members.begin(), members.end(),
+                          std::back_inserter(to_enable),
+                          Compare_help_topic_and_string());
+
+    // enable them
+    for (const auto &member : to_enable) {
+      member->set_enabled(true);
+    }
+
+    // make sure registered children enable help for their ancestors
+    for (auto &child : m_children) child.second->enable_help();
+  }
+}
+
+void Extensible_object::disable_help() {
+  auto topic = shcore::Help_registry::get()->get_topic(m_qualified_name, true);
+
+  if (topic && topic->is_enabled()) {
+    topic->set_enabled(false);
+
+    // disable help for all the children, including methods
+    for (const auto &child : topic->m_childs) {
+      child->set_enabled(false);
+    }
+
+    // make sure registered children disable help for their ancestors
+    for (auto &child : m_children) child.second->disable_help();
   }
 }
 

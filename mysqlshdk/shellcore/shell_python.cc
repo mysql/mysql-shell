@@ -178,6 +178,10 @@ void Shell_python::execute_module(const std::string &file_name) {
   }
 }
 
+void Shell_python::load_plugin(const std::string &file_name) {
+  _py->load_plugin(file_name);
+}
+
 void Shell_python::clear_input() {
   Shell_language::clear_input();
   m_last_input_state = Input_state::Ok;

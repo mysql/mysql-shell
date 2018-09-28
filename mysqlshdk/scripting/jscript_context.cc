@@ -42,6 +42,7 @@
 #include "scripting/jscript_map_wrapper.h"
 #include "scripting/jscript_object_wrapper.h"
 #include "utils/utils_general.h"
+#include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
 #include "scripting/jscript_core_definitions.h"
@@ -98,6 +99,7 @@ struct JScript_context::JScript_context_impl {
  private:
   std::unique_ptr<v8::ArrayBuffer::Allocator> m_allocator;
   bool m_terminating = false;
+  std::vector<v8::Global<v8::Context>> m_stored_contexts;
 
  public:
   JScript_context_impl(JScript_context *owner_)
@@ -210,6 +212,16 @@ struct JScript_context::JScript_context_impl {
   ~JScript_context_impl() {
     factory_packages.clear();
     types.dispose();
+
+    {
+      v8::HandleScope handle_scope(isolate);
+
+      for (const auto &c : m_stored_contexts) {
+        delete_context(c.Get(isolate));
+      }
+
+      m_stored_contexts.clear();
+    }
 
     // release the context
     context.Reset();
@@ -730,7 +742,7 @@ struct JScript_context::JScript_context_impl {
     return shcore::to_string(isolate, obj);
   }
 
-  std::string to_string(v8::Local<v8::Value> obj) {
+  std::string to_string(v8::Local<v8::Value> obj) const {
     return to_string(isolate, obj);
   }
 
@@ -775,6 +787,50 @@ struct JScript_context::JScript_context_impl {
           callback(args);
         },
         data);
+  }
+
+  /**
+   * Copies the global context.
+   *
+   * Context needs to be either deleted immediately (i.e. in case of an error),
+   * or stored till JS context exists (in order to preserve execution
+   * environment).
+   */
+  v8::Local<v8::Context> copy_global_context() const {
+    const auto new_context = v8::Context::New(isolate);
+
+    // copy globals into the new context
+    const auto origin = context.Get(isolate);
+
+    const auto globals = origin->Global();
+    const auto names = globals->GetPropertyNames(origin).ToLocalChecked();
+
+    const auto new_globals = new_context->Global();
+
+    for (uint32_t c = names->Length(), i = 0; i < c; ++i) {
+      const auto name = names->Get(origin, i).ToLocalChecked();
+      new_globals->Set(new_context, name,
+                       globals->Get(origin, name).ToLocalChecked());
+    }
+
+    return new_context;
+  }
+
+  void delete_context(v8::Local<v8::Context> context) const {
+    const auto globals = context->Global();
+    const auto names = globals->GetPropertyNames(context).ToLocalChecked();
+
+    for (uint32_t c = names->Length(), i = 0; i < c; ++i) {
+      const auto name = names->Get(context, i).ToLocalChecked();
+
+      if (globals->Delete(context, name).IsNothing()) {
+        log_error("Failed to delete global JS: %s", to_string(name).c_str());
+      }
+    }
+  }
+
+  void store_context(v8::Local<v8::Context> context) {
+    m_stored_contexts.emplace_back(isolate, context);
   }
 };
 
@@ -1027,13 +1083,13 @@ std::pair<Value, bool> JScript_context::execute(
     } else if (!try_catch.HasCaught()) {
       return {v8_value_to_shcore_value(result.ToLocalChecked()), false};
     } else {
-      Value e = get_v8_exception_data(&try_catch, false);
+      Value e = get_v8_exception_data(try_catch, false);
 
       throw Exception::scripting_error(format_exception(e));
     }
   } else {
     if (try_catch.HasCaught()) {
-      Value e = get_v8_exception_data(&try_catch, false);
+      Value e = get_v8_exception_data(try_catch, false);
 
       throw Exception::scripting_error(format_exception(e));
     } else {
@@ -1073,7 +1129,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
       *r_state = Input_state::ContinuedBlock;
     else
       _impl->print_exception(
-          format_exception(get_v8_exception_data(&try_catch, true)));
+          format_exception(get_v8_exception_data(try_catch, true)));
   } else {
     auto console = mysqlsh::current_console();
 
@@ -1083,7 +1139,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
       console->raw_print("Script execution interrupted by user.\n",
                          mysqlsh::Output_stream::STDERR);
     } else if (try_catch.HasCaught()) {
-      Value exc(get_v8_exception_data(&try_catch, true));
+      Value exc(get_v8_exception_data(try_catch, true));
       if (exc)
         _impl->print_exception(format_exception(exc));
       else
@@ -1134,19 +1190,19 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
   return error_message;
 }
 
-Value JScript_context::get_v8_exception_data(v8::TryCatch *exc,
+Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
                                              bool interactive) {
   Value::Map_type_ref data;
 
-  if (exc->Exception().IsEmpty() || exc->Exception()->IsUndefined())
+  if (exc.Exception().IsEmpty() || exc.Exception()->IsUndefined())
     return Value();
 
-  if (exc->Exception()->IsObject() &&
+  if (exc.Exception()->IsObject() &&
       JScript_map_wrapper::is_map(
-          exc->Exception()->ToObject(context()).ToLocalChecked())) {
-    data = _impl->types.v8_value_to_shcore_value(exc->Exception()).as_map();
+          exc.Exception()->ToObject(context()).ToLocalChecked())) {
+    data = _impl->types.v8_value_to_shcore_value(exc.Exception()).as_map();
   } else {
-    const auto excstr = _impl->to_string(exc->Exception());
+    const auto excstr = _impl->to_string(exc.Exception());
     data.reset(new Value::Map_type());
     if (!excstr.empty()) {
       // JS errors produced by V8 most likely will fall on this branch
@@ -1157,7 +1213,7 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc,
   }
 
   bool include_location = !interactive;
-  v8::Local<v8::Message> message = exc->Message();
+  v8::Local<v8::Message> message = exc.Message();
   if (!message.IsEmpty()) {
     v8::Local<v8::Context> lcontext =
         v8::Local<v8::Context>::New(_impl->isolate, _impl->context);
@@ -1209,7 +1265,7 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc,
     }
 
     {
-      auto stack_trace = exc->StackTrace(lcontext);
+      auto stack_trace = exc.StackTrace(lcontext);
 
       if (!stack_trace.IsEmpty()) {
         const auto stack = _impl->to_string(stack_trace.ToLocalChecked());
@@ -1244,6 +1300,56 @@ v8::Local<v8::String> JScript_context::v8_string(const std::string &data) {
 
 std::string JScript_context::to_string(v8::Local<v8::Value> obj) {
   return _impl->to_string(obj);
+}
+
+std::string JScript_context::translate_exception(const v8::TryCatch &exc,
+                                                 bool interactive) {
+  return format_exception(get_v8_exception_data(exc, interactive));
+}
+
+void JScript_context::load_plugin(const std::string &file_name) {
+  // load the file
+  std::string source;
+
+  if (load_text_file(file_name, source)) {
+    const auto _isolate = isolate();
+
+    v8::HandleScope handle_scope(_isolate);
+    v8::TryCatch try_catch{_isolate};
+
+    const auto new_context = _impl->copy_global_context();
+    v8::Context::Scope context_scope(new_context);
+
+    v8::ScriptOrigin script_origin{
+        v8_string(shcore::path::basename(file_name))};
+    v8::MaybeLocal<v8::Script> script =
+        v8::Script::Compile(new_context, v8_string(source), &script_origin);
+
+    if (script.IsEmpty()) {
+      _impl->delete_context(new_context);
+      log_error("Failed to compile JS plugin '%s'", file_name.c_str());
+    } else {
+      auto result = script.ToLocalChecked()->Run(new_context);
+
+      // store the context even if an exception was thrown, we don't know when
+      // exception was generated, script could have done something meaningful
+      // before that happened
+      _impl->store_context(new_context);
+
+      if (result.IsEmpty()) {
+        if (try_catch.HasCaught()) {
+          log_error("Error while executing JS plugin '%s':\n%s",
+                    file_name.c_str(),
+                    translate_exception(try_catch, false).c_str());
+        } else {
+          log_error("Unknown error while executing JS plugin '%s'",
+                    file_name.c_str());
+        }
+      }
+    }
+  } else {
+    log_error("Failed to load JS plugin '%s'", file_name.c_str());
+  }
 }
 
 v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data) {

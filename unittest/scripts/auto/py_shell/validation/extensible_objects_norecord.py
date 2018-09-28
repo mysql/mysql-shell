@@ -162,7 +162,7 @@ SYNTAX
       sampleModulePY.string_function(data)
 
 WHERE
-      data: string. Brief description for string parameter.
+      data: String. Brief description for string parameter.
 
 DESCRIPTION
       Detailed description for stringFunction
@@ -220,7 +220,7 @@ DESCRIPTION
 
       The data parameter accepts the following options:
 
-      - myOption string. A sample option
+      - myOption String. A sample option
 
       Details for the sample option
 
@@ -272,7 +272,7 @@ SYNTAX
       sampleModulePY.object_function1(session)
 
 WHERE
-      session: object. Short description for object parameter.
+      session: Object. Short description for object parameter.
 
 DESCRIPTION
       Detailed description for objectFunction
@@ -322,7 +322,7 @@ SYNTAX
       sampleModulePY.object_function2(session)
 
 WHERE
-      session: object. Short description for object parameter.
+      session: Object. Short description for object parameter.
 
 DESCRIPTION
       Detailed description for objectFunction
@@ -382,7 +382,7 @@ DESCRIPTION
 
 #@ Registration errors, invalid identifiers
 ||SystemError: ArgumentError: Testutils.register_module: The module name must be a valid identifier.
-||SystemError: ArgumentError: Testutils.register_function: The function name 'my function'is not a valid identifier.
+||SystemError: ArgumentError: Testutils.register_function: The function name 'my function' is not a valid identifier.
 ||SystemError: ArgumentError: Testutils.register_function: parameter #1 is not a valid identifier: 'a sample'.
 ||SystemError: ArgumentError: Testutils.register_function: parameter 'sample' option #1 is not a valid identifier: 'an invalid name'.
 
@@ -434,7 +434,7 @@ SYNTAX
       sampleModulePY.py_function(data)
 
 WHERE
-      data: string. Brief description for string parameter.
+      data: String. Brief description for string parameter.
 
 DESCRIPTION
       Detailed description for stringFunction

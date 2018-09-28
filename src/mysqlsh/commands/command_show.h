@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,41 +20,32 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#ifndef SRC_MYSQLSH_COMMANDS_COMMAND_SHOW_H_
+#define SRC_MYSQLSH_COMMANDS_COMMAND_SHOW_H_
 
-#ifndef _TYPES_JSCRIPT_H_
-#define _TYPES_JSCRIPT_H_
+#include <memory>
+#include <string>
+#include <vector>
 
-#include "scripting/jscript_context.h"
+#include "modules/mod_shell_reports.h"
+#include "src/mysqlsh/commands/shell_command_handler.h"
 
-#include "scripting/types.h"
+namespace mysqlsh {
 
-#include "scripting/include_v8.h"
-
-namespace shcore {
-class JScript_function : public Function_base {
+class Command_show : public IShell_command {
  public:
-  JScript_function(JScript_context *context, v8::Local<v8::Function> function);
-  ~JScript_function() override;
+  Command_show(const std::shared_ptr<shcore::IShell_core> &shell,
+               const std::shared_ptr<Shell_reports> &reports)
+      : IShell_command(shell), m_reports(reports) {}
 
-  const std::string &name() const override;
-
-  const std::vector<std::pair<std::string, Value_type>> &signature()
-      const override;
-
-  Value_type return_type() const override;
-
-  bool operator==(const Function_base &other) const override;
-
-  bool operator!=(const Function_base &other) const;
-
-  Value invoke(const Argument_list &args) override;
-
-  bool has_var_args() override { return false; }
+  bool execute(const std::vector<std::string> &args) override;
 
  private:
-  JScript_context *_js;
-  v8::Persistent<v8::Function> _function;
-};
-}  // namespace shcore
+  void list_reports() const;
 
-#endif
+  std::shared_ptr<Shell_reports> m_reports;
+};
+
+}  // namespace mysqlsh
+
+#endif  // SRC_MYSQLSH_COMMANDS_COMMAND_SHOW_H_

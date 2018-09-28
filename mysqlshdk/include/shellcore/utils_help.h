@@ -58,6 +58,10 @@ struct Help_topic_compare {
   bool operator()(Help_topic *const &lhs, Help_topic *const &rhs) const;
 };
 
+struct Help_topic_id_compare {
+  bool operator()(Help_topic *const &lhs, Help_topic *const &rhs) const;
+};
+
 struct icomp {
   bool operator()(const std::string &lhs, const std::string &rhs) const;
 };
@@ -112,11 +116,14 @@ class Help_registry {
   // - Keywords are case insensitive.
   // - Multiple topics may me assigned to the same keyword
   // - The Keyword/Topic relation can be enabled for 1 or more modes
-  typedef std::map<std::string, std::map<Help_topic *, IShell_core::Mode_mask>,
-                   bool (*)(const std::string &, const std::string &)>
+  typedef std::map<
+      std::string,
+      std::map<Help_topic *, IShell_core::Mode_mask, Help_topic_id_compare>,
+      bool (*)(const std::string &, const std::string &)>
       Keyword_registry;
 
-  typedef std::map<std::string, std::map<Help_topic *, IShell_core::Mode_mask>>
+  typedef std::map<std::string, std::map<Help_topic *, IShell_core::Mode_mask,
+                                         Help_topic_id_compare>>
       Keyword_case_sensitive_registry;
 
   typedef std::map<std::string, std::string,

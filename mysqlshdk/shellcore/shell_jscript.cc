@@ -87,3 +87,7 @@ void Shell_javascript::clear_input() {
 std::string Shell_javascript::get_continued_input_context() {
   return m_last_input_state == Input_state::Ok ? "" : "-";
 }
+
+void Shell_javascript::load_plugin(const std::string &file_name) {
+  _js->load_plugin(file_name);
+}

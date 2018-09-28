@@ -56,11 +56,15 @@ The following shell commands are available:
  - \quit       (\q)    Exits the MySQL Shell.
  - \reconnect          Reconnects the global session.
  - \rehash             Refresh the autocompletion cache.
+ - \show               Executes the given report with provided options and
+                       arguments.
  - \source     (\.)    Loads and executes a script from a file.
  - \sql                Switches to SQL processing mode.
  - \status     (\s)    Print information about the current global session.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
+ - \watch              Executes the given report with provided options and
+                       arguments in a loop.
 
 GLOBAL OBJECTS
 
@@ -165,11 +169,15 @@ The following shell commands are available:
  - \quit       (\q)    Exits the MySQL Shell.
  - \reconnect          Reconnects the global session.
  - \rehash             Refresh the autocompletion cache.
+ - \show               Executes the given report with provided options and
+                       arguments.
  - \source     (\.)    Loads and executes a script from a file.
  - \sql                Switches to SQL processing mode.
  - \status     (\s)    Print information about the current global session.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
+ - \watch              Executes the given report with provided options and
+                       arguments in a loop.
 
 EXAMPLES
 \? sql syntax
@@ -240,11 +248,15 @@ The following shell commands are available:
  - \quit       (\q)    Exits the MySQL Shell.
  - \reconnect          Reconnects the global session.
  - \rehash             Refresh the autocompletion cache.
+ - \show               Executes the given report with provided options and
+                       arguments.
  - \source     (\.)    Loads and executes a script from a file.
  - \sql                Switches to SQL processing mode.
  - \status     (\s)    Print information about the current global session.
  - \use        (\u)    Sets the active schema.
  - \warnings   (\W)    Show warnings after every statement.
+ - \watch              Executes the given report with provided options and
+                       arguments in a loop.
 
 For help on a specific command use \? <command>
 

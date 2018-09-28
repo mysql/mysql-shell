@@ -162,7 +162,7 @@ SYNTAX
       sampleModuleJS.stringFunction(data)
 
 WHERE
-      data: string. Brief description for string parameter.
+      data: String. Brief description for string parameter.
 
 DESCRIPTION
       Detailed description for stringFunction
@@ -220,7 +220,7 @@ DESCRIPTION
 
       The data parameter accepts the following options:
 
-      - myOption string. A sample option
+      - myOption String. A sample option
 
       Details for the sample option
 
@@ -271,7 +271,7 @@ SYNTAX
       sampleModuleJS.objectFunction1(session)
 
 WHERE
-      session: object. Short description for object parameter.
+      session: Object. Short description for object parameter.
 
 DESCRIPTION
       Detailed description for objectFunction
@@ -321,7 +321,7 @@ SYNTAX
       sampleModuleJS.objectFunction2(session)
 
 WHERE
-      session: object. Short description for object parameter.
+      session: Object. Short description for object parameter.
 
 DESCRIPTION
       Detailed description for objectFunction
@@ -374,7 +374,7 @@ DESCRIPTION
 
 //@ Registration errors, invalid identifiers
 ||Testutils.registerModule: The module name must be a valid identifier. (ArgumentError)
-||Testutils.registerFunction: The function name 'my function'is not a valid identifier. (ArgumentError)
+||Testutils.registerFunction: The function name 'my function' is not a valid identifier. (ArgumentError)
 ||Testutils.registerFunction: parameter #1 is not a valid identifier: 'a sample'. (ArgumentError)
 ||Testutils.registerFunction: parameter 'sample' option #1 is not a valid identifier: 'an invalid name'. (ArgumentError)
 
@@ -421,7 +421,7 @@ SYNTAX
       sampleModuleJS.js_function(data)
 
 WHERE
-      data: string. Brief description for string parameter.
+      data: String. Brief description for string parameter.
 
 DESCRIPTION
       Detailed description for stringFunction

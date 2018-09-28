@@ -53,24 +53,32 @@ bool Python_context::module_processing = false;
 
 // The static member _instance needs to be in a class not exported (no
 // TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
-class Python_init_singleton {
+class Python_init_singleton final {
  public:
+  Python_init_singleton(const Python_init_singleton &py) = delete;
+  Python_init_singleton(Python_init_singleton &&py) = delete;
+
   ~Python_init_singleton() {
-    if (_local_initialization) Py_Finalize();
+    if (m_local_initialization) Py_Finalize();
   }
 
-  static std::string get_new_scope_name();
+  Python_init_singleton &operator=(const Python_init_singleton &py) = delete;
+  Python_init_singleton &operator=(Python_init_singleton &&py) = delete;
 
-  static void init_python();
+  static void init_python() {
+    if (!s_instance) s_instance.reset(new Python_init_singleton());
+  }
+
+  // Initializing and finalizing the Python context multiple times when tests
+  // are executed doesn't work well on macOS, hence there's no method to
+  // destroy the singleton.
+
+  static std::string get_new_scope_name() {
+    return shcore::str_format("__main__%u", ++s_cnt);
+  }
 
  private:
-  static int cnt;
-  bool _local_initialization;
-  static std::unique_ptr<Python_init_singleton> _instance;
-
-  Python_init_singleton(const Python_init_singleton &py) {}
-
-  Python_init_singleton() : _local_initialization(false) {
+  Python_init_singleton() : m_local_initialization(false) {
     if (!Py_IsInitialized()) {
 #ifdef _WIN32
       Py_NoSiteFlag = 1;
@@ -152,21 +160,17 @@ class Python_init_singleton {
       }
 #endif
 
-      _local_initialization = true;
+      m_local_initialization = true;
     }
   }
+
+  static std::unique_ptr<Python_init_singleton> s_instance;
+  static unsigned int s_cnt;
+  bool m_local_initialization;
 };
 
-std::unique_ptr<Python_init_singleton> Python_init_singleton::_instance;
-int Python_init_singleton::cnt = 0;
-
-std::string Python_init_singleton::get_new_scope_name() {
-  return shcore::str_format("__main__%d", ++cnt);
-}
-
-void Python_init_singleton::init_python() {
-  if (_instance.get() == NULL) _instance.reset(new Python_init_singleton());
-}
+std::unique_ptr<Python_init_singleton> Python_init_singleton::s_instance;
+unsigned int Python_init_singleton::s_cnt = 0;
 
 Python_context::Python_context(bool redirect_stdio) : _types(this) {
   Python_init_singleton::init_python();
@@ -178,7 +182,6 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
 
   if (!_global_namespace || !_globals) {
     throw Exception::runtime_error("Error initializing python context.");
-    PyErr_Print();
   }
 
   // register shell module
@@ -246,7 +249,7 @@ Python_context::~Python_context() {
   }
 
   PyEval_RestoreThread(_main_thread_state);
-  _main_thread_state = NULL;
+  _main_thread_state = nullptr;
 }
 
 /*
@@ -1112,4 +1115,85 @@ Value Python_context::execute_module(const std::string &file_name,
 
   return ret_val;
 }
+
+void Python_context::load_plugin(const std::string &file_name) {
+  WillEnterPython lock;
+
+  const auto file = fopen(file_name.c_str(), "r");
+
+  if (nullptr == file) {
+    log_error("Failed to load Python plugin '%s'", file_name.c_str());
+  } else {
+    // copy globals, so executed scripts does not pollute global namespace
+    PyObject *globals = PyDict_Copy(_globals);
+    // PyRun_FileEx() will close the file
+    const auto result =
+        PyRun_FileEx(file, shcore::path::basename(file_name).c_str(),
+                     Py_file_input, globals, nullptr, true);
+
+    if (nullptr == result) {
+      log_error("Error while executing Python plugin '%s':\n%s",
+                file_name.c_str(), fetch_and_clear_exception().c_str());
+    }
+
+    Py_XDECREF(result);
+    Py_XDECREF(globals);
+  }
+}
+
+std::string Python_context::fetch_and_clear_exception() {
+  std::string exception;
+
+  if (nullptr != PyErr_Occurred()) {
+    PyObject *exc = nullptr;
+    PyObject *value = nullptr;
+    PyObject *tb = nullptr;
+
+    PyErr_Fetch(&exc, &value, &tb);
+    PyErr_NormalizeException(&exc, &value, &tb);
+
+    {
+      PyObject *str = PyObject_Str(value);
+      exception = PyString_AsString(str);
+      Py_XDECREF(str);
+    }
+
+    if (nullptr != tb) {
+      PyObject *traceback_module_name = PyString_FromString("traceback");
+      PyObject *traceback_module = PyImport_Import(traceback_module_name);
+      Py_DECREF(traceback_module_name);
+
+      if (nullptr != traceback_module) {
+        PyObject *format_exception =
+            PyObject_GetAttrString(traceback_module, "format_exception");
+
+        if (nullptr != format_exception && PyCallable_Check(format_exception)) {
+          PyObject *backtrace = PyObject_CallFunctionObjArgs(
+              format_exception, exc, value, tb, nullptr);
+
+          if (nullptr != backtrace && PyList_Check(backtrace)) {
+            exception = "\n";
+
+            for (Py_ssize_t c = PyList_Size(backtrace), i = 0; i < c; ++i) {
+              exception += PyString_AsString(PyList_GetItem(backtrace, i));
+            }
+          }
+
+          Py_XDECREF(backtrace);
+        }
+
+        Py_XDECREF(format_exception);
+      }
+
+      Py_XDECREF(traceback_module);
+    }
+
+    Py_XDECREF(exc);
+    Py_XDECREF(value);
+    Py_XDECREF(tb);
+  }
+
+  return exception;
+}
+
 }  // namespace shcore

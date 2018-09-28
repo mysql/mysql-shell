@@ -282,6 +282,9 @@ struct SHCORE_PUBLIC Value {
   //! returns a JSON representation of the object
   std::string json(bool pprint = false) const;
 
+  //! returns a YAML representation of the Value
+  std::string yaml() const;
+
   std::string &append_descr(std::string &s_out, int indent = -1,
                             char quote_strings = '\0') const;
   std::string &append_repr(std::string &s_out) const;
@@ -343,6 +346,8 @@ struct SHCORE_PUBLIC Value {
   static Value parse_single_quoted_string(const char **pc);
   static Value parse_double_quoted_string(const char **pc);
   static Value parse_number(const char **pc);
+
+  std::string yaml(int indent) const;
 };
 typedef Value::Map_type_ref Dictionary_t;
 typedef Value::Array_type_ref Array_t;

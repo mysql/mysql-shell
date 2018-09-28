@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 #include "modules/mod_shell_options.h"
+#include "modules/mod_shell_reports.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "scripting/types_cpp.h"
@@ -36,7 +37,7 @@
 namespace mysqlsh {
 /**
  * \ingroup ShellAPI
- * Sample
+ *
  * $(SHELL_BRIEF)
  */
 class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
@@ -68,6 +69,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
 #if DOXYGEN_JS
   Options options;
+  Reports reports;
   Dictionary parseUri(String uri);
   String prompt(String message, Dictionary options);
   Undefined connect(ConnectionData connectionData, String password);
@@ -84,8 +86,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   List listCredentials();
   Undefined enablePager();
   Undefined disablePager();
+  Undefined registerReport(String name, String type, Function report,
+                           Dictionary description);
 #elif DOXYGEN_PY
   Options options;
+  Reports reports;
   dict parse_uri(str uri);
   str prompt(str message, dict options);
   None connect(ConnectionData connectionData, str password);
@@ -102,6 +107,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   list list_credentials();
   None enable_pager();
   None disable_pager();
+  None register_report(str name, str type, Function report, dict description);
 #endif
 
   shcore::Value list_credential_helpers(const shcore::Argument_list &args);
@@ -116,9 +122,16 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   std::shared_ptr<mysqlsh::Options> get_shell_options() {
     return _core_options;
   }
+  std::shared_ptr<mysqlsh::Shell_reports> get_shell_reports() {
+    return m_reports;
+  }
 
   void enable_pager();
   void disable_pager();
+
+  void register_report(const std::string &name, const std::string &type,
+                       const shcore::Function_base_ref &report,
+                       const shcore::Dictionary_t &options);
 
  protected:
   void init();
@@ -126,6 +139,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   mysqlsh::Mysql_shell *_shell;
   shcore::IShell_core *_shell_core;
   std::shared_ptr<mysqlsh::Options> _core_options;
+
+ private:
+  std::shared_ptr<mysqlsh::Shell_reports> m_reports;
 };
 }  // namespace mysqlsh
 

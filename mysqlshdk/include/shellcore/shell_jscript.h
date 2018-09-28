@@ -38,14 +38,16 @@ class Shell_javascript : public Shell_language {
   void set_result_processor(
       std::function<void(shcore::Value, bool)> result_processor);
 
-  virtual void set_global(const std::string &name, const Value &value);
+  void set_global(const std::string &name, const Value &value) override;
 
-  virtual void handle_input(std::string &code, Input_state &state);
+  void handle_input(std::string &code, Input_state &state) override;
 
   std::shared_ptr<JScript_context> javascript_context() { return _js; }
 
-  virtual void clear_input();
-  virtual std::string get_continued_input_context();
+  void clear_input() override;
+  std::string get_continued_input_context() override;
+
+  void load_plugin(const std::string &file_name) override;
 
  private:
   void abort() noexcept;

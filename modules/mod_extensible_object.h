@@ -24,10 +24,46 @@
 #ifndef MODULES_MOD_EXTENSIBLE_OBJECT_H_
 #define MODULES_MOD_EXTENSIBLE_OBJECT_H_
 
+#include <memory>
 #include <string>
+#include <vector>
+
 #include "scripting/types_cpp.h"
 
 namespace mysqlsh {
+
+struct Parameter_definition {
+  using Options = std::vector<std::shared_ptr<Parameter_definition>>;
+
+  Parameter_definition();
+
+  Parameter_definition(const std::string &n, shcore::Value_type t,
+                       shcore::Param_flag f);
+
+  virtual ~Parameter_definition() = default;
+
+  bool is_required() const;
+
+  void set_options(const Options &options);
+  const Options &options() const;
+
+  std::shared_ptr<shcore::Parameter> parameter;
+  std::string brief;
+  std::vector<std::string> details;
+
+ private:
+  void validate_options() const;
+
+  Options m_options;
+};
+
+struct Function_definition {
+  using Parameters = std::vector<std::shared_ptr<Parameter_definition>>;
+  Parameters parameters;
+  std::string brief;
+  std::vector<std::string> details;
+};
+
 /**
  * Base class for extensible objects to be exposed on the API.
  *
@@ -135,6 +171,10 @@ class Extensible_object
                          const shcore::Function_base_ref &function,
                          const shcore::Dictionary_t &definition);
 
+  void register_function(const std::string &name,
+                         const shcore::Function_base_ref &function,
+                         const Function_definition &definition);
+
   /**
    * Searches for an object given a fully qualified name.
    *
@@ -183,7 +223,7 @@ class Extensible_object
    * "@param <name> [Optional] <description>"
    *
    * The format is NOT verified by this function and it is is used for the
-   * proper rendering of the function signatire.
+   * proper rendering of the function signature.
    *
    * Each entry help entry in params and details is registered and follows
    * the same rules as the REGISTER_HELP macro.
@@ -193,7 +233,15 @@ class Extensible_object
                               const std::vector<std::string> &details);
 
  protected:
-  void enable_help(bool enable);
+  void enable_help();
+
+  Function_definition::Parameters parse_parameters(
+      const shcore::Array_t &parameters,
+      const shcore::Parameter_context &context, bool default_require);
+
+  virtual std::shared_ptr<Parameter_definition> start_parsing_parameter(
+      const shcore::Dictionary_t &definition,
+      shcore::Option_unpacker *unpacker) const;
 
  private:
   std::string m_name;
@@ -201,25 +249,31 @@ class Extensible_object
   std::map<std::string, std::shared_ptr<Extensible_object>> m_children;
 
   shcore::Value_type map_type(const std::string &value);
-  std::vector<shcore::Parameter> parse_parameters(
-      shcore::Array_t parameters, const shcore::Parameter_context &context,
-      bool default_require);
-  shcore::Parameter parse_parameter(const shcore::Dictionary_t &definition,
-                                    const shcore::Parameter_context &context,
-                                    bool default_require);
+  std::shared_ptr<Parameter_definition> parse_parameter(
+      const shcore::Dictionary_t &definition,
+      const shcore::Parameter_context &context, bool default_require);
   std::shared_ptr<Extensible_object> search_object(
       std::vector<std::string> *name_chain);
 
   void register_function_help(const std::string &name,
-                              const shcore::Dictionary_t &function);
+                              const Function_definition &definition);
 
-  void register_param_help_brief(const shcore::Dictionary_t &param,
-                                 const std::string &prefix, size_t *sequence,
-                                 bool as_parameter);
+  void get_param_help_brief(const Parameter_definition &param,
+                            bool as_parameter,
+                            std::vector<std::string> *target);
 
-  void register_param_help_detail(const shcore::Dictionary_t &param,
-                                  const std::string &prefix, size_t *sequence,
-                                  bool as_parameter);
+  void get_param_help_detail(const Parameter_definition &param,
+                             bool as_parameter,
+                             std::vector<std::string> *details);
+
+  static void validate_function(
+      const std::string &name,
+      const Function_definition::Parameters &parameters);
+
+  static void validate_parameter(const shcore::Parameter &parameter,
+                                 const shcore::Parameter_context &context);
+
+  void disable_help();
 };
 }  // namespace mysqlsh
 

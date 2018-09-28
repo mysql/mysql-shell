@@ -133,6 +133,24 @@ shell.help('reconnect')
 #@ global help for reconnect[USE:shell.reconnect]
 \help Shell.reconnect
 
+#@ shell.reports
+shell.help('reports')
+
+#@ global ? for reports [USE:shell.reports]
+\? Shell.reports
+
+#@ global help for reports [USE:shell.reports]
+\help Shell.reports
+
+#@ shell.register_report
+shell.help('register_report')
+
+#@ global ? for register_report [USE:shell.register_report]
+\? Shell.register_report
+
+#@ global help for register_report [USE:shell.register_report]
+\help Shell.register_report
+
 #@ shell.set_current_schema
 shell.help('set_current_schema')
 

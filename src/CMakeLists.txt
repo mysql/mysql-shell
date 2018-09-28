@@ -35,6 +35,8 @@ set(mysh_SRC
     mysqlsh/prompt_renderer.cc
     mysqlsh/prompt_manager.cc
     mysqlsh/commands/command_help.cc
+    mysqlsh/commands/command_show.cc
+    mysqlsh/commands/command_watch.cc
     interactive/interactive_dba_cluster.cc
     interactive/interactive_global_dba.cc
     interactive/interactive_global_shell.cc

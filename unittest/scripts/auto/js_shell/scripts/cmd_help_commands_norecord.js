@@ -52,6 +52,11 @@
 //@ Rehash Command
 \? \rehash
 
+//@ Show Command
+// WL11263_TSF1_1 - Validate that the \help command display information about the new \show command.
+// WL11263_TSF2_1 - Validate that the help for \show command specifies that the command take the name report as argument and additional options.
+\? \show
+
 //@ Source Command
 \? \source
 
@@ -78,3 +83,7 @@
 
 //@ Warnings Command, \W [USE:Warnings Command]
 \? \W
+
+//@ Watch Command
+// WL11263_TSF3_1 - Validate that the \help command display information about the new \watch command.
+\? \watch

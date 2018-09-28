@@ -70,7 +70,25 @@ inline bool has_color() {
   return g_color_capability != No_color;
 }
 
-void SHCORE_PUBLIC cls();
+/**
+ * Checks if operations which control screen are supported (i.e erasing the
+ * screen contents).
+ *
+ * @returns true if screen operations are supported.
+ */
+bool SHCORE_PUBLIC supports_screen_control();
+
+/**
+ * Clears the whole screen maintaining previous output. Positions the cursor in
+ * the upper left corner.
+ */
+void SHCORE_PUBLIC scroll_screen();
+
+/**
+ * Clears the whole screen erasing previous output. Positions the cursor in
+ * the upper left corner.
+ */
+void SHCORE_PUBLIC clear_screen();
 
 bool SHCORE_PUBLIC parse_rgb(const std::string &color, uint8_t rgb[3]);
 int SHCORE_PUBLIC parse_color_set(const std::string &color_spec,

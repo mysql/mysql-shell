@@ -304,6 +304,10 @@ void Shell_core::execute_module(const std::string &file_name,
   _langs[_mode]->execute_module(file_name);
 }
 
+void Shell_core::load_plugin(const std::string &file_name) {
+  _langs[_mode]->load_plugin(file_name);
+}
+
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
 std::vector<std::string> Shell_command_handler::split_command_line(
     const std::string &command_line) {

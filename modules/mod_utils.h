@@ -27,6 +27,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -168,6 +169,15 @@ establish_mysql_session(const Connection_options &options,
 
 void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
                               shcore::Document_reader_options *options);
+
+/**
+ * Converts SQL values from a row into shcore::Values.
+ *
+ * @param row Row to be converted.
+ *
+ * @return Vector with converted values.
+ */
+std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row);
 
 }  // namespace mysqlsh
 

@@ -24,7 +24,9 @@
 #include "modules/mod_utils.h"
 
 #include <string>
+#include <utility>
 
+#include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -518,6 +520,73 @@ void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
 
     unpacker->optional("decimalAsDouble", &(*options).decimal_as_double);
   }
+}
+
+std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
+  using mysqlshdk::db::Type;
+  using shcore::Date;
+  using shcore::Value;
+  std::vector<Value> value_array;
+
+  for (uint32_t i = 0, c = row.num_fields(); i < c; i++) {
+    Value v;
+
+    if (row.is_null(i)) {
+      v = Value::Null();
+    } else {
+      switch (row.get_type(i)) {
+        case Type::Null:
+          v = Value::Null();
+          break;
+
+        case Type::String:
+          v = Value(row.get_string(i));
+          break;
+
+        case Type::Integer:
+          v = Value(row.get_int(i));
+          break;
+
+        case Type::UInteger:
+          v = Value(row.get_uint(i));
+          break;
+
+        case Type::Float:
+          v = Value(row.get_float(i));
+          break;
+
+        case Type::Double:
+          v = Value(row.get_double(i));
+          break;
+
+        case Type::Decimal:
+          v = Value(row.get_as_string(i));
+          break;
+
+        case Type::Date:
+        case Type::DateTime:
+          v = Value(Date::unrepr(row.get_string(i)));
+          break;
+
+        case Type::Bit:
+          v = Value(row.get_bit(i));
+          break;
+
+        case Type::Bytes:
+        case Type::Geometry:
+        case Type::Json:
+        case Type::Time:
+        case Type::Enum:
+        case Type::Set:
+          v = Value(row.get_string(i));
+          break;
+      }
+    }
+
+    value_array.emplace_back(std::move(v));
+  }
+
+  return value_array;
 }
 
 }  // namespace mysqlsh

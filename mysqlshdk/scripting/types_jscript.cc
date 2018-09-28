@@ -117,6 +117,8 @@ JScript_function::JScript_function(JScript_context *context,
   _function.Reset(_js->isolate(), function);
 }
 
+JScript_function::~JScript_function() { _function.Reset(); }
+
 const std::string &JScript_function::name() const {
   // TODO:
   static std::string tmp;
@@ -146,23 +148,39 @@ bool JScript_function::operator!=(const Function_base &UNUSED(other)) const {
 }
 
 Value JScript_function::invoke(const Argument_list &args) {
-  const unsigned argc = args.size();
-  v8::HandleScope hscope(_js->isolate());
-  v8::Local<v8::Value> *argv = new v8::Local<v8::Value>[argc];
+  const auto isolate = _js->isolate();
+  v8::HandleScope handle_scope(isolate);
+  v8::TryCatch try_catch{isolate};
 
-  for (size_t index = 0; index < args.size(); index++)
-    argv[index] = _js->shcore_value_to_v8_value(args[index]);
+  const auto argc = args.size();
+  std::vector<v8::Local<v8::Value>> argv;
+  argv.reserve(argc);
+
+  for (const auto &arg : args) {
+    argv.emplace_back(_js->shcore_value_to_v8_value(arg));
+  }
 
   v8::Local<v8::Function> callback =
-      v8::Local<v8::Function>::New(_js->isolate(), _function);
+      v8::Local<v8::Function>::New(isolate, _function);
 
   v8::Local<v8::Context> lcontext = _js->context();
   v8::Context::Scope context_scope(lcontext);
 
   v8::MaybeLocal<v8::Value> ret_val = callback->Call(
-      lcontext, _js->isolate()->GetCurrentContext()->Global(), argc, argv);
+      lcontext, isolate->GetCurrentContext()->Global(), argc, &argv[0]);
 
-  delete[] argv;
+  if (ret_val.IsEmpty()) {
+    std::string error = "User-defined function threw an exception";
 
-  return _js->v8_value_to_shcore_value(ret_val.ToLocalChecked());
+    if (try_catch.HasCaught()) {
+      // set interactive to false, so location is always included
+      // we're invoking a callback, location will help the user to pin-point
+      // the problem
+      error += ":\n" + _js->translate_exception(try_catch, false);
+    }
+
+    throw Exception::scripting_error(error);
+  } else {
+    return _js->v8_value_to_shcore_value(ret_val.ToLocalChecked());
+  }
 }

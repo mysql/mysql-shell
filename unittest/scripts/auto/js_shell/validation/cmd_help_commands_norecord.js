@@ -252,6 +252,48 @@ DESCRIPTION
       This may take a long time if you have many schemas or many objects in the
       default schema.
 
+//@<OUT> Show Command
+NAME
+      \show - Executes the given report with provided options and arguments.
+
+SYNTAX
+      \show <report_name> [options] [arguments]
+
+DESCRIPTION
+      The report name accepted by the \show command is case-insensitive, '-'
+      and '_' characters can be used interchangeably.
+
+      Common options:
+
+      - --help - Display help of the given report.
+      - --vertical, -E - For 'list' type reports, display records vertically.
+
+      The output format of \show command depends on the type of report:
+
+      - 'list' - displays records in tabular form (or vertically, if --vertical
+        is used),
+      - 'report' - displays a YAML text report,
+      - 'print' - does not display anything, report is responsible for text
+        output.
+
+      If executed without the report name, lists available reports.
+
+      Note: user-defined reports can be registered with shell.registerReport()
+      method.
+
+EXAMPLES
+      \show
+            Lists available reports, both built-in and user-defined.
+
+      \show query show session status like 'Uptime%'
+            Executes 'query' report with the provided SQL statement.
+
+      \show query --vertical show session status like 'Uptime%'
+            As above, but results are displayed in vertical form.
+
+      \show query --help
+            Displays help for the 'query' report.
+
 //@<OUT> Source Command
 NAME
       \source - Loads and executes a script from a file.
@@ -318,3 +360,36 @@ SYNTAX
 
       \W
 
+//@<OUT> Watch Command
+NAME
+      \watch - Executes the given report with provided options and arguments in
+      a loop.
+
+SYNTAX
+      \watch <report_name> [options] [arguments]
+
+DESCRIPTION
+      This command behaves like \show command, but the given report is executed
+      repeatedly, refreshing the screen every 2 seconds until CTRL-C is
+      pressed.
+
+      In addition to \show command options, following are also supported:
+
+      - --interval=float, -i float - Number of seconds to wait between
+        refreshes. Default 2. Allowed values are in range [0.1, 86400].
+      - --nocls - Don't clear the screen between refreshes.
+
+      If executed without the report name, lists available reports.
+
+      For more information see \show command.
+
+EXAMPLES
+      \watch
+            Lists available reports, both built-in and user-defined.
+
+      \watch query --interval=1 show session status like 'Uptime%'
+            Executes the 'query' report refreshing the screen every second.
+
+      \watch query --nocls show session status like 'Uptime%'
+            As above, but screen is not cleared, results are displayed one
+            after another.

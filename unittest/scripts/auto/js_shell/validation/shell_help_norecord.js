@@ -7,6 +7,7 @@ DESCRIPTION
 
 OBJECTS
  - options Gives access to options impacting shell behavior.
+ - reports Gives access to built-in and user-defined reports.
 
 FUNCTIONS
       connect(connectionData[, password])
@@ -49,6 +50,9 @@ FUNCTIONS
 
       reconnect()
             Reconnect the global session.
+
+      registerReport(name, type, report[, description])
+            Registers a new user-defined report.
 
       setCurrentSchema(name)
             Sets the active schema on the global session.
@@ -139,6 +143,44 @@ FUNCTIONS
       unsetPersist(optionName)
             Resets value of an option to default and removes it from the
             configuration file.
+
+//@<OUT> Help on Reports
+NAME
+      reports - Gives access to built-in and user-defined reports.
+
+SYNTAX
+      shell.reports
+
+DESCRIPTION
+      The 'reports' object provides access to built-in reports.
+
+      All user-defined reports registered using the shell.registerReport()
+      method are also available here.
+
+      The reports are provided as methods of this object, with names
+      corresponding to the names of the available reports.
+
+      All methods have the same signature: Dict report(Session session, List
+      argv, Dict options), where:
+
+      - session - Session object used by the report to obtain the data.
+      - argv (optional) - Array of strings representing additional arguments.
+      - options (optional) - Dictionary with values for various report-specific
+        options.
+
+      Each report returns a dictionary with the following keys:
+
+      - report (required) - List of JSON objects containing the report. The
+        number and types of items in this list depend on type of the report.
+
+      For more information on a report use: shell.reports.help('report_name').
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+      query(session, argv)
+            Executes the SQL statement given as arguments.
 
 //@<OUT> Help on Connect
 NAME
@@ -439,6 +481,135 @@ NAME
 
 SYNTAX
       shell.reconnect()
+
+//@<OUT> Help on registerReport
+NAME
+      registerReport - Registers a new user-defined report.
+
+SYNTAX
+      shell.registerReport(name, type, report[, description])
+
+WHERE
+      name: Name of the registered report.
+      type: Type of the registered report, one of: 'list', 'report' or 'print'.
+      report: Function to be called when the report is requested.
+      description: Dictionary describing the report being registered.
+
+DESCRIPTION
+      The name of the report must be unique and a valid scripting identifier. A
+      case-insensitive comparison is used to validate the uniqueness.
+
+      The type of the report must be one of: 'list', 'report' or 'print'. This
+      option specifies the expected result of calling this report as well as
+      the output format if it is invoked using \show or \watch commands.
+
+      The report function must have the following signature: Dict
+      report(Session session, List argv, Dict options), where:
+
+      - session - Session object used by the report to obtain the data.
+      - argv (optional) - Array of strings representing additional arguments.
+      - options (optional) - Dictionary with values for various report-specific
+        options.
+
+      Each report returns a dictionary with the following keys:
+
+      - report (required) - List of JSON objects containing the report. The
+        number and types of items in this list depend on type of the report.
+
+      The description dictionary may contain the following optional keys:
+
+      - brief - A string value providing a brief description of the report.
+      - details - A list of strings providing a detailed description of the
+        report.
+      - options - A list of dictionaries describing the options accepted by the
+        report. If this is not provided, the report does not accept any
+        options.
+      - argc - A string representing the number of additional arguments
+        accepted by the report. This string can be either: a number specifying
+        exact number of arguments, * specifying zero or more arguments, two
+        numbers separated by a '-' specifying a range of arguments or a number
+        and * separated by a '-' specifying a range of arguments without an
+        upper bound. If this is not provided, the report does not accept any
+        additional arguments.
+
+      The optional options list must hold dictionaries with the following keys:
+
+      - name (string, required) - Name of the option, must be a valid scripting
+        identifier. This specifies an option name in the long form (--long)
+        when invoking the report using \show or \watch commands or a key name
+        of an option when calling this report as a function. Must be unique for
+        a report.
+      - shortcut (string, optional) - alternate name of the option, must be an
+        alphanumeric character. This specifies an option name in the short form
+        (-s). The short form of an option can only be used when invoking the
+        report using \show or \watch commands, it is not available when calling
+        the report as a function. If this key is not specified, option will not
+        have a short form. Must be unique for a report.
+      - brief (string, optional) - brief description of the option.
+      - details (array of strings, optional) - detailed description of the
+        option.
+      - type (string, optional) - value type of the option. Allowed values are:
+        'string', 'bool', 'integer', 'float'. If this key is not specified it
+        defaults to 'string'. If type is specified as 'bool', this option is a
+        switch: if it is not specified when invoking the report it defaults to
+        'false'; if it's specified when invoking the report using \show or
+        \watch commands it does not accept any value and defaults to 'true'; if
+        it is specified when invoking the report using the function call it
+        must have a valid value.
+      - required (Boolean, optional) - whether this option is required. If this
+        key is not specified, defaults to false. If option is a 'bool' then
+        'required' cannot be 'true'.
+      - values (list of strings, optional) - list of allowed values. Only
+        'string' options may have this key. If this key is not specified, this
+        option accepts any values.
+
+      The type of the report determines the expected result of a report
+      invocation:
+
+      - The 'list' report returns a list of lists of values, with the first
+        item containing the names of the columns and remaining ones containing
+        the rows with values.
+      - The 'report' report returns a list with a single item.
+      - The 'print' report returns an empty list.
+
+      The type of the report also determines the output form when report is
+      called using \show or \watch commands:
+
+      - The 'list' report will be displayed in tabular form (or vertical if
+        --vertical option is used).
+      - The 'report' report will be displayed in YAML format.
+      - The 'print' report will not be formatted by Shell, the report itself
+        will print out any output.
+
+      The registered report is can be called using \show or \watch commands in
+      any of the scripting modes.
+
+      The registered report is also going to be available as a method of the
+      shell.reports object.
+
+      Users may create custom report files in the reporters folder located in
+      the Shell configuration path (by default it is ~/.mysqlsh/reporters in
+      Unix and %AppData%\MySQL\mysqlsh\reporters in Windows).
+
+      Custom reports may be written in either JavaScript or Python. The
+      standard file extension for each case should be used to get them properly
+      loaded.
+
+      All reports registered in those files using the registerReport() method
+      will be available when Shell starts.
+
+EXCEPTIONS
+      Throws ArgumentError in the following scenarios:
+
+      - if a report with the same name is already registered.
+      - if 'name' of a report is not a valid scripting identifier.
+      - if 'type' is not one of: 'list', 'report' or 'print'.
+      - if 'name' of a report option is not a valid scripting identifier.
+      - if 'name' of a report option is reused in multiple options.
+      - if 'shortcut' of a report option is not an alphanumeric character.
+      - if 'shortcut' of a report option is reused in multiple options.
+      - if 'type' of a report option holds an invalid value.
+      - if the 'argc' key of a 'description' dictionary holds an invalid value.
 
 //@<OUT> Help on setCurrentSchema
 NAME

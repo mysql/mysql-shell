@@ -71,6 +71,20 @@ bool Help_topic_compare::operator()(Help_topic *const &lhs,
   }
 }
 
+bool Help_topic_id_compare::operator()(Help_topic *const &lhs,
+                                       Help_topic *const &rhs) const {
+  if (!lhs) {
+    return true;
+  } else if (!rhs) {
+    return false;
+  } else {
+    int ret_val = str_casecmp(lhs->m_id.c_str(), rhs->m_id.c_str());
+
+    // If case insensitive are equal, does case sensitive comparison
+    return ret_val == 0 ? (lhs->m_id < rhs->m_id) : ret_val < 0;
+  }
+}
+
 bool icomp::operator()(const std::string &lhs, const std::string &rhs) const {
   return str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
@@ -462,7 +476,7 @@ void Help_registry::register_keywords(Help_topic *topic, Mode_mask mode) {
       base_keywords.push_back({names[0], javascript});
       base_keywords.push_back({names[1], python});
     } else {
-      base_keywords.push_back({topic->m_name, scripting});
+      base_keywords.push_back({names[0], scripting});
     }
   } else {
     base_keywords.push_back({topic->m_name, mode});

@@ -446,11 +446,12 @@ void Options::handle_cmdline_options(
 
     if (it != cmdline_options.end()) {
       if (it->second->accepts_no_cmdline_value()) {
-        if (epos == std::string::npos) {
+        if (epos == std::string::npos && opt == it->first) {
           it->second->handle_command_line_input(opt, nullptr);
           iterator.get();
         } else {
-          throw std::invalid_argument(std::string(argv[0]) + ": option " + opt +
+          throw std::invalid_argument(std::string(argv[0]) + ": option " +
+                                      it->first +
                                       +" does not require an argument");
         }
       } else {

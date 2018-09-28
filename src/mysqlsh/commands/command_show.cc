@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,40 +21,31 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_JSCRIPT_H_
-#define _TYPES_JSCRIPT_H_
+#include "src/mysqlsh/commands/command_show.h"
 
-#include "scripting/jscript_context.h"
+#include <algorithm>
 
-#include "scripting/types.h"
+#include "mysqlshdk/include/shellcore/console.h"
 
-#include "scripting/include_v8.h"
+namespace mysqlsh {
 
-namespace shcore {
-class JScript_function : public Function_base {
- public:
-  JScript_function(JScript_context *context, v8::Local<v8::Function> function);
-  ~JScript_function() override;
+bool Command_show::execute(const std::vector<std::string> &args) {
+  if (args.size() == 1) {
+    // no arguments -> display available reports
+    list_reports();
+  } else {
+    current_console()->print(m_reports->call_report(
+        args[1], _shell->get_dev_session(), {args.begin() + 2, args.end()}));
+  }
 
-  const std::string &name() const override;
+  return true;
+}
 
-  const std::vector<std::pair<std::string, Value_type>> &signature()
-      const override;
+void Command_show::list_reports() const {
+  auto list = m_reports->list_reports();
+  std::sort(list.begin(), list.end());
+  current_console()->println(
+      "Available reports: " + shcore::str_join(list, ", ") + ".");
+}
 
-  Value_type return_type() const override;
-
-  bool operator==(const Function_base &other) const override;
-
-  bool operator!=(const Function_base &other) const;
-
-  Value invoke(const Argument_list &args) override;
-
-  bool has_var_args() override { return false; }
-
- private:
-  JScript_context *_js;
-  v8::Persistent<v8::Function> _function;
-};
-}  // namespace shcore
-
-#endif
+}  // namespace mysqlsh

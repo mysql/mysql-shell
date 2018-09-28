@@ -54,7 +54,7 @@ Cpp_function::Raw_signature Cpp_function::gen_signature(
       flag = Param_flag::Optional;
     }
 
-    sig.push_back({name, i.second, flag});
+    sig.push_back(std::make_shared<Parameter>(name, i.second, flag));
   }
   return sig;
 }
@@ -72,11 +72,11 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
   // extend when more expose() variations added
   switch (static_cast<int>(cand.size()) - m) {
     case 3:  // 3 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 3].flag == Param_flag::Optional);
+      match = match && (cand[c - 3]->flag == Param_flag::Optional);
     case 2:  // 2 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 2].flag == Param_flag::Optional);
+      match = match && (cand[c - 2]->flag == Param_flag::Optional);
     case 1:  // 1 param extra, if the rest is optional, it's a match
-      match = match && (cand[c - 1].flag == Param_flag::Optional);
+      match = match && (cand[c - 1]->flag == Param_flag::Optional);
     case 0:  // # of params match
       break;
     default:
@@ -89,7 +89,7 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
     size_t max = cand.size();
     size_t min = 0;
     for (const auto &param : cand) {
-      if (param.flag == Param_flag::Optional) {
+      if (param->flag == Param_flag::Optional) {
         break;
       } else {
         min++;
@@ -111,30 +111,30 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
     switch (m) {
       case 3:  // 3 params to be considered
         if (!kTypeConvertible[static_cast<int>(wanted[2])]
-                             [static_cast<int>(cand[2].type)]) {
+                             [static_cast<int>(cand[2]->type())]) {
           match = false;
           error = shcore::str_format("Argument #3 is expected to be %s",
-                                     type_description(cand[2].type).c_str());
+                                     type_description(cand[2]->type()).c_str());
         }
-        exact_matches -= (wanted[2] != cand[2].type);
+        exact_matches -= (wanted[2] != cand[2]->type());
         have_object_params = have_object_params || (wanted[2] == Object);
       case 2:  // 2 params to be considered
         if (!kTypeConvertible[static_cast<int>(wanted[1])]
-                             [static_cast<int>(cand[1].type)]) {
+                             [static_cast<int>(cand[1]->type())]) {
           match = false;
           error = shcore::str_format("Argument #2 is expected to be %s",
-                                     type_description(cand[1].type).c_str());
+                                     type_description(cand[1]->type()).c_str());
         }
-        exact_matches -= (wanted[1] != cand[1].type);
+        exact_matches -= (wanted[1] != cand[1]->type());
         have_object_params = have_object_params || (wanted[1] == Object);
       case 1:  // 1 param to be considered
         if (!kTypeConvertible[static_cast<int>(wanted[0])]
-                             [static_cast<int>(cand[0].type)]) {
+                             [static_cast<int>(cand[0]->type())]) {
           match = false;
           error = shcore::str_format("Argument #1 is expected to be %s",
-                                     type_description(cand[0].type).c_str());
+                                     type_description(cand[0]->type()).c_str());
         }
-        exact_matches -= (wanted[0] != cand[0].type);
+        exact_matches -= (wanted[0] != cand[0]->type());
         have_object_params = have_object_params || (wanted[0] == Object);
       case 0:  // 0 params to be considered = nothing to check
         break;
@@ -201,17 +201,17 @@ void Cpp_function::Metadata::set(
 }
 
 void Cpp_function::Metadata::set(const std::string &name_, Value_type rtype,
-                                 const std::vector<Parameter> &params) {
+                                 const Raw_signature &params) {
   set_name(name_);
 
-  signature = std::move(params);
+  signature = params;
 
-  for (const auto &param : params) {
-    std::string name = param.name;
+  for (const auto &param : signature) {
+    std::string name = param->name;
 
-    if (param.flag == Param_flag::Optional) name = "?" + name;
+    if (param->flag == Param_flag::Optional) name = "?" + name;
 
-    param_types.push_back(std::make_pair(name, param.type));
+    param_types.push_back(std::make_pair(name, param->type()));
   }
 
   return_type = rtype;
@@ -652,21 +652,21 @@ void Cpp_object_bridge::detect_overload_conflicts(
     if (diff < 0) {
       size_t i = overload_sig.size();
       for (; i < function_sig.size(); i++)
-        if (function_sig[i].flag != Param_flag::Optional) break;
+        if (function_sig[i]->flag != Param_flag::Optional) break;
       if (i < function_sig.size()) continue;
     } else if (diff > 0) {
       size_t i = function_sig.size();
       for (; i < overload_sig.size(); i++)
-        if (overload_sig[i].flag != Param_flag::Optional) break;
+        if (overload_sig[i]->flag != Param_flag::Optional) break;
       if (i < overload_sig.size()) continue;
     }
     size_t i = 0;
     size_t args_num = std::min(overload_sig.size(), function_sig.size());
     for (; i < args_num; i++)
-      if (!kTypeConvertible[static_cast<int>(overload_sig[i].type)]
-                           [static_cast<int>(function_sig[i].type)] &&
-          !kTypeConvertible[static_cast<int>(function_sig[i].type)]
-                           [static_cast<int>(overload_sig[i].type)])
+      if (!kTypeConvertible[static_cast<int>(overload_sig[i]->type())]
+                           [static_cast<int>(function_sig[i]->type())] &&
+          !kTypeConvertible[static_cast<int>(function_sig[i]->type())]
+                           [static_cast<int>(overload_sig[i]->type())])
         break;
     if (i == args_num)
       throw Exception::attrib_error(
@@ -867,24 +867,24 @@ std::string Parameter_context::str() const {
 void Parameter_validator::validate(const Parameter &param, const Value &data,
                                    const Parameter_context &context) const {
   try {
-    data.check_type(param.type);
+    data.check_type(param.type());
 
     // The call to check_type only verifies the kConvertible matrix there:
     // - A string is convertible to integer, bool and float
     // - A Null us convertible to object, array and dictionary
     // We do this validation to make sure the conversion is really valid
     if (data.type == shcore::String) {
-      if (param.type == shcore::Integer)
+      if (param.type() == shcore::Integer)
         data.as_int();
-      else if (param.type == shcore::Bool)
+      else if (param.type() == shcore::Bool)
         data.as_bool();
-      else if (param.type == shcore::Float)
+      else if (param.type() == shcore::Float)
         data.as_double();
     }
   } catch (...) {
     auto error =
         shcore::str_format("%s is expected to be %s", context.str().c_str(),
-                           shcore::type_description(param.type).c_str());
+                           shcore::type_description(param.type()).c_str());
     throw shcore::Exception::argument_error(error);
   }
 }
@@ -893,12 +893,19 @@ void Object_validator::validate(const Parameter &param, const Value &data,
                                 const Parameter_context &context) const {
   Parameter_validator::validate(param, data, context);
 
-  if (!allowed.empty()) {
-    if (std::find(std::begin(allowed), std::end(allowed),
-                  data.as_object()->class_name()) == std::end(allowed)) {
-      auto allowed_str = shcore::str_join(allowed, ", ");
+  if (!m_allowed.empty()) {
+    const auto object = data.as_object();
+
+    if (!object) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "%s is expected to be an object", context.str().c_str()));
+    }
+
+    if (std::find(std::begin(m_allowed), std::end(m_allowed),
+                  object->class_name()) == std::end(m_allowed)) {
+      auto allowed_str = shcore::str_join(m_allowed, ", ");
       std::string error;
-      if (allowed.size() == 1) {
+      if (m_allowed.size() == 1) {
         error = shcore::str_format("%s is expected to be a '%s' object.",
                                    context.str().c_str(), allowed_str.c_str());
       } else {
@@ -914,12 +921,12 @@ void String_validator::validate(const Parameter &param, const Value &data,
                                 const Parameter_context &context) const {
   Parameter_validator::validate(param, data, context);
 
-  if (!allowed.empty()) {
-    if (std::find(std::begin(allowed), std::end(allowed), data.as_string()) ==
-        std::end(allowed)) {
+  if (!m_allowed.empty()) {
+    if (std::find(std::begin(m_allowed), std::end(m_allowed),
+                  data.as_string()) == std::end(m_allowed)) {
       auto error = shcore::str_format(
           "%s only accepts the following values: %s.", context.str().c_str(),
-          shcore::str_join(allowed, ", ").c_str());
+          shcore::str_join(m_allowed, ", ").c_str());
       throw shcore::Exception::argument_error(error);
     }
   }
@@ -929,31 +936,33 @@ void Option_validator::validate(const Parameter &param, const Value &data,
                                 const Parameter_context &context) const {
   Parameter_validator::validate(param, data, context);
 
-  Option_unpacker unpacker(data.as_map());
+  if (!m_allowed.empty()) {
+    Option_unpacker unpacker(data.as_map());
 
-  for (const auto &item : allowed) {
-    shcore::Value value;
-    if (item.flag == Param_flag::Mandatory) {
-      unpacker.required(item.name.c_str(), &value);
-    } else {
-      unpacker.optional(item.name.c_str(), &value);
+    for (const auto &item : m_allowed) {
+      shcore::Value value;
+      if (item->flag == Param_flag::Mandatory) {
+        unpacker.required(item->name.c_str(), &value);
+      } else {
+        unpacker.optional(item->name.c_str(), &value);
+      }
+
+      if (value) {
+        auto ctx = shcore::str_format("option %s at %s", item->name.c_str(),
+                                      context.str().c_str());
+        item->validate(value, {ctx, {}});
+      }
     }
 
-    if (value) {
-      auto ctx = shcore::str_format("option %s at %s", item.name.c_str(),
-                                    context.str().c_str());
-      item.validate(value, {ctx, {}});
-    }
+    unpacker.end("at " + context.str());
   }
-
-  unpacker.end("at " + context.str());
 };
 
 void Parameter::validate(const Value &data,
                          const Parameter_context &context) const {
-  if (validator)
-    validator->validate(*this, data, context);
-  else {
+  if (m_validator) {
+    m_validator->validate(*this, data, context);
+  } else {
     // If no validator was set on the option, uses the
     // default validator.
     Parameter_validator validator;

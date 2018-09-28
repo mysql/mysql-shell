@@ -58,6 +58,8 @@
 #include "src/interactive/interactive_dba_cluster.h"
 #include "src/interactive/interactive_global_dba.h"
 #include "src/interactive/interactive_global_shell.h"
+#include "src/mysqlsh/commands/command_show.h"
+#include "src/mysqlsh/commands/command_watch.h"
 #include "utils/debug.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
@@ -375,6 +377,87 @@ REGISTER_HELP(CMD_NOWARNINGS_BRIEF,
 REGISTER_HELP(CMD_NOWARNINGS_SYNTAX, "<b>\\nowarnings</b>");
 REGISTER_HELP(CMD_NOWARNINGS_SYNTAX1, "<b>\\w</b>");
 
+REGISTER_HELP(CMD_SHOW_BRIEF,
+              "Executes the given report with provided options and arguments.");
+REGISTER_HELP(CMD_SHOW_SYNTAX,
+              "<b>\\show</b> <report_name> [options] [arguments]");
+REGISTER_HELP(CMD_SHOW_DETAIL,
+              "The report name accepted by the \\show command is "
+              "case-insensitive, '-' and '_' characters can be used "
+              "interchangeably.");
+REGISTER_HELP(CMD_SHOW_DETAIL1, "Common options:");
+REGISTER_HELP(CMD_SHOW_DETAIL2,
+              "@li --help - Display help of the given report.");
+REGISTER_HELP(CMD_SHOW_DETAIL3,
+              "@li --vertical, -E - For 'list' type reports, display records "
+              "vertically.");
+REGISTER_HELP(
+    CMD_SHOW_DETAIL4,
+    "The output format of \\show command depends on the type of report:");
+REGISTER_HELP(CMD_SHOW_DETAIL5,
+              "@li 'list' - displays records in tabular form (or vertically, "
+              "if --vertical is used),");
+REGISTER_HELP(CMD_SHOW_DETAIL6, "@li 'report' - displays a YAML text report,");
+REGISTER_HELP(CMD_SHOW_DETAIL7,
+              "@li 'print' - does not display anything, report is responsible "
+              "for text output.");
+REGISTER_HELP(CMD_SHOW_DETAIL8,
+              "If executed without the report name, lists available reports.");
+REGISTER_HELP(CMD_SHOW_DETAIL9,
+              "Note: user-defined reports can be registered with "
+              "shell.<<<registerReport>>>() method.");
+REGISTER_HELP(CMD_SHOW_EXAMPLE, "<b>\\show</b>");
+REGISTER_HELP(CMD_SHOW_EXAMPLE_DESC,
+              "Lists available reports, both built-in and user-defined.");
+REGISTER_HELP(CMD_SHOW_EXAMPLE1,
+              "<b>\\show</b> query show session status like 'Uptime%'");
+REGISTER_HELP(CMD_SHOW_EXAMPLE1_DESC,
+              "Executes 'query' report with the provided SQL statement.");
+REGISTER_HELP(
+    CMD_SHOW_EXAMPLE2,
+    "<b>\\show</b> query --vertical show session status like 'Uptime%'");
+REGISTER_HELP(CMD_SHOW_EXAMPLE2_DESC,
+              "As above, but results are displayed in vertical form.");
+REGISTER_HELP(CMD_SHOW_EXAMPLE3, "<b>\\show</b> query --help");
+REGISTER_HELP(CMD_SHOW_EXAMPLE3_DESC, "Displays help for the 'query' report.");
+
+REGISTER_HELP(
+    CMD_WATCH_BRIEF,
+    "Executes the given report with provided options and arguments in a loop.");
+REGISTER_HELP(CMD_WATCH_SYNTAX,
+              "<b>\\watch</b> <report_name> [options] [arguments]");
+REGISTER_HELP(CMD_WATCH_DETAIL,
+              "This command behaves like \\show command, but the given report "
+              "is executed repeatedly, refreshing the screen every 2 seconds "
+              "until CTRL-C is pressed.");
+REGISTER_HELP(
+    CMD_WATCH_DETAIL1,
+    "In addition to \\show command options, following are also supported:");
+REGISTER_HELP(CMD_WATCH_DETAIL2,
+              "@li --interval=float, -i float - Number of seconds to wait "
+              "between refreshes. Default 2. Allowed values are in range [0.1, "
+              "86400].");
+REGISTER_HELP(CMD_WATCH_DETAIL3,
+              "@li --nocls - Don't clear the screen between refreshes.");
+REGISTER_HELP(CMD_WATCH_DETAIL4,
+              "If executed without the report name, lists available reports.");
+REGISTER_HELP(CMD_WATCH_DETAIL5, "For more information see \\show command.");
+REGISTER_HELP(CMD_WATCH_EXAMPLE, "<b>\\watch</b>");
+REGISTER_HELP(CMD_WATCH_EXAMPLE_DESC,
+              "Lists available reports, both built-in and user-defined.");
+REGISTER_HELP(
+    CMD_WATCH_EXAMPLE1,
+    "<b>\\watch</b> query --interval=1 show session status like 'Uptime%'");
+REGISTER_HELP(
+    CMD_WATCH_EXAMPLE1_DESC,
+    "Executes the 'query' report refreshing the screen every second.");
+REGISTER_HELP(
+    CMD_WATCH_EXAMPLE2,
+    "<b>\\watch</b> query --nocls show session status like 'Uptime%'");
+REGISTER_HELP(CMD_WATCH_EXAMPLE2_DESC,
+              "As above, but screen is not cleared, results are displayed one "
+              "after another.");
+
 Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
     : mysqlsh::Base_shell(cmdline_options, custom_delegate) {
@@ -510,6 +593,8 @@ Mysql_shell::Mysql_shell(std::shared_ptr<Shell_options> cmdline_options,
   SET_SHELL_COMMAND("\\status|\\s", "CMD_STATUS", Mysql_shell::cmd_status);
   SET_SHELL_COMMAND("\\use|\\u", "CMD_USE", Mysql_shell::cmd_use);
   SET_SHELL_COMMAND("\\rehash", "CMD_REHASH", Mysql_shell::cmd_rehash);
+  SET_SHELL_COMMAND("\\show", "CMD_SHOW", Mysql_shell::cmd_show);
+  SET_SHELL_COMMAND("\\watch", "CMD_WATCH", Mysql_shell::cmd_watch);
 
   shcore::Credential_manager::get().initialize();
 }
@@ -1296,6 +1381,14 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
   return true;
 }
 
+bool Mysql_shell::cmd_show(const std::vector<std::string> &args) {
+  return Command_show(_shell, _global_shell->get_shell_reports())(args);
+}
+
+bool Mysql_shell::cmd_watch(const std::vector<std::string> &args) {
+  return Command_watch(_shell, _global_shell->get_shell_reports())(args);
+}
+
 bool Mysql_shell::do_shell_command(const std::string &line) {
   // Special handling for use <db>, which in the classic client was overridden
   // as a built-in command and thus didn't need ; at the end
@@ -1329,6 +1422,7 @@ void Mysql_shell::process_line(const std::string &line) {
       std::string error(exc.what());
       error += "\n";
       print_diag(error);
+      handled_as_command = true;
     }
   }
 

@@ -304,8 +304,36 @@ bool parse_rgb(const std::string &color, uint8_t rgb[3]) {
   return false;
 }
 
-/** Clear the screen */
-void cls() { vt100::erase_screen(); }
+bool SHCORE_PUBLIC supports_screen_control() {
+  return mysqlshdk::vt100::is_available();
+}
+
+void scroll_screen() {
+  int w = 0;
+  int h = 0;
+
+  if (mysqlshdk::vt100::get_screen_size(&h, &w)) {
+    // scroll the screen, making the current line the first invisible one
+    for (int i = 0; i < h; ++i) {
+      // mysqlshdk::vt100::scroll_down() is not supported on Windows,
+      // simply print some lines
+      mysqlshdk::vt100::send_escape("\n");
+    }
+  } else {
+    // effectively scrolls the screen, the whole area will be empty
+    // may leave some empty areas
+    mysqlshdk::vt100::erase_screen();
+  }
+  // move cursor to the upper left corner
+  mysqlshdk::vt100::cursor_home();
+}
+
+void clear_screen() {
+  // erase from the current cursor position to the beginning of screen
+  mysqlshdk::vt100::erase_up();
+  // move cursor to the upper left corner
+  mysqlshdk::vt100::cursor_home();
+}
 
 int parse_color_set(const std::string &color_spec, uint8_t *color_16,
                     uint8_t *color_256, uint8_t color_rgb[3],

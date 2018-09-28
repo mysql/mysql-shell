@@ -32,6 +32,8 @@ Python_function::Python_function(Python_context *context, PyObject *function)
   Py_INCREF(_function);
 }
 
+Python_function::~Python_function() { Py_DECREF(_function); }
+
 const std::string &Python_function::name() const {
   // TODO:
   static std::string tmp;
@@ -62,13 +64,29 @@ bool Python_function::operator!=(const Function_base &UNUSED(other)) const {
 
 Value Python_function::invoke(const Argument_list &args) {
   WillEnterPython lock;
-  PyObject *argv = PyTuple_New(args.size());
 
-  for (size_t index = 0; index < args.size(); index++) {
+  const auto argc = args.size();
+  PyObject *argv = PyTuple_New(argc);
+
+  for (size_t index = 0; index < argc; ++index) {
     PyTuple_SetItem(argv, index, _py->shcore_value_to_pyobj(args[index]));
   }
 
   PyObject *ret_val = PyObject_CallObject(_function, argv);
+  Py_DECREF(argv);
 
-  return _py->pyobj_to_shcore_value(ret_val);
+  if (ret_val == nullptr) {
+    static constexpr auto error = "User-defined function threw an exception";
+    std::string details = _py->fetch_and_clear_exception();
+
+    if (!details.empty()) {
+      details = ": " + details;
+    }
+
+    throw Exception::scripting_error(error + details);
+  } else {
+    const auto ret = _py->pyobj_to_shcore_value(ret_val);
+    Py_DECREF(ret_val);
+    return ret;
+  }
 }

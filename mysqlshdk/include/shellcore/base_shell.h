@@ -57,7 +57,6 @@ class SHCORE_PUBLIC Base_shell {
    */
   virtual void finish_init();
 
-  void init_environment();
   void init_scripts(shcore::Shell_core::Mode mode);
   void load_default_modules(shcore::Shell_core::Mode mode);
 
@@ -134,6 +133,15 @@ class SHCORE_PUBLIC Base_shell {
   enum class Prompt_variables_update_type { NO_UPDATE, UPDATE, CLEAR_CACHE };
 
   void update_prompt_variables();
+
+  /**
+   * Loads all the plugin files for all the supported scripting languages.
+   *
+   * Iterates through known plugin directories and loads files based on their
+   * extension. Checks following directories:
+   * - ${MYSQLSH_USER_CONFIG_HOME}//reporters
+   */
+  void load_plugins();
 
   shcore::Interpreter_delegate _delegate;
   Prompt_variables_update_type m_pending_update =

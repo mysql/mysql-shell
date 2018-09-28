@@ -304,33 +304,89 @@ struct Parameter_validator {
                         const Parameter_context &context) const;
 };
 
-struct Object_validator : public Parameter_validator {
-  void validate(const Parameter &param, const Value &data,
-                const Parameter_context &context) const override;
-  std::vector<std::string> allowed;
+template <typename T>
+struct Parameter_validator_with_allowed : public Parameter_validator {
+ public:
+  void set_allowed(std::vector<T> &&allowed) { m_allowed = std::move(allowed); }
+
+  const std::vector<T> &allowed() const { return m_allowed; }
+
+ protected:
+  std::vector<T> m_allowed;
 };
 
-struct String_validator : public Parameter_validator {
+struct Object_validator : public Parameter_validator_with_allowed<std::string> {
   void validate(const Parameter &param, const Value &data,
                 const Parameter_context &context) const override;
-  std::vector<std::string> allowed;
 };
 
-struct Option_validator : public Parameter_validator {
+struct String_validator : public Parameter_validator_with_allowed<std::string> {
   void validate(const Parameter &param, const Value &data,
                 const Parameter_context &context) const override;
-  std::vector<Parameter> allowed;
+};
+
+struct Option_validator
+    : public Parameter_validator_with_allowed<std::shared_ptr<Parameter>> {
+  void validate(const Parameter &param, const Value &data,
+                const Parameter_context &context) const override;
 };
 
 enum class Param_flag { Mandatory, Optional };
 
-struct Parameter {
+struct Parameter final {
+  Parameter() = default;
+
+  Parameter(const std::string &n, Value_type t, Param_flag f)
+      : name(n), flag(f) {
+    set_type(t);
+  }
+
   std::string name;
-  Value_type type;
   Param_flag flag;
-  std::shared_ptr<Parameter_validator> validator;
 
   void validate(const Value &data, const Parameter_context &context) const;
+
+  void set_type(Value_type type) {
+    m_type = type;
+
+    switch (m_type) {
+      case Value_type::Object:
+        set_validator(
+            std::unique_ptr<Object_validator>(new Object_validator()));
+        break;
+
+      case Value_type::String:
+        set_validator(
+            std::unique_ptr<String_validator>(new String_validator()));
+        break;
+
+      case Value_type::Map:
+        set_validator(
+            std::unique_ptr<Option_validator>(new Option_validator()));
+        break;
+
+      default:
+        // no validator in the default case
+        break;
+    }
+  }
+
+  Value_type type() const { return m_type; }
+
+  void set_validator(std::unique_ptr<Parameter_validator> validator) {
+    m_validator = std::move(validator);
+  }
+
+  template <typename T,
+            typename std::enable_if<
+                std::is_base_of<Parameter_validator, T>::value, int>::type = 0>
+  T *validator() const {
+    return dynamic_cast<T *>(m_validator.get());
+  }
+
+ private:
+  Value_type m_type;
+  std::unique_ptr<Parameter_validator> m_validator;
 };
 
 class SHCORE_PUBLIC Cpp_function : public Function_base {
@@ -357,8 +413,10 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
       const std::string &name, const Function &func,
       const std::vector<std::pair<std::string, Value_type>> &signature);
 
-  typedef std::vector<Parameter> Raw_signature;
+  using Raw_signature = std::vector<std::shared_ptr<Parameter>>;
   struct Metadata {
+    Metadata() = default;
+    Metadata(const Metadata &) = delete;
     std::string name[2];
     Raw_signature signature;
 
@@ -370,7 +428,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
     void set(const std::string &name, Value_type rtype,
              const std::vector<std::pair<std::string, Value_type>> &ptypes);
     void set(const std::string &name, Value_type rtype,
-             const std::vector<Parameter> &params);
+             const Raw_signature &params);
   };
 
  protected:
@@ -498,9 +556,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
    * @returns a reference to the function metadata so the caller can set
    * the help details and register them in the help system.
    */
-  Cpp_function::Metadata *expose(const std::string &name,
-                                 const shcore::Function_base_ref &func,
-                                 const std::vector<Parameter> &parameters) {
+  Cpp_function::Metadata *expose(
+      const std::string &name, const shcore::Function_base_ref &func,
+      const Cpp_function::Raw_signature &parameters) {
     assert(func);
     assert(!name.empty());
 
@@ -515,10 +573,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [md, func](const shcore::Argument_list &args) -> shcore::Value {
+            [&md, func](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index].validate(
+                md.signature[index]->validate(
                     args[index], {"Argument", static_cast<int>(index + 1)});
               }
 
@@ -568,11 +626,11 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, func, md,
+            [this, func, &md,
              a1def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index].validate(
+                md.signature[index]->validate(
                     args[index], {"Argument", static_cast<int>(index + 1)});
               }
               const A1 &&a1 =
@@ -642,11 +700,11 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, md, func, a1def,
+            [this, &md, func, a1def,
              a2def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index].validate(
+                md.signature[index]->validate(
                     args[index], {"Argument", static_cast<int>(index + 1)});
               }
               const A1 &&a1 =
@@ -699,11 +757,11 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, md, func, a1def, a2def,
+            [this, &md, func, a1def, a2def,
              a3def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index].validate(
+                md.signature[index]->validate(
                     args[index], {"Argument", static_cast<int>(index + 1)});
               }
               const A1 &&a1 =
@@ -764,11 +822,11 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         registered_name,
         std::shared_ptr<Cpp_function>(new Cpp_function(
             &md,
-            [this, md, func, a1def, a2def, a3def,
+            [this, &md, func, a1def, a2def, a3def,
              a4def](const shcore::Argument_list &args) -> shcore::Value {
               // Executes parameter validators
               for (size_t index = 0; index < args.size(); index++) {
-                md.signature[index].validate(
+                md.signature[index]->validate(
                     args[index], {"Argument", static_cast<int>(index + 1)});
               }
               const A1 &&a1 =

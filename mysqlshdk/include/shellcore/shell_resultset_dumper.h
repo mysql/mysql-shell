@@ -25,6 +25,7 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_
 
 #include <stdlib.h>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -56,30 +57,100 @@ using Print_flags =
 std::tuple<size_t, size_t> get_utf8_sizes(const char *text, size_t length,
                                           Print_flags flags);
 
-class Resultset_dumper {
+/**
+ * Interface specifying operations used to output text produced by
+ * Resultset_dumper_base class. Implementations may i.e. choose output type
+ * (console, string, file), provide additional formatting, etc.
+ */
+class Resultset_printer {
  public:
-  Resultset_dumper(mysqlshdk::db::IResult *target, bool buffer_data);
-  virtual ~Resultset_dumper() = default;
-  virtual void dump(const std::string &item_label, bool is_query,
-                    bool is_doc_result);
+  Resultset_printer() = default;
+  virtual ~Resultset_printer() = default;
+
+  /**
+   * Outputs the given text.
+   *
+   * @param s - text to output
+   */
+  virtual void print(const std::string &s) = 0;
+
+  /**
+   * Outputs the given text and follows it with a newline character.
+   *
+   * @param s - text to output
+   */
+  virtual void println(const std::string &s) = 0;
+
+  /**
+   * Outputs the given text skipping any extra formatting.
+   *
+   * @param s - text to output
+   */
+  virtual void raw_print(const std::string &s) = 0;
+};
+
+/**
+ * Base dumper class which implements text-formatting logic for various output
+ * formats. Has no public interface, making it essentially abstract, needs to
+ * be configured by the derived class with a Resultset_printer instance.
+ */
+class Resultset_dumper_base {
+ public:
+  virtual ~Resultset_dumper_base() = default;
 
  protected:
-  mysqlshdk::db::IResult *_rset;
-  std::string _format;
-  bool _show_warnings;
-  bool _interactive;
-  bool _buffer_data;
-  bool _cancelled;
+  Resultset_dumper_base(mysqlshdk::db::IResult *target,
+                        std::unique_ptr<Resultset_printer> printer);
 
-  std::string get_affected_stats(const std::string &item_label);
-  int get_warning_and_execution_time_stats(std::string &output_stats);
-  void dump_records(std::string &output_stats);
   size_t dump_tabbed();
   size_t dump_table();
   size_t dump_vertical();
   size_t dump_documents();
   size_t dump_json(const std::string &item_label, bool is_doc_result);
   void dump_warnings();
+
+  mysqlshdk::db::IResult *m_result;
+  std::string m_format;
+  bool m_cancelled = false;
+  std::unique_ptr<Resultset_printer> m_printer;
+};
+
+/**
+ * Dumps the provided result to a console, choosing the output format based on
+ * the current Shell formatting options and interactive mode.
+ */
+class Resultset_dumper : public Resultset_dumper_base {
+ public:
+  Resultset_dumper(mysqlshdk::db::IResult *target, bool buffer_data);
+  ~Resultset_dumper() override = default;
+
+  virtual void dump(const std::string &item_label, bool is_query,
+                    bool is_doc_result);
+
+ protected:
+  std::string get_affected_stats(const std::string &item_label);
+  int get_warning_and_execution_time_stats(std::string *output_stats);
+
+  bool m_show_warnings;
+  bool m_interactive;
+  bool m_buffer_data;
+};
+
+/**
+ * Dumps the provided result to a string, output format is selected by the user
+ * of this class by calling one of the appropriate methods.
+ */
+class Resultset_writer : public Resultset_dumper_base {
+ public:
+  explicit Resultset_writer(mysqlshdk::db::IResult *target);
+  ~Resultset_writer() override = default;
+
+  std::string write_table();
+
+  std::string write_vertical();
+
+ private:
+  std::string write(const std::function<void()> &dump);
 };
 
 }  // namespace mysqlsh

@@ -863,5 +863,420 @@ TEST(Types_repr, wrong_repr) {
                  shcore::Exception);
   }
 }
+
+TEST(Types_yaml, array) {
+  const auto array = make_array();
+
+  array->emplace_back(Value());
+  array->emplace_back(Value::Null());
+  array->emplace_back(Value::False());
+  array->emplace_back(Value::True());
+  array->emplace_back("simple string");
+  array->emplace_back(INT64_C(-1234));
+  array->emplace_back(UINT64_C(5678));
+  array->emplace_back(9.01112);
+
+  const auto sub_array = make_array();
+  sub_array->emplace_back(1);
+  sub_array->emplace_back(2);
+  sub_array->emplace_back(3);
+  array->emplace_back(std::move(sub_array));
+
+  const auto sub_map = make_dict();
+  sub_map->emplace("4", 7);
+  sub_map->emplace("5", 8);
+  sub_map->emplace("6", 9);
+  array->emplace_back(std::move(sub_map));
+
+  static constexpr auto expected = R"(---
+-
+-
+- false
+- true
+- simple string
+- -1234
+- 5678
+- 9.01112
+- - 1
+  - 2
+  - 3
+- 4: 7
+  5: 8
+  6: 9
+)";
+
+  EXPECT_EQ(expected, Value{array}.yaml());
+}
+
+TEST(Types_yaml, map) {
+  const auto map = make_dict();
+
+  map->emplace("a", Value());
+  map->emplace("b", Value::Null());
+  map->emplace("c", Value::False());
+  map->emplace("d", Value::True());
+  map->emplace("e", "simple string");
+  map->emplace("f", INT64_C(-1234));
+  map->emplace("g", UINT64_C(5678));
+  map->emplace("h", 9.01112);
+
+  const auto sub_array = make_array();
+  sub_array->emplace_back(1);
+  sub_array->emplace_back(2);
+  sub_array->emplace_back(3);
+  map->emplace("i", std::move(sub_array));
+
+  const auto sub_map = make_dict();
+  sub_map->emplace("4", 7);
+  sub_map->emplace("5", 8);
+  sub_map->emplace("6", 9);
+  map->emplace("j", std::move(sub_map));
+
+  static constexpr auto expected = R"(---
+a:
+b:
+c: false
+d: true
+e: simple string
+f: -1234
+g: 5678
+h: 9.01112
+i:
+  - 1
+  - 2
+  - 3
+j:
+  4: 7
+  5: 8
+  6: 9
+)";
+
+  EXPECT_EQ(expected, Value{map}.yaml());
+}
+
+TEST(Types_yaml, string) {
+  const auto array = make_array();
+
+  array->emplace_back("");
+  array->emplace_back("simple string");
+  array->emplace_back(" leading space");
+  array->emplace_back("\tleading tab");
+  array->emplace_back("trailing space ");
+  array->emplace_back("trailing tab\t");
+  array->emplace_back("- leading indicator");
+  array->emplace_back("? leading indicator");
+  array->emplace_back(": leading indicator");
+  array->emplace_back(", leading indicator");
+  array->emplace_back("[ leading indicator");
+  array->emplace_back("] leading indicator");
+  array->emplace_back("{ leading indicator");
+  array->emplace_back("} leading indicator");
+  array->emplace_back("# leading indicator");
+  array->emplace_back("& leading indicator");
+  array->emplace_back("* leading indicator");
+  array->emplace_back("! leading indicator");
+  array->emplace_back("| leading indicator");
+  array->emplace_back("> leading indicator");
+  array->emplace_back("' leading indicator");
+  array->emplace_back("\" leading indicator");
+  array->emplace_back("% leading indicator");
+  array->emplace_back("@ leading indicator");
+  array->emplace_back("` leading indicator");
+  array->emplace_back("the - indicator");
+  array->emplace_back("the ? indicator");
+  array->emplace_back("the : indicator");
+  array->emplace_back("the , indicator");
+  array->emplace_back("the [ indicator");
+  array->emplace_back("the ] indicator");
+  array->emplace_back("the { indicator");
+  array->emplace_back("the } indicator");
+  array->emplace_back("the # indicator");
+  array->emplace_back("the & indicator");
+  array->emplace_back("the * indicator");
+  array->emplace_back("the ! indicator");
+  array->emplace_back("the | indicator");
+  array->emplace_back("the > indicator");
+  array->emplace_back("the ' indicator");
+  array->emplace_back("the \" indicator");
+  array->emplace_back("the % indicator");
+  array->emplace_back("the @ indicator");
+  array->emplace_back("the ` indicator");
+  array->emplace_back("-_leading indicator without space");
+  array->emplace_back("?_leading indicator without space");
+  array->emplace_back(":_leading indicator without space");
+  array->emplace_back("the \": \" sequence must be quoted");
+  array->emplace_back("the \" #\" sequence must be quoted");
+  array->emplace_back("the ': ' -> single quotes must be escaped if quoted");
+
+  static constexpr auto expected = R"(---
+- ''
+- simple string
+- ' leading space'
+- '	leading tab'
+- 'trailing space '
+- 'trailing tab	'
+- '- leading indicator'
+- '? leading indicator'
+- ': leading indicator'
+- ', leading indicator'
+- '[ leading indicator'
+- '] leading indicator'
+- '{ leading indicator'
+- '} leading indicator'
+- '# leading indicator'
+- '& leading indicator'
+- '* leading indicator'
+- '! leading indicator'
+- '| leading indicator'
+- '> leading indicator'
+- ''' leading indicator'
+- '" leading indicator'
+- '% leading indicator'
+- '@ leading indicator'
+- '` leading indicator'
+- the - indicator
+- the ? indicator
+- 'the : indicator'
+- the , indicator
+- the [ indicator
+- the ] indicator
+- the { indicator
+- the } indicator
+- 'the # indicator'
+- the & indicator
+- the * indicator
+- the ! indicator
+- the | indicator
+- the > indicator
+- the ' indicator
+- the " indicator
+- the % indicator
+- the @ indicator
+- the ` indicator
+- -_leading indicator without space
+- ?_leading indicator without space
+- :_leading indicator without space
+- 'the ": " sequence must be quoted'
+- 'the " #" sequence must be quoted'
+- 'the '': '' -> single quotes must be escaped if quoted'
+)";
+
+  EXPECT_EQ(expected, Value{array}.yaml());
+}
+
+TEST(Types_yaml, multiline_string) {
+  const auto array = make_array();
+
+  array->emplace_back("\n");
+  array->emplace_back("\n\n\n");
+  array->emplace_back("simple string\nsecond line");
+  array->emplace_back("second line\nends with a newline\n");
+  array->emplace_back(" leading space\nsecond line");
+  array->emplace_back("\tleading tab\nsecond line");
+  array->emplace_back("trailing space \nsecond line");
+  array->emplace_back("trailing tab\t\nsecond line");
+  array->emplace_back("- leading indicator\nsecond line");
+  array->emplace_back("? leading indicator\nsecond line");
+  array->emplace_back(": leading indicator\nsecond line");
+  array->emplace_back(", leading indicator\nsecond line");
+  array->emplace_back("[ leading indicator\nsecond line");
+  array->emplace_back("] leading indicator\nsecond line");
+  array->emplace_back("{ leading indicator\nsecond line");
+  array->emplace_back("} leading indicator\nsecond line");
+  array->emplace_back("# leading indicator\nsecond line");
+  array->emplace_back("& leading indicator\nsecond line");
+  array->emplace_back("* leading indicator\nsecond line");
+  array->emplace_back("! leading indicator\nsecond line");
+  array->emplace_back("| leading indicator\nsecond line");
+  array->emplace_back("> leading indicator\nsecond line");
+  array->emplace_back("' leading indicator\nsecond line");
+  array->emplace_back("\" leading indicator\nsecond line");
+  array->emplace_back("% leading indicator\nsecond line");
+  array->emplace_back("@ leading indicator\nsecond line");
+  array->emplace_back("` leading indicator\nsecond line");
+  array->emplace_back("the - indicator\nsecond line");
+  array->emplace_back("the ? indicator\nsecond line");
+  array->emplace_back("the : indicator\nsecond line");
+  array->emplace_back("the , indicator\nsecond line");
+  array->emplace_back("the [ indicator\nsecond line");
+  array->emplace_back("the ] indicator\nsecond line");
+  array->emplace_back("the { indicator\nsecond line");
+  array->emplace_back("the } indicator\nsecond line");
+  array->emplace_back("the # indicator\nsecond line");
+  array->emplace_back("the & indicator\nsecond line");
+  array->emplace_back("the * indicator\nsecond line");
+  array->emplace_back("the ! indicator\nsecond line");
+  array->emplace_back("the | indicator\nsecond line");
+  array->emplace_back("the > indicator\nsecond line");
+  array->emplace_back("the ' indicator\nsecond line");
+  array->emplace_back("the \" indicator\nsecond line");
+  array->emplace_back("the % indicator\nsecond line");
+  array->emplace_back("the @ indicator\nsecond line");
+  array->emplace_back("the ` indicator\nsecond line");
+  array->emplace_back("-_leading indicator without space\nsecond line");
+  array->emplace_back("?_leading indicator without space\nsecond line");
+  array->emplace_back(":_leading indicator without space\nsecond line");
+  array->emplace_back("the \": \" sequence\nsecond line");
+  array->emplace_back("the \" #\" sequence\nsecond line");
+
+  static constexpr auto expected = R"(---
+- |+
+    
+- |+
+    
+    
+    
+- |-
+    simple string
+    second line
+- |
+    second line
+    ends with a newline
+- |4-
+     leading space
+    second line
+- |4-
+    	leading tab
+    second line
+- |-
+    trailing space 
+    second line
+- |-
+    trailing tab	
+    second line
+- |-
+    - leading indicator
+    second line
+- |-
+    ? leading indicator
+    second line
+- |-
+    : leading indicator
+    second line
+- |-
+    , leading indicator
+    second line
+- |-
+    [ leading indicator
+    second line
+- |-
+    ] leading indicator
+    second line
+- |-
+    { leading indicator
+    second line
+- |-
+    } leading indicator
+    second line
+- |-
+    # leading indicator
+    second line
+- |-
+    & leading indicator
+    second line
+- |-
+    * leading indicator
+    second line
+- |-
+    ! leading indicator
+    second line
+- |-
+    | leading indicator
+    second line
+- |-
+    > leading indicator
+    second line
+- |-
+    ' leading indicator
+    second line
+- |-
+    " leading indicator
+    second line
+- |-
+    % leading indicator
+    second line
+- |-
+    @ leading indicator
+    second line
+- |-
+    ` leading indicator
+    second line
+- |-
+    the - indicator
+    second line
+- |-
+    the ? indicator
+    second line
+- |-
+    the : indicator
+    second line
+- |-
+    the , indicator
+    second line
+- |-
+    the [ indicator
+    second line
+- |-
+    the ] indicator
+    second line
+- |-
+    the { indicator
+    second line
+- |-
+    the } indicator
+    second line
+- |-
+    the # indicator
+    second line
+- |-
+    the & indicator
+    second line
+- |-
+    the * indicator
+    second line
+- |-
+    the ! indicator
+    second line
+- |-
+    the | indicator
+    second line
+- |-
+    the > indicator
+    second line
+- |-
+    the ' indicator
+    second line
+- |-
+    the " indicator
+    second line
+- |-
+    the % indicator
+    second line
+- |-
+    the @ indicator
+    second line
+- |-
+    the ` indicator
+    second line
+- |-
+    -_leading indicator without space
+    second line
+- |-
+    ?_leading indicator without space
+    second line
+- |-
+    :_leading indicator without space
+    second line
+- |-
+    the ": " sequence
+    second line
+- |-
+    the " #" sequence
+    second line
+)";
+
+  EXPECT_EQ(expected, Value{array}.yaml());
+}
+
 }  // namespace tests
 }  // namespace shcore

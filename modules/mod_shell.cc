@@ -49,12 +49,14 @@ REGISTER_HELP(SHELL_GLOBAL_BRIEF,
 Shell::Shell(Mysql_shell *owner)
     : _shell(owner),
       _shell_core(owner->shell_context().get()),
-      _core_options(new Options(owner->get_options())) {
+      _core_options(std::make_shared<Options>(owner->get_options())),
+      m_reports(std::make_shared<Shell_reports>("reports", "shell.reports")) {
   init();
 }
 
 void Shell::init() {
   add_property("options");
+  add_property("reports");
 
   add_method("parseUri", std::bind(&Shell::parse_uri, this, _1), "uri",
              shcore::String);
@@ -80,6 +82,8 @@ void Shell::init() {
   add_method("listCredentials", std::bind(&Shell::list_credentials, this, _1));
   expose("enablePager", &Shell::enable_pager);
   expose("disablePager", &Shell::disable_pager);
+  expose("registerReport", &Shell::register_report, "name", "type", "report",
+         "?description");
 }
 
 Shell::~Shell() {}
@@ -105,12 +109,27 @@ Options Shell::options;
 Options Shell::options;
 #endif
 
+// Documentation of shell.reports
+REGISTER_HELP(SHELL_REPORTS_BRIEF,
+              "Gives access to built-in and user-defined reports.");
+
+/**
+ * $(SHELL_REPORTS_BRIEF)
+ */
+#if DOXYGEN_JS
+Reports Shell::reports;
+#elif DOXYGEN_PY
+Reports Shell::reports;
+#endif
+
 shcore::Value Shell::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "options") {
     ret_val =
         shcore::Value(std::static_pointer_cast<Object_bridge>(_core_options));
+  } else if (prop == "reports") {
+    ret_val = shcore::Value(m_reports);
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }
@@ -1133,5 +1152,267 @@ Undefined Shell::disablePager() {}
 None Shell::disable_pager() {}
 #endif
 void Shell::disable_pager() { current_console()->disable_global_pager(); }
+
+REGISTER_HELP_FUNCTION(registerReport, shell);
+REGISTER_HELP(SHELL_REGISTERREPORT_BRIEF,
+              "Registers a new user-defined report.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_PARAM,
+              "@param name Name of the registered report.");
+REGISTER_HELP(SHELL_REGISTERREPORT_PARAM1,
+              "@param type Type of the registered report, one of: 'list', "
+              "'report' or 'print'.");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_PARAM2,
+    "@param report Function to be called when the report is requested.");
+REGISTER_HELP(SHELL_REGISTERREPORT_PARAM3,
+              "@param description Optional Dictionary describing the report "
+              "being registered.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_THROWS,
+              "Throws ArgumentError in the following scenarios:");
+REGISTER_HELP(SHELL_REGISTERREPORT_THROWS1,
+              "@li if a report with the same name is already registered.");
+REGISTER_HELP(SHELL_REGISTERREPORT_THROWS2,
+              "@li if 'name' of a report is not a valid scripting identifier.");
+REGISTER_HELP(SHELL_REGISTERREPORT_THROWS3,
+              "@li if 'type' is not one of: 'list', 'report' or 'print'.");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_THROWS4,
+    "@li if 'name' of a report option is not a valid scripting identifier.");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_THROWS5,
+    "@li if 'name' of a report option is reused in multiple options.");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_THROWS6,
+    "@li if 'shortcut' of a report option is not an alphanumeric character.");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_THROWS7,
+    "@li if 'shortcut' of a report option is reused in multiple options.");
+REGISTER_HELP(SHELL_REGISTERREPORT_THROWS8,
+              "@li if 'type' of a report option holds an invalid value.");
+REGISTER_HELP(SHELL_REGISTERREPORT_THROWS9,
+              "@li if the 'argc' key of a 'description' dictionary holds an "
+              "invalid value.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL,
+              "The <b>name</b> of the report must be unique and a valid "
+              "scripting identifier. A case-insensitive comparison is used to "
+              "validate the uniqueness.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL1,
+              "The <b>type</b> of the report must be one of: 'list', 'report' "
+              "or 'print'. This option specifies the expected result of "
+              "calling this report as well as the output format if it is "
+              "invoked using <b>\\show</b> or <b>\\watch</b> commands.");
+
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_DETAIL2,
+    "The <b>report</b> function must have the following signature: "
+    "<b>Dict report(Session session, List argv, Dict options)</b>, where:");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL3, "${REPORTS_DETAIL4}");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL4, "${REPORTS_DETAIL5}");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL5, "${REPORTS_DETAIL6}");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL6, "${REPORTS_DETAIL7}");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL7, "${REPORTS_DETAIL8}");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL8,
+              "The <b>description</b> dictionary may contain the following "
+              "optional keys:");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_DETAIL9,
+    "@li brief - A string value providing a brief description of the report.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL10,
+              "@li details - A list of strings providing a detailed "
+              "description of the report.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL11,
+              "@li options - A list of dictionaries describing the options "
+              "accepted by the report. If this is not provided, the report "
+              "does not accept any options.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL12,
+              "@li argc - A string representing the number of additional "
+              "arguments accepted by the report. This string can be either: a "
+              "number specifying exact number of arguments, <b>*</b> "
+              "specifying zero or more arguments, two numbers separated by a "
+              "'-' specifying a range of arguments or a number and <b>*</b> "
+              "separated by a '-' specifying a range of arguments without an "
+              "upper bound. If this is not provided, the report does not "
+              "accept any additional arguments.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL13,
+              "The optional <b>options</b> list must hold dictionaries with "
+              "the following keys:");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL14,
+              "@li name (string, required) - Name of the option, must be a "
+              "valid scripting identifier. This specifies an option name in "
+              "the long form (--long) when invoking the report using "
+              "<b>\\show</b> or <b>\\watch</b> commands or a key name of an "
+              "option when calling this report as a function. Must be unique "
+              "for a report.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL15,
+              "@li shortcut (string, optional) - alternate name of the option, "
+              "must be an alphanumeric character. This specifies an option "
+              "name in the short form (-s). The short form of an option can "
+              "only be used when invoking the report using <b>\\show</b> or "
+              "<b>\\watch</b> commands, it is not available when calling the "
+              "report as a function. If this key is not specified, option will "
+              "not have a short form. Must be unique for a report.");
+REGISTER_HELP(
+    SHELL_REGISTERREPORT_DETAIL16,
+    "@li brief (string, optional) - brief description of the option.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL17,
+              "@li details (array of strings, optional) - detailed description "
+              "of the option.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL18,
+              "@li type (string, optional) - value type of the option. Allowed "
+              "values are: 'string', 'bool', 'integer', 'float'. If this key "
+              "is not specified it defaults to 'string'. If type is specified "
+              "as 'bool', this option is a switch: if it is not specified when "
+              "invoking the report it defaults to 'false'; if it's specified "
+              "when invoking the report using <b>\\show</b> or <b>\\watch</b> "
+              "commands it does not accept any value and defaults to 'true'; "
+              "if it is specified when invoking the report using the function "
+              "call it must have a valid value.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL19,
+              "@li required (Boolean, optional) - whether this option is "
+              "required. If this key is not specified, defaults to false. If "
+              "option is a 'bool' then 'required' cannot be 'true'.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL20,
+              "@li values (list of strings, optional) - list of allowed "
+              "values. Only 'string' options may have this key. If this key is "
+              "not specified, this option accepts any values.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL21,
+              "The type of the report determines the expected result of a "
+              "report invocation:");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL22,
+              "@li The 'list' report returns a list of lists of values, with "
+              "the first item containing the names of the columns and "
+              "remaining ones containing the rows with values.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL23,
+              "@li The 'report' report returns a list with a single item.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL24,
+              "@li The 'print' report returns an empty list.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL25,
+              "The type of the report also determines the output form when "
+              "report is called using <b>\\show</b> or <b>\\watch</b> "
+              "commands:");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL26,
+              "@li The 'list' report will be displayed in tabular form (or "
+              "vertical if --vertical option is used).");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL27,
+              "@li The 'report' report will be displayed in YAML format.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL28,
+              "@li The 'print' report will not be formatted by Shell, the "
+              "report itself will print out any output.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL29,
+              "The registered report is can be called using <b>\\show</b> or "
+              "<b>\\watch</b> commands in any of the scripting modes.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL30,
+              "The registered report is also going to be available as a method "
+              "of the <b>shell.reports</b> object.");
+
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL31,
+              "Users may create custom report files in the <b>reporters</b> "
+              "folder located in the Shell configuration path (by default it "
+              "is <b>~/.mysqlsh/reporters</b> in Unix and "
+              "<b>\%AppData\%\\MySQL\\mysqlsh\\reporters</b> in Windows).");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL32,
+              "Custom reports may be written in either JavaScript or Python. "
+              "The standard file extension for each case should be used to get "
+              "them properly loaded.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL33,
+              "All reports registered in those files using the "
+              "<<<registerReport>>>() method will be available when Shell "
+              "starts.");
+
+/**
+ * $(SHELL_REGISTERREPORT_BRIEF)
+ *
+ * $(SHELL_REGISTERREPORT_PARAM)
+ * $(SHELL_REGISTERREPORT_PARAM1)
+ * $(SHELL_REGISTERREPORT_PARAM2)
+ * $(SHELL_REGISTERREPORT_PARAM3)
+ *
+ * $(SHELL_REGISTERREPORT_THROWS)
+ * $(SHELL_REGISTERREPORT_THROWS1)
+ * $(SHELL_REGISTERREPORT_THROWS2)
+ * $(SHELL_REGISTERREPORT_THROWS3)
+ * $(SHELL_REGISTERREPORT_THROWS4)
+ * $(SHELL_REGISTERREPORT_THROWS5)
+ * $(SHELL_REGISTERREPORT_THROWS6)
+ * $(SHELL_REGISTERREPORT_THROWS7)
+ * $(SHELL_REGISTERREPORT_THROWS8)
+ * $(SHELL_REGISTERREPORT_THROWS9)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL1)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL2)
+ * $(REPORTS_DETAIL4)
+ * $(REPORTS_DETAIL5)
+ * $(REPORTS_DETAIL6)
+ *
+ * $(REPORTS_DETAIL7)
+ * $(REPORTS_DETAIL8)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL8)
+ * $(SHELL_REGISTERREPORT_DETAIL9)
+ * $(SHELL_REGISTERREPORT_DETAIL10)
+ * $(SHELL_REGISTERREPORT_DETAIL11)
+ * $(SHELL_REGISTERREPORT_DETAIL12)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL13)
+ * $(SHELL_REGISTERREPORT_DETAIL14)
+ * $(SHELL_REGISTERREPORT_DETAIL15)
+ * $(SHELL_REGISTERREPORT_DETAIL16)
+ * $(SHELL_REGISTERREPORT_DETAIL17)
+ * $(SHELL_REGISTERREPORT_DETAIL18)
+ * $(SHELL_REGISTERREPORT_DETAIL19)
+ * $(SHELL_REGISTERREPORT_DETAIL20)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL21)
+ * $(SHELL_REGISTERREPORT_DETAIL22)
+ * $(SHELL_REGISTERREPORT_DETAIL23)
+ * $(SHELL_REGISTERREPORT_DETAIL24)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL25)
+ * $(SHELL_REGISTERREPORT_DETAIL26)
+ * $(SHELL_REGISTERREPORT_DETAIL27)
+ * $(SHELL_REGISTERREPORT_DETAIL28)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL29)
+ * $(SHELL_REGISTERREPORT_DETAIL30)
+ *
+ * $(SHELL_REGISTERREPORT_DETAIL31)
+ * $(SHELL_REGISTERREPORT_DETAIL32)
+ */
+#if DOXYGEN_JS
+/**
+ * All reports registered in those files using the registerReport()
+ * method will be available when Shell starts.
+ */
+#elif DOXYGEN_PY
+/**
+ * All reports registered in those files using the register_report()
+ * method will be available when Shell starts.
+ */
+#endif
+#if DOXYGEN_JS
+Undefined Shell::registerReport(String name, String type, Function report,
+                                Dictionary description) {}
+#elif DOXYGEN_PY
+None Shell::register_report(str name, str type, Function report,
+                            dict description) {}
+#endif
+void Shell::register_report(const std::string &name, const std::string &type,
+                            const shcore::Function_base_ref &report,
+                            const shcore::Dictionary_t &description) {
+  m_reports->register_report(name, type, report, description);
+}
 
 }  // namespace mysqlsh

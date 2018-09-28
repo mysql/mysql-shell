@@ -120,6 +120,17 @@ class SHCORE_PUBLIC Shell_language {
       const std::string &UNUSED(file_name)) { /* Does Nothing by default */
   }
 
+  /**
+   * Loads the specified plugin file.
+   *
+   * File is going to be executed in an confined environment, full mysqlsh
+   * run-time will be available, however the global scope is not going to be
+   * affected by the specified script.
+   *
+   * @param file_name - full path to the file which is going to be loaded.
+   */
+  virtual void load_plugin(const std::string &UNUSED(file_name)) {}
+
   Shell_command_handler *command_handler() { return &_shell_command_handler; }
 
  protected:
@@ -181,6 +192,13 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   }
   virtual void execute_module(const std::string &file_name,
                               const std::vector<std::string> &argv);
+
+  /**
+   * Loads the specified plugin file using the current scripting language.
+   *
+   * @param file_name - full path to the file which is going to be loaded.
+   */
+  void load_plugin(const std::string &file_name);
 
   virtual void clear_input();
 
