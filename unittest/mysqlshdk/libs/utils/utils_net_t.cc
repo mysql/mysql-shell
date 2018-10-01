@@ -159,10 +159,8 @@ TEST(utils_net, is_port_listening) {
 
   EXPECT_FALSE(Net::is_port_listening("localhost", 1));
 
-  EXPECT_THROW(Net::is_port_listening("192.168.255.255", 0),
+  EXPECT_THROW(Net::is_port_listening("someunexistingsite.com", 0),
                std::runtime_error);
-
-  EXPECT_TRUE(Net::is_port_listening("oracle.com", 80));
 }
 
 TEST(utils_net, get_local_addresses) {
