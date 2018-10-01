@@ -37,6 +37,76 @@
 #include "mysqlshdk/shellcore/credential_manager.h"
 
 namespace mysqlsh {
+
+/**
+ * Retrieves the connection data from a String
+ *
+ * @param String containing the connection data
+ *
+ * @return a Connection_options object with the connection data
+ */
+mysqlshdk::db::Connection_options get_connection_options(
+    const std::string &instance_def) {
+  if (instance_def.empty()) throw std::invalid_argument("Invalid URI: empty.");
+
+  return shcore::get_connection_options(instance_def, false);
+}
+
+/**
+ * Retrieves the connection data from a Dictionary
+ *
+ * @param dictionary containing the connection data
+ *
+ * @return a Connection_options object with the connection data
+ */
+mysqlshdk::db::Connection_options get_connection_options(
+    const shcore::Dictionary_t &instance_def) {
+  mysqlshdk::db::Connection_options ret_val;
+
+  if (instance_def->size() == 0) {
+    throw std::invalid_argument(
+        "Invalid connection options, no options provided.");
+  }
+
+  shcore::Argument_map connection_map(*instance_def);
+
+  std::set<std::string> mandatory;
+  if (!connection_map.has_key(mysqlshdk::db::kSocket)) {
+    mandatory.insert(mysqlshdk::db::kHost);
+  }
+
+  connection_map.ensure_keys(
+      mandatory, mysqlshdk::db::connection_attributes, "connection options",
+      ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
+
+  for (auto &option : *instance_def) {
+    if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
+      ret_val.set_port(connection_map.int_at(option.first));
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kSocket) == 0) {
+      const auto &sock = connection_map.string_at(option.first);
+#ifdef _WIN32
+      ret_val.set_pipe(sock);
+#else   // !_WIN32
+      ret_val.set_socket(sock);
+#endif  // !_WIN32
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kConnectTimeout) ==
+               0) {
+      // Additional connection options are internally stored as strings.
+      // Even so, when given in a dictionary, the connect-timeout option
+      // must be given as an integer value
+      if (connection_map.at(option.first).type != shcore::Integer) {
+        mysqlshdk::db::Connection_options::throw_invalid_connect_timeout(
+            connection_map.at(option.first).descr());
+      } else {
+        ret_val.set(option.first, {connection_map.at(option.first).descr()});
+      }
+    } else {
+      ret_val.set(option.first, {connection_map.string_at(option.first)});
+    }
+  }
+  return ret_val;
+}
+
 /**
  * This function will retrieve the connection data from the received arguments
  * Connection data can be specified in one of:
@@ -57,7 +127,6 @@ namespace mysqlsh {
  *
  * Conflicting options will also be validated.
  */
-
 mysqlshdk::db::Connection_options get_connection_options(
     const shcore::Argument_list &args, PasswordFormat format) {
   mysqlshdk::db::Connection_options ret_val;
@@ -65,54 +134,12 @@ mysqlshdk::db::Connection_options get_connection_options(
   try {
     if (args.size() > 0 && args[0].type == shcore::String) {
       std::string uri = args.string_at(0);
-      if (uri.empty()) throw std::invalid_argument("Invalid URI: empty.");
 
-      ret_val = shcore::get_connection_options(args.string_at(0), false);
+      ret_val = get_connection_options(uri);
     } else if (args.size() > 0 && args[0].type == shcore::Map) {
       shcore::Value::Map_type_ref options = args.map_at(0);
 
-      if (options->size() == 0)
-        throw std::invalid_argument(
-            "Invalid connection options, "
-            "no options provided.");
-
-      shcore::Argument_map connection_map(*options);
-
-      std::set<std::string> mandatory;
-      if (!connection_map.has_key(mysqlshdk::db::kSocket)) {
-        mandatory.insert(mysqlshdk::db::kHost);
-      }
-
-      connection_map.ensure_keys(
-          mandatory, mysqlshdk::db::connection_attributes, "connection options",
-          ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
-
-      for (auto &option : *options) {
-        if (ret_val.compare(option.first, mysqlshdk::db::kPort) == 0) {
-          ret_val.set_port(connection_map.int_at(option.first));
-        } else if (ret_val.compare(option.first, mysqlshdk::db::kSocket) == 0) {
-          const auto &sock = connection_map.string_at(option.first);
-#ifdef _WIN32
-          ret_val.set_pipe(sock);
-#else   // !_WIN32
-          ret_val.set_socket(sock);
-#endif  // !_WIN32
-        } else if (ret_val.compare(option.first,
-                                   mysqlshdk::db::kConnectTimeout) == 0) {
-          // Additional connection options are internally stored as strings.
-          // Even so, when given in a dictionary, the connect-timeout option
-          // must be given as an integer value
-          if (connection_map.at(option.first).type != shcore::Integer) {
-            mysqlshdk::db::Connection_options::throw_invalid_connect_timeout(
-                connection_map.at(option.first).descr());
-          } else {
-            ret_val.set(option.first,
-                        {connection_map.at(option.first).descr()});
-          }
-        } else {
-          ret_val.set(option.first, {connection_map.string_at(option.first)});
-        }
-      }
+      ret_val = get_connection_options(options);
     } else {
       throw std::invalid_argument(
           "Invalid connection options, expected either "

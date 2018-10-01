@@ -25,7 +25,8 @@
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -57,7 +58,8 @@
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -90,7 +92,8 @@
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -127,7 +130,8 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -159,7 +163,8 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
@@ -192,7 +197,8 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
@@ -229,7 +235,8 @@ ERROR: The cluster appears to be under a partial or total outage and an ONLINE S
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }

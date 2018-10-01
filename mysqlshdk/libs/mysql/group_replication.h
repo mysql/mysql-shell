@@ -65,11 +65,29 @@ enum class Member_state {
 
 enum class Member_role { PRIMARY, SECONDARY };
 
+enum class Topology_mode { SINGLE_PRIMARY, MULTI_PRIMARY };
+
 std::string to_string(const Member_state state);
 Member_state to_member_state(const std::string &state);
 
 std::string to_string(const Member_role role);
 Member_role to_member_role(const std::string &role);
+
+/**
+ * Convert Topology_mode enumeration values to string.
+ *
+ * @param mode Topology_mode value to convert to string.
+ * @return string representing the Topology_mode value.
+ */
+std::string to_string(const Topology_mode mode);
+
+/**
+ * Convert string to Topology_mode enumeration value.
+ *
+ * @param mode string to convert to Topology_mode value.
+ * @return Topology_mode value resulting from the string conversion.
+ */
+Topology_mode to_topology_mode(const std::string &mode);
 
 /**
  * Data structure representing a Group Replication member.
@@ -241,6 +259,47 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
  */
 bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Update auto-increment setting based on the GR mode.
+ *
+ * IMPORTANT NOTE: It is assumed that the Config object used as parameter
+ * contains one and only one configuration handler for each server in the GR
+ * group.
+ *
+ * @param config Config object used to set the auto-increment settings on all
+ *               servers.
+ * @param topology_mode target topology mode to determine how auto-increment
+ *                      settings should be set.
+ */
+void update_auto_increment(mysqlshdk::config::Config *config,
+                           const Topology_mode &topology_mode);
+
+/**
+ * Configure which member of a single-primary replication group is the primary
+ *
+ * @param instance Instance to run the operations.
+ * @param uuid server_uuid of the member that shall become the new primary.
+ */
+void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
+                    const std::string &uuid);
+
+/**
+ * Changes a group running in single-primary mode to multi-primary mode
+ *
+ * @param instance Instance to run the operations.
+ */
+void switch_to_multi_primary_mode(const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Changes a group running in multi-primary mode to single-primary mode
+ *
+ * @param instance Instance to run the operations.
+ * @param A string containing the UUID of a member of the group which should
+ * become the new single primary
+ */
+void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
+                                   const std::string &uuid = "");
 
 }  // namespace gr
 }  // namespace mysqlshdk

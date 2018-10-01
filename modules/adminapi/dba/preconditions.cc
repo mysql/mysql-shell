@@ -113,6 +113,15 @@ const std::map<std::string, FunctionAvailability>
         {"Cluster.forceQuorumUsingPartitionOf",
          {GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::Any,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
+        {"Cluster.switchToSinglePrimaryMode",
+         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
+        {"Cluster.switchToMultiPrimaryMode",
+         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO}},
+        {"Cluster.setPrimaryInstance",
+         {GRInstanceType::InnoDBCluster, ReplicationQuorum::State::Normal,
           ManagedInstance::State::OnlineRW |
               ManagedInstance::State::OnlineRO}}};
 

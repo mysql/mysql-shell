@@ -238,13 +238,17 @@ function StandaloneScenario(ports) {
 }
 
 // ** Cluster based scenarios
-function ClusterScenario(ports) {
+function ClusterScenario(ports, topology_mode="pm") {
   for (i in ports) {
     testutil.deploySandbox(ports[i], "root");
   }
 
   this.session = shell.connect("mysql://root:root@localhost:"+ports[0]);
-  this.cluster = dba.createCluster("cluster");
+  if (topology_mode == "mm") {
+    this.cluster = dba.createCluster("cluster", {multiPrimary: true, force: true});
+  } else {
+    this.cluster = dba.createCluster("cluster");
+  }
   for (i in ports) {
     if (i > 0) {
       this.cluster.addInstance("mysql://root:root@localhost:"+ports[i]);

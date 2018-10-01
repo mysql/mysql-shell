@@ -43,7 +43,8 @@ Cluster.rescan: There is no quorum to perform the operation (RuntimeError)
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -64,7 +65,8 @@ Cluster.rescan: There is no quorum to perform the operation (RuntimeError)
                 "label": "localhost:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 

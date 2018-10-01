@@ -16,7 +16,8 @@ The cluster still has the following registered ReplicaSets:
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.

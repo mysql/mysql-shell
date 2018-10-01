@@ -34,7 +34,8 @@
                 "label": "localhost:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Multi-Primary"
     }
 }
 
@@ -68,7 +69,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -93,7 +95,8 @@
                 "label": "localhost:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Multi-Primary"
     }
 }
 
@@ -120,7 +123,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -173,7 +177,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -222,7 +227,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

@@ -51,8 +51,17 @@ FUNCTIONS
       rescan()
             Rescans the cluster.
 
+      setPrimaryInstance(instance)
+            Elects a specific cluster member as the new primary.
+
       status([options])
             Describe the status of the cluster.
+
+      switchToMultiPrimaryMode()
+            Switches the cluster to multi-primary mode.
+
+      switchToSinglePrimaryMode([instance])
+            Switches the cluster to single-primary mode.
 
       For more help on a specific function use: cluster.help('<functionName>')
 
@@ -625,6 +634,110 @@ EXCEPTIONS
 
       - If the Metadata is inaccessible.
       - If the Metadata update operation failed.
+
+//@<OUT> setPrimaryInstance
+NAME
+      setPrimaryInstance - Elects a specific cluster member as the new primary.
+
+SYNTAX
+      <Cluster>.setPrimaryInstance(instance)
+
+WHERE
+      instance: An instance definition.
+
+RETURNS
+       Nothing.
+
+DESCRIPTION
+      This function forces the election of a new primary, overriding any
+      election process.
+
+      The instance definition is the connection data for the instance.
+
+      For additional information on connection data use \? connection.
+
+      Only TCP/IP connections are allowed for this function.
+
+      The instance definition is mandatory and is the identifier of the cluster
+      member that shall become the new primary.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the instance parameter is empty.
+      - If the instance definition is invalid.
+
+      RuntimeError in the following scenarios:
+
+      - If the cluster is in multi-primary mode.
+      - If 'instance' does not refer to a cluster member.
+      - If any of the cluster members has a version < 8.0.13.
+      - If the cluster has no visible quorum.
+      - If any of the cluster members is not ONLINE.
+
+//@<OUT> switchToMultiPrimaryMode
+NAME
+      switchToMultiPrimaryMode - Switches the cluster to multi-primary mode.
+
+SYNTAX
+      <Cluster>.switchToMultiPrimaryMode()
+
+RETURNS
+       Nothing.
+
+DESCRIPTION
+      This function changes a cluster running in single-primary mode to
+      multi-primary mode.
+
+EXCEPTIONS
+      RuntimeError in the following scenarios:
+
+      - If any of the cluster members has a version < 8.0.13.
+      - If the cluster has no visible quorum.
+      - If any of the cluster members is not ONLINE.
+
+//@<OUT> switchToSinglePrimaryMode
+NAME
+      switchToSinglePrimaryMode - Switches the cluster to single-primary mode.
+
+SYNTAX
+      <Cluster>.switchToSinglePrimaryMode([instance])
+
+WHERE
+      instance: An instance definition.
+
+RETURNS
+       Nothing.
+
+DESCRIPTION
+      This function changes a cluster running in multi-primary mode to
+      single-primary mode.
+
+      The instance definition is the connection data for the instance.
+
+      For additional information on connection data use \? connection.
+
+      Only TCP/IP connections are allowed for this function.
+
+      The instance definition is optional and is the identifier of the cluster
+      member that shall become the new primary.
+
+      If the instance definition is not provided, the new primary will be the
+      instance with the highest member weight (and the lowest UUID in case of a
+      tie on member weight).
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the instance parameter is empty.
+      - If the instance definition is invalid.
+
+      RuntimeError in the following scenarios:
+
+      - If 'instance' does not refer to a cluster member.
+      - If any of the cluster members has a version < 8.0.13.
+      - If the cluster has no visible quorum.
+      - If any of the cluster members is not ONLINE.
 
 //@ Finalization
 ||

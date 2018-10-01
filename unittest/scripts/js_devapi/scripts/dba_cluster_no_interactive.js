@@ -35,6 +35,9 @@ validateMember(members, 'dissolve');
 validateMember(members, 'disconnect');
 validateMember(members, 'rescan');
 validateMember(members, 'forceQuorumUsingPartitionOf');
+validateMember(members, 'switchToSinglePrimaryMode');
+validateMember(members, 'switchToMultiPrimaryMode');
+validateMember(members, 'setPrimaryInstance');
 
 //@ Cluster: addInstance errors
 Cluster.addInstance();

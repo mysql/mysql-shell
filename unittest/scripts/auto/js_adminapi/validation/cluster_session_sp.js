@@ -28,7 +28,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -57,13 +58,14 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@# disconnect the cluster object
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle.
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle.
 
 //@ SP - getCluster() on primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>|

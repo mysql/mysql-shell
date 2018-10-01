@@ -135,7 +135,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "label": "localhost:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Multi-Primary"
     }
 }
 
@@ -169,7 +170,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -193,7 +195,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "label": "localhost:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Multi-Primary"
     }
 }
 
@@ -220,7 +223,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -330,7 +334,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -394,7 +399,8 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': Th
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

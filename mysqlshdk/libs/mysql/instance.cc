@@ -668,8 +668,8 @@ utils::nullable<bool> Instance::is_set_persist_supported() const {
   if (get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
     // Check the value of persisted_globals_load
     mysqlshdk::utils::nullable<bool> persist_global =
-        get_cached_global_sysvar_as_bool("persisted_globals_load");
-    return utils::nullable<bool>(*persist_global != 0);
+        get_sysvar_bool("persisted_globals_load", Var_qualifier::GLOBAL);
+    return utils::nullable<bool>(*persist_global);
   } else {
     return utils::nullable<bool>();
   }

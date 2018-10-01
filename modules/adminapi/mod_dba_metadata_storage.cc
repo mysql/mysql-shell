@@ -990,3 +990,48 @@ Instance_definition MetadataStorage::get_instance(
   throw Exception::metadata_error("The instance with the address '" +
                                   instance_address + "' does not exist.");
 }
+
+mysqlshdk::gr::Topology_mode MetadataStorage::get_replicaset_topology_mode(
+    uint64_t rs_id) {
+  // Execute query to obtain the topology mode from the metadata.
+  shcore::sqlstring query = shcore::sqlstring{
+      "SELECT topology_type FROM mysql_innodb_cluster_metadata.replicasets "
+      "WHERE replicaset_id = ?",
+      0};
+  query << rs_id;
+  query.done();
+
+  std::string topology_mode = execute_sql(query)->fetch_one()->get_string(0);
+
+  // Convert topology mode string from metadata to enumeration value.
+  if (topology_mode == "pm") {
+    return mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
+  } else if (topology_mode == "mm") {
+    return mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+  } else {
+    throw Exception::metadata_error(
+        "Unexpected topology mode found in Metadata: " + topology_mode);
+  }
+}
+
+void MetadataStorage::update_replicaset_topology_mode(
+    uint64_t rs_id, const mysqlshdk::gr::Topology_mode &topology_mode) {
+  // Convert topology mode to metadata value.
+  std::string topology_mode_str;
+  if (topology_mode == mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY) {
+    topology_mode_str = "pm";
+  } else if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) {
+    topology_mode_str = "mm";
+  }
+
+  // Execute query to update topology mode on metadata.
+  shcore::sqlstring query = shcore::sqlstring{
+      "UPDATE mysql_innodb_cluster_metadata.replicasets SET topology_type = ?"
+      " WHERE replicaset_id = ?",
+      0};
+  query << topology_mode_str;
+  query << rs_id;
+  query.done();
+
+  execute_sql(query);
+}

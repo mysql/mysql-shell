@@ -71,7 +71,8 @@
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

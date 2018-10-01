@@ -86,10 +86,10 @@ std::string to_string(const Member_state state) {
 }
 
 /**
- * Convert MemberState enumeration values to string.
+ * Convert string to MemberState enumeration value.
  *
- * @param state MemberState value to convert to string.
- * @return string representing the MemberState value.
+ * @param state String to convert to a MemberState value.
+ * @return MemberState value resulting from the string conversion.
  */
 Member_state to_member_state(const std::string &state) {
   if (shcore::str_casecmp("ONLINE", state.c_str()) == 0)
@@ -127,6 +127,26 @@ Member_role to_member_role(const std::string &role) {
   } else {
     throw std::runtime_error("Unsupported GR member role value: " + role);
   }
+}
+
+std::string to_string(const Topology_mode mode) {
+  switch (mode) {
+    case Topology_mode::SINGLE_PRIMARY:
+      return "Single-Primary";
+    case Topology_mode::MULTI_PRIMARY:
+      return "Multi-Primary";
+    default:
+      throw std::logic_error("Unexpected Group Replication mode.");
+  }
+}
+
+Topology_mode to_topology_mode(const std::string &mode) {
+  if (shcore::str_casecmp("Single-Primary", mode) == 0)
+    return Topology_mode::SINGLE_PRIMARY;
+  else if (shcore::str_casecmp("Multi-Primary", mode) == 0)
+    return Topology_mode::MULTI_PRIMARY;
+  else
+    throw std::runtime_error("Unsupported Group Replication mode: " + mode);
 }
 
 /**
@@ -1091,6 +1111,89 @@ bool is_group_replication_delayed_starting(
   } catch (std::exception &e) {
     log_warning("Error checking GR state: %s", e.what());
     return false;
+  }
+}
+
+void update_auto_increment(mysqlshdk::config::Config *config,
+                           const Topology_mode &topology_mode) {
+  assert(config != nullptr);
+
+  if (topology_mode == Topology_mode::SINGLE_PRIMARY) {
+    // Set auto-increment for single-primary topology:
+    // - auto_increment_increment = 1
+    // - auto_increment_offset = 2
+    config->set("auto_increment_increment", utils::nullable<int64_t>{1});
+    config->set("auto_increment_offset", utils::nullable<int64_t>{2});
+  } else if (topology_mode == Topology_mode::MULTI_PRIMARY) {
+    // Set auto-increment for multi-primary topology:
+    // - auto_increment_increment = n;
+    // - auto_increment_offset = 1 + server_id % n;
+    // where n is the size of the GR group if > 7, otherwise n = 7.
+    // NOTE: We are assuming that there is only one handler for each instance.
+    std::vector<std::string> handler_names = config->list_handler_names();
+    int64_t group_size = handler_names.size();
+    int64_t n = (group_size > 7) ? group_size : 7;
+    config->set("auto_increment_increment", utils::nullable<int64_t>{n});
+
+    // Each instance has a different server_id therefore each handler is set
+    // individually here.
+    for (std::string handler_name : handler_names) {
+      mysqlshdk::utils::nullable<int64_t> server_id =
+          config->get_int("server_id", handler_name);
+      int64_t offset = 1 + *server_id % n;
+      config->set("auto_increment_offset", utils::nullable<int64_t>{offset},
+                  handler_name);
+    }
+  }
+}
+
+void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
+                    const std::string &uuid) {
+  shcore::sqlstring query("SELECT group_replication_set_as_primary(?)", 0);
+  query << uuid;
+  query.done();
+
+  try {
+    log_debug("Executing UDF: %s", query.str().c_str());
+    instance.get_session()->query(query);
+  } catch (mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
+  }
+}
+
+void switch_to_multi_primary_mode(const mysqlshdk::mysql::IInstance &instance) {
+  std::string query = "SELECT group_replication_switch_to_multi_primary_mode()";
+
+  try {
+    log_debug("Executing UDF: %s", query.c_str());
+    instance.get_session()->query(query);
+  } catch (mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
+  }
+}
+
+void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
+                                   const std::string &uuid) {
+  std::string query;
+
+  if (!uuid.empty()) {
+    shcore::sqlstring query_fmt(
+        "SELECT group_replication_switch_to_single_primary_mode(?)", 0);
+    query_fmt << uuid;
+    query_fmt.done();
+    query = query_fmt.str();
+  } else {
+    query = "SELECT group_replication_switch_to_single_primary_mode()";
+  }
+
+  try {
+    log_debug("Executing UDF: %s", query.c_str());
+    instance.get_session()->query(query);
+  } catch (mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
   }
 }
 

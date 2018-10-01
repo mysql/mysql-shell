@@ -95,6 +95,24 @@ cluster.help("status")
 //@ Status, \? [USE:Status]
 \? cluster.status
 
+//@ setPrimaryInstance
+cluster.help("setPrimaryInstance")
+
+//@ setPrimaryInstance, \? [USE:setPrimaryInstance]
+\? cluster.setPrimaryInstance
+
+//@ switchToMultiPrimaryMode
+cluster.help("switchToMultiPrimaryMode")
+
+//@ switchToMultiPrimaryMode, \? [USE:switchToMultiPrimaryMode]
+\? cluster.switchToMultiPrimaryMode
+
+//@ switchToSinglePrimaryMode
+cluster.help("switchToSinglePrimaryMode")
+
+//@ switchToSinglePrimaryMode, \? [USE:switchToSinglePrimaryMode]
+\? cluster.switchToSinglePrimaryMode
+
 
 //@ Finalization
 cluster.disconnect();

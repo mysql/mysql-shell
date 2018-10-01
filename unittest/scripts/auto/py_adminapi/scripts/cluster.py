@@ -21,6 +21,9 @@ validate_members(cluster, [
     'remove_instance',
     'rescan',
     'status',
+    'set_primary_instance',
+    'switch_to_multi_primary_mode',
+    'switch_to_single_primary_mode'
     ])
 
 cluster.disconnect()

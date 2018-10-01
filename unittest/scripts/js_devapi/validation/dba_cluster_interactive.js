@@ -2,7 +2,7 @@
 ||
 
 //@ Cluster: validating members
-|Cluster Members: 13|
+|Cluster Members: 16|
 |name: OK|
 |getName: OK|
 |addInstance: OK|
@@ -16,6 +16,9 @@
 |disconnect: OK|
 |rescan: OK|
 |forceQuorumUsingPartitionOf: OK|
+|switchToSinglePrimaryMode: OK|
+|switchToMultiPrimaryMode: OK|
+|setPrimaryInstance: OK|
 
 //@ Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
@@ -118,7 +121,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -153,7 +157,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -185,7 +190,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -213,7 +219,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -235,7 +242,8 @@ The cluster still has the following registered ReplicaSets:
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.
@@ -351,7 +359,8 @@ The instance 'root@localhost:<<<__mysql_sandbox_port3>>>' was successfully added
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -420,7 +429,8 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined o
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -447,7 +457,8 @@ The cluster still has the following registered ReplicaSets:
                 "label": "third_sandbox",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 WARNING: You are about to dissolve the whole cluster and lose the high availability features provided by it. This operation cannot be reverted. All members will be removed from their ReplicaSet and replication will be stopped, internal recovery user accounts and the cluster metadata will be dropped. User data will be maintained intact in all instances.

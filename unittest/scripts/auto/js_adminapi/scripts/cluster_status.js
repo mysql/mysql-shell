@@ -48,7 +48,7 @@ function json_check_fields(json, template) {
                 var r = json_check_fields(json[k], template[k]);
                 missing = missing.concat(r["missing"]);
                 unexpected = unexpected.concat(r["unexpected"]);
-            }   
+            }
         } else {
             missing.push(k);
         }
@@ -118,7 +118,8 @@ const extended_status_templ = {
                     "rollbackCount": 0
                 }
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     }, 
     "groupInformationSourceMember": ""
 };
@@ -183,7 +184,8 @@ const full_status_templ = {
                     ]
                 }
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     }, 
     "groupInformationSourceMember": ""
 };
@@ -291,7 +293,8 @@ json_check(stat, {
                 "role": "", 
                 "status": ""
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     }, 
     "groupInformationSourceMember": ""});
 

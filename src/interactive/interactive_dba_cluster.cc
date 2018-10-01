@@ -121,13 +121,13 @@ shcore::Value Interactive_dba_cluster::add_instance(
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
-  check_preconditions("addInstance");
-
   shcore::Value::Map_type_ref options;
   shcore::Value::Map_type_ref instance_map;
   mysqlshdk::db::Connection_options instance_def;
 
   try {
+    check_preconditions("addInstance");
+
     std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
     auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
     if (cluster) object = cluster->get_default_replicaset();
@@ -209,12 +209,12 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
-  check_preconditions("rejoinInstance");
-
   shcore::Value::Map_type_ref instance_map, options;
   mysqlshdk::db::Connection_options instance_def;
 
   try {
+    check_preconditions("rejoinInstance");
+
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::OPTIONS);
 
@@ -274,12 +274,12 @@ shcore::Value Interactive_dba_cluster::check_instance_state(
 
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
-  check_preconditions("checkInstanceState");
-
   mysqlshdk::db::Connection_options instance_def;
   shcore::Argument_list target_args;
 
   try {
+    check_preconditions("checkInstanceState");
+
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 
@@ -444,11 +444,11 @@ shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(
   args.ensure_count(1, 2,
                     get_function_name("forceQuorumUsingPartitionOf").c_str());
 
-  check_preconditions("forceQuorumUsingPartitionOf");
-
   mysqlshdk::db::Connection_options instance_def;
 
   try {
+    check_preconditions("forceQuorumUsingPartitionOf");
+
     instance_def =
         mysqlsh::get_connection_options(args, mysqlsh::PasswordFormat::STRING);
 

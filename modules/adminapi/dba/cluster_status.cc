@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "modules/adminapi/mod_dba_replicaset.h"
+#include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -446,7 +447,20 @@ class Group_status {
       connect_to_members();
     }
 
+    // Get the primary UUID value to determine GR mode:
+    // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
+    std::string gr_primary_uuid =
+        mysqlshdk::gr::get_group_primary_uuid(group_session, nullptr);
+
+    std::string topology_mode =
+        !gr_primary_uuid.empty()
+            ? mysqlshdk::gr::to_string(
+                  mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY)
+            : mysqlshdk::gr::to_string(
+                  mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+
     (*m_data)["name"] = Value(m_replicaset->get_name());
+    (*m_data)["topologyMode"] = shcore::Value(topology_mode);
 
     if (extended)
       (*m_data)["groupName"] = Value(m_replicaset->get_group_name());

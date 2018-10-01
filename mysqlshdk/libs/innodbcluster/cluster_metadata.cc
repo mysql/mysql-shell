@@ -220,5 +220,22 @@ utils::nullable<Instance_info> Metadata_mysql::get_instance_info_by_uuid(
   return info;
 }
 
+std::string Metadata_mysql::get_instance_uuid_by_address(
+    const std::string &address) const {
+  auto res = _session->queryf(
+      "SELECT "
+      "     mysql_server_uuid"
+      "   FROM mysql_innodb_cluster_metadata.instances"
+      "   WHERE addresses->'$.mysqlClassic' = ?",
+      address);
+
+  const db::IRow *row = res->fetch_one();
+  if (!row) {
+    return {};
+  }
+
+  return row->get_string(0);
+}
+
 }  // namespace innodbcluster
 }  // namespace mysqlshdk
