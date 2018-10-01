@@ -81,6 +81,10 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   std::string get_topology_type() const { return _topology_type; }
 
+  void set_topology_type(const std::string &topology_type) {
+    _topology_type = topology_type;
+  }
+
   const std::string &get_group_name() const { return _group_name; }
 
   void sanity_check() const;
@@ -123,6 +127,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   String describe();
   String status();
   Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
+  Undefined switchToSinglePrimaryMode(InstanceDef instance);
+  Undefined switchToMultiPrimaryMode();
+  Undefined setPrimaryInstance(InstanceDef instance);
 
 #elif DOXYGEN_PY
   str get_name();
@@ -135,6 +142,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   str describe();
   str status();
   None force_quorum_using_partition_of(InstanceDef instance, str password);
+  None switch_to_single_primary_mode(InstanceDef instance);
+  None switch_to_multi_primary_mode();
+  None set_primary_instance(InstanceDef instance);
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
@@ -158,6 +168,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of_(
       const shcore::Argument_list &args);
+  shcore::Value get_status(const mysqlsh::dba::Cluster_check_info &state) const;
 
   Cluster_check_info check_preconditions(
       std::shared_ptr<mysqlshdk::db::ISession> group_session,
@@ -165,6 +176,10 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void remove_instances(const std::vector<std::string> &remove_instances);
   void rejoin_instances(const std::vector<std::string> &rejoin_instances,
                         const shcore::Value::Map_type_ref &options);
+
+  void switch_to_single_primary_mode(const Connection_options &instance_def);
+  void switch_to_multi_primary_mode();
+  void set_primary_instance(const Connection_options &instance_def);
 
   /**
    * Update the replicaset members according to the removed instance.
@@ -228,8 +243,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   // TODO(miguel): add missing fields, rs_type, etc
 
  private:
-  void init();
-
   bool do_join_replicaset(
       const mysqlshdk::db::Connection_options &instance,
       mysqlshdk::db::Connection_options *peer, const std::string &repl_user,

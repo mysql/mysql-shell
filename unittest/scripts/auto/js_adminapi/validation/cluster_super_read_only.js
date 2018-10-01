@@ -47,7 +47,8 @@ Cluster.rescan: This function is not available through a session to a read only 
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
@@ -68,7 +69,8 @@ Cluster.rescan: This function is not available through a session to a read only 
                 "label": "localhost:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 

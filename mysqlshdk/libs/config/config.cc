@@ -140,5 +140,12 @@ IConfig_handler *Config::get_handler(const std::string &handler_name) const {
   return m_config_handlers.at(handler_name).get();
 }
 
+std::vector<std::string> Config::list_handler_names() const {
+  std::vector<std::string> handler_names;
+  for (const auto &map_entry : m_config_handlers) {
+    handler_names.push_back(map_entry.first);
+  }
+  return handler_names;
+}
 }  // namespace config
 }  // namespace mysqlshdk

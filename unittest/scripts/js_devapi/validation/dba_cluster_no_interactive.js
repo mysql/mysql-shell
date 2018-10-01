@@ -1,5 +1,5 @@
 //@ Cluster: validating members
-|Cluster Members: 13|
+|Cluster Members: 16|
 |name: OK|
 |getName: OK|
 |addInstance: OK|
@@ -13,6 +13,9 @@
 |disconnect: OK|
 |rescan: OK|
 |forceQuorumUsingPartitionOf: OK|
+|switchToSinglePrimaryMode: OK|
+|switchToMultiPrimaryMode: OK|
+|setPrimaryInstance: OK|
 
 //@# Cluster: addInstance errors
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
@@ -60,7 +63,8 @@
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -95,7 +99,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -128,7 +133,8 @@
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -156,7 +162,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -185,7 +192,8 @@
                 "label": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -221,7 +229,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -230,15 +239,15 @@
 ||
 
 //@ Cluster: no operations can be done on a disconnected cluster
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
 
 //@ Connecting to new master
 ||
@@ -259,7 +268,8 @@
                 "label": "third_sandbox",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -287,7 +297,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
@@ -316,7 +327,8 @@
                 "label": "first_sandbox",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -351,7 +363,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
@@ -411,7 +424,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port2>>>"
 }

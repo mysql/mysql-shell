@@ -39,6 +39,7 @@
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_replicaset.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 
 #define ER_NOT_VALID_PASSWORD 1819
 #define ER_PLUGIN_IS_NOT_LOADED 1524
@@ -117,9 +118,28 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   Instance_definition get_instance(const std::string &instance_address);
 
+  /**
+   * Get the topology mode of the replicaset from the metadata.
+   *
+   * @param rs_id integer with the ID of the target replicaset.
+   *
+   * @return mysqlshdk::gr::Topology_mode of the replicaset registered in the
+   *         metdata.
+   */
+  mysqlshdk::gr::Topology_mode get_replicaset_topology_mode(uint64_t rs_id);
+
   std::shared_ptr<mysqlshdk::db::ISession> get_session() const {
     return _session;
   }
+
+  /**
+   * Update the topology mode of the replicaset in the metadata.
+   *
+   * @param rs_id integer with the ID of the target replicaset.
+   * @param topology_mode mysqlshdk::gr::Topology_mode to set.
+   */
+  void update_replicaset_topology_mode(
+      uint64_t rs_id, const mysqlshdk::gr::Topology_mode &topology_mode);
 
   std::shared_ptr<mysqlshdk::innodbcluster::Metadata_mysql> get_new_metadata() {
     return _metadata_mysql;

@@ -18,7 +18,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -78,7 +79,8 @@
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -132,7 +134,8 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "role": "HA",
                 "status": "(MISSING)"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -174,7 +177,8 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

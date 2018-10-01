@@ -48,6 +48,12 @@ get_connection_options(const shcore::Value &args);
 Connection_options SHCORE_PUBLIC get_connection_options(
     const shcore::Argument_list &args, PasswordFormat format);
 
+Connection_options SHCORE_PUBLIC
+get_connection_options(const shcore::Dictionary_t &instance_def);
+
+Connection_options SHCORE_PUBLIC
+get_connection_options(const std::string &instance_def);
+
 /**
  * Unpack an options dictionary.
  *

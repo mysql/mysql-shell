@@ -34,6 +34,9 @@
 
 #include "modules/adminapi/dba/dissolve.h"
 #include "modules/adminapi/dba/remove_instance.h"
+#include "modules/adminapi/dba/replicaset_set_primary_instance.h"
+#include "modules/adminapi/dba/replicaset_switch_to_multi_primary_mode.h"
+#include "modules/adminapi/dba/replicaset_switch_to_single_primary_mode.h"
 #include "modules/adminapi/dba/validations.h"
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_metadata_storage.h"
@@ -91,7 +94,6 @@ ReplicaSet::ReplicaSet(const std::string &name,
       _metadata_storage(metadata_storage) {
   assert(topology_type == kTopologyMultiPrimary ||
          topology_type == kTopologySinglePrimary);
-  init();
 }
 
 ReplicaSet::~ReplicaSet() {}
@@ -147,45 +149,30 @@ shcore::Value ReplicaSet::get_member(const std::string &prop) const {
   return ret_val;
 }
 
-void ReplicaSet::init() {
-  add_property("name", "getName");
-  add_varargs_method("addInstance",
-                     std::bind(&ReplicaSet::add_instance_, this, _1));
-  add_varargs_method("rejoinInstance",
-                     std::bind(&ReplicaSet::rejoin_instance_, this, _1));
-  add_varargs_method("removeInstance",
-                     std::bind(&ReplicaSet::remove_instance, this, _1));
-  add_varargs_method("dissolve", std::bind(&ReplicaSet::dissolve, this, _1));
-  add_varargs_method("checkInstanceState",
-                     std::bind(&ReplicaSet::check_instance_state, this, _1));
-  add_varargs_method(
-      "forceQuorumUsingPartitionOf",
-      std::bind(&ReplicaSet::force_quorum_using_partition_of_, this, _1));
-}
-
 void ReplicaSet::sanity_check() const { verify_topology_type_change(); }
 
 /*
  * Verify if the topology type changed and issue an error if needed.
  */
 void ReplicaSet::verify_topology_type_change() const {
-  // Get GR single primary mode value.
-  int gr_primary_mode;
-  auto classic(_metadata_storage->get_session());
-  get_server_variable(classic, "group_replication_single_primary_mode",
-                      gr_primary_mode);
+  // Get the primary UUID value to determine GR mode:
+  // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+
+  std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
+      cluster->get_group_session(), nullptr);
 
   // Check if the topology type matches the real settings used by the
   // cluster instance, otherwise an error is issued.
   // NOTE: The GR primary mode is guaranteed (by GR) to be the same for all
   // instance of the same group.
-  if (gr_primary_mode == 1 && _topology_type == kTopologyMultiPrimary)
+  if (!gr_primary_uuid.empty() && _topology_type == kTopologyMultiPrimary)
     throw shcore::Exception::runtime_error(
         "The InnoDB Cluster topology type (Multi-Primary) does not match the "
         "current Group Replication configuration (Single-Primary). Please "
         "use <cluster>.rescan() or change the Group Replication "
         "configuration accordingly.");
-  else if (gr_primary_mode == 0 && _topology_type == kTopologySinglePrimary)
+  else if (gr_primary_uuid.empty() && _topology_type == kTopologySinglePrimary)
     throw shcore::Exception::runtime_error(
         "The InnoDB Cluster topology type (Single-Primary) does not match the "
         "current Group Replication configuration (Multi-Primary). Please "
@@ -1928,6 +1915,78 @@ shcore::Value ReplicaSet::force_quorum_using_partition_of(
   return ret_val;
 }
 
+void ReplicaSet::switch_to_single_primary_mode(
+    const Connection_options &instance_def) {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
+  // Switch to single-primary mode
+
+  // Create the Switch_to_single_primary_mode object and execute it.
+  Switch_to_single_primary_mode op_switch_to_single_primary_mode(
+      instance_def, cluster, shared_from_this(), this->naming_style);
+
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope([&op_switch_to_single_primary_mode]() {
+    op_switch_to_single_primary_mode.finish();
+  });
+
+  // Prepare the Switch_to_single_primary_mode command execution (validations).
+  op_switch_to_single_primary_mode.prepare();
+
+  // Execute Switch_to_single_primary_mode operation.
+  op_switch_to_single_primary_mode.execute();
+}
+
+void ReplicaSet::switch_to_multi_primary_mode(void) {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
+  // Switch to multi-primary mode
+
+  // Create the Switch_to_multi_primary_mode object and execute it.
+  Switch_to_multi_primary_mode op_switch_to_multi_primary_mode(
+      cluster, shared_from_this(), this->naming_style);
+
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope([&op_switch_to_multi_primary_mode]() {
+    op_switch_to_multi_primary_mode.finish();
+  });
+
+  // Prepare the Switch_to_multi_primary_mode command execution (validations).
+  op_switch_to_multi_primary_mode.prepare();
+
+  // Execute Switch_to_multi_primary_mode operation.
+  op_switch_to_multi_primary_mode.execute();
+}
+
+void ReplicaSet::set_primary_instance(const Connection_options &instance_def) {
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
+
+  // Set primary instance
+
+  // Create the Set_primary_instance object and execute it.
+  Set_primary_instance op_set_primary_instance(
+      instance_def, cluster, shared_from_this(), this->naming_style);
+
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope(
+      [&op_set_primary_instance]() { op_set_primary_instance.finish(); });
+
+  // Prepare the Set_primary_instance command execution (validations).
+  op_set_primary_instance.prepare();
+
+  // Execute Set_primary_instance operation.
+  op_set_primary_instance.execute();
+}
+
 Cluster_check_info ReplicaSet::check_preconditions(
     std::shared_ptr<mysqlshdk::db::ISession> group_session,
     const std::string &function_name) const {
@@ -1946,7 +2005,20 @@ shcore::Value ReplicaSet::get_description() const {
   // First we identify the master instance
   auto instances = _metadata_storage->get_replicaset_instances(_id);
 
+  // Get the primary UUID value to determine GR mode:
+  // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
+  std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
+      _metadata_storage->get_session(), nullptr);
+
+  std::string topology_mode =
+      !gr_primary_uuid.empty()
+          ? mysqlshdk::gr::to_string(
+                mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY)
+          : mysqlshdk::gr::to_string(
+                mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+
   (*description)["name"] = shcore::Value(_name);
+  (*description)["topologyMode"] = shcore::Value(topology_mode);
   (*description)["topology"] = shcore::Value::new_array();
 
   auto instance_list = description->get_array("topology");

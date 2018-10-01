@@ -18,7 +18,8 @@
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -78,7 +79,8 @@ The instance cluster settings were successfully persisted.
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

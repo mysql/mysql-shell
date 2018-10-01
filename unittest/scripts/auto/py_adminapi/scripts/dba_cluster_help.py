@@ -132,6 +132,33 @@ c.help('status')
 #@ global help for status[USE:cluster.status]
 \help cluster.status
 
+#@ cluster.set_primary_instance
+c.help('set_primary_instance')
+
+#@ global ? for set_primary_instance[USE:cluster.set_primary_instance]
+\? cluster.set_primary_instance
+
+#@ global help for set_primary_instance[USE:cluster.set_primary_instance]
+\help cluster.set_primary_instance
+
+#@ cluster.switch_to_multi_primary_mode
+c.help('switch_to_multi_primary_mode')
+
+#@ global ? for switch_to_multi_primary_mode[USE:cluster.switch_to_multi_primary_mode]
+\? cluster.switch_to_multi_primary_mode
+
+#@ global help for switch_to_multi_primary_mode[USE:cluster.switch_to_multi_primary_mode]
+\help cluster.switch_to_multi_primary_mode
+
+#@ cluster.switch_to_single_primary_mode
+c.help('switch_to_single_primary_mode')
+
+#@ global ? for switch_to_single_primary_mode[USE:cluster.switch_to_single_primary_mode]
+\? cluster.switch_to_single_primary_mode
+
+#@ global help for switch_to_single_primary_mode[USE:cluster.switch_to_single_primary_mode]
+\help cluster.switch_to_single_primary_mode
+
 c.disconnect()
 
 testutil.destroy_sandbox(__mysql_sandbox_port1);

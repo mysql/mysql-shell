@@ -73,6 +73,9 @@ class Metadata : public std::enable_shared_from_this<Metadata> {
   virtual utils::nullable<Instance_info> get_instance_info_by_uuid(
       const std::string &uuid) const = 0;
 
+  virtual std::string get_instance_uuid_by_address(
+      const std::string &address) const = 0;
+
   // virtual bool get_cluster_for_group_name(const std::string &group_name,
   //                                         Cluster_info *out_info) = 0;
 
@@ -103,6 +106,9 @@ class Metadata_mysql : public Metadata_mutable {
 
   utils::nullable<Instance_info> get_instance_info_by_uuid(
       const std::string &uuid) const override;
+
+  std::string get_instance_uuid_by_address(
+      const std::string &address) const override;
 
   // bool get_cluster_for_group_name(const std::string &group_name,
   //                                 Cluster_info *out_info) override;

@@ -121,6 +121,19 @@ void Cluster::init() {
       "forceQuorumUsingPartitionOf",
       std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
   add_method("disconnect", std::bind(&Cluster::disconnect, this, _1));
+
+  expose<void, const std::string &, Cluster>(
+      "switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
+      "instanceDef");
+  expose<void, const shcore::Dictionary_t &, Cluster>(
+      "switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
+      "instanceDef");
+  expose("switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode);
+  expose("switchToMultiPrimaryMode", &Cluster::switch_to_multi_primary_mode);
+  expose<void, const std::string &, Cluster>(
+      "setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
+  expose<void, const shcore::Dictionary_t &, Cluster>(
+      "setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
 }
 
 // Documentation of the getName function
@@ -187,8 +200,9 @@ void Cluster::assert_valid(const std::string &option_name) const {
   }
   if (!_group_session) {
     throw shcore::Exception::runtime_error(
-        "The cluster object is disconnected. Please call " +
-        get_function_name("getCluster") + " to obtain a fresh cluster handle.");
+        "The cluster object is disconnected. Please use <Dba>." +
+        get_function_name("getCluster", false) +
+        " to obtain a fresh cluster handle.");
   }
 }
 
@@ -551,11 +565,11 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
-  check_preconditions("addInstance");
-
   // Add the Instance to the Default ReplicaSet
   shcore::Value ret_val;
   try {
+    check_preconditions("addInstance");
+
     // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
@@ -760,11 +774,11 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
 
-  check_preconditions("rejoinInstance");
-
   // rejoin the Instance to the Default ReplicaSet
   shcore::Value ret_val;
   try {
+    check_preconditions("rejoinInstance");
+
     // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
@@ -922,10 +936,10 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
-  check_preconditions("removeInstance");
-
   // Remove the Instance from the Default ReplicaSet
   try {
+    check_preconditions("removeInstance");
+
     // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
@@ -1079,13 +1093,13 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
 
   args.ensure_count(0, get_function_name("describe").c_str());
 
-  auto state = check_preconditions("describe");
-
-  bool warning = (state.source_state != ManagedInstance::OnlineRW &&
-                  state.source_state != ManagedInstance::OnlineRO);
-
   shcore::Value ret_val;
   try {
+    auto state = check_preconditions("describe");
+
+    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
+                    state.source_state != ManagedInstance::OnlineRO);
+
     if (!_metadata_storage->cluster_exists(_name))
       throw shcore::Exception::argument_error("The cluster '" + _name +
                                               "' no longer exists.");
@@ -1172,11 +1186,6 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 
   args.ensure_count(0, 1, get_function_name("status").c_str());
 
-  auto state = check_preconditions("status");
-
-  bool warning = (state.source_state != ManagedInstance::OnlineRW &&
-                  state.source_state != ManagedInstance::OnlineRO);
-
   bool query_members = false;
   bool extended = false;
   if (args.size() > 0) {
@@ -1190,6 +1199,11 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 
   shcore::Value ret_val;
   try {
+    auto state = check_preconditions("status");
+
+    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
+                    state.source_state != ManagedInstance::OnlineRO);
+
     ret_val = shcore::Value(
         cluster_status(this, query_members, query_members || extended));
 
@@ -1290,14 +1304,14 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
-  // We need to check if the group has quorum and if not we must abort the
-  // operation otherwise GR blocks the writes to preserve the consistency
-  // of the group and we end up with a hang.
-  // This check is done at check_preconditions()
-  check_preconditions("dissolve");
-
   // Dissolve the default replicaset.
   try {
+    // We need to check if the group has quorum and if not we must abort the
+    // operation otherwise GR blocks the writes to preserve the consistency
+    // of the group and we end up with a hang.
+    // This check is done at check_preconditions()
+    check_preconditions("dissolve");
+
     // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
@@ -1360,10 +1374,10 @@ shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
 
   args.ensure_count(0, get_function_name("rescan").c_str());
 
-  check_preconditions("rescan");
-
   shcore::Value ret_val;
   try {
+    check_preconditions("rescan");
+
     ret_val = shcore::Value(_rescan(args));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rescan"));
@@ -1563,10 +1577,10 @@ shcore::Value Cluster::force_quorum_using_partition_of(
   args.ensure_count(1, 2,
                     get_function_name("forceQuorumUsingPartitionOf").c_str());
 
-  check_preconditions("forceQuorumUsingPartitionOf");
-
   shcore::Value ret_val;
   try {
+    check_preconditions("forceQuorumUsingPartitionOf");
+
     // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
@@ -1725,11 +1739,11 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
 
   args.ensure_count(1, 2, get_function_name("checkInstanceState").c_str());
 
-  check_preconditions("checkInstanceState");
-
   shcore::Value ret_val;
   // Verifies the transaction state of the instance ins relation to the cluster
   try {
+    check_preconditions("checkInstanceState");
+
     // Check if we have a Default ReplicaSet
     if (!_default_replica_set)
       throw shcore::Exception::logic_error("ReplicaSet not initialized.");
@@ -1742,13 +1756,251 @@ shcore::Value Cluster::check_instance_state(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(switchToSinglePrimaryMode, Cluster);
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_BRIEF,
+              "Switches the cluster to single-primary mode.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS1,
+              "@li If the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS2,
+              "@li If the instance definition is invalid.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS3,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS4,
+              "@li If 'instance' does not refer to a cluster member.");
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS5,
+              "@li If any of the cluster members has a version < 8.0.13.");
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS6,
+              "@li If the cluster has no visible quorum.");
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS7,
+              "@li If any of the cluster members is not ONLINE.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_RETURNS, "@returns Nothing.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_PARAM,
+              "@param instance Optional An instance definition.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL,
+              "This function changes a cluster running in multi-primary mode "
+              "to single-primary mode.");
+
+REGISTER_HELP(
+    CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1,
+    "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL2,
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3,
+              "The instance definition is optional and is the identifier of "
+              "the cluster member that shall become the new primary.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL4,
+              "If the instance definition is not provided, the new primary "
+              "will be the instance with the highest member weight (and the "
+              "lowest UUID in case of a tie on member weight).");
+
+/**
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_BRIEF)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS1)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS2)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS3)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS4)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS5)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS6)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS7)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_RETURNS)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_PARAM)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL2)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL4)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::switchToSinglePrimaryMode(InstanceDef instance) {}
+#elif DOXYGEN_PY
+None Cluster::switch_to_single_primary_mode(InstanceDef instance) {}
+#endif
+
+void Cluster::switch_to_single_primary_mode(
+    const Connection_options &instance_def) {
+  assert_valid("switchToSinglePrimaryMode");
+  check_preconditions("switchToSinglePrimaryMode");
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  // Switch to single-primary mode
+  _default_replica_set->switch_to_single_primary_mode(instance_def);
+}
+
+REGISTER_HELP_FUNCTION(switchToMultiPrimaryMode, Cluster);
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_BRIEF,
+              "Switches the cluster to multi-primary mode.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS1,
+              "@li If any of the cluster members has a version < 8.0.13.");
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS2,
+              "@li If the cluster has no visible quorum.");
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS3,
+              "@li If any of the cluster members is not ONLINE.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_RETURNS, "@returns Nothing.");
+
+REGISTER_HELP(CLUSTER_SWITCHTOMULTIPRIMARYMODE_DETAIL,
+              "This function changes a cluster running in single-primary mode "
+              "to multi-primary mode.");
+
+/**
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_BRIEF)
+ *
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS)
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS1)
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS2)
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_THROWS3)
+ *
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_RETURNS)
+ *
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_PARAM)
+ *
+ * $(CLUSTER_SWITCHTOMULTIPRIMARYMODE_DETAIL)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::switchToMultiPrimaryMode() {}
+#elif DOXYGEN_PY
+None Cluster::switch_to_multi_primary_mode() {}
+#endif
+
+void Cluster::switch_to_multi_primary_mode(void) {
+  assert_valid("switchToMultiPrimaryMode");
+  check_preconditions("switchToMultiPrimaryMode");
+
+  // Switch to single-primary mode
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  _default_replica_set->switch_to_multi_primary_mode();
+}
+
+REGISTER_HELP_FUNCTION(setPrimaryInstance, Cluster);
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_BRIEF,
+              "Elects a specific cluster member as the new primary.");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS1,
+              "@li If the instance parameter is empty.");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS2,
+              "@li If the instance definition is invalid.");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS3,
+              "RuntimeError in the following scenarios:");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS4,
+              "@li If the cluster is in multi-primary mode.");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS5,
+              "@li If 'instance' does not refer to a cluster member.");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS6,
+              "@li If any of the cluster members has a version < 8.0.13.");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS7,
+              "@li If the cluster has no visible quorum.");
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_THROWS8,
+              "@li If any of the cluster members is not ONLINE.");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_RETURNS, "@returns Nothing.");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_PARAM,
+              "@param instance An instance definition.");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL,
+              "This function forces the election of a new primary, overriding "
+              "any election process.");
+
+REGISTER_HELP(
+    CLUSTER_SETPRIMARYINSTANCE_DETAIL1,
+    "The instance definition is the connection data for the instance.");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL2,
+              "${TOPIC_CONNECTION_MORE_INFO_TCP_ONLY}");
+
+REGISTER_HELP(CLUSTER_SETPRIMARYINSTANCE_DETAIL3,
+              "The instance definition is mandatory and is the identifier of "
+              "the cluster member that shall become the new primary.");
+
+/**
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_BRIEF)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS1)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS2)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS3)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS4)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS5)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS6)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS7)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_THROWS8)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_RETURNS)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_PARAM)
+ *
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL1)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL2)
+ * $(CLUSTER_SWITCHTOSINGLEPRIMARYMODE_DETAIL3)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::setPrimaryInstance(InstanceDef instance) {}
+#elif DOXYGEN_PY
+None Cluster::set_primary_instance(InstanceDef instance) {}
+#endif
+
+void Cluster::set_primary_instance(const Connection_options &instance_def) {
+  assert_valid("setPrimaryInstance");
+  check_preconditions("setPrimaryInstance");
+
+  // Set primary instance
+
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+
+  _default_replica_set->set_primary_instance(instance_def);
+}
+
+void Cluster::set_primary_instance(const std::string &instance_def) {
+  mysqlshdk::db::Connection_options target_instance;
+
+  target_instance = get_connection_options(instance_def);
+
+  set_primary_instance(target_instance);
+}
+
+void Cluster::set_primary_instance(const shcore::Dictionary_t &instance_def) {
+  mysqlshdk::db::Connection_options target_instance;
+
+  target_instance = get_connection_options(instance_def);
+
+  set_primary_instance(target_instance);
+}
+
 Cluster_check_info Cluster::check_preconditions(
     const std::string &function_name) const {
-  try {
-    return check_function_preconditions("Cluster." + function_name,
-                                        _group_session);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
+  return check_function_preconditions("Cluster." + function_name,
+                                      _group_session);
 }
 
 void Cluster::sync_transactions(

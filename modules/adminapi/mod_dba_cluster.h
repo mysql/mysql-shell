@@ -65,6 +65,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan();
   String status(Dictionary options);
+  Undefined switchToSinglePrimaryMode(InstanceDef instance);
+  Undefined switchToMultiPrimaryMode();
+  Undefined setPrimaryInstance(InstanceDef instance);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -78,6 +81,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None remove_instance(InstanceDef instance, dict options);
   None rescan();
   str status(dict options);
+  None switch_to_single_primary_mode(InstanceDef instance);
+  None switch_to_multi_primary_mode();
+  None set_primary_instance(InstanceDef instance);
 #endif
 
   Cluster(const std::string &name,
@@ -163,6 +169,22 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
   shcore::Value disconnect(const shcore::Argument_list &args);
+  template <typename T>
+  void switch_to_single_primary_mode_t(const T &instance_def) {
+    switch_to_single_primary_mode(get_connection_options(instance_def));
+  }
+  void switch_to_single_primary_mode(const std::string &instance_def) {
+    switch_to_single_primary_mode_t(instance_def);
+  }
+  void switch_to_single_primary_mode(const shcore::Dictionary_t &instance_def) {
+    switch_to_single_primary_mode_t(instance_def);
+  }
+  void switch_to_single_primary_mode(void) {
+    switch_to_single_primary_mode(mysqlshdk::db::Connection_options{});
+  }
+  void switch_to_multi_primary_mode(void);
+  void set_primary_instance(const std::string &instance_def);
+  void set_primary_instance(const shcore::Dictionary_t &instance_def);
 
   Cluster_check_info check_preconditions(
       const std::string &function_name) const;
@@ -217,6 +239,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   std::string get_account_data(const std::string &account,
                                const std::string &key);
   shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
+
+  void switch_to_single_primary_mode(const Connection_options &instance_def);
+  void set_primary_instance(const Connection_options &instance_def);
 };
 }  // namespace dba
 }  // namespace mysqlsh

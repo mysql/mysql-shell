@@ -402,7 +402,8 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "label": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
                 "role": "HA"
             }
-        ]
+        ],
+        "topologyMode": "Single-Primary"
     }
 }
 
@@ -437,7 +438,8 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -472,7 +474,8 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -520,7 +523,8 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -571,7 +575,8 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -613,7 +618,8 @@ The instance 'myAdmin@<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successful
                 "role": "HA",
                 "status": "UNREACHABLE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -658,7 +664,8 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "role": "HA",
                 "status": "(MISSING)"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -700,7 +707,8 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -760,7 +768,8 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -801,7 +810,8 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the r
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

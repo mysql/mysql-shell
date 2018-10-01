@@ -28,6 +28,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/utils/nullable.h"
 
@@ -310,6 +311,13 @@ class Config : public IConfig_handler {
    * @throw std::out_of_range if the specified handler does not exist.
    */
   IConfig_handler *get_handler(const std::string &handler_name) const;
+
+  /**
+   * Get the list of names of all configuration handlers.
+   *
+   * @return vector with the names (string) of all configuration handlers.
+   */
+  std::vector<std::string> list_handler_names() const;
 
  private:
   // Map holding all configuration handlers.

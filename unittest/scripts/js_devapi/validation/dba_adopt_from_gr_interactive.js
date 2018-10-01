@@ -56,7 +56,8 @@ false
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -65,7 +66,7 @@ false
 ||Dba.createCluster: Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (ArgumentError)
 
 //@ Check cluster status - failure
-||The cluster object is disconnected. Please call Cluster.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use <Dba>.getCluster to obtain a fresh cluster handle. (RuntimeError)
 
 //@<OUT> Create cluster adopting from GR - use 'adoptFromGR' option
 A new InnoDB cluster will be created based on the existing replication group on instance 'root@<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>'.
@@ -100,7 +101,8 @@ Cluster successfully created based on existing replication group.
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -137,7 +139,8 @@ Cluster successfully created based on existing replication group.
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<real_hostname>>>:<<<__mysql_sandbox_port1>>>"
 }

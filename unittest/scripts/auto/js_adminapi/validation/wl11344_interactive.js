@@ -49,7 +49,8 @@ group_replication_start_on_boot = ON
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -186,7 +187,8 @@ group_replication_start_on_boot = ON
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -236,7 +238,8 @@ true
                 "role": "HA",
                 "status": "(MISSING)"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -269,7 +272,8 @@ true
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -321,7 +325,8 @@ ONLINE
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -469,7 +474,8 @@ group_replication_start_on_boot = ON
                 "role": "HA",
                 "status": "(MISSING)"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -496,7 +502,8 @@ ONLINE
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Multi-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -582,7 +589,8 @@ group_replication_start_on_boot = ON
                 "role": "HA",
                 "status": "(MISSING)"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -618,7 +626,8 @@ ONLINE
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
@@ -748,7 +757,8 @@ The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' was successfully remo
                 "role": "HA",
                 "status": "ONLINE"
             }
-        }
+        },
+        "topologyMode": "Single-Primary"
     },
     "groupInformationSourceMember": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
 }
