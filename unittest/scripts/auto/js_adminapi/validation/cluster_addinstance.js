@@ -198,8 +198,8 @@ auto_increment_offset = <<<__expected_auto_inc_offset>>>
 ||
 
 //@<OUT> BUG#27677227 cluster with x protocol disabled, mysqlx should be NULL
-<<<localhost>>>:<<<__mysql_sandbox_port1>>> = {"mysqlX": "NULL", "grLocal": "<<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>"}
-<<<localhost>>>:<<<__mysql_sandbox_port2>>> = {"mysqlX": "NULL", "grLocal": "<<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>"}
+<<<localhost>>>:<<<__mysql_sandbox_port1>>> = {"grLocal": "<<<localhost>>>:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "<<<localhost>>>:<<<__mysql_sandbox_port1>>>"}
+<<<localhost>>>:<<<__mysql_sandbox_port2>>> = {"grLocal": "<<<localhost>>>:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "<<<localhost>>>:<<<__mysql_sandbox_port2>>>"}
 <<<localhost>>>:<<<__mysql_sandbox_port3>>> = {"mysqlX": "<<<localhost>>>:<<<__mysql_sandbox_x_port3>>>", "grLocal": "<<<localhost>>>:<<<__mysql_sandbox_gr_port3>>>", "mysqlClassic": "<<<localhost>>>:<<<__mysql_sandbox_port3>>>"}
 
 //@ BUG#27677227 cluster with x protocol disabled cleanup
