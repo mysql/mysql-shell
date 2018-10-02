@@ -343,13 +343,25 @@ void MetadataStorage::insert_instance(const Instance_definition &options) {
   /*if (options->has_key("attributes"))
     attributes = (*options)["attributes"].as_map();*/
 
-  query = shcore::sqlstring(
-      "INSERT INTO mysql_innodb_cluster_metadata.instances "
-      "(host_id, replicaset_id, mysql_server_uuid, "
-      "instance_name, role, addresses) "
-      "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, "
-      "'mysqlX', ?, 'grLocal', ?))",
-      0);
+  // BUG#27677227: SILENT ASSUMPTION WHEN CONFIGURING CLUSTER ON SERVER WITHOUT
+  // X PROTOCOL ENABLED If the x-plugin is disabled, we do not story any value
+  // for mysqlX
+  if (!options.xendpoint.empty()) {
+    query = shcore::sqlstring(
+        "INSERT INTO mysql_innodb_cluster_metadata.instances "
+        "(host_id, replicaset_id, mysql_server_uuid, "
+        "instance_name, role, addresses) "
+        "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, "
+        "'mysqlX', ?, 'grLocal', ?))",
+        0);
+  } else {
+    query = shcore::sqlstring(
+        "INSERT INTO mysql_innodb_cluster_metadata.instances "
+        "(host_id, replicaset_id, mysql_server_uuid, "
+        "instance_name, role, addresses) "
+        "VALUES (?, ?, ?, ?, ?, json_object('mysqlClassic', ?, 'grLocal', ?))",
+        0);
+  }
 
   query << options.host_id;
   query << options.replicaset_id;
@@ -357,7 +369,9 @@ void MetadataStorage::insert_instance(const Instance_definition &options) {
   query << options.label;
   query << options.role;
   query << options.endpoint;
-  query << options.xendpoint;
+
+  if (!options.xendpoint.empty()) query << options.xendpoint;
+
   query << options.grendpoint;
   query.done();
 

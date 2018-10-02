@@ -1647,8 +1647,7 @@ void ReplicaSet::add_instance_metadata(
   std::string instance_xaddress;
   if (xport != -1)
     instance_xaddress = mysql_server_address + ":" + std::to_string(xport);
-  else
-    instance_xaddress = "NULL";
+
   Instance_definition instance;
 
   instance.role = "HA";
