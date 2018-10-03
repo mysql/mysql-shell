@@ -19,7 +19,86 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-cmake_minimum_required (VERSION 2.8.12)
+IF(UNIX)
+  # CMake 3.4.0 is needed for Solaris due to CMake bug 15673.
+  # Cannot use CMAKE_SYSTEM_NAME until after PROJECT(), use uname directly.
+  FIND_PROGRAM(MY_UNAME uname /bin /usr/bin /usr/local/bin /sbin)
+  IF(MY_UNAME)
+    EXEC_PROGRAM(uname ARGS -s OUTPUT_VARIABLE MY_HOST_SYSTEM_NAME)
+    IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
+      CMAKE_MINIMUM_REQUIRED(VERSION 3.4.0)
+    ENDIF()
+  ENDIF()
+ENDIF()
+# 2.8.12 as minimum unless higher is checked above.
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
+
+# On Linux el6/el7 the default gcc is too old, see if devtoolset is installed.
+# Same with SLES 12, look for gcc 7 there.
+# We need to look for gcc before calling PROJECT below.
+OPTION(FORCE_UNSUPPORTED_COMPILER "Disable compiler version checks" OFF)
+MARK_AS_ADVANCED(FORCE_UNSUPPORTED_COMPILER)
+
+IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
+    AND NOT CMAKE_C_COMPILER AND NOT CMAKE_CXX_COMPILER)
+  # Cannot INCLUDE(CMakeDetermineSystem) prior to PROJECT initialization below.
+  SET (ENV_CC "$ENV{CC}")
+  SET (ENV_CXX "$ENV{CXX}")
+  IF (ENV_CC STREQUAL "" AND ENV_CXX STREQUAL "")
+    IF(MY_UNAME)
+      EXEC_PROGRAM(uname ARGS -r OUTPUT_VARIABLE MY_HOST_SYSTEM_VERSION)
+      IF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
+          MY_HOST_SYSTEM_VERSION MATCHES "\\.el[67](uek)?\\.")
+        MESSAGE(STATUS
+          "This is ${MY_HOST_SYSTEM_NAME} version ${MY_HOST_SYSTEM_VERSION}")
+        MESSAGE(STATUS "We probably need some devtoolset compiler")
+
+        FIND_PROGRAM(ALTERNATIVE_GCC gcc
+          NO_DEFAULT_PATH
+          PATHS "/opt/rh/devtoolset-7/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_GPP g++
+          NO_DEFAULT_PATH
+          PATHS "/opt/rh/devtoolset-7/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_ENABLE enable
+          NO_DEFAULT_PATH
+          PATHS "/opt/rh/devtoolset-7/")
+        IF(ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
+          SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
+          SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
+          MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
+          MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+        ELSE()
+          MESSAGE(WARNING "Could not find devtoolset gcc")
+        ENDIF()
+      ELSEIF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
+          EXISTS "/etc/os-release")
+        FILE(READ "/etc/os-release" MY_OS_RELEASE)
+        IF (MY_OS_RELEASE MATCHES "SUSE Linux Enterprise Server 12")
+          MESSAGE(STATUS "We need to look for a newer GCC on SLES 12")
+
+          FIND_PROGRAM(ALTERNATIVE_GCC gcc-7
+            NO_DEFAULT_PATH
+            PATHS "/usr/bin")
+          FIND_PROGRAM(ALTERNATIVE_GPP g++-7
+            NO_DEFAULT_PATH
+            PATHS "/usr/bin")
+          IF (ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
+            SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
+            SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
+            MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
+            MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+            # Use the new ABI so that std::string can be used with allocators
+            # that are not default-constructible (e.g. Memroot_allocator)
+            ADD_DEFINITIONS(-D_GLIBCXX_USE_CXX11_ABI=1)
+          ELSE()
+            MESSAGE(WARNING "Could not find newer gcc")
+	  ENDIF()
+	ENDIF()
+      ENDIF()
+    ENDIF()
+  ENDIF()
+ENDIF()
+
 
 project(mysqlsh)
 
@@ -225,73 +304,6 @@ IF(WIN32)
     ENDFOREACH(flag_var)
   ENDIF()
 ENDIF()
-
-# On Linux el6/el7 the default gcc is too old, see if devtoolset is installed.
-# Same with SLES 12, look for gcc 7 there.
-# We need to look for gcc before calling PROJECT below.
-OPTION(FORCE_UNSUPPORTED_COMPILER "Disable compiler version checks" OFF)
-MARK_AS_ADVANCED(WITHOUT_SERVER DISABLE_SHARED FORCE_UNSUPPORTED_COMPILER)
-
-IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
-    AND NOT CMAKE_C_COMPILER AND NOT CMAKE_CXX_COMPILER)
-  # Cannot INCLUDE(CMakeDetermineSystem) prior to PROJECT initialization below.
-  SET (ENV_CC "$ENV{CC}")
-  SET (ENV_CXX "$ENV{CXX}")
-  IF (ENV_CC STREQUAL "" AND ENV_CXX STREQUAL "")
-    IF(MY_UNAME)
-      EXEC_PROGRAM(uname ARGS -r OUTPUT_VARIABLE MY_HOST_SYSTEM_VERSION)
-      IF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
-          MY_HOST_SYSTEM_VERSION MATCHES "\\.el[67](uek)?\\.")
-        MESSAGE(STATUS
-          "This is ${MY_HOST_SYSTEM_NAME} version ${MY_HOST_SYSTEM_VERSION}")
-        MESSAGE(STATUS "We probably need some devtoolset compiler")
-
-        FIND_PROGRAM(ALTERNATIVE_GCC gcc
-          NO_DEFAULT_PATH
-          PATHS "/opt/rh/devtoolset-7/root/usr/bin")
-        FIND_PROGRAM(ALTERNATIVE_GPP g++
-          NO_DEFAULT_PATH
-          PATHS "/opt/rh/devtoolset-7/root/usr/bin")
-        FIND_PROGRAM(ALTERNATIVE_ENABLE enable
-          NO_DEFAULT_PATH
-          PATHS "/opt/rh/devtoolset-7/")
-        IF(ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
-          SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
-          SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
-          MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
-          MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
-        ELSE()
-          MESSAGE(WARNING "Could not find devtoolset gcc")
-        ENDIF()
-      ELSEIF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
-          EXISTS "/etc/os-release")
-        FILE(READ "/etc/os-release" MY_OS_RELEASE)
-        IF (MY_OS_RELEASE MATCHES "SUSE Linux Enterprise Server 12")
-          MESSAGE(STATUS "We need to look for a newer GCC on SLES 12")
-
-          FIND_PROGRAM(ALTERNATIVE_GCC gcc-7
-            NO_DEFAULT_PATH
-            PATHS "/usr/bin")
-          FIND_PROGRAM(ALTERNATIVE_GPP g++-7
-            NO_DEFAULT_PATH
-            PATHS "/usr/bin")
-          IF (ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
-            SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
-            SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
-            MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
-            MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
-            # Use the new ABI so that std::string can be used with allocators
-            # that are not default-constructible (e.g. Memroot_allocator)
-            ADD_DEFINITIONS(-D_GLIBCXX_USE_CXX11_ABI=1)
-          ELSE()
-            MESSAGE(WARNING "Could not find newer gcc")
-	  ENDIF()
-	ENDIF()
-      ENDIF()
-    ENDIF()
-  ENDIF()
-ENDIF()
-
 
 # Includes common to the whole project
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/include/
