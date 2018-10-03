@@ -300,11 +300,11 @@ TEST_F(Shell_sql_test, multiline_comment) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
-  query = "*/";
+  query = "*/;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
-  EXPECT_EQ("/*\nthis was a multiline comment\n*/",
+  EXPECT_EQ("/*\nthis was a multiline comment\n*/;",
             env.shell_sql->get_handled_input());
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 }

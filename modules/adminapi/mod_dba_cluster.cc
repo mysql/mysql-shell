@@ -1161,9 +1161,9 @@ REGISTER_HELP(
  * $(CLUSTER_STATUS_DETAIL2)
  */
 #if DOXYGEN_JS
-String Cluster::status() {}
+String Cluster::status(Dictionary options) {}
 #elif DOXYGEN_PY
-str Cluster::status() {}
+str Cluster::status(dict options) {}
 #endif
 
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
