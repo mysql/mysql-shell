@@ -226,7 +226,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql->set_mysql_option(
       xcl::XSession::Mysqlx_option::Authentication_method,
       std::vector<std::string>{"MYSQL41", "SHA256_MEMORY", "PLAIN"});
-#if LIBMYSQL_VERSION_ID > 80013
+#if LIBMYSQL_VERSION_ID > 80014
 #error Check whether libmysqlx already fixed error for caching_sha2_password
   // if libmysqlx already fixed the error, the code above to set auth
   // methods can be removed. If not, update the version check above to error out
