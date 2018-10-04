@@ -735,10 +735,9 @@ void Shell_options::set_ssl_mode(const std::string &option, const char *value) {
   int mode = mysqlshdk::db::MapSslModeNameToValue::get_value(value);
 
   if (mode == 0) {
-    throw std::invalid_argument(
-        option +
-        " must be any any of [DISABLED, PREFERRED, REQUIRED, "
-        "VERIFY_CA, VERIFY_IDENTITY]");
+    throw std::invalid_argument(option +
+                                " must be any of [DISABLED, PREFERRED, "
+                                "REQUIRED, VERIFY_CA, VERIFY_IDENTITY]");
   }
 
   storage.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));
