@@ -1254,8 +1254,8 @@ TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
                                    const_cast<char *>("something"), NULL};
 
     std::string error =
-        "--ssl-mode must be any any of [DISABLED, PREFERRED, "
-        "REQUIRED, VERIFY_CA, VERIFY_IDENTITY]\n";
+        "--ssl-mode must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, "
+        "VERIFY_IDENTITY]\n";
 
     test_deprecated_ssl("--ssl=something", &options, "", error, 1,
                         mysqlshdk::db::Ssl_mode::Preferred);
