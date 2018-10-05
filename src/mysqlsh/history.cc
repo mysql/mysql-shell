@@ -50,7 +50,14 @@ bool History::load(const std::string &path) {
   }
 }
 
+bool History::save(const std::string &file) {
+  clear_temporary();
+
+  return linenoiseHistorySave(file.c_str()) >= 0;
+}
+
 void History::clear() {
+  _last_entry_was_temporary = false;
   _serial = 0;
   _serials.clear();
   linenoiseHistoryFree();
@@ -65,6 +72,8 @@ void History::pause(bool flag) {
 }
 
 void History::dump(const std::function<void(const std::string &)> &print) {
+  clear_temporary();
+
   uint32_t c = size();
   for (uint32_t i = 0; i < c; i++) {
     const char *ptr = linenoiseHistoryLine(i);
@@ -95,6 +104,8 @@ void History::add(const std::string &s) {
     // use our own tracking of entries, so that we don't get confused by the
     // current line buffer
 
+    clear_temporary();
+
     if (size() == _limit) {
       if (linenoiseHistoryAdd(s.c_str())) {
         _serials.push_back(++_serial);
@@ -105,6 +116,20 @@ void History::add(const std::string &s) {
     } else {
       if (linenoiseHistoryAdd(s.c_str())) _serials.push_back(++_serial);
     }
+  }
+}
+
+void History::add_temporary(const std::string &s) {
+  add(s);
+  if (_paused == 0 && _limit > 0) {
+    _last_entry_was_temporary = true;
+  }
+}
+
+void History::clear_temporary() {
+  if (size() > 0 && _last_entry_was_temporary) {
+    del(last_entry(), last_entry());
+    _last_entry_was_temporary = false;
   }
 }
 

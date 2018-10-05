@@ -320,7 +320,7 @@ void Command_line_shell::load_state(const std::string &statedir) {
 void Command_line_shell::save_state(const std::string &statedir) {
   if (options().history_autosave) {
     std::string path = statedir + "/history";
-    if (linenoiseHistorySave(path.c_str()) < 0) {
+    if (!_history.save(path)) {
       print_error(
           shcore::str_format("Could not save command history to %s: %s\n",
                              path.c_str(), strerror(errno)));
@@ -775,6 +775,10 @@ void Command_line_shell::handle_notification(
     if (_shell->interactive_mode() != shcore::Shell_core::Mode::SQL ||
         sql_safe_for_logging(executed)) {
       _history.add(executed);
+    } else {
+      // add but delete after the next command and
+      // don't let it get saved to disk either
+      _history.add_temporary(executed);
     }
   } else if (name == SN_SHELL_OPTION_CHANGED) {
     const auto option = data->get_string("option");

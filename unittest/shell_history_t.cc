@@ -113,18 +113,24 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ(1, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
 
-  // ensure certain words don't appear in history
+  // ensure certain words don't appear in history for more than 1 iteration
   shell.process_line("set password = 'secret' then fail;");
-  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_EQ(2, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+  // 1st time added it should be there, but not after another one is added
+  EXPECT_STREQ("set password = 'secret' then fail;", linenoiseHistoryLine(1));
 
   shell.process_line("create user foo@bar identified by 'secret';");
-  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_EQ(2, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("create user foo@bar identified by 'secret';",
+               linenoiseHistoryLine(1));
 
   shell.process_line("alter user foo@bar set password='secret';");
-  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_EQ(2, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("alter user foo@bar set password='secret';",
+               linenoiseHistoryLine(1));
 
   shell.process_line("secret;");
   EXPECT_EQ(2, linenoiseHistorySize());
@@ -135,9 +141,13 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.set_sql_safe_for_logging("*SECret*");
 
   shell.process_line("top secret;");
-  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_EQ(3, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
+  EXPECT_STREQ("top secret;", linenoiseHistoryLine(2));
+  shell.process_line("top;");
+  EXPECT_EQ(3, linenoiseHistorySize());
+  EXPECT_STREQ("top;", linenoiseHistoryLine(2));
 
 #ifdef HAVE_V8
   std::string print_stmt = "println('secret');";
@@ -148,29 +158,29 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   // SQL filter only applies to SQL mode
   shell.process_line(to_scripting);
   shell.process_line(print_stmt);
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(5, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
-  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(2));
-  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(3));
+  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(3));
+  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(4));
 
   shell.process_line("\\py");
   shell.process_line("print 'secret'");
-  EXPECT_EQ(6, linenoiseHistorySize());
+  EXPECT_EQ(7, linenoiseHistorySize());
   EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
   EXPECT_STREQ("secret;", linenoiseHistoryLine(1));
-  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(2));
-  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(3));
-  EXPECT_STREQ("\\py", linenoiseHistoryLine(4));
-  EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(5));
+  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(3));
+  EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(4));
+  EXPECT_STREQ("\\py", linenoiseHistoryLine(5));
+  EXPECT_STREQ("print 'secret'", linenoiseHistoryLine(6));
 
   // unset filter via shell options
   mysqlsh::Options opts(shell.get_options());
   opts.set_member("history.sql.ignorePattern", shcore::Value(""));
 
   shell.process_line("top secret;");
-  EXPECT_EQ(7, linenoiseHistorySize());
-  EXPECT_STREQ("top secret;", linenoiseHistoryLine(6));
+  EXPECT_EQ(8, linenoiseHistorySize());
+  EXPECT_STREQ("top secret;", linenoiseHistoryLine(7));
 
   // TS_CV#6
   // shell.options["history.sql.ignorePattern"]=string:string:string:string with
@@ -188,13 +198,13 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("select 'bla';");
   shell.process_line("select '*bla*';");
   shell.process_line("select 'bgi';");
-  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(7));
+  EXPECT_STREQ(to_scripting.c_str(), linenoiseHistoryLine(8));
   EXPECT_STREQ("shell.options['history.sql.ignorePattern'] = '*bla*:*ble*';",
-               linenoiseHistoryLine(8));
-  EXPECT_STREQ("\\sql", linenoiseHistoryLine(9));
-  EXPECT_STREQ("select 'bga';", linenoiseHistoryLine(10));
-  EXPECT_STREQ("select 'bge';", linenoiseHistoryLine(11));
-  EXPECT_STREQ("select 'bgi';", linenoiseHistoryLine(12));
+               linenoiseHistoryLine(9));
+  EXPECT_STREQ("\\sql", linenoiseHistoryLine(10));
+  EXPECT_STREQ("select 'bga';", linenoiseHistoryLine(11));
+  EXPECT_STREQ("select 'bge';", linenoiseHistoryLine(12));
+  EXPECT_STREQ("select 'bgi';", linenoiseHistoryLine(13));
 
   shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = 'set;';");
@@ -205,8 +215,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ(2, linenoiseHistorySize());
   EXPECT_STREQ("bar;", linenoiseHistoryLine(1));
   shell.process_line("set;");
-  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_EQ(3, linenoiseHistorySize());
   EXPECT_STREQ("bar;", linenoiseHistoryLine(1));
+  EXPECT_STREQ("set;", linenoiseHistoryLine(2));
   shell.process_line("xset;");
   EXPECT_EQ(3, linenoiseHistorySize());
   EXPECT_STREQ("xset;", linenoiseHistoryLine(2));
@@ -215,29 +226,29 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("shell.options['history.sql.ignorePattern'] = '*';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("a;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("hello world;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("*;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line(";");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = '**';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("a;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("hello world;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("*;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line(";");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = '?';");
@@ -245,7 +256,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("\\history clear");
   EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line(";");
-  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_EQ(2, linenoiseHistorySize());
   shell.process_line("a;");
   EXPECT_EQ(2, linenoiseHistorySize());
   shell.process_line("aa;");
@@ -255,13 +266,13 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("shell.options['history.sql.ignorePattern'] = '?*';");
   shell.process_line("\\sql");
   shell.process_line("\\history clear");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("?;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("a;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
   shell.process_line("aa;");
-  EXPECT_EQ(0, linenoiseHistorySize());
+  EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line(to_scripting);
   shell.process_line("shell.options['history.sql.ignorePattern'] = 'a?b?c*';");
@@ -275,14 +286,14 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   shell.process_line("xaxbxc;");
   EXPECT_EQ(4, linenoiseHistorySize());
   shell.process_line("axbxcx;");
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(5, linenoiseHistorySize());
 
   shell.process_line("axbxc;");
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(5, linenoiseHistorySize());
   shell.process_line("axbxcdddeefg;");
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(5, linenoiseHistorySize());
   shell.process_line("a b c;");
-  EXPECT_EQ(4, linenoiseHistorySize());
+  EXPECT_EQ(5, linenoiseHistorySize());
 }
 
 TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
@@ -308,7 +319,7 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   EXPECT_EQ(3, linenoiseHistorySize());
 
   shell.process_line("SELECT 1;");
-  EXPECT_EQ(3, linenoiseHistorySize());
+  EXPECT_EQ(4, linenoiseHistorySize());
 
   shell.process_line("ELECT 1;");
   EXPECT_EQ(4, linenoiseHistorySize());
@@ -320,10 +331,10 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   EXPECT_EQ(7, linenoiseHistorySize());
 
   shell.process_line("AA BB;");
-  EXPECT_EQ(7, linenoiseHistorySize());
+  EXPECT_EQ(8, linenoiseHistorySize());
 
   shell.process_line("A;");
-  EXPECT_EQ(7, linenoiseHistorySize());
+  EXPECT_EQ(8, linenoiseHistorySize());
 
   shell.process_line(" A\n  ;");
   EXPECT_EQ(8, linenoiseHistorySize());
@@ -1406,6 +1417,40 @@ TEST_F(Shell_history, history_numbering) {
 
 #undef CHECK_NUMBERING
   shcore::delete_file("testhistory");
+}
+
+TEST_F(Shell_history, never_filter_latest) {
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(0, nullptr, _options_file));
+
+  shell._history.set_limit(4);
+
+  // Bug #28749037 COMMAND HISTORY SHOULD KEEP ALL HISTORY ENTRIES FOR AT
+  // LEAST ONE ENTRY
+  shell.process_line("\\sql");
+  shell._history.clear();
+  shell.process_line("select 1;");
+  shell.process_line("set password='secret';");
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("set password='secret';", linenoiseHistoryLine(1));
+
+  // this should clear the set password line
+  shell._history.save("testhistory");
+  std::string data = shcore::get_text_file("testhistory");
+  EXPECT_EQ("select 1;\n", data);
+  shcore::delete_file("testhistory");
+
+  EXPECT_EQ(1, linenoiseHistorySize());
+  EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+
+  shell.process_line("set password='secret';");
+  // this should clear the set password line again
+  shell.process_line("select 2;");
+
+  EXPECT_EQ(2, linenoiseHistorySize());
+  EXPECT_STREQ("select 1;", linenoiseHistoryLine(0));
+  EXPECT_STREQ("select 2;", linenoiseHistoryLine(1));
 }
 
 }  // namespace mysqlsh

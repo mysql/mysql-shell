@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,12 +32,14 @@ namespace mysqlsh {
 class History {
  public:
   History();
+  bool save(const std::string &file);
   bool load(const std::string &file);
 
   void clear();
   void dump(const std::function<void(const std::string &)> &print);
   void pause(bool flag);
   void add(const std::string &s);
+  void add_temporary(const std::string &s);
   void del(uint32_t serial_first, uint32_t serial_last);
   void set_limit(uint32_t limit);
 
@@ -52,6 +54,9 @@ class History {
   std::deque<uint32_t> _serials;
   uint32_t _serial = 0;
   int _paused = 0;
+  bool _last_entry_was_temporary = false;
+
+  void clear_temporary();
 };
 
 }  // namespace mysqlsh
