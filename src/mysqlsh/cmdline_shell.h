@@ -128,6 +128,7 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, history_del_range);
   FRIEND_TEST(Shell_history, history_delete_range);
   FRIEND_TEST(Shell_history, history_numbering);
+  FRIEND_TEST(Shell_history, never_filter_latest);
   FRIEND_TEST(Shell_error_printing, print_error);
   friend class Test_debugger;
 #endif
