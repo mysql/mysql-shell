@@ -88,12 +88,22 @@ void Session_impl::connect(
 #endif
 
   // Sets the connection timeout
-  int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;
+  unsigned int connect_timeout = mysqlshdk::db::k_default_connect_timeout;
   if (_connection_options.has(kConnectTimeout)) {
     connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
     connect_timeout = std::ceil(connect_timeout / 1000.0);
   }
   mysql_options(_mysql, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
+
+  unsigned int orig_read_timeout = -1, orig_write_timeout = -1;
+  // Save the default read/write timeout and override it temporarily to a
+  // smaller value to prevent freeze during authentication (in case user
+  // connects to the wrong port)
+  mysql_get_option(_mysql, MYSQL_OPT_READ_TIMEOUT, &orig_read_timeout);
+  mysql_get_option(_mysql, MYSQL_OPT_WRITE_TIMEOUT, &orig_write_timeout);
+
+  mysql_options(_mysql, MYSQL_OPT_READ_TIMEOUT, &connect_timeout);
+  mysql_options(_mysql, MYSQL_OPT_WRITE_TIMEOUT, &connect_timeout);
 
   if (!mysql_real_connect(
           _mysql,
@@ -116,6 +126,12 @@ void Session_impl::connect(
           flags)) {
     throw_on_connection_fail();
   }
+
+  // Restore the original timeout for the rest of the connection
+  // We can't set the read timeout to an arbitrarily low value because
+  // slow queries can be stuck without a reply for a long time
+  mysql_options(_mysql, MYSQL_OPT_READ_TIMEOUT, &orig_read_timeout);
+  mysql_options(_mysql, MYSQL_OPT_WRITE_TIMEOUT, &orig_write_timeout);
 
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysql");
