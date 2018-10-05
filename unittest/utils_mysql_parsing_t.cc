@@ -1002,17 +1002,19 @@ TEST_P(Statement_splitter, ansi_quotes) {
                 R"*("a"";b"; 'a'';b'; `a``;b`;)*", false));
 
   const auto s1 = R"*("a\";b"; 'a\';b'; `a\`;b`;)*";
-  EXPECT_EQ(strv({R"*("a\";b";)*", R"*('a\';b';)*", R"*(`a\`;)*", R"*(b`;)*"}),
-            split_batch(s1, false));
+  const auto expected_s1 =
+      strv({R"*("a\";b";)*", R"*('a\';b';)*", R"*(`a\`;)*", R"*(b`;)*"});
+  EXPECT_EQ(expected_s1, split_batch(s1, false));
 
   EXPECT_EQ(strv({R"*("a"";b";)*", "'a'';b';", "`a``;b`;"}),
             split_batch(
                 R"*("a"";b"; 'a'';b'; `a``;b`;)*", true));
 
   const auto s2 = R"*("a\";b; 'a\';b'; `a\`;b;)*";
-  EXPECT_EQ(strv({R"*("a\";)*", R"*(b;)*", R"*('a\';b';)*", R"*(`a\`;)*",
-                  R"*(b;)*"}),
-            split_batch(s2, true));
+  const auto expected_s2 =
+      strv({R"*("a\";)*", R"*(b;)*", R"*('a\';b';)*", R"*(`a\`;)*",
+            R"*(b;)*"});
+  EXPECT_EQ(expected_s2, split_batch(s2, true));
 }
 
 TEST_P(Statement_splitter, commands) {
