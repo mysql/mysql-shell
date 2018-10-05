@@ -233,13 +233,20 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   // again on 8.0.14
 #endif
 
-  // Sets the connection timeout
+  // Sets the connection, read and write timeout
   int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;
   if (_connection_options.has(kConnectTimeout)) {
     connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
   }
   xcl::XError error = _mysql->set_mysql_option(
       xcl::XSession::Mysqlx_option::Connect_timeout, connect_timeout);
+
+  // Override read/write timeout temporarily to prevent freeze during
+  // authentication (in case user connects to the wrong port)
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Read_timeout,
+                           connect_timeout);
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Write_timeout,
+                           connect_timeout);
 
   auto handler_id = _mysql->get_protocol().add_notice_handler(
       [this](xcl::XProtocol *, const bool,
@@ -309,6 +316,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
                         data.has_schema() ? data.get_schema().c_str() : "");
     _connection_info = host + " via TCP/IP";
   }
+
+  // Restore the original timeout for the rest of the connection
+  // We can't set the read timeout to an arbitrarily low value because
+  // slow queries can be stuck without a reply for a long time
+  int64_t tm = -1;
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Read_timeout, tm);
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Write_timeout, tm);
+
   if (err) {
     _mysql.reset();
 
