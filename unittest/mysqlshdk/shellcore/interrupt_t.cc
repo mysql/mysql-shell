@@ -260,8 +260,8 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   static const int k_processlist_info_column = 7;
   static const int k_processlist_state_column = 6;
   static const int k_processlist_command_column = 4;
-  void session_wait(uint64_t sid, int timeout, const char *str,
-                    int column = 7) {
+  static void session_wait(uint64_t sid, int timeout, const char *str,
+                           int column = 7) {
     auto connection_options = shcore::get_connection_options(_mysql_uri);
     auto conn = mysqlshdk::db::mysql::Session::create();
     conn->connect(connection_options);
@@ -298,6 +298,22 @@ class Interrupt_mysqlx : public Interrupt_mysql {
   }
 };
 
+namespace {
+
+class Mysql_thread final {
+ public:
+  Mysql_thread() { mysql_thread_init(); }
+  Mysql_thread(const Mysql_thread &other) = delete;
+  Mysql_thread(Mysql_thread &&other) = delete;
+
+  Mysql_thread &operator=(const Mysql_thread &other) = delete;
+  Mysql_thread &operator=(Mysql_thread &&other) = delete;
+
+  ~Mysql_thread() { mysql_thread_end(); }
+};
+
+}  // namespace
+
 TEST_F(Interrupt_mysql, sql_classic) {
   // Test case for FR2
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
@@ -310,9 +326,12 @@ TEST_F(Interrupt_mysql, sql_classic) {
   // Test that a query doing a sleep() on classic gets interrupted
   {
     bool kill_sent = false;
-    std::thread thd([this, session, &kill_sent]() {
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id, &kill_sent]() {
+      Mysql_thread thd;
       // wait for the test session to popup up to 3s
-      session_wait(session->get_connection_id(), 3, "test1");
+      session_wait(connection_id, 3, "test1");
       // then kill it
       kill_sent = true;
       shcore::Interrupts::interrupt();
@@ -341,8 +360,11 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
 
   execute("\\js");
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep(42)");
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep(42)");
       shcore::Interrupts::interrupt();
     });
     wipe_all();
@@ -351,8 +373,7 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
                 "sleep(42)'); print('FAILED');"));
     MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("print(session.runSql('select * from itst.data').fetchAll());");
@@ -373,8 +394,11 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
   execute("\\py");
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep(42)");
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep(42)");
       shcore::Interrupts::interrupt();
     });
     wipe_all();
@@ -384,8 +408,7 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
     MY_EXPECT_STDERR_CONTAINS("KeyboardInterrupt");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("print(session.run_sql('select * from itst.data').fetch_all())\n");
@@ -404,9 +427,12 @@ TEST_F(Interrupt_mysqlx, sql_x) {
   // Test that a query doing a sleep() on classic gets interrupted
   {
     bool kill_sent = false;
-    std::thread thd([this, session, &kill_sent]() {
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id, &kill_sent]() {
+      Mysql_thread thd;
       // wait for the test session to popup up to 3s
-      session_wait(session->get_connection_id(), 3, "test1");
+      session_wait(connection_id, 3, "test1");
       // then kill it
       kill_sent = true;
       shcore::Interrupts::interrupt();
@@ -434,8 +460,11 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
   ASSERT_TRUE(session.get());
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "mysql");
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "mysql");
       shcore::Interrupts::interrupt();
     });
     try {
@@ -462,8 +491,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_sql) {
   ASSERT_TRUE(session.get());
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep(42)");
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep(42)");
       shcore::Interrupts::interrupt();
     });
     wipe_all();
@@ -472,8 +504,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_sql) {
                 "sleep(42)').execute(); print('FAILED');"));
     MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute(
@@ -495,9 +526,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
 
   // Test Table Find (sleep on projection)
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     wipe_all();
@@ -507,8 +540,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("print(db.getTable('data').select(['b']).execute().fetchAll());");
@@ -532,9 +564,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table2) {
 
   wipe_all();
   {  // Again with sleep on filter
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -543,8 +577,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table2) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("print(db.getTable('data').select(['b']).execute().fetchAll());");
@@ -566,9 +599,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection) {
 
   // Test Collection Find
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -578,8 +613,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute(
@@ -603,9 +637,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection2) {
 
   wipe_all();
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -614,8 +650,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection2) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute(
@@ -643,9 +678,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
 
   wipe_all();
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -654,22 +691,22 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
 
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
   }
   wipe_all();
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute("db.getCollection('cdata').remove('sleep(10)').execute();");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
 
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
   }
   wipe_all();
 
@@ -699,9 +736,11 @@ TEST_F(Interrupt_mysqlx, db_python_sql) {
   ASSERT_TRUE(session.get());
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     wipe_all();
@@ -711,8 +750,7 @@ TEST_F(Interrupt_mysqlx, db_python_sql) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("FAILED");
     MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("session.sql('select * from itst.data').execute()");
@@ -733,9 +771,11 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table) {
 
   // Test Table Find (sleep on projection)
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     wipe_all();
@@ -745,8 +785,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table) {
     // match either KeyboardInterrupt or Query execution was interrupted
     MY_EXPECT_STDERR_CONTAINS("interrupt");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("db.get_table('data').select(['b']).execute()");
@@ -767,9 +806,11 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table2) {
   ASSERT_TRUE(session.get());
 
   {  // Again with sleep on filter
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute("db.get_table('data').select(['b']).where('sleep(20)').execute();");
@@ -778,8 +819,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table2) {
     // match either KeyboardInterrupt or Query execution was interrupted
     MY_EXPECT_STDERR_CONTAINS("interrupt");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute("db.get_table('data').select(['b']).execute();");
@@ -801,9 +841,11 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection) {
 
   // Test Collection Find
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -813,8 +855,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute(
@@ -838,9 +879,11 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
 
   wipe_all();
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -849,8 +892,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
     execute(
@@ -863,9 +905,11 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
   // Ensure query is killed
   wipe_all();
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "sleep",
-                   k_processlist_info_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "sleep", k_processlist_info_column);
       shcore::Interrupts::interrupt();
     });
     execute(
@@ -874,8 +918,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("Query OK");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     wipe_all();
     execute("db.get_collection('cdata').find('x = 123').execute()");
     MY_EXPECT_STDOUT_CONTAINS("Empty set");
@@ -905,31 +948,33 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
       "insert into itst.cdata (doc) values ('{\"_id\":\"dummyyy\"}')");
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "Waiting",
-                   k_processlist_state_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
     execute("session.getSchema('itst').dropCollection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
   }
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "Waiting",
-                   k_processlist_state_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
     execute("session.dropSchema('itst')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     wipe_all();
   }
@@ -967,32 +1012,34 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
       "insert into itst.cdata (doc) values ('{\"_id\":\"dummyyy\"}')");
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "Waiting",
-                   k_processlist_state_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
     execute("session.get_schema('itst').drop_collection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     execute("print 'flush'");  // this will flush any pending async callbacks
     wipe_all();
   }
 
   {
-    std::thread thd([this, session]() {
-      session_wait(session->get_connection_id(), 3, "Waiting",
-                   k_processlist_state_column);
+    // thread should not use `session`, get the connection ID before creating it
+    const auto connection_id = session->get_connection_id();
+    std::thread thd([connection_id]() {
+      Mysql_thread thd;
+      session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
       shcore::Interrupts::interrupt();
     });
     execute("session.drop_schema('itst')");
     MY_EXPECT_STDERR_CONTAINS("nterrupt");
     thd.join();
-    session_wait(session->get_connection_id(), 3, "Sleep",
-                 k_processlist_command_column);
+    session_wait(connection_id, 3, "Sleep", k_processlist_command_column);
     // ensure next query runs ok
     execute("print 'flush'");  // this will flush any pending async callbacks
     wipe_all();
