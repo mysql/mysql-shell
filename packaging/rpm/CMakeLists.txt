@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,10 @@ project(mysh_rpm_init NONE)
 
 SET(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../../")
 include(../../version.cmake)
+
+# We make sure it loads only the protobuf version
+set(ONLY_PROTOBUF_VERSION 1)
+include(../../cmake/protobuf.cmake)
 
 #set(YEAR      2016)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")

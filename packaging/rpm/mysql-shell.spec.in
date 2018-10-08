@@ -37,7 +37,7 @@ License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
 BuildRequires:  cmake
-%if 0%{!?with_protobuf:1}
+%if 0%{!?with_protobuf:1} && 0%{!?with_mysql_source:1}
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
 %endif
@@ -89,6 +89,11 @@ cmake .. \
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
     -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
+    %if 0%{!?with_protobuf:1}
+      -DPROTOBUF_INCLUDE_DIR="%{?with_mysql_source}/extra/protobuf/protobuf-@PROTOBUF_VERSION@/src" \
+      -DPROTOBUF_LIBRARY="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a" \
+      -DPROTOBUF_LIBRARY_DEBUG="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a"\
+    %endif
 %endif
     -DHAVE_PYTHON=1 \
 
@@ -124,6 +129,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_datadir}/mysqlsh/upgrade_checker.msg
 
 %changelog
+* Mon Oct 8 2018 Rene Ramirez <j.rene.ramirez@oracle.com> - 8.0.14
+- Update to use mysql server bundled protobuf if no specific is defined.
+
 * Fri May 18 2018 Pawel Andruszkiewicz <pawel.andruszkiewicz@oracle.com> - 8.0.12
 - Add login-path helper.
 

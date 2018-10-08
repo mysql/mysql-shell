@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 # default locations will be searched.
 #
 
+SET(PROTOBUF_VERSION "3.6.1")
 SET(WITH_PROTOBUF $ENV{WITH_PROTOBUF} CACHE PATH "Protobuf location")
 
 IF(WITH_PROTOBUF)
@@ -82,14 +83,27 @@ IF(WITH_PROTOBUF)
     ENDIF()
 
   ENDIF()
-
+ELSE()
+  IF (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
+    SET(PROTOBUF_INCLUDE_DIR "${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
+    IF (WIN32)
+      SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf.lib")
+      SET(PROTOBUF_LIBRARY_DEBUG "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf.lib")
+    ELSE()
+      SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+      SET(PROTOBUF_LIBRARY_DEBUG "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+    ENDIF()
+  ENDIF()
 ENDIF()
 
-FIND_PACKAGE(Protobuf "2.6.0" REQUIRED)
+# Protobuf will only be required if ONLY_PROTOBUF_VERSION is not defined
+if (NOT ONLY_PROTOBUF_VERSION)
+  FIND_PACKAGE(Protobuf "${PROTOBUF_VERSION}" REQUIRED)
 
-IF(NOT PROTOBUF_FOUND)
-  MESSAGE(FATAL_ERROR "Protobuf could not be found")
+  IF(NOT PROTOBUF_FOUND)
+    MESSAGE(FATAL_ERROR "Protobuf could not be found")
+  ENDIF()
+
+  MESSAGE("PROTOBUF_INCLUDE_DIRS: ${PROTOBUF_INCLUDE_DIRS}")
+  MESSAGE("PROTOBUF_LIBRARIES: ${PROTOBUF_LIBRARIES}")
 ENDIF()
-
-MESSAGE("PROTOBUF_INCLUDE_DIRS: ${PROTOBUF_INCLUDE_DIRS}")
-MESSAGE("PROTOBUF_LIBRARIES: ${PROTOBUF_LIBRARIES}")

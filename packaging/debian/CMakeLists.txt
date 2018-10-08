@@ -34,7 +34,11 @@ project(mysh_deb_init NONE)
 set(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../..")
 include(../../version.cmake)
 
-set(YEAR      2017)  # FIXME automate somehow
+# We make sure it loads only the protobuf version
+set(ONLY_PROTOBUF_VERSION 1)
+include(../../cmake/protobuf.cmake)
+
+set(YEAR      2018)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")
 
 if(NOT DEBIAN_REVISION)
@@ -127,8 +131,14 @@ endif()
 if(WITH_PROTOBUF)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_PROTOBUF=${WITH_PROTOBUF}")
 else()
-  list(APPEND DEB_BUILD_DEPS "libprotobuf-dev")
-  list(APPEND DEB_BUILD_DEPS "protobuf-compiler")
+  if (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
+    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_INCLUDE_DIR=${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
+    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY_DEBUG=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+  else()
+    list(APPEND DEB_BUILD_DEPS "libprotobuf-dev")
+    list(APPEND DEB_BUILD_DEPS "protobuf-compiler")
+  endif()
 endif()
 
 if(V8_INCLUDE_DIR)
