@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,17 +22,21 @@
  */
 
 #include "modules/devapi/mod_mysqlx_session_sql.h"
+#include <mysqld_error.h>
 #include <memory>
 #include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/devapi/protobuf_bridge.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
 using namespace std::placeholders;
-using namespace mysqlsh::mysqlx;
 using namespace shcore;
+
+namespace mysqlsh {
+namespace mysqlx {
 
 // Documentation of SqlExecute class
 REGISTER_HELP_CLASS(SqlExecute, mysqlx);
@@ -44,7 +48,7 @@ REGISTER_HELP(SQLEXECUTE_DETAIL,
               "at a Session instance.");
 
 SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
-    : Dynamic_object(), _session(owner) {
+    : Dynamic_object(), _session(owner), m_execution_count(0) {
   // Exposes the methods available for chaining
   add_method("sql", std::bind(&SqlExecute::sql, this, _1), "data");
   add_method("bind", std::bind(&SqlExecute::bind, this, _1), "data");
@@ -53,13 +57,10 @@ SqlExecute::SqlExecute(std::shared_ptr<Session> owner)
   add_method("execute", std::bind(&SqlExecute::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::sql, F::_empty);
-  register_dynamic_function(F::bind, F::sql | F::bind);
-  register_dynamic_function(F::execute, F::sql | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::sql | F::bind);
+  register_dynamic_function(F::sql, F::bind | F::execute | F::__shell_hook__);
 
   // Initial function update
-  update_functions(F::_empty);
+  enable_function(F::sql);
 }
 
 // Documentation of sql function
@@ -249,13 +250,73 @@ shcore::Value SqlExecute::execute(const shcore::Argument_list &args) {
 
   try {
     if (auto session = _session.lock()) {
-      ret_val = session->_execute_sql(_sql, _parameters);
+      // Prepared statements are used when the statement is executed a
+      // more than once after the last statement update
+      if (session->allow_prepared_statements() && m_execution_count >= 1) {
+        // If the statement has not been prepared, then it gets prepared
+        // If the prepare fails because of ER_UNKNOWN_COM_ERROR, then prepare
+        // is not supported and should be disabled
+        if (!m_prep_stmt.has_stmt_id()) {
+          try {
+            m_prep_stmt.set_stmt_id(session->session()->next_prep_stmt_id());
+
+            m_prep_stmt.mutable_stmt()->set_type(
+                Mysqlx::Prepare::Prepare_OneOfMessage_Type_STMT);
+            m_prep_stmt.mutable_stmt()->mutable_stmt_execute()->set_stmt(_sql);
+            m_prep_stmt.mutable_stmt()->mutable_stmt_execute()->set_namespace_(
+                "sql");
+
+            session->session()->prepare_stmt(m_prep_stmt);
+          } catch (const mysqlshdk::db::Error &error) {
+            m_prep_stmt.clear_stmt_id();
+            if (ER_UNKNOWN_COM_ERROR == error.code()) {
+              session->disable_prepared_statements();
+              ret_val = execute_sql(session);
+            } else {
+              throw;
+            }
+          }
+        }
+
+        // If preparation succeeded then does normal prepared statement
+        // execution any execution error should just be reported
+        if (m_prep_stmt.has_stmt_id()) {
+          Mysqlx::Prepare::Execute execute;
+          execute.set_stmt_id(m_prep_stmt.stmt_id());
+          insert_bound_values(&_parameters, execute.mutable_args());
+
+          auto result = std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(
+              session->session()->execute_prep_stmt(execute));
+          auto *sql_result = new SqlResult(result);
+          ret_val = shcore::Value::wrap(sql_result);
+        }
+      } else {
+        ret_val = execute_sql(session);
+      }
     } else {
       throw shcore::Exception::logic_error(
           "Unable to execute sql, no Session available");
     }
+    m_execution_count++;
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("execute"));
 
   return ret_val;
 }
+
+shcore::Value SqlExecute::execute_sql(
+    const std::shared_ptr<mysqlsh::mysqlx::Session> &session) {
+  shcore::Value ret_val;
+  try {
+    ret_val = session->_execute_sql(_sql, _parameters);
+    _parameters.clear();
+  } catch (...) {
+    _parameters.clear();
+    throw;
+  }
+
+  return ret_val;
+}
+
+}  // namespace mysqlx
+}  // namespace mysqlsh

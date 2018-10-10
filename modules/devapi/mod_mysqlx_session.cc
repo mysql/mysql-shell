@@ -126,7 +126,7 @@ shcore::Value Session::_is_open(const shcore::Argument_list &args) {
 }
 
 Session::Session(std::shared_ptr<mysqlshdk::db::mysqlx::Session> session)
-    : _case_sensitive_table_names(false) {
+    : _case_sensitive_table_names(false), m_allow_prepared_statements(true) {
   init();
 
   // TODO(alfredo) maybe can remove _connection_options ivar

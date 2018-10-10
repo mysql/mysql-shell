@@ -98,12 +98,10 @@ Value Dynamic_object::call(const std::string &name,
 }
 
 void Dynamic_object::register_dynamic_function(
-    Allowed_function_mask name, Allowed_function_mask enable_after) {
+    Allowed_function_mask name, Allowed_function_mask on_call_enable,
+    Allowed_function_mask on_call_disable, bool allow_reuse) {
   // name must be a power of 2 and not 0
   assert((name & (name - 1)) == 0 && name != 0);
-
-  // Adds the function to the enabled/disabled state registry
-  enabled_functions_ |= name;
 
 #ifdef _WIN32
   DWORD x = 0;
@@ -112,26 +110,28 @@ void Dynamic_object::register_dynamic_function(
   size_t x = __builtin_ctz(name);
 #endif
   // We can't register more functions than enabled_paths_ can store.
-  assert(static_cast<size_t>(x) < shcore::array_size(enabled_paths_));
+  assert(static_cast<size_t>(x) < shcore::array_size(m_on_call_enable));
 
-  enabled_paths_[x] = enable_after;
+  m_on_call_enable[x] = on_call_enable;
+  m_on_call_disable[x] = on_call_disable;
+
+  // Also disables function if reuse is not allowed
+  if (!allow_reuse) m_on_call_disable[x] |= name;
 }
 
 void Dynamic_object::update_functions(Allowed_function_mask f) {
   // f must be a power of 2 and not 0
   assert((f & (f - 1)) == 0 && f != 0);
 
-  for (size_t i = 0; i < shcore::array_size(enabled_paths_); i++) {
-    bool enable = enabled_paths_[i] & f;
-    uint32_t name = (1U << i);
+#ifdef _WIN32
+  DWORD x = 0;
+  (void)_BitScanForward(&x, f);
+#else
+  size_t x = __builtin_ctz(f);
+#endif
 
-    // enable function
-    if (enable) {
-      enabled_functions_ |= name;
-    } else {
-      enabled_functions_ &= ~name;
-    }
-  }
+  enabled_functions_ |= m_on_call_enable[x];
+  enabled_functions_ &= ~m_on_call_disable[x];
 }
 
 bool Dynamic_object::is_enabled(const std::string &name) const {
@@ -140,7 +140,7 @@ bool Dynamic_object::is_enabled(const std::string &name) const {
   if (func) {
     // filter out disabled functions
     auto f = function_name_to_bitmask(func->name(shcore::LowerCamelCase));
-    return f & enabled_functions_;
+    return bool(f & enabled_functions_);
   }
   return false;
 }

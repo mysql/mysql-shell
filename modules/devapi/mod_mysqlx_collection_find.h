@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,46 +96,40 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value group_by(const shcore::Argument_list &args);
   shcore::Value having(const shcore::Argument_list &args);
   shcore::Value sort(const shcore::Argument_list &args);
-  shcore::Value limit(const shcore::Argument_list &args);
-  shcore::Value skip(const shcore::Argument_list &args);
-  shcore::Value offset(const shcore::Argument_list &args);
   shcore::Value lock_shared(const shcore::Argument_list &args);
   shcore::Value lock_exclusive(const shcore::Argument_list &args);
-  shcore::Value bind_(const shcore::Argument_list &args);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
   CollectionFind &set_filter(const std::string &filter);
-  CollectionFind &bind(const std::string &name, shcore::Value value);
   std::unique_ptr<DocResult> execute();
 
  private:
   Mysqlx::Crud::Find message_;
   void set_lock_contention(const shcore::Argument_list &args);
+  void set_prepared_stmt() override;
+  void update_limits() override { set_limits_on_message(&message_); }
+  shcore::Value this_object() override;
 
   struct F {
     static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask _empty = 1 << 1;
-    static constexpr Allowed_function_mask find = 1 << 2;
-    static constexpr Allowed_function_mask fields = 1 << 3;
-    static constexpr Allowed_function_mask groupBy = 1 << 4;
-    static constexpr Allowed_function_mask having = 1 << 5;
-    static constexpr Allowed_function_mask sort = 1 << 6;
-    static constexpr Allowed_function_mask limit = 1 << 7;
-    static constexpr Allowed_function_mask skip = 1 << 8;
-    static constexpr Allowed_function_mask offset = 1 << 9;
-    static constexpr Allowed_function_mask lockShared = 1 << 10;
-    static constexpr Allowed_function_mask lockExclusive = 1 << 11;
-    static constexpr Allowed_function_mask bind = 1 << 12;
-    static constexpr Allowed_function_mask execute = 1 << 13;
+    static constexpr Allowed_function_mask find = 1 << 1;
+    static constexpr Allowed_function_mask fields = 1 << 2;
+    static constexpr Allowed_function_mask groupBy = 1 << 3;
+    static constexpr Allowed_function_mask having = 1 << 4;
+    static constexpr Allowed_function_mask sort = 1 << 5;
+    static constexpr Allowed_function_mask limit = 1 << 6;
+    static constexpr Allowed_function_mask skip = 1 << 7;
+    static constexpr Allowed_function_mask offset = 1 << 8;
+    static constexpr Allowed_function_mask lockShared = 1 << 9;
+    static constexpr Allowed_function_mask lockExclusive = 1 << 10;
+    static constexpr Allowed_function_mask bind = 1 << 11;
+    static constexpr Allowed_function_mask execute = 1 << 12;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
     if ("__shell_hook__" == s) {
       return F::__shell_hook__;
-    }
-    if ("" == s) {
-      return F::_empty;
     }
     if ("find" == s) {
       return F::find;

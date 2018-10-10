@@ -101,6 +101,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   Shell_script_tester();
 
   virtual void SetUp();
+  virtual void TearDown();
 
   void validate_batch(const std::string &name);
   void validate_interactive(const std::string &name);
@@ -113,6 +114,11 @@ class Shell_script_tester : public Crud_test_wrapper {
 
  protected:
   virtual void reset_shell();
+
+  std::streambuf *_cout_backup;
+  std::ostringstream _cout;
+
+  void test_protocol_level();
 
  protected:
   std::string _setup_script;        // Name of the active script

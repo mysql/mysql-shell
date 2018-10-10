@@ -25,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
@@ -51,52 +50,64 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   message_.mutable_collection()->set_schema(owner->schema()->name());
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::DOCUMENT);
+
+  auto limit_id = F::limit;
+  auto offset_id = F::offset;
+  auto bind_id = F::bind;
   // Exposes the methods available for chaining
   add_method("find", std::bind(&CollectionFind::find, this, _1), "data");
   add_method("fields", std::bind(&CollectionFind::fields, this, _1), "data");
   add_method("groupBy", std::bind(&CollectionFind::group_by, this, _1), "data");
   add_method("having", std::bind(&CollectionFind::having, this, _1), "data");
   add_method("sort", std::bind(&CollectionFind::sort, this, _1), "data");
-  add_method("skip", std::bind(&CollectionFind::skip, this, _1), "data");
-  add_method("offset", std::bind(&CollectionFind::offset, this, _1), "data");
-  add_method("limit", std::bind(&CollectionFind::limit, this, _1), "data");
+  add_method("skip",
+             std::bind(&CollectionFind::offset, this, _1, offset_id, "skip"),
+             "data");
+  add_method("offset",
+             std::bind(&CollectionFind::offset, this, _1, offset_id, "offset"),
+             "data");
+  add_method("limit",
+             std::bind(&CollectionFind::limit, this, _1, limit_id, true),
+             "data");
   add_method("lockShared", std::bind(&CollectionFind::lock_shared, this, _1));
   add_method("lockExclusive",
              std::bind(&CollectionFind::lock_exclusive, this, _1));
-  add_method("bind", std::bind(&CollectionFind::bind_, this, _1), "data");
+  add_method("bind", std::bind(&CollectionFind::bind_, this, _1, bind_id),
+             "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::find, F::_empty);
-  register_dynamic_function(F::fields, F::find);
-  register_dynamic_function(F::groupBy, F::find | F::fields);
-  register_dynamic_function(F::having, F::groupBy);
-  register_dynamic_function(F::sort,
-                            F::find | F::fields | F::groupBy | F::having);
   register_dynamic_function(
-      F::limit, F::find | F::fields | F::groupBy | F::having | F::sort);
-  register_dynamic_function(F::skip, F::limit);
-  register_dynamic_function(F::offset, F::limit);
-  register_dynamic_function(F::lockShared, F::find | F::fields | F::groupBy |
-                                               F::having | F::sort | F::skip |
-                                               F::offset | F::limit);
-  register_dynamic_function(
-      F::lockExclusive, F::find | F::fields | F::groupBy | F::having | F::sort |
-                            F::skip | F::offset | F::limit);
-  register_dynamic_function(F::bind, F::find | F::fields | F::groupBy |
-                                         F::having | F::sort | F::skip |
-                                         F::offset | F::limit | F::lockShared |
-                                         F::lockExclusive | F::bind);
-  register_dynamic_function(
-      F::execute, F::find | F::fields | F::groupBy | F::having | F::sort |
-                      F::skip | F::limit | F::offset | F::lockShared |
-                      F::lockExclusive | F::bind);
-  register_dynamic_function(F::__shell_hook__,
-                            F::find | F::fields | F::groupBy | F::having |
-                                F::sort | F::skip | F::limit | F::offset |
-                                F::lockShared | F::lockExclusive | F::bind);
+      F::find, F::fields | F::groupBy | F::sort | F::limit | F::lockShared |
+                   F::lockExclusive | F::bind | F::execute | F::__shell_hook__);
+  register_dynamic_function(F::fields);
+  register_dynamic_function(F::groupBy, F::having, F::fields);
+  register_dynamic_function(F::having);
+  register_dynamic_function(F::sort, K_ENABLE_NONE,
+                            F::fields | F::groupBy | F::having);
+  register_dynamic_function(F::limit, F::skip | F::offset,
+                            F::fields | F::groupBy | F::having | F::sort);
+  register_dynamic_function(F::offset, K_ENABLE_NONE, F::limit | F::skip);
+  register_dynamic_function(F::skip, K_ENABLE_NONE, F::limit | F::offset);
+  register_dynamic_function(F::lockShared, K_ENABLE_NONE,
+                            F::lockExclusive | F::fields | F::groupBy |
+                                F::having | F::sort | F::limit | F::offset |
+                                F::skip);
+  register_dynamic_function(F::lockExclusive, K_ENABLE_NONE,
+                            F::lockShared | F::fields | F::groupBy | F::having |
+                                F::sort | F::limit | F::offset | F::skip);
+  register_dynamic_function(F::bind, K_ENABLE_NONE,
+                            F::lockExclusive | F::lockShared | F::fields |
+                                F::groupBy | F::having | F::sort | F::limit |
+                                F::offset | F::skip,
+                            K_ALLOW_REUSE);
+  register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
-  // Initial function update
-  update_functions(F::_empty);
+  enable_function(F::find);
+}
+
+shcore::Value CollectionFind::this_object() {
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 REGISTER_HELP_FUNCTION(find, CollectionFind);
@@ -350,8 +361,6 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
             "Argument #1 is expected to be a string, array of strings or a "
             "JSON expression");
       }
-
-      update_functions(F::fields);
     } else {
       std::vector<std::string> fields;
       parse_string_list(args, fields);
@@ -361,6 +370,9 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
             *message_.mutable_projection(), field);
       }
     }
+
+    update_functions(F::fields);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.fields");
 
@@ -447,6 +459,8 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
           ::mysqlx::parser::parse_collection_filter(field));
 
     update_functions(F::groupBy);
+
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
@@ -534,6 +548,8 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
                                                   &_placeholders));
 
     update_functions(F::having);
+
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.having");
 
@@ -647,6 +663,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
                                                      field);
 
     update_functions(F::sort);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.sort");
 
@@ -665,6 +682,7 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_RETURNS,
 REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
               "If used, the operation will return at most <b>numberOfDocs</b> "
               "documents.");
+REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
 
 /**
  * $(COLLECTIONFIND_LIMIT_BRIEF)
@@ -695,9 +713,11 @@ REGISTER_HELP(COLLECTIONFIND_LIMIT_DETAIL,
  * - having(String searchCondition)
  * - sort(List sortExprStr)
  *
+ * $(LIMIT_EXECUTION_MODE)
+ *
  * After this function invocation, the following functions can be invoked:
  *
- * - skip(Integer limitOffset)
+ * - offset(Integer limitOffset)
  */
 #if DOXYGEN_JS
 /**
@@ -728,18 +748,6 @@ CollectionFind CollectionFind::limit(Integer numberOfDocs) {}
 CollectionFind CollectionFind::limit(int numberOfDocs) {}
 #endif
 //@}
-shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
-  args.ensure_count(1, "CollectionFind.limit");
-
-  try {
-    message_.mutable_limit()->set_row_count(args.uint_at(0));
-
-    update_functions(F::limit);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.limit");
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP_FUNCTION(skip, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_SKIP_BRIEF,
@@ -806,22 +814,6 @@ CollectionFind CollectionFind::skip(Integer numberOfDocs) {}
 CollectionFind CollectionFind::skip(int numberOfDocs) {}
 #endif
 //@}
-shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
-  args.ensure_count(1, "CollectionFind.skip");
-
-  log_warning("'%s' is deprecated, use '%s' instead.",
-              get_function_name("skip").c_str(),
-              get_function_name("offset").c_str());
-
-  try {
-    message_.mutable_limit()->set_offset(args.uint_at(0));
-
-    update_functions(F::skip);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.skip");
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP(COLLECTIONFIND_OFFSET_BRIEF,
               "Sets number of documents to skip on the resultset when a limit "
@@ -884,18 +876,6 @@ CollectionFind CollectionFind::offset(Integer quantity) {}
 CollectionFind CollectionFind::offset(int quantity) {}
 #endif
 //@}
-shcore::Value CollectionFind::offset(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("offset").c_str());
-
-  try {
-    message_.mutable_limit()->set_offset(args.uint_at(0));
-
-    update_functions(F::skip);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.offset");
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
   std::string lock_contention;
@@ -1048,6 +1028,7 @@ shcore::Value CollectionFind::lock_shared(const shcore::Argument_list &args) {
     set_lock_contention(args);
 
     update_functions(F::lockShared);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("lockShared"));
 
@@ -1181,6 +1162,7 @@ shcore::Value CollectionFind::lock_exclusive(
     set_lock_contention(args);
 
     update_functions(F::lockExclusive);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("lockExclusive"));
 
@@ -1241,24 +1223,6 @@ CollectionFind CollectionFind::bind(String name, Value value) {}
 CollectionFind CollectionFind::bind(str name, Value value) {}
 #endif
 //@}
-shcore::Value CollectionFind::bind_(const shcore::Argument_list &args) {
-  args.ensure_count(2, "CollectionFind.bind");
-
-  try {
-    bind_value(args.string_at(0), args[1]);
-
-    update_functions(F::bind);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.bind");
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
-
-CollectionFind &CollectionFind::bind(const std::string &name,
-                                     shcore::Value value) {
-  bind_value(name, value);
-  return *this;
-}
 
 REGISTER_HELP_FUNCTION(execute, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_EXECUTE_BRIEF,
@@ -1342,18 +1306,33 @@ shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
   std::unique_ptr<DocResult> result;
   try {
     result = execute();
+    update_functions(F::execute);
+    if (!m_limit.is_null()) {
+      enable_function(F::offset);
+      enable_function(F::skip);
+    }
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }
 
+void CollectionFind::set_prepared_stmt() {
+  m_prep_stmt.mutable_stmt()->set_type(
+      Mysqlx::Prepare::Prepare_OneOfMessage_Type_FIND);
+  message_.clear_args();
+  update_limits();
+  *m_prep_stmt.mutable_stmt()->mutable_find() = message_;
+}
+
 std::unique_ptr<DocResult> CollectionFind::execute() {
   std::unique_ptr<DocResult> result;
 
-  insert_bound_values(message_.mutable_args());
-  result.reset(new DocResult(safe_exec(
-      [this]() { return session()->session()->execute_crud(message_); })));
+  result.reset(new DocResult(safe_exec([this]() {
+    update_limits();
+    insert_bound_values(message_.mutable_args());
+    return session()->session()->execute_crud(message_);
+  })));
 
   return result;
 }

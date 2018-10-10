@@ -24,7 +24,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
@@ -47,50 +46,57 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::TABLE);
 
+  auto limit_id = F::limit;
+  auto offset_id = F::offset;
+  auto bind_id = F::bind;
   // Exposes the methods available for chaining
   add_method("select", std::bind(&TableSelect::select, this, _1), "data");
   add_method("where", std::bind(&TableSelect::where, this, _1), "data");
   add_method("groupBy", std::bind(&TableSelect::group_by, this, _1), "data");
   add_method("having", std::bind(&TableSelect::having, this, _1), "data");
   add_method("orderBy", std::bind(&TableSelect::order_by, this, _1), "data");
-  add_method("limit", std::bind(&TableSelect::limit, this, _1), "data");
-  add_method("offset", std::bind(&TableSelect::offset, this, _1), "data");
-  add_method("bind", std::bind(&TableSelect::bind, this, _1), "data");
+  add_method("limit", std::bind(&TableSelect::limit, this, _1, limit_id, true),
+             "data");
+  add_method("offset",
+             std::bind(&TableSelect::offset, this, _1, offset_id, "offset"),
+             "data");
+  add_method("bind", std::bind(&TableSelect::bind_, this, _1, bind_id), "data");
   add_method("lockShared", std::bind(&TableSelect::lock_shared, this, _1));
   add_method("lockExclusive",
              std::bind(&TableSelect::lock_exclusive, this, _1));
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::select, F::_empty);
-  register_dynamic_function(F::where, F::select);
-  register_dynamic_function(F::groupBy, F::select | F::where);
-  register_dynamic_function(F::having, F::groupBy);
-  register_dynamic_function(F::orderBy,
-                            F::select | F::where | F::groupBy | F::having);
+  register_dynamic_function(F::select, F::where | F::groupBy | F::orderBy |
+                                           F::limit | F::lockShared |
+                                           F::lockExclusive | F::bind |
+                                           F::execute | F::__shell_hook__);
+  register_dynamic_function(F::where);
+  register_dynamic_function(F::groupBy, F::having, F::where);
+  register_dynamic_function(F::having);
+  register_dynamic_function(F::orderBy, K_ENABLE_NONE,
+                            F::where | F::groupBy | F::having);
+  register_dynamic_function(F::limit, F::offset,
+                            F::where | F::groupBy | F::having | F::orderBy);
+  register_dynamic_function(F::offset);
   register_dynamic_function(
-      F::limit, F::select | F::where | F::groupBy | F::having | F::orderBy);
-  register_dynamic_function(F::offset, F::limit);
-  register_dynamic_function(F::lockShared, F::select | F::where | F::groupBy |
-                                               F::having | F::orderBy |
-                                               F::offset | F::limit);
-  register_dynamic_function(F::lockExclusive,
-                            F::select | F::where | F::groupBy | F::having |
-                                F::orderBy | F::offset | F::limit);
-  register_dynamic_function(F::bind, F::select | F::where | F::groupBy |
-                                         F::having | F::orderBy | F::offset |
-                                         F::limit | F::lockShared |
-                                         F::lockExclusive | F::bind);
-  register_dynamic_function(F::execute, F::select | F::where | F::groupBy |
-                                            F::having | F::orderBy | F::offset |
-                                            F::limit | F::lockShared |
-                                            F::lockExclusive | F::bind);
+      F::lockShared, K_ENABLE_NONE,
+      F::lockExclusive | F::where | F::groupBy | F::limit | F::orderBy);
   register_dynamic_function(
-      F::__shell_hook__, F::select | F::where | F::groupBy | F::having |
-                             F::orderBy | F::offset | F::limit | F::lockShared |
-                             F::lockExclusive | F::bind);
+      F::lockExclusive, K_ENABLE_NONE,
+      F::lockShared | F::where | F::groupBy | F::limit | F::orderBy);
+  register_dynamic_function(F::bind, K_ENABLE_NONE,
+                            F::groupBy | F::having | F::where | F::orderBy |
+                                F::limit | F::lockShared | F::lockExclusive,
+                            K_ALLOW_REUSE);
+  register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
   // Initial function update
-  update_functions(F::_empty);
+  enable_function(F::select);
+}
+
+shcore::Value TableSelect::this_object() {
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 REGISTER_HELP_FUNCTION(select, TableSelect);
@@ -182,6 +188,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args) {
 
       // Updates the exposed functions
       update_functions(F::select);
+      reset_prepared_statement();
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("select"));
   }
@@ -265,6 +272,7 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args) {
         args.string_at(0), &_placeholders));
 
     update_functions(F::where);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
@@ -345,6 +353,7 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
     }
 
     update_functions(F::groupBy);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
@@ -424,6 +433,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args) {
                                              &_placeholders));
 
     update_functions(F::having);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("having"));
 
@@ -522,6 +532,7 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
     }
 
     update_functions(F::orderBy);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
@@ -539,6 +550,7 @@ REGISTER_HELP(TABLESELECT_LIMIT_RETURNS, "@returns This TableSelect object.");
 REGISTER_HELP(
     TABLESELECT_LIMIT_DETAIL,
     "If used, the operation will return at most <b>numberOfRows</b> rows.");
+REGISTER_HELP(TABLESELECT_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
 
 /**
  * $(TABLESELECT_LIMIT_BRIEF)
@@ -558,6 +570,8 @@ REGISTER_HELP(
  * - groupBy(List searchExprStr)
  * - having(String searchCondition)
  * - orderBy(List sortExprStr)
+ *
+ * $(LIMIT_EXECUTION_MODE)
  *
  * After this function invocation, the following functions can be invoked:
  *
@@ -594,18 +608,6 @@ TableSelect TableSelect::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::limit(int numberOfRows) {}
 #endif
-shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("limit").c_str());
-
-  try {
-    message_.mutable_limit()->set_row_count(args.uint_at(0));
-
-    update_functions(F::limit);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP_FUNCTION(offset, TableSelect);
 REGISTER_HELP(TABLESELECT_OFFSET_BRIEF,
@@ -635,7 +637,28 @@ REGISTER_HELP(TABLESELECT_OFFSET_DETAIL,
  * - limit(Integer numberOfRows)
  *
  * After this function invocation, the following functions can be invoked:
- *
+ */
+#if DOXYGEN_JS
+/**
+ * - lockShared(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_shared(str lockContention)
+ */
+#endif
+/**
+ */
+#if DOXYGEN_JS
+/**
+ * - lockExclusive(String lockContention)
+ */
+#elif DOXYGEN_PY
+/**
+ * - lock_exclusive(str lockContention)
+ */
+#endif
+/**
  * - bind(String name, Value value)
  * - execute()
  *
@@ -646,18 +669,6 @@ TableSelect TableSelect::offset(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableSelect TableSelect::offset(int numberOfRows) {}
 #endif
-shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("offset").c_str());
-
-  try {
-    message_.mutable_limit()->set_offset(args.uint_at(0));
-
-    update_functions(F::offset);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("offset"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 void TableSelect::set_lock_contention(const shcore::Argument_list &args) {
   std::string lock_contention;
@@ -811,6 +822,7 @@ shcore::Value TableSelect::lock_shared(const shcore::Argument_list &args) {
     set_lock_contention(args);
 
     update_functions(F::lockShared);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("lockShared"));
 
@@ -943,6 +955,7 @@ shcore::Value TableSelect::lock_exclusive(const shcore::Argument_list &args) {
     set_lock_contention(args);
 
     update_functions(F::lockExclusive);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("lockExclusive"));
 
@@ -1002,19 +1015,6 @@ TableSelect TableSelect::bind(String name, Value value) {}
 TableSelect TableSelect::bind(str name, Value value) {}
 #endif
 
-shcore::Value TableSelect::bind(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("bind").c_str());
-
-  try {
-    bind_value(args.string_at(0), args[1]);
-
-    update_functions(F::bind);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
-
 REGISTER_HELP_FUNCTION(execute, TableSelect);
 REGISTER_HELP(TABLESELECT_EXECUTE_BRIEF,
               "Executes the select operation with all the configured options.");
@@ -1053,11 +1053,24 @@ shcore::Value TableSelect::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlx::RowResult> result;
   args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    insert_bound_values(message_.mutable_args());
-    result.reset(new mysqlx::RowResult(safe_exec(
-        [this]() { return session()->session()->execute_crud(message_); })));
+    result.reset(new mysqlx::RowResult(safe_exec([this]() {
+      update_limits();
+      insert_bound_values(message_.mutable_args());
+      return session()->session()->execute_crud(message_);
+    })));
+
+    update_functions(F::execute);
+    if (!m_limit.is_null()) enable_function(F::offset);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
+}
+
+void TableSelect::set_prepared_stmt() {
+  m_prep_stmt.mutable_stmt()->set_type(
+      Mysqlx::Prepare::Prepare_OneOfMessage_Type_FIND);
+  message_.clear_args();
+  update_limits();
+  *m_prep_stmt.mutable_stmt()->mutable_find() = message_;
 }

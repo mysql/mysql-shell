@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,21 +63,35 @@ class Dynamic_object : public shcore::Cpp_object_bridge {
 
   //! Holds relation of 'enabled' states for every dynamic function
   //! IMPORTANT: 16 is number of max items in `struct F` in child.
-  Allowed_function_mask enabled_paths_[16] = {0};
+  Allowed_function_mask m_on_call_enable[16] = {0};
+  Allowed_function_mask m_on_call_disable[16] = {0};
+  static constexpr bool K_ALLOW_REUSE = true;
+  static constexpr Allowed_function_mask K_DISABLE_NONE = 0;
+  static constexpr Allowed_function_mask K_ENABLE_NONE = 0;
 
   /**
    * Registers a dynamic function and it's associated 'enabled' states exposed
    * by the object.
    *
    * @param name Bitmask with one bit set to true, indicates function name.
-   * @param enable_after Bitmask built with bit encoded function names, which
-   * indicates after what functions, `name`-function should be enabled.
+   * @param on_call_enable Bitmask built with bit encoded function names, which
+   * indicates the functions that should be enabled after name is called.
+   * @param on_call_disable Bitmask built with bit encoded function names, which
+   * indicates the functions that should be disabled after name is called.
+   * @param allow_reuse Indicates whether the name function can be called
+   * repeatedly, if false, the name function will be be disabled after called.
    */
   void register_dynamic_function(Allowed_function_mask name,
-                                 Allowed_function_mask enable_after);
+                                 Allowed_function_mask on_call_enable = 0,
+                                 Allowed_function_mask on_call_disable = 0,
+                                 bool allow_reuse = false);
 
   //! Enable/disable functions based on the received and registered states
   void update_functions(Allowed_function_mask source);
+
+  inline void enable_function(Allowed_function_mask f) {
+    enabled_functions_ |= f;
+  }
 
   bool is_enabled(const std::string &name) const;
 

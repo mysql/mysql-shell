@@ -69,7 +69,11 @@ validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionFind: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
+
+//@ CollectionFind: valid operations after execute with limit
+var result = crud.limit(1).bind('data', 'adam').execute();
+validate_crud_functions(crud, ['limit', 'offset', 'skip', 'bind', 'execute'])
 
 //@ Reusing CRUD with binding
 print(result.fetchOne().name + '\n');

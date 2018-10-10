@@ -477,6 +477,25 @@ std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {
   return shcore::path::join_path(g_test_home, file);
 }
 
+size_t find_token(const std::string &source, const std::string &find,
+                  const std::string &is_not, size_t start_pos) {
+  size_t ret_val = std::string::npos;
+
+  while (true) {
+    size_t found = source.find(find, start_pos);
+    size_t proto = source.find(is_not, start_pos);
+
+    if (found != std::string::npos && found == proto)
+      start_pos += proto + is_not.size();
+    else {
+      ret_val = found;
+      break;
+    }
+  }
+
+  return ret_val;
+}
+
 /**
  * Dynamically resolves strings based on predefined output tokens.
  *
@@ -515,12 +534,11 @@ std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {
 std::string Shell_test_env::resolve_string(const std::string &source) {
   std::string updated(source);
 
-  size_t start;
+  size_t start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
   size_t end;
 
-  start = updated.find("<<<");
   while (start != std::string::npos) {
-    end = updated.find(">>>", start);
+    end = find_token(updated, ">>>", ">>>> SEND", start);
 
     std::string token = updated.substr(start + 3, end - start - 3);
 
@@ -532,7 +550,7 @@ std::string Shell_test_env::resolve_string(const std::string &source) {
 
     updated.replace(start, end - start + 3, value);
 
-    start = updated.find("<<<");
+    start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
   }
 
   return updated;

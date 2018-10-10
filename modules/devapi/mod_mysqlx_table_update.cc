@@ -25,10 +25,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
+#include "modules/devapi/protobuf_bridge.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 
@@ -48,29 +48,39 @@ TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::TABLE);
 
+  auto limit_id = F::limit;
+  auto bind_id = F::bind;
   // Exposes the methods available for chaining
   add_method("update", std::bind(&TableUpdate::update, this, _1), "data");
   add_method("set", std::bind(&TableUpdate::set, this, _1), "data");
   add_method("where", std::bind(&TableUpdate::where, this, _1), "data");
   add_method("orderBy", std::bind(&TableUpdate::order_by, this, _1), "data");
-  add_method("limit", std::bind(&TableUpdate::limit, this, _1), "data");
-  add_method("bind", std::bind(&TableUpdate::bind, this, _1), "data");
+  add_method("limit", std::bind(&TableUpdate::limit, this, _1, limit_id, false),
+             "data");
+  add_method("bind", std::bind(&TableUpdate::bind_, this, _1, bind_id), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::update, F::_empty);
-  register_dynamic_function(F::set, F::update | F::set);
-  register_dynamic_function(F::where, F::set);
-  register_dynamic_function(F::orderBy, F::set | F::where);
-  register_dynamic_function(F::limit, F::set | F::where | F::orderBy);
-  register_dynamic_function(
-      F::bind, F::set | F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(
-      F::execute, F::set | F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(
-      F::__shell_hook__, F::set | F::where | F::orderBy | F::limit | F::bind);
+  register_dynamic_function(F::update, F::set);
+  register_dynamic_function(F::set,
+                            F::where | F::orderBy | F::limit | F::bind |
+                                F::execute | F::__shell_hook__,
+                            K_DISABLE_NONE, K_ALLOW_REUSE);
+  register_dynamic_function(F::where, K_ENABLE_NONE, F::set);
+  register_dynamic_function(F::orderBy, K_ENABLE_NONE, F::set | F::where);
+  register_dynamic_function(F::limit, K_ENABLE_NONE,
+                            F::set | F::where | F::orderBy);
+  register_dynamic_function(F::bind, K_ENABLE_NONE,
+                            F::set | F::where | F::orderBy | F::limit,
+                            K_ALLOW_REUSE);
+  register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
   // Initial function update
-  update_functions(F::_empty);
+  enable_function(F::update);
+}
+
+shcore::Value TableUpdate::this_object() {
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 REGISTER_HELP_FUNCTION(update, TableUpdate);
@@ -83,14 +93,9 @@ REGISTER_HELP(TABLEUPDATE_UPDATE_RETURNS, "@returns This TableUpdate object.");
  *
  * #### Method Chaining
  *
- * After this function invocation, the following functions can be invoked:
+ * After this function invocation, the following function can be invoked:
  *
  * - set(String attribute, Value value)
- * - where(String searchCriteria)
- * - orderBy(List sortExprStr)
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- * - execute()
  *
  * \sa Usage examples at execute().
  */
@@ -109,6 +114,7 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
     try {
       // Updates the exposed functions
       update_functions(F::update);
+      reset_prepared_statement();
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("update"));
   }
@@ -213,6 +219,7 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
     }
 
     update_functions(F::set);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
 
@@ -272,6 +279,7 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args) {
 
     // Updates the exposed functions
     update_functions(F::where);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
@@ -343,6 +351,7 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args) {
       ::mysqlx::parser::parse_table_sort_column(*message_.mutable_order(), f);
 
     update_functions(F::orderBy);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
@@ -359,6 +368,7 @@ REGISTER_HELP(TABLEUPDATE_LIMIT_RETURNS, "@returns This TableUpdate object.");
 REGISTER_HELP(
     TABLEUPDATE_LIMIT_DETAIL,
     "If used, the operation will update only <b>numberOfRows</b> rows.");
+REGISTER_HELP(TABLEUPDATE_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
 /**
  * $(TABLEUPDATE_LIMIT_BRIEF)
  *
@@ -376,6 +386,8 @@ REGISTER_HELP(
  * - where(String searchCondition)
  * - orderBy(List sortExprStr)
  *
+ * $(LIMIT_EXECUTION_MODE)
+ *
  * After this function invocation, the following functions can be invoked:
  *
  * - bind(String name, Value value)
@@ -388,18 +400,6 @@ TableUpdate TableUpdate::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::limit(int numberOfRows) {}
 #endif
-shcore::Value TableUpdate::limit(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("limit").c_str());
-
-  try {
-    message_.mutable_limit()->set_row_count(args.uint_at(0));
-
-    update_functions(F::limit);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP_FUNCTION(bind, TableUpdate);
 REGISTER_HELP(
@@ -427,7 +427,7 @@ REGISTER_HELP(TABLEUPDATE_BIND_DETAIL2,
  *
  * $(TABLEUPDATE_BIND_RETURNS)
  *
- * $(TABLEUPDATE_BIND_DETAIL)
+ * $(TABLEUPDATE_BIND_BRIEF)
  *
  * $(TABLEUPDATE_BIND_DETAIL1)
  *
@@ -455,18 +455,6 @@ TableUpdate TableUpdate::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 TableUpdate TableUpdate::bind(str name, Value value) {}
 #endif
-shcore::Value TableUpdate::bind(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("bind").c_str());
-
-  try {
-    bind_value(args.string_at(0), args[1]);
-
-    update_functions(F::bind);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP_FUNCTION(execute, TableUpdate);
 REGISTER_HELP(TABLEUPDATE_EXECUTE_BRIEF,
@@ -506,11 +494,23 @@ shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("execute").c_str());
 
   try {
-    insert_bound_values(message_.mutable_args());
-    result.reset(new mysqlx::Result(safe_exec(
-        [this]() { return session()->session()->execute_crud(message_); })));
+    result.reset(new mysqlx::Result(safe_exec([this]() {
+      update_limits();
+      insert_bound_values(message_.mutable_args());
+      return session()->session()->execute_crud(message_);
+    })));
+
+    update_functions(F::execute);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
+}
+
+void TableUpdate::set_prepared_stmt() {
+  m_prep_stmt.mutable_stmt()->set_type(
+      Mysqlx::Prepare::Prepare_OneOfMessage_Type_UPDATE);
+  message_.clear_args();
+  update_limits();
+  *m_prep_stmt.mutable_stmt()->mutable_update() = message_;
 }

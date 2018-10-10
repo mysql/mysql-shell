@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 
 #include <memory>
 #include <string>
+#include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/dynamic_object.h"
 
 namespace mysqlsh {
@@ -65,20 +66,21 @@ class SqlExecute : public Dynamic_object,
   std::weak_ptr<Session> _session;
   std::string _sql;
   shcore::Argument_list _parameters;
+  Mysqlx::Prepare::Prepare m_prep_stmt;
+  uint64_t m_execution_count;
+
+  shcore::Value execute_sql(
+      const std::shared_ptr<mysqlsh::mysqlx::Session> &session);
 
   struct F {
-    static constexpr Allowed_function_mask _empty = 1 << 0;
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
-    static constexpr Allowed_function_mask sql = 1 << 2;
-    static constexpr Allowed_function_mask bind = 1 << 3;
-    static constexpr Allowed_function_mask execute = 1 << 4;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
+    static constexpr Allowed_function_mask sql = 1 << 1;
+    static constexpr Allowed_function_mask bind = 1 << 2;
+    static constexpr Allowed_function_mask execute = 1 << 3;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) {
-      return F::_empty;
-    }
     if ("__shell_hook__" == s) {
       return F::__shell_hook__;
     }

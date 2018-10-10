@@ -317,6 +317,8 @@ SYNTAX
       limit(numberOfDocs)
             If used, the operation will return at most numberOfDocs documents.
 
+            This function can be called every time the statement is executed.
+
       skip(numberOfDocs)
             If used, the first numberOfDocs' records will not be included on
             the result.
@@ -621,6 +623,8 @@ SYNTAX
             This method is usually used in combination with sort to fix the
             amount of documents to be updated.
 
+            This function can be called every time the statement is executed.
+
       bind(name:, value:)
             Binds a value to a specific placeholder used on this
             CollectionModify object.
@@ -676,6 +680,8 @@ SYNTAX
       limit(numberOfDocs)
             This method is usually used in combination with sort to fix the
             amount of documents to be deleted.
+
+            This function can be called every time the statement is executed.
 
       bind(name, value)
             An error will be raised if the placeholder indicated by name does

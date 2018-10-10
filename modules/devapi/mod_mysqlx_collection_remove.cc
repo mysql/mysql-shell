@@ -25,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -53,24 +52,33 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::DOCUMENT);
 
+  auto limit_id = F::limit;
+  auto bind_id = F::bind;
   // Exposes the methods available for chaining
   add_method("remove", std::bind(&CollectionRemove::remove, this, _1), "data");
   add_method("sort", std::bind(&CollectionRemove::sort, this, _1), "data");
-  add_method("limit", std::bind(&CollectionRemove::limit, this, _1), "data");
-  add_method("bind", std::bind(&CollectionRemove::bind_, this, _1), "data");
+  add_method("limit",
+             std::bind(&CollectionRemove::limit, this, _1, limit_id, false),
+             "data");
+  add_method("bind", std::bind(&CollectionRemove::bind_, this, _1, bind_id),
+             "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::remove, F::_empty);
-  register_dynamic_function(F::sort, F::remove);
-  register_dynamic_function(F::limit, F::remove | F::sort);
-  register_dynamic_function(F::bind, F::remove | F::sort | F::limit | F::bind);
-  register_dynamic_function(F::execute,
-                            F::remove | F::sort | F::limit | F::bind);
-  register_dynamic_function(F::__shell_hook__,
-                            F::remove | F::sort | F::limit | F::bind);
+  register_dynamic_function(
+      F::remove, F::sort | F::limit | F::bind | F::execute | F::__shell_hook__);
+  register_dynamic_function(F::sort);
+  register_dynamic_function(F::limit, K_ENABLE_NONE, F::sort);
+  register_dynamic_function(F::bind, K_ENABLE_NONE, F::limit | F::sort,
+                            K_ALLOW_REUSE);
+  register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
   // Initial function update
-  update_functions(F::_empty);
+  enable_function(F::remove);
+}
+
+shcore::Value CollectionRemove::this_object() {
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 // Documentation of remove function
@@ -166,6 +174,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
 
       // Updates the exposed functions
       update_functions(F::remove);
+      reset_prepared_statement();
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("remove"));
   }
@@ -255,6 +264,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
                                                      field);
 
     update_functions(F::sort);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
@@ -273,6 +283,7 @@ REGISTER_HELP(COLLECTIONREMOVE_LIMIT_RETURNS,
 REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL,
               "This method is usually used in combination with sort to fix the "
               "amount of documents to be deleted.");
+REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
 
 /**
  * $(COLLECTIONREMOVE_LIMIT_BRIEF)
@@ -290,6 +301,8 @@ REGISTER_HELP(COLLECTIONREMOVE_LIMIT_DETAIL,
  * - remove(String searchCondition)
  * - sort(List sortExprStr)
  *
+ * $(LIMIT_EXECUTION_MODE)
+ *
  * After this function invocation, the following functions can be invoked:
  *
  * - bind(String name, Value value)
@@ -304,18 +317,6 @@ CollectionRemove CollectionRemove::limit(Integer numberOfDocs) {}
 CollectionRemove CollectionRemove::limit(int numberOfDocs) {}
 #endif
 //@}
-shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("limit").c_str());
-
-  try {
-    message_.mutable_limit()->set_row_count(args.uint_at(0));
-
-    update_functions(F::limit);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 // Documentation of function
 REGISTER_HELP_FUNCTION(bind, CollectionRemove);
@@ -366,24 +367,6 @@ CollectionFind CollectionRemove::bind(String name, Value value) {}
 CollectionFind CollectionRemove::bind(str name, Value value) {}
 #endif
 //@}
-shcore::Value CollectionRemove::bind_(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("bind").c_str());
-
-  try {
-    bind_value(args.string_at(0), args[1]);
-
-    update_functions(F::bind);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
-
-CollectionRemove &CollectionRemove::bind(const std::string &name,
-                                         shcore::Value value) {
-  bind_value(name, value);
-  return *this;
-}
 
 // Documentation of function
 REGISTER_HELP_FUNCTION(execute, CollectionRemove);
@@ -433,18 +416,29 @@ shcore::Value CollectionRemove::execute(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   try {
     ret_val = execute();
+    update_functions(F::execute);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return ret_val;
 }
 
+void CollectionRemove::set_prepared_stmt() {
+  m_prep_stmt.mutable_stmt()->set_type(
+      Mysqlx::Prepare::Prepare_OneOfMessage_Type_DELETE);
+  message_.clear_args();
+  update_limits();
+  *m_prep_stmt.mutable_stmt()->mutable_delete_() = message_;
+}
+
 shcore::Value CollectionRemove::execute() {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
 
-  insert_bound_values(message_.mutable_args());
-  result.reset(new mysqlx::Result(safe_exec(
-      [this]() { return session()->session()->execute_crud(message_); })));
+  result.reset(new mysqlx::Result(safe_exec([this]() {
+    update_limits();
+    insert_bound_values(message_.mutable_args());
+    return session()->session()->execute_crud(message_);
+  })));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

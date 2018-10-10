@@ -101,6 +101,8 @@ DESCRIPTION
       limit(numberOfRows)
             If used, the operation will delete only numberOfRows rows.
 
+            This function can be called every time the statement is executed.
+
       bind(name, value)
             Binds a value to a specific placeholder used on this operation.
 
@@ -358,6 +360,8 @@ DESCRIPTION
       limit(numberOfRows)
             If used, the operation will return at most numberOfRows rows.
 
+            This function can be called every time the statement is executed.
+
       offset(numberOfRows)
             If used, the first numberOfRows records will not be included on the
             result.
@@ -510,6 +514,8 @@ DESCRIPTION
 
       limit(numberOfRows)
             If used, the operation will update only numberOfRows rows.
+
+            This function can be called every time the statement is executed.
 
       bind(name, value)
             Binds a value to a specific placeholder used on this operation.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -145,4 +145,104 @@ TEST_F(Shell_py_mysqlx_tests, mysqlx_bool_expression) {
     validate_interactive("mysqlx_bool_expression.py");
   }
 }
+
+/**
+ * Prepared statement tests are verified using protocol tracing
+ */
+class Shell_py_mysqlx_prepared_tests : public Shell_py_mysqlx_tests {
+ protected:
+  void set_options() override {
+    _options->interactive = true;
+    _options->wizards = true;
+    _options->trace_protocol = true;
+  }
+
+  bool supports_prepared_statements() {
+    bool ret_val = true;
+
+    execute("shell.connect('" + _uri + "')");
+    execute("schema = session.get_schema('mysql')");
+    execute("table = schema.get_table('user')");
+    execute("crud = table.select('user').limit(1)");
+    execute("crud.execute()");
+    _cout.str("");
+    _cout.clear();
+    execute("crud.execute()");
+
+    auto out = _cout.str();
+    if (out.find("Unexpected message received") != std::string::npos) {
+      ret_val = false;
+    }
+    _cout.str("");
+    _cout.clear();
+    output_handler.wipe_all();
+    execute("session.close()");
+
+    return ret_val;
+  }
+};
+
+TEST_F(Shell_py_mysqlx_prepared_tests, collection_find) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_collection_find_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, collection_modify) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_collection_modify_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, collection_remove) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_collection_remove_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, table_select) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_table_select_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, table_update) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_table_update_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, table_delete) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_table_delete_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, session_sql) {
+  if (!supports_prepared_statements())
+    SKIP_TEST("Prepared statements are not supported.");
+
+  validate_interactive("mysqlx_session_sql_prepared.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, unsupported_from_crud) {
+  if (supports_prepared_statements())
+    SKIP_TEST("Prepared statements are supported.");
+
+  validate_interactive("mysqlx_unsupported_prepared_crud.py");
+}
+
+TEST_F(Shell_py_mysqlx_prepared_tests, unsupported_from_sql) {
+  if (supports_prepared_statements())
+    SKIP_TEST("Prepared statements are supported.");
+
+  validate_interactive("mysqlx_unsupported_prepared_sql.py");
+}
+
 }  // namespace shcore

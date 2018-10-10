@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,22 +67,19 @@ class TableInsert : public Table_crud_definition,
  private:
   Mysqlx::Crud::Insert message_;
 
+  bool allow_prepared_statements() override { return false; }
+
   struct F {
-    static constexpr Allowed_function_mask _empty = 1 << 0;
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
-    static constexpr Allowed_function_mask insert = 1 << 2;
-    static constexpr Allowed_function_mask values = 1 << 3;
-    static constexpr Allowed_function_mask execute = 1 << 4;
-    static constexpr Allowed_function_mask insertFields = 1 << 5;
-    static constexpr Allowed_function_mask insertFieldsAndValues = 1 << 6;
-    static constexpr Allowed_function_mask bind = 1 << 7;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
+    static constexpr Allowed_function_mask insert = 1 << 1;
+    static constexpr Allowed_function_mask values = 1 << 2;
+    static constexpr Allowed_function_mask execute = 1 << 3;
+    static constexpr Allowed_function_mask insertFields = 1 << 4;
+    static constexpr Allowed_function_mask insertFieldsAndValues = 1 << 5;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) {
-      return F::_empty;
-    }
     if ("__shell_hook__" == s) {
       return F::__shell_hook__;
     }
@@ -100,9 +97,6 @@ class TableInsert : public Table_crud_definition,
     }
     if ("insertFieldsAndValues" == s) {
       return F::insertFieldsAndValues;
-    }
-    if ("bind" == s) {
-      return F::bind;
     }
     if ("help" == s) {
       return enabled_functions_;

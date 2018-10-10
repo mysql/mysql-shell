@@ -256,6 +256,23 @@ Shell_script_tester::Shell_script_tester() {
 void Shell_script_tester::SetUp() {
   Crud_test_wrapper::SetUp();
 
+  if (_options->trace_protocol) {
+    // Redirect cout
+    _cout_backup = std::cout.rdbuf();
+    std::cout.rdbuf(_cout.rdbuf());
+  }
+
+  g_tdb->on_test_begin(this);
+}
+
+void Shell_script_tester::TearDown() {
+  Crud_test_wrapper::TearDown();
+
+  if (_options->trace_protocol) {
+    // Restore old cout.
+    std::cout.rdbuf(_cout_backup);
+  }
+
   g_tdb->on_test_begin(this);
 }
 
@@ -280,17 +297,36 @@ void Shell_script_tester::set_setup_script(const std::string &name) {
   _setup_script = shcore::path::join_path(_shell_scripts_home, "setup", name);
 }
 
+size_t find_token(const std::string &source, const std::string &find,
+                  const std::string &is_not, size_t start_pos) {
+  size_t ret_val = std::string::npos;
+
+  while (true) {
+    size_t found = source.find(find, start_pos);
+    size_t proto = source.find(is_not, start_pos);
+
+    if (found != std::string::npos && found == proto)
+      start_pos = proto + is_not.size();
+    else {
+      ret_val = found;
+      break;
+    }
+  }
+
+  return ret_val;
+}
+
 std::string Shell_script_tester::resolve_string(const std::string &source) {
   std::string updated(source);
 
-  size_t start;
+  size_t start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
   size_t end;
 
-  start = updated.find("<<<");
   while (start != std::string::npos) {
     bool strip_trailing_newline = false;
 
-    end = updated.find(">>>", start);
+    end = find_token(updated, ">>>", ">>>> SEND", start);
+
     if (end == std::string::npos)
       throw std::logic_error("Unterminated <<< in test");
     //<<<"fooo"\>>>\n is stripped into fooo (without the trailing newline)
@@ -319,7 +355,7 @@ std::string Shell_script_tester::resolve_string(const std::string &source) {
     } else {
       updated.replace(start, end - start + 3, value);
     }
-    start = updated.find("<<<");
+    start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
   }
 
   output_handler.wipe_out();
@@ -341,6 +377,7 @@ bool Shell_script_tester::validate(const std::string &context,
                                    const std::string &chunk_id, bool optional) {
   std::string original_std_out = output_handler.std_out;
   std::string original_std_err = output_handler.std_err;
+
   size_t out_position = 0;
   size_t err_position = 0;
 
@@ -355,6 +392,13 @@ bool Shell_script_tester::validate(const std::string &context,
       bool enabled = false;
       try {
         enabled = context_enabled(val->def->context);
+
+        if (val->def->stream == "PROTOCOL" && !_options->trace_protocol) {
+          ADD_FAILURE_AT("validation file", val->def->linenum)
+              << "ERROR TESTING PROTOCOL: Protocol tracing is disabled."
+              << "\n"
+              << "\tCHUNK: " << val->def->line << "\n";
+        }
       } catch (const std::invalid_argument &e) {
         ADD_FAILURE_AT("validation file", val->def->linenum)
             << "ERROR EVALUATING VALIDATION CONTEXT: " << e.what() << "\n"
@@ -383,6 +427,9 @@ bool Shell_script_tester::validate(const std::string &context,
         }
 
         output_handler.wipe_all();
+        _cout.str("");
+        _cout.clear();
+
         std::string backup = _custom_context;
         full_statement.append(validations[valindex]->code);
         _custom_context += "[" + full_statement + "]";
@@ -395,10 +442,13 @@ bool Shell_script_tester::validate(const std::string &context,
 
         original_std_err = output_handler.std_err;
         original_std_out = output_handler.std_out;
+
         out_position = 0;
         err_position = 0;
 
         output_handler.wipe_all();
+        _cout.str("");
+        _cout.clear();
       }
 
       // Validates unexpected error
@@ -448,10 +498,13 @@ bool Shell_script_tester::validate(const std::string &context,
               out_position = pos + out.length();
             }
           } else {
-            if (!validate_line_by_line(context, chunk_id, "STDOUT", out,
-                                       original_std_out,
-                                       _chunks[chunk_id].code[0].first,
-                                       validations[valindex]->def->linenum))
+            if (!validate_line_by_line(
+                    context, chunk_id, "STDOUT", out,
+                    validations[valindex]->def->stream == "PROTOCOL"
+                        ? _cout.str()
+                        : original_std_out,
+                    _chunks[chunk_id].code[0].first,
+                    validations[valindex]->def->linenum))
               return false;
           }
         }
@@ -462,8 +515,13 @@ bool Shell_script_tester::validate(const std::string &context,
         std::string out = validations[valindex]->unexpected_output;
 
         out = resolve_string(out);
+        size_t pos = std::string::npos;
+        if (validations[valindex]->def->stream == "PROTOCOL")
+          pos = _cout.str().find(out);
+        else
+          pos = original_std_out.find(out);
 
-        if (original_std_out.find(out) != std::string::npos) {
+        if (pos != std::string::npos) {
           ADD_FAILURE_AT(_filename.c_str(), _chunks[chunk_id].code[0].first)
               << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
               << "with validation at " << validations[valindex]->def->linenum
@@ -534,6 +592,8 @@ bool Shell_script_tester::validate(const std::string &context,
       return false;
     }
     output_handler.wipe_all();
+    _cout.str("");
+    _cout.clear();
   } else {
     // There were errors
     if (!original_std_err.empty()) {
@@ -549,6 +609,8 @@ bool Shell_script_tester::validate(const std::string &context,
           << makeyellow("\tSTDERR: ") << original_std_err << "\n";
     }
     output_handler.wipe_all();
+    _cout.str("");
+    _cout.clear();
   }
 
   return true;
@@ -697,6 +759,11 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
       chunk_id = chunk_id.substr(5);
       chunk_id = str_strip(chunk_id);
       val_type = ValidationType::Multiline;
+    } else if (chunk_id.find("<PROTOCOL>") == 0) {
+      stream = "PROTOCOL";
+      chunk_id = chunk_id.substr(10);
+      chunk_id = str_strip(chunk_id);
+      val_type = ValidationType::Multiline;
     } else if (chunk_id.find("<>") == 0) {
       stream = "";
       chunk_id = chunk_id.substr(2);
@@ -769,7 +836,8 @@ void Shell_script_tester::load_validations(const std::string &path) {
 
           value = shcore::str_rstrip(value);
 
-          if (current_val_def->stream == "OUT")
+          if (current_val_def->stream == "OUT" ||
+              current_val_def->stream == "PROTOCOL")
             add_validation(current_val_def, {"", value, ""});
           else if (current_val_def->stream == "ERR")
             add_validation(current_val_def, {"", "", value});
@@ -880,7 +948,8 @@ void Shell_script_tester::load_validations(const std::string &path) {
 
       value = str_strip(value);
 
-      if (current_val_def->stream == "OUT")
+      if (current_val_def->stream == "OUT" ||
+          current_val_def->stream == "PROTOCOL")
         add_validation(current_val_def, {"", value, ""});
       else if (current_val_def->stream == "ERR")
         add_validation(current_val_def, {"", "", value});
@@ -952,6 +1021,8 @@ void Shell_script_tester::execute_script(const std::string &path,
 
       for (size_t index = 0; index < _chunk_order.size(); index++) {
         // Prints debugging information
+        _cout.str("");
+        _cout.clear();
         std::string chunk_log = "CHUNK: " + _chunk_order[index];
         std::string splitter(chunk_log.length(), '-');
         output_handler.debug_print(makeyellow(splitter));
@@ -1026,6 +1097,15 @@ void Shell_script_tester::execute_script(const std::string &path,
 
             // Only saves the data if the chunk is not a reference
             if (chunk.def->id == chunk.def->validation_id) {
+              if (_options->trace_protocol) {
+                std::string protocol_text = _cout.str();
+                if (!protocol_text.empty()) {
+                  ofile << get_chunk_token() << "<PROTOCOL> "
+                        << _chunk_order[index] << std::endl;
+                  ofile << protocol_text << std::endl;
+                }
+              }
+
               if (!output_handler.std_out.empty()) {
                 ofile << get_chunk_token() << "<OUT> " << _chunk_order[index]
                       << std::endl;
@@ -1039,6 +1119,8 @@ void Shell_script_tester::execute_script(const std::string &path,
               }
             }
             output_handler.wipe_all();
+            _cout.str("");
+            _cout.clear();
           } else {
             // Validation contexts is at chunk level
             _custom_context =
@@ -1101,6 +1183,8 @@ void Shell_script_tester::execute_script(const std::string &path,
         }
 
         output_handler.wipe_all();
+        _cout.str("");
+        _cout.clear();
       } else {
         // If processing a tets script, performs the validations over it
         _options->interactive = true;
@@ -1314,6 +1398,8 @@ void Shell_js_script_tester::set_defaults() {
   _interactive_shell->process_line("\\js");
 
   output_handler.wipe_all();
+  _cout.str("");
+  _cout.clear();
 
   std::string code = "var __current_year = '" + shcore::fmttime("%Y") + "'";
   exec_and_out_equals(code);
@@ -1341,6 +1427,8 @@ void Shell_py_script_tester::set_defaults() {
   _interactive_shell->process_line("\\py");
 
   output_handler.wipe_all();
+  _cout.str("");
+  _cout.clear();
 
   std::string code = "__current_year = '" + shcore::fmttime("%Y") + "'";
   exec_and_out_equals(code);

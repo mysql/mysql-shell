@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,9 +53,6 @@ class TableDelete : public Table_crud_definition,
   shcore::Value remove(const shcore::Argument_list &args);
   shcore::Value where(const shcore::Argument_list &args);
   shcore::Value order_by(const shcore::Argument_list &args);
-  shcore::Value limit(const shcore::Argument_list &args);
-  shcore::Value bind(const shcore::Argument_list &args);
-
   shcore::Value execute(const shcore::Argument_list &args) override;
 #if DOXYGEN_JS
   TableDelete delete ();
@@ -75,21 +72,21 @@ class TableDelete : public Table_crud_definition,
  private:
   Mysqlx::Crud::Delete message_;
 
+  void set_prepared_stmt() override;
+  void update_limits() override { set_limits_on_message(&message_); }
+  shcore::Value this_object() override;
+
   struct F {
-    static constexpr Allowed_function_mask _empty = 1 << 0;
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
-    static constexpr Allowed_function_mask delete_ = 1 << 2;
-    static constexpr Allowed_function_mask where = 1 << 3;
-    static constexpr Allowed_function_mask orderBy = 1 << 4;
-    static constexpr Allowed_function_mask limit = 1 << 5;
-    static constexpr Allowed_function_mask bind = 1 << 6;
-    static constexpr Allowed_function_mask execute = 1 << 7;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
+    static constexpr Allowed_function_mask delete_ = 1 << 1;
+    static constexpr Allowed_function_mask where = 1 << 2;
+    static constexpr Allowed_function_mask orderBy = 1 << 3;
+    static constexpr Allowed_function_mask limit = 1 << 4;
+    static constexpr Allowed_function_mask bind = 1 << 5;
+    static constexpr Allowed_function_mask execute = 1 << 6;
   };
 
   uint32_t function_name_to_bitmask(const std::string &s) const override {
-    if ("" == s) {
-      return F::_empty;
-    }
     if ("__shell_hook__" == s) {
       return F::__shell_hook__;
     }
