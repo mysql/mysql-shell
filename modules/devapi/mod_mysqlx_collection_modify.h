@@ -98,42 +98,36 @@ class CollectionModify : public Collection_crud_definition,
                                                  shcore::Value value);
   std::shared_ptr<CollectionModify> array_delete(const std::string &doc_path);
   shcore::Value sort(const shcore::Argument_list &args);
-  std::shared_ptr<CollectionModify> limit(uint64_t count);
-  std::shared_ptr<CollectionModify> bind_(const std::string &placeholder,
-                                          shcore::Value value);
-
   shcore::Value execute(const shcore::Argument_list &args) override;
+  void set_prepared_stmt() override;
+  void update_limits() override { set_limits_on_message(&message_); }
+  shcore::Value this_object() override;
   shcore::Value execute();
   friend class Collection;
   Mysqlx::Crud::Update message_;
   CollectionModify &set_filter(const std::string &filter);
-  CollectionModify &bind(const std::string &name, shcore::Value value);
   void set_operation(int type, const std::string &path,
                      const shcore::Value &value, bool validate_array = false);
 
   struct F {
-    static constexpr Allowed_function_mask _empty = 1 << 0;
-    static constexpr Allowed_function_mask operation = 1 << 1;
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 2;
-    static constexpr Allowed_function_mask modify = 1 << 3;
-    static constexpr Allowed_function_mask set = 1 << 4;
-    static constexpr Allowed_function_mask unset = 1 << 5;
-    static constexpr Allowed_function_mask merge = 1 << 6;
-    static constexpr Allowed_function_mask patch = 1 << 7;
-    static constexpr Allowed_function_mask arrayInsert = 1 << 8;
-    static constexpr Allowed_function_mask arrayAppend = 1 << 9;
-    static constexpr Allowed_function_mask arrayDelete = 1 << 10;
-    static constexpr Allowed_function_mask sort = 1 << 11;
-    static constexpr Allowed_function_mask limit = 1 << 12;
-    static constexpr Allowed_function_mask bind = 1 << 13;
-    static constexpr Allowed_function_mask execute = 1 << 14;
+    static constexpr Allowed_function_mask operation = 1 << 0;
+    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
+    static constexpr Allowed_function_mask modify = 1 << 2;
+    static constexpr Allowed_function_mask set = 1 << 3;
+    static constexpr Allowed_function_mask unset = 1 << 4;
+    static constexpr Allowed_function_mask merge = 1 << 5;
+    static constexpr Allowed_function_mask patch = 1 << 6;
+    static constexpr Allowed_function_mask arrayInsert = 1 << 7;
+    static constexpr Allowed_function_mask arrayAppend = 1 << 8;
+    static constexpr Allowed_function_mask arrayDelete = 1 << 9;
+    static constexpr Allowed_function_mask sort = 1 << 10;
+    static constexpr Allowed_function_mask limit = 1 << 11;
+    static constexpr Allowed_function_mask bind = 1 << 12;
+    static constexpr Allowed_function_mask execute = 1 << 13;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("" == s) {
-      return F::_empty;
-    }
     if ("operation" == s) {
       return F::operation;
     }

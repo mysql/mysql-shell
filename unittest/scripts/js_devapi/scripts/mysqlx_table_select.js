@@ -67,7 +67,7 @@ validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ TableSelect: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print(result.fetchOne().name + '\n');

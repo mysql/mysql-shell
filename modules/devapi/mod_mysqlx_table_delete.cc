@@ -24,7 +24,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -45,28 +44,33 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
   message_.mutable_collection()->set_schema(owner->schema()->name());
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::TABLE);
+  auto limit_id = F::limit;
+  auto bind_id = F::bind;
   // Exposes the methods available for chaining
   add_method("delete", std::bind(&TableDelete::remove, this, _1), "data");
   add_method("where", std::bind(&TableDelete::where, this, _1), "data");
   add_method("orderBy", std::bind(&TableDelete::order_by, this, _1), "data");
-  add_method("limit", std::bind(&TableDelete::limit, this, _1), "data");
-  add_method("bind", std::bind(&TableDelete::bind, this, _1), "data");
+  add_method("limit", std::bind(&TableDelete::limit, this, _1, limit_id, false),
+             "data");
+  add_method("bind", std::bind(&TableDelete::bind_, this, _1, bind_id), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::delete_, F::_empty);
-  register_dynamic_function(F::where, F::delete_);
-  register_dynamic_function(F::orderBy, F::delete_ | F::where);
-  register_dynamic_function(F::limit, F::delete_ | F::where | F::orderBy);
-  register_dynamic_function(F::bind,
-                            F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(
-      F::execute, F::delete_ | F::where | F::orderBy | F::limit | F::bind);
-  register_dynamic_function(F::__shell_hook__, F::delete_ | F::where |
-                                                   F::orderBy | F::limit |
-                                                   F::bind);
+  register_dynamic_function(F::delete_, F::where | F::orderBy | F::limit |
+                                            F::execute | F::__shell_hook__);
+  register_dynamic_function(F::where, F::bind);
+  register_dynamic_function(F::orderBy, F::bind, F::where);
+  register_dynamic_function(F::limit, F::bind, F::where | F::orderBy);
+  register_dynamic_function(F::bind, K_ENABLE_NONE,
+                            F::where | F::orderBy | F::limit, K_ALLOW_REUSE);
+  register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
   // Initial function update
-  update_functions(F::_empty);
+  update_functions(F::delete_);
+}
+
+shcore::Value TableDelete::this_object() {
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 REGISTER_HELP_FUNCTION(delete, TableDelete);
@@ -88,7 +92,6 @@ REGISTER_HELP(TABLEDELETE_DELETE_RETURNS, "@returns This TableDelete object.");
  * - where(String searchCriteria)
  * - orderBy(List sortExprStr)
  * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
  * - execute().
  *
  * \sa Usage examples at execute().
@@ -108,6 +111,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
     try {
       // Updates the exposed functions
       update_functions(F::delete_);
+      reset_prepared_statement();
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("delete"));
   }
@@ -173,6 +177,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args) {
 
       // Updates the exposed functions
       update_functions(F::where);
+      reset_prepared_statement();
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
   }
@@ -247,6 +252,7 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
                                                 field);
 
     update_functions(F::orderBy);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
@@ -263,6 +269,7 @@ REGISTER_HELP(TABLEDELETE_LIMIT_RETURNS, "@returns This TableDelete object.");
 REGISTER_HELP(
     TABLEDELETE_LIMIT_DETAIL,
     "If used, the operation will delete only <b>numberOfRows</b> rows.");
+REGISTER_HELP(TABLEDELETE_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
 /**
  * $(TABLEDELETE_LIMIT_BRIEF)
  *
@@ -280,6 +287,8 @@ REGISTER_HELP(
  * - where(String searchCondition)
  * - orderBy(List sortExprStr)
  *
+ * $(LIMIT_EXECUTION_MODE)
+ *
  * After this function invocation, the following functions can be invoked:
  *
  * - bind(String name, Value value)
@@ -292,18 +301,6 @@ TableDelete TableDelete::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
 TableDelete TableDelete::limit(int numberOfRows) {}
 #endif
-shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("limit").c_str());
-
-  try {
-    message_.mutable_limit()->set_row_count(args.uint_at(0));
-
-    update_functions(F::limit);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP_FUNCTION(bind, TableDelete);
 REGISTER_HELP(
@@ -359,18 +356,6 @@ TableDelete TableDelete::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 TableDelete TableDelete::bind(str name, Value value) {}
 #endif
-shcore::Value TableDelete::bind(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("bind").c_str());
-
-  try {
-    bind_value(args.string_at(0), args[1]);
-
-    update_functions(F::bind);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
 
 REGISTER_HELP_FUNCTION(execute, TableDelete);
 REGISTER_HELP(TABLEDELETE_EXECUTE_BRIEF,
@@ -410,11 +395,23 @@ shcore::Value TableDelete::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    insert_bound_values(message_.mutable_args());
-    result.reset(new mysqlsh::mysqlx::Result(safe_exec(
-        [this]() { return session()->session()->execute_crud(message_); })));
+    result.reset(new mysqlsh::mysqlx::Result(safe_exec([this]() {
+      update_limits();
+      insert_bound_values(message_.mutable_args());
+      return session()->session()->execute_crud(message_);
+    })));
+
+    update_functions(F::execute);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
+}
+
+void TableDelete::set_prepared_stmt() {
+  m_prep_stmt.mutable_stmt()->set_type(
+      Mysqlx::Prepare::Prepare_OneOfMessage_Type_DELETE);
+  message_.clear_args();
+  update_limits();
+  *m_prep_stmt.mutable_stmt()->mutable_delete_() = message_;
 }

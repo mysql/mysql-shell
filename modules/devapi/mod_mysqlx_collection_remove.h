@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,34 +74,30 @@ class CollectionRemove : public Collection_crud_definition,
  private:
   shcore::Value remove(const shcore::Argument_list &args);
   shcore::Value sort(const shcore::Argument_list &args);
-  shcore::Value limit(const shcore::Argument_list &args);
-  shcore::Value bind_(const shcore::Argument_list &args);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
+  void set_prepared_stmt() override;
+  void update_limits() override { set_limits_on_message(&message_); }
+  shcore::Value this_object() override;
   shcore::Value execute();
 
   friend class Collection;
   CollectionRemove &set_filter(const std::string &filter);
-  CollectionRemove &bind(const std::string &name, shcore::Value value);
   Mysqlx::Crud::Delete message_;
 
   struct F {
     static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask _empty = 1 << 1;
-    static constexpr Allowed_function_mask remove = 1 << 2;
-    static constexpr Allowed_function_mask sort = 1 << 3;
-    static constexpr Allowed_function_mask limit = 1 << 4;
-    static constexpr Allowed_function_mask bind = 1 << 5;
-    static constexpr Allowed_function_mask execute = 1 << 6;
+    static constexpr Allowed_function_mask remove = 1 << 1;
+    static constexpr Allowed_function_mask sort = 1 << 2;
+    static constexpr Allowed_function_mask limit = 1 << 3;
+    static constexpr Allowed_function_mask bind = 1 << 4;
+    static constexpr Allowed_function_mask execute = 1 << 5;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
     if ("__shell_hook__" == s) {
       return F::__shell_hook__;
-    }
-    if ("" == s) {
-      return F::_empty;
     }
     if ("remove" == s) {
       return F::remove;

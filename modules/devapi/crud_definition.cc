@@ -22,6 +22,7 @@
  */
 
 #include "crud_definition.h"
+#include <mysqld_error.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,8 +33,11 @@
 #include "modules/devapi/crud_definition.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/devapi/protobuf_bridge.h"
+#include "modules/mysqlxtest_utils.h"
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
+#include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"
 
@@ -43,7 +47,7 @@ namespace mysqlsh {
 namespace mysqlx {
 
 Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner)
-    : _owner(owner) {
+    : _owner(owner), m_execution_count(0) {
   try {
     add_method("__shell_hook__", std::bind(&Crud_definition::execute, this, _1),
                "data");
@@ -56,6 +60,7 @@ Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner)
         "Invalid connection used on CRUD operation.");
   }
 }
+Crud_definition::~Crud_definition() { reset_prepared_statement(); }
 
 void Crud_definition::parse_string_list(const shcore::Argument_list &args,
                                         std::vector<std::string> &data) {
@@ -105,7 +110,43 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
     }
     return true;
   });
-  std::shared_ptr<mysqlshdk::db::IResult> result = func();
+
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
+  // Prepared statements are used when the statement is executed a
+  // more than once after the last statement update and if the operation
+  // allows prepared statements
+  if (use_prepared()) {
+    try {
+      // If the statement has not been prepared, then it gets prepared
+      if (!m_prep_stmt.has_stmt_id()) {
+        m_prep_stmt.set_stmt_id(
+            this->session()->session()->next_prep_stmt_id());
+        set_prepared_stmt();
+        this->session()->session()->prepare_stmt(m_prep_stmt);
+      } else {
+        update_limits();
+      }
+
+      Mysqlx::Prepare::Execute execute;
+      execute.set_stmt_id(m_prep_stmt.stmt_id());
+      insert_bound_values(execute.mutable_args());
+
+      result = this->session()->session()->execute_prep_stmt(execute);
+    } catch (const mysqlshdk::db::Error &error) {
+      m_prep_stmt.clear_stmt_id();
+
+      if (ER_UNKNOWN_COM_ERROR == error.code()) {
+        this->session()->disable_prepared_statements();
+        result = func();
+      } else {
+        throw;
+      }
+    }
+  } else {
+    result = func();
+  }
+
   if (result && interrupted) {
     // If the query was interrupted but it didn't throw an exception
     // from "Error 1317 Query execution was interrupted", it means the
@@ -126,6 +167,9 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
     throw shcore::Exception::runtime_error(
         "Query interrupted. Results where flushed");
   }
+
+  m_execution_count++;
+
   return std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(result);
 }
 
@@ -136,12 +180,11 @@ std::shared_ptr<Session> Crud_definition::session() {
   return {};
 }
 
-void Crud_definition::init_bound_values() {
-  // Initializes the bound values array on the first call to bind
-  if (!_bound_values.size()) {
-    for (size_t index = 0; index < _placeholders.size(); index++)
-      _bound_values.push_back(NULL);
-  }
+/** By default, CRUD operations allow prepared statements if
+ * the session allows them.
+ */
+bool Crud_definition::allow_prepared_statements() {
+  return this->session()->allow_prepared_statements();
 }
 
 void Crud_definition::validate_bind_placeholder(const std::string &name) {
@@ -153,16 +196,16 @@ void Crud_definition::validate_bind_placeholder(const std::string &name) {
         "Unable to bind value for unexisting placeholder: " + name);
 }
 
-void Crud_definition::insert_bound_values(
-    ::google::protobuf::RepeatedPtrField<::Mysqlx::Datatypes::Scalar> *target) {
+void Crud_definition::validate_placeholders() {
   // First validates that all the placeholders have a bound value
   std::string str_undefined;
   if (!_placeholders.empty() && _bound_values.empty()) {
     str_undefined = shcore::str_join(_placeholders, ", ");
   } else {
     std::vector<std::string> undefined;
-    for (size_t index = 0; index < _bound_values.size(); index++) {
-      if (!_bound_values[index]) undefined.push_back(_placeholders[index]);
+    for (const auto &placeholder : _placeholders) {
+      if (_bound_values.find(placeholder) == _bound_values.end())
+        undefined.push_back(placeholder);
     }
     str_undefined = shcore::str_join(undefined, ", ");
   }
@@ -172,10 +215,32 @@ void Crud_definition::insert_bound_values(
     throw shcore::Exception::argument_error(
         "Missing value bindings for the following placeholders: " +
         str_undefined);
+}
+
+void Crud_definition::insert_bound_values(
+    ::google::protobuf::RepeatedPtrField<::Mysqlx::Datatypes::Scalar> *target) {
+  validate_placeholders();
 
   // No errors, proceeds to set the values if any
   target->Clear();
-  for (auto &value : _bound_values) target->AddAllocated(value.release());
+  for (const auto &placeholder : _placeholders) {
+    target->AddAllocated(_bound_values[placeholder].release());
+    _bound_values.erase(placeholder);
+  }
+}
+
+void Crud_definition::insert_bound_values(
+    ::google::protobuf::RepeatedPtrField<::Mysqlx::Datatypes::Any> *target) {
+  validate_placeholders();
+
+  // No errors, proceeds to set the values if any
+  target->Clear();
+  for (const auto &placeholder : _placeholders) {
+    auto val = target->Add();
+    val->set_type(Mysqlx::Datatypes::Any_Type_SCALAR);
+    val->set_allocated_scalar(_bound_values[placeholder].release());
+    _bound_values.erase(placeholder);
+  }
 }
 
 void Crud_definition::encode_expression_object(Mysqlx::Expr::Expr *expr,
@@ -263,87 +328,86 @@ void Crud_definition::encode_expression_value(Mysqlx::Expr::Expr *expr,
   }
 }
 
-std::unique_ptr<Mysqlx::Datatypes::Scalar> Crud_definition::convert_value(
-    const shcore::Value &value) {
-  std::unique_ptr<Mysqlx::Datatypes::Scalar> my_scalar(
-      new Mysqlx::Datatypes::Scalar);
-
-  switch (value.type) {
-    case shcore::Undefined:
-      throw shcore::Exception::argument_error("Invalid value");
-
-    case shcore::Bool:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.as_bool());
-      return my_scalar;
-
-    case shcore::UInteger:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.as_uint());
-      return my_scalar;
-
-    case shcore::Integer:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.as_int());
-      return my_scalar;
-
-    case shcore::String:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.get_string());
-      return my_scalar;
-
-    case shcore::Float:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.as_double());
-      return my_scalar;
-
-    case shcore::Object: {
-      shcore::Object_bridge_ref object = value.as_object();
-      std::string object_class = object->class_name();
-
-      if (object_class == "Expression") {
-        throw std::logic_error(
-            "Only scalar values supported on this conversion");
-      } else if (object_class == "Date") {
-        my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
-        my_scalar->mutable_v_string()->set_value(value.descr());
-        return my_scalar;
-      } else {
-        std::stringstream str;
-        str << "Unsupported value received: " << value.descr() << ".";
-        throw shcore::Exception::argument_error(str.str());
-      }
-    }
-    case shcore::Array: {
-      // FIXME this should recursively encode the array (same for Map),
-      // FIXME in case there are expressions embedded
-      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-      my_scalar->mutable_v_octets()->set_content_type(CONTENT_TYPE_JSON);
-      my_scalar->mutable_v_octets()->set_value(value.json());
-      return my_scalar;
-    }
-    case shcore::Map: {
-      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-      my_scalar->mutable_v_octets()->set_content_type(CONTENT_TYPE_JSON);
-      my_scalar->mutable_v_octets()->set_value(value.json());
-      return my_scalar;
-    }
-    case shcore::Null:
-    case shcore::MapRef:
-    case shcore::Function:
-      std::stringstream str;
-      str << "Unsupported value received: " << value.descr();
-      throw shcore::Exception::argument_error(str.str());
-      break;
-  }
-  return my_scalar;
-}
-
 void Crud_definition::bind_value(const std::string &name, shcore::Value value) {
-  init_bound_values();
-
   validate_bind_placeholder(name);
 
-  // Now sets the right value on the position of the indicated placeholder
-  std::vector<std::string>::iterator index =
-      std::find(_placeholders.begin(), _placeholders.end(), name);
+  _bound_values[name] = convert_value(value);
+}
 
-  _bound_values[index - _placeholders.begin()] = convert_value(value);
+void Crud_definition::reset_prepared_statement() {
+  m_execution_count = 0;
+
+  // If the statement was prepared previously, it should be deallocated
+  if (m_prep_stmt.has_stmt_id()) {
+    auto s = session();
+
+    if (s && s->is_open())
+      s->session()->deallocate_prep_stmt(m_prep_stmt.stmt_id());
+
+    m_prep_stmt.Clear();
+  }
+}
+
+REGISTER_HELP(
+    LIMIT_EXECUTION_MODE,
+    "This function can be called every time the statement is executed.");
+shcore::Value Crud_definition::limit(
+    const shcore::Argument_list &args,
+    Dynamic_object::Allowed_function_mask limit_func_id, bool reset_offset) {
+  std::string full_name = get_function_name("limit");
+  args.ensure_count(1, full_name.c_str());
+
+  try {
+    if (m_limit.is_null()) reset_prepared_statement();
+
+    m_limit = args.uint_at(0);
+
+    if (reset_offset) m_offset = static_cast<uint64_t>(0);
+
+    update_functions(limit_func_id);
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(full_name);
+
+  return this_object();
+}
+
+shcore::Value Crud_definition::offset(
+    const shcore::Argument_list &args,
+    Dynamic_object::Allowed_function_mask limit_func_id,
+    const std::string fname) {
+  std::string full_name = get_function_name(fname);
+  args.ensure_count(1, full_name.c_str());
+
+  try {
+    // On offset we simply store the value to be bound
+    m_offset = args.uint_at(0);
+    update_functions(limit_func_id);
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(full_name);
+
+  return this_object();
+}
+
+shcore::Value Crud_definition::bind_(
+    const shcore::Argument_list &args,
+    Dynamic_object::Allowed_function_mask limit_func_id) {
+  std::string full_name = get_function_name("bind");
+  args.ensure_count(2, full_name.c_str());
+
+  try {
+    bind_value(args.string_at(0), args[1]);
+
+    update_functions(limit_func_id);
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(full_name);
+
+  return this_object();
+}
+
+Crud_definition &Crud_definition::bind(const std::string &name,
+                                       shcore::Value value) {
+  bind_value(name, value);
+  return *this;
 }
 
 }  // namespace mysqlx

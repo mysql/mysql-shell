@@ -57,15 +57,14 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
   add_method("values", std::bind(&TableInsert::values, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::insert, F::_empty);
-  register_dynamic_function(F::values, F::insert | F::insertFields | F::values);
-  register_dynamic_function(F::execute,
-                            F::insertFieldsAndValues | F::values | F::bind);
-  register_dynamic_function(F::__shell_hook__,
-                            F::insertFieldsAndValues | F::values | F::bind);
+  register_dynamic_function(F::insert, F::values);
+  register_dynamic_function(F::values, F::execute | F::__shell_hook__,
+                            K_DISABLE_NONE, K_ALLOW_REUSE);
+  register_dynamic_function(F::insertFieldsAndValues,
+                            F::execute | F::__shell_hook__, F::values);
 
   // Initial function update
-  update_functions(F::_empty);
+  update_functions(F::insert);
 }
 
 REGISTER_HELP_FUNCTION(insert, TableInsert);
@@ -257,6 +256,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
   } else if (path == "FieldsAndValues") {
     update_functions(F::insertFieldsAndValues);
   }
+  reset_prepared_statement();
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -332,6 +332,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args) {
     }
     // Updates the exposed functions
     update_functions(F::values);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("values"));
 
@@ -377,7 +378,6 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
   try {
-    insert_bound_values(message_.mutable_args());
     if (message_.mutable_row()->size()) {
       result.reset(new mysqlsh::mysqlx::Result(safe_exec(
           [this]() { return session()->session()->execute_crud(message_); })));

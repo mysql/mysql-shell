@@ -126,7 +126,7 @@ do_enable_trace(xcl::XSession *session) {
 
 DEBUG_OBJ_ENABLE(db_mysqlx_Session);
 
-XSession_impl::XSession_impl() {
+XSession_impl::XSession_impl() : m_prep_stmt_count(0) {
   _enable_trace = false;
 
   DEBUG_OBJ_ALLOC(db_mysqlx_Session);
@@ -352,11 +352,17 @@ void XSession_impl::close() {
     }
   }
 
+  auto prep_ids = m_prepared_statements;
+  for (auto stmt_id : prep_ids) {
+    deallocate_prep_stmt(stmt_id);
+  }
+
   if (_enable_trace) {
     enable_trace(false);
     _enable_trace = true;
   }
 
+  m_prep_stmt_count = 0;
   _connection_id = 0;
   _connection_info.clear();
   _ssl_cipher.clear();
@@ -539,6 +545,43 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_ellapsed());
   return result;
+}
+
+void XSession_impl::prepare_stmt(const ::Mysqlx::Prepare::Prepare &msg) {
+  before_query();
+  xcl::XError error = _mysql->get_protocol().send(msg);
+  check_error_and_throw(error);
+  error = _mysql->get_protocol().recv_ok();
+  check_error_and_throw(error);
+  m_prepared_statements.insert(msg.stmt_id());
+}
+
+std::shared_ptr<IResult> XSession_impl::execute_prep_stmt(
+    const ::Mysqlx::Prepare::Execute &msg) {
+  mysqlshdk::utils::Profile_timer timer;
+  timer.stage_begin("execute_prep_stmt");
+  before_query();
+  xcl::XError error;
+  std::unique_ptr<xcl::XQuery_result> xresult(
+      _mysql->get_protocol().execute_prep_stmt(msg, &error));
+  check_error_and_throw(error);
+  auto result = after_query(std::move(xresult));
+  timer.stage_end();
+  result->set_execution_time(timer.total_seconds_ellapsed());
+  return result;
+}
+
+void XSession_impl::deallocate_prep_stmt(uint32_t stmt_id) {
+  before_query();
+  ::Mysqlx::Prepare::Deallocate deallocate;
+  deallocate.set_stmt_id(stmt_id);
+  xcl::XError error = _mysql->get_protocol().send(deallocate);
+  check_error_and_throw(error);
+  error = _mysql->get_protocol().recv_ok();
+  check_error_and_throw(error);
+
+  // Removes the prepared statement from the list
+  m_prepared_statements.erase(stmt_id);
 }
 
 void XSession_impl::check_error_and_throw(const xcl::XError &error) {

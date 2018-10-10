@@ -55,6 +55,9 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   ~XSession_impl();
 
  private:
+  uint32_t m_prep_stmt_count;
+  std::set<uint32_t> m_prepared_statements;
+
   XSession_impl();
   void connect(const mysqlshdk::db::Connection_options &data);
 
@@ -96,6 +99,14 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Update &msg);
   std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Delete &msg);
   std::shared_ptr<IResult> execute_crud(const ::Mysqlx::Crud::Find &msg);
+
+  uint32_t next_prep_stmt_id() { return ++m_prep_stmt_count; }
+  void prepare_stmt(const ::Mysqlx::Prepare::Prepare &msg);
+
+  std::shared_ptr<IResult> execute_prep_stmt(
+      const ::Mysqlx::Prepare::Execute &msg);
+
+  void deallocate_prep_stmt(uint32_t stmt_id);
 
   void load_session_info();
 
@@ -190,6 +201,18 @@ class SHCORE_PUBLIC Session : public ISession,
       const ::Mysqlx::Crud::Find &msg) {
     return _impl->execute_crud(msg);
   }
+
+  uint32_t next_prep_stmt_id() { return _impl->next_prep_stmt_id(); }
+  void prepare_stmt(const ::Mysqlx::Prepare::Prepare &msg) {
+    _impl->prepare_stmt(msg);
+  }
+
+  std::shared_ptr<IResult> execute_prep_stmt(
+      const ::Mysqlx::Prepare::Execute &msg) {
+    return _impl->execute_prep_stmt(msg);
+  }
+
+  void deallocate_prep_stmt(uint32_t id) { _impl->deallocate_prep_stmt(id); }
 
   bool is_open() const override { return _impl->valid(); };
 

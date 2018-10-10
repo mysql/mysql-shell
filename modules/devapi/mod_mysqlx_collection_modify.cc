@@ -21,7 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "modules/devapi/mod_mysqlx_collection_modify.h"
-#include "db/mysqlx/mysqlx_parser.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
@@ -53,6 +52,8 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   message_.mutable_collection()->set_schema(owner->schema()->name());
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::DOCUMENT);
+  auto limit_id = F::limit;
+  auto bind_id = F::bind;
   // Exposes the methods available for chaining
   expose("modify", &CollectionModify::modify, "searchCondition");
   expose("set", &CollectionModify::set, "attribute", "value");
@@ -63,29 +64,32 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   expose("arrayAppend", &CollectionModify::array_append, "docPath", "value");
   expose("arrayDelete", &CollectionModify::array_delete, "docPath");
   add_method("sort", std::bind(&CollectionModify::sort, this, _1), "data");
-  expose("limit", &CollectionModify::limit, "count");
-  expose("bind", &CollectionModify::bind_, "placeHolder", "value");
+  add_method("limit",
+             std::bind(&CollectionModify::limit, this, _1, limit_id, false),
+             "data");
+  add_method("bind", std::bind(&CollectionModify::bind_, this, _1, bind_id),
+             "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::modify, F::_empty);
-  register_dynamic_function(F::set, F::modify | F::operation);
-  register_dynamic_function(F::unset, F::modify | F::operation);
-  register_dynamic_function(F::merge, F::modify | F::operation);
-  register_dynamic_function(F::patch, F::modify | F::operation);
-  register_dynamic_function(F::arrayInsert, F::modify | F::operation);
-  register_dynamic_function(F::arrayAppend, F::modify | F::operation);
-  register_dynamic_function(F::arrayDelete, F::modify | F::operation);
-  register_dynamic_function(F::sort, F::operation);
-  register_dynamic_function(F::limit, F::operation | F::sort);
-  register_dynamic_function(F::bind,
-                            F::operation | F::sort | F::limit | F::bind);
-  register_dynamic_function(F::execute,
-                            F::operation | F::sort | F::limit | F::bind);
-  register_dynamic_function(F::__shell_hook__,
-                            F::operation | F::sort | F::limit | F::bind);
+  Allowed_function_mask operations = F::set | F::unset | F::merge | F::patch |
+                                     F::arrayInsert | F::arrayAppend |
+                                     F::arrayDelete;
+  register_dynamic_function(F::modify, operations);
+  register_dynamic_function(F::operation, F::sort | F::limit | F::bind |
+                                              F::execute | F::__shell_hook__);
+  register_dynamic_function(F::sort, K_ENABLE_NONE, operations);
+  register_dynamic_function(F::limit, K_ENABLE_NONE, operations | F::sort);
+  register_dynamic_function(F::bind, K_ENABLE_NONE,
+                            operations | F::sort | F::limit, K_ALLOW_REUSE);
+  register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
   // Initial function update
-  update_functions(F::_empty);
+  enable_function(F::modify);
+}
+
+shcore::Value CollectionModify::this_object() {
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 void CollectionModify::set_operation(int type, const std::string &path,
@@ -181,6 +185,8 @@ REGISTER_HELP(
  * - set(String attribute, Value value)
  * - unset(String attribute)
  * - unset(List attributes)
+ * - merge(Document document)
+ * - patch(Document document)
  * - arrayAppend(String docPath, Value value)
  * - arrayInsert(String docPath, Value value)
  * - arrayDelete(String docPath)
@@ -207,6 +213,7 @@ std::shared_ptr<CollectionModify> CollectionModify::modify(
 
     // Updates the exposed functions
     update_functions(F::modify);
+    reset_prepared_statement();
   }
 
   return shared_from_this();
@@ -322,6 +329,7 @@ std::shared_ptr<CollectionModify> CollectionModify::set(
   set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, attribute, value);
 
   update_functions(F::operation);
+  reset_prepared_statement();
 
   return shared_from_this();
 }
@@ -500,6 +508,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
 
     // Updates the exposed functions
     if (unset_count) update_functions(F::operation);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("unset"));
 
@@ -590,6 +599,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
     set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);
 
     update_functions(F::operation);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("merge"));
 
@@ -709,6 +719,7 @@ shcore::Value CollectionModify::patch(const shcore::Argument_list &args) {
     set_operation(Mysqlx::Crud::UpdateOperation::MERGE_PATCH, "", args[0]);
 
     update_functions(F::operation);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("patch"));
 
@@ -791,6 +802,7 @@ std::shared_ptr<CollectionModify> CollectionModify::array_insert(
 
   // Updates the exposed functions
   update_functions(F::operation);
+  reset_prepared_statement();
 
   return shared_from_this();
 }
@@ -868,6 +880,7 @@ std::shared_ptr<CollectionModify> CollectionModify::array_append(
 
   update_functions(F::operation);
 
+  reset_prepared_statement();
   return shared_from_this();
 }
 
@@ -954,6 +967,7 @@ std::shared_ptr<CollectionModify> CollectionModify::array_delete(
 
   // Updates the exposed functions
   update_functions(F::operation);
+  reset_prepared_statement();
 
   return shared_from_this();
 }
@@ -1036,6 +1050,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
                                                      f);
 
     update_functions(F::sort);
+    reset_prepared_statement();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
@@ -1055,6 +1070,7 @@ REGISTER_HELP(COLLECTIONMODIFY_LIMIT_RETURNS,
 REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL,
               "This method is usually used in combination with sort to fix the "
               "amount of documents to be updated.");
+REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL1, "${LIMIT_EXECUTION_MODE}");
 
 /**
  * $(COLLECTIONMODIFY_LIMIT_BRIEF)
@@ -1078,6 +1094,8 @@ REGISTER_HELP(COLLECTIONMODIFY_LIMIT_DETAIL,
  * - arrayInsert(String docPath, Value value)
  * - arrayDelete(String docPath)
  *
+ * $(LIMIT_EXECUTION_MODE)
+ *
  * After this function invocation, the following functions can be invoked:
  *
  * - limit(Integer numberOfRows)
@@ -1091,13 +1109,6 @@ CollectionModify CollectionModify::limit(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::limit(int numberOfDocs) {}
 #endif
-std::shared_ptr<CollectionModify> CollectionModify::limit(uint64_t count) {
-  message_.mutable_limit()->set_row_count(count);
-
-  update_functions(F::limit);
-
-  return shared_from_this();
-}
 
 // Documentation of bind function
 REGISTER_HELP_FUNCTION(bind, CollectionModify);
@@ -1143,20 +1154,6 @@ CollectionFind CollectionModify::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionModify::bind(str name, Value value) {}
 #endif
-std::shared_ptr<CollectionModify> CollectionModify::bind_(
-    const std::string &placeholder, shcore::Value value) {
-  bind_value(placeholder, value);
-
-  update_functions(F::bind);
-
-  return shared_from_this();
-}
-
-CollectionModify &CollectionModify::bind(const std::string &name,
-                                         shcore::Value value) {
-  bind_value(name, value);
-  return *this;
-}
 
 // Documentation of execute function
 REGISTER_HELP_FUNCTION(execute, CollectionModify);
@@ -1205,17 +1202,29 @@ shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   try {
     ret_val = execute();
+    update_functions(F::execute);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return ret_val;
 }
 
+void CollectionModify::set_prepared_stmt() {
+  m_prep_stmt.mutable_stmt()->set_type(
+      Mysqlx::Prepare::Prepare_OneOfMessage_Type_UPDATE);
+  message_.clear_args();
+  update_limits();
+  *m_prep_stmt.mutable_stmt()->mutable_update() = message_;
+}
+
 shcore::Value CollectionModify::execute() {
   std::unique_ptr<mysqlsh::mysqlx::Result> result;
-  insert_bound_values(message_.mutable_args());
-  result.reset(new mysqlx::Result(safe_exec(
-      [this]() { return session()->session()->execute_crud(message_); })));
+
+  result.reset(new mysqlx::Result(safe_exec([this]() {
+    update_limits();
+    insert_bound_values(message_.mutable_args());
+    return session()->session()->execute_crud(message_);
+  })));
 
   return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
 }

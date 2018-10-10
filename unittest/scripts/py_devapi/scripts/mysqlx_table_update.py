@@ -51,7 +51,7 @@ validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableUpdate: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['bind', 'execute'])
+validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
 print 'Updated Angel:', result.affected_items_count, '\n'

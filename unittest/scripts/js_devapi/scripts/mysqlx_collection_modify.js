@@ -90,7 +90,7 @@ validate_crud_functions(crud, ['bind', 'execute']);
 
 //@ CollectionModify: valid operations after execute
 var result = crud.execute();
-validate_crud_functions(crud, ['bind', 'execute']);
+validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ Reusing CRUD with binding
 print('Updated Angel:', result.affectedItemsCount, '\n');

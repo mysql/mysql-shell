@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -225,6 +225,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
   std::string get_uuid();
 
+  void disable_prepared_statements() { m_allow_prepared_statements = false; }
+  bool allow_prepared_statements() { return m_allow_prepared_statements; }
+
  protected:
   friend class SqlExecute;
 
@@ -253,6 +256,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   uint64_t _savepoint_counter;
 
  private:
+  bool m_allow_prepared_statements;
   void reset_session();
 };
 

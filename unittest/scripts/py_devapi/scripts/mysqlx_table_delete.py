@@ -47,7 +47,7 @@ validate_crud_functions(crud, ['bind', 'execute'])
 
 #@ TableDelete: valid operations after execute
 result = crud.execute()
-validate_crud_functions(crud, ['bind', 'execute'])
+validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
 print 'Deleted donna:', result.affected_items_count, '\n'

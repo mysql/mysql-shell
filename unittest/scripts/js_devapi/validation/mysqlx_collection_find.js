@@ -46,6 +46,10 @@
 |All expected functions are available|
 |No additional functions are available|
 
+//@ CollectionFind: valid operations after execute with limit
+|All expected functions are available|
+|No additional functions are available|
+
 //@ Reusing CRUD with binding
 |adam|
 |alma|
