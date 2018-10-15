@@ -43,13 +43,16 @@ class Profile_timer {
 
   inline void reserve(size_t space) { _trace_points.reserve(space); }
 
-  inline size_t stage_begin(const char *note) {
+  inline void stage_begin(const char *note) {
     _trace_points.emplace_back(note, high_resolution_clock::now(), _depth);
-    return _nesting_levels[_depth++] = _trace_points.size() - 1;
+    _nesting_levels.emplace_back(_trace_points.size() - 1);
+    ++_depth;
   }
 
   inline void stage_end() {
-    size_t stage = _nesting_levels[--_depth];
+    size_t stage = _nesting_levels.back();
+    _nesting_levels.pop_back();
+    --_depth;
     _trace_points.at(stage).end = high_resolution_clock::now();
   }
 
@@ -98,9 +101,8 @@ extern Profile_timer *g_active_timer;
 
 }  // namespace utils
 
-inline size_t stage_begin(const char *note) {
-  if (utils::g_active_timer) return utils::g_active_timer->stage_begin(note);
-  return 0;
+inline void stage_begin(const char *note) {
+  if (utils::g_active_timer) utils::g_active_timer->stage_begin(note);
 }
 
 inline void stage_end() {
