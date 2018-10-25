@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,7 +80,8 @@ class Collection : public DatabaseObject,
 #endif
   shcore::Value add_(const shcore::Argument_list &args);
   shcore::Value find_(const shcore::Argument_list &args);
-  shcore::Value modify_(const shcore::Argument_list &args);
+  std::shared_ptr<CollectionModify> modify_(
+      const std::string &search_condition);
   shcore::Value remove_(const shcore::Argument_list &args);
   shcore::Value create_index_(const shcore::Argument_list &args);
   shcore::Value drop_index_(const shcore::Argument_list &args);
@@ -97,8 +98,8 @@ class Collection : public DatabaseObject,
   friend shcore::Value CollectionFind::find(const shcore::Argument_list &args);
   friend shcore::Value CollectionRemove::remove(
       const shcore::Argument_list &args);
-  friend shcore::Value CollectionModify::modify(
-      const shcore::Argument_list &args);
+  friend std::shared_ptr<CollectionModify> CollectionModify::modify(
+      const std::string &search_condition);
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

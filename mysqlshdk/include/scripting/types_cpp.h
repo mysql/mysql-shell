@@ -148,6 +148,18 @@ struct Type_info<const std::vector<std::string> &> {
   static std::vector<std::string> default_value() { return {}; }
 };
 
+// This mapping allows exposed functions to receive a Value parameter
+// On this case the expected type is Undefined and any value can be
+// mapped to it since the coming Value will simply by passed to the
+// function without any transformation
+template <>
+struct Type_info<shcore::Value> {
+  static shcore::Value to_native(const shcore::Value &in) { return in; }
+  static Value_type vtype() { return shcore::Undefined; }
+  static const char *code() { return "V"; }
+  static shcore::Value default_value() { return shcore::Value(); }
+};
+
 template <>
 struct Type_info<const shcore::Dictionary_t &> {
   static shcore::Dictionary_t to_native(const shcore::Value &in) {
@@ -200,6 +212,29 @@ struct Type_info<std::shared_ptr<Bridge_class>> {
   }
 };
 
+/**
+ * This class is used in the expose() functions to validate conversion
+ * of string values to numeric values (as they are marked as convertible
+ * at kTypeConvertible).
+ *
+ * In case of failure the standard error message is generated.
+ */
+template <typename T>
+struct Arg_handler {
+  static typename std::decay<T>::type get(uint64_t position,
+                                          const shcore::Argument_list &args) {
+    try {
+      return Type_info<T>::to_native(args.at(position));
+    } catch (...) {
+      std::string error = "Argument #";
+      error.append(std::to_string(position + 1));
+      error.append(" is expected to be ")
+          .append(type_description(Type_info<T>::vtype()));
+      throw Exception::argument_error(error);
+    }
+  }
+};
+
 class SHCORE_PUBLIC Cpp_property_name {
  public:
   explicit Cpp_property_name(const std::string &name, bool constant = false);
@@ -246,7 +281,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   typedef std::vector<std::pair<Value_type, Param_flag>> Raw_signature;
   static Raw_signature gen_signature(
       const std::vector<std::pair<std::string, Value_type>> &param_types);
-  static std::pair<bool, int> match_signatures(
+  static std::tuple<bool, int, std::string> match_signatures(
       const Raw_signature &cand, const std::vector<Value_type> &wanted);
 
   struct Metadata {
@@ -413,9 +448,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func,
              a1def](const shcore::Argument_list &args) -> shcore::Value {
-              const A1 &&a1 = args.size() == 0
-                                  ? a1def
-                                  : Type_info<A1>::to_native(args.at(0));
+              const A1 &&a1 =
+                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
               return internal::Result_wrapper<R>::call([this, func, a1]() {
                 return (static_cast<C *>(this)->*func)(a1);
               });
@@ -478,12 +512,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def,
              a2def](const shcore::Argument_list &args) -> shcore::Value {
-              const A1 &&a1 = args.size() == 0
-                                  ? a1def
-                                  : Type_info<A1>::to_native(args.at(0));
-              const A2 &&a2 = args.size() <= 1
-                                  ? a2def
-                                  : Type_info<A2>::to_native(args.at(1));
+              const A1 &&a1 =
+                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
+              const A2 &&a2 =
+                  args.size() <= 1 ? a2def : Arg_handler<A2>::get(1, args);
               return internal::Result_wrapper<R>::call([this, func, a1, a2]() {
                 return (static_cast<C *>(this)->*func)(a1, a2);
               });
@@ -527,15 +559,12 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def, a2def,
              a3def](const shcore::Argument_list &args) -> shcore::Value {
-              const A1 &&a1 = args.size() == 0
-                                  ? a1def
-                                  : Type_info<A1>::to_native(args.at(0));
-              const A2 &&a2 = args.size() <= 1
-                                  ? a2def
-                                  : Type_info<A2>::to_native(args.at(1));
-              const A3 &&a3 = args.size() <= 2
-                                  ? a3def
-                                  : Type_info<A3>::to_native(args.at(2));
+              const A1 &&a1 =
+                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
+              const A2 &&a2 =
+                  args.size() <= 1 ? a2def : Arg_handler<A2>::get(1, args);
+              const A3 &&a3 =
+                  args.size() <= 2 ? a3def : Arg_handler<A3>::get(2, args);
               return internal::Result_wrapper<R>::call(
                   [this, func, a1, a2, a3]() {
                     return (static_cast<C *>(this)->*func)(a1, a2, a3);
@@ -585,18 +614,14 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
             &md,
             [this, func, a1def, a2def, a3def,
              a4def](const shcore::Argument_list &args) -> shcore::Value {
-              const A1 &&a1 = args.size() == 0
-                                  ? a1def
-                                  : Type_info<A1>::to_native(args.at(0));
-              const A2 &&a2 = args.size() <= 1
-                                  ? a2def
-                                  : Type_info<A2>::to_native(args.at(1));
-              const A3 &&a3 = args.size() <= 2
-                                  ? a3def
-                                  : Type_info<A3>::to_native(args.at(2));
-              const A4 &&a4 = args.size() <= 3
-                                  ? a4def
-                                  : Type_info<A4>::to_native(args.at(3));
+              const A1 &&a1 =
+                  args.size() == 0 ? a1def : Arg_handler<A1>::get(0, args);
+              const A2 &&a2 =
+                  args.size() <= 1 ? a2def : Arg_handler<A2>::get(1, args);
+              const A3 &&a3 =
+                  args.size() <= 2 ? a3def : Arg_handler<A3>::get(2, args);
+              const A4 &&a4 =
+                  args.size() <= 3 ? a4def : Arg_handler<A4>::get(3, args);
               return internal::Result_wrapper<R>::call(
                   [this, func, a1, a2, a3, a4]() {
                     return (static_cast<C *>(this)->*func)(a1, a2, a3, a4);
@@ -680,6 +705,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
       Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,
       const std::vector<std::pair<std::string, Value_type>> &ptypes);
 
+  Value call_function(const std::string &scope,
+                      const std::shared_ptr<Cpp_function> &func,
+                      const Argument_list &args);
 #ifdef FRIEND_TEST
   friend class Types_cpp;
 #endif

@@ -1089,12 +1089,7 @@ Undefined Shell::enablePager() {}
 #elif DOXYGEN_PY
 None Shell::enable_pager() {}
 #endif
-void Shell::enable_pager() {
-  try {
-    current_console()->enable_global_pager();
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("enablePager"));
-}
+void Shell::enable_pager() { current_console()->enable_global_pager(); }
 
 REGISTER_HELP_FUNCTION(disablePager, shell);
 REGISTER_HELP(SHELL_DISABLEPAGER_BRIEF,
@@ -1117,11 +1112,6 @@ Undefined Shell::disablePager() {}
 #elif DOXYGEN_PY
 None Shell::disable_pager() {}
 #endif
-void Shell::disable_pager() {
-  try {
-    current_console()->disable_global_pager();
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("disablePager"));
-}
+void Shell::disable_pager() { current_console()->disable_global_pager(); }
 
 }  // namespace mysqlsh

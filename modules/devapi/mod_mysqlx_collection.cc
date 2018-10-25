@@ -62,8 +62,7 @@ Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
 void Collection::init() {
   add_method("add", std::bind(&Collection::add_, this, _1), "searchCriteria",
              shcore::String);
-  add_method("modify", std::bind(&Collection::modify_, this, _1),
-             "searchCriteria", shcore::String);
+  expose("modify", &Collection::modify_, "searchCriteria");
   add_method("find", std::bind(&Collection::find_, this, _1), "searchCriteria",
              shcore::String);
   add_method("remove", std::bind(&Collection::remove_, this, _1),
@@ -354,11 +353,12 @@ CollectionModify Collection::modify(String searchCondition) {}
 #elif DOXYGEN_PY
 CollectionModify Collection::modify(str searchCondition) {}
 #endif
-shcore::Value Collection::modify_(const shcore::Argument_list &args) {
+std::shared_ptr<CollectionModify> Collection::modify_(
+    const std::string &search_condition) {
   std::shared_ptr<CollectionModify> collectionModify(
       new CollectionModify(shared_from_this()));
 
-  return collectionModify->modify(args);
+  return collectionModify->modify(search_condition);
 }
 
 REGISTER_HELP_FUNCTION(remove, Collection);

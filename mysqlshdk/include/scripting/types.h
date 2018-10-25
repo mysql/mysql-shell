@@ -64,6 +64,8 @@ enum Value_type {
 // from_type = row, to_type = column
 extern const bool kTypeConvertible[12][12];
 
+std::string type_description(Value_type type);
+
 class Object_bridge;
 typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
 

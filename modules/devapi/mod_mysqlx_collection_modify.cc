@@ -54,20 +54,17 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::DOCUMENT);
   // Exposes the methods available for chaining
-  add_method("modify", std::bind(&CollectionModify::modify, this, _1), "data");
-  add_method("set", std::bind(&CollectionModify::set, this, _1), "data");
+  expose("modify", &CollectionModify::modify, "searchCondition");
+  expose("set", &CollectionModify::set, "attribute", "value");
   add_method("unset", std::bind(&CollectionModify::unset, this, _1), "data");
   add_method("merge", std::bind(&CollectionModify::merge, this, _1), "data");
   add_method("patch", std::bind(&CollectionModify::patch, this, _1), "data");
-  add_method("arrayInsert",
-             std::bind(&CollectionModify::array_insert, this, _1), "data");
-  add_method("arrayAppend",
-             std::bind(&CollectionModify::array_append, this, _1), "data");
-  add_method("arrayDelete",
-             std::bind(&CollectionModify::array_delete, this, _1), "data");
+  expose("arrayInsert", &CollectionModify::array_insert, "docPath", "value");
+  expose("arrayAppend", &CollectionModify::array_append, "docPath", "value");
+  expose("arrayDelete", &CollectionModify::array_delete, "docPath");
   add_method("sort", std::bind(&CollectionModify::sort, this, _1), "data");
-  add_method("limit", std::bind(&CollectionModify::limit, this, _1), "data");
-  add_method("bind", std::bind(&CollectionModify::bind_, this, _1), "data");
+  expose("limit", &CollectionModify::limit, "count");
+  expose("bind", &CollectionModify::bind_, "placeHolder", "value");
 
   // Registers the dynamic function behavior
   register_dynamic_function(F::modify, F::_empty);
@@ -196,29 +193,23 @@ CollectionModify CollectionModify::modify(String searchCondition) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::modify(str searchCondition) {}
 #endif
-shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(1, get_function_name("modify").c_str());
-
+std::shared_ptr<CollectionModify> CollectionModify::modify(
+    const std::string &condition) {
   std::shared_ptr<Collection> collection(
       std::static_pointer_cast<Collection>(_owner));
 
   if (collection) {
-    try {
-      std::string search_condition = str_strip(args.string_at(0));
+    auto search_condition = str_strip(condition);
+    if (search_condition.empty())
+      throw shcore::Exception::argument_error("Requires a search condition.");
 
-      if (search_condition.empty())
-        throw shcore::Exception::argument_error("Requires a search condition.");
+    set_filter(search_condition);
 
-      set_filter(search_condition);
-
-      // Updates the exposed functions
-      update_functions(F::modify);
-    }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("modify"));
+    // Updates the exposed functions
+    update_functions(F::modify);
   }
 
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 CollectionModify &CollectionModify::set_filter(const std::string &filter) {
@@ -326,19 +317,13 @@ CollectionModify CollectionModify::set(String attribute, Value value) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::set(str attribute, Value value) {}
 #endif
-shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(2, get_function_name("set").c_str());
+std::shared_ptr<CollectionModify> CollectionModify::set(
+    const std::string &attribute, shcore::Value value) {
+  set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, attribute, value);
 
-  try {
-    set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, args.string_at(0),
-                  args[1]);
+  update_functions(F::operation);
 
-    update_functions(F::operation);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 // Documentation of unset function
@@ -799,21 +784,15 @@ CollectionModify CollectionModify::arrayInsert(String docPath, Value value) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::array_insert(str docPath, Value value) {}
 #endif
-shcore::Value CollectionModify::array_insert(
-    const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(2, get_function_name("arrayInsert").c_str());
+std::shared_ptr<CollectionModify> CollectionModify::array_insert(
+    const std::string &doc_path, shcore::Value value) {
+  set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_INSERT, doc_path, value,
+                true);
 
-  try {
-    set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_INSERT,
-                  args.string_at(0), args[1], true);
+  // Updates the exposed functions
+  update_functions(F::operation);
 
-    // Updates the exposed functions
-    update_functions(F::operation);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayInsert"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 // Documentation of arrayAppend function
@@ -883,20 +862,13 @@ CollectionModify CollectionModify::arrayAppend(String docPath, Value value) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::array_append(str docPath, Value value) {}
 #endif
-shcore::Value CollectionModify::array_append(
-    const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(2, get_function_name("arrayAppend").c_str());
+std::shared_ptr<CollectionModify> CollectionModify::array_append(
+    const std::string &doc_path, shcore::Value value) {
+  set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND, doc_path, value);
 
-  try {
-    set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND,
-                  args.string_at(0), args[1]);
+  update_functions(F::operation);
 
-    update_functions(F::operation);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayAppend"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 // Documentation of arrayDelete function
@@ -971,25 +943,19 @@ CollectionModify CollectionModify::arrayDelete(String docPath) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::array_delete(str docPath) {}
 #endif
-shcore::Value CollectionModify::array_delete(
-    const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(1, get_function_name("arrayDelete").c_str());
-
+std::shared_ptr<CollectionModify> CollectionModify::array_delete(
+    const std::string &doc_path) {
   log_warning("'%s' is deprecated, use '%s' instead.",
               get_function_name("arrayDelete").c_str(),
               get_function_name("unset").c_str());
 
-  try {
-    set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, args.string_at(0),
-                  shcore::Value(), true);
+  set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, doc_path,
+                shcore::Value(), true);
 
-    // Updates the exposed functions
-    update_functions(F::operation);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayDelete"));
+  // Updates the exposed functions
+  update_functions(F::operation);
 
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 // Documentation of sort function
@@ -1125,17 +1091,12 @@ CollectionModify CollectionModify::limit(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
 CollectionModify CollectionModify::limit(int numberOfDocs) {}
 #endif
-shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("limit").c_str());
+std::shared_ptr<CollectionModify> CollectionModify::limit(uint64_t count) {
+  message_.mutable_limit()->set_row_count(count);
 
-  try {
-    message_.mutable_limit()->set_row_count(args.uint_at(0));
+  update_functions(F::limit);
 
-    update_functions(F::limit);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 // Documentation of bind function
@@ -1182,17 +1143,13 @@ CollectionFind CollectionModify::bind(String name, Value value) {}
 #elif DOXYGEN_PY
 CollectionFind CollectionModify::bind(str name, Value value) {}
 #endif
-shcore::Value CollectionModify::bind_(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("bind").c_str());
+std::shared_ptr<CollectionModify> CollectionModify::bind_(
+    const std::string &placeholder, shcore::Value value) {
+  bind_value(placeholder, value);
 
-  try {
-    bind_value(args.string_at(0), args[1]);
+  update_functions(F::bind);
 
-    update_functions(F::bind);
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return shared_from_this();
 }
 
 CollectionModify &CollectionModify::bind(const std::string &name,

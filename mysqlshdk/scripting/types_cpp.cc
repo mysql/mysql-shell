@@ -52,14 +52,17 @@ Cpp_function::Raw_signature Cpp_function::gen_signature(
   return sig;
 }
 
-std::pair<bool, int> Cpp_function::match_signatures(
+std::tuple<bool, int, std::string> Cpp_function::match_signatures(
     const Raw_signature &cand, const std::vector<Value_type> &wanted) {
   // this function follows mostly the same rules for finding viable functions
   // as c++ for function overload resolution
   size_t m = wanted.size();
   size_t c = cand.size();
   bool match = true;
+  std::string error;
 
+  // more than 3 params not supported atm...
+  // extend when more expose() variations added
   switch (static_cast<int>(cand.size()) - m) {
     case 3:  // 3 params extra, if the rest is optional, it's a match
       match = match && (cand[c - 3].second == Optional);
@@ -70,50 +73,74 @@ std::pair<bool, int> Cpp_function::match_signatures(
     case 0:  // # of params match
       break;
     default:
-      if (cand.size() < m) {
-        return {false, 0};
-      }
-      assert(0);
-      // more than 3 params not supported atm...
-      // extend when more expose() variations added
       match = false;
       break;
   }
-  if (match) {
+
+  // In case of parameter count mistmatch, creates the appropiate error message
+  if (!match) {
+    size_t max = cand.size();
+    size_t min = 0;
+    for (const auto &param : cand) {
+      if (param.second == Optional) {
+        break;
+      } else {
+        min++;
+      }
+    }
+
+    if (min == max)
+      error = shcore::str_format(
+          "Invalid number of arguments, expected %zu but got %zu", min, m);
+    else
+      error = shcore::str_format(
+          "Invalid number of arguments, expected %zu to %zu but got %zu", min,
+          max, m);
+  } else {
     bool have_object_params = false;
     size_t exact_matches = m;
     // check if all provided params are implicitly convertible to the ones
     // from the candidate
     switch (m) {
       case 3:  // 3 params to be considered
-        match = match && kTypeConvertible[static_cast<int>(wanted[2])]
-                                         [static_cast<int>(cand[2].first)];
+        if (!kTypeConvertible[static_cast<int>(wanted[2])]
+                             [static_cast<int>(cand[2].first)]) {
+          match = false;
+          error = shcore::str_format("Argument #3 is expected to be %s",
+                                     type_description(cand[2].first).c_str());
+        }
         exact_matches -= (wanted[2] != cand[2].first);
         have_object_params = have_object_params || (wanted[2] == Object);
       case 2:  // 2 params to be considered
-        match = match && kTypeConvertible[static_cast<int>(wanted[1])]
-                                         [static_cast<int>(cand[1].first)];
+        if (!kTypeConvertible[static_cast<int>(wanted[1])]
+                             [static_cast<int>(cand[1].first)]) {
+          match = false;
+          error = shcore::str_format("Argument #2 is expected to be %s",
+                                     type_description(cand[1].first).c_str());
+        }
         exact_matches -= (wanted[1] != cand[1].first);
         have_object_params = have_object_params || (wanted[1] == Object);
       case 1:  // 1 param to be considered
-        match = match && kTypeConvertible[static_cast<int>(wanted[0])]
-                                         [static_cast<int>(cand[0].first)];
+        if (!kTypeConvertible[static_cast<int>(wanted[0])]
+                             [static_cast<int>(cand[0].first)]) {
+          match = false;
+          error = shcore::str_format("Argument #1 is expected to be %s",
+                                     type_description(cand[0].first).c_str());
+        }
         exact_matches -= (wanted[0] != cand[0].first);
         have_object_params = have_object_params || (wanted[0] == Object);
       case 0:  // 0 params to be considered = nothing to check
         break;
-      default:
-        assert(0);  // more than 3 params not supported
-        match = false;
-        break;
     }
+
     if (exact_matches == m && !have_object_params) {
-      return {match, std::numeric_limits<int>::max()};
+      return std::make_tuple(match, std::numeric_limits<int>::max(), error);
     } else {
-      return {match, have_object_params ? 0 : exact_matches};
+      return std::make_tuple(match, have_object_params ? 0 : exact_matches,
+                             error);
     }
   }
-  return {false, 0};
+  return std::make_tuple(false, 0, error);
 }
 
 using FunctionEntry = std::pair<std::string, std::shared_ptr<Cpp_function>>;
@@ -401,9 +428,39 @@ Value Cpp_object_bridge::call_advanced(const std::string &name,
   auto func = lookup_function_overload(name, style, args);
   if (func) {
     ScopedStyle ss(this, style);
-    return func->invoke(args);
+    auto scope = get_function_name(name, true);
+    return call_function(scope, func, args);
   } else {
     throw Exception::attrib_error("Invalid object function " + name);
+  }
+}
+
+/**
+ * Utility function to handle function calls using both legacy and new
+ * export framework.
+ *
+ * On new framework, any error will be prepended with the given scope
+ * which usually is <class>.<function>
+ */
+Value Cpp_object_bridge::call_function(
+    const std::string &scope, const std::shared_ptr<Cpp_function> &func,
+    const Argument_list &args) {
+  if (func->is_legacy) {
+    return func->invoke(args);
+  } else {
+    try {
+      return func->invoke(args);
+    } catch (shcore::Exception &e) {
+      auto error = e.error();
+      (*error)["message"] = shcore::Value(scope + ": " + e.what());
+      throw;
+    } catch (std::runtime_error &e) {
+      throw shcore::Exception::runtime_error(scope + ": " + e.what());
+    } catch (std::logic_error &e) {
+      throw shcore::Exception::logic_error(scope + ": " + e.what());
+    } catch (...) {
+      throw;
+    }
   }
 }
 
@@ -450,15 +507,23 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
   // and won't have more than 2 or 3 candidates
 
   std::vector<std::pair<int, std::shared_ptr<Cpp_function>>> candidates;
+  int max_error_score = -1;
+  std::string match_error;
   while (i != _funcs.end() && i->second->name(style) == method) {
     if (i->second->is_legacy) return i->second;
 
     bool match;
     int score;
-    std::tie(match, score) = Cpp_function::match_signatures(
+    std::string error;
+    std::tie(match, score, error) = Cpp_function::match_signatures(
         i->second->function_signature(), arg_types);
     if (match) {
       candidates.push_back({score, i->second});
+    } else {
+      if (score > max_error_score) {
+        max_error_score = score;
+        match_error = error;
+      }
     }
     ++i;
   }
@@ -483,15 +548,23 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
                                   get_function_name(method, true) +
                                   " has ambiguous candidates.");
   }
-  throw Exception::attrib_error("Call to " + get_function_name(method, true) +
-                                " has wrong parameter count/types.");
+
+  if (!match_error.empty()) {
+    throw Exception::argument_error(get_function_name(method, true) + ": " +
+                                    match_error);
+  } else {
+    throw Exception::argument_error("Call to " +
+                                    get_function_name(method, true) +
+                                    " has wrong parameter count/types.");
+  }
 }
 
 Value Cpp_object_bridge::call(const std::string &name,
                               const Argument_list &args) {
   auto func = lookup_function_overload(name, LowerCamelCase, args);
   assert(func);
-  return func->invoke(args);
+  auto scope = get_function_name(name, true);
+  return call_function(scope, func, args);
 }
 
 shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {

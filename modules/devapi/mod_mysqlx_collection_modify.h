@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,17 +86,21 @@ class CollectionModify : public Collection_crud_definition,
       const shcore::Argument_list &args);
 
  private:
-  shcore::Value modify(const shcore::Argument_list &args);
-  shcore::Value set(const shcore::Argument_list &args);
+  std::shared_ptr<CollectionModify> modify(const std::string &condition);
+  std::shared_ptr<CollectionModify> set(const std::string &attribute,
+                                        shcore::Value value);
   shcore::Value unset(const shcore::Argument_list &args);
   shcore::Value merge(const shcore::Argument_list &args);
   shcore::Value patch(const shcore::Argument_list &args);
-  shcore::Value array_insert(const shcore::Argument_list &args);
-  shcore::Value array_append(const shcore::Argument_list &args);
-  shcore::Value array_delete(const shcore::Argument_list &args);
+  std::shared_ptr<CollectionModify> array_insert(const std::string &doc_path,
+                                                 shcore::Value value);
+  std::shared_ptr<CollectionModify> array_append(const std::string &doc_path,
+                                                 shcore::Value value);
+  std::shared_ptr<CollectionModify> array_delete(const std::string &doc_path);
   shcore::Value sort(const shcore::Argument_list &args);
-  shcore::Value limit(const shcore::Argument_list &args);
-  shcore::Value bind_(const shcore::Argument_list &args);
+  std::shared_ptr<CollectionModify> limit(uint64_t count);
+  std::shared_ptr<CollectionModify> bind_(const std::string &placeholder,
+                                          shcore::Value value);
 
   shcore::Value execute(const shcore::Argument_list &args) override;
   shcore::Value execute();

@@ -55,10 +55,10 @@
 |Updated Carol: 1|
 
 #@# CollectionModify: Error conditions on modify
-||CollectionModify.modify: Invalid number of arguments, expected 1 but got 0
-||CollectionModify.modify: Requires a search condition.
-||CollectionModify.modify: Argument #1 is expected to be a string
-||CollectionModify.modify: Unterminated quoted string starting at position 8
+||Collection.modify: Invalid number of arguments, expected 1 but got 0
+||Collection.modify: Requires a search condition.
+||Collection.modify: Argument #1 is expected to be a string
+||Collection.modify: Unterminated quoted string starting at position 8
 
 #@# CollectionModify: Error conditions on set
 ||CollectionModify.set: Invalid number of arguments, expected 2 but got 0
