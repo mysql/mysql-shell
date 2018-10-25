@@ -136,7 +136,7 @@ st)";
 }
 
 TEST_F(Shell_output_test, output_format_option) {
-  _options->output_format = "vertical";
+  _options->result_format = "vertical";
 
   std::stringstream stream("select 11 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
@@ -147,7 +147,7 @@ a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
-  _options->output_format = "table";
+  _options->result_format = "table";
   stream.clear();
   stream.str("select 12 as a;");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});
@@ -161,7 +161,7 @@ a: 11)";
   MY_EXPECT_STDOUT_CONTAINS(expected_output);
 
   wipe_all();
-  _options->output_format = "table";
+  _options->result_format = "table";
   stream.clear();
   stream.str("select 13 as a\\G");
   _ret_val = _interactive_shell->process_stream(stream, "STDIN", {});

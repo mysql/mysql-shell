@@ -34,7 +34,7 @@ DESCRIPTION
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
       - logLevel: current log level
-      - outputFormat: controls the type of output produced for SQL results.
+      - resultFormat: controls the type of output produced for SQL results.
       - pager: string which specifies the external command which is going to be
         used to display the paged output
       - passwordsFromStdin: boolean value that indicates if the shell should
@@ -46,7 +46,7 @@ DESCRIPTION
       - useWizards: read-only, boolean value to indicate if the Shell is using
         the interactive wrappers (wizard mode)
 
-      The outputFormat option supports the following values:
+      The resultFormat option supports the following values:
 
       - table: displays the output in table format (default)
       - json: displays the output in JSON format

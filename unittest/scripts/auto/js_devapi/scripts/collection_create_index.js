@@ -3,7 +3,7 @@ shell.connect(__uripwd);
 session.dropSchema('my_schema');
 var schema = session.createSchema('my_schema');
 var coll = schema.createCollection('my_coll');
-shell.options.outputFormat = 'vertical';
+shell.options.resultFormat = 'vertical';
 
 // This function will retrieve the key columns
 // for my_coll and create global variables with them

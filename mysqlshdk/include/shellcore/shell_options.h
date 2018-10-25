@@ -26,7 +26,7 @@
 
 #define SN_SHELL_OPTION_CHANGED "SN_SHELL_OPTION_CHANGED"
 
-#define SHCORE_OUTPUT_FORMAT "outputFormat"
+#define SHCORE_RESULT_FORMAT "resultFormat"
 #define SHCORE_INTERACTIVE "interactive"
 #define SHCORE_SHOW_WARNINGS "showWarnings"
 #define SHCORE_BATCH_CONTINUE_ON_ERROR "batchContinueOnError"
@@ -80,8 +80,8 @@ class Shell_options : public shcore::Options {
 
     std::string uri;
 
-    std::string output_format;
-    bool user_defined_output_format = false;
+    std::string result_format;
+    std::string wrap_json;
     mysqlsh::SessionType session_type = mysqlsh::SessionType::Auto;
     bool default_session_type = true;
     bool force = false;
@@ -157,6 +157,10 @@ class Shell_options : public shcore::Options {
 
   void set_db_name_cache(bool value) { storage.db_name_cache = value; }
 
+  void set_result_format(const std::string &format) {
+    storage.result_format = format;
+  }
+
   std::vector<std::string> get_details() { return get_cmdline_help(30, 48); }
 
   bool action_print_help() const { return print_cmd_line_helper; }
@@ -184,6 +188,7 @@ class Shell_options : public shcore::Options {
   void check_port_conflicts();
   void check_socket_conflicts();
   void check_port_socket_conflicts();
+  void check_result_format();
 
   /**
    * --import option require default schema to be provided in connection
@@ -202,7 +207,6 @@ class Shell_options : public shcore::Options {
 
  private:
   void notify(const std::string &option);
-  void set_output_format(const std::string &format);
 };
 
 std::shared_ptr<Shell_options> current_shell_options();

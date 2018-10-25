@@ -33,9 +33,7 @@ ab\ncd
 
 
 //@<OUT> X Json Format
-{
-    "value": "json"
-}
+json
 {
     "hasData": true,
     "rows": [
@@ -87,9 +85,7 @@ ab\tcd
 ab\ncd
 
 //@<OUT> Classic Json Format
-{
-    "value": "json"
-}
+json
 {
     "hasData": true,
     "rows": [

@@ -361,17 +361,12 @@ vertical
 <Cluster:devCluster>
 
 //@<OUT> Dba: getCluser validate object serialization output - json
-{
-    "value": "json"
-}
-{
-    "class": "Cluster",
-    "name": "devCluster"
-}
+json
+<Cluster:devCluster>
 
 //@<OUT> Dba: getCluser validate object serialization output - json/raw
-{"value":"json/raw"}
-{"class":"Cluster","name":"devCluster"}
+json/raw
+<Cluster:devCluster>
 
 //@<OUT> Dba: getCluster with interaction (default)
 <Cluster:devCluster>

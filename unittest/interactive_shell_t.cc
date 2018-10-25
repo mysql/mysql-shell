@@ -1258,7 +1258,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       }), output_handler.std_out.c_str());
   // clang-format on
   execute(to_scripting);
-  execute("shell.options['outputFormat']='vertical'");
+  execute("shell.options['resultFormat']='vertical'");
   execute("\\sql");
   wipe_all();
 
@@ -1307,7 +1307,7 @@ TEST_F(Interactive_shell_test, classic_sql_result) {
       "4 rows in set");
 
   execute(to_scripting);
-  execute("shell.options['outputFormat']='json'");
+  execute("shell.options['resultFormat']='json'");
   execute("\\sql");
   wipe_all();
 
@@ -1406,7 +1406,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "+---+-------+--------+----------+-------+-------+-------+----------------------+-------+\n");
   // clang-format on
   execute(to_scripting);
-  execute("shell.options['outputFormat']='vertical'");
+  execute("shell.options['resultFormat']='vertical'");
   execute("\\sql");
   wipe_all();
 
@@ -1455,7 +1455,7 @@ TEST_F(Interactive_shell_test, x_sql_result) {
       "4 rows in set");
 
   execute(to_scripting);
-  execute("shell.options['outputFormat']='json'");
+  execute("shell.options['resultFormat']='json'");
   execute("\\sql");
   wipe_all();
 
@@ -1750,7 +1750,7 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   }
   wipe_all();
 
-  execute("shell.options.outputFormat = 'json'");
+  execute("shell.options.resultFormat = 'json'");
   execute("shell.options");
   for (const auto &name : named_opts) {
     MY_EXPECT_STDOUT_CONTAINS("\"" + name + "\":");

@@ -3,7 +3,7 @@ shell.connect(__uripwd);
 session.drop_schema('my_schema');
 schema = session.create_schema('my_schema');
 coll = schema.create_collection('my_coll');
-shell.options.outputFormat = 'vertical';
+shell.options.resultFormat = 'vertical';
 
 # This function will retrieve the key columns
 # for my_coll and create global variables with them

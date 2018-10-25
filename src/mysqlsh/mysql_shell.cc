@@ -920,10 +920,10 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
   if (session && session->is_open()) {
     auto status = session->get_status();
     (*status)["DELIMITER"] = shcore::Value(_shell->get_main_delimiter());
-    std::string output_format = options().output_format;
+    std::string format = options().wrap_json;
 
-    if (output_format.find("json") == 0) {
-      println(shcore::Value(status).json(output_format == "json"));
+    if (format.find("json") == 0) {
+      println(shcore::Value(status).json(format == "json"));
     } else {
       const std::string format = "%-30s%s";
 
@@ -1324,12 +1324,11 @@ void Mysql_shell::process_sql_result(
 
   Base_shell::process_sql_result(result, info);
   if (result) {
-    auto old_format = options().output_format;
+    auto old_format = options().result_format;
     if (info.show_vertical)
-      mysqlsh::current_shell_options()->set(SHCORE_OUTPUT_FORMAT,
-                                            shcore::Value("vertical"));
+      mysqlsh::current_shell_options()->set_result_format("vertical");
     shcore::Scoped_callback clean([old_format]() {
-      mysqlsh::current_shell_options()->set(SHCORE_OUTPUT_FORMAT, old_format);
+      mysqlsh::current_shell_options()->set_result_format(old_format);
     });
 
     Resultset_dumper dumper(result.get(), false);
