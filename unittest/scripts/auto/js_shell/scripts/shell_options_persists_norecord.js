@@ -58,11 +58,18 @@ shell.options.unsetPersist("logLevel");
 shell.options["logLevel"]
 
 //@ outputFormat update and set back to default using shell.options
-shell.options.setPersist("outputFormat", "json/raw");
+shell.options.setPersist("outputFormat", "tabbed");
 shell.options["outputFormat"]
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
 shell.options.unsetPersist("outputFormat")
 shell.options["outputFormat"]
+
+//@ resultFormat update and set back to default using shell.options
+shell.options.setPersist("resultFormat", "json/raw");
+shell.options["resultFormat"]
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+shell.options.unsetPersist("resultFormat")
+shell.options["resultFormat"]
 
 //@ passwordsFromStdin update and set back to default using shell.options
 shell.options.setPersist("passwordsFromStdin", true);
@@ -162,11 +169,18 @@ os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option logLevel
 
 //@ outputFormat update and set back to default using \option
-\option --persist outputFormat = json/raw
+\option --persist outputFormat = tabbed
 \option outputFormat
 os.load_text_file(os.get_user_config_path() + "/test_options.json")
 \option --unset --persist outputFormat
 \option outputFormat
+
+//@ resultFormat update and set back to default using \option
+\option --persist resultFormat = json/raw
+\option resultFormat
+os.load_text_file(os.get_user_config_path() + "/test_options.json")
+\option --unset --persist resultFormat
+\option resultFormat
 
 //@ passwordsFromStdin update and set back to default using \option
 \option --persist passwordsFromStdin = true

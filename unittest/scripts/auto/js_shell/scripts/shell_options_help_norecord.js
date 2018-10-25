@@ -28,6 +28,9 @@
 //@ outputFormat option help text
 \option --help outputFormat
 
+//@ resultFormat option help text
+\option --help resultFormat
+
 //@ passwordsFromStdin option help text
 \option -h passwordsFromStdin
 

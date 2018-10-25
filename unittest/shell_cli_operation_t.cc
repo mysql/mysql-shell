@@ -222,7 +222,7 @@ TEST_F(Shell_cli_operation_test, shell_options_object) {
                  const_cast<char *>("--"),
                  const_cast<char *>("shell.options"),
                  const_cast<char *>("set"),
-                 const_cast<char *>("outputFormat"),
+                 const_cast<char *>("resultFormat"),
                  const_cast<char *>("table")};
   auto options = std::make_shared<mysqlsh::Shell_options>(6, arg);
   mysqlsh::Mysql_shell shell(options, &output_handler.deleg);

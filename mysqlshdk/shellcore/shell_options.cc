@@ -124,6 +124,7 @@ static std::string get_session_type_name(mysqlsh::SessionType type) {
 }
 
 using mysqlshdk::db::Ssl_options;
+using shcore::opts::Source;
 using shcore::opts::assign_value;
 using shcore::opts::cmdline;
 using shcore::opts::deprecated;
@@ -140,9 +141,10 @@ Shell_options::Shell_options(int argc, char **argv,
   home += ("mysql-sandboxes");
 #endif
 
-  const auto create_output_format_handler = [this](const char *value) {
-    return [this, value](const std::string &, const char *) {
-      set_output_format(value);
+  const auto create_result_format_handler = [this](const char *value) {
+    return [this, value](const std::string &opt_name, const char *) {
+      get_option(SHCORE_RESULT_FORMAT)
+          .handle_command_line_input(opt_name, value);
     };
   };
 
@@ -241,48 +243,52 @@ Shell_options::Shell_options(int argc, char **argv,
       throw std::invalid_argument("Python is not supported.");
 #endif
       })
-    (cmdline("--json[=format]"),
-        "Produce output in JSON format, allowed values:"
-        "raw, pretty. If no format is specified pretty format is produced.",
-        [this](const std::string&, const char* value) {
-          if (!value || strcmp(value, "pretty") == 0) {
-            set_output_format("json");
-          } else if (strcmp(value, "raw") == 0) {
-            set_output_format("json/raw");
-          } else {
-            throw std::invalid_argument(
-                "Value for --json must be either pretty or raw.");
-          }
+    (&storage.wrap_json, "off", cmdline("--json[=format]"),
+        "Produce output in JSON format, allowed values: raw, pretty, and off. "
+        "If no format is specified pretty format is produced.",
+        [](const std::string &val, Source) {
+          if (val == "off") return "off";
+          if (val.empty() || val == "pretty") return "json";
+          if (val == "raw") return "json/raw";
+          throw std::invalid_argument(
+              "Value for --json must be either pretty, raw or off.");
         })
     (cmdline("--table"),
         "Produce output in table format (default for interactive mode). This "
         "option can be used to force that format when running in batch mode.",
-        create_output_format_handler("table"))
+        create_result_format_handler("table"))
     (cmdline("--tabbed"),
         "Produce output in tab separated format (default for batch mode). This "
         "option can be used to force that format when running in interactive "
         "mode.",
-        create_output_format_handler("tabbed"))
+        create_result_format_handler("tabbed"))
     (cmdline("-E", "--vertical"),
         "Print the output of a query (rows) vertically.",
-        create_output_format_handler("vertical"))
-    (cmdline("--get-server-public-key"), "Request public key from the server "
-        "required for RSA key pair-based password exchange. Use when "
-        "connecting to MySQL 8.0 servers with classic MySQL sessions with SSL "
-        "mode DISABLED.",
-        assign_value(&storage.get_server_public_key, true))
-    (&storage.server_public_key_path, "",
-        cmdline("--server-public-key-path=path"), "The path name to a file "
-        "containing a client-side copy of the public key required by the "
-        "server for RSA key pair-based password exchange. Use when connecting "
-        "to MySQL 8.0 servers with classic MySQL sessions with SSL mode "
-        "DISABLED.");
+        create_result_format_handler("vertical"));
 
   add_named_options()
-    (&storage.output_format, "table", SHCORE_OUTPUT_FORMAT,
-        "Determines output format",
-        [this](const std::string &val, shcore::opts::Source) {
-          set_output_format(val);
+    (&storage.result_format, "table", "outputFormat",
+        "outputFormat option has been deprecated, "
+        "please use " SHCORE_RESULT_FORMAT " to set result format and --json "
+        "command line option to wrap output in JSON instead.\n",
+        [this](const std::string &val, Source s) {
+          std::cout << "WARNING: outputFormat option has been deprecated, "
+              "please use " SHCORE_RESULT_FORMAT " to set result format and"
+              " --json command line option to wrap output in JSON instead.\n";
+          get_option(SHCORE_RESULT_FORMAT).set(val, s);
+          storage.wrap_json = shcore::str_beginswith(val, "json") ? val : "off";
+          return storage.result_format;
+        })
+    (&storage.result_format, "table", SHCORE_RESULT_FORMAT,
+        cmdline("--result-format=value"),
+        "Determines format of results. Valid values:"
+        " [tabbed|table|vertical|json|json/raw].",
+        [](const std::string &val, Source) {
+          if (val != "table" && val != "json" && val != "json/raw" &&
+              val != "vertical" && val != "tabbed")
+            throw std::invalid_argument(
+                "The acceptable values for the option " SHCORE_RESULT_FORMAT
+                " are: tabbed, table, vertical, json or json/raw.");
           return val;
         })
     (&storage.interactive, false, SHCORE_INTERACTIVE,
@@ -293,8 +299,19 @@ Shell_options::Shell_options(int argc, char **argv,
         SHCORE_DEVAPI_DB_OBJECT_HANDLES,
         "Enable table and collection name handles for the DevAPI db object.");
 
-  add_startup_options()(
-      cmdline("-i", "--interactive[=full]"),
+  add_startup_options()
+    (cmdline("--get-server-public-key"), "Request public key from the server "
+        "required for RSA key pair-based password exchange. Use when "
+        "connecting to MySQL 8.0 servers with classic MySQL sessions with SSL "
+        "mode DISABLED.",
+        assign_value(&storage.get_server_public_key, true))
+    (&storage.server_public_key_path, "",
+        cmdline("--server-public-key-path=path"), "The path name to a file "
+        "containing a client-side copy of the public key required by the "
+        "server for RSA key pair-based password exchange. Use when connecting "
+        "to MySQL 8.0 servers with classic MySQL sessions with SSL mode "
+        "DISABLED.")
+    (cmdline("-i", "--interactive[=full]"),
       "To use in batch mode. "
       "It forces emulation of interactive mode processing. Each "
       "line on the batch is processed as if it were in interactive mode.",
@@ -323,7 +340,7 @@ Shell_options::Shell_options(int argc, char **argv,
     (reinterpret_cast<int*>(&storage.log_level),
         ngcommon::Logger::LOG_INFO, "logLevel", cmdline("--log-level=value"),
         ngcommon::Logger::get_level_range_info(),
-        [this](const std::string &val, shcore::opts::Source) {
+        [this](const std::string &val, Source) {
           const char* value = val.c_str();
           if (*value == '@') {
             storage.log_to_stderr = true;
@@ -454,6 +471,8 @@ Shell_options::Shell_options(int argc, char **argv,
     check_socket_conflicts();
     check_port_socket_conflicts();
     check_import_options();
+    check_result_format();
+    ngcommon::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     storage.exit_code = 1;
@@ -501,7 +520,7 @@ void Shell_options::set_and_notify(const std::string &option,
 
 void Shell_options::unset(const std::string &option, bool save_to_file) {
   if (save_to_file) unsave(option);
-  find_option(option)->second->reset_to_default_value();
+  get_option(option).reset_to_default_value();
   notify(option);
 }
 
@@ -901,17 +920,15 @@ void Shell_options::check_port_socket_conflicts() {
   }
 }
 
-void Shell_options::set_output_format(const std::string &format) {
-  if (format != "table" && format != "json" && format != "json/raw" &&
-      format != "vertical" && format != "tabbed") {
-    throw shcore::Exception::value_error(
-        "The option " SHCORE_OUTPUT_FORMAT
-        " must be one of: tabbed, table, vertical, json or json/raw.");
-  }
-
-  storage.output_format = format;
-  storage.user_defined_output_format = true;
-  ngcommon::Logger::set_stderr_output_format(format);
+void Shell_options::check_result_format() {
+  if (storage.wrap_json != "off" &&
+      get_option_source(SHCORE_RESULT_FORMAT) == Source::Command_line &&
+      storage.wrap_json != storage.result_format)
+    throw std::invalid_argument(shcore::str_format(
+        "Conflicting options: " SHCORE_RESULT_FORMAT
+        " cannot be set to '%s' when "
+        "--json option implying '%s' value is used.",
+        storage.result_format.c_str(), storage.wrap_json.c_str()));
 }
 
 void Shell_options::check_import_options() {

@@ -315,13 +315,15 @@ Options::Options(const std::string &config_file) : config_file(config_file) {}
 
 void Options::set(const std::string &option_name,
                   const std::string &new_value) {
-  auto it = find_option(option_name);
-  it->second->set(new_value);
+  get_option(option_name).set(new_value);
 }
 
 std::string Options::get_value_as_string(const std::string &option_name) {
-  auto it = find_option(option_name);
-  return it->second->get_value_as_string();
+  return get_option(option_name).get_value_as_string();
+}
+
+opts::Source Options::get_option_source(const std::string &option_name) {
+  return get_option(option_name).get_source();
 }
 
 void Options::handle_environment_options() {
@@ -394,7 +396,7 @@ void Options::save(const std::string &option_name) {
 }
 
 void Options::unsave(const std::string &option_name) {
-  find_option(option_name);
+  get_option(option_name);
   std::unique_ptr<rapidjson::Document> d = read_json_from_file(config_file);
   if (!d->RemoveMember(option_name.c_str()))
     throw std::invalid_argument("Option " + option_name +
@@ -585,12 +587,12 @@ void Options::add_option(Generic_option *option) {
   options.emplace_back(std::move(opt));
 }
 
-Options::NamedOptions::const_iterator Options::find_option(
+opts::Generic_option &Options::get_option(
     const std::string &option_name) const {
   auto op = named_options.find(option_name);
   if (op == named_options.end())
     throw std::invalid_argument("Unrecognized option: " + option_name + ".");
-  return op;
+  return *op->second;
 }
 
 } /* namespace shcore */

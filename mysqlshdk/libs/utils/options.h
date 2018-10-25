@@ -98,9 +98,9 @@ class Generic_option {
 
   const char *get_help() const { return help; }
 
- protected:
   virtual void set(const std::string &new_value, Source source) = 0;
 
+ protected:
   const std::string name;
   Source source = Source::Compiled_default;
   const char *environment_variable;
@@ -162,7 +162,14 @@ class Concrete_option : public Generic_option {
       else
         throw std::invalid_argument("Option " + option + " needs value");
     }
-    set(value, Source::Command_line);
+    try {
+      set(value, Source::Command_line);
+    } catch (const std::invalid_argument &e) {
+      std::string err_msg(e.what());
+      auto it = err_msg.find(name);
+      if (it != std::string::npos) err_msg.replace(it, name.length(), option);
+      throw std::invalid_argument(err_msg);
+    }
   }
 
   const T &get() const { return *landing_spot; }
@@ -436,9 +443,9 @@ class Options {
 
   template <class T>
   const T &get(const std::string &option_name) const {
-    auto it = find_option(option_name);
     typename opts::Concrete_option<T> *opt =
-        dynamic_cast<typename opts::Concrete_option<T> *>(it->second);
+        dynamic_cast<typename opts::Concrete_option<T> *>(
+            &get_option(option_name));
     if (opt == nullptr)
       throw std::invalid_argument(
           option_name +
@@ -447,6 +454,7 @@ class Options {
   }
 
   std::string get_value_as_string(const std::string &option_name);
+  opts::Source get_option_source(const std::string &option_name);
 
   /// Gets values from environment variables to options.
   void handle_environment_options();
@@ -486,8 +494,7 @@ class Options {
   };
 
   void add_option(opts::Generic_option *opt);
-  NamedOptions::const_iterator find_option(
-      const std::string &option_name) const;
+  opts::Generic_option &get_option(const std::string &option_name) const;
 
   std::vector<std::unique_ptr<opts::Generic_option>> options;
   NamedOptions named_options;

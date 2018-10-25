@@ -425,7 +425,7 @@ struct JScript_context::JScript_context_impl {
 
     std::string text;
     // FIXME this doesn't belong here?
-    std::string format = mysqlsh::current_shell_options()->get().output_format;
+    std::string format = mysqlsh::current_shell_options()->get().wrap_json;
 
     for (int i = 0; i < args.Length(); i++) {
       v8::HandleScope handle_scope(isolate);

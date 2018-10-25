@@ -112,8 +112,10 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->ssl_options.get_tls_version();
     else if (option == "uri")
       return options->uri;
-    else if (option == "output_format")
-      return options->output_format;
+    else if (option == "result_format")
+      return options->result_format;
+    else if (option == "wrap_json")
+      return options->wrap_json;
     else if (option == "session_type")
       return session_type_name(options->session_type);
     else if (option == "force")
@@ -657,7 +659,8 @@ TEST_F(Shell_cmdline_options, default_values) {
 
   EXPECT_FALSE(options.interactive);
   EXPECT_EQ(options.log_level, ngcommon::Logger::LOG_INFO);
-  EXPECT_EQ("table", options.output_format);
+  EXPECT_EQ("table", options.result_format);
+  EXPECT_EQ("off", options.wrap_json);
   EXPECT_EQ(nullptr, options.password);
   EXPECT_FALSE(options.passwords_from_stdin);
   EXPECT_EQ(options.port, 0);
@@ -765,15 +768,26 @@ TEST_F(Shell_cmdline_options, app) {
 
   test_option_with_no_value("--recreate-schema", "recreate_database", "1");
 
-  test_option_with_value("json", "", "pretty", "json", !IS_CONNECTION_DATA,
-                         IS_NULLABLE, "output_format", "json");
-  test_option_with_value("json", "", "raw", "json", !IS_CONNECTION_DATA,
-                         IS_NULLABLE, "output_format", "json/raw");
-  test_option_with_no_value("--json", "output_format", "json");
-  test_option_with_no_value("--table", "output_format", "table");
-  test_option_with_no_value("--tabbed", "output_format", "tabbed");
-  test_option_with_no_value("--vertical", "output_format", "vertical");
-  test_option_with_no_value("-E", "output_format", "vertical");
+  test_option_with_no_value("--table", "result_format", "table");
+  test_option_with_no_value("--tabbed", "result_format", "tabbed");
+  test_option_with_no_value("--vertical", "result_format", "vertical");
+  test_option_with_no_value("-E", "result_format", "vertical");
+  test_option_equal_value("result-format", "table", false, "result_format",
+                          "table");
+  test_option_equal_value("result-format", "tabbed", false, "result_format",
+                          "tabbed");
+  test_option_equal_value("result-format", "vertical", false, "result_format",
+                          "vertical");
+  test_option_equal_value("result-format", "json", false, "result_format",
+                          "json");
+  test_option_equal_value("result-format", "json/raw", false, "result_format",
+                          "json/raw");
+
+  test_option_with_no_value("--json", "wrap_json", "json");
+  test_option_equal_value("json", "pretty", false, "wrap_json", "json");
+  test_option_equal_value("json", "raw", false, "wrap_json", "json/raw");
+  test_option_equal_value("json", "off", false, "wrap_json", "off");
+
   test_option_with_no_value("--trace-proto", "trace_protocol", "1");
   test_option_with_no_value("--force", "force", "1");
   test_option_with_no_value("--interactive", "interactive", "1");
@@ -1094,6 +1108,30 @@ TEST_F(Shell_cmdline_options, conflicts_host) {
                    const_cast<char *>("--host=127.0.0.1"), uri, NULL};
 
   test_conflicting_options("--host --uri", 3, argv0, error);
+}
+
+TEST_F(Shell_cmdline_options, conflicts_output) {
+  auto error =
+      "Conflicting options: resultFormat cannot be set to 'table' when --json "
+      "option implying 'json' value is used.\n";
+
+  char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--json"),
+                   const_cast<char *>("--table"), NULL};
+
+  test_conflicting_options("--json --table", 3, argv0, error);
+
+  char *argv1[] = {const_cast<char *>("ut"), const_cast<char *>("--table"),
+                   const_cast<char *>("--json"), NULL};
+
+  test_conflicting_options("--table --json", 3, argv1, error);
+
+  char *argv2[] = {const_cast<char *>("ut"),
+                   const_cast<char *>("--result-format=meh"), NULL};
+
+  test_conflicting_options("--result-format=meh", 2, argv2,
+                           "The acceptable values for the option "
+                           "--result-format are: tabbed, table, vertical, json "
+                           "or json/raw.\n");
 }
 
 #ifdef _WIN32

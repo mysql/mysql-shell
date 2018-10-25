@@ -7,42 +7,42 @@ session.sql('insert into resultset_dumper.bindata values ("ab\0cd"),("ab\tcd"),(
 
 //---------- TEST FOR BINARY DATA ----------
 //@ X Table Format
-shell.options.outputFormat = 'table';
+shell.options.resultFormat = 'table';
 session.sql('select * from resultset_dumper.bindata');
 
 //@ X Vertical Format
-shell.options.outputFormat = 'vertical';
+shell.options.resultFormat = 'vertical';
 session.sql('select * from resultset_dumper.bindata');
 
 //@ X Tabbed Format
-shell.options.outputFormat = 'tabbed';
+shell.options.resultFormat = 'tabbed';
 session.sql('select * from resultset_dumper.bindata');
 
 //@ X Json Format
-shell.options.outputFormat = 'json';
+shell.options.resultFormat = 'json';
 var result = session.sql('select * from resultset_dumper.bindata').execute();
 result
-shell.options.outputFormat = 'table';
+shell.options.resultFormat = 'table';
 session.close();
 
 //@ Classic Table Format
 shell.connect(__mysqluripwd);
-shell.options.outputFormat = 'table';
+shell.options.resultFormat = 'table';
 session.runSql('select * from resultset_dumper.bindata');
 
 //@ Classic Vertical Format
-shell.options.outputFormat = 'vertical';
+shell.options.resultFormat = 'vertical';
 session.runSql('select * from resultset_dumper.bindata');
 
 //@ Classic Tabbed Format
-shell.options.outputFormat = 'tabbed';
+shell.options.resultFormat = 'tabbed';
 session.runSql('select * from resultset_dumper.bindata');
 
 //@ Classic Json Format
-shell.options.outputFormat = 'json';
+shell.options.resultFormat = 'json';
 var result = session.runSql('select * from resultset_dumper.bindata');
 result
-shell.options.outputFormat = 'table';
+shell.options.resultFormat = 'table';
 session.runSql('drop schema resultset_dumper');
 session.close();
 //------------------------------------------
@@ -65,15 +65,15 @@ table.insert('data').
       values('®7⃣⏰☕♒♣\0⛽🌄🌠🎨🐍🐾');
 
 //@ table in table format {!__os_type != 'windows'}
-shell.options.outputFormat = 'table';
+shell.options.resultFormat = 'table';
 table.select();
 
 //@ table in tabbed format {!__os_type != 'windows'}
-shell.options.outputFormat="tabbed";
+shell.options.resultFormat="tabbed";
 table.select();
 
 //@ table in vertical format {!__os_type != 'windows'}
-shell.options.outputFormat="vertical";
+shell.options.resultFormat="vertical";
 table.select();
 
 var collection = schema.createCollection('mbcollection');
@@ -92,16 +92,16 @@ collection.add({_id:'10', name:'®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾', year
 collection.find();
 
 //@ pulling as table in table format {!__os_type != 'windows'}
-shell.options.outputFormat="table";
+shell.options.resultFormat="table";
 var table = schema.getCollectionAsTable('mbcollection');
 table.select();
 
 //@ pulling as table in tabbed format {!__os_type != 'windows'}
-shell.options.outputFormat="tabbed";
+shell.options.resultFormat="tabbed";
 table.select();
 
 //@ pulling as table in vertical format {!__os_type != 'windows'}
-shell.options.outputFormat="vertical";
+shell.options.resultFormat="vertical";
 table.select();
 
 session.dropSchema('resultset_dumper');

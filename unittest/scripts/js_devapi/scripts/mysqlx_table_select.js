@@ -206,22 +206,22 @@ print('Select Binding Length:', records.length, '\n');
 print('Select Binding Name:', records[0].my_name, '\n');
 
 //@ Table.Select Basic vertical output
-shell.options.outputFormat = "vertical"
+shell.options.resultFormat = "vertical"
 table.select('name');
 
 //@ Table.Select Check column align in vertical mode
-shell.options.outputFormat = "vertical"
+shell.options.resultFormat = "vertical"
 table.select('*').where('age > 15');
 
 //@ Table.Select Check row with newline in vertical mode
-shell.options.outputFormat = "vertical"
+shell.options.resultFormat = "vertical"
 table.insert({ name: 'john\ndoe', age: 13, gender: 'male' }).execute();
 table.select('*').where('age = 13');
 
 //@ Table.Select Check switching between table and vertical mode 1
-shell.options.outputFormat = "vertical"
+shell.options.resultFormat = "vertical"
 table.select('name').where('age > 16');
-shell.options.outputFormat = "table"
+shell.options.resultFormat = "table"
 //@<OUT> Table.Select Check switching between table and vertical mode 2
 table.select('name').where('age > 16');
 

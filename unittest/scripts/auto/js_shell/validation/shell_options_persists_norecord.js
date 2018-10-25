@@ -58,8 +58,15 @@
 
 //@ outputFormat update and set back to default using shell.options
 ||
-|{"value":"json/raw"}|
-|\"outputFormat\": \"json/raw\"|
+|tabbed|
+|"outputFormat": "tabbed"|
+||
+|table|
+
+//@ resultFormat update and set back to default using shell.options
+||
+|json/raw|
+|"resultFormat": "json/raw"|
 ||
 |table|
 
@@ -158,7 +165,13 @@
 
 //@ outputFormat update and set back to default using \option
 ||
-|{"info":"json/raw"}|
+|tabbed|
+||
+|table|
+
+//@ resultFormat update and set back to default using \option
+||
+|json/raw|
 ||
 |table|
 
@@ -248,6 +261,7 @@
  outputFormat                    table
  pager                           ""
  passwordsFromStdin              false
+ resultFormat                    table
  sandboxDir                      <<<_defaultSandboxDir>>>
  showWarnings                    true
  useWizards                      true
@@ -269,6 +283,7 @@
  outputFormat                    table (Compiled default)
  pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
+ resultFormat                    table (Compiled default)
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)
@@ -321,6 +336,7 @@
  outputFormat                    table
  pager                           ""
  passwordsFromStdin              false
+ resultFormat                    table
  sandboxDir                      <<<_defaultSandboxDir>>>
  showWarnings                    true
  useWizards                      true
@@ -343,6 +359,7 @@
  outputFormat                    table (Compiled default)
  pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
+ resultFormat                    table (Compiled default)
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
  showWarnings                    true (Compiled default)
  useWizards                      true (Compiled default)

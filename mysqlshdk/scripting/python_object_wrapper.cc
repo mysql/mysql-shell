@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -257,7 +257,7 @@ static PyObject *object_printable(PyShObjObject *self) {
   PyObject *ret_val;
 
   Value object((*self->object));
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
+  std::string format = mysqlsh::current_shell_options()->get().wrap_json;
 
   if (format.find("json") == 0)
     ret_val = PyString_FromString(object.json(format == "json").c_str());

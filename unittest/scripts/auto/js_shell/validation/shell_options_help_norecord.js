@@ -31,7 +31,13 @@
            respectively.
 
 //@<OUT> outputFormat option help text
- outputFormat  Determines output format
+ outputFormat  outputFormat option has been deprecated, please use resultFormat
+               to set result format and --json command line option to wrap
+               output in JSON instead.
+
+//@<OUT> resultFormat option help text
+ resultFormat  Determines format of results. Valid values:
+               [tabbed|table|vertical|json|json/raw].
 
 //@<OUT> passwordsFromStdin option help text
  passwordsFromStdin  Read passwords from stdin instead of the tty.

@@ -334,27 +334,27 @@ var c2 = dba.getCluster('devCluster');
 c2;
 
 //@ Dba: getCluser validate object serialization output - tabbed
-const original_output = shell.options.outputFormat
-shell.options.outputFormat = 'tabbed'
+const original_format = shell.options.resultFormat
+shell.options.resultFormat = 'tabbed'
 c2;
 
 //@ Dba: getCluser validate object serialization output - table
-shell.options.outputFormat = 'table'
+shell.options.resultFormat = 'table'
 c2;
 
 //@ Dba: getCluser validate object serialization output - vertical
-shell.options.outputFormat = 'vertical'
+shell.options.resultFormat = 'vertical'
 c2;
 
 //@ Dba: getCluser validate object serialization output - json
-shell.options.outputFormat = 'json'
+shell.options.resultFormat = 'json'
 c2;
 
 //@ Dba: getCluser validate object serialization output - json/raw
-shell.options.outputFormat = 'json/raw'
+shell.options.resultFormat = 'json/raw'
 c2;
 
-shell.options.outputFormat = original_output
+shell.options.resultFormat = original_format
 
 //@<OUT> Dba: getCluster with interaction (default)
 var c3 = dba.getCluster();

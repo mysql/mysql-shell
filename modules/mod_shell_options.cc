@@ -86,7 +86,7 @@ REGISTER_HELP(OPTIONS_DETAIL12,
               "running in interactive mode");
 REGISTER_HELP(OPTIONS_DETAIL13, "@li logLevel: current log level");
 REGISTER_HELP(OPTIONS_DETAIL14,
-              "@li outputFormat: controls the type of "
+              "@li resultFormat: controls the type of "
               "output produced for SQL results.");
 REGISTER_HELP(OPTIONS_DETAIL15,
               "@li pager: string which specifies the external command which is "
@@ -108,7 +108,7 @@ REGISTER_HELP(OPTIONS_DETAIL19,
               "interactive wrappers (wizard mode)");
 
 REGISTER_HELP(OPTIONS_DETAIL20,
-              "The outputFormat option supports the following values:");
+              "The resultFormat option supports the following values:");
 REGISTER_HELP(OPTIONS_DETAIL21,
               "@li table: displays the output in table format (default)");
 REGISTER_HELP(OPTIONS_DETAIL22, "@li json: displays the output in JSON format");

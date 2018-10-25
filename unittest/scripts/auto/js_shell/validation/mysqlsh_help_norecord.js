@@ -59,8 +59,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 session.
   --js, --javascript            Start in JavaScript mode.
   --py, --python                Start in Python mode.
-  --json[=format]               Produce output in JSON format, allowed
-                                values:raw, pretty. If no format is specified
+  --json[=format]               Produce output in JSON format, allowed values:
+                                raw, pretty, and off. If no format is specified
                                 pretty format is produced.
   --table                       Produce output in table format (default for
                                 interactive mode). This option can be used to
@@ -70,6 +70,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                 force that format when running in interactive
                                 mode.
   -E, --vertical                Print the output of a query (rows) vertically.
+  --result-format=value         Determines format of results. Valid values:
+                                [tabbed|table|vertical|json|json/raw].
   --get-server-public-key       Request public key from the server required for
                                 RSA key pair-based password exchange. Use when
                                 connecting to MySQL 8.0 servers with classic

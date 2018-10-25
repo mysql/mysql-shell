@@ -62,9 +62,9 @@ void Dissolve::prompt_to_confirm_dissolve() const {
         "The cluster still has the following registered ReplicaSets:");
     shcore::Value res = m_cluster->describe(shcore::Argument_list());
 
-    // Pretty print description only if output_format is not json/raw.
+    // Pretty print description only if wrap_json is not json/raw.
     bool use_pretty_print =
-        (current_shell_options()->get().output_format.compare("json/raw") != 0);
+        (current_shell_options()->get().wrap_json.compare("json/raw") != 0);
     console->println(res.descr(use_pretty_print));
   }
 

@@ -491,9 +491,10 @@ class Field_formatter {
 Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
                                    bool buffer_data)
     : _rset(target), _buffer_data(buffer_data), _cancelled(false) {
-  _format = mysqlsh::current_shell_options()->get().output_format;
-  _interactive = mysqlsh::current_shell_options()->get().interactive;
-  _show_warnings = mysqlsh::current_shell_options()->get().show_warnings;
+  auto opts = mysqlsh::current_shell_options()->get();
+  _format = opts.wrap_json == "off" ? opts.result_format : opts.wrap_json;
+  _interactive = opts.interactive;
+  _show_warnings = opts.show_warnings;
 }
 
 void Resultset_dumper::dump(const std::string &item_label, bool is_query,
@@ -569,8 +570,7 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
 size_t Resultset_dumper::dump_documents() {
   // When dumping a collection, format should be json unless json/raw is
   // specified
-  shcore::JSON_dumper dumper(current_shell_options()->get().output_format !=
-                             "json/raw");
+  shcore::JSON_dumper dumper(_format != "json/raw");
 
   dumper.start_array();
 
@@ -688,8 +688,7 @@ size_t Resultset_dumper::dump_vertical() {
 
 size_t Resultset_dumper::dump_json(const std::string &item_label,
                                    bool is_doc_result) {
-  shcore::JSON_dumper dumper(current_shell_options()->get().output_format ==
-                             "json");
+  shcore::JSON_dumper dumper(_format == "json");
 
   dumper.start_object();
   dumper.append_string("hasData");

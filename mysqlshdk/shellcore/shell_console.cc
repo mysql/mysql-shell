@@ -44,7 +44,7 @@ namespace mysqlsh {
 namespace {
 std::string json_obj(const char *key, const std::string &value) {
   shcore::JSON_dumper dumper(
-      mysqlsh::current_shell_options()->get().output_format == "json");
+      mysqlsh::current_shell_options()->get().wrap_json == "json");
   dumper.start_object();
   dumper.append_string(key);
   dumper.append_string(value);
@@ -55,7 +55,7 @@ std::string json_obj(const char *key, const std::string &value) {
 
 std::string json_obj(const char *key, const shcore::Value &info) {
   shcore::JSON_dumper dumper(
-      mysqlsh::current_shell_options()->get().output_format == "json");
+      mysqlsh::current_shell_options()->get().wrap_json == "json");
   dumper.start_object();
   dumper.append_value(key, info);
   dumper.end_object();
@@ -63,9 +63,8 @@ std::string json_obj(const char *key, const shcore::Value &info) {
   return dumper.str() + "\n";
 }
 
-bool use_json() {
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
-  return format.find("json") != std::string::npos;
+inline bool use_json() {
+  return mysqlsh::current_shell_options()->get().wrap_json != "off";
 }
 }  // namespace
 
@@ -386,11 +385,11 @@ void Shell_console::print_value(const shcore::Value &value,
   std::string output;
   bool add_new_line = true;
   // When using JSON output ALL must be JSON
-  std::string format = mysqlsh::current_shell_options()->get().output_format;
   if (use_json()) {
     // If no tag is provided, prints the JSON representation of the Value
     if (tag.empty()) {
-      output = value.json(format == "json");
+      output = value.json(mysqlsh::current_shell_options()->get().wrap_json ==
+                          "json");
     } else {
       if (value.type == shcore::String)
         output = json_obj(tag.c_str(), value.get_string());

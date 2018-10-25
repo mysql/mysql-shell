@@ -4,7 +4,7 @@ shell.connect(__uripwd);
 WIPE_SHELL_LOG();
 
 //@ switch to "table" output format
-shell.options.outputFormat = "table";
+shell.options.resultFormat = "table";
 
 //@ check if there are any deprecated warnings (1)
 session.sql('select 1, 2, 3;');
@@ -14,7 +14,7 @@ EXPECT_SHELL_LOG_NOT_CONTAINS("Warning: 'SqlResult.nextDataSet' is deprecated, u
 WIPE_SHELL_LOG();
 
 //@ switch to "json" output format
-shell.options.outputFormat = "json";
+shell.options.resultFormat = "json";
 
 //@ check if there are any deprecated warnings (2)
 session.sql('select 1, 2, 3;');
