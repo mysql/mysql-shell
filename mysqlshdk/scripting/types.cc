@@ -55,17 +55,17 @@
 const bool shcore::kTypeConvertible[12][12] = {
     // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun
     {T, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
-    {F, T, F, F, F, F, F, T, T, T, T, T},  // Null
-    {F, F, T, F, T, T, T, F, F, F, F, F},  // Bool
-    {F, F, T, T, T, T, T, F, F, F, F, F},  // String
-    {F, F, T, F, T, T, T, F, F, F, F, F},  // Integer
-    {F, F, T, F, T, T, T, F, F, F, F, F},  // UInteger
-    {F, F, T, F, T, T, T, F, F, F, F, F},  // Float
-    {F, F, F, F, F, F, F, T, F, F, F, F},  // Object
-    {F, F, F, F, F, F, F, F, T, F, F, F},  // Array
-    {F, F, F, F, F, F, F, F, F, T, T, F},  // Map
-    {F, F, F, F, F, F, F, F, F, T, T, F},  // MapRef
-    {F, F, F, F, F, F, F, F, F, F, F, T},  // Function
+    {T, T, F, F, F, F, F, T, T, T, T, T},  // Null
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // Bool
+    {T, F, T, T, T, T, T, F, F, F, F, F},  // String
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // Integer
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // UInteger
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // Float
+    {T, F, F, F, F, F, F, T, F, F, F, F},  // Object
+    {T, F, F, F, F, F, F, F, T, F, F, F},  // Array
+    {T, F, F, F, F, F, F, F, F, T, T, F},  // Map
+    {T, F, F, F, F, F, F, F, F, T, T, F},  // MapRef
+    {T, F, F, F, F, F, F, F, F, F, F, T},  // Function
 };
 #undef T
 #undef F
@@ -296,6 +296,37 @@ std::string type_name(Value_type type) {
       return "MapRef";
     case Function:
       return "Function";
+    default:
+      return "";
+  }
+}
+
+std::string type_description(Value_type type) {
+  switch (type) {
+    case Undefined:
+      return "an undefined";
+    case shcore::Null:
+      return "a null";
+    case Bool:
+      return "a bool";
+    case Integer:
+      return "an integer";
+    case UInteger:
+      return "an unsigned integer";
+    case Float:
+      return "a float";
+    case String:
+      return "a string";
+    case Object:
+      return "an object";
+    case Array:
+      return "an array";
+    case Map:
+      return "a map";
+    case MapRef:
+      return "a map";
+    case Function:
+      return "a function";
     default:
       return "";
   }

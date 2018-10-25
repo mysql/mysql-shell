@@ -578,89 +578,86 @@ None Util::import_json(str file, dict options);
 #endif
 void Util::import_json(const std::string &file,
                        const shcore::Dictionary_t &options) {
-  try {
-    {
-      const shcore::Argument_map opts(*options);
-      const std::set<std::string> valid_options{
-          "schema", "collection", "table", "tableColumn", "convertBsonOid"};
-      opts.ensure_keys({}, valid_options, "the options");
-    }
-
-    auto shell_session = _shell_core.get_dev_session();
-
-    if (!shell_session) {
-      throw shcore::Exception::runtime_error(
-          "Please connect the shell to the MySQL server.");
-    }
-
-    auto node_type = shell_session->get_node_type();
-    if (node_type.compare("X") != 0) {
-      throw shcore::Exception::runtime_error(
-          "An X Protocol session is required for JSON import.");
-    }
-
-    Connection_options connection_options =
-        shell_session->get_connection_options();
-
-    std::shared_ptr<mysqlshdk::db::mysqlx::Session> xsession =
-        mysqlshdk::db::mysqlx::Session::create();
-
-    if (current_shell_options()->get().trace_protocol) {
-      xsession->enable_protocol_trace(true);
-    }
-    xsession->connect(connection_options);
-
-    Prepare_json_import prepare{xsession};
-
-    if (options->has_key("schema")) {
-      prepare.schema(options->get_string("schema"));
-    } else if (!shell_session->get_current_schema().empty()) {
-      prepare.schema(shell_session->get_current_schema());
-    } else {
-      throw std::runtime_error(
-          "There is no active schema on the current session, the target schema "
-          "for the import operation must be provided in the options.");
-    }
-
-    prepare.path(file);
-
-    if (options->has_key("table")) {
-      prepare.table(options->get_string("table"));
-    }
-
-    if (options->has_key("tableColumn")) {
-      prepare.column(options->get_string("tableColumn"));
-    }
-
-    if (options->has_key("collection")) {
-      if (options->has_key("tableColumn")) {
-        throw std::invalid_argument(
-            "tableColumn cannot be used with collection.");
-      }
-      prepare.collection(options->get_string("collection"));
-    }
-
-    // Validate provided parameters and build Json_importer object.
-    auto importer = prepare.build();
-
-    auto console = mysqlsh::current_console();
-    console->print_info(prepare.to_string() + " in MySQL Server at " +
-                        connection_options.as_uri(
-                            mysqlshdk::db::uri::formats::only_transport()) +
-                        "\n");
-
-    importer.set_print_callback([](const std::string &msg) -> void {
-      mysqlsh::current_console()->print(msg);
-    });
-
-    try {
-      importer.load_from(options->get_bool("convertBsonOid", false));
-    } catch (...) {
-      importer.print_stats();
-      throw;
-    }
-    importer.print_stats();
+  {
+    const shcore::Argument_map opts(*options);
+    const std::set<std::string> valid_options{"schema", "collection", "table",
+                                              "tableColumn", "convertBsonOid"};
+    opts.ensure_keys({}, valid_options, "the options");
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("importJson"));
+
+  auto shell_session = _shell_core.get_dev_session();
+
+  if (!shell_session) {
+    throw shcore::Exception::runtime_error(
+        "Please connect the shell to the MySQL server.");
+  }
+
+  auto node_type = shell_session->get_node_type();
+  if (node_type.compare("X") != 0) {
+    throw shcore::Exception::runtime_error(
+        "An X Protocol session is required for JSON import.");
+  }
+
+  Connection_options connection_options =
+      shell_session->get_connection_options();
+
+  std::shared_ptr<mysqlshdk::db::mysqlx::Session> xsession =
+      mysqlshdk::db::mysqlx::Session::create();
+
+  if (current_shell_options()->get().trace_protocol) {
+    xsession->enable_protocol_trace(true);
+  }
+  xsession->connect(connection_options);
+
+  Prepare_json_import prepare{xsession};
+
+  if (options->has_key("schema")) {
+    prepare.schema(options->get_string("schema"));
+  } else if (!shell_session->get_current_schema().empty()) {
+    prepare.schema(shell_session->get_current_schema());
+  } else {
+    throw std::runtime_error(
+        "There is no active schema on the current session, the target schema "
+        "for the import operation must be provided in the options.");
+  }
+
+  prepare.path(file);
+
+  if (options->has_key("table")) {
+    prepare.table(options->get_string("table"));
+  }
+
+  if (options->has_key("tableColumn")) {
+    prepare.column(options->get_string("tableColumn"));
+  }
+
+  if (options->has_key("collection")) {
+    if (options->has_key("tableColumn")) {
+      throw std::invalid_argument(
+          "tableColumn cannot be used with collection.");
+    }
+    prepare.collection(options->get_string("collection"));
+  }
+
+  // Validate provided parameters and build Json_importer object.
+  auto importer = prepare.build();
+
+  auto console = mysqlsh::current_console();
+  console->print_info(
+      prepare.to_string() + " in MySQL Server at " +
+      connection_options.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
+      "\n");
+
+  importer.set_print_callback([](const std::string &msg) -> void {
+    mysqlsh::current_console()->print(msg);
+  });
+
+  try {
+    importer.load_from(options->get_bool("convertBsonOid", false));
+  } catch (...) {
+    importer.print_stats();
+    throw;
+  }
+  importer.print_stats();
 }
 }  // namespace mysqlsh
