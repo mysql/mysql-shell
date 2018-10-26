@@ -150,6 +150,13 @@ void Connection_options::set_pipe(const std::string &pipe) {
   _transport_type = Pipe;
 }
 
+void Connection_options::set_compression(bool compression) {
+  if (compression)
+    _extra_options.set(mysqlshdk::db::kCompression, "true");
+  else
+    _extra_options.set(mysqlshdk::db::kCompression, "false");
+}
+
 void Connection_options::set_socket(const std::string &socket) {
   if ((!_transport_type.is_null() && *_transport_type == Pipe) ||
       !_port.is_null() ||
@@ -269,7 +276,7 @@ void Connection_options::set(const std::string &name,
       // errors should be raised if not valid options are given, and on the
       // other side the URI specification does not explicitly forbid other
       // values. This conflict needs to be resolved at the DevAPI Court
-      if (name == kGetServerPublicKey) {
+      if (name == kGetServerPublicKey || name == kCompression) {
         auto lower_case_value = shcore::str_lower(values[0]);
         if (!(lower_case_value == "true" || lower_case_value == "false" ||
               lower_case_value == "1" || lower_case_value == "0")) {
@@ -325,6 +332,14 @@ Transport_type Connection_options::get_transport_type() const {
     throw std::invalid_argument("Transport Type is undefined.");
 
   return *_transport_type;
+}
+
+bool Connection_options::get_compression() const {
+  if (!has_compression())
+    throw std::invalid_argument("Compression is undefined.");
+
+  return shcore::lexical_cast<bool>(
+      shcore::str_lower(_extra_options.get_value(kCompression)));
 }
 
 const std::string &Connection_options::get(const std::string &name) const {

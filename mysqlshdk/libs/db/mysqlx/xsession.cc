@@ -28,6 +28,7 @@
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "utils/debug.h"
@@ -291,11 +292,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   std::string host = data.has_host() ? data.get_host() : "localhost";
 
   if ((host.empty() || host == "localhost") && data.has_socket()) {
-    err =
-        _mysql->connect(data.has_socket() ? data.get_socket().c_str() : nullptr,
-                        data.has_user() ? data.get_user().c_str() : "",
-                        data.has_password() ? data.get_password().c_str() : "",
-                        data.has_schema() ? data.get_schema().c_str() : "");
+    err = _mysql->connect(
+        data.has_socket()
+            ? (data.get_socket().empty() ? MYSQLX_UNIX_ADDR
+                                         : data.get_socket().c_str())
+            : nullptr,
+        data.has_user() ? data.get_user().c_str() : "",
+        data.has_password() ? data.get_password().c_str() : "",
+        data.has_schema() ? data.get_schema().c_str() : "");
 #ifdef _WIN32
     _connection_info = "Localhost via Named pipe";
 #else
@@ -327,6 +331,11 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       store_error_and_throw(Error(err.what(), err.error()));
     }
   }
+
+  if (_connection_options.has_compression() &&
+      _connection_options.get_compression())
+    mysqlsh::current_console()->print_warning(
+        "X Protocol: Compression is not supported and will be ignored.");
 
   // If the account is not expired, retrieves additional session information
   if (!_expired_account) load_session_info();

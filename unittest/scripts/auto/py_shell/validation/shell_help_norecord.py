@@ -113,6 +113,8 @@ DESCRIPTION
       - connect-timeout: The connection timeout in milliseconds. If not
         provided a default timeout of 10 seconds will be used. Specifying a
         value of 0 disables the connection timeout.
+      - compression: Enable/disable compression in client/server protocol,
+        valid values: "true", "false", "1", and "0".
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -322,6 +324,8 @@ DESCRIPTION
         allowed values: "always", "prompt" or "never"
       - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
         synchronized
+      - defaultCompress: Enable compression in client/server protocol by
+        default in global shell sessions.
       - defaultMode: shell mode to use when shell is started, allowed values:
         "js", "py", "sql" or "none"
       - devapi.dbObjectHandles: true to enable schema collection and table name

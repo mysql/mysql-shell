@@ -44,6 +44,8 @@
 
 #define SHCORE_PAGER "pager"
 
+#define SHCORE_DEFAULT_COMPRESS "defaultCompress"
+
 #include <stdlib.h>
 #include <iostream>
 #include <memory>
@@ -70,9 +72,11 @@ class Shell_options : public shcore::Options {
     std::string host;
     int port = 0;
     std::string schema;
-    std::string sock;  //< Unix socket or Windows pipe name
+    // Unix socket or Windows pipe name
+    mysqlshdk::utils::nullable<std::string> sock;
     std::string auth_method;
     std::string m_connect_timeout;
+    bool compress = false;
 
     std::string protocol;
 
@@ -120,6 +124,7 @@ class Shell_options : public shcore::Options {
     std::string pager;
     Quiet_start quiet_start = Quiet_start::NOT_SET;
     bool show_column_type_info = false;
+    bool default_compress = false;
 
     int exit_code = 0;
 

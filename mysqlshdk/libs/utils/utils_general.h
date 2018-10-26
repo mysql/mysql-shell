@@ -82,11 +82,11 @@ get_connection_options(const std::string &uri, bool set_defaults = true);
 void SHCORE_PUBLIC update_connection_data(
     mysqlshdk::db::Connection_options *connection_options,
     const std::string &user, const char *password, const std::string &host,
-    int port, const std::string &sock, const std::string &database,
-    const mysqlshdk::db::Ssl_options &ssl_options,
+    int port, const mysqlshdk::utils::nullable<std::string> &sock,
+    const std::string &database, const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
     const std::string &server_public_key_path,
-    const std::string &connect_timeout);
+    const std::string &connect_timeout, bool compression);
 
 std::string SHCORE_PUBLIC get_system_user();
 

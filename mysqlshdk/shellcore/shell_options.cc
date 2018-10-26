@@ -43,8 +43,8 @@ using mysqlshdk::db::Transport_type;
 
 bool Shell_options::Storage::has_connection_data() const {
   return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
-         !sock.empty() || port != 0 || password != NULL || prompt_password ||
-         !m_connect_timeout.empty() || ssl_options.has_data();
+         !sock.is_null() || port != 0 || password != NULL || prompt_password ||
+         !m_connect_timeout.empty() || ssl_options.has_data() || compress;
 }
 
 /**
@@ -60,7 +60,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   shcore::update_connection_data(&target_server, user, password, host, port,
                                  sock, schema, ssl_options, auth_method,
                                  get_server_public_key, server_public_key_path,
-                                 m_connect_timeout);
+                                 m_connect_timeout, compress);
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
@@ -167,10 +167,18 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.port, 0, cmdline("-P", "--port=#"),
         "Port number to use for connection.")
     (cmdline("--connect-timeout=#"), "Connection timeout in milliseconds.",
-    std::bind(&Shell_options::set_connection_timeout, this, _1, _2))
-    (&storage.sock, "", cmdline("-S", "--socket=sock"),
-        "Socket name to use in UNIX, "
-        "pipe name to use in Windows (only classic sessions).")
+        std::bind(&Shell_options::set_connection_timeout, this, _1, _2))
+#ifndef _WIN32
+    (cmdline("-S", "--socket[=sock]"), "Socket name to use. "
+        "If no value is provided will use default UNIX socket path.",
+#else
+    (cmdline("-S", "--socket=sock"),
+        "Pipe name to use (only classic sessions).",
+#endif
+        [this](const std::string&, const char* value) {
+          storage.sock = value == nullptr ? "" : value;
+        }
+      )
     (&storage.user, "", cmdline("-u", "--user=name"),
         "User for the connection to the server.")
     (cmdline("--dbuser=name"),
@@ -181,6 +189,8 @@ Shell_options::Shell_options(int argc, char **argv,
       "If password is empty, connection will be made without using a password.")
     (cmdline("--dbpassword[=pass]"), deprecated("--password"))
     (cmdline("-p", "--password"), "Request password prompt to set the password")
+    (&storage.compress, false, cmdline("-C", "--compress"),
+        "Use compression in client/server protocol.")
     (cmdline("--import file collection", "--import file table [column]"),
         "Import JSON documents from file to collection or table in MySQL"
         " Server. Set file to - if you want to read the data from stdin."
@@ -390,7 +400,10 @@ Shell_options::Shell_options(int argc, char **argv,
         "enabled in scripting modes. If you don't supply an "
         "option, the default pager is taken from your ENV variable PAGER. "
         "This option only works in interactive mode. This option is disabled "
-        "by default.");
+        "by default.")
+    (&storage.default_compress, false, SHCORE_DEFAULT_COMPRESS,
+        "Enable compression in client/server protocol by default "
+        "in global shell sessions.");
 
   add_startup_options()
     (cmdline("--name-cache"),
@@ -868,7 +881,7 @@ void Shell_options::check_host_conflicts() {
 #endif  // !_WIN32
 
 void Shell_options::check_host_socket_conflicts() {
-  if (!storage.sock.empty()) {
+  if (!storage.sock.is_null()) {
     if ((!storage.host.empty() && storage.host != "localhost"
 #ifdef _WIN32
          && storage.host != "."
@@ -903,14 +916,14 @@ void Shell_options::check_port_conflicts() {
 }
 
 void Shell_options::check_socket_conflicts() {
-  if (!storage.sock.empty() && uri_data.has_transport_type() &&
+  if (!storage.sock.is_null() && uri_data.has_transport_type() &&
       uri_data.get_transport_type() ==
 #ifdef _WIN32
           mysqlshdk::db::Transport_type::Pipe
 #else   // !_WIN32
           mysqlshdk::db::Transport_type::Socket
 #endif  // !_WIN32
-      && uri_data.get_socket() != storage.sock) {
+      && uri_data.get_socket() != *storage.sock) {
     auto error = "Conflicting options: provided " SOCKET_NAME
                  " differs from the " SOCKET_NAME " in the URI.";
     throw std::runtime_error(error);
@@ -918,7 +931,7 @@ void Shell_options::check_socket_conflicts() {
 }
 
 void Shell_options::check_port_socket_conflicts() {
-  if (storage.port != 0 && !storage.sock.empty()) {
+  if (storage.port != 0 && !storage.sock.is_null()) {
     auto error = "Conflicting options: port and " SOCKET_NAME
                  " cannot be used together.";
     throw std::runtime_error(error);
@@ -934,7 +947,7 @@ void Shell_options::check_port_socket_conflicts() {
         "Conflicting options: port cannot be used if the URI "
         "contains a " SOCKET_NAME ".";
     throw std::runtime_error(error);
-  } else if (!storage.sock.empty() && uri_data.has_port()) {
+  } else if (!storage.sock.is_null() && uri_data.has_port()) {
     auto error = "Conflicting options: " SOCKET_NAME
                  " cannot be used if the URI contains a port.";
     throw std::runtime_error(error);

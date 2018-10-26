@@ -166,11 +166,11 @@ mysqlshdk::db::Connection_options get_connection_options(const std::string &uri,
 void update_connection_data(
     mysqlshdk::db::Connection_options *connection_options,
     const std::string &user, const char *password, const std::string &host,
-    int port, const std::string &sock, const std::string &database,
-    const mysqlshdk::db::Ssl_options &ssl_options,
+    int port, const mysqlshdk::utils::nullable<std::string> &sock,
+    const std::string &database, const mysqlshdk::db::Ssl_options &ssl_options,
     const std::string &auth_method, bool get_server_public_key,
     const std::string &server_public_key_path,
-    const std::string &connect_timeout) {
+    const std::string &connect_timeout, bool compression) {
   if (!user.empty()) {
     connection_options->clear_user();
     connection_options->set_user(user);
@@ -196,12 +196,12 @@ void update_connection_data(
     connection_options->set_schema(database);
   }
 
-  if (!sock.empty()) {
+  if (!sock.is_null()) {
     connection_options->clear_socket();
 #ifdef _WIN32
-    connection_options->set_pipe(sock);
+    connection_options->set_pipe(*sock);
 #else   // !_WIN32
-    connection_options->set_socket(sock);
+    connection_options->set_socket(*sock);
 #endif  // !_WIN32
   }
 
@@ -280,6 +280,8 @@ void update_connection_data(
     }
     connection_options->set(mysqlshdk::db::kConnectTimeout, {connect_timeout});
   }
+
+  if (compression) connection_options->set_compression(true);
 }
 
 std::string get_system_user() {

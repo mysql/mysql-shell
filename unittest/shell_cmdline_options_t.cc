@@ -150,6 +150,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return AS__STRING(static_cast<int>(options->quiet_start));
     else if (option == "showColumnTypeInfo")
       return AS__STRING(options->show_column_type_info);
+    else if (option == "compress")
+      return AS__STRING(options->compress);
 
     return "";
   }
@@ -358,9 +360,10 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     const Shell_options::Storage &options = cmd_options.get();
 
     if (nullable) {
-      EXPECT_EQ(1, options.exit_code);
-      const std::string message = "Value for --" + option;
-      EXPECT_THAT(cerr.str(), ::testing::StartsWith(message));
+      if (options.exit_code == 1) {
+        const std::string message = "Value for --" + option;
+        EXPECT_THAT(cerr.str(), ::testing::StartsWith(message));
+      }
     } else {
       EXPECT_EQ(1, options.exit_code);
       std::string message = "ut: option ";
@@ -653,7 +656,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   Shell_options cmd_options(argc, argv);
   const Shell_options::Storage &options = cmd_options.get();
 
-  EXPECT_TRUE(options.exit_code == 0);
+  EXPECT_EQ(0, options.exit_code);
   EXPECT_FALSE(options.force);
   EXPECT_FALSE(options.full_interactive);
   EXPECT_FALSE(options.has_connection_data());
@@ -674,7 +677,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.run_file.empty());
   EXPECT_TRUE(options.schema.empty());
   EXPECT_EQ(options.session_type, mysqlsh::SessionType::Auto);
-  EXPECT_TRUE(options.sock.empty());
+  EXPECT_TRUE(options.sock.is_null());
   EXPECT_TRUE(!options.ssl_options.has_ca());
   EXPECT_TRUE(!options.ssl_options.has_cert());
   EXPECT_TRUE(!options.ssl_options.has_key());
@@ -692,6 +695,8 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.m_connect_timeout.empty());
   EXPECT_EQ(Shell_options::Quiet_start::NOT_SET, options.quiet_start);
   EXPECT_FALSE(options.show_column_type_info);
+  EXPECT_FALSE(options.compress);
+  EXPECT_FALSE(options.default_compress);
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -707,10 +712,17 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_NULLABLE);
   test_option_with_value("dbuser", "u", "root", "", IS_CONNECTION_DATA,
                          !IS_NULLABLE, "user");
+#ifdef _WIN32
   test_option_with_value("socket", "S", "/some/socket/path", "",
                          IS_CONNECTION_DATA, !IS_NULLABLE, "sock");
+#else
+  test_option_with_value("socket", "S", "/some/socket/path", "",
+                         IS_CONNECTION_DATA, IS_NULLABLE, "sock");
+#endif
   test_option_with_value("connect-timeout", "", "1000", "", IS_CONNECTION_DATA,
                          !IS_NULLABLE);
+  test_option_with_no_value("-C", "compress", "1");
+  test_option_with_no_value("--compress", "compress", "1");
   test_option_with_no_value("-p", "prompt_password", "1");
 
   test_option_equal_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
@@ -1166,6 +1178,13 @@ TEST_F(Shell_cmdline_options, conflicts_host_socket) {
                    const_cast<char *>("--host=127.0.0.1"),
                    const_cast<char *>("--socket=/some/socket/path"), NULL};
   test_conflicting_options("--host --socket", 3, argv1, error);
+
+#ifndef _WIN32
+  char *argv2[] = {const_cast<char *>("ut"),
+                   const_cast<char *>("--host=127.0.0.1"),
+                   const_cast<char *>("--socket"), NULL};
+  test_conflicting_options("--host --socket", 3, argv2, error);
+#endif
 }
 
 TEST_F(Shell_cmdline_options, conflicts_port) {
@@ -1203,6 +1222,13 @@ TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
                    const_cast<char *>("--socket=/some/weird/path"), NULL};
 
   test_conflicting_options("--port --socket", 3, argv0, error0);
+
+#ifndef _WIN32
+  char *argv0b[] = {const_cast<char *>("ut"), const_cast<char *>("--port=3307"),
+                    const_cast<char *>("--socket"), NULL};
+
+  test_conflicting_options("--port --socket", 3, argv0b, error0);
+#endif
 
   auto error1 =
       "Conflicting options: port cannot be used if the URI "
