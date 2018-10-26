@@ -5,6 +5,10 @@
  batchContinueOnError  To use in SQL batch mode, forces processing to continue
                        if an error is found.
 
+//@<OUT> defaultCompress option help text
+ defaultCompress  Enable compression in client/server protocol by default in
+                  global shell sessions.
+
 //@<OUT> defaultMode option help text
  defaultMode  Specifies the shell mode to use when shell is started - one of
               sql, js or py.

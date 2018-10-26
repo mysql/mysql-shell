@@ -73,6 +73,7 @@ class SHCORE_PUBLIC Connection_options
   const std::string &get_pipe() const { return get_value(kSocket); }
   int get_port() const;
   Transport_type get_transport_type() const;
+  bool get_compression() const;
 
   const std::string &get(const std::string &name) const;
 
@@ -89,6 +90,7 @@ class SHCORE_PUBLIC Connection_options
   bool has_socket() const { return has_value(kSocket); }
   bool has_pipe() const { return has_value(kSocket); }
   bool has_transport_type() const { return !_transport_type.is_null(); }
+  bool has_compression() const { return _extra_options.has(kCompression); }
 
   bool has(const std::string &name) const;
   bool has_value(const std::string &name) const;
@@ -101,6 +103,7 @@ class SHCORE_PUBLIC Connection_options
   void set_schema(const std::string &schema) { _set_fixed(kSchema, schema); }
   void set_socket(const std::string &socket);
   void set_pipe(const std::string &pipe);
+  void set_compression(bool compression);
 
   void set(const std::string &attribute,
            const std::vector<std::string> &values);

@@ -95,6 +95,10 @@ void Session_impl::connect(
   }
   mysql_options(_mysql, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
 
+  if (_connection_options.has_compression() &&
+      _connection_options.get_compression())
+    mysql_options(_mysql, MYSQL_OPT_COMPRESS, nullptr);
+
   if (!mysql_real_connect(
           _mysql,
           _connection_options.has_host()
@@ -111,7 +115,9 @@ void Session_impl::connect(
               : NULL,
           _connection_options.has_port() ? _connection_options.get_port() : 0,
           _connection_options.has_socket()
-              ? _connection_options.get_socket().c_str()
+              ? (_connection_options.get_socket().empty()
+                     ? MYSQL_UNIX_ADDR
+                     : _connection_options.get_socket().c_str())
               : NULL,
           flags)) {
     throw_on_connection_fail();

@@ -80,6 +80,8 @@ DESCRIPTION
       - connect-timeout: The connection timeout in milliseconds. If not
         provided a default timeout of 10 seconds will be used. Specifying a
         value of 0 disables the connection timeout.
+      - compression: Enable/disable compression in client/server protocol,
+        valid values: "true", "false", "1", and "0".
 
       When these options are defined in a URI, their values must be URL
       encoded.

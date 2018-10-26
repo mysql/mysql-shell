@@ -170,8 +170,14 @@ DESCRIPTION
       - -l, --list [--show-origin]: list all the shell options.
       - <shell_option>: print value of the shell option.
       - <shell_option> [=] <value> sets the value for the shell option.
-      - --persist causes an option to be stored on the configuration file
-      - --unset resets an option value to the default value.
+      - --persist causes an option to be stored on the configuration file.
+      - --unset resets an option value to the default value, removes the option
+        from configuration file when used together with --persist option.
+
+EXAMPLES
+      \option --persist defaultMode sql
+
+      \option --unset --persist defaultMode
 
 //@<OUT> pager Command
 NAME

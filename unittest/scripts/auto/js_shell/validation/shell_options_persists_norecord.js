@@ -251,6 +251,7 @@
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
  dba.gtidWaitTimeout             60
+ defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
  history.autoSave                false
@@ -274,6 +275,7 @@
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
+ defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
  history.autoSave                false (Compiled default)
@@ -328,6 +330,7 @@
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
  dba.gtidWaitTimeout             60
+ defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
  history.autoSave                false
@@ -352,6 +355,7 @@
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
+ defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
  history.autoSave                false (Compiled default)

@@ -2381,4 +2381,45 @@ TEST_F(Interactive_shell_test, not_empty_collections) {
   execute("session.dropSchema('empty_collection')");
   execute("session.close()");
 }
+
+TEST_F(Interactive_shell_test, compression) {
+  ASSERT_FALSE(_options->default_compress);
+  const auto check_compression = [this](const char *status) {
+    execute("show session status like 'compression';");
+    EXPECT_TRUE(output_handler.std_err.empty());
+    MY_EXPECT_STDOUT_CONTAINS(status);
+    wipe_all();
+  };
+
+  execute("shell.connect(\"" + _mysql_uri + "?compression=true\");");
+  execute("\\sql");
+  check_compression("ON");
+
+  execute("\\connect " + _mysql_uri + "?compression=true");
+  check_compression("ON");
+
+  execute("\\connect " + _mysql_uri);
+  check_compression("OFF");
+
+  execute("\\option defaultCompress=true");
+  execute("\\connect " + _mysql_uri);
+  check_compression("ON");
+
+  execute("\\js");
+  execute("shell.connect(\"" + _mysql_uri + "\");");
+  execute("\\sql");
+  check_compression("ON");
+
+  execute("\\option defaultCompress=false");
+  execute("\\connect " + _mysql_uri);
+  check_compression("OFF");
+
+  execute("\\connect " + _uri + "?compression=true");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "X Protocol: Compression is not supported and will be ignored.");
+  check_compression("OFF");
+  execute("\\js");
+  wipe_all();
+}
+
 }  // namespace mysqlsh

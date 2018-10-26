@@ -64,65 +64,68 @@ REGISTER_HELP(OPTIONS_DETAIL6,
               "@li dba.gtidWaitTimeout: timeout value in seconds to wait for "
               "GTIDs to be synchronized");
 REGISTER_HELP(OPTIONS_DETAIL7,
+              "@li defaultCompress: Enable compression in client/server "
+              "protocol by default in global shell sessions.");
+REGISTER_HELP(OPTIONS_DETAIL8,
               "@li defaultMode: shell mode to use when shell is started, "
               "allowed values: \"js\", \"py\", \"sql\" or \"none\" ");
-REGISTER_HELP(OPTIONS_DETAIL8,
+REGISTER_HELP(OPTIONS_DETAIL9,
               "@li devapi.dbObjectHandles: true to enable schema collection "
               "and table name aliases in the db "
               "object, for DevAPI operations.");
-REGISTER_HELP(OPTIONS_DETAIL9,
+REGISTER_HELP(OPTIONS_DETAIL10,
               "@li history.autoSave: true "
               "to save command history when exiting the shell");
-REGISTER_HELP(OPTIONS_DETAIL10,
+REGISTER_HELP(OPTIONS_DETAIL11,
               "@li history.maxSize: number "
               "of entries to keep in command history");
-REGISTER_HELP(OPTIONS_DETAIL11,
+REGISTER_HELP(OPTIONS_DETAIL12,
               "@li history.sql.ignorePattern: colon separated list of glob "
               "patterns to filter"
               " out of the command history in SQL mode");
-REGISTER_HELP(OPTIONS_DETAIL12,
+REGISTER_HELP(OPTIONS_DETAIL13,
               "@li interactive: read-only, boolean "
               "value that indicates if the shell is "
               "running in interactive mode");
-REGISTER_HELP(OPTIONS_DETAIL13, "@li logLevel: current log level");
-REGISTER_HELP(OPTIONS_DETAIL14,
+REGISTER_HELP(OPTIONS_DETAIL14, "@li logLevel: current log level");
+REGISTER_HELP(OPTIONS_DETAIL15,
               "@li resultFormat: controls the type of "
               "output produced for SQL results.");
-REGISTER_HELP(OPTIONS_DETAIL15,
+REGISTER_HELP(OPTIONS_DETAIL16,
               "@li pager: string which specifies the external command which is "
               "going to be used to display the paged output");
-REGISTER_HELP(OPTIONS_DETAIL16,
+REGISTER_HELP(OPTIONS_DETAIL17,
               "@li passwordsFromStdin: boolean value that indicates if the "
               "shell should read passwords from stdin instead of the tty");
-REGISTER_HELP(OPTIONS_DETAIL17,
+REGISTER_HELP(OPTIONS_DETAIL18,
               "@li sandboxDir: default path where the "
               "new sandbox instances for InnoDB "
               "cluster will be deployed");
 REGISTER_HELP(
-    OPTIONS_DETAIL18,
+    OPTIONS_DETAIL19,
     "@li showColumnTypeInfo: display column type information in SQL mode. "
     "Please be aware that "
     "output may depend on the protocol you are using to connect to the "
     "server, e.g. DbType field is approximated when using X protocol.");
-REGISTER_HELP(OPTIONS_DETAIL19,
+REGISTER_HELP(OPTIONS_DETAIL20,
               "@li showWarnings: boolean value to "
               "indicate whether warnings shall be "
               "included when printing an SQL result");
-REGISTER_HELP(OPTIONS_DETAIL20,
+REGISTER_HELP(OPTIONS_DETAIL21,
               "@li useWizards: read-only, boolean value "
               "to indicate if the Shell is using the "
               "interactive wrappers (wizard mode)");
 
-REGISTER_HELP(OPTIONS_DETAIL21,
-              "The resultFormat option supports the following values:");
 REGISTER_HELP(OPTIONS_DETAIL22,
+              "The resultFormat option supports the following values:");
+REGISTER_HELP(OPTIONS_DETAIL23,
               "@li table: displays the output in table format (default)");
-REGISTER_HELP(OPTIONS_DETAIL23, "@li json: displays the output in JSON format");
-REGISTER_HELP(
-    OPTIONS_DETAIL24,
-    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(OPTIONS_DETAIL24, "@li json: displays the output in JSON format");
 REGISTER_HELP(
     OPTIONS_DETAIL25,
+    "@li json/raw: displays the output in a JSON format but in a single line");
+REGISTER_HELP(
+    OPTIONS_DETAIL26,
     "@li vertical: displays the outputs vertically, one line per column value");
 
 std::string &Options::append_descr(std::string &s_out, int indent,

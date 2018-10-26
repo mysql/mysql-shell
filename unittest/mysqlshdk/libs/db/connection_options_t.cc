@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <functional>
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 
@@ -56,6 +57,7 @@ TEST(Connection_options, default_initialization) {
   ASSERT_FALSE(options.has_pipe());
   ASSERT_FALSE(options.has_transport_type());
   ASSERT_FALSE(options.get_ssl_options().has_data());
+  ASSERT_FALSE(options.has_compression());
 
   // has verifies the existence of the option
   EXPECT_TRUE(options.has(mysqlshdk::db::kScheme));
@@ -363,6 +365,7 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kGetServerPublicKey);
   attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
   attributes.erase(mysqlshdk::db::kConnectTimeout);
+  attributes.erase(mysqlshdk::db::kCompression);
 
   for (auto property : attributes) {
     combine(property, "", 0, callback);
@@ -412,6 +415,56 @@ TEST(Connection_options, connect_timeout) {
 
     mysqlshdk::db::Connection_options sample;
     EXPECT_NO_THROW(sample.set(mysqlshdk::db::kConnectTimeout, {value}));
+  }
+}
+
+TEST(Connection_options, compression) {
+  // Tests case insensitiveness of the compression option
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters for connect-timeout
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "true");
+
+  combine(mysqlshdk::db::kCompression, "", 0, callback);
+
+  // Test rejection of invalid values
+  auto invalid_values = {"-1", "-100", "10.0", "whatever"};
+
+  for (const auto &value : invalid_values) {
+    std::string uri("root@host?compression=");
+    uri.append(value);
+
+    std::string msg("Invalid value '");
+    msg.append(value);
+    msg.append("' for 'compression'. Allowed values: true, false, 1, 0.");
+
+    std::string uri_msg("Invalid URI: ");
+    uri_msg.append(msg);
+    MY_EXPECT_THROW(std::invalid_argument, uri_msg.c_str(),
+                    { mysqlshdk::db::Connection_options data(uri); });
+
+    mysqlshdk::db::Connection_options sample;
+    MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
+                    sample.set(mysqlshdk::db::kCompression, {value}));
+  }
+
+  // Tests acceptance of valid values
+  std::vector<std::string> valid_values = {"1", "true", "0", "false"};
+
+  for (const auto &value : valid_values) {
+    std::string uri("root@host?compression=");
+    uri.append(value);
+
+    EXPECT_NO_THROW({
+      mysqlshdk::db::Connection_options data(uri);
+      if (shcore::lexical_cast<bool>(value))
+        EXPECT_TRUE(data.get_compression());
+      else
+        EXPECT_FALSE(data.get_compression());
+    });
+
+    mysqlshdk::db::Connection_options sample;
+    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kCompression, {value}));
   }
 }
 

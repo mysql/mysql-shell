@@ -4,6 +4,9 @@
 //@ batchContinueOnError option help text
 \option --help batchContinueOnError
 
+//@ defaultCompress option help text
+\option -h defaultCompress
+
 //@ defaultMode option help text
 \option -h defaultMode
 

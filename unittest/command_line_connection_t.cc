@@ -644,7 +644,52 @@ TEST_F(Command_line_connection_test, socket_connection) {
         "Connection:                   localhost via Unix socket");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
   }
+
+  std::string cmd = "shell.status()";
+  std::string pwd = "--password=" + _pwd;
+  {
+    execute({_mysqlsh, "-u", _user.c_str(), pwd.c_str(), "--socket", "-e",
+             cmd.c_str(), nullptr});
+
+    if (_output.find("Can't connect to local MySQL server through socket") ==
+        std::string::npos) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Connection:                   localhost via Unix socket");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
+    }
+  }
+  {
+    execute({_mysqlsh, "-u", _user.c_str(), pwd.c_str(), "-S", "--mc", "-e",
+             cmd.c_str(), nullptr});
+
+    if (_output.find("Can't connect to local MySQL server through socket") ==
+        std::string::npos) {
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(
+          "Connection:                   Localhost via UNIX socket");
+      MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
+    }
+  }
 }
 #endif  // !_WIN32
+
+TEST_F(Command_line_connection_test, compression) {
+  std::string cmd = "show session status like 'compression';";
+  std::string com_uri = _mysql_uri + "?compression=true";
+
+  // X protocol does not support compression
+  execute({_mysqlsh, _uri.c_str(), "--compress", "--sql", "-e", cmd.c_str(),
+           nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "X Protocol: Compression is not supported and will be ignored.");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tOFF");
+
+  // classic protocol supports compression
+  execute({_mysqlsh, _mysql_uri.c_str(), "--compress", "--sql", "-e",
+           cmd.c_str(), nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
+
+  execute({_mysqlsh, com_uri.c_str(), "--sql", "-e", cmd.c_str(), nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Compression\tON");
+}
 
 }  // namespace tests

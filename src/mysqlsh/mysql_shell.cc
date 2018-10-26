@@ -257,11 +257,14 @@ REGISTER_HELP(
     "@li <shell_option> [=] <value> sets the value for the shell option.");
 REGISTER_HELP(CMD_OPTION_DETAIL5,
               "@li <b>--persist</b> causes an option to be stored on the "
-              "configuration file");
+              "configuration file.");
 REGISTER_HELP(
     CMD_OPTION_DETAIL6,
-    "@li <b>--unset</b> resets an option value to the default value.");
-// REGISTER_HELP(CMD_OPTION_EXAMPLE, "\\option --mx root@localhost");
+    "@li <b>--unset</b> resets an option value to the default value, "
+    "removes the option from configuration file when used together with "
+    "<b>--persist</b> option.");
+REGISTER_HELP(CMD_OPTION_EXAMPLE, "\\option --persist defaultMode sql");
+REGISTER_HELP(CMD_OPTION_EXAMPLE1, "\\option --unset --persist defaultMode");
 
 REGISTER_HELP(CMD_SOURCE_BRIEF, "Loads and executes a script from a file.");
 REGISTER_HELP(CMD_SOURCE_SYNTAX, "<b>\\source</b> <path>");
@@ -546,6 +549,9 @@ void Mysql_shell::connect(
       options().interactive && !get_options()->get_shell_cli_operation();
 
   connection_options.set_default_connection_data();
+  if (!connection_options.has_compression() &&
+      get_options()->get().default_compress)
+    connection_options.set_compression(true);
 
   if (interactive)
     print_connection_message(

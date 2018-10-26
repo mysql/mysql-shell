@@ -359,6 +359,9 @@ REGISTER_HELP(
     "provided a default timeout of 10 seconds will be used. Specifying a value "
     "of 0 disables the connection timeout.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS13,
+              "@li compression: Enable/disable compression in client/server "
+              "protocol, valid values: \"true\", \"false\", \"1\", and \"0\".");
+REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS14,
               "When these options are defined in a URI, their values must be "
               "URL encoded.");
 

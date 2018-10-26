@@ -52,7 +52,7 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
   if (format.is_set(Tokens::Transport)) {
     if (info.has_transport_type()) {
       auto type = info.get_transport_type();
-      if (type == Tcp) {
+      if (type == Tcp || (type == Socket && info.get_socket().empty())) {
         if (info.has_host())
           ret_val.append(encode_host(info.get_host()));
         else
