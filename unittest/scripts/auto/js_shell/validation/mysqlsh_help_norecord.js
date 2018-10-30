@@ -128,6 +128,12 @@ Usage: mysqlsh [OPTIONS] [URI]
   --auth-method=method          Authentication method to use.
   --dba=enableXProtocol         Enable the X Protocol in the server connected
                                 to. Must be used with --mysql.
+  --quiet-start[=1]             Avoids printing information when the shell is
+                                started. A value of 1 will prevent printing the
+                                shell version information. A value of 2 will
+                                prevent printing any information unless it is
+                                an error. If no value is specified uses 1 as
+                                default.
   --credential-store-helper=val Specifies the helper which is going to be used
                                 to store/retrieve the passwords.
   --save-passwords=value        Controls automatic storage of passwords.

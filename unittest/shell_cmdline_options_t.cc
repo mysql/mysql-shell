@@ -146,6 +146,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->run_file;
     else if (option == "connect-timeout")
       return options->m_connect_timeout;
+    else if (option == "quiet-start")
+      return AS__STRING(static_cast<int>(options->quiet_start));
 
     return "";
   }
@@ -686,6 +688,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.wizards);
   EXPECT_TRUE(options.default_session_type);
   EXPECT_TRUE(options.m_connect_timeout.empty());
+  EXPECT_EQ(Shell_options::Quiet_start::NOT_SET, options.quiet_start);
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -705,7 +708,6 @@ TEST_F(Shell_cmdline_options, app) {
                          IS_CONNECTION_DATA, !IS_NULLABLE, "sock");
   test_option_with_value("connect-timeout", "", "1000", "", IS_CONNECTION_DATA,
                          !IS_NULLABLE);
-
   test_option_with_no_value("-p", "prompt_password", "1");
 
   test_option_equal_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
@@ -794,7 +796,9 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("-i", "interactive", "1");
   test_option_with_no_value("--no-wizard", "wizards", "0");
   test_option_with_no_value("--nw", "wizards", "0");
-
+  test_option_with_no_value("--quiet-start", "quiet-start", "1");
+  test_option_with_value("quiet-start", "", "2", "1", !IS_CONNECTION_DATA,
+                         IS_NULLABLE, "quiet-start", "2");
   test_option_with_value("interactive", "", "full", "1", !IS_CONNECTION_DATA,
                          IS_NULLABLE, "interactive", "1");
   // test_option_with_value("interactive", "", "full", "1", !IS_CONNECTION_DATA,

@@ -348,6 +348,8 @@ int execute_import_command(mysqlsh::Command_line_shell *shell,
 // Non interactive mode is used when:
 // - A file is processed using the --file option
 // - A file is processed through the OS redirection mechanism
+// - It is an --import operation
+// - It is a API CLI operation
 // - stdin is not a tty
 //
 // Interactive mode is used when:
@@ -382,7 +384,9 @@ void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
   else
     is_interactive = options->get().run_file.empty() &&
                      options->get().execute_statement.empty() &&
-                     options->get().execute_dba_statement.empty();
+                     options->get().execute_dba_statement.empty() &&
+                     options->get().import_args.empty() &&
+                     !options->get_shell_cli_operation();
 
   // The --interactive option forces the shell to work emulating the
   // interactive mode no matter if:
@@ -703,15 +707,33 @@ int main(int argc, char **argv) {
       shell->print_cmd_line_helper();
       ret_val = options.exit_code;
     } else {
+      // The banner is printed only when in a real interactive session.
+      if (options.interactive) {
+        // The call to quiet_print will cause any information printed to be
+        // cached.
+        // When the interactive shell starts a restore_print will be called
+        // which will cause the cached information to be printed unless
+        // --quiet-start=2 was used.
+        shell->quiet_print();
+
+        // The shell banner is printed only if quiet-start was not used
+        if (options.quiet_start == mysqlsh::Shell_options::Quiet_start::NOT_SET)
+          shell->print_banner();
+      }
+
       // Open the default shell session
       if (options.has_connection_data()) {
         try {
+          auto restore_print_on_error =
+              shcore::Scoped_callback([shell]() { shell->restore_print(); });
+
           mysqlshdk::db::Connection_options target =
               options.connection_options();
 
           if (target.has_password()) {
-            std::cerr << "mysqlsh: [Warning] Using a password on the command "
-                         "line interface can be insecure.\n";
+            mysqlsh::current_console()->print_warning(
+                "Using a password on the command line interface can be "
+                "insecure.");
           }
 
           // Connect to the requested instance
@@ -721,11 +743,16 @@ int main(int argc, char **argv) {
           ret_val = handle_redirect(shell, options);
           if (ret_val != 0) return ret_val;
         } catch (mysqlshdk::db::Error &e) {
+          std::string error = "MySQL Error ";
+          error.append(std::to_string(e.code()));
+
           if (e.sqlstate() && *e.sqlstate())
-            std::cerr << "MySQL Error " << e.code() << " (" << e.sqlstate()
-                      << "): " << e.what() << "\n";
-          else
-            std::cerr << "MySQL Error " << e.code() << ": " << e.what() << "\n";
+            error.append(" (").append(e.sqlstate()).append(")");
+
+          error.append(": ").append(e.what());
+
+          mysqlsh::current_console()->print_error(error);
+
           return 1;
         } catch (shcore::Exception &e) {
           std::cerr << e.format() << "\n";
@@ -743,24 +770,27 @@ int main(int argc, char **argv) {
           goto end;
         }
       } else {
+        shell->restore_print();
         if (options.redirect_session) {
-          std::cerr << "--redirect option requires a session to a member of "
-                       "an InnoDB cluster\n";
+          mysqlsh::current_console()->print_error(
+              "--redirect option requires a session to a member of an InnoDB "
+              "cluster");
           return 1;
         }
       }
 
       std::shared_ptr<mysqlsh::dba::Cluster> default_cluster;
-      auto shell_cli_operation = shell_options->get_shell_cli_operation();
 
       // If default cluster specified on the cmdline, set cluster global var
+      auto shell_cli_operation = shell_options->get_shell_cli_operation();
       if (options.default_cluster_set && !shell_cli_operation) {
         try {
           default_cluster = shell->set_default_cluster(options.default_cluster);
         } catch (shcore::Exception &e) {
-          std::cerr << "Option --cluster requires a session to a member of a "
-                       "InnoDB cluster.\n"
-                    << "ERROR: " << e.format() << "\n";
+          mysqlsh::current_console()->print_warning(
+              "Option --cluster requires a session to a member of a InnoDB "
+              "cluster.");
+          mysqlsh::current_console()->print_error(e.format());
           return 1;
         }
       }
@@ -801,7 +831,6 @@ int main(int argc, char **argv) {
         ret_val = execute_import_command(shell.get(), options.import_args);
       } else if (options.interactive) {
         shell->load_state(shcore::get_user_config_path());
-        if (stdin_is_tty) shell->print_banner();
 
         if (default_cluster) {
           show_cluster_info(shell, default_cluster);

@@ -105,30 +105,34 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
   wipe_out();
 #endif
   // Test non secure call passing uri and password with cmd line params
-  execute({_mysqlsh, "root@localhost", "-pwhatever", nullptr});
+  execute({_mysqlsh, "root@localhost", "-pwhatever", nullptr}, nullptr, nullptr,
+          {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlsh: [Warning] Using a password on the command line interface can "
-      "be insecure.");
+      "WARNING: Using a password on the command line interface can be "
+      "insecure.");
   wipe_out();
 
-  execute({_mysqlsh, "root@localhost", "--password=whatever", nullptr});
+  execute({_mysqlsh, "root@localhost", "--password=whatever", nullptr}, nullptr,
+          nullptr, {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlsh: [Warning] Using a password on the command line interface can "
-      "be insecure.");
+      "WARNING: Using a password on the command line interface can be "
+      "insecure.");
   wipe_out();
 
   // Test non secure call passing uri with empty password
-  execute({_mysqlsh, "root:@localhost", "-e1", nullptr});
+  execute({_mysqlsh, "root:@localhost", "-e1", nullptr}, nullptr, nullptr,
+          {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlsh: [Warning] Using a password on the command line interface can "
-      "be insecure.");
+      "WARNING: Using a password on the command line interface can be "
+      "insecure.");
   wipe_out();
 
   // Test non secure call passing uri with password
-  execute({_mysqlsh, "root:whatever@localhost", nullptr});
+  execute({_mysqlsh, "root:whatever@localhost", nullptr}, nullptr, nullptr,
+          {"MYSQLSH_TERM_COLOR_MODE=nocolor"});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlsh: [Warning] Using a password on the command line interface can "
-      "be insecure.");
+      "WARNING: Using a password on the command line interface can be "
+      "insecure.");
   wipe_out();
 }
 

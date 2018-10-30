@@ -112,6 +112,10 @@ class Shell_pager : public IPager {
       if (m_delegate->print_error) {
         m_delegate->print_error = print_error;
       }
+
+      if (m_delegate->print_diag) {
+        m_delegate->print_diag = print_diag;
+      }
     }
   }
 
@@ -165,6 +169,12 @@ class Shell_pager : public IPager {
                                           text);
   }
 
+  static void print_diag(void *user_data, const char *text) {
+    const auto self = static_cast<Shell_pager *>(user_data);
+    self->m_original_delegate.print_diag(self->m_original_delegate.user_data,
+                                         text);
+  }
+
   Delegate *m_delegate = nullptr;
 
   Delegate m_original_delegate;
@@ -179,7 +189,7 @@ void Shell_console::raw_print(const std::string &text, Output_stream stream,
                               bool format_json) const {
   using Print_func = void (*)(void *, const char *);
   Print_func print =
-      stream == Output_stream::STDOUT ? m_ideleg->print : m_ideleg->print_error;
+      stream == Output_stream::STDOUT ? m_ideleg->print : m_ideleg->print_diag;
 
   if (format_json) {
     std::string tag = stream == Output_stream::STDOUT ? "info" : "error";
@@ -207,11 +217,20 @@ void Shell_console::println(const std::string &text) const {
 
 void Shell_console::print_error(const std::string &text) const {
   if (use_json()) {
-    m_ideleg->print(m_ideleg->user_data, json_obj("error", text).c_str());
+    m_ideleg->print_error(m_ideleg->user_data, json_obj("error", text).c_str());
   } else {
-    m_ideleg->print(
+    m_ideleg->print_error(
         m_ideleg->user_data,
         (mysqlshdk::textui::error("ERROR: ") + text + "\n").c_str());
+  }
+  log_error("%s", text.c_str());
+}
+
+void Shell_console::print_diag(const std::string &text) const {
+  if (use_json()) {
+    m_ideleg->print_diag(m_ideleg->user_data, json_obj("error", text).c_str());
+  } else {
+    m_ideleg->print_diag(m_ideleg->user_data, text.c_str());
   }
   log_error("%s", text.c_str());
 }
@@ -428,7 +447,7 @@ void Shell_console::print_value(const shcore::Value &value,
   if (add_new_line) output += "\n";
 
   if (tag == "error")
-    m_ideleg->print_error(m_ideleg->user_data, output.c_str());
+    m_ideleg->print_diag(m_ideleg->user_data, output.c_str());
   else
     m_ideleg->print(m_ideleg->user_data, output.c_str());
 }

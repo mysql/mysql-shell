@@ -74,7 +74,8 @@ class Command_line_test : public Shell_base_test {
   std::string _output;
   std::mutex _output_mutex;
   int execute(const std::vector<const char *> &args,
-              const char *password = NULL, const char *input_file = nullptr);
+              const char *password = NULL, const char *input_file = nullptr,
+              const std::vector<std::string> &env = {});
 
   void send_ctrlc();
 };

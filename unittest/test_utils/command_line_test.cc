@@ -49,7 +49,8 @@ void Command_line_test::SetUp() {
  *
  */
 int Command_line_test::execute(const std::vector<const char *> &args,
-                               const char *password, const char *input_file) {
+                               const char *password, const char *input_file,
+                               const std::vector<std::string> &env) {
   // There MUST be arguments (at least _mysqlsh, and the last must be NULL
   assert(args.size() > 0);
   assert(args[args.size() - 1] == NULL);
@@ -73,6 +74,9 @@ int Command_line_test::execute(const std::vector<const char *> &args,
   {
     std::lock_guard<std::mutex> lock(_process_mutex);
     _process = new shcore::Process_launcher(&args[0]);
+
+    if (!env.empty()) _process->set_environment(env);
+
     if (input_file) {
       _process->redirect_file_to_stdin(input_file);
     }

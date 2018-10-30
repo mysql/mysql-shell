@@ -274,6 +274,35 @@ Command_line_shell::Command_line_shell(
   }
 }
 
+/**
+ * Backups the print function on the _delegate to disable
+ * information printing.
+ */
+void Command_line_shell::quiet_print() {
+  if (!_backup_delegate.print) {
+    _backup_delegate.print = _delegate->print;
+    _delegate->print = &Command_line_shell::deleg_disable_print;
+  }
+}
+
+/**
+ * Enables back information printing.
+ * If info was not being suppressed with --quiet-start=2
+ * Then the cached information will be printed.
+ */
+void Command_line_shell::restore_print() {
+  if (_backup_delegate.print) {
+    _delegate->print = _backup_delegate.print;
+    _backup_delegate.print = nullptr;
+
+    // If printing information is not disabled. prints cached information
+    if (options().quiet_start != Shell_options::Quiet_start::SUPRESS_INFO) {
+      _delegate->print(_delegate->user_data, _full_output.str().c_str());
+      _full_output.str("");
+    }
+  }
+}
+
 Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
     : Command_line_shell(options,
                          std::unique_ptr<shcore::Interpreter_delegate>(
@@ -281,7 +310,8 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
                                  this, &Command_line_shell::deleg_print,
                                  &Command_line_shell::deleg_prompt,
                                  &Command_line_shell::deleg_password,
-                                 &Command_line_shell::deleg_print_error})) {}
+                                 &Command_line_shell::deleg_print_error,
+                                 &Command_line_shell::deleg_print_diag})) {}
 
 Command_line_shell::~Command_line_shell() {
   // global pager needs to be destroyed as it uses the delegate
@@ -301,8 +331,8 @@ void Command_line_shell::load_prompt_theme(const std::string &path) {
       } catch (std::exception &e) {
         log_warning("Error loading prompt theme '%s': %s", path.c_str(),
                     e.what());
-        print_error(shcore::str_format("Error loading prompt theme '%s': %s\n",
-                                       path.c_str(), e.what()));
+        print_diag(shcore::str_format("Error loading prompt theme '%s': %s\n",
+                                      path.c_str(), e.what()));
       }
     }
   }
@@ -311,7 +341,7 @@ void Command_line_shell::load_prompt_theme(const std::string &path) {
 void Command_line_shell::load_state(const std::string &statedir) {
   std::string path = statedir + "/history";
   if (!_history.load(path)) {
-    print_error(
+    print_diag(
         shcore::str_format("Could not load command history from %s: %s\n",
                            path.c_str(), strerror(errno)));
   }
@@ -321,7 +351,7 @@ void Command_line_shell::save_state(const std::string &statedir) {
   if (options().history_autosave) {
     std::string path = statedir + "/history";
     if (!_history.save(path)) {
-      print_error(
+      print_diag(
           shcore::str_format("Could not save command history to %s: %s\n",
                              path.c_str(), strerror(errno)));
     }
@@ -335,24 +365,24 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
     if (args.size() == 2) {
       _history.clear();
     } else {
-      print_error("\\history clear does not take any parameters");
+      print_diag("\\history clear does not take any parameters");
     }
   } else if (args[1] == "save") {
     std::string path = shcore::get_user_config_path() + "/history";
     if (linenoiseHistorySave(path.c_str()) < 0) {
-      print_error(shcore::str_format("Could not save command history to %s: %s",
-                                     path.c_str(), strerror(errno)));
+      print_diag(shcore::str_format("Could not save command history to %s: %s",
+                                    path.c_str(), strerror(errno)));
     } else {
       println(shcore::str_format("Command history file saved with %i entries.",
                                  linenoiseHistorySize()));
     }
   } else if (args[1] == "delete" || args[1] == "del") {
     if (args.size() != 3) {
-      print_error("\\history delete requires entry number to be deleted");
+      print_diag("\\history delete requires entry number to be deleted");
     } else {
       auto sep = args[2].find('-');
       if (sep != args[2].rfind('-')) {
-        print_error(
+        print_diag(
             "\\history delete range argument needs to be in format first-last");
       } else {
         try {
@@ -376,8 +406,8 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
                 first = std::stoul(f, nullptr);
               }
               if (first > last && !l.empty()) {
-                print_error("Invalid history range " + args[2] +
-                            ". Last item must be greater than first");
+                print_diag("Invalid history range " + args[2] +
+                           ". Last item must be greater than first");
                 return true;
               }
             } else {
@@ -385,14 +415,14 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
               last = first;
             }
           } catch (...) {
-            print_error("Invalid history entry " + args[2]);
+            print_diag("Invalid history entry " + args[2]);
             return true;
           }
           if (_history.size() == 0) {
-            print_error("The history is already empty");
+            print_diag("The history is already empty");
           } else if (first < _history.first_entry() ||
                      first > _history.last_entry()) {
-            print_error(shcore::str_format(
+            print_diag(shcore::str_format(
                 "Invalid history %s: %s - valid range is %u-%u",
                 sep == std::string::npos ? "entry" : "range", args[2].c_str(),
                 _history.first_entry(), _history.last_entry()));
@@ -401,14 +431,13 @@ bool Command_line_shell::cmd_history(const std::vector<std::string> &args) {
             _history.del(first, last);
           }
         } catch (std::invalid_argument &) {
-          print_error(
+          print_diag(
               "\\history delete requires entry number or range to be deleted");
         }
       }
     }
   } else {
-    print_error(
-        "Invalid options for \\history. See \\help history for syntax.");
+    print_diag("Invalid options for \\history. See \\help history for syntax.");
   }
   return true;
 }
@@ -444,12 +473,17 @@ bool Command_line_shell::cmd_pager(const std::vector<std::string> &args) {
 
 bool Command_line_shell::cmd_nopager(const std::vector<std::string> &args) {
   if (args.size() > 1) {
-    print_error(_shell->get_helper()->get_help("Shell Commands \\nopager"));
+    print_diag(_shell->get_helper()->get_help("Shell Commands \\nopager"));
   } else {
     get_options()->set_and_notify(SHCORE_PAGER, "");
   }
 
   return true;
+}
+
+void Command_line_shell::deleg_disable_print(void *cdata, const char *text) {
+  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
+  self->_full_output << text;
 }
 
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
@@ -461,6 +495,14 @@ void Command_line_shell::deleg_print(void *cdata, const char *text) {
 }
 
 void Command_line_shell::deleg_print_error(void *cdata, const char *text) {
+  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
+  if (text && *text) {
+    write_to_console(fileno(stdout), text);
+    self->_output_printed = true;
+  }
+}
+
+void Command_line_shell::deleg_print_diag(void *cdata, const char *text) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     write_to_console(fileno(stderr), text);
@@ -706,14 +748,13 @@ void Command_line_shell::print_banner() {
   welcome_msg += "\n\n";
   welcome_msg +=
       "Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights "
-      "reserved.\n\n"
-      "Oracle is a registered trademark of Oracle Corporation and/or its\n"
-      "affiliates. Other names may be trademarks of their respective\n"
+      "reserved.\n"
+      "Oracle is a registered trademark of Oracle Corporation and/or its "
+      "affiliates.\nOther names may be trademarks of their respective "
       "owners.";
   println(welcome_msg);
   println();
   println("Type '\\help' or '\\?' for help; '\\quit' to exit.");
-  println();
 }
 
 void Command_line_shell::print_cmd_line_helper() {

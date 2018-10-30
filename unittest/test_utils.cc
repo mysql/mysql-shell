@@ -88,6 +88,7 @@ Shell_test_output_handler::Shell_test_output_handler() : m_internal(false) {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
+  deleg.print_diag = &Shell_test_output_handler::deleg_print_diag;
   deleg.prompt = &Shell_test_output_handler::deleg_prompt;
   deleg.password = &Shell_test_output_handler::deleg_password;
 
@@ -136,6 +137,18 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
 void Shell_test_output_handler::deleg_print_error(void *user_data,
                                                   const char *text) {
+  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
+
+  target->full_output << makered(text) << std::endl;
+
+  if (target->debug || g_test_trace_scripts)
+    std::cout << makered(text) << std::endl;
+
+  target->std_out.append(text);
+}
+
+void Shell_test_output_handler::deleg_print_diag(void *user_data,
+                                                 const char *text) {
   Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
 
   target->full_output << makered(text) << std::endl;

@@ -140,7 +140,7 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
   } catch (std::exception &e) {
     std::string error(e.what());
     error += "\n";
-    print_error(error);
+    print_diag(error);
   }
 }
 
@@ -378,9 +378,17 @@ void Base_shell::println_deferred(const std::string &str) {
   _deferred_output->append(str + "\n");
 }
 
+// This function now calls the console one, which will print the error
+// but to the STDOUT, not used ATM as all the previous calls were moved
+// to print_diag() for further analysis.
 void Base_shell::print_error(const std::string &error) {
-  m_console_handler.get()->raw_print(error, mysqlsh::Output_stream::STDERR);
+  m_console_handler.get()->print_error(error);
 }
+
+void Base_shell::print_diag(const std::string &error) {
+  m_console_handler.get()->print_diag(error);
+}
+
 void Base_shell::print_warning(const std::string &message) {
   m_console_handler.get()->print_warning(message);
 }
@@ -418,7 +426,7 @@ void Base_shell::process_line(const std::string &line) {
     } catch (std::exception &exc) {
       std::string error(exc.what());
       error += "\n";
-      print_error(error);
+      print_diag(error);
       to_history = _input_buffer;
     }
 
@@ -517,13 +525,13 @@ int Base_shell::process_file(const std::string &path,
   int ret_val = 1;
 
   if (path.empty()) {
-    print_error("Invalid filename");
+    print_diag("Invalid filename");
   } else if (_shell->is_module(path)) {
     _shell->execute_module(path, argv);
   } else {
     std::string file = shcore::path::expand_user(path);
     if (shcore::is_folder(file)) {
-      print_error(
+      print_diag(
           shcore::str_format("Failed to open file: '%s' is a "
                              "directory\n",
                              file.c_str()));
@@ -542,8 +550,8 @@ int Base_shell::process_file(const std::string &path,
       s.close();
     } else {
       // TODO: add a log entry once logging is
-      print_error(shcore::str_format("Failed to open file '%s', error: %s\n",
-                                     file.c_str(), std::strerror(errno)));
+      print_diag(shcore::str_format("Failed to open file '%s', error: %s\n",
+                                    file.c_str(), std::strerror(errno)));
     }
   }
 

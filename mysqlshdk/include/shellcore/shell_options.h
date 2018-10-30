@@ -58,6 +58,7 @@ namespace mysqlsh {
 
 class Shell_options : public shcore::Options {
  public:
+  enum class Quiet_start { NOT_SET, SUPRESS_BANNER, SUPRESS_INFO };
   struct Storage {
     shcore::IShell_core::Mode initial_mode = shcore::IShell_core::Mode::None;
     std::string run_file;
@@ -117,6 +118,7 @@ class Shell_options : public shcore::Options {
     std::vector<std::string> script_argv;
     std::vector<std::string> import_args;
     std::string pager;
+    Quiet_start quiet_start = Quiet_start::NOT_SET;
 
     int exit_code = 0;
 

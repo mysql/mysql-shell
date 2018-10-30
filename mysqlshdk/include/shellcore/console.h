@@ -59,6 +59,7 @@ class IConsole {
   virtual void print_info(const std::string &text) const = 0;
   virtual void print_value(const shcore::Value &value,
                            const std::string &tag) const = 0;
+  virtual void print_diag(const std::string &text) const = 0;
 
   // Throws shcore::cancelled() on ^C
   virtual bool prompt(const std::string &prompt,

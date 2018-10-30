@@ -1551,7 +1551,7 @@ class XShell_TestCases(unittest.TestCase):
         init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '--database=mysql', '--json', '--mysqlx', '-u' +
                         LOCALHOST.user, '-h' + LOCALHOST.host, '--password=' + LOCALHOST.password]
         expectedResult = ["{",
-                          "\"info\": \"mysqlsh: [Warning] Using a password on the command line interface can be insecure.\"",
+                          "\"warning\": \"WARNING: Using a password on the command line interface can be insecure.\"",
                           "}",
                           "{",
                           "\"info\": \"Creating an X protocol session to '{0}@{1}/{2}'\"".format(LOCALHOST.user,

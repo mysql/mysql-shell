@@ -856,7 +856,7 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
       try {
         connect(options.connection_options());
       } catch (shcore::Exception &e) {
-        print_error(std::string(e.format()) + "\n");
+        print_diag(std::string(e.format()) + "\n");
       } catch (mysqlshdk::db::Error &e) {
         std::string msg;
         if (e.sqlstate() && *e.sqlstate())
@@ -864,24 +864,24 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
                                    e.sqlstate(), e.what());
         else
           msg = shcore::str_format("MySQL Error %i: %s", e.code(), e.what());
-        print_error(msg + "\n");
+        print_diag(msg + "\n");
       } catch (std::exception &e) {
-        print_error(std::string(e.what()) + "\n");
+        print_diag(std::string(e.what()) + "\n");
       }
     }
   } else {
     error = true;
   }
-  if (error) print_error("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  if (error) print_diag("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
 
   return true;
 }
 
 bool Mysql_shell::cmd_reconnect(const std::vector<std::string> &args) {
   if (args.size() > 1)
-    print_error("\\reconnect command does not accept any arguments.");
+    print_diag("\\reconnect command does not accept any arguments.");
   else if (!_shell->get_dev_session())
-    print_error("There had to be a connection first to enable reconnection.");
+    print_diag("There had to be a connection first to enable reconnection.");
   else
     reconnect_if_needed(true);
 
@@ -1043,7 +1043,7 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
       }
     }
   } else {
-    print_error("Not Connected.\n");
+    print_diag("Not Connected.\n");
   }
   return true;
 }
@@ -1101,7 +1101,7 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
     error = "Not connected.\n";
   }
 
-  if (!error.empty()) print_error(error);
+  if (!error.empty()) print_diag(error);
 
   return true;
 }
@@ -1135,7 +1135,7 @@ void Mysql_shell::refresh_schema_completion(bool force) {
       try {
         _provider_sql->refresh_schema_cache(session);
       } catch (std::exception &e) {
-        print_error(
+        print_diag(
             shcore::str_format(
                 "Error during auto-completion cache update: %s\n", e.what())
                 .c_str());
@@ -1150,7 +1150,7 @@ void Mysql_shell::refresh_completion(bool force) {
         _shell->get_dev_session());
     std::string current_schema;
     auto handle_error = [this](const std::exception &e) {
-      print_error(shcore::str_format(
+      print_diag(shcore::str_format(
           "Error during auto-completion cache update: %s\n", e.what()));
     };
 
@@ -1183,12 +1183,12 @@ void Mysql_shell::refresh_completion(bool force) {
 bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
   try {
     if (args.size() < 2 || args.size() > 5) {
-      print_error(_shell->get_helper()->get_help("Shell Commands \\option"));
+      print_diag(_shell->get_helper()->get_help("Shell Commands \\option"));
     } else if (args[1] == "-h" || args[1] == "--help") {
       std::string filter = args.size() > 2 ? args[2] : "";
       auto help = get_options()->get_named_help(filter, 80, 1);
       if (help.empty())
-        print_error("No help found for filter: " + filter);
+        print_diag("No help found for filter: " + filter);
       else
         println(help.substr(0, help.size() - 1));
     } else if (args[1] == "-l" || args[1] == "--list") {
@@ -1204,7 +1204,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
         if (args.size() > 3)
           get_options()->unset(args[3], true);
         else
-          print_error("Unset requires option to be specified");
+          print_diag("Unset requires option to be specified");
       } else {
         get_options()->unset(args[2], false);
       }
@@ -1229,7 +1229,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
       } else {
         std::size_t offset = args[args_start].find('=');
         if (offset == std::string::npos) {
-          print_error("Setting an option requires value to be specified");
+          print_diag("Setting an option requires value to be specified");
         } else {
           std::string opt = args[args_start].substr(0, offset);
           std::string val = args[args_start].substr(offset + 1);
@@ -1238,7 +1238,7 @@ bool Mysql_shell::cmd_option(const std::vector<std::string> &args) {
       }
     }
   } catch (const std::exception &e) {
-    print_error(e.what());
+    print_diag(e.what());
   }
 
   return true;
@@ -1260,7 +1260,7 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
     file = file.substr(1, file.size() - 2);
 
   if (file.empty()) {
-    print_error("Usage: \\. <filename> | \\source <filename>\n");
+    print_diag("Usage: \\. <filename> | \\source <filename>\n");
     return true;
   }
 
@@ -1288,7 +1288,7 @@ bool Mysql_shell::do_shell_command(const std::string &line) {
 
   bool handled = _shell->handle_shell_command(line);
   if (line.length() > 1 && line[0] == '\\' && !handled) {
-    print_error("Unknown command: '" + line + "'");
+    print_diag("Unknown command: '" + line + "'");
     handled = true;
   }
 
@@ -1307,7 +1307,7 @@ void Mysql_shell::process_line(const std::string &line) {
     } catch (std::exception &exc) {
       std::string error(exc.what());
       error += "\n";
-      print_error(error);
+      print_diag(error);
     }
   }
 

@@ -176,6 +176,7 @@ TEST(Cmdline_shell, help) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   shell.print_cmd_line_helper();
@@ -190,10 +191,10 @@ TEST(Cmdline_shell, help) {
   std::string expected =
       "MySQL Shell " MYSH_FULL_VERSION "\n\nCopyright (c) 2016, " + year +
       ", Oracle and/or its "
-      "affiliates. All rights reserved.\n\nOracle is a registered trademark of "
-      "Oracle Corporation and/or its\naffiliates. Other names may be "
-      "trademarks of their respective\nowners.\n\n\n\nType '\\help' or '\\?' "
-      "for help; '\\quit' to exit.\n\n\n\n";
+      "affiliates. All rights reserved.\nOracle is a registered trademark of "
+      "Oracle Corporation and/or its affiliates.\nOther names may be "
+      "trademarks of their respective owners.\n\n\n\nType '\\help' or '\\?' "
+      "for help; '\\quit' to exit.\n\n";
   EXPECT_EQ(expected, capture);
 }
 

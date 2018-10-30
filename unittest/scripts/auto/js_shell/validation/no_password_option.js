@@ -2,7 +2,7 @@
 |Query OK|
 
 //@ password on command line
-|mysqlsh: [Warning] Using a password on the command line interface can be insecure.|
+|WARNING: Using a password on the command line interface can be insecure.|
 |<ClassicSession:|
 
 //@ no password
@@ -18,7 +18,7 @@
 |Conflicting options: --no-password cannot be used if password is provided.|
 
 //@ no password and URI empty password
-|mysqlsh: [Warning] Using a password on the command line interface can be insecure.|
+|WARNING: Using a password on the command line interface can be insecure.|
 |<ClassicSession:|
 
 //@ no password and URI password

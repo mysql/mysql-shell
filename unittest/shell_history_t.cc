@@ -465,6 +465,7 @@ TEST_F(Shell_history, history_linenoise) {
     std::string capture;
     shell._delegate->print = print_capture;
     shell._delegate->print_error = print_capture;
+    shell._delegate->print_diag = print_capture;
     shell._delegate->user_data = &capture;
 
     capture.clear();
@@ -581,6 +582,7 @@ TEST_F(Shell_history, check_help_shows_history) {
     std::string capture;
     shell._delegate->print = print_capture;
     shell._delegate->print_error = print_capture;
+    shell._delegate->print_diag = print_capture;
     shell._delegate->user_data = &capture;
 
     capture.clear();
@@ -608,6 +610,7 @@ TEST_F(Shell_history, history_autosave_int) {
     std::string capture;
     shell._delegate->print = print_capture;
     shell._delegate->print_error = print_capture;
+    shell._delegate->print_diag = print_capture;
     shell._delegate->user_data = &capture;
 
     capture.clear();
@@ -641,6 +644,7 @@ TEST_F(Shell_history, check_history_source_js) {
     std::string capture;
     shell._delegate->print = print_capture;
     shell._delegate->print_error = print_capture;
+    shell._delegate->print_diag = print_capture;
     shell._delegate->user_data = &capture;
 
     shell.process_line("\\source test_source.js");
@@ -675,6 +679,7 @@ TEST_F(Shell_history, check_history_source_py) {
     std::string capture;
     shell._delegate->print = print_capture;
     shell._delegate->print_error = print_capture;
+    shell._delegate->print_diag = print_capture;
     shell._delegate->user_data = &capture;
 
     shell.process_line("\\source test_source.py");
@@ -714,6 +719,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
     std::string capture;
     shell._delegate->print = print_capture;
     shell._delegate->print_error = print_capture;
+    shell._delegate->print_diag = print_capture;
     shell._delegate->user_data = &capture;
 
     // Note: history entries are added AFTER they are executed
@@ -757,6 +763,7 @@ TEST_F(Shell_history, history_management) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   shell.process_line("\\js\n");
@@ -900,6 +907,7 @@ TEST_F(Shell_history, history_sizes) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   shell.process_line("shell.options['history.maxSize'] = 4;");
@@ -978,6 +986,7 @@ TEST_F(Shell_history, history_del_invisible_entry) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   // Trivial and should be covered elsewhere already
@@ -1002,6 +1011,8 @@ TEST_F(Shell_history, history_source_history) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   shell.process_line("session");
@@ -1031,6 +1042,7 @@ TEST_F(Shell_history, history_del_range) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   shell.process_line("session");
@@ -1083,6 +1095,7 @@ TEST_F(Shell_history, history_entry_number_reset) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
 
   shell.process_line("session");
@@ -1129,6 +1142,7 @@ TEST_F(Shell_history, history_delete_range) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
   using strv = std::vector<std::string>;
   shell._history.set_limit(10);
@@ -1312,6 +1326,7 @@ TEST_F(Shell_history, history_numbering) {
   std::string capture;
   shell._delegate->print = print_capture;
   shell._delegate->print_error = print_capture;
+  shell._delegate->print_diag = print_capture;
   shell._delegate->user_data = &capture;
   using strv = std::vector<std::string>;
 

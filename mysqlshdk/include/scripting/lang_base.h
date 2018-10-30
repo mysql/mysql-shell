@@ -52,6 +52,7 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
     prompt = nullptr;
     password = nullptr;
     print_error = nullptr;
+    print_diag = nullptr;
   }
 
   Interpreter_delegate(
@@ -60,12 +61,14 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
                               std::string *ret_input),
       Prompt_result (*password)(void *user_data, const char *prompt,
                                 std::string *ret_password),
-      void (*print_error)(void *user_data, const char *text)) {
+      void (*print_error)(void *user_data, const char *text),
+      void (*print_diag)(void *user_data, const char *text)) {
     this->user_data = user_data;
     this->print = print;
     this->prompt = prompt;
     this->password = password;
     this->print_error = print_error;
+    this->print_diag = print_diag;
   }
 
   void *user_data;
@@ -75,6 +78,7 @@ struct TYPES_COMMON_PUBLIC Interpreter_delegate {
   Prompt_result (*password)(void *user_data, const char *prompt,
                             std::string *ret_password);
   void (*print_error)(void *user_data, const char *text);
+  void (*print_diag)(void *user_data, const char *text);
 };
 };  // namespace shcore
 

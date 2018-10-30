@@ -89,6 +89,16 @@ class Shell_console : public IConsole {
   void print_error(const std::string &text) const override;
 
   /**
+   * Sends the provided text to the STDERR with an error tag.
+   *
+   * The produced output will depend on the active output format:
+   * - For JSON:  {"error": <text>}
+   * - Otherwise: the raw text will be sent to STDOUT prepended with an ERROR:
+   *   tag.
+   */
+
+  void print_diag(const std::string &text) const override;
+  /**
    * Sends the provided text to the STDOUT with a warning tag.
    *
    * The produced output will depend on the active output format:
