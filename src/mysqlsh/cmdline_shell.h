@@ -62,6 +62,9 @@ class Command_line_shell : public Mysql_shell,
 
   void load_prompt_theme(const std::string &path);
 
+  void quiet_print();
+  void restore_print();
+
  private:
   void handle_interrupt();
   bool _interrupted = false;
@@ -88,7 +91,9 @@ class Command_line_shell : public Mysql_shell,
   static char *readline(const char *prompt);
 
   static void deleg_print(void *self, const char *text);
+  static void deleg_disable_print(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
+  static void deleg_print_diag(void *self, const char *text);
   static shcore::Prompt_result deleg_prompt(void *self, const char *text,
                                             std::string *ret);
   static shcore::Prompt_result deleg_password(void *self, const char *text,
@@ -101,6 +106,9 @@ class Command_line_shell : public Mysql_shell,
   void detect_session_change();
 
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
+
+  shcore::Interpreter_delegate _backup_delegate;
+  std::stringstream _full_output;
   Prompt_manager _prompt;
   bool _output_printed;
   const std::string m_default_pager;
@@ -130,6 +138,7 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, history_numbering);
   FRIEND_TEST(Shell_history, never_filter_latest);
   FRIEND_TEST(Shell_error_printing, print_error);
+  FRIEND_TEST(Shell_error_printing, print_diag);
   friend class Test_debugger;
 #endif
 };

@@ -973,7 +973,7 @@ TEST_F(Shell_prompt_exe, environment) {
   char altpro[] = "MYSQLSH_PROMPT_THEME=altprompt.json";
   putenv(altpro);
   execute({_mysqlsh, "--interactive=full", "-e", "1", nullptr});
-  EXPECT_EQ("ALT_PROMPT> 1\n1\nALT_PROMPT> ", _output);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("ALT_PROMPT> 1\n1\nALT_PROMPT> ");
   putenv(const_cast<char *>("MYSQLSH_PROMPT_THEME"));
 
   // TS_CP#6 On startup, if an error is found in the prompt file, an error

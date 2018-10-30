@@ -32,9 +32,17 @@ TEST_F(Shell_error_printing, print_error) {
   reset_shell();
   wipe_all();
   _interactive_shell->print_error("test");
+  EXPECT_EQ("ERROR: test\n", output_handler.std_out);
+  wipe_all();
+}
+
+TEST_F(Shell_error_printing, print_diag) {
+  reset_shell();
+  wipe_all();
+  _interactive_shell->print_diag("test");
   EXPECT_EQ("test", output_handler.std_err);
   wipe_all();
-  _interactive_shell->print_error("test\n");
+  _interactive_shell->print_diag("test\n");
   EXPECT_EQ("test\n", output_handler.std_err);
 }
 

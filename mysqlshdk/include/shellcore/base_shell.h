@@ -126,6 +126,7 @@ class SHCORE_PUBLIC Base_shell {
   void print(const std::string &str);
   void println(const std::string &str = "");
   void print_error(const std::string &error);
+  void print_diag(const std::string &error);
   void print_warning(const std::string &message);
   void println_deferred(const std::string &str);
 

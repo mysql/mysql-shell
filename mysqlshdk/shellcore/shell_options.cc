@@ -450,7 +450,23 @@ Shell_options::Shell_options(int argc, char **argv,
     (cmdline("--classic"), deprecated("--mysql", std::bind(
             &Shell_options::override_session_type, this, _1, _2)))
     (cmdline("--sqln"), deprecated("--sqlx", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)));
+            &Shell_options::override_session_type, this, _1, _2)))
+    (
+      cmdline("--quiet-start[=1]"),
+      "Avoids printing information when the shell is started. A value of "
+      "1 will prevent printing the shell version information. A value of "
+      "2 will prevent printing any information unless it is an error. "
+      "If no value is specified uses 1 as default.",
+      [this](const std::string&, const char* value) {
+        if (!value || !strcmp(value, "1")) {
+          storage.quiet_start = Shell_options::Quiet_start::SUPRESS_BANNER;
+          storage.full_interactive = false;
+        } else if (strcmp(value, "2") == 0) {
+          storage.quiet_start = Shell_options::Quiet_start::SUPRESS_INFO;
+        } else {
+          throw std::invalid_argument("Value for --quiet-start if any, must be any of 1 or 2");
+        }
+      });
   // clang-format on
 
   shcore::Credential_manager::get().register_options(this);

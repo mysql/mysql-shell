@@ -9,7 +9,7 @@ const uri_pass = 'mysql://' + new_user + ':xyz@localhost:' + __mysql_sandbox_por
 const uri_empty_pass = 'mysql://' + new_user + ':@localhost:' + __mysql_sandbox_port1;
 
 //@ password on command line
-var rc = testutil.callMysqlsh([uri_, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_, '--password=', '-e', 'println(session)'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 EXPECT_EQ(0, rc);
 
 //@ no password
@@ -29,7 +29,7 @@ var rc = testutil.callMysqlsh([uri_, '--no-password', '--password=xyz', '-e', 'p
 EXPECT_EQ(1, rc);
 
 //@ no password and URI empty password
-var rc = testutil.callMysqlsh([uri_empty_pass, '--no-password', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_empty_pass, '--no-password', '-e', 'println(session)'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 EXPECT_EQ(0, rc);
 
 //@ no password and URI password
