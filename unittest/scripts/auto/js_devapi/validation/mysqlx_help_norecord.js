@@ -249,6 +249,9 @@ FUNCTIONS
       addOrReplaceOne(id, doc)
             Replaces or adds a document in a collection.
 
+      count()
+            Returns the number of documents in the collection.
+
       createIndex(name, indexDefinition)
             Creates an index on a collection.
 
@@ -917,6 +920,9 @@ PROPERTIES
             The Session object of this database object.
 
 FUNCTIONS
+      count()
+            Returns the number of records in the table.
+
       delete()
             Creates a record deletion handler.
 

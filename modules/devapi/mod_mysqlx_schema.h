@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,12 +63,12 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
   Schema(std::shared_ptr<Session> owner, const std::string &name);
   ~Schema();
 
-  virtual std::string class_name() const { return "Schema"; }
+  std::string class_name() const override { return "Schema"; }
 
-  virtual std::vector<std::string> get_members() const;
-  virtual shcore::Value get_member(const std::string &prop) const;
+  std::vector<std::string> get_members() const override;
+  shcore::Value get_member(const std::string &prop) const override;
 
-  virtual void update_cache();
+  void update_cache() override;
   void _remove_object(const std::string &name, const std::string &type);
 
   friend class Table;

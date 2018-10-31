@@ -240,3 +240,13 @@
 
 //@ replaceOne: attempt on dropped collection
 ||Table 'js_shell_test.replace_one' doesn't exist
+
+//@ WL12412-TS1_1: Count takes no arguments
+||Collection.count: Invalid number of arguments, expected 0 but got 1 (ArgumentError)
+
+//@ WL12412-TS1_2: Count returns correct number of documents
+|Initial Document Count: 0|
+|Final Document Count: 3|
+
+//@ WL12412-TS2_1: Count throws error on unexisting collection
+||Collection.count: Table 'js_shell_test.count_collection' doesn't exist (RuntimeError)

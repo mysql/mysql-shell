@@ -80,6 +80,7 @@ void Collection::init() {
              shcore::String);
   add_method("removeOne", std::bind(&Collection::remove_one, this, _1), "id",
              shcore::String);
+  expose("count", &Collection::count);
 }
 
 Collection::~Collection() {}
@@ -1193,6 +1194,19 @@ shcore::Value Collection::remove_one(const shcore::Argument_list &args) {
 
   return ret_val;
 }
+
+// Documentation of isView function
+REGISTER_HELP_FUNCTION(count, Collection);
+REGISTER_HELP(COLLECTION_COUNT_BRIEF,
+              "Returns the number of documents in the collection.");
+/**
+ * $(COLLECTION_COUNT_BRIEF)
+ */
+#if DOXYGEN_JS
+Bool Collection::count() {}
+#elif DOXYGEN_PY
+Bool Collection::count() {}
+#endif
 
 }  // namespace mysqlx
 }  // namespace mysqlsh

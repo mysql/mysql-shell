@@ -30,6 +30,15 @@ coll.help('add_or_replace_one')
 #@ global help for add_or_replace_one[USE:coll.add_or_replace_one]
 \help Collection.add_or_replace_one
 
+#@coll.count
+coll.help('count')
+
+#@ global ? for count[USE:coll.count]
+\? Collection.count
+
+#@ global help for count[USE:coll.count]
+\help Collection.count
+
 #@ coll.create_index
 coll.help('create_index')
 

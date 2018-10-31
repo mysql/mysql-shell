@@ -11,6 +11,12 @@ table.help()
 #@ global help for Table[USE:table]
 \help Table
 
+#@ table.count
+table.help('count')
+
+#@ global help for count[USE:table.count]
+\help Table.count
+
 #@ table.delete
 table.help('delete')
 

@@ -33,6 +33,9 @@ FUNCTIONS
       addOrReplaceOne(id, doc)
             Replaces or adds a document in a collection.
 
+      count()
+            Returns the number of documents in the collection.
+
       createIndex(name, indexDefinition)
             Creates an index on a collection.
 
@@ -171,6 +174,14 @@ DESCRIPTION
         the one being replaced.
       - The add operation will fail if the new document contains a unique key
         which is already defined for any document in the collection.
+
+//@<OUT> Help on count
+NAME
+      count - Returns the number of documents in the collection.
+
+SYNTAX
+      <Collection>.count()
+
 
 //@<OUT> Help on createIndex
 NAME

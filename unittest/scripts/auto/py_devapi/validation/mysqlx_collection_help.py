@@ -33,6 +33,9 @@ FUNCTIONS
       add_or_replace_one(id, doc)
             Replaces or adds a document in a collection.
 
+      count()
+            Returns the number of documents in the collection.
+
       create_index(name, indexDefinition)
             Creates an index on a collection.
 
@@ -150,6 +153,13 @@ DESCRIPTION
         the one being replaced.
       - The add operation will fail if the new document contains a unique key
         which is already defined for any document in the collection.
+
+#@<OUT> coll.count
+NAME
+      count - Returns the number of documents in the collection.
+
+SYNTAX
+      <Collection>.count()
 
 #@<OUT> coll.create_index
 NAME

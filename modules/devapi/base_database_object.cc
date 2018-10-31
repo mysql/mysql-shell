@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlxtest_utils.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
@@ -342,4 +343,28 @@ bool DatabaseObject::is_base_member(const std::string &prop) const {
       });
 
   return (prop_index != _properties.begin() + (_base_property_count - 1));
+}
+
+uint64_t DatabaseObject::count() {
+  mysqlshdk::utils::nullable<uint64_t> ret_val;
+
+  // We make sure count is being called in an object that makes sense
+  // ATM only table and collection support this function
+  assert(has_count());
+
+  auto session_wrapper = session();
+
+  if (session_wrapper) {
+    auto session = session_wrapper->get_core_session();
+    shcore::sqlstring query("select count(*) from !.!", 0);
+    query << schema()->name();
+    query << name();
+    auto result = session->query(query.str(), true);
+    ret_val = result->fetch_one()->get_uint(0);
+  }
+
+  if (ret_val.is_null())
+    throw shcore::Exception::logic_error("No session available.");
+  else
+    return *ret_val;
 }

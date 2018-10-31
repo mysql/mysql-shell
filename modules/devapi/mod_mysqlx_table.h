@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,7 @@ class Table : public DatabaseObject,
   TableUpdate update();
   TableDelete delete ();
   Bool isView();
+  Integer count();
 #elif DOXYGEN_PY
   TableInsert insert();
   TableInsert insert(list columns);
@@ -67,6 +68,7 @@ class Table : public DatabaseObject,
   TableUpdate update();
   TableDelete delete ();
   bool is_view();
+  int count();
 #endif
   Table(std::shared_ptr<Schema> owner, const std::string &name,
         bool is_view = false);
@@ -74,9 +76,11 @@ class Table : public DatabaseObject,
         bool is_view = false);
   virtual ~Table();
 
-  virtual std::string class_name() const { return "Table"; }
+  std::string class_name() const override { return "Table"; }
 
-  virtual std::string get_object_type() { return _is_view ? "View" : "Table"; }
+  std::string get_object_type() const override {
+    return _is_view ? "View" : "Table";
+  }
 
   bool is_view() const { return _is_view; }
   shcore::Value insert_(const shcore::Argument_list &args);
@@ -86,10 +90,10 @@ class Table : public DatabaseObject,
   shcore::Value is_view_(const shcore::Argument_list &args);
 
  private:
-  void init();
-
- private:
   bool _is_view;
+
+  void init();
+  bool has_count() const override { return true; }
 
   // Allows initial functions on the CRUD operations
   friend shcore::Value TableInsert::insert(const shcore::Argument_list &args);

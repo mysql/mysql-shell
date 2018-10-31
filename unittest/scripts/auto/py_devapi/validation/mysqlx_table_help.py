@@ -21,6 +21,9 @@ PROPERTIES
             The Session object of this database object.
 
 FUNCTIONS
+      count()
+            Returns the number of records in the table.
+
       delete()
             Creates a record deletion handler.
 
@@ -51,6 +54,13 @@ FUNCTIONS
 
       update()
             Creates a record update handler.
+
+#@<OUT> table.count
+NAME
+      count - Returns the number of records in the table.
+
+SYNTAX
+      <Table>.count()
 
 #@<OUT> table.delete
 NAME
