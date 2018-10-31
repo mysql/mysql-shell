@@ -27,6 +27,12 @@ table.help('session');
 //@ Table session, \? [USE:Help on session]
 \? table.session
 
+//@ Help on count
+table.help('count')
+
+//@ Table count, \? [USE:Help on count]
+\? table.count
+
 //@ Help on delete
 table.help('delete');
 

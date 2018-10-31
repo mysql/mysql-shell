@@ -771,10 +771,11 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   EXPECT_AFTER_TAB("db.people.", "db.people.");
   EXPECT_AFTER_TAB_TAB(
       "db.people.",
-      strv({"add()", "addOrReplaceOne()", "createIndex()", "dropIndex()",
-            "existsInDatabase()", "find()", "getName()", "getOne()",
-            "getSchema()", "getSession()", "help()", "modify()", "name",
-            "remove()", "removeOne()", "replaceOne()", "schema", "session"}));
+      strv({"add()", "addOrReplaceOne()", "count()", "createIndex()",
+            "dropIndex()", "existsInDatabase()", "find()", "getName()",
+            "getOne()", "getSchema()", "getSession()", "help()", "modify()",
+            "name", "remove()", "removeOne()", "replaceOne()", "schema",
+            "session"}));
 
   EXPECT_TAB_DOES_NOTHING("db.people.x");
   EXPECT_TAB_DOES_NOTHING("db.people..");
@@ -807,11 +808,11 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   execute("var people = db.people");
   EXPECT_AFTER_TAB("people.", "people.");
   EXPECT_AFTER_TAB_TAB(
-      "people.",
-      strv({"add()", "addOrReplaceOne()", "createIndex()", "dropIndex()",
-            "existsInDatabase()", "find()", "getName()", "getOne()",
-            "getSchema()", "getSession()", "help()", "modify()", "name",
-            "remove()", "removeOne()", "replaceOne()", "schema", "session"}));
+      "people.", strv({"add()", "addOrReplaceOne()", "count()", "createIndex()",
+                       "dropIndex()", "existsInDatabase()", "find()",
+                       "getName()", "getOne()", "getSchema()", "getSession()",
+                       "help()", "modify()", "name", "remove()", "removeOne()",
+                       "replaceOne()", "schema", "session"}));
   EXPECT_AFTER_TAB("people.f", "people.find()");
   EXPECT_AFTER_TAB("people.find().e", "people.find().execute()");
   EXPECT_AFTER_TAB("var f = people.find().b", "var f = people.find().bind()");
@@ -863,9 +864,9 @@ TEST_F(Completer_frontend, js_devapi_table) {
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".", DB_PRODUCTTABLE ".");
   EXPECT_AFTER_TAB_TAB(
       DB_PRODUCTTABLE ".",
-      strv({"delete()", "existsInDatabase()", "getName()", "getSchema()",
-            "getSession()", "help()", "insert()", "isView()", "name", "schema",
-            "select()", "session", "update()"}));
+      strv({"count()", "delete()", "existsInDatabase()", "getName()",
+            "getSchema()", "getSession()", "help()", "insert()", "isView()",
+            "name", "schema", "select()", "session", "update()"}));
 
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".x");
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE "..");
@@ -907,9 +908,9 @@ TEST_F(Completer_frontend, js_devapi_table) {
   EXPECT_AFTER_TAB(PRODUCTTABLE ".", PRODUCTTABLE ".");
   EXPECT_AFTER_TAB_TAB(
       PRODUCTTABLE ".",
-      strv({"delete()", "existsInDatabase()", "getName()", "getSchema()",
-            "getSession()", "help()", "insert()", "isView()", "name", "schema",
-            "select()", "session", "update()"}));
+      strv({"count()", "delete()", "existsInDatabase()", "getName()",
+            "getSchema()", "getSession()", "help()", "insert()", "isView()",
+            "name", "schema", "select()", "session", "update()"}));
   EXPECT_AFTER_TAB(PRODUCTTABLE ".sel", PRODUCTTABLE ".select()");
   EXPECT_AFTER_TAB(PRODUCTTABLE ".select([]).e",
                    PRODUCTTABLE ".select([]).execute()");
@@ -1255,10 +1256,11 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB("db.people.", "db.people.");
   EXPECT_AFTER_TAB_TAB(
       "db.people.",
-      strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()",
-            "exists_in_database()", "find()", "get_name()", "get_one()",
-            "get_schema()", "get_session()", "help()", "modify()", "name",
-            "remove()", "remove_one()", "replace_one()", "schema", "session"}));
+      strv({"add()", "add_or_replace_one()", "count()", "create_index()",
+            "drop_index()", "exists_in_database()", "find()", "get_name()",
+            "get_one()", "get_schema()", "get_session()", "help()", "modify()",
+            "name", "remove()", "remove_one()", "replace_one()", "schema",
+            "session"}));
 
   EXPECT_TAB_DOES_NOTHING("db.people.x");
   EXPECT_TAB_DOES_NOTHING("db.people..");
@@ -1292,10 +1294,11 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   EXPECT_AFTER_TAB("people.", "people.");
   EXPECT_AFTER_TAB_TAB(
       "people.",
-      strv({"add()", "add_or_replace_one()", "create_index()", "drop_index()",
-            "exists_in_database()", "find()", "get_name()", "get_one()",
-            "get_schema()", "get_session()", "help()", "modify()", "name",
-            "remove()", "remove_one()", "replace_one()", "schema", "session"}));
+      strv({"add()", "add_or_replace_one()", "count()", "create_index()",
+            "drop_index()", "exists_in_database()", "find()", "get_name()",
+            "get_one()", "get_schema()", "get_session()", "help()", "modify()",
+            "name", "remove()", "remove_one()", "replace_one()", "schema",
+            "session"}));
   EXPECT_AFTER_TAB("people.f", "people.find()");
   EXPECT_AFTER_TAB("people.find().e", "people.find().execute()");
   EXPECT_AFTER_TAB("f = people.find().b", "f = people.find().bind()");
@@ -1343,9 +1346,9 @@ TEST_F(Completer_frontend, py_devapi_table) {
   EXPECT_AFTER_TAB(DB_PRODUCTTABLE ".", DB_PRODUCTTABLE ".");
   EXPECT_AFTER_TAB_TAB(
       DB_PRODUCTTABLE ".",
-      strv({"delete()", "exists_in_database()", "get_name()", "get_schema()",
-            "get_session()", "help()", "insert()", "is_view()", "name",
-            "schema", "select()", "session", "update()"}));
+      strv({"count()", "delete()", "exists_in_database()", "get_name()",
+            "get_schema()", "get_session()", "help()", "insert()", "is_view()",
+            "name", "schema", "select()", "session", "update()"}));
 
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE ".x");
   EXPECT_TAB_DOES_NOTHING(DB_PRODUCTTABLE "..");
@@ -1387,9 +1390,9 @@ TEST_F(Completer_frontend, py_devapi_table) {
   EXPECT_AFTER_TAB("productTable.", "productTable.");
   EXPECT_AFTER_TAB_TAB(
       "productTable.",
-      strv({"delete()", "exists_in_database()", "get_name()", "get_schema()",
-            "get_session()", "help()", "insert()", "is_view()", "name",
-            "schema", "select()", "session", "update()"}));
+      strv({"count()", "delete()", "exists_in_database()", "get_name()",
+            "get_schema()", "get_session()", "help()", "insert()", "is_view()",
+            "name", "schema", "select()", "session", "update()"}));
   EXPECT_AFTER_TAB("productTable.sel", "productTable.select()");
   EXPECT_AFTER_TAB("productTable.select([]).e",
                    "productTable.select([]).execute()");

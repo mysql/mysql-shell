@@ -1504,7 +1504,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getName", "", true},
                                   {"getOne", "", true},
                                   {"name", "", false},
-                                  {"help", "", true}});
+                                  {"help", "", true},
+                                  {"count", "", false}});
 
   registry->add_completable_type("CollectionFind",
                                  {{"fields", "CollectionFind*fields", true},
@@ -1645,7 +1646,8 @@ void Mysql_shell::add_devapi_completions() {
                                            {"getName", "", true},
                                            {"isView", "", true},
                                            {"name", "", false},
-                                           {"help", "", true}});
+                                           {"help", "", true},
+                                           {"count", "", false}});
 
   registry->add_completable_type(
       "TableSelect", {{"where", "TableSelect*where", true},

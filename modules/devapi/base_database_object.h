@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,7 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
 
   shcore::Value existsInDatabase(const shcore::Argument_list &args);
 
-  virtual std::string get_object_type() { return class_name(); }
+  virtual std::string get_object_type() const { return class_name(); }
 
   const std::string &name() const { return _name; }
 
@@ -98,6 +98,8 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
 
   size_t _base_property_count;
   bool is_base_member(const std::string &prop) const;
+  virtual bool has_count() const { return false; }
+  uint64_t count();
 
  private:
   void init();

@@ -53,7 +53,7 @@ class Collection : public DatabaseObject,
   Collection(std::shared_ptr<Schema> owner, const std::string &name);
   ~Collection();
 
-  virtual std::string class_name() const { return "Collection"; }
+  std::string class_name() const override { return "Collection"; }
 
 #if DOXYGEN_JS
   CollectionAdd add(...);
@@ -66,6 +66,7 @@ class Collection : public DatabaseObject,
   Result addOrReplaceOne(String id, Document doc);
   Document getOne(String id);
   Result removeOne(String id);
+  Integer count();
 #elif DOXYGEN_PY
   CollectionAdd add(...);
   CollectionFind find(...);
@@ -77,6 +78,7 @@ class Collection : public DatabaseObject,
   Result add_or_replace_one(str id, document doc);
   Document get_one(str id);
   Result remove_one(str id);
+  int count();
 #endif
   shcore::Value add_(const shcore::Argument_list &args);
   shcore::Value find_(const shcore::Argument_list &args);
@@ -92,6 +94,7 @@ class Collection : public DatabaseObject,
 
  private:
   void init();
+  bool has_count() const override { return true; }
 
   // Allows initial functions on the CRUD operations
   friend shcore::Value CollectionAdd::add(const shcore::Argument_list &args);

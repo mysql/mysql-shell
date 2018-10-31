@@ -68,6 +68,7 @@ void Table::init() {
   add_method("delete", std::bind(&Table::delete_, this, _1), "tableFields",
              shcore::Array);
   add_method("isView", std::bind(&Table::is_view_, this, _1));
+  expose("count", &Table::count);
 }
 
 Table::~Table() {}
@@ -552,3 +553,15 @@ shcore::Value Table::is_view_(const shcore::Argument_list &args) {
 
   return Value(_is_view);
 }
+
+// Documentation of isView function
+REGISTER_HELP_FUNCTION(count, Table);
+REGISTER_HELP(TABLE_COUNT_BRIEF, "Returns the number of records in the table.");
+/**
+ * $(TABLE_COUNT_BRIEF)
+ */
+#if DOXYGEN_JS
+Bool Table::count() {}
+#elif DOXYGEN_PY
+Bool Table::count() {}
+#endif

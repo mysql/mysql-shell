@@ -222,6 +222,27 @@ col.find();
 schema.drop_collection('replace_one')
 col.replace_one('document_001', {'name':'medium', 'sample':True});
 
+#@<> WL12412: Count Test Initialization
+collection = schema.create_collection('count_collection')
+
+#@ WL12412-TS1_1: Count takes no arguments
+collection.count(1)
+
+#@ WL12412-TS1_2: Count returns correct number of documents
+count = collection.count()
+print "Initial Document Count: %d" % count
+
+collection.add({"_id" : "001", "sample": "document1"})
+collection.add({"_id" : "002", "sample": "document2"})
+collection.add({"_id" : "003", "sample": "document3"})
+
+count = collection.count()
+print "Final Document Count: %d" % count
+
+#@ WL12412-TS2_1: Count throws error on unexisting collection
+schema.drop_collection('count_collection')
+collection.count()
+
 # Closes the session
 mySession.drop_schema('py_shell_test')
 mySession.close()

@@ -40,6 +40,12 @@ collection.help('addOrReplaceOne');
 //@ Collection addOrReplaceOne, \? [USE:Help on addOrReplaceOne]
 \? collection.addOrReplaceOne
 
+//@<OUT> Help on count
+collection.help('count');
+
+//@ Collection count, \? [USE:Help on count]
+\? collection.count
+
 //@ Help on createIndex
 collection.help('createIndex');
 

@@ -213,6 +213,27 @@ col.find();
 schema.dropCollection('replace_one')
 col.replaceOne('document_001', {name:'medium', sample:true});
 
+//@<> WL12412: Count Test Initialization
+var collection = schema.createCollection('count_collection');
+
+//@ WL12412-TS1_1: Count takes no arguments
+collection.count(1);
+
+//@ WL12412-TS1_2: Count returns correct number of documents
+var count = collection.count();
+println ("Initial Document Count: " + count);
+
+collection.add({_id: "001", sample: "document1"});
+collection.add({_id: "002", sample: "document2"});
+collection.add({_id: "003", sample: "document3"});
+
+var count = collection.count();
+println ("Final Document Count: " + count);
+
+//@ WL12412-TS2_1: Count throws error on unexisting collection
+schema.dropCollection('count_collection');
+collection.count();
+
 // Closes the session
 mySession.dropSchema('js_shell_test');
 mySession.close();
