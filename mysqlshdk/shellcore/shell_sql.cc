@@ -231,7 +231,10 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
   if (got_error) _result_processor(nullptr, {});
 }
 
-void Shell_sql::clear_input() { m_splitter.reset(); }
+void Shell_sql::clear_input() {
+  m_buffer.clear();
+  m_splitter.reset();
+}
 
 std::string Shell_sql::get_continued_input_context() {
   return to_string(m_splitter.context());
