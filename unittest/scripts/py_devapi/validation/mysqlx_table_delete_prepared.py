@@ -9,10 +9,6 @@
 
 #@<OUT> First execution is normal
 Query OK, 3 items affected ([[*]] sec)
-+----+------+-----+
-| id | name | age |
-+----+------+-----+
-+----+------+-----+
 Empty set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
@@ -42,10 +38,6 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Second execution prepares statement and executes it
 Query OK, 3 items affected ([[*]] sec)
-+----+------+-----+
-| id | name | age |
-+----+------+-----+
-+----+------+-----+
 Empty set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
@@ -58,10 +50,6 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Third execution uses prepared statement
 Query OK, 3 items affected ([[*]] sec)
-+----+------+-----+
-| id | name | age |
-+----+------+-----+
-+----+------+-----+
 Empty set ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
 Query OK, 1 item affected ([[*]] sec)
@@ -516,10 +504,6 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> creates statement to test no changes when reusing bind(), limit() and offset()
 Query OK, 3 items affected ([[*]] sec)
-+----+------+-----+
-| id | name | age |
-+----+------+-----+
-+----+------+-----+
 Empty set ([[*]] sec)
 
 
@@ -585,10 +569,6 @@ Empty set ([[*]] sec)
 
 #@<OUT> prepares statement to test no changes when reusing bind(), limit() and offset()
 Query OK, 3 items affected ([[*]] sec)
-+----+------+-----+
-| id | name | age |
-+----+------+-----+
-+----+------+-----+
 Empty set ([[*]] sec)
 
 #@<PROTOCOL> Reusing statement with bind() using g%
@@ -675,10 +655,6 @@ Query OK, 1 item affected ([[*]] sec)
 
 #@<OUT> Reusing statement with bind() using l%
 Query OK, 1 item affected ([[*]] sec)
-+----+------+-----+
-| id | name | age |
-+----+------+-----+
-+----+------+-----+
 Empty set ([[*]] sec)
 
 #@<PROTOCOL> Reusing statement with new limit()

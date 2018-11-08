@@ -568,22 +568,23 @@ void Resultset_dumper::dump(const std::string &item_label, bool is_query,
 }
 
 size_t Resultset_dumper::dump_documents() {
+  auto metadata = _rset->get_metadata();
+  auto row = _rset->fetch_one();
+  size_t row_count = 0;
+
+  if (!row) return row_count;
+
   // When dumping a collection, format should be json unless json/raw is
   // specified
   shcore::JSON_dumper dumper(_format != "json/raw");
 
   dumper.start_array();
 
-  size_t row_count = 0;
-  if (_rset->has_resultset()) {
-    auto metadata = _rset->get_metadata();
-    auto row = _rset->fetch_one();
-    while (row) {
-      dumper.append_json(row->get_string(0));
+  while (row) {
+    dumper.append_json(row->get_string(0));
 
-      row_count++;
-      row = _rset->fetch_one();
-    }
+    row_count++;
+    row = _rset->fetch_one();
   }
 
   dumper.end_array();
@@ -598,6 +599,10 @@ size_t Resultset_dumper::dump_documents() {
 
 size_t Resultset_dumper::dump_tabbed() {
   auto metadata = _rset->get_metadata();
+  auto row = _rset->fetch_one();
+  size_t row_index = 0;
+
+  if (!row) return row_index;
 
   size_t index = 0;
   size_t field_count = metadata.size();
@@ -616,8 +621,6 @@ size_t Resultset_dumper::dump_tabbed() {
   }
 
   // Now prints the records
-  size_t row_index = 0;
-  auto row = _rset->fetch_one();
   while (row && !_cancelled) {
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       auto column = metadata[field_index];
@@ -832,7 +835,7 @@ size_t Resultset_dumper::dump_table() {
 
   _rset->rewind();
 
-  if (_cancelled) return 0;
+  if (_cancelled || records.empty()) return 0;
 
   //-----------
 
