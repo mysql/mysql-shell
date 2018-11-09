@@ -36,6 +36,20 @@ function print_metadata_instance_addresses(session) {
     print("\n");
 }
 
+function print_gr_failover_consistency() {
+    var result = session.runSql('SELECT @@GLOBAL.group_replication_consistency');
+    var row = result.fetchOne();
+    print(row[0] + "\n");
+}
+
+function print_persisted_variables_like(session, pattern) {
+    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
+    for (var i = 0; i < res.length; i++) {
+        print(res[i][0] + " = " + res[i][1] + "\n");
+    }
+    print("\n");
+}
+
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
 //
@@ -446,3 +460,60 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
+
+// WL#12067 AdminAPI: Define failover consistency
+//
+// In 8.0.14, Group Replication introduces an option to specify the failover
+// guarantees (eventual or read_your_writes) when a primary failover happens in
+// single-primary mode). The new option defines the behavior of a new fencing
+// mechanism when a new primary is being promoted in a group. The fencing will
+// restrict connections from writing and reading from the new primary until it
+// has applied all the pending backlog of changes that came from the old
+// primary (read_your_writes). Applications will not see time going backward for
+// a short period of time (during the new primary promotion).
+
+// In order to support defining such option, the AdminAPI was extended by
+// introducing a new optional parameter, named 'failoverConsistency', in the
+// dba.createCluster function.
+//
+//@ WL#12067: Initialization {VER(>=8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+var s1 = mysql.getSession(__sandbox_uri1);
+var s2 = mysql.getSession(__sandbox_uri2);
+
+shell.connect(__sandbox_uri1);
+
+// FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
+//@ WL#12067: TSF2_1 The value for group_replication_consistency must be the same on all cluster members (single-primary) {VER(>=8.0.14)}
+var c = dba.createCluster('test', {failoverConsistency: "1"});
+c.addInstance(__sandbox_uri2);
+
+//@WL#12067: TSF2_1 Confirm group_replication_consistency value is the same on all cluster members (single-primary) {VER(>=8.0.14)}
+print_gr_failover_consistency(s1);
+print_gr_failover_consistency(s2);
+
+//@WL#12067: TSF2_1 Confirm group_replication_consistency value was persisted (single-primary) {VER(>=8.0.14)}
+print_persisted_variables_like(s1, "group_replication_consistency");
+print_persisted_variables_like(s2, "group_replication_consistency");
+
+//@ WL#12067: Dissolve cluster 1{VER(>=8.0.14)}
+c.dissolve({force: true});
+
+// FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
+//@ WL#12067: TSF2_2 The value for group_replication_consistency must be the same on all cluster members (multi-primary) {VER(>=8.0.14)}
+var c = dba.createCluster('test', { clearReadOnly:true, failoverConsistency: "1", multiPrimary:true, force: true});
+c.addInstance(__sandbox_uri2);
+
+//@WL#12067: TSF2_2 Confirm group_replication_consistency value is the same on all cluster members (multi-primary) {VER(>=8.0.14)}
+print_gr_failover_consistency(s1);
+print_gr_failover_consistency(s2);
+
+//@WL#12067: TSF2_2 Confirm group_replication_consistency value was persisted (multi-primary) {VER(>=8.0.14)}
+print_persisted_variables_like(s1, "group_replication_consistency");
+print_persisted_variables_like(s2, "group_replication_consistency");
+
+//@ WL#12067: Finalization {VER(>=8.0.14)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

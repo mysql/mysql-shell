@@ -95,6 +95,7 @@ GR_GROUP_SEEDS = "group_replication_group_seeds"
 GR_IP_WHITELIST = "group_replication_ip_whitelist"
 GR_LOCAL_ADDRESS = "group_replication_local_address"
 GR_EXIT_STATE_ACTION = "group_replication_exit_state_action"
+GR_FAILOVER_CONSISTENCY = "group_replication_consistency"
 GR_MEMBER_WEIGHT = "group_replication_member_weight"
 GR_FORCE_MEMBERS = "group_replication_force_members"
 GR_PIPELINE_TYPE_VAR = "group_replication_pipeline_type_var"
@@ -194,7 +195,8 @@ DEFAULTS_FILE_OPTIONS = frozenset((GR_IP_WHITELIST,
                                    GR_LOCAL_ADDRESS,
                                    GR_SINGLE_PRIMARY_MODE,
                                    GR_EXIT_STATE_ACTION,
-                                   GR_MEMBER_WEIGHT))
+                                   GR_MEMBER_WEIGHT,
+                                   GR_FAILOVER_CONSISTENCY))
 
 EQUIVALENT_OPTION_VALUES = {
     "ON": ("ON", "1"),
@@ -478,6 +480,7 @@ def unset_bootstrap(server, dry_run=False):
         else:
             server.exec_query("SET GLOBAL {0} = 0".format(GR_BOOTSTRAP_GROUP))
 
+
 def validate_member_weight(server, member_weight, dry_run=False):
     """Validates the value of group_replication_member_weight by attempting
     to set it and catch any error from GR
@@ -489,18 +492,9 @@ def validate_member_weight(server, member_weight, dry_run=False):
     :param dry_run:           If true no actions will affect the given server.
     :type dry_run:            bool.
     """
-    if not dry_run:
-        try:
-            server.exec_query("SET GLOBAL group_replication_member_weight = "
-                              "{0}".format(member_weight))
-        except GadgetQueryError as db_err:
-            if db_err.errno == MYSQL_ER_PARSE_ERROR or db_err.errno == MYSQL_ER_WRONG_VALUE_FOR_VAR:
-                raise GadgetError("Invalid value for memberWeight, can't be set "
-                                  "to the value of '{0}'"
-                                  .format(member_weight))
-            else:
-                raise GadgetError("An error occurred while setting variable "
-                                  "\n{0}: {1}".format(msg, db_err.errmsg))
+    validate_gr_variable(server, "memberWeight", GR_MEMBER_WEIGHT,
+                         member_weight, dry_run)
+
 
 def validate_exit_state_action(server, exit_state_action, dry_run=False):
     """Validates the value of group_replication_exit_state_action by attempting
@@ -509,22 +503,62 @@ def validate_exit_state_action(server, exit_state_action, dry_run=False):
     :param server:            A server with group replication plugin loaded
     :type server:             Server instance (mysql_gadgets.common.server).
     :param exit_state_action: The value of group_replication_exit_state_action.
-    :type exit_state_actrion: String
+    :type exit_state_action:  String
+    :param dry_run:           If true no actions will affect the given server.
+    :type dry_run:            bool.
+    """
+    validate_gr_variable(server, "exitStateAction", GR_EXIT_STATE_ACTION,
+                         exit_state_action, dry_run)
+
+
+def validate_failover_consistency(server, failover_consistency, dry_run=False):
+    """Validates the value of group_replication_consistency by attempting
+    to set it and catch any error from GR.
+
+    :param server:            A server with group replication plugin loaded
+    :type server:             Server instance (mysql_gadgets.common.server).
+    :param failover_consistency: The value of group_replication_consistency.
+    :type failover_consistency: str
+    :param dry_run:           If true no actions will affect the given server.
+    :type dry_run:            bool.
+    """
+    validate_gr_variable(server, "failoverConsistency", GR_FAILOVER_CONSISTENCY,
+                         failover_consistency, dry_run)
+
+
+def validate_gr_variable(server, opt_name, gr_opt_name, value,
+                         dry_run=False):
+    """Validates the value of a group_replication variable by attempting
+    to set it and catch any error from GR.
+
+    :param server:            A server with group replication plugin loaded
+    :type server:             Server instance (mysql_gadgets.common.server).
+    :param opt_name:          The name of the option in the AdminAPI .
+    :type opt_name:           str
+    :param gr_opt_name:       The name of the corresponding group replication
+                              var.
+    :type gr_opt_name:        str
+    :param value:             The value of the variable.
+    :type value:              str
     :param dry_run:           If true no actions will affect the given server.
     :type dry_run:            bool.
     """
     if not dry_run:
         try:
-            server.exec_query("SET GLOBAL group_replication_exit_state_action = "
-                              "{0}".format(exit_state_action))
+            server.exec_query("SET GLOBAL {0} = "
+                              "{1}".format(gr_opt_name,
+                                           value))
         except GadgetQueryError as db_err:
-            if db_err.errno == MYSQL_ER_PARSE_ERROR or db_err.errno == MYSQL_ER_WRONG_VALUE_FOR_VAR:
-                raise GadgetError("Invalid value for exitStateAction, can't be set "
-                                  "to the value of '{0}'"
-                                  .format(exit_state_action))
+            if (db_err.errno == MYSQL_ER_PARSE_ERROR or
+                    db_err.errno == MYSQL_ER_WRONG_VALUE_FOR_VAR):
+                raise GadgetError("Invalid value for {0}, "
+                                  "can't be set to the value of '{1}'"
+                                  .format(opt_name, value))
             else:
                 raise GadgetError("An error occurred while setting variable "
-                                  "\n{0}: {1}".format(msg, db_err.errmsg))
+                                  "'{0}': {1}".format(gr_opt_name,
+                                                      db_err.errmsg))
+
 
 def get_gr_name_from_peer(peer_server):
     """Retrieves the GR name from where the given server belongs.
@@ -643,7 +677,8 @@ def setup_gr_config(server, gr_config_vars, disable_binlog=True,
                 # NOTE: all quoting should really be happening here, not the
                 # caller
                 if ((gr_config_vars[var] and type(gr_config_vars[var]) is str
-                      and gr_config_vars[var][0] in "'\"") or var == GR_EXIT_STATE_ACTION):
+                      and gr_config_vars[var][0] in "'\"") or
+                        var in (GR_EXIT_STATE_ACTION, GR_FAILOVER_CONSISTENCY)):
                     server.exec_query("SET {0} {1} = {2}"
                                       "".format(set_mode, var,
                                                 gr_config_vars[var]))
@@ -2203,6 +2238,10 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
                             must be an integer value, with a
                             percentage weight for automatic
                             primary election on failover.
+        failover_consistency: Group Replication failover Consistency. Must be a
+                              string containing either:
+                             "BEFORE_ON_PRIMARY_FAILOVER", "EVENTUAL", "0" or
+                             "1". The string is case-insensitive.
     :param options_parser: Option file parser used to read the values in the
                            options file if available.
     :type options_parser: MySQLOptionsParser
@@ -2234,7 +2273,8 @@ def get_gr_config_vars(local_address, options=None, options_parser=None,
         GR_GROUP_SEEDS: options.get("group_seeds", None),
         GR_IP_WHITELIST: options.get("ip_whitelist", None),
         GR_EXIT_STATE_ACTION: options.get("exit_state_action", None),
-        GR_MEMBER_WEIGHT: options.get("member_weight", None)
+        GR_MEMBER_WEIGHT: options.get("member_weight", None),
+        GR_FAILOVER_CONSISTENCY: options.get("failover_consistency", None)
     }
 
     # Validate Group Name

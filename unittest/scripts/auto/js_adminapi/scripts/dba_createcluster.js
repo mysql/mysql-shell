@@ -14,6 +14,14 @@ function print_persisted_variables(session) {
     print("\n");
 }
 
+function print_persisted_variables_like(session, pattern) {
+    var res = session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%" + pattern + "%'").fetchAll();
+    for (var i = 0; i < res.length; i++) {
+        print(res[i][0] + " = " + res[i][1] + "\n");
+    }
+    print("\n");
+}
+
 function print_gr_member_weight() {
   var result = session.runSql('SELECT @@GLOBAL.group_replication_member_weight');
   var row = result.fetchOne();
@@ -26,6 +34,12 @@ function print_auto_increment_variables() {
         print(res[i][0] + " = " + res[i][1] + "\n");
   }
   print("\n");
+}
+
+function print_gr_failover_consistency() {
+    var result = session.runSql('SELECT @@GLOBAL.group_replication_consistency');
+    var row = result.fetchOne();
+    print(row[0] + "\n");
 }
 
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
@@ -268,5 +282,137 @@ var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-448500515
 print_persisted_variables(session);
 
 //@ WL#11032: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+// WL#12067 AdminAPI: Define failover consistency
+//
+// In 8.0.14, Group Replication introduces an option to specify the failover
+// guarantees (eventual or read_your_writes) when a primary failover happens in
+// single-primary mode). The new option defines the behavior of a new fencing
+// mechanism when a new primary is being promoted in a group. The fencing will
+// restrict connections from writing and reading from the new primary until it
+// has applied all the pending backlog of changes that came from the old
+// primary (read_your_writes). Applications will not see time going backward for
+// a short period of time (during the new primary promotion).
+
+// In order to support defining such option, the AdminAPI was extended by
+// introducing a new optional parameter, named 'failoverConsistency', in the
+// dba.createCluster function.
+//
+//@ WL#12067: Initialization
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+
+shell.connect(__sandbox_uri1);
+
+//@ WL#12067: TSF1_6 Unsupported server version {VER(<8.0.14)}
+var c = dba.createCluster('test', {failoverConsistency: "EVENTUAL"});
+
+//@ WL#12067: Create cluster errors using failoverConsistency option {VER(>=8.0.14)}
+// TSF1_4, TSF1_5 - The failoverConsistency option shall be a string value.
+// NOTE: GR validates the value, which is an Enumerator, and accepts the values
+// `BEFORE_ON_PRIMARY_FAILOVER` or `EVENTUAL`, or 1 or 0.
+var c = dba.createCluster('test', {failoverConsistency: ""});
+
+var c = dba.createCluster('test', {failoverConsistency: " "});
+
+var c = dba.createCluster('test', {failoverConsistency: ":"});
+
+var c = dba.createCluster('test', {failoverConsistency: "AB"});
+
+var c = dba.createCluster('test', {failoverConsistency: "10"});
+
+var c = dba.createCluster('test', {failoverConsistency: 1});
+
+//@ WL#12067: TSF1_1 Create cluster using BEFORE_ON_PRIMARY_FAILOVER as value for failoverConsistency {VER(>=8.0.14)}
+var c = dba.createCluster('test', {failoverConsistency: "BEFORE_ON_PRIMARY_FAILOVER"});
+
+//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
+print_persisted_variables_like(session, "group_replication_consistency");
+
+//@ WL#12067: Dissolve cluster 1 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+//@ WL#12067: TSF1_2 Create cluster using EVENTUAL as value for failoverConsistency {VER(>=8.0.14)}
+// NOTE: the server is in super-read-only since it was dissolved so we must disable it
+var c = dba.createCluster('test', {clearReadOnly:true, failoverConsistency: "EVENTUAL"});
+
+//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency was correctly persisted. {VER(>=8.0.14)}
+print_persisted_variables_like(session, "group_replication_consistency");
+
+//@ WL#12067: Dissolve cluster 2 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+//@ WL#12067: TSF1_1 Create cluster using 1 as value for failoverConsistency {VER(>=8.0.14)}
+var c = dba.createCluster('test', {clearReadOnly:true, failoverConsistency: "1"});
+
+//@<OUT> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (1) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@ WL#12067: Dissolve cluster 3 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+//@ WL#12067: TSF1_2 Create cluster using 0 as value for failoverConsistency {VER(>=8.0.14)}
+// NOTE: the server is in super-read-only since it was dissolved so we must disable it
+var c = dba.createCluster('test', {clearReadOnly:true, failoverConsistency: "0"});
+
+//@<OUT> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (0) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@ WL#12067: Dissolve cluster 4 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+//@ WL#12067: TSF1_3 Create cluster using no value for failoverConsistency {VER(>=8.0.14)}
+// NOTE: the server is in super-read-only since it was dissolved so we must disable it
+var c = dba.createCluster('test', {clearReadOnly:true});
+
+//@<OUT> WL#12067: TSF1_3 Confirm without failoverConsistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@ WL#12067: Dissolve cluster 5 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+//@ WL#12067: TSF1_7 Create cluster using evenTual as value for failoverConsistency throws no exception (case insensitive) {VER(>=8.0.14)}
+// NOTE: the server is in super-read-only since it was dissolved so we must disable it
+var c = dba.createCluster('test', {clearReadOnly:true, failoverConsistency: "EvenTual"});
+
+//@<OUT> WL#12067: TSF1_7 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@ WL#12067: Dissolve cluster 6 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+//@ WL#12067: TSF1_8 Create cluster using Before_ON_PriMary_FailoveR as value for failoverConsistency throws no exception (case insensitive) {VER(>=8.0.14)}
+// NOTE: the server is in super-read-only since it was dissolved so we must disable it
+var c = dba.createCluster('test', {clearReadOnly:true, failoverConsistency: "Before_ON_PriMary_FailoveR"});
+
+//@<OUT> WL#12067: TSF1_8 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
+print_gr_failover_consistency();
+
+//@ WL#12067: Dissolve cluster 7 {VER(>=8.0.14)}
+c.dissolve({force: true});
+
+// Verify that group_replication_consistency is not persisted when not used
+// We need a clean instance for that because dissolve does not unset the previously set variables
+//@ WL#12067: Initialize new instance {VER(>=8.0.14)}
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+
+shell.connect(__sandbox_uri1);
+
+//@ WL#12067: Create cluster 2 {VER(>=8.0.14)}
+var c = dba.createCluster('test');
+
+//@<OUT> WL#12067: failoverConsistency must not be persisted on mysql >= 8.0.14 if not set {VER(>=8.0.14)}
+print_persisted_variables_like(session, "group_replication_consistency");
+
+//@ WL#12067: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -65,7 +65,8 @@ from mysql_gadgets.common.group_replication import (
     GR_START_ON_BOOT,
     GR_FORCE_MEMBERS,
     GR_BOOTSTRAP_GROUP,
-    GR_LOCAL_ADDRESS)
+    GR_LOCAL_ADDRESS,
+    GR_FAILOVER_CONSISTENCY)
 
 from mysql_gadgets.common.connection_parser import clean_IPv6
 from mysql_gadgets.common.group_replication import (
@@ -75,7 +76,7 @@ from mysql_gadgets.common.group_replication import (
     get_req_dict_user_check, get_rpl_usr, get_group_uuid_name,
     is_active_member, is_member_of_group, set_bootstrap, start_gr_plugin,
     stop_gr_plugin, unset_bootstrap, validate_exit_state_action,
-    validate_member_weight, validate_group_name)
+    validate_member_weight, validate_group_name, validate_failover_consistency)
 from mysql_gadgets.common.tools import is_listening
 from mysql_gadgets.common.config_parser import create_option_file
 
@@ -395,6 +396,12 @@ def start(server_info, **kwargs):
                                        must be an integer value, with a
                                        percentage weight for automatic
                                        primary election on failover.
+                        failover_consistency: Group Replication failover
+                                              Consistency, must be a string
+                                              containing either
+                                              "BEFORE_ON_PRIMARY_FAILOVER",
+                                              "EVENTUAL", "0" or "1".
+                                           The string is case-insensitive.
     :type kwargs:       dict
 
     :raise GadgetError:         If server_info is None.
@@ -422,6 +429,7 @@ def start(server_info, **kwargs):
     skip_rpl_user = kwargs.get("skip_rpl_user", False)
     exit_state_action = kwargs.get("exit_state_action", None)
     member_weight = kwargs.get("member_weight", None)
+    failover_consistency = kwargs.get("failover_consistency", None)
 
     _LOGGER.step("Checking Group Replication prerequisites.")
     try:
@@ -460,6 +468,11 @@ def start(server_info, **kwargs):
         if member_weight is not None:
             validate_member_weight(server, member_weight, dry_run)
 
+        # attempt to set the group_replication_consistency in order to
+        # let GR do the value validation and catch any error right away
+        if failover_consistency is not None:
+            validate_failover_consistency(server, failover_consistency, dry_run)
+
         # verify the server does not belong already to a GR group.
         if is_active_member(server):
             health(server, **kwargs)
@@ -485,6 +498,9 @@ def start(server_info, **kwargs):
 
         if gr_config_vars[GR_MEMBER_WEIGHT] is None:
             gr_config_vars.pop(GR_MEMBER_WEIGHT)
+
+        if gr_config_vars[GR_FAILOVER_CONSISTENCY] is None:
+            gr_config_vars.pop(GR_FAILOVER_CONSISTENCY)
 
         if gr_config_vars[GR_GROUP_NAME] is None:
             new_uuid = get_group_uuid_name(server)
@@ -766,6 +782,11 @@ def join(server_info, peer_server_info, **kwargs):
                                   to be consistent with the SSL GR modes on the
                                   peer-server otherwise an error will be
                                   thrown).
+                        failover_consistency: Group Replication failover
+                                              Consistency, must be a string
+                                              containing either
+                                              "BEFORE_ON_PRIMARY_FAILOVER",
+                                              "EVENTUAL", "0" or "1".
                         skip_rpl_user: If True, skip the creation of the
                                        replication user.
                         target_is_local: Target is running in the same host
@@ -793,6 +814,7 @@ def join(server_info, peer_server_info, **kwargs):
     target_is_local = kwargs.get("target_is_local", False)
     exit_state_action = kwargs.get("exit_state_action", None)
     member_weight = kwargs.get("member_weight", None)
+    failover_consistency = kwargs.get("failover_consistency", None)
 
     # Connect to the server
     server = get_server(server_info=server_info)
@@ -868,6 +890,11 @@ def join(server_info, peer_server_info, **kwargs):
         # let GR do the value validation and catch any error right away
         if member_weight is not None:
             validate_member_weight(server, member_weight, dry_run)
+
+        # attempt to set the group_replication_consistency in order to
+        # let GR do the value validation and catch any error right away
+        if failover_consistency is not None:
+            validate_failover_consistency(server, failover_consistency, dry_run)
 
         # Initialize log error access and get current position in it
         error_log_size = None
@@ -975,6 +1002,9 @@ def join(server_info, peer_server_info, **kwargs):
 
         if gr_config_vars[GR_MEMBER_WEIGHT] is None:
             gr_config_vars.pop(GR_MEMBER_WEIGHT)
+
+        if gr_config_vars[GR_FAILOVER_CONSISTENCY] is None:
+            gr_config_vars.pop(GR_FAILOVER_CONSISTENCY)
 
         gr_config_vars[GR_START_ON_BOOT] = "ON"
 

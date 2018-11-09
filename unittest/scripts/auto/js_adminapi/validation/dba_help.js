@@ -355,6 +355,8 @@ DESCRIPTION
         state action.
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
+      - failoverConsistency: string value indicating the consistency guarantees
+        for primary failover in single primary mode.
 
       ATTENTION: The multiMaster option will be removed in a future release.
                  Please use the multiPrimary option instead.
@@ -430,6 +432,24 @@ DESCRIPTION
       to 100, automatically adjusting it if a lower/bigger value is provided.
       Group Replication uses a default value of 50 if no value is provided.
 
+      The value for failoverConsistency is used to configure how Group
+      Replication behaves when a new primary instance is elected and accepts
+      the following values:
+
+      - BEFORE_ON_PRIMARY_FAILOVER (or 1)
+      - EVENTUAL (or 0)
+
+      When set to BEFORE_ON_PRIMARY_FAILOVER, new queries (read or write) to
+      the newly elected primary will be put on hold until after the backlog
+      from the old primary is applied.
+
+      When set to EVENTUAL, read queries to the new primary are allowed even if
+      the backlog isn't applied but writes will fail (if the backlog isn't
+      applied) due to super-read-only mode being enabled.
+
+      If failoverConsistency is not specified, EVENTUAL will be used by
+      default.
+
 EXCEPTIONS
       MetadataError in the following scenarios:
 
@@ -445,13 +465,13 @@ EXCEPTIONS
       - If the value for the memberSslMode option is not one of the allowed.
       - If adoptFromGR is true and the multiPrimary option is used.
       - If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
-        or exitStateAction options is empty.
+        exitStateAction or failoverConsistency options is empty.
 
       RuntimeError in the following scenarios:
 
       - If the value for the groupName, localAddress, groupSeeds,
-        exitStateAction, or memberWeight options is not valid for Group
-        Replication.
+        exitStateAction, memberWeight or failoverConsistency options is not
+        valid for Group Replication.
       - If the current connection cannot be used for Group Replication.
 
 //@<OUT> Delete Sandbox

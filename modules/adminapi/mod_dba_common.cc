@@ -145,6 +145,33 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
       shcore::str_split(shcore::str_strip(ip_whitelist), ",", -1));
 }
 
+bool is_group_replication_option_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &option) {
+  auto version = session->get_server_version();
+  Option_availability opt_avail = k_global_supported_options.at(option);
+  if (version.get_major() == 8) {
+    // 8.0 server
+    // if only the 5.7 version was provided to the Option_availability struct,
+    // then assume variable will also be supported in 8.0. This check is enough
+    // since the default Version constructor sets the major version to 0.
+    return version >= opt_avail.support_in_80;
+  } else if (version.get_major() == 5 && version.get_minor() == 7) {
+    // 5.7 server
+    if (opt_avail.support_in_57.get_major() == 0) {
+      // if the default constructor for version was used, no 5.7 version was
+      // used on the Option_availability struct, meaning 5.7 is not supported
+      return false;
+    } else {
+      return version >= opt_avail.support_in_57;
+    }
+  } else {
+    throw std::runtime_error(
+        "Unexpected version found for GR option support check: '" +
+        version.get_full() + "'.");
+  }
+};
+
 void validate_ip_whitelist_option(const std::string &ip_whitelist,
                                   bool hostnames_supported) {
   // Validate if the ipWhiteList value is not empty
@@ -284,29 +311,6 @@ void validate_group_name_option(const shcore::Value::Map_type_ref &options) {
 }
 
 /**
- * Check if group_replication_exit_state_action is supported on the target
- * instance
- *
- * @param session object which represents the session to the instance
- * @return Boolean indicating if the target instance supports
- * group_replication_exit_state_action
- */
-bool is_exit_state_action_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session) {
-  // The exitStateAction option shall only be allowed if the target MySQL
-  // server version is >= 5.7.24 if 5.0, or >= 8.0.12 if 8.0.
-  auto version = session->get_server_version();
-
-  if (version < mysqlshdk::utils::Version(5, 7, 24) ||
-      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
-       version < mysqlshdk::utils::Version(8, 0, 12))) {
-    return false;
-  }
-
-  return true;
-}
-
-/**
  * Validate the value specified for the exitStateAction option is supported on
  * the target instance
  *
@@ -317,11 +321,38 @@ void validate_exit_state_action_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session) {
   auto version = session->get_server_version();
 
-  if (!is_exit_state_action_supported(session)) {
+  if (!is_group_replication_option_supported(session, kExitStateAction)) {
     throw shcore::Exception::runtime_error(
         "Option 'exitStateAction' not supported on target server "
         "version: '" +
         version.get_full() + "'");
+  }
+}
+
+/**
+ * Validate if the failoverConsistency option is supported the target instance
+ * version. The actual value is validated by the GR plugin.
+ *
+ * @param session object which represents the session to the instance
+ * @throw RuntimeError if the value is not supported on the target instance
+ * @throw argument_error if the value provided is empty
+ */
+void validate_failover_consistency_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::utils::nullable<std::string> &failover_consistency) {
+  if (!failover_consistency.is_null()) {
+    if (shcore::str_strip(*failover_consistency).empty()) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for failoverConsistency, string value cannot be "
+          "empty.");
+    }
+    auto version = session->get_server_version();
+    if (!is_group_replication_option_supported(session, kFailoverConsistency)) {
+      throw std::runtime_error(
+          "Option 'failoverConsistency' not supported on target server "
+          "version: '" +
+          version.get_full() + "'");
+    }
   }
 }
 
@@ -338,9 +369,7 @@ void validate_member_weight_supported(
   // server version is >= 5.7.20 if 5.0, or >= 8.0.11 if 8.0.
   auto version = session->get_server_version();
 
-  if (version < mysqlshdk::utils::Version(5, 7, 20) ||
-      (version >= mysqlshdk::utils::Version(8, 0, 0) &&
-       version < mysqlshdk::utils::Version(8, 0, 11))) {
+  if (!is_group_replication_option_supported(session, kMemberWeight)) {
     throw shcore::Exception::runtime_error(
         "Option 'memberWeight' not supported on target server "
         "version: '" +

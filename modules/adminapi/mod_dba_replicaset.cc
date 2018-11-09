@@ -32,6 +32,7 @@
 #include <utility>
 #include <vector>
 
+#include "mod_dba_replicaset.h"
 #include "modules/adminapi/dba/dissolve.h"
 #include "modules/adminapi/dba/remove_instance.h"
 #include "modules/adminapi/dba/replicaset_rescan.h"
@@ -393,7 +394,7 @@ shcore::Value ReplicaSet::add_instance(
   bool seed_instance = false;
   std::string ssl_mode = dba::kMemberSSLModeAuto;  // SSL Mode AUTO by default
   std::string ip_whitelist, instance_label, local_address, group_seeds,
-      exit_state_action;
+      exit_state_action, failover_consistency;
   mysqlshdk::utils::nullable<int64_t> member_weight;
 
   std::shared_ptr<Cluster> cluster(_cluster.lock());
@@ -432,6 +433,7 @@ shcore::Value ReplicaSet::add_instance(
         .optional("groupSeeds", &group_seeds)
         .optional("exitStateAction", &exit_state_action)
         .optional_exact("memberWeight", &member_weight)
+        .optional("failoverConsistency", &failover_consistency)
         .end();
 
     // Validate SSL options for the cluster instance
@@ -483,7 +485,8 @@ shcore::Value ReplicaSet::add_instance(
   // - exitStateAction default value must be READ_ONLY
   // - exitStateAction default value should only be set if supported in
   // the target instance
-  if (exit_state_action.empty() && is_exit_state_action_supported(session)) {
+  if (exit_state_action.empty() &&
+      is_group_replication_option_supported(session, kExpelTimeout)) {
     exit_state_action = "READ_ONLY";
   }
 
@@ -627,6 +630,67 @@ shcore::Value ReplicaSet::add_instance(
     }
   }
 
+  // If this is not seed instance, then we should try to read the
+  // failoverConsistency value from a a cluster member
+  if (!seed_instance) {
+    auto conn_opt = session->get_connection_options();
+    // loop though all members to check if there is any member that doesn't
+    // have support for the group_replication_consistency option (null value)
+    // or a member that doesn't have the default value. The default value
+    // Eventual has the same behavior as members had before the option was
+    // introduced. As such, having that value or having no support for the
+    // group_replication_consistency is the same.
+    bool found_non_default = false;
+    bool found_not_supported = false;
+    auto get_gr_consistency_func =
+        [&found_non_default, &found_not_supported](
+            std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
+      mysqlshdk::mysql::Instance instance(session);
+      mysqlshdk::utils::nullable<std::string> value;
+      value =
+          instance.get_sysvar_string("group_replication_consistency",
+                                     mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+      if (value.is_null())
+        found_not_supported = true;
+      else if (*value != "EVENTUAL" && *value != "0")
+        found_non_default = true;
+      // if we have found both a instance that doesnt have support for the
+      // option and an instance that doesn't have the default value, then we
+      // don't need to look at any other instance on the cluster.
+      return !(found_not_supported && found_non_default);
+    };
+    execute_in_members({"'ONLINE'", "'RECOVERING'"}, conn_opt, {},
+                       get_gr_consistency_func);
+    if (target_instance.get_version() < mysqlshdk::utils::Version(8, 0, 14)) {
+      if (found_non_default) {
+        console->print_warning(
+            "The BEFORE_ON_PRIMARY_FAILOVER consistency value of the cluster "
+            "is not supported by the instance '" +
+            target_instance.get_connection_options().uri_endpoint() +
+            "' (version >= 8.0.14 is required). In single-primary mode, upon "
+            "failover, the member with the lowest version is the one elected as"
+            " primary.");
+      }
+    } else {
+      if (found_non_default) {
+        // if we found any non default group_replication_consistency value, then
+        // we use that value on the instance being added
+        failover_consistency = "BEFORE_ON_PRIMARY_FAILOVER";
+        if (found_not_supported) {
+          console->print_warning(
+              "The instance '" +
+              target_instance.get_connection_options().uri_endpoint() +
+              "' inherited the BEFORE_ON_PRIMARY_FAILOVER consistency "
+              "value from the cluster, however some instances on the group do "
+              "not support this feature (version < 8.0.14). In single-primary "
+              "mode, upon failover, the member with the lowest version will be"
+              "the one elected and it doesn't support this option.");
+        }
+      }
+    }
+  };
+
   // Set the ssl mode
   set_group_replication_member_options(session, ssl_mode);
 
@@ -660,7 +724,7 @@ shcore::Value ReplicaSet::add_instance(
     success = do_join_replicaset(
         target_coptions, nullptr, replication_user, replication_user_password,
         ssl_mode, ip_whitelist, member_weight, group_name, local_address,
-        group_seeds, exit_state_action, skip_rpl_user);
+        group_seeds, exit_state_action, failover_consistency, skip_rpl_user);
   } else {
     mysqlshdk::db::Connection_options peer(pick_seed_instance());
 
@@ -675,7 +739,7 @@ shcore::Value ReplicaSet::add_instance(
     success = do_join_replicaset(
         target_coptions, &peer, replication_user, replication_user_password,
         ssl_mode, ip_whitelist, member_weight, group_name, local_address,
-        group_seeds, exit_state_action, skip_rpl_user);
+        group_seeds, exit_state_action, failover_consistency, skip_rpl_user);
   }
 
   if (success) {
@@ -705,10 +769,11 @@ shcore::Value ReplicaSet::add_instance(
     execute_in_members(
         {"'ONLINE'", "'RECOVERING'"}, target_coptions, ignore_instances_vec,
         [added_instance_gr_address, change_type,
-         this](std::shared_ptr<mysqlshdk::db::ISession> session) {
+         this](std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
           update_group_replication_group_seeds(added_instance_gr_address,
                                                change_type, session,
                                                this->naming_style);
+          return true;
         });
     log_debug("Instance add finished");
   }
@@ -724,7 +789,7 @@ bool ReplicaSet::do_join_replicaset(
     mysqlshdk::utils::nullable<int64_t> member_weight,
     const std::string &group_name, const std::string &local_address,
     const std::string &group_seeds, const std::string &exit_state_action,
-    bool skip_rpl_user) {
+    const std::string &failover_consistency, bool skip_rpl_user) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -741,12 +806,12 @@ bool ReplicaSet::do_join_replicaset(
         instance, repl_user, repl_user_password,
         _topology_type == kTopologyMultiPrimary, ssl_mode, ip_whitelist,
         group_name, local_address, group_seeds, exit_state_action,
-        member_weight, skip_rpl_user, &errors);
+        member_weight, failover_consistency, skip_rpl_user, &errors);
   } else {
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         instance, *peer, repl_user, repl_user_password, ssl_mode, ip_whitelist,
         local_address, group_seeds, exit_state_action, member_weight,
-        skip_rpl_user, &errors);
+        failover_consistency, skip_rpl_user, &errors);
   }
 
   if (exit_code == 0) {
@@ -1128,7 +1193,7 @@ shcore::Value ReplicaSet::rejoin_instance(
     exit_code = cluster->get_provisioning_interface()->join_replicaset(
         session->get_connection_options(), seed_instance_def, replication_user,
         replication_user_pwd, ssl_mode, ip_whitelist, "", gr_group_seeds, "",
-        mysqlshdk::utils::nullable<int64_t>(), keep_repl_user, &errors);
+        mysqlshdk::utils::nullable<int64_t>(), "", keep_repl_user, &errors);
 
     if (exit_code == 0) {
       log_info("The instance '%s' was successfully rejoined on the cluster.",
@@ -1257,9 +1322,10 @@ void ReplicaSet::update_group_members_for_removed_member(
   execute_in_members(
       {"'ONLINE'", "'RECOVERING'"}, instances_cnx_opts, ignore_instances_vec,
       [local_gr_address, change_type,
-       this](std::shared_ptr<mysqlshdk::db::ISession> session) {
+       this](std::shared_ptr<mysqlshdk::db::ISession> session) -> bool {
         update_group_replication_group_seeds(local_gr_address, change_type,
                                              session, this->naming_style);
+        return true;
       });
 
   // Remove the replication users on the instance and members if
@@ -2227,8 +2293,10 @@ void ReplicaSet::execute_in_members(
     const std::vector<std::string> &states,
     const mysqlshdk::db::Connection_options &cnx_opt,
     const std::vector<std::string> &ignore_instances_vector,
-    std::function<void(std::shared_ptr<mysqlshdk::db::ISession> session)>
-        functor) {
+    std::function<bool(std::shared_ptr<mysqlshdk::db::ISession> session)>
+        functor,
+    bool ignore_network_conn_errors) {
+  const int kNetworkConnRefused = 2003;
   std::shared_ptr<mysqlshdk::db::ISession> instance_session;
   // Note (nelson): should we handle the super_read_only behavior here or should
   // it be the responsibility of the functor?
@@ -2253,13 +2321,27 @@ void ReplicaSet::execute_in_members(
           instance_address.c_str());
       instance_session = establish_mysql_session(
           target_coptions, current_shell_options()->get().wizards);
+    } catch (mysqlshdk::db::Error &e) {
+      if (ignore_network_conn_errors && e.code() == kNetworkConnRefused) {
+        log_error("Could not open connection to '%s': %s, but ignoring it.",
+                  instance_address.c_str(), e.what());
+        continue;
+      } else {
+        log_error("Could not open connection to '%s': %s",
+                  instance_address.c_str(), e.what());
+        throw;
+      }
     } catch (std::exception &e) {
       log_error("Could not open connection to '%s': %s",
                 instance_address.c_str(), e.what());
       throw;
     }
-    functor(instance_session);
+    bool continue_loop = functor(instance_session);
     instance_session->close();
+    if (!continue_loop) {
+      log_debug("Cluster iteration stopped because functor returned false.");
+      break;
+    }
   }
 }
 

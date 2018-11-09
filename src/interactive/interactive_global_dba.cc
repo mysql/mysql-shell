@@ -349,7 +349,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
             "the multiPrimary option instead.");
 
       std::string ssl_mode, group_name, local_address, group_seeds,
-          exit_state_action, ip_whitelist;
+          exit_state_action, ip_whitelist, failover_consistency;
 
       mysqlshdk::utils::nullable<int64_t> member_weight;
 
@@ -367,6 +367,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
           .optional("groupSeeds", &group_seeds)
           .optional("exitStateAction", &exit_state_action)
           .optional("memberWeight", &member_weight)
+          .optional("failoverConsistency", &failover_consistency)
           .end();
 
       // Validate SSL options for the cluster instance
