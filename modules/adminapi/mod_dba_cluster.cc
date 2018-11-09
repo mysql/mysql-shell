@@ -116,7 +116,7 @@ void Cluster::init() {
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
   add_varargs_method("checkInstanceState",
                      std::bind(&Cluster::check_instance_state, this, _1));
-  add_varargs_method("rescan", std::bind(&Cluster::rescan, this, _1));
+  expose("rescan", &Cluster::rescan, "?options");
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
       std::bind(&Cluster::force_quorum_using_partition_of, this, _1));
@@ -1289,7 +1289,7 @@ REGISTER_HELP(
 #if DOXYGEN_JS
 Undefined Cluster::dissolve(Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::dissolve(Dictionary options) {}
+None Cluster::dissolve(dict options) {}
 #endif
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
@@ -1327,25 +1327,71 @@ REGISTER_HELP_FUNCTION(rescan, Cluster);
 REGISTER_HELP(CLUSTER_RESCAN_BRIEF, "Rescans the cluster.");
 
 REGISTER_HELP(CLUSTER_RESCAN_THROWS,
+              "ArgumentError in the following scenarios:");
+REGISTER_HELP(
+    CLUSTER_RESCAN_THROWS1,
+    "@li If the value for `addInstances` or `removeInstance` is empty.");
+REGISTER_HELP(
+    CLUSTER_RESCAN_THROWS2,
+    "@li If the value for `addInstances` or `removeInstance` is invalid.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS3,
               "MetadataError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS1, "@li If the Metadata is inaccessible.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS2,
-              "@li If the Metadata update operation failed.");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS3, "LogicError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS4, "@li If the cluster does not exist.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS4, "@li If the Metadata is inaccessible.");
 REGISTER_HELP(CLUSTER_RESCAN_THROWS5,
+              "@li If the Metadata update operation failed.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS6, "LogicError in the following scenarios:");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS7, "@li If the cluster does not exist.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS8,
               "RuntimeError in the following scenarios:");
-REGISTER_HELP(CLUSTER_RESCAN_THROWS6,
+REGISTER_HELP(CLUSTER_RESCAN_THROWS9,
               "@li If all the "
               "ReplicaSet instances of any ReplicaSet "
               "are offline.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS10,
+              "@li If an instance specified for `addInstances` is not an "
+              "active member of the replication group.");
+REGISTER_HELP(CLUSTER_RESCAN_THROWS11,
+              "@li If an instance specified for `removeInstances` is an active "
+              "member of the replication group.");
+
+REGISTER_HELP(
+    CLUSTER_RESCAN_PARAM,
+    "@param options Optional Dictionary with options for the operation.");
 
 REGISTER_HELP(CLUSTER_RESCAN_RETURNS, "@returns Nothing.");
 
 REGISTER_HELP(CLUSTER_RESCAN_DETAIL,
-              "This function rescans the cluster for "
-              "new Group Replication "
-              "members/instances.");
+              "This function rescans the cluster for new and obsolete Group "
+              "Replication members/instances, as well as changes in the used "
+              "topology mode (i.e., single-primary and multi-primary).");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL1,
+              "The options dictionary may contain the following attributes:");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL2,
+              "@li addInstances: List with the connection data of the new "
+              "active instances to add to the metadata, or \"auto\" to "
+              "automatically add missing instances to the metadata.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL3,
+              "@li interactive: boolean value used to disable/enable the "
+              "wizards in the command execution, i.e. prompts and "
+              "confirmations will be provided or not according to the value "
+              "set. The default value is equal to MySQL Shell wizard mode.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL4,
+              "@li removeInstances: List with the connection data of the "
+              "obsolete instances to remove from the metadata, or \"auto\" to "
+              "automatically remove obsolete instances from the metadata.");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL5,
+              "@li updateTopologyMode: boolean value used to indicate if the "
+              "topology mode (single-primary or multi-primary) in the metadata "
+              "should be updated (true) or not (false) to match the one being "
+              "used by the cluster. By default, the metadata is not updated "
+              "(false).");
+REGISTER_HELP(CLUSTER_RESCAN_DETAIL6,
+              "The value for addInstances and removeInstances is used to "
+              "specify which instances to add or remove from the metadata, "
+              "respectively. Both options accept list connection data. In "
+              "addition, the \"auto\" value can be used for both options in "
+              "order to automatically add or remove the instances in the "
+              "metadata, without having to explicitly specify them.");
 
 /**
  * $(CLUSTER_RESCAN_BRIEF)
@@ -1357,46 +1403,42 @@ REGISTER_HELP(CLUSTER_RESCAN_DETAIL,
  * $(CLUSTER_RESCAN_THROWS4)
  * $(CLUSTER_RESCAN_THROWS5)
  * $(CLUSTER_RESCAN_THROWS6)
+ * $(CLUSTER_RESCAN_THROWS7)
+ * $(CLUSTER_RESCAN_THROWS8)
+ * $(CLUSTER_RESCAN_THROWS9)
+ * $(CLUSTER_RESCAN_THROWS10)
+ * $(CLUSTER_RESCAN_THROWS11)
+ *
+ * $(CLUSTER_RESCAN_PARAM)
  *
  * $(CLUSTER_RESCAN_RETURNS)
  *
  * $(CLUSTER_RESCAN_DETAIL)
+ *
+ * $(CLUSTER_RESCAN_DETAIL1)
+ *
+ * $(CLUSTER_RESCAN_DETAIL2)
+ * $(CLUSTER_RESCAN_DETAIL3)
+ * $(CLUSTER_RESCAN_DETAIL4)
+ * $(CLUSTER_RESCAN_DETAIL5)
+ *
+ * $(CLUSTER_RESCAN_DETAIL6)
  */
 #if DOXYGEN_JS
-Undefined Cluster::rescan() {}
+Undefined Cluster::rescan(Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::rescan() {}
+None Cluster::rescan(dict options) {}
 #endif
 
-shcore::Value Cluster::rescan(const shcore::Argument_list &args) {
-  // Throw an error if the cluster has already been dissolved
+void Cluster::rescan(const shcore::Dictionary_t &options) {
   assert_valid("rescan");
 
-  args.ensure_count(0, get_function_name("rescan").c_str());
+  check_preconditions("rescan");
 
-  shcore::Value ret_val;
-  try {
-    check_preconditions("rescan");
-
-    ret_val = shcore::Value(_rescan(args));
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rescan"));
-
-  return ret_val;
-}
-
-shcore::Value::Map_type_ref Cluster::_rescan(
-    const shcore::Argument_list &args) {
-  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
-
-  // Check if we have a Default ReplicaSet
   if (!_default_replica_set)
     throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
-  // Rescan the Default ReplicaSet
-  (*ret_val)["defaultReplicaSet"] = _default_replica_set->rescan(args);
-
-  return ret_val;
+  _default_replica_set->rescan(options);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);

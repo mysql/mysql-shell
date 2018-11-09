@@ -113,6 +113,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   void execute(const std::string &code);
 
  protected:
+  virtual void set_defaults();
   virtual void reset_shell();
 
   std::streambuf *_cout_backup;

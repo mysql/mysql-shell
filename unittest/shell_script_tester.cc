@@ -1392,6 +1392,26 @@ void Shell_script_tester::validate_batch(const std::string &script) {
   execute_script(script, false);
 }
 
+void Shell_script_tester::set_defaults() {
+  Crud_test_wrapper::set_defaults();
+
+  std::string test_mode;
+  switch (g_test_recording_mode) {
+    case mysqlshdk::db::replay::Mode::Direct:
+      test_mode = "direct";
+      break;
+    case mysqlshdk::db::replay::Mode::Record:
+      test_mode = "record";
+      break;
+    case mysqlshdk::db::replay::Mode::Replay:
+      test_mode = "replay";
+      break;
+  }
+  std::string code =
+      get_variable_prefix() + "__test_execution_mode = '" + test_mode + "'";
+  exec_and_out_equals(code);
+}
+
 void Shell_js_script_tester::set_defaults() {
   Shell_script_tester::set_defaults();
 

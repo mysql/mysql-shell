@@ -47,14 +47,10 @@ class Interactive_dba_cluster : public Interactive_object_wrapper {
   shcore::Value add_instance(const shcore::Argument_list &args);
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
-  shcore::Value rescan(const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
 
  private:
-  bool resolve_instance_options(const std::string &function,
-                                const shcore::Argument_list &args,
-                                shcore::Value::Map_type_ref &options) const;
   mysqlsh::dba::Cluster_check_info check_preconditions(
       const std::string &function_name) const;
   void assert_valid(const std::string &function_name) const;

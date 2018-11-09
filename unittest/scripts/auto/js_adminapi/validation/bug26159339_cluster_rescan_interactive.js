@@ -80,7 +80,7 @@
 
 //@ Rescan
 |Rescanning the cluster...|
-|The instance 'localhost:<<<__mysql_sandbox_port3>>>' is no longer part of the HA setup. It is either offline or left the HA group.|
+|The instance 'localhost:<<<__mysql_sandbox_port3>>>' is no longer part of the ReplicaSet.|
 
 //@# Try to rejoin it (error)
 ||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' may belong to a different ReplicaSet as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the ReplicaSet's Metadata: possible split-brain scenario. Please remove the instance from the cluster.

@@ -131,6 +131,17 @@ TEST_F(Config_test, config_handlers) {
       cfg.remove_handler("not-exist"), std::out_of_range,
       "The specified configuration handler 'not-exist' does not exist.");
 
+  // Add "server_global" handler back.
+  cfg.add_handler("server_global",
+                  std::unique_ptr<IConfig_handler>(new Config_server_handler(
+                      &instance, Var_qualifier::GLOBAL)));
+
+  // Test list of handler names.
+  std::vector<std::string> handlers = cfg.list_handler_names();
+  EXPECT_EQ(handlers.size(), 2);
+  EXPECT_THAT(handlers,
+              UnorderedElementsAre("server_global", "server_session"));
+
   // Test clear handlers
   cfg.clear_handlers();
   EXPECT_FALSE(cfg.has_handler("server_global"));

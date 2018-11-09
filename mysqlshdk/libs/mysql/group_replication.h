@@ -261,6 +261,23 @@ bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance);
 
 /**
+ * Check if the specified instance address corresponds to an active member from
+ * the perspective of the given instance.
+ *
+ * The instance is considered active if it belongs to the group and it is not
+ * OFFLINE or UNREACHABLE.
+ *
+ * @param instance Instance to use to perform the check.
+ * @param host string with the host of the instance to check.
+ * @param port int with the port of the instance to check.
+ *
+ * @return a boolean value indicating if the instance is an active member of the
+ *         Group Replication group (true) or not (false).
+ */
+bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
+                      const std::string &host, const int port);
+
+/**
  * Update auto-increment setting based on the GR mode.
  *
  * IMPORTANT NOTE: It is assumed that the Config object used as parameter

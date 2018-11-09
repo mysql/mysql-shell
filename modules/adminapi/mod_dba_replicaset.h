@@ -35,6 +35,7 @@
 
 #include "modules/adminapi/mod_dba_common.h"
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -163,7 +164,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   shcore::Value remove_instance(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value retrieve_instance_state(const shcore::Argument_list &args);
-  shcore::Value rescan(const shcore::Argument_list &args);
+  void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
   shcore::Value force_quorum_using_partition_of_(
@@ -259,7 +260,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void validate_server_uuid(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session);
 
-  shcore::Value::Map_type_ref _rescan(const shcore::Argument_list &args);
   std::string get_cluster_group_seeds(
       std::shared_ptr<mysqlshdk::db::ISession> instance_session = nullptr);
 

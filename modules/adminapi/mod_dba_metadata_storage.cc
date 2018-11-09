@@ -22,18 +22,18 @@
  */
 
 #include "modules/adminapi/mod_dba_metadata_storage.h"
-#include <random>
-#include "modules/adminapi/metadata-model_definitions.h"
-#include "utils/utils_sqlstring.h"
-// #include "modules/adminapi/mod_dba_instance.h"
-#include "db/mysqlx/mysqlxclient_clean.h"
-#include "modules/adminapi/mod_dba_sql.h"
 
+#include <random>
+
+#include "db/mysqlx/mysqlxclient_clean.h"
+#include "modules/adminapi/metadata-model_definitions.h"
+#include "modules/adminapi/mod_dba_sql.h"
 #include "mysqlshdk/libs/innodbcluster/cluster_metadata.h"
 #include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
+#include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
 
 // How many times to retry a query if it fails because it's SUPER_READ_ONLY

@@ -48,7 +48,7 @@ FUNCTIONS
       removeInstance(instance[, options])
             Removes an Instance from the cluster.
 
-      rescan()
+      rescan([options])
             Rescans the cluster.
 
       setPrimaryInstance(instance)
@@ -583,16 +583,48 @@ NAME
       rescan - Rescans the cluster.
 
 SYNTAX
-      <Cluster>.rescan()
+      <Cluster>.rescan([options])
+
+WHERE
+      options: Dictionary with options for the operation.
 
 RETURNS
        Nothing.
 
 DESCRIPTION
-      This function rescans the cluster for new Group Replication
-      members/instances.
+      This function rescans the cluster for new and obsolete Group Replication
+      members/instances, as well as changes in the used topology mode (i.e.,
+      single-primary and multi-primary).
+
+      The options dictionary may contain the following attributes:
+
+      - addInstances: List with the connection data of the new active instances
+        to add to the metadata, or "auto" to automatically add missing
+        instances to the metadata.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+      - removeInstances: List with the connection data of the obsolete
+        instances to remove from the metadata, or "auto" to automatically
+        remove obsolete instances from the metadata.
+      - updateTopologyMode: boolean value used to indicate if the topology mode
+        (single-primary or multi-primary) in the metadata should be updated
+        (true) or not (false) to match the one being used by the cluster. By
+        default, the metadata is not updated (false).
+
+      The value for addInstances and removeInstances is used to specify which
+      instances to add or remove from the metadata, respectively. Both options
+      accept list connection data. In addition, the "auto" value can be used
+      for both options in order to automatically add or remove the instances in
+      the metadata, without having to explicitly specify them.
 
 EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the value for `addInstances` or `removeInstance` is empty.
+      - If the value for `addInstances` or `removeInstance` is invalid.
+
       MetadataError in the following scenarios:
 
       - If the Metadata is inaccessible.
@@ -605,6 +637,10 @@ EXCEPTIONS
       RuntimeError in the following scenarios:
 
       - If all the ReplicaSet instances of any ReplicaSet are offline.
+      - If an instance specified for `addInstances` is not an active member of
+        the replication group.
+      - If an instance specified for `removeInstances` is an active member of
+        the replication group.
 
 //@<OUT> Status
 NAME
