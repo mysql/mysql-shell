@@ -1286,4 +1286,55 @@ TEST_F(Instance_test, get_system_variables_like) {
   _session->close();
 }
 
+TEST_F(Instance_test, is_set_persist_supported) {
+  EXPECT_CALL(session, connect(_connection_options));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // Simulate 8.0.11 version is used.
+  EXPECT_CALL(session, get_server_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 11)));
+
+  // Set persisted_globals_load is OFF.
+  session
+      .expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('persisted_globals_load')")
+      .then_return({{"show GLOBAL variables "
+                     "where `variable_name` in ('persisted_globals_load')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"persisted_globals_load", "OFF"}}}});
+  mysqlshdk::utils::nullable<bool> res = instance.is_set_persist_supported();
+  EXPECT_FALSE(res.is_null());
+  EXPECT_FALSE(*res);
+
+  // Set persisted_globals_load is ON.
+  session
+      .expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('persisted_globals_load')")
+      .then_return({{"show GLOBAL variables "
+                     "where `variable_name` in ('persisted_globals_load')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"persisted_globals_load", "ON"}}}});
+  res = instance.is_set_persist_supported();
+  EXPECT_FALSE(res.is_null());
+  EXPECT_TRUE(*res);
+
+  mysqlshdk::mysql::Instance instance_57(_session);
+
+  // Simulate 5.7 version is used.
+  EXPECT_CALL(session, get_server_version())
+      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 24)));
+
+  // Set is not supported.
+  res = instance_57.is_set_persist_supported();
+  EXPECT_TRUE(res.is_null());
+
+  EXPECT_CALL(session, close());
+  _session->close();
+}
+
 }  // namespace testing

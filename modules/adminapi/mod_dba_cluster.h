@@ -63,7 +63,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   String getName();
   Undefined rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
-  Undefined rescan();
+  Undefined rescan(Dictionary options);
   String status(Dictionary options);
   Undefined switchToSinglePrimaryMode(InstanceDef instance);
   Undefined switchToMultiPrimaryMode();
@@ -74,12 +74,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   dict check_instance_state(InstanceDef instance, str password);
   str describe();
   None disconnect();
-  None dissolve(Dictionary options);
+  None dissolve(dict options);
   None force_quorum_using_partition_of(InstanceDef instance, str password);
   str get_name();
   None rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
-  None rescan();
+  None rescan(dict options);
   str status(dict options);
   None switch_to_single_primary_mode(InstanceDef instance);
   None switch_to_multi_primary_mode();
@@ -165,7 +165,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value status(const shcore::Argument_list &args);
   shcore::Value dissolve(const shcore::Argument_list &args);
   shcore::Value check_instance_state(const shcore::Argument_list &args);
-  shcore::Value rescan(const shcore::Argument_list &args);
+  void rescan(const shcore::Dictionary_t &options);
   shcore::Value force_quorum_using_partition_of(
       const shcore::Argument_list &args);
   shcore::Value disconnect(const shcore::Argument_list &args);

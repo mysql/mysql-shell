@@ -674,5 +674,6 @@ utils::nullable<bool> Instance::is_set_persist_supported() const {
     return utils::nullable<bool>();
   }
 }
+
 }  // namespace mysql
 }  // namespace mysqlshdk

@@ -50,8 +50,6 @@ void Interactive_dba_cluster::init() {
   add_varargs_method(
       "checkInstanceState",
       std::bind(&Interactive_dba_cluster::check_instance_state, this, _1));
-  add_varargs_method("rescan",
-                     std::bind(&Interactive_dba_cluster::rescan, this, _1));
   add_varargs_method(
       "forceQuorumUsingPartitionOf",
       std::bind(&Interactive_dba_cluster::force_quorum_using_partition_of, this,
@@ -325,113 +323,6 @@ shcore::Value Interactive_dba_cluster::check_instance_state(
   println();
 
   return ret_val;
-}
-
-shcore::Value Interactive_dba_cluster::rescan(
-    const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("rescan");
-
-  args.ensure_count(0, get_function_name("rescan").c_str());
-
-  check_preconditions("rescan");
-
-  println("Rescanning the cluster...");
-  println();
-
-  println("Result of the rescanning operation:");
-
-  shcore::Value rescan_report = call_target("rescan", shcore::Argument_list());
-
-  print_value(rescan_report, "");
-
-  auto result = rescan_report.as_map();
-
-  // We only support 1 ReplicaSet now, the DefaultReplicaSet
-  if (result->has_key("defaultReplicaSet")) {
-    auto default_rs = result->get_map("defaultReplicaSet");
-    auto cluster = std::dynamic_pointer_cast<mysqlsh::dba::Cluster>(_target);
-    // Check if there are unknown instances
-    if (default_rs->has_key("newlyDiscoveredInstances")) {
-      auto unknown_instances =
-          default_rs->get_array("newlyDiscoveredInstances");
-
-      for (auto instance : *unknown_instances) {
-        auto instance_map = instance.as_map();
-        println();
-        println("A new instance '" + instance_map->get_string("host") +
-                "' was discovered in the HA setup.");
-
-        if (confirm("Would you like to add it to the cluster metadata?") ==
-            mysqlsh::Prompt_answer::YES) {
-          std::string full_host = instance_map->get_string("host");
-          auto instance_def = shcore::get_connection_options(full_host, false);
-
-          instance_def.set_user(cluster->get_group_session()
-                                    ->get_connection_options()
-                                    .get_user());
-
-          println("Adding instance to the cluster metadata...");
-          println();
-
-          std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-
-          object = cluster->get_default_replicaset();
-
-          object->add_instance_metadata(instance_def);
-
-          println("The instance '" + instance_def.as_uri(user_transport()) +
-                  "' was "
-                  "successfully added to the cluster metadata.");
-          println();
-        }
-      }
-    }
-
-    // Check if there are missing instances
-    if (default_rs->has_key("unavailableInstances")) {
-      auto missing_instances = default_rs->get_array("unavailableInstances");
-
-      for (auto instance : *missing_instances) {
-        auto instance_map = instance.as_map();
-        println();
-        println("The instance '" + instance_map->get_string("host") +
-                "' is no longer part of the HA setup. "
-                "It is either offline or left the HA group.");
-        println(
-            "You can try to add it to the cluster again with the "
-            "cluster.rejoinInstance('" +
-            instance_map->get_string("host") +
-            "') command or you can remove it from the cluster "
-            "configuration.");
-
-        if (confirm("Would you like to remove it from the cluster metadata?") ==
-            mysqlsh::Prompt_answer::YES) {
-          std::string full_host = instance_map->get_string("host");
-          auto instance_def = shcore::get_connection_options(full_host, false);
-
-          println("Removing instance from the cluster metadata...");
-          println();
-
-          std::shared_ptr<mysqlsh::dba::ReplicaSet> object;
-
-          object = cluster->get_default_replicaset();
-
-          object->remove_instance_metadata(instance_def);
-
-          println("The instance '" + instance_def.as_uri(user_transport()) +
-                  "' was "
-                  "successfully removed from the cluster metadata.");
-
-          println();
-        }
-      }
-    }
-  }
-
-  return shcore::Value();
 }
 
 shcore::Value Interactive_dba_cluster::force_quorum_using_partition_of(

@@ -63,6 +63,7 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/preconditions.cc"
       "adminapi/dba/provision.cc"
       "adminapi/dba/remove_instance.cc"
+      "adminapi/dba/replicaset_rescan.cc"
       "adminapi/dba/replicaset_topology_configuration_command.cc"
       "adminapi/dba/replicaset_switch_to_single_primary_mode.cc"
       "adminapi/dba/replicaset_switch_to_multi_primary_mode.cc"

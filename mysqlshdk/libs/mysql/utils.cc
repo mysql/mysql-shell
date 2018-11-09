@@ -112,6 +112,11 @@ void clone_user(const std::shared_ptr<db::ISession> &session,
                         shcore::quote_identifier(new_host);
 
   // create user
+  // IMPORTANT: Binary logging must be disabled when using this function to
+  // create users for dba. configureInstance() (only place where it is used
+  // currently), otherwise it will create an errand transaction and instances
+  // will fail to join a cluster.
+  session->execute("SET sql_log_bin = 0");
   session->executef("CREATE USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*(*/ ? /*)*/",
                     new_user, new_host, password);
 
@@ -135,6 +140,7 @@ void clone_user(const std::shared_ptr<db::ISession> &session,
     for (const auto &grant : grants) {
       session->execute(grant);
     }
+    session->execute("SET sql_log_bin = 1");
   }
 }
 

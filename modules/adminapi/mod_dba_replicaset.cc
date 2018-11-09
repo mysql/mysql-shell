@@ -34,6 +34,7 @@
 
 #include "modules/adminapi/dba/dissolve.h"
 #include "modules/adminapi/dba/remove_instance.h"
+#include "modules/adminapi/dba/replicaset_rescan.h"
 #include "modules/adminapi/dba/replicaset_set_primary_instance.h"
 #include "modules/adminapi/dba/replicaset_switch_to_multi_primary_mode.h"
 #include "modules/adminapi/dba/replicaset_switch_to_single_primary_mode.h"
@@ -1361,71 +1362,123 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
-shcore::Value ReplicaSet::rescan(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
+namespace {
+void unpack_auto_instances_list(
+    mysqlsh::Unpack_options *opts_unpack, const std::string &option_name,
+    bool *out_auto,
+    std::vector<mysqlshdk::db::Connection_options> *instances_list) {
+  // Extract value for addInstances, it can be a string "auto" or a list.
+  shcore::Array_t instances_array;
   try {
-    ret_val = shcore::Value(_rescan(args));
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rescan"));
+    // Try to extract the "auto" string.
+    mysqlshdk::utils::nullable<std::string> auto_option_str;
+    opts_unpack->optional(option_name.c_str(), &auto_option_str);
 
-  return ret_val;
+    // Validate if "auto" was specified (case insensitive).
+    if (!auto_option_str.is_null() &&
+        shcore::str_casecmp(auto_option_str, "auto") == 0) {
+      *out_auto = true;
+    } else if (!auto_option_str.is_null()) {
+      throw shcore::Exception::argument_error(
+          "Option '" + option_name +
+          "' only accepts 'auto' as a valid string "
+          "value, otherwise a list of instances is expected.");
+    }
+  } catch (const shcore::Exception &err) {
+    // Try to extract a list of instances (will fail with a TypeError when
+    // trying to read it as a string previously).
+    if (std::string(err.type()).compare("TypeError") == 0) {
+      opts_unpack->optional(option_name.c_str(), &instances_array);
+    } else {
+      throw;
+    }
+  }
+
+  if (instances_array) {
+    if (instances_array.get()->empty()) {
+      throw shcore::Exception::argument_error("The list for '" + option_name +
+                                              "' option cannot be empty.");
+    }
+
+    // Process values from addInstances list (must be valid connection data).
+    for (const shcore::Value &value : *instances_array.get()) {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(value));
+
+      try {
+        mysqlshdk::db::Connection_options cnx_opt =
+            mysqlsh::get_connection_options(args,
+                                            mysqlsh::PasswordFormat::NONE);
+
+        if (cnx_opt.get_host().empty()) {
+          throw shcore::Exception::argument_error("host cannot be empty.");
+        }
+
+        if (!cnx_opt.has_port()) {
+          throw shcore::Exception::argument_error("port is missing.");
+        }
+
+        instances_list->push_back(cnx_opt);
+      } catch (std::exception &err) {
+        std::string error(err.what());
+        throw shcore::Exception::argument_error(
+            "Invalid value '" + value.descr() + "' for '" + option_name +
+            "' option: " + error);
+      }
+    }
+  }
 }
+}  // namespace
 
-shcore::Value::Map_type_ref ReplicaSet::_rescan(
-    const shcore::Argument_list &args) {
-  shcore::Value::Map_type_ref ret_val(new shcore::Value::Map_type());
+void ReplicaSet::rescan(const shcore::Dictionary_t &options) {
+  bool interactive, auto_add_instance = false, auto_remove_instance = false;
+  mysqlshdk::utils::nullable<bool> update_topology_mode;
+  std::vector<mysqlshdk::db::Connection_options> add_instances_list,
+      remove_instances_list;
 
-  // Set the ReplicaSet name on the result map
-  (*ret_val)["name"] = shcore::Value(_name);
+  std::shared_ptr<Cluster> cluster(_cluster.lock());
+  if (!cluster)
+    throw shcore::Exception::runtime_error("Cluster object is no longer valid");
 
-  std::vector<NewInstanceInfo> newly_discovered_instances_list =
-      get_newly_discovered_instances(_metadata_storage, _id);
+  interactive = current_shell_options()->get().wizards;
 
-  // Creates the newlyDiscoveredInstances map
-  shcore::Value::Array_type_ref newly_discovered_instances(
-      new shcore::Value::Array_type());
+  // Get optional options.
+  if (options) {
+    shcore::Array_t add_instances_array, remove_instances_array;
 
-  for (auto &instance : newly_discovered_instances_list) {
-    shcore::Value::Map_type_ref newly_discovered_instance(
-        new shcore::Value::Map_type());
-    (*newly_discovered_instance)["member_id"] =
-        shcore::Value(instance.member_id);
-    (*newly_discovered_instance)["name"] = shcore::Value::Null();
+    auto opts_unpack = Unpack_options(options);
+    opts_unpack.optional("updateTopologyMode", &update_topology_mode)
+        .optional("interactive", &interactive);
 
-    std::string instance_address =
-        instance.host + ":" + std::to_string(instance.port);
+    // Extract value for addInstances, it can be a string "auto" or a list.
+    unpack_auto_instances_list(&opts_unpack, "addInstances", &auto_add_instance,
+                               &add_instances_list);
 
-    (*newly_discovered_instance)["host"] = shcore::Value(instance_address);
-    newly_discovered_instances->push_back(
-        shcore::Value(newly_discovered_instance));
+    // Extract value for removeInstances, it can be a string "auto" or a list.
+    unpack_auto_instances_list(&opts_unpack, "removeInstances",
+                               &auto_remove_instance, &remove_instances_list);
+
+    opts_unpack.end();
   }
-  // Add the newly_discovered_instances list to the result Map
-  (*ret_val)["newlyDiscoveredInstances"] =
-      shcore::Value(newly_discovered_instances);
 
-  shcore::Value unavailable_instances_result;
+  // Rescan replicaset.
+  {
+    // Create the rescan command and execute it.
+    Rescan op_rescan(interactive, update_topology_mode, auto_add_instance,
+                     auto_remove_instance, add_instances_list,
+                     remove_instances_list, cluster, shared_from_this(),
+                     this->naming_style);
 
-  std::vector<MissingInstanceInfo> unavailable_instances_list =
-      get_unavailable_instances(_metadata_storage, _id);
+    // Always execute finish when leaving "try catch".
+    auto finally =
+        shcore::on_leave_scope([&op_rescan]() { op_rescan.finish(); });
 
-  // Creates the unavailableInstances array
-  shcore::Value::Array_type_ref unavailable_instances(
-      new shcore::Value::Array_type());
+    // Prepare the rescan command execution (validations).
+    op_rescan.prepare();
 
-  for (auto &instance : unavailable_instances_list) {
-    shcore::Value::Map_type_ref unavailable_instance(
-        new shcore::Value::Map_type());
-    (*unavailable_instance)["member_id"] = shcore::Value(instance.id);
-    (*unavailable_instance)["label"] = shcore::Value(instance.label);
-    (*unavailable_instance)["host"] = shcore::Value(instance.host);
-
-    unavailable_instances->push_back(shcore::Value(unavailable_instance));
+    // Execute rescan operation.
+    op_rescan.execute();
   }
-  // Add the missing_instances list to the result Map
-  (*ret_val)["unavailableInstances"] = shcore::Value(unavailable_instances);
-
-  return ret_val;
 }
 
 mysqlshdk::db::Connection_options ReplicaSet::pick_seed_instance() {

@@ -1091,4 +1091,128 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
                        Var_qualifier::GLOBAL);
 }
 
+TEST_F(Group_replication_test, is_active_member) {
+  using mysqlshdk::db::Type;
+
+  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  mysqlshdk::mysql::Instance instance{mock_session};
+
+  mock_session
+      ->expect_query(
+          "SELECT Member_state "
+          "FROM performance_schema.replication_group_members "
+          "WHERE Member_host = 'localhost' AND Member_port = 3306 "
+          "AND Member_state NOT IN ('OFFLINE', 'UNREACHABLE')")
+      .then_return({{"", {"Member_state"}, {Type::String}, {}}});
+  EXPECT_FALSE(mysqlshdk::gr::is_active_member(instance, "localhost", 3306));
+
+  mock_session
+      ->expect_query(
+          "SELECT Member_state "
+          "FROM performance_schema.replication_group_members "
+          "WHERE Member_host = 'localhost' AND Member_port = 3306 "
+          "AND Member_state NOT IN ('OFFLINE', 'UNREACHABLE')")
+      .then_return({{"", {"Member_state"}, {Type::String}, {{"ONLINE"}}}});
+  EXPECT_TRUE(mysqlshdk::gr::is_active_member(instance, "localhost", 3306));
+}
+
+TEST_F(Group_replication_test, update_auto_increment) {
+  using mysqlshdk::db::Type;
+  using mysqlshdk::gr::Topology_mode;
+  using mysqlshdk::mysql::Var_qualifier;
+
+  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  mysqlshdk::mysql::Instance instance{mock_session};
+
+  // Create config objects with 3 server handlers.
+  mysqlshdk::config::Config cfg_global;
+  for (int i = 0; i < 3; i++) {
+    cfg_global.add_handler("instance_" + std::to_string(i),
+                           std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                               new mysqlshdk::config::Config_server_handler(
+                                   &instance, Var_qualifier::GLOBAL)));
+  }
+
+  // Set auto-increment for single-primary (3 instances).
+  EXPECT_CALL(*mock_session,
+              execute("SET GLOBAL `auto_increment_increment` = 1"))
+      .Times(3);
+  EXPECT_CALL(*mock_session, execute("SET GLOBAL `auto_increment_offset` = 2"))
+      .Times(3);
+  mysqlshdk::gr::update_auto_increment(&cfg_global,
+                                       Topology_mode::SINGLE_PRIMARY);
+  cfg_global.apply();
+
+  // Create config objects with 10 server handlers with PERSIST support.
+  mysqlshdk::config::Config cfg_persist;
+  for (int i = 0; i < 10; i++) {
+    cfg_persist.add_handler("instance_" + std::to_string(i),
+                            std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                                new mysqlshdk::config::Config_server_handler(
+                                    &instance, Var_qualifier::PERSIST)));
+  }
+
+  // Set auto-increment for single-primary (10 instances with PERSIST support).
+  EXPECT_CALL(*mock_session,
+              execute("SET PERSIST `auto_increment_increment` = 1"))
+      .Times(10);
+  EXPECT_CALL(*mock_session, execute("SET PERSIST `auto_increment_offset` = 2"))
+      .Times(10);
+  mysqlshdk::gr::update_auto_increment(&cfg_persist,
+                                       Topology_mode::SINGLE_PRIMARY);
+  cfg_persist.apply();
+
+  // Remove server handlers to leave only one.
+  // NOTE: There is a limitation for Mock_session::expect_query(), not allowing
+  // the same query to properly return a result when used consecutively (only
+  // the first execution of the query will work and no rows are returned by the
+  // following). Thus, getting the required server_id for more than one server
+  // will not work using the same Mock_session.
+  for (int i = 1; i < 3; i++) {
+    std::string instance_address = "instance_" + std::to_string(i);
+    cfg_global.remove_handler(instance_address);
+  }
+
+  // Set auto-increment for multi-primary with 1 server handler.
+  EXPECT_CALL(*mock_session,
+              execute("SET GLOBAL `auto_increment_increment` = 7"));
+  mock_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in ('server_id')")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"server_id", "4"}}}});
+  EXPECT_CALL(*mock_session, execute("SET GLOBAL `auto_increment_offset` = 5"));
+  mysqlshdk::gr::update_auto_increment(&cfg_global,
+                                       Topology_mode::MULTI_PRIMARY);
+  cfg_global.apply();
+
+  // Remove server handlers to leave only one.
+  // NOTE: There is a limitation for Mock_session::expect_query(), not allowing
+  // the same query to properly return a result when used consecutively (only
+  // the first execution of the query will work and no rows are returned by the
+  // following). Thus, getting the required server_id for more than one server
+  // will not work using the same Mock_session.
+  for (int i = 1; i < 10; i++) {
+    cfg_persist.remove_handler("instance_" + std::to_string(i));
+  }
+
+  // Set auto-increment for multi-primary with 1 server handler with PERSIST.
+  EXPECT_CALL(*mock_session,
+              execute("SET PERSIST `auto_increment_increment` = 7"));
+  mock_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in ('server_id')")
+      .then_return({{"",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::String},
+                     {{"server_id", "7"}}}});
+  EXPECT_CALL(*mock_session,
+              execute("SET PERSIST `auto_increment_offset` = 1"));
+  mysqlshdk::gr::update_auto_increment(&cfg_persist,
+                                       Topology_mode::MULTI_PRIMARY);
+  cfg_persist.apply();
+}
+
 }  // namespace testing

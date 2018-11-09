@@ -1114,6 +1114,27 @@ bool is_group_replication_delayed_starting(
   }
 }
 
+bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
+                      const std::string &host, const int port) {
+  std::string is_active_member_stmt_fmt =
+      "SELECT Member_state "
+      "FROM performance_schema.replication_group_members "
+      "WHERE Member_host = ? AND Member_port = ? "
+      "AND Member_state NOT IN ('OFFLINE', 'UNREACHABLE')";
+  shcore::sqlstring is_active_member_stmt =
+      shcore::sqlstring(is_active_member_stmt_fmt.c_str(), 0);
+  is_active_member_stmt << host;
+  is_active_member_stmt << port;
+  is_active_member_stmt.done();
+  auto session = instance.get_session();
+  auto resultset = session->query(is_active_member_stmt);
+  auto row = resultset->fetch_one();
+  if (row)
+    return true;
+  else
+    return false;
+}
+
 void update_auto_increment(mysqlshdk::config::Config *config,
                            const Topology_mode &topology_mode) {
   assert(config != nullptr);
