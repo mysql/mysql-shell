@@ -204,3 +204,34 @@ auto_increment_offset = <<<__expected_auto_inc_offset>>>
 
 //@ BUG#27677227 cluster with x protocol disabled cleanup
 ||
+
+//@ WL#12067: Initialization {VER(>=8.0.14)}
+||
+
+//@ WL#12067: TSF2_1 The value for group_replication_consistency must be the same on all cluster members (single-primary) {VER(>=8.0.14)}
+||
+
+//@ WL#12067: TSF2_1 Confirm group_replication_consistency value is the same on all cluster members (single-primary) {VER(>=8.0.14)}
+|BEFORE_ON_PRIMARY_FAILOVER|
+|BEFORE_ON_PRIMARY_FAILOVER|
+
+//@ WL#12067: TSF2_1 Confirm group_replication_consistency value was persisted (single-primary) {VER(>=8.0.14)}
+|group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER|
+|group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER|
+
+//@ WL#12067: Dissolve cluster 1 {VER(>=8.0.14)}
+||
+
+//@ WL#12067: TSF2_2 The value for group_replication_consistency must be the same on all cluster members (multi-primary) {VER(>=8.0.14)}
+||
+
+//@ WL#12067: TSF2_2 Confirm group_replication_consistency value is the same on all cluster members (multi-primary) {VER(>=8.0.14)}
+|BEFORE_ON_PRIMARY_FAILOVER|
+|BEFORE_ON_PRIMARY_FAILOVER|
+
+//@ WL#12067: TSF2_2 Confirm group_replication_consistency value was persisted (multi-primary) {VER(>=8.0.14)}
+|group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER|
+|group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER|
+
+//@ WL#12067: Finalization {VER(>=8.0.14)}
+||

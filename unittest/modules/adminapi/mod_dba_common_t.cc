@@ -1167,6 +1167,75 @@ TEST_F(Dba_common_test, validate_member_weight_supported) {
   session->close();
   testutil->destroy_sandbox(_mysql_sandbox_port1);
 }
+
+TEST_F(Dba_common_test, validate_failover_consistency_supported) {
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  auto session = create_session(_mysql_sandbox_port1);
+  auto version = session->get_server_version();
+  auto empty_fail_cons = mysqlshdk::utils::nullable<std::string>("  ");
+  auto null_fail_cons = mysqlshdk::utils::nullable<std::string>();
+  auto valid_fail_cons = mysqlshdk::utils::nullable<std::string>("1");
+  // if a null value was provided, it is as if the option was not provided,
+  // so no error should be thrown
+  mysqlsh::dba::validate_failover_consistency_supported(session,
+                                                        null_fail_cons);
+  // if an empty value was provided, an error should be thrown independently
+  // of the server version
+  EXPECT_THROW_LIKE(
+      mysqlsh::dba::validate_failover_consistency_supported(session,
+                                                            empty_fail_cons),
+      shcore::Exception,
+      "Invalid value for failoverConsistency, string value cannot be empty.");
+  // if a valid value (non empty) was provided, an error should only be thrown
+  // in case the option is not supported by the server version.
+  if (version < mysqlshdk::utils::Version(8, 0, 14)) {
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_failover_consistency_supported(session,
+                                                              valid_fail_cons),
+        std::runtime_error,
+        "Option 'failoverConsistency' not supported on target server "
+        "version:");
+  } else {
+    EXPECT_NO_THROW(mysqlsh::dba::validate_failover_consistency_supported(
+        session, valid_fail_cons));
+  }
+
+  session->close();
+  testutil->destroy_sandbox(_mysql_sandbox_port1);
+}
+
+TEST_F(Dba_common_test, is_group_replication_option_supported) {
+  testutil->deploy_sandbox(_mysql_sandbox_port1, "root");
+  auto session = create_session(_mysql_sandbox_port1);
+  auto version = session->get_server_version();
+  // if a non supported version is used, then we must throw an exception,
+  // else just save the result for further testing
+  if ((version.get_major() == 5 && version.get_minor() == 7) ||
+      version.get_major() == 8) {
+    mysqlsh::dba::is_group_replication_option_supported(
+        session, mysqlsh::dba::kExitStateAction);
+  } else {
+    EXPECT_THROW_LIKE(mysqlsh::dba::is_group_replication_option_supported(
+                          session, mysqlsh::dba::kExitStateAction),
+                      std::runtime_error,
+                      "Unexpected version found for GR option support check:");
+  }
+  // testing the result of exit-state action case since it has requirements for
+  // both 5.7 and the 8.0 MySQL versions.
+  if ((version < mysqlshdk::utils::Version(8, 0, 13) &&
+       version >= mysqlshdk::utils::Version(8, 0, 0)) ||
+      version < mysqlshdk::utils::Version(5, 7, 24)) {
+    EXPECT_FALSE(mysqlsh::dba::is_group_replication_option_supported(
+        session, mysqlsh::dba::kExitStateAction));
+  } else if (version >= mysqlshdk::utils::Version(8, 0, 13) ||
+             (version < mysqlshdk::utils::Version(8, 0, 0) &&
+              version >= mysqlshdk::utils::Version(5, 7, 24))) {
+    EXPECT_TRUE(mysqlsh::dba::is_group_replication_option_supported(
+        session, mysqlsh::dba::kExitStateAction));
+  }
+  session->close();
+  testutil->destroy_sandbox(_mysql_sandbox_port1);
+}
 }  // namespace tests
 
 TEST(mod_dba_common, validate_label) {

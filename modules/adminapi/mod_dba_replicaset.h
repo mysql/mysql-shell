@@ -111,8 +111,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::vector<std::string> &states,
       const mysqlshdk::db::Connection_options &cnx_opt,
       const std::vector<std::string> &ignore_instances_vector,
-      std::function<void(std::shared_ptr<mysqlshdk::db::ISession> session)>
-          functor);
+      std::function<bool(std::shared_ptr<mysqlshdk::db::ISession> session)>
+          functor,
+      bool ignore_network_conn_errors = true);
 
   static char const *kTopologySinglePrimary;
   static char const *kTopologyMultiPrimary;
@@ -252,7 +253,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       mysqlshdk::utils::nullable<int64_t> member_weight,
       const std::string &group_name = "", const std::string &local_address = "",
       const std::string &group_seeds = "",
-      const std::string &exit_state_action = "", bool skip_rpl_user = false);
+      const std::string &exit_state_action = "",
+      const std::string &failover_consistency = "", bool skip_rpl_user = false);
 
   void validate_instance_address(
       std::shared_ptr<mysqlshdk::db::ISession> session,

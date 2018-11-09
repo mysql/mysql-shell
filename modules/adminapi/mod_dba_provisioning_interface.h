@@ -65,7 +65,8 @@ class ProvisioningInterface {
       const std::string &ip_whitelist, const std::string &group_name,
       const std::string &gr_local_address, const std::string &gr_group_seeds,
       const std::string &gr_exit_state_action,
-      mysqlshdk::utils::nullable<int64_t> member_weight, bool skip_rpl_user,
+      mysqlshdk::utils::nullable<int64_t> member_weight,
+      const std::string &failover_consistency, bool skip_rpl_user,
       shcore::Value::Array_type_ref *errors);
   int join_replicaset(
       const mysqlshdk::db::Connection_options &instance,
@@ -74,7 +75,8 @@ class ProvisioningInterface {
       const std::string &ssl_mode, const std::string &ip_whitelist,
       const std::string &gr_local_address, const std::string &gr_group_seeds,
       const std::string &gr_exit_state_action,
-      mysqlshdk::utils::nullable<int64_t> member_weight, bool skip_rpl_user,
+      mysqlshdk::utils::nullable<int64_t> member_weight,
+      const std::string &failover_consistency, bool skip_rpl_user,
       shcore::Value::Array_type_ref *errors);
 
   void set_verbose(int verbose) { _verbose = verbose; }

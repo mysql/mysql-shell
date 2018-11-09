@@ -443,7 +443,8 @@ int ProvisioningInterface::start_replicaset(
     const std::string &ip_whitelist, const std::string &group_name,
     const std::string &gr_local_address, const std::string &gr_group_seeds,
     const std::string &gr_exit_state_action,
-    mysqlshdk::utils::nullable<int64_t> member_weight, bool skip_rpl_user,
+    mysqlshdk::utils::nullable<int64_t> member_weight,
+    const std::string &failover_consistency, bool skip_rpl_user,
     shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
@@ -486,6 +487,9 @@ int ProvisioningInterface::start_replicaset(
   if (!member_weight.is_null()) {
     kwargs["member_weight"] = shcore::Value(*member_weight);
   }
+  if (!failover_consistency.empty()) {
+    kwargs["failover_consistency"] = shcore::Value(failover_consistency);
+  }
 
   return execute_mysqlprovision("start-replicaset", args, kwargs, errors,
                                 _verbose);
@@ -497,7 +501,8 @@ int ProvisioningInterface::join_replicaset(
     const std::string &repl_user_password, const std::string &ssl_mode,
     const std::string &ip_whitelist, const std::string &gr_local_address,
     const std::string &gr_group_seeds, const std::string &gr_exit_state_action,
-    mysqlshdk::utils::nullable<int64_t> member_weight, bool skip_rpl_user,
+    mysqlshdk::utils::nullable<int64_t> member_weight,
+    const std::string &failover_consistency, bool skip_rpl_user,
     shcore::Value::Array_type_ref *errors) {
   shcore::Argument_map kwargs;
   shcore::Argument_list args;
@@ -542,6 +547,9 @@ int ProvisioningInterface::join_replicaset(
   }
   if (!member_weight.is_null()) {
     kwargs["member_weight"] = shcore::Value(*member_weight);
+  }
+  if (!failover_consistency.empty()) {
+    kwargs["failover_consistency"] = shcore::Value(failover_consistency);
   }
 
   return execute_mysqlprovision("join-replicaset", args, kwargs, errors,

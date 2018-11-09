@@ -48,6 +48,51 @@ namespace dba {
 void SHCORE_PUBLIC validate_cluster_name(const std::string &name);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
+// common keys for group replication configuration options
+constexpr const char kExitStateAction[] = "exitStateAction";
+constexpr const char kGrExitStateAction[] =
+    "group_replication_exit_state_action";
+constexpr const char kGroupSeeds[] = "groupSeeds";
+constexpr const char kGrGroupSeeds[] = "group_replication_group_seeds";
+constexpr const char kIpWhitelist[] = "ipWhitelist";
+constexpr const char kGrIpWhitelist[] = "group_replication_ip_whitelist";
+constexpr const char kLocalAddress[] = "localAddress";
+constexpr const char kGrLocalAddress[] = "group_replication_local_address";
+constexpr const char kMemberWeight[] = "memberWeight";
+constexpr const char kGrMemberWeight[] = "group_replication_member_weight";
+constexpr const char kExpelTimeout[] = "expelTimeout";
+constexpr const char kGrExpelTimeout[] =
+    "group_replication_member_expel_timeout";
+constexpr const char kFailoverConsistency[] = "failoverConsistency";
+constexpr const char kGrFailoverConsistency[] = "group_replication_consistency";
+constexpr const char kGroupName[] = "groupName";
+constexpr const char kGrGroupName[] = "group_replication_group_name";
+constexpr const char kMemberSslMode[] = "memberSslMode";
+constexpr const char kGrMemberSslMode[] = "group_replication_ssl_mode";
+
+// Group Replication configuration option availability regarding MySQL Server
+// version
+struct Option_availability {
+  std::string option_variable;
+  mysqlshdk::utils::Version support_in_80;
+  mysqlshdk::utils::Version support_in_57;
+};
+
+/**
+ * Map of the supported global ReplicaSet configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability> k_global_supported_options{
+    {kExitStateAction,
+     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+      mysqlshdk::utils::Version("5.7.24")}},
+    {kMemberWeight,
+     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+      mysqlshdk::utils::Version("5.7.20")}},
+    {kFailoverConsistency,
+     {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14")}},
+    {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}}};
+
 class MetadataStorage;
 
 struct Instance_definition {
@@ -106,6 +151,19 @@ std::vector<std::string> convert_ipwhitelist_to_netmask(
     const std::string &ip_whitelist);
 
 /**
+ * Check if a group_replication setting is supported on the target
+ * instance
+ *
+ * @param session object which represents the session to the instance
+ * @param option the name of the option as defined in the AdminAPI.
+ * @return Boolean indicating if the target instance supports the option.
+ *
+ */
+bool is_group_replication_option_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const std::string &option);
+
+/**
  * Validates the ipWhitelist option
  *
  * Checks if the given ipWhitelist is valid for use in the AdminAPI.
@@ -129,10 +187,11 @@ void validate_ip_whitelist_option(const std::string &ip_whitelist,
 void validate_local_address_option(const shcore::Value::Map_type_ref &options);
 void validate_group_seeds_option(const shcore::Value::Map_type_ref &options);
 void validate_group_name_option(const shcore::Value::Map_type_ref &options);
-bool is_exit_state_action_supported(
-    std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_exit_state_action_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session);
+void validate_failover_consistency_supported(
+    std::shared_ptr<mysqlshdk::db::ISession> session,
+    const mysqlshdk::utils::nullable<std::string> &failover_consistency);
 void validate_member_weight_supported(
     std::shared_ptr<mysqlshdk::db::ISession> session);
 void validate_replication_filters(
