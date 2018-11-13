@@ -130,11 +130,12 @@ std::string format_throughput_items(const std::string &item_name_singular,
 }
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds) {
-  char buffer[64];
+  char buffer[64] = {};
+  double ratio = bytes / seconds;
   std::string unit;
-  double nitems;
-  std::tie(unit, nitems) = scale_value(bytes);
-  snprintf(buffer, sizeof(buffer), "%.2f ", nitems / seconds);
+  double scaled_items;
+  std::tie(unit, scaled_items) = scale_value(ratio);
+  snprintf(buffer, sizeof(buffer), "%.2f ", scaled_items);
   return buffer + unit + "B/s";
 }
 

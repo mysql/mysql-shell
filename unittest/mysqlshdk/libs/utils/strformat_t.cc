@@ -94,6 +94,8 @@ TEST(UtilsStrformat, format_throughput_bytes) {
   EXPECT_EQ("11.00 MB/s", format_throughput_bytes(11000000, 1));
   EXPECT_EQ("11.00 GB/s", format_throughput_bytes(11000000000, 1));
   EXPECT_EQ("11.23 TB/s", format_throughput_bytes(11230000000000, 1));
+  EXPECT_EQ("860.18 KB/s",
+            format_throughput_bytes(1091311621, 21 * 60 + 8 + 0.6972));
 }
 
 }  // namespace utils
